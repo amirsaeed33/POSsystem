@@ -1,0 +1,76 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\GitHub\\QasimPortfolio\\DataGrid\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{E676F5D4-7975-4E8D-80D6-65C12EB1B73D}|DataGrid\\DataGrid.csproj|d:\\github\\qasimportfolio\\datagrid\\datagrid\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{E676F5D4-7975-4E8D-80D6-65C12EB1B73D}|DataGrid\\DataGrid.csproj|solutionrelative:datagrid\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E676F5D4-7975-4E8D-80D6-65C12EB1B73D}|DataGrid\\DataGrid.csproj|d:\\github\\qasimportfolio\\datagrid\\datagrid\\app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{E676F5D4-7975-4E8D-80D6-65C12EB1B73D}|DataGrid\\DataGrid.csproj|solutionrelative:datagrid\\app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E676F5D4-7975-4E8D-80D6-65C12EB1B73D}|DataGrid\\DataGrid.csproj|d:\\github\\qasimportfolio\\datagrid\\datagrid\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E676F5D4-7975-4E8D-80D6-65C12EB1B73D}|DataGrid\\DataGrid.csproj|solutionrelative:datagrid\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MainWindow.xaml",
+              "DocumentMoniker": "D:\\GitHub\\QasimPortfolio\\DataGrid\\DataGrid\\MainWindow.xaml",
+              "RelativeDocumentMoniker": "DataGrid\\MainWindow.xaml",
+              "ToolTip": "D:\\GitHub\\QasimPortfolio\\DataGrid\\DataGrid\\MainWindow.xaml",
+              "RelativeToolTip": "DataGrid\\MainWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2025-12-31T17:02:08.372Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "App.xaml",
+              "DocumentMoniker": "D:\\GitHub\\QasimPortfolio\\DataGrid\\DataGrid\\App.xaml",
+              "RelativeDocumentMoniker": "DataGrid\\App.xaml",
+              "ToolTip": "D:\\GitHub\\QasimPortfolio\\DataGrid\\DataGrid\\App.xaml",
+              "RelativeToolTip": "DataGrid\\App.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-01-01T09:21:04.268Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "MainWindow.xaml.cs",
+              "DocumentMoniker": "D:\\GitHub\\QasimPortfolio\\DataGrid\\DataGrid\\MainWindow.xaml.cs",
+              "RelativeDocumentMoniker": "DataGrid\\MainWindow.xaml.cs",
+              "ToolTip": "D:\\GitHub\\QasimPortfolio\\DataGrid\\DataGrid\\MainWindow.xaml.cs",
+              "RelativeToolTip": "DataGrid\\MainWindow.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACsAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-31T17:02:05.375Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
