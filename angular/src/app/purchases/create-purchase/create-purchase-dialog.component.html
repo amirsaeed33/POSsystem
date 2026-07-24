@@ -1,0 +1,135 @@
+<form class="form-horizontal" autocomplete="off" #createForm="ngForm" (ngSubmit)="save()">
+  <abp-modal-header [title]="'CreateNewPurchase' | localize" (onCloseClick)="bsModalRef.hide()"></abp-modal-header>
+  <div class="modal-body">
+    <div class="form-group row required">
+      <label class="col-md-2 col-form-label">{{ "Suppliers" | localize }}</label>
+      <div class="col-md-4">
+        <ng-select [fixedPlaceholder]="false"
+          [items]="suppliers"
+          bindLabel="name"
+          bindValue="id"
+          [(ngModel)]="purchase.supplierId"
+          name="supplierId"
+          [placeholder]="'SelectSupplier' | localize"
+          appendTo="body"
+          [clearable]="true"
+          required
+        ></ng-select>
+      </div>
+      <label class="col-md-2 col-form-label">{{ "PurchaseDate" | localize }}</label>
+      <div class="col-md-4">
+        <input type="date" class="form-control" name="purchaseDate" required [(ngModel)]="purchase.purchaseDate" />
+      </div>
+    </div>
+    <div class="form-group row">
+      <label class="col-md-2 col-form-label">{{ "Notes" | localize }}</label>
+      <div class="col-md-10">
+        <input type="text" class="form-control" name="notes" maxlength="512" [(ngModel)]="purchase.notes" />
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0">{{ "Products" | localize }}</h5>
+      <button type="button" class="btn btn-sm bg-blue" (click)="addLine()">
+        <i class="fa fa-plus"></i> {{ "AddLine" | localize }}
+      </button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead class="bg-light">
+          <tr>
+            <th>{{ "Products" | localize }}</th>
+            <th style="width: 120px;">{{ "Quantity" | localize }}</th>
+            <th style="width: 140px;">{{ "UnitCost" | localize }}</th>
+            <th style="width: 120px;">{{ "LineTotal" | localize }}</th>
+            <th style="width: 60px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of purchase.lines; track $index; let i = $index) {
+          <tr>
+            <td>
+              <ng-select #lineProductSelect
+                [fixedPlaceholder]="false"
+                [items]="products"
+                bindLabel="name"
+                bindValue="id"
+                [(ngModel)]="line.productId"
+                (ngModelChange)="onProductSelected(line)"
+                [name]="'productId' + i"
+                [placeholder]="'SelectProduct' | localize"
+                appendTo="body"
+                [clearable]="true"
+                required
+              >
+                <ng-template ng-label-tmp let-item="item">
+                  {{ item.name }} ({{ "StockQuantity" | localize }}: {{ item.stockQuantity || 0 }})
+                </ng-template>
+                <ng-template ng-option-tmp let-item="item">
+                  {{ item.name }} ({{ "StockQuantity" | localize }}: {{ item.stockQuantity || 0 }})
+                </ng-template>
+              </ng-select>
+            </td>
+            <td>
+              <input type="number" class="form-control" [name]="'quantity' + i" min="0.01" step="0.01" required [(ngModel)]="line.quantity" />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="form-control"
+                [name]="'unitCost' + i"
+                min="0"
+                step="0.01"
+                required
+                [(ngModel)]="line.unitCost"
+                (keydown.tab)="onUnitCostTab($event, i)"
+              />
+            </td>
+            <td class="align-middle">{{ lineTotal(line) }}</td>
+            <td class="align-middle text-center">
+              <button type="button" class="btn btn-sm btn-danger" (click)="removeLine(i)" [disabled]="purchase.lines.length === 1">
+                <i class="fas fa-times"></i>
+              </button>
+            </td>
+          </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="3" class="text-right">{{ "TotalAmount" | localize }}</th>
+            <th>{{ grandTotal }}</th>
+            <th></th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+  <div class="modal-footer justify-content-between">
+    <button type="button" class="btn btn-default" [disabled]="saving" (click)="bsModalRef.hide()">
+      {{ "Cancel" | localize }}
+    </button>
+    <div>
+      <button
+        type="button"
+        class="btn btn-info mx-1"
+        [disabled]="!createForm.form.valid || saving"
+        (click)="saveAndPrint()"
+        title="Ctrl+P"
+      >
+        <i class="fas fa-print"></i>
+        {{ "Print" | localize }}
+        <small class="ml-1">(Ctrl+P)</small>
+      </button>
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="!createForm.form.valid || saving"
+        title="Ctrl+S"
+      >
+        {{ "Save" | localize }}
+        <small class="ml-1">(Ctrl+S)</small>
+      </button>
+    </div>
+  </div>
+</form>

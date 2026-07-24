@@ -1,0 +1,288 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<localizationDictionary culture="en">
+  <texts>
+    <text name="HomePage" value="Home page" />
+    <text name="About" value="About" />
+    <text name="WelcomeMessage" value="Welcome to SmartPos!" />
+    <text name="FormIsNotValidMessage" value="Form is not valid. Please check and fix errors." />
+    <text name="TenantNameCanNotBeEmpty" value="Tenant name can not be empty" />
+    <text name="InvalidUserNameOrPassword" value="Invalid user name or password" />
+    <text name="ThereIsNoTenantDefinedWithName{0}" value="There is no tenant defined with name {0}" />
+    <text name="TenantIsNotActive" value="Tenant {0} is not active." />
+    <text name="UserIsNotActiveAndCanNotLogin" value="User {0} is not active and can not log in." />
+    <text name="UserEmailIsNotConfirmedAndCanNotLogin">Your email address is not confirmed. You can not login.</text>
+    <text name="UserLockedOutMessage">The user account has been locked out. Please try again later.</text>
+    <text name="PleaseEnterLoginInformation" value="Please enter login information" />
+    <text name="TenancyName" value="Tenancy name" />
+    <text name="UserNameOrEmail" value="User name or email" />
+    <text name="Password" value="Password" />
+    <text name="ResetPassword" value="Reset Password" />
+    <text name="UpdatePassword" value="Update Password" />
+    <text name="RememberMe" value="Remember me" />
+    <text name="LogIn" value="Log in" />
+    <text name="LoginFailed" value="Login failed!" />
+    <text name="NameSurname" value="Name surname" />
+    <text name="UserName" value="User name" />
+    <text name="Name" value="Name" />
+    <text name="Surname" value="Surname" />
+    <text name="EmailAddress" value="Email address" />
+    <text name="Tenants" value="Tenants" />
+    <text name="SavedSuccessfully" value="Saved successfully" />
+    <text name="CreateNewTenant" value="Create new tenant" />
+    <text name="AdminEmailAddress" value="Admin email address" />
+    <text name="AdminPassword" value="Admin password" />
+    <text name="Save" value="Save" />
+    <text name="Cancel" value="Cancel" />
+    <text name="TenantName_Regex_Description" value="Tenant name must be at least 2 chars, starts with a letter and continue with letter, number, dash or underscore." />
+    <text name="DefaultPasswordIs" value="Default password is {0}" />
+    <text name="CanBeEmptyToLoginAsHost" value="Can be empty to login as host." />
+    <text name="Register" value="Register" />
+    <text name="OrLoginWith" value="Or login with" />
+    <text name="WaitingForActivationMessage" value="Your account is waiting to be activated by system admin." />
+    <text name="TenantSelection" value="Tenant Selection" />
+    <text name="TenantSelection_Detail" value="Please select one of the following tenants." />
+    <text name="Logout" value="Logout" />
+    <text name="RegisterFormUserNameInvalidMessage">Please don't enter an email address for username.</text>
+    <text name="DatabaseConnectionString" value="Database connection string" />
+    <text name="Users" value="Users" />
+    <text name="IsActive" value="Is active" />
+    <text name="FullName" value="Full name" />
+    <text name="CreateNewUser" value="Create new user" />
+    <text name="Yes" value="Yes" />
+    <text name="No" value="No" />
+    <text name="Optional" value="Optional" />
+    <text name="LeaveEmptyToSwitchToHost">Leave empty to switch to the host</text>
+    <text name="CurrentTenant">Current tenant</text>
+    <text name="NotSelected">Not selected</text>
+    <text name="Change">Change</text>
+    <text name="ChangeTenant">Change tenant</text>
+    <text name="MultiLevelMenu">Multi Level Menu</text>
+    <text name="Back">Back</text>
+    <text name="SuccessfullyRegistered">Successfully registered</text>
+    <text name="WaitingForEmailActivation">Your email address should be activated</text>
+    <text name="Roles">Roles</text>
+    <text name="DisplayName">Display Name</text>
+    <text name="Edit">Edit</text>
+    <text name="Delete">Delete</text>
+    <text name="CreateNewRole">Create new role</text>
+    <text name="RoleName">Role Name</text>
+    <text name="Actions">Actions</text>
+    <text name="CouldNotCompleteLoginOperation">Could not complete login operation. Please try again later.</text>
+    <text name="CouldNotValidateExternalUser">Could not validate external user</text>
+    <text name="EditRole">Edit role</text>
+    <text name="EditTenant">Edit tenant</text>
+    <text name="EditUser">Edit user</text>
+    <text name="TenantIdIsNotActive{0}">TenantId {0} is not active</text>
+    <text name="UnknownTenantId{0}">Unknown tenantId {0}</text>
+    <text name="ThisFieldIsRequired">This field is required</text>
+    <text name="PleaseWait">Please wait...</text>
+    <text name="Administration">Administration</text>
+    <text name="ClearAll">Clear all</text>
+    <text name="ClearOthers">Clear others</text>
+    <text name="LabelOptions">Label options</text>
+    <text name="Permissions">Permissions</text>
+    <text name="RoleDescription">Role description</text>
+    <text name="Refresh">Refresh</text>
+    <text name="Create">Create</text>
+    <text name="UserDetails">User details</text>
+    <text name="UserRoles">User roles</text>
+    <text name="ConfirmPassword">Confirm password</text>
+    <text name="Version">Version</text>
+    <text name="On">On</text>
+    <text name="Off">Off</text>
+    <text name="AreYouSureWantToDelete">Are you sure want to delete {0}?</text>
+    <text name="SuccessfullyDeleted">Successfully deleted</text>
+    <text name="StartTyping">Start Typing</text>
+    <text name="Skins">Skins</text>
+    <text name="Settings">Settings</text>
+    <text name="Filter">Filter</text>
+    <text name="CurrentPassword">Current Password</text>
+    <text name="NewPassword">New Password</text>
+    <text name="ConfirmNewPassword">Confirm New Password</text>
+    <text name="PasswordsDoNotMatch">Passwords do not match</text>
+    <text name="PasswordsMustBeAtLeast8CharactersContainLowercaseUppercaseNumber">Passwords must be at least 8 characters, contain a lowercase, uppercase, and number</text>
+    <text name="UserDeleteWarningMessage">User {0} will be deleted.</text>
+    <text name="RoleDeleteWarningMessage">Role {0} will be deleted and unassigned from all assigned users.</text>
+    <text name="TenantDeleteWarningMessage">Tenant {0} will be deleted.</text>
+    <text name="Categories" value="Categories" />
+    <text name="CreateNewCategory" value="Create new category" />
+    <text name="EditCategory" value="Edit category" />
+    <text name="CategoryName" value="Category name" />
+    <text name="Description" value="Description" />
+    <text name="CategoryDeleteWarningMessage" value="Category {0} will be deleted." />
+    <text name="Brands" value="Brands" />
+    <text name="CreateNewBrand" value="Create new brand" />
+    <text name="EditBrand" value="Edit brand" />
+    <text name="BrandName" value="Brand name" />
+    <text name="BrandDeleteWarningMessage" value="Brand {0} will be deleted." />
+    <text name="Units" value="Units" />
+    <text name="CreateNewUnit" value="Create new unit" />
+    <text name="EditUnit" value="Edit unit" />
+    <text name="UnitName" value="Unit name" />
+    <text name="UnitDeleteWarningMessage" value="Unit {0} will be deleted." />
+    <text name="Products" value="Products" />
+    <text name="ProductManagement" value="Product Management" />
+    <text name="CreateNewProduct" value="Create new product" />
+    <text name="EditProduct" value="Edit product" />
+    <text name="ProductName" value="Product name" />
+    <text name="Price" value="Price" />
+    <text name="Category" value="Category" />
+    <text name="Brand" value="Brand" />
+    <text name="Unit" value="Unit" />
+    <text name="ProductImage" value="Product image" />
+    <text name="ProductDeleteWarningMessage" value="Product {0} will be deleted." />
+    <text name="SelectCategory" value="Select category" />
+    <text name="SelectBrand" value="Select brand" />
+    <text name="SelectUnit" value="Select unit" />
+    <text name="ChangeImage" value="Change image" />
+    <text name="BusinessManagement" value="Business Management" />
+    <text name="Customers" value="Customers" />
+    <text name="CreateNewCustomer" value="Create new customer" />
+    <text name="EditCustomer" value="Edit customer" />
+    <text name="CustomerDeleteWarningMessage" value="Customer {0} will be deleted." />
+    <text name="Suppliers" value="Suppliers" />
+    <text name="CreateNewSupplier" value="Create new supplier" />
+    <text name="EditSupplier" value="Edit supplier" />
+    <text name="SupplierDeleteWarningMessage" value="Supplier {0} will be deleted." />
+    <text name="Accounts" value="Accounts" />
+    <text name="CreateNewAccount" value="Create new account" />
+    <text name="EditAccount" value="Edit account" />
+    <text name="AccountCode" value="Account code" />
+    <text name="AccountType" value="Account type" />
+    <text name="OpeningBalance" value="Opening balance" />
+    <text name="AccountDeleteWarningMessage" value="Account {0} will be deleted." />
+    <text name="LedgerEntries" value="Ledger Entries" />
+    <text name="CreateNewLedgerEntry" value="Create new ledger entry" />
+    <text name="EditLedgerEntry" value="Edit ledger entry" />
+    <text name="LedgerEntryDeleteWarningMessage" value="Ledger entry will be deleted." />
+    <text name="VoucherType" value="Voucher type" />
+    <text name="TransactionDate" value="Transaction date" />
+    <text name="Debit" value="Debit" />
+    <text name="Credit" value="Credit" />
+    <text name="Balance" value="Balance" />
+    <text name="SelectAccount" value="Select account" />
+    <text name="Purchases" value="Purchases" />
+    <text name="CreateNewPurchase" value="Create purchase" />
+    <text name="ViewPurchase" value="View purchase" />
+    <text name="PurchaseDeleteWarningMessage" value="Purchase {0} will be deleted and stock will be reversed." />
+    <text name="PurchaseDate" value="Purchase date" />
+    <text name="InvoiceNo" value="Invoice no" />
+    <text name="TotalAmount" value="Total amount" />
+    <text name="Quantity" value="Quantity" />
+    <text name="UnitCost" value="Unit cost" />
+    <text name="LineTotal" value="Line total" />
+    <text name="AddLine" value="Add product" />
+    <text name="SelectSupplier" value="Select supplier" />
+    <text name="SelectProduct" value="Select product" />
+    <text name="StockQuantity" value="Stock" />
+    <text name="AlertQuantityLimit" value="Low stock alert limit" />
+    <text name="Barcode" value="Barcode" />
+    <text name="Notes" value="Notes" />
+    <text name="Expenses" value="Expenses" />
+    <text name="CreateNewExpense" value="Create expense" />
+    <text name="EditExpense" value="Edit expense" />
+    <text name="ExpenseDeleteWarningMessage" value="Expense {0} will be deleted." />
+    <text name="ExpenseDate" value="Expense date" />
+    <text name="Amount" value="Amount" />
+    <text name="ReferenceNo" value="Reference no" />
+    <text name="PaymentAccount" value="Payment account" />
+    <text name="ExpenseAccount" value="Expense account" />
+    <text name="SelectPaymentAccount" value="Select payment account" />
+    <text name="Print" value="Print" />
+    <text name="PurchaseInvoice" value="Purchase Invoice" />
+    <text name="Sales" value="Sales" />
+    <text name="CreateNewSale" value="Create sale" />
+    <text name="ViewSale" value="View sale" />
+    <text name="SaleDeleteWarningMessage" value="Sale {0} will be deleted and stock will be restored." />
+    <text name="SaleDate" value="Sale date" />
+    <text name="UnitPrice" value="Unit price" />
+    <text name="SelectCustomer" value="Select customer" />
+    <text name="SaleInvoice" value="Sale Invoice" />
+    <text name="ReturnSale" value="Return products" />
+    <text name="CreateSaleReturn" value="Create sale return" />
+    <text name="SaleReturns" value="Sale returns" />
+    <text name="ReturnDate" value="Return date" />
+    <text name="ReturnQuantity" value="Return qty" />
+    <text name="SoldQuantity" value="Sold qty" />
+    <text name="ReturnedQuantity" value="Already returned" />
+    <text name="ReturnableQuantity" value="Returnable" />
+    <text name="SaleReturnDeleteWarningMessage" value="Sale return {0} will be deleted and stock will be reversed." />
+    <text name="NoReturnableProducts" value="No returnable products left on this sale." />
+    <text name="NoSaleReturns" value="No returns for this sale yet." />
+    <text name="ReturnPurchase" value="Return products" />
+    <text name="CreatePurchaseReturn" value="Create purchase return" />
+    <text name="PurchaseReturns" value="Purchase returns" />
+    <text name="PurchasedQuantity" value="Purchased qty" />
+    <text name="PurchaseReturnDeleteWarningMessage" value="Purchase return {0} will be deleted and stock will be reversed." />
+    <text name="NoReturnablePurchaseProducts" value="No returnable products left on this purchase." />
+    <text name="NoPurchaseReturns" value="No returns for this purchase yet." />
+    <text name="ExpenseInvoice" value="Expense Invoice" />
+    <text name="PrintedOn" value="Printed on" />
+    <text name="Loading" value="Loading" />
+    <text name="Phone" value="Phone" />
+    <text name="Address" value="Address" />
+    <text name="SearchWithThreeDot">Search...</text>
+    <text name="PleaseEnterAtLeastNCharacter">Please enter at least {0} characters</text>
+    <text name="PleaseEnterNoMoreThanNCharacter">Please enter no more than {0} characters</text>
+    <text name="InvalidEmailAddress">Invalid email address</text>
+    <text name="InvalidPattern">Invalid</text>
+    <text name="PairsDoNotMatch">Do not match</text>
+    <text name="All">All</text>
+    <text name="TotalRecordsCount">Total: {0}</text>
+    <text name="Search">Search</text>
+    <text name="Clear">Clear</text>
+    <text name="ResetPasswordStepOneInfo">1. Enter your administrator password</text>
+    <text name="ResetPasswordStepTwoInfo">2. Copy this random password so you can send it to the user</text>
+    <text name="UsersActivation">Users activation</text>
+    <text name="403PageHeader">Forbidden</text>
+    <text name="403PageDescription">You don't have permission to access this resource. Please contact your administrator.</text>
+    <text name="403PageButton">Go back to Dashboard</text>
+    <text name="DashboardGreeting">Hey {0}, welcome back!</text>
+    <text name="SearchProductsSku">Search Products / SKU...</text>
+    <text name="TotalProducts">Total Products</text>
+    <text name="InStock">In Stock</text>
+    <text name="LowStock">Low Stock</text>
+    <text name="OutOfStock">Out of Stock</text>
+    <text name="CashFlow">Cash Flow</text>
+    <text name="Income">Income</text>
+    <text name="Expense">Expense</text>
+    <text name="Monthly">Monthly</text>
+    <text name="InventoryAlerts">Inventory Alerts</text>
+    <text name="ProductInventory">Product Inventory</text>
+    <text name="SeeAll">See All</text>
+    <text name="Sku">SKU</text>
+    <text name="Status">Status</text>
+    <text name="Location">Location</text>
+    <text name="Action">Action</text>
+    <text name="NoData">No data available</text>
+    <text name="TodaySales">Today's Sales</text>
+    <text name="TodayPurchases">Today's Purchases</text>
+    <text name="TodayExpenses">Today's Expenses</text>
+    <text name="TodayProfit">Today's Profit</text>
+    <text name="Reports">Reports</text>
+    <text name="SaleReport">Sale Report</text>
+    <text name="PurchaseReport">Purchase Report</text>
+    <text name="ExpenseReport">Expense Report</text>
+    <text name="StockReport">Stock Report</text>
+    <text name="FromDate">From date</text>
+    <text name="ToDate">To date</text>
+    <text name="GenerateReport">Generate</text>
+    <text name="CustomerOrders">Customer Orders</text>
+    <text name="CreateNewOrder">Place Order</text>
+    <text name="OrderDate">Order date</text>
+    <text name="OrderNo">Order no</text>
+    <text name="ApproveOrder">Approve</text>
+    <text name="RejectOrder">Reject</text>
+    <text name="OrderPending">Pending</text>
+    <text name="OrderApproved">Approved</text>
+    <text name="OrderRejected">Rejected</text>
+    <text name="OrderDeleteWarningMessage">Are you sure you want to delete order {0}?</text>
+    <text name="OrderApproveConfirmMessage">Approve order {0} and create a sale?</text>
+    <text name="OrderRejectConfirmMessage">Reject order {0}?</text>
+    <text name="OrderApprovedSuccessfully">Order approved and sale created</text>
+    <text name="OrderRejectedSuccessfully">Order rejected</text>
+    <text name="ViewOrder">View Order</text>
+    <text name="LinkedSale">Sale</text>
+    <text name="AllStatuses">All statuses</text>
+  </texts>
+</localizationDictionary>
