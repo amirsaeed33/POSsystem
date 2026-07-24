@@ -1,0 +1,84 @@
+<div>
+  <abp-modal-header [title]="'ViewPurchase' | localize" (onCloseClick)="bsModalRef.hide()"></abp-modal-header>
+  <div class="modal-body">
+    <div class="row mb-3">
+      <div class="col-md-6"><strong>{{ "InvoiceNo" | localize }}:</strong> {{ purchase.invoiceNo || ('#' + purchase.id) }}</div>
+      <div class="col-md-6"><strong>{{ "PurchaseDate" | localize }}:</strong> {{ purchase.purchaseDate }}</div>
+      <div class="col-md-6"><strong>{{ "Suppliers" | localize }}:</strong> {{ purchase.supplierName }}</div>
+      <div class="col-md-6"><strong>{{ "TotalAmount" | localize }}:</strong> {{ purchase.totalAmount }}</div>
+      <div class="col-md-12"><strong>{{ "Notes" | localize }}:</strong> {{ purchase.notes }}</div>
+    </div>
+    <div class="table-responsive mb-4">
+      <table class="table table-bordered">
+        <thead class="bg-light">
+          <tr>
+            <th>{{ "Products" | localize }}</th>
+            <th>{{ "Quantity" | localize }}</th>
+            <th>{{ "UnitCost" | localize }}</th>
+            <th>{{ "LineTotal" | localize }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of purchase.lines || []; track line.id) {
+          <tr>
+            <td>{{ line.productName }}</td>
+            <td>{{ line.quantity }}</td>
+            <td>{{ line.unitCost }}</td>
+            <td>{{ line.lineTotal }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <h5>{{ "PurchaseReturns" | localize }}</h5>
+    @if (!returns.length) {
+    <p class="text-muted">{{ "NoPurchaseReturns" | localize }}</p>
+    } @else {
+    @for (purchaseReturn of returns; track purchaseReturn.id) {
+    <div class="border rounded p-2 mb-2">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <strong>#{{ purchaseReturn.id }}</strong>
+          — {{ purchaseReturn.returnDate }}
+          — {{ "TotalAmount" | localize }}: {{ purchaseReturn.totalAmount }}
+          @if (purchaseReturn.notes) { <span class="text-muted">({{ purchaseReturn.notes }})</span> }
+        </div>
+        <button type="button" class="btn btn-sm bg-danger" (click)="deleteReturn(purchaseReturn)">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+      <table class="table table-sm table-bordered mb-0">
+        <thead class="bg-light">
+          <tr>
+            <th>{{ "Products" | localize }}</th>
+            <th>{{ "ReturnQuantity" | localize }}</th>
+            <th>{{ "UnitCost" | localize }}</th>
+            <th>{{ "LineTotal" | localize }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of purchaseReturn.lines || []; track line.id) {
+          <tr>
+            <td>{{ line.productName }}</td>
+            <td>{{ line.quantity }}</td>
+            <td>{{ line.unitCost }}</td>
+            <td>{{ line.lineTotal }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+    }
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="bsModalRef.hide()">{{ "Cancel" | localize }}</button>
+    <button type="button" class="btn bg-warning" (click)="returnProducts()">
+      <i class="fas fa-undo"></i> {{ "ReturnPurchase" | localize }}
+    </button>
+    <button type="button" class="btn bg-blue" (click)="printInvoice()">
+      <i class="fas fa-print"></i> {{ "Print" | localize }}
+    </button>
+  </div>
+</div>

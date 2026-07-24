@@ -1,0 +1,213 @@
+<form
+  class="form-horizontal"
+  autocomplete="off"
+  #editProductForm="ngForm"
+  (ngSubmit)="save()"
+>
+  <abp-modal-header
+    [title]="'EditProduct' | localize"
+    (onCloseClick)="bsModalRef.hide()"
+  ></abp-modal-header>
+  <div class="modal-body">
+    <div class="form-group row required">
+      <label class="col-md-3 col-form-label" for="productName">
+        {{ "Name" | localize }}
+      </label>
+      <div class="col-md-9">
+        <input
+          type="text"
+          class="form-control"
+          name="productName"
+          id="productName"
+          maxlength="256"
+          required
+          [(ngModel)]="product.name"
+          #nameModel="ngModel"
+          #nameEl
+        />
+        <abp-validation-summary
+          [control]="nameModel"
+          [controlEl]="nameEl"
+        ></abp-validation-summary>
+      </div>
+    </div>
+    <div class="form-group row">
+      <label class="col-md-3 col-form-label" for="description">
+        {{ "Description" | localize }}
+      </label>
+      <div class="col-md-9">
+        <textarea
+          class="form-control"
+          name="description"
+          id="description"
+          maxlength="1024"
+          rows="3"
+          [(ngModel)]="product.description"
+        ></textarea>
+      </div>
+    </div>
+    <div class="form-group row">
+      <label class="col-md-3 col-form-label" for="barcode">
+        {{ "Barcode" | localize }}
+      </label>
+      <div class="col-md-9">
+        <input
+          type="text"
+          class="form-control"
+          name="barcode"
+          id="barcode"
+          maxlength="64"
+          [(ngModel)]="product.barcode"
+        />
+      </div>
+    </div>
+    <div class="form-group row required">
+      <label class="col-md-3 col-form-label" for="price">
+        {{ "Price" | localize }}
+      </label>
+      <div class="col-md-9">
+        <input
+          type="number"
+          class="form-control"
+          name="price"
+          id="price"
+          min="0"
+          step="0.01"
+          required
+          [(ngModel)]="product.price"
+          #priceModel="ngModel"
+          #priceEl
+        />
+        <abp-validation-summary
+          [control]="priceModel"
+          [controlEl]="priceEl"
+        ></abp-validation-summary>
+      </div>
+    </div>
+    <div class="form-group row required">
+      <label class="col-md-3 col-form-label" for="alertQuantityLimit">
+        {{ "AlertQuantityLimit" | localize }}
+      </label>
+      <div class="col-md-9">
+        <input
+          type="number"
+          class="form-control"
+          name="alertQuantityLimit"
+          id="alertQuantityLimit"
+          min="0"
+          step="1"
+          required
+          [(ngModel)]="product.alertQuantityLimit"
+          #alertLimitModel="ngModel"
+          #alertLimitEl
+        />
+        <abp-validation-summary
+          [control]="alertLimitModel"
+          [controlEl]="alertLimitEl"
+        ></abp-validation-summary>
+      </div>
+    </div>
+    <div class="form-group row required">
+      <label class="col-md-3 col-form-label" for="categoryId">
+        {{ "Category" | localize }}
+      </label>
+      <div class="col-md-9">
+        <ng-select [fixedPlaceholder]="false"
+          [items]="categories"
+          bindLabel="name"
+          bindValue="id"
+          [(ngModel)]="product.categoryId"
+          name="categoryId"
+          id="categoryId"
+          [placeholder]="'SelectCategory' | localize"
+          appendTo="body"
+          [clearable]="true"
+          required
+          #categoryModel="ngModel"
+          #categoryEl
+        ></ng-select>
+        <abp-validation-summary
+          [control]="categoryModel"
+          [controlEl]="categoryEl"
+        ></abp-validation-summary>
+      </div>
+    </div>
+    <div class="form-group row required">
+      <label class="col-md-3 col-form-label" for="brandId">
+        {{ "Brand" | localize }}
+      </label>
+      <div class="col-md-9">
+        <ng-select [fixedPlaceholder]="false"
+          [items]="brands"
+          bindLabel="name"
+          bindValue="id"
+          [(ngModel)]="product.brandId"
+          name="brandId"
+          id="brandId"
+          [placeholder]="'SelectBrand' | localize"
+          appendTo="body"
+          [clearable]="true"
+          required
+          #brandModel="ngModel"
+          #brandEl
+        ></ng-select>
+        <abp-validation-summary
+          [control]="brandModel"
+          [controlEl]="brandEl"
+        ></abp-validation-summary>
+      </div>
+    </div>
+    <div class="form-group row required">
+      <label class="col-md-3 col-form-label" for="unitId">
+        {{ "Unit" | localize }}
+      </label>
+      <div class="col-md-9">
+        <ng-select [fixedPlaceholder]="false"
+          [items]="units"
+          bindLabel="name"
+          bindValue="id"
+          [(ngModel)]="product.unitId"
+          name="unitId"
+          id="unitId"
+          [placeholder]="'SelectUnit' | localize"
+          appendTo="body"
+          [clearable]="true"
+          required
+          #unitModel="ngModel"
+          #unitEl
+        ></ng-select>
+        <abp-validation-summary
+          [control]="unitModel"
+          [controlEl]="unitEl"
+        ></abp-validation-summary>
+      </div>
+    </div>
+    <div class="form-group row mb-0">
+      <label class="col-md-3 col-form-label" for="productImage">
+        {{ "ProductImage" | localize }}
+      </label>
+      <div class="col-md-9">
+        <input
+          type="file"
+          class="form-control-file"
+          id="productImage"
+          accept="image/*"
+          (change)="onFileSelected($event)"
+        />
+        @if (imagePreview) {
+          <img
+            [src]="imagePreview"
+            alt="preview"
+            class="mt-2"
+            style="max-width: 160px; max-height: 160px; object-fit: cover;"
+          />
+        }
+      </div>
+    </div>
+  </div>
+  <abp-modal-footer
+    [cancelDisabled]="saving"
+    [saveDisabled]="!editProductForm.form.valid || saving"
+    (onCancelClick)="bsModalRef.hide()"
+  ></abp-modal-footer>
+</form>

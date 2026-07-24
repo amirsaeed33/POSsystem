@@ -1,0 +1,39 @@
+<div>
+  <abp-modal-header [title]="'ViewOrder' | localize" (onCloseClick)="bsModalRef.hide()"></abp-modal-header>
+  <div class="modal-body" [busy]="loading">
+    <div class="row mb-3">
+      <div class="col-md-6"><strong>{{ "OrderNo" | localize }}:</strong> {{ order.orderNo || ('#' + order.id) }}</div>
+      <div class="col-md-6"><strong>{{ "OrderDate" | localize }}:</strong> {{ order.orderDate | date: 'mediumDate' }}</div>
+      <div class="col-md-6"><strong>{{ "Customers" | localize }}:</strong> {{ order.customerName }}</div>
+      <div class="col-md-6"><strong>{{ "Status" | localize }}:</strong> {{ statusLabel(order.status) }}</div>
+      <div class="col-md-6"><strong>{{ "TotalAmount" | localize }}:</strong> {{ order.totalAmount }}</div>
+      <div class="col-md-6"><strong>{{ "LinkedSale" | localize }}:</strong> {{ order.saleInvoiceNo || '-' }}</div>
+      <div class="col-md-12"><strong>{{ "Notes" | localize }}:</strong> {{ order.notes }}</div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead class="bg-light">
+          <tr>
+            <th>{{ "Products" | localize }}</th>
+            <th>{{ "Quantity" | localize }}</th>
+            <th>{{ "UnitPrice" | localize }}</th>
+            <th>{{ "LineTotal" | localize }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of order.lines || []; track line.id) {
+          <tr>
+            <td>{{ line.productName }}</td>
+            <td>{{ line.quantity }}</td>
+            <td>{{ line.unitPrice }}</td>
+            <td>{{ line.lineTotal }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="bsModalRef.hide()">{{ "Cancel" | localize }}</button>
+  </div>
+</div>
