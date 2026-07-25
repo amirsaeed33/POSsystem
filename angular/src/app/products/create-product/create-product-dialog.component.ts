@@ -48,6 +48,8 @@ export class CreateProductDialogComponent extends AppComponentBase
 
   ngOnInit(): void {
     this.product.price = 0;
+    this.product.wholesalePrice = 0;
+    this.product.costPrice = 0;
     this.product.alertQuantityLimit = 10;
     forkJoin([
       this._categoryService.getAll('', 0, 1000),

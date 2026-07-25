@@ -1,0 +1,92 @@
+<form class="form-horizontal" autocomplete="off" #createForm="ngForm" (ngSubmit)="save()">
+  <abp-modal-header [title]="'CreateStockAdjustment' | localize" (onCloseClick)="bsModalRef.hide()"></abp-modal-header>
+  <div class="modal-body">
+    <div class="form-group row required">
+      <label class="col-md-2 col-form-label">{{ "AdjustmentDate" | localize }}</label>
+      <div class="col-md-4">
+        <input type="date" class="form-control" name="adjustmentDate" required [(ngModel)]="adjustment.adjustmentDate" />
+      </div>
+      <label class="col-md-2 col-form-label">{{ "AdjustmentReason" | localize }}</label>
+      <div class="col-md-4">
+        <select class="form-control" name="reason" required [(ngModel)]="adjustment.reason">
+          @for (r of reasons; track r.value) {
+          <option [ngValue]="r.value">{{ r.label | localize }}</option>
+          }
+        </select>
+      </div>
+    </div>
+    <div class="form-group row">
+      <label class="col-md-2 col-form-label">{{ "Notes" | localize }}</label>
+      <div class="col-md-10">
+        <input type="text" class="form-control" name="notes" maxlength="512" [(ngModel)]="adjustment.notes" />
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0">{{ "Products" | localize }}</h5>
+      <button type="button" class="btn btn-sm bg-blue" (click)="addLine()">
+        <i class="fa fa-plus"></i> {{ "AddLine" | localize }}
+      </button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead class="bg-light">
+          <tr>
+            <th>{{ "Products" | localize }}</th>
+            <th style="width: 160px;">{{ "QuantityChange" | localize }}</th>
+            <th style="width: 60px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of adjustment.lines; track $index; let i = $index) {
+          <tr>
+            <td>
+              <ng-select
+                [fixedPlaceholder]="false"
+                [items]="products"
+                bindLabel="name"
+                bindValue="id"
+                [(ngModel)]="line.productId"
+                [name]="'productId' + i"
+                [placeholder]="'SelectProduct' | localize"
+                appendTo="body"
+                [clearable]="true"
+                required
+              >
+                <ng-template ng-option-tmp let-item="item">
+                  {{ item.name }} ({{ "StockQuantity" | localize }}: {{ item.stockQuantity || 0 }})
+                </ng-template>
+              </ng-select>
+            </td>
+            <td>
+              <input
+                type="number"
+                class="form-control"
+                [name]="'quantityChange' + i"
+                step="0.01"
+                required
+                [(ngModel)]="line.quantityChange"
+              />
+            </td>
+            <td class="align-middle text-center">
+              <button type="button" class="btn btn-sm btn-danger" (click)="removeLine(i)" [disabled]="adjustment.lines.length === 1">
+                <i class="fas fa-times"></i>
+              </button>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted mb-0">{{ "QuantityChange" | localize }}: + increases stock, − decreases stock.</p>
+  </div>
+  <div class="modal-footer justify-content-between">
+    <button type="button" class="btn btn-default" [disabled]="saving" (click)="bsModalRef.hide()">
+      {{ "Cancel" | localize }}
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="!createForm.form.valid || saving">
+      {{ "Save" | localize }}
+    </button>
+  </div>
+</form>

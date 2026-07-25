@@ -4,6 +4,7 @@ import { AbpHttpInterceptor } from 'abp-ng2-module';
 
 import * as ApiServiceProxies from './service-proxies';
 import { CustomerOrderServiceProxy } from './customer-order-service-proxy';
+import { StockAdjustmentServiceProxy } from './stock-adjustment-service-proxy';
 
 @NgModule({
     providers: [
@@ -23,6 +24,7 @@ import { CustomerOrderServiceProxy } from './customer-order-service-proxy';
         ApiServiceProxies.SaleServiceProxy,
         ApiServiceProxies.SaleReturnServiceProxy,
         CustomerOrderServiceProxy,
+        StockAdjustmentServiceProxy,
         ApiServiceProxies.ExpenseServiceProxy,
         ApiServiceProxies.DashboardServiceProxy,
         ApiServiceProxies.ReportServiceProxy,

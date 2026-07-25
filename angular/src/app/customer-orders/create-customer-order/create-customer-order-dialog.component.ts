@@ -78,11 +78,29 @@ export class CreateCustomerOrderDialogComponent extends AppComponentBase impleme
     }
   }
 
+  onCustomerSelected(): void {
+    (this.order.lines || []).forEach((line) => {
+      if (line.productId) {
+        this.onProductSelected(line);
+      }
+    });
+    this.cd.detectChanges();
+  }
+
   onProductSelected(line: CreateCustomerOrderLineDto): void {
     const product = this.products.find((p) => p.id === line.productId);
     if (product) {
-      line.unitPrice = product.price || 0;
+      line.unitPrice = this.getUnitPriceForCustomer(product);
     }
+  }
+
+  getUnitPriceForCustomer(product: ProductDto): number {
+    const customer = this.customers.find((c) => c.id === this.order.customerId);
+    const isWholesaler = customer?.customerType === 1;
+    if (isWholesaler) {
+      return product.wholesalePrice > 0 ? product.wholesalePrice : product.price || 0;
+    }
+    return product.price || 0;
   }
 
   onUnitPriceTab(event: KeyboardEvent, index: number): void {

@@ -7,6 +7,7 @@ using SmartPos.Brands;
 using SmartPos.Categories;
 using SmartPos.Customers;
 using SmartPos.Expenses;
+using SmartPos.Inventory;
 using SmartPos.MultiTenancy;
 using SmartPos.Orders;
 using SmartPos.Products;
@@ -57,6 +58,10 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<CustomerOrderLine> CustomerOrderLines { get; set; }
 
+        public virtual DbSet<StockAdjustment> StockAdjustments { get; set; }
+
+        public virtual DbSet<StockAdjustmentLine> StockAdjustmentLines { get; set; }
+
         public SmartPosDbContext(DbContextOptions<SmartPosDbContext> options)
             : base(options)
         {
@@ -69,6 +74,8 @@ namespace SmartPos.EntityFrameworkCore
             modelBuilder.Entity<Product>(b =>
             {
                 b.Property(x => x.Price).HasPrecision(18, 2);
+                b.Property(x => x.WholesalePrice).HasPrecision(18, 2);
+                b.Property(x => x.CostPrice).HasPrecision(18, 2);
                 b.Property(x => x.StockQuantity).HasPrecision(18, 2);
                 b.Property(x => x.AlertQuantityLimit).HasPrecision(18, 2);
                 b.HasIndex(x => x.Barcode);
@@ -161,7 +168,15 @@ namespace SmartPos.EntityFrameworkCore
 
             modelBuilder.Entity<Sale>(b =>
             {
+                b.Property(x => x.SubTotal).HasPrecision(18, 2);
+                b.Property(x => x.DiscountAmount).HasPrecision(18, 2);
+                b.Property(x => x.DiscountPercent).HasPrecision(18, 2);
+                b.Property(x => x.TaxPercent).HasPrecision(18, 2);
+                b.Property(x => x.TaxAmount).HasPrecision(18, 2);
                 b.Property(x => x.TotalAmount).HasPrecision(18, 2);
+                b.Property(x => x.CashAmount).HasPrecision(18, 2);
+                b.Property(x => x.CardAmount).HasPrecision(18, 2);
+                b.Property(x => x.CreditAmount).HasPrecision(18, 2);
                 b.HasOne(x => x.Customer)
                     .WithMany()
                     .HasForeignKey(x => x.CustomerId)
@@ -245,6 +260,24 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasOne(x => x.Order)
                     .WithMany(x => x.Lines)
                     .HasForeignKey(x => x.OrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<StockAdjustment>(b =>
+            {
+                b.HasIndex(x => x.ReferenceNo);
+            });
+
+            modelBuilder.Entity<StockAdjustmentLine>(b =>
+            {
+                b.Property(x => x.QuantityChange).HasPrecision(18, 2);
+                b.HasOne(x => x.StockAdjustment)
+                    .WithMany(x => x.Lines)
+                    .HasForeignKey(x => x.StockAdjustmentId)
                     .OnDelete(DeleteBehavior.Cascade);
                 b.HasOne(x => x.Product)
                     .WithMany()

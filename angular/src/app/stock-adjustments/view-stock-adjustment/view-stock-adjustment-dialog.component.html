@@ -1,0 +1,36 @@
+<div>
+  <abp-modal-header [title]="'ViewStockAdjustment' | localize" (onCloseClick)="bsModalRef.hide()"></abp-modal-header>
+  <div class="modal-body">
+    @if (loading) {
+    <p>{{ "Loading" | localize }}...</p>
+    } @else {
+    <div class="row mb-3">
+      <div class="col-md-6"><strong>{{ "ReferenceNo" | localize }}:</strong> {{ adjustment.referenceNo || ('#' + adjustment.id) }}</div>
+      <div class="col-md-6"><strong>{{ "AdjustmentDate" | localize }}:</strong> {{ adjustment.adjustmentDate }}</div>
+      <div class="col-md-6"><strong>{{ "AdjustmentReason" | localize }}:</strong> {{ reasonLabel(adjustment.reason) }}</div>
+      <div class="col-md-12"><strong>{{ "Notes" | localize }}:</strong> {{ adjustment.notes }}</div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead class="bg-light">
+          <tr>
+            <th>{{ "Products" | localize }}</th>
+            <th>{{ "QuantityChange" | localize }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of adjustment.lines || []; track line.id) {
+          <tr>
+            <td>{{ line.productName }}</td>
+            <td>{{ line.quantityChange }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="bsModalRef.hide()">{{ "Cancel" | localize }}</button>
+  </div>
+</div>

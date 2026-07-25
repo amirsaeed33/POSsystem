@@ -10,12 +10,28 @@
           bindLabel="name"
           bindValue="id"
           [(ngModel)]="order.customerId"
+          (ngModelChange)="onCustomerSelected()"
           name="customerId"
           [placeholder]="'SelectCustomer' | localize"
           appendTo="body"
           [clearable]="true"
           required
-        ></ng-select>
+        >
+          <ng-template ng-label-tmp let-item="item">
+            {{ item.name }}
+            @if (item.customerType === 1) {
+              ({{ "CustomerTypeWholesaler" | localize }})
+            }
+          </ng-template>
+          <ng-template ng-option-tmp let-item="item">
+            {{ item.name }}
+            @if (item.customerType === 1) {
+              — {{ "CustomerTypeWholesaler" | localize }}
+            } @else {
+              — {{ "CustomerTypeDirect" | localize }}
+            }
+          </ng-template>
+        </ng-select>
       </div>
       <label class="col-md-2 col-form-label">{{ "OrderDate" | localize }}</label>
       <div class="col-md-4">

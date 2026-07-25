@@ -203,6 +203,7 @@
                 <th>{{ "Category" | localize }}</th>
                 <th>{{ "Brand" | localize }}</th>
                 <th>{{ "Units" | localize }}</th>
+                <th>{{ "ProfitPerUnit" | localize }}</th>
                 <th>{{ "Status" | localize }}</th>
                 <th>{{ "Action" | localize }}</th>
               </tr>
@@ -226,6 +227,9 @@
                 <td>{{ product.categoryName }}</td>
                 <td>{{ product.brandName }}</td>
                 <td>{{ formatNumber(product.units) }}</td>
+                <td [class.text-success]="product.profitPerUnit > 0" [class.text-danger]="product.profitPerUnit < 0">
+                  {{ formatMoney(product.profitPerUnit) }}
+                </td>
                 <td>
                   <span
                     class="status-pill"

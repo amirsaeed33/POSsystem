@@ -29,6 +29,8 @@
 
         public const string Pages_Sales = "Pages.Sales";
 
+        public const string Pages_StockAdjustments = "Pages.StockAdjustments";
+
         public const string Pages_Expenses = "Pages.Expenses";
 
         public const string Pages_Reports = "Pages.Reports";

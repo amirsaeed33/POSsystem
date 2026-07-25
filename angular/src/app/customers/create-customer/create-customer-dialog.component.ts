@@ -13,7 +13,10 @@ export class CreateCustomerDialogComponent extends AppComponentBase implements O
     super(injector);
   }
 
-  ngOnInit(): void { this.cd.detectChanges(); }
+  ngOnInit(): void {
+    this.item.customerType = 0; // Direct
+    this.cd.detectChanges();
+  }
 
   save(): void {
     this.saving = true;

@@ -1,0 +1,176 @@
+<div [@routerTransition] class="pos-page">
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <div class="col-6">
+          <h1>{{ "POS" | localize }}</h1>
+        </div>
+        <div class="col-6 text-right">
+          <button type="button" class="btn btn-default mr-2" (click)="clearCart()" [disabled]="!cart.length || saving">
+            {{ "ClearCart" | localize }}
+          </button>
+          <button type="button" class="btn btn-primary" (click)="completeSale()" [disabled]="!canSave()">
+            {{ "CompleteSale" | localize }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="content px-2">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="card pos-scan-card">
+            <div class="card-body">
+              <label class="font-weight-bold">{{ "ScanBarcode" | localize }}</label>
+              <input
+                #barcodeInput
+                type="text"
+                class="form-control form-control-lg pos-barcode-input"
+                [(ngModel)]="barcode"
+                (keyup.enter)="onBarcodeEnter()"
+                [placeholder]="'ScanBarcodeHint' | localize"
+                [disabled]="scanning || saving"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title mb-0">{{ "Cart" | localize }}</h3>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                  <thead class="bg-light">
+                    <tr>
+                      <th>{{ "Products" | localize }}</th>
+                      <th style="width: 110px;">{{ "Quantity" | localize }}</th>
+                      <th style="width: 120px;">{{ "UnitPrice" | localize }}</th>
+                      <th style="width: 120px;">{{ "LineTotal" | localize }}</th>
+                      <th style="width: 50px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @if (!cart.length) {
+                    <tr>
+                      <td colspan="5" class="text-muted text-center py-4">{{ "ScanBarcodeHint" | localize }}</td>
+                    </tr>
+                    }
+                    @for (line of cart; track line.productId) {
+                    <tr>
+                      <td>
+                        <div class="font-weight-bold">{{ line.productName }}</div>
+                        <small class="text-muted">{{ "StockQuantity" | localize }}: {{ line.stockQuantity }}</small>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          class="form-control form-control-sm"
+                          min="0.01"
+                          step="1"
+                          [ngModel]="line.quantity"
+                          (ngModelChange)="updateQty(line, $event)"
+                        />
+                      </td>
+                      <td>
+                        <input type="number" class="form-control form-control-sm" min="0" step="0.01" [(ngModel)]="line.unitPrice" />
+                      </td>
+                      <td class="align-middle">{{ line.quantity * line.unitPrice | number: '1.2-2' }}</td>
+                      <td class="align-middle text-center">
+                        <button type="button" class="btn btn-sm btn-danger" (click)="removeLine(line)">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-body">
+              <div class="form-group">
+                <label>{{ "Customers" | localize }}</label>
+                <ng-select
+                  [fixedPlaceholder]="false"
+                  [items]="customers"
+                  bindLabel="name"
+                  bindValue="id"
+                  [(ngModel)]="customerId"
+                  (ngModelChange)="onCustomerSelected()"
+                  [placeholder]="'SelectCustomer' | localize"
+                  [clearable]="false"
+                >
+                </ng-select>
+              </div>
+
+              <div class="form-group">
+                <label>{{ "PaymentType" | localize }}</label>
+                <select class="form-control" [(ngModel)]="paymentType" (ngModelChange)="onPaymentTypeChange()">
+                  @for (pt of paymentTypes; track pt.value) {
+                  <option [ngValue]="pt.value">{{ pt.label | localize }}</option>
+                  }
+                </select>
+              </div>
+
+              @if (paymentType === 3) {
+              <div class="form-row">
+                <div class="form-group col-6">
+                  <label>{{ "CashAmount" | localize }}</label>
+                  <input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="cashAmount" />
+                </div>
+                <div class="form-group col-6">
+                  <label>{{ "CardAmount" | localize }}</label>
+                  <input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="cardAmount" />
+                </div>
+              </div>
+              }
+
+              <div class="form-row">
+                <div class="form-group col-6">
+                  <label>{{ "DiscountPercent" | localize }}</label>
+                  <input type="number" class="form-control" min="0" max="100" step="0.01" [(ngModel)]="discountPercent" />
+                </div>
+                <div class="form-group col-6">
+                  <label>{{ "DiscountAmount" | localize }}</label>
+                  <input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="discountAmount" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>{{ "TaxPercent" | localize }}</label>
+                <input type="number" class="form-control" min="0" max="100" step="0.01" [(ngModel)]="taxPercent" />
+              </div>
+
+              <div class="form-group">
+                <label>{{ "Notes" | localize }}</label>
+                <input type="text" class="form-control" maxlength="512" [(ngModel)]="notes" />
+              </div>
+
+              <div class="pos-totals">
+                <div class="d-flex justify-content-between"><span>{{ "SubTotal" | localize }}</span><strong>{{ subTotal | number: '1.2-2' }}</strong></div>
+                <div class="d-flex justify-content-between"><span>{{ "Discount" | localize }}</span><strong>-{{ computedDiscount | number: '1.2-2' }}</strong></div>
+                <div class="d-flex justify-content-between"><span>{{ "Tax" | localize }}</span><strong>{{ taxAmount | number: '1.2-2' }}</strong></div>
+                <div class="d-flex justify-content-between pos-grand"><span>{{ "TotalAmount" | localize }}</span><strong>{{ grandTotal | number: '1.2-2' }}</strong></div>
+                @if (paymentType === 2 || paymentType === 3) {
+                <div class="d-flex justify-content-between text-muted"><span>{{ "CreditAmount" | localize }}</span><span>{{ creditAmount | number: '1.2-2' }}</span></div>
+                }
+              </div>
+
+              <button type="button" class="btn btn-primary btn-block btn-lg mt-3" (click)="completeSale()" [disabled]="!canSave()">
+                {{ "CompleteSale" | localize }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

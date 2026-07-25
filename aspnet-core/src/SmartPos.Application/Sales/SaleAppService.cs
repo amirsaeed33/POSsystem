@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,10 +9,12 @@ using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Abp.UI;
+using Microsoft.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
 using SmartPos.Customers;
 using SmartPos.Products;
+using SmartPos.Products.Dto;
 using SmartPos.Sales.Dto;
 
 namespace SmartPos.Sales
@@ -44,6 +47,25 @@ namespace SmartPos.Sales
             _systemAccountManager = systemAccountManager;
         }
 
+        public async Task<ProductDto> GetProductByBarcodeAsync(string barcode)
+        {
+            var normalized = barcode.IsNullOrWhiteSpace() ? null : barcode.Trim();
+            if (normalized.IsNullOrWhiteSpace())
+            {
+                throw new UserFriendlyException("Barcode is required.");
+            }
+
+            var product = await _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
+                .FirstOrDefaultAsync(x => x.Barcode == normalized);
+
+            if (product == null)
+            {
+                throw new UserFriendlyException("No product found for barcode: " + normalized);
+            }
+
+            return ObjectMapper.Map<ProductDto>(product);
+        }
+
         public override async Task<SaleDto> CreateAsync(CreateSaleDto input)
         {
             CheckCreatePermission();
@@ -69,10 +91,13 @@ namespace SmartPos.Sales
                 CustomerId = input.CustomerId,
                 SaleDate = input.SaleDate,
                 Notes = input.Notes,
+                DiscountPercent = Math.Max(0, input.DiscountPercent),
+                TaxPercent = Math.Max(0, input.TaxPercent),
+                PaymentType = input.PaymentType,
                 Lines = new List<SaleLine>()
             };
 
-            decimal total = 0;
+            decimal subTotal = 0;
             foreach (var lineInput in input.Lines)
             {
                 if (lineInput.Quantity <= 0)
@@ -88,7 +113,7 @@ namespace SmartPos.Sales
                 }
 
                 var lineTotal = lineInput.Quantity * lineInput.UnitPrice;
-                total += lineTotal;
+                subTotal += lineTotal;
 
                 sale.Lines.Add(new SaleLine
                 {
@@ -101,38 +126,36 @@ namespace SmartPos.Sales
                 product.StockQuantity -= lineInput.Quantity;
             }
 
-            sale.TotalAmount = total;
+            sale.SubTotal = Math.Round(subTotal, 2);
+
+            var discountAmount = input.DiscountAmount;
+            if (input.DiscountPercent > 0 && discountAmount <= 0)
+            {
+                discountAmount = Math.Round(sale.SubTotal * input.DiscountPercent / 100m, 2);
+            }
+
+            if (discountAmount < 0)
+            {
+                discountAmount = 0;
+            }
+
+            if (discountAmount > sale.SubTotal)
+            {
+                discountAmount = sale.SubTotal;
+            }
+
+            sale.DiscountAmount = discountAmount;
+            var taxable = sale.SubTotal - sale.DiscountAmount;
+            sale.TaxAmount = Math.Round(taxable * sale.TaxPercent / 100m, 2);
+            sale.TotalAmount = Math.Round(taxable + sale.TaxAmount, 2);
+
+            ApplyPaymentSplit(sale, input);
 
             await Repository.InsertAsync(sale);
             await CurrentUnitOfWork.SaveChangesAsync();
 
             sale.InvoiceNo = "SAL-" + sale.Id.ToString("D6");
-
-            var saleAccount = await _systemAccountManager.GetSaleAccountAsync();
-            var description = "Sale " + sale.InvoiceNo;
-
-            // Debit Customer (AR), Credit Sale account
-            await _ledgerRepository.InsertAsync(new LedgerEntry
-            {
-                AccountId = customer.AccountId.Value,
-                TransactionDate = sale.SaleDate,
-                VoucherType = VoucherTypes.Sale,
-                VoucherId = sale.Id,
-                Debit = sale.TotalAmount,
-                Credit = 0,
-                Description = description
-            });
-
-            await _ledgerRepository.InsertAsync(new LedgerEntry
-            {
-                AccountId = saleAccount.Id,
-                TransactionDate = sale.SaleDate,
-                VoucherType = VoucherTypes.Sale,
-                VoucherId = sale.Id,
-                Debit = 0,
-                Credit = sale.TotalAmount,
-                Description = description
-            });
+            await PostSaleLedgerAsync(sale, customer.AccountId.Value);
 
             return await GetAsync(new EntityDto<int>(sale.Id));
         }
@@ -201,7 +224,16 @@ namespace SmartPos.Sales
                 CustomerName = entity.Customer?.Name,
                 SaleDate = entity.SaleDate,
                 InvoiceNo = entity.InvoiceNo,
+                SubTotal = entity.SubTotal,
+                DiscountAmount = entity.DiscountAmount,
+                DiscountPercent = entity.DiscountPercent,
+                TaxPercent = entity.TaxPercent,
+                TaxAmount = entity.TaxAmount,
                 TotalAmount = entity.TotalAmount,
+                PaymentType = entity.PaymentType,
+                CashAmount = entity.CashAmount,
+                CardAmount = entity.CardAmount,
+                CreditAmount = entity.CreditAmount,
                 Notes = entity.Notes,
                 Lines = new List<SaleLineDto>()
             };
@@ -243,6 +275,103 @@ namespace SmartPos.Sales
             }
 
             return MapToEntityDto(entity);
+        }
+
+        private static void ApplyPaymentSplit(Sale sale, CreateSaleDto input)
+        {
+            var total = sale.TotalAmount;
+            switch (input.PaymentType)
+            {
+                case PaymentTypes.Cash:
+                    sale.CashAmount = total;
+                    sale.CardAmount = 0;
+                    sale.CreditAmount = 0;
+                    break;
+                case PaymentTypes.Card:
+                    sale.CashAmount = 0;
+                    sale.CardAmount = total;
+                    sale.CreditAmount = 0;
+                    break;
+                case PaymentTypes.Mixed:
+                    sale.CashAmount = Math.Max(0, input.CashAmount);
+                    sale.CardAmount = Math.Max(0, input.CardAmount);
+                    var paid = sale.CashAmount + sale.CardAmount;
+                    if (paid > total)
+                    {
+                        throw new UserFriendlyException("Cash + card amount cannot exceed sale total.");
+                    }
+
+                    sale.CreditAmount = Math.Round(total - paid, 2);
+                    break;
+                case PaymentTypes.Credit:
+                default:
+                    sale.PaymentType = PaymentTypes.Credit;
+                    sale.CashAmount = 0;
+                    sale.CardAmount = 0;
+                    sale.CreditAmount = total;
+                    break;
+            }
+        }
+
+        private async Task PostSaleLedgerAsync(Sale sale, int customerAccountId)
+        {
+            var saleAccount = await _systemAccountManager.GetSaleAccountAsync();
+            var description = "Sale " + sale.InvoiceNo;
+
+            await _ledgerRepository.InsertAsync(new LedgerEntry
+            {
+                AccountId = saleAccount.Id,
+                TransactionDate = sale.SaleDate,
+                VoucherType = VoucherTypes.Sale,
+                VoucherId = sale.Id,
+                Debit = 0,
+                Credit = sale.TotalAmount,
+                Description = description
+            });
+
+            if (sale.CashAmount > 0)
+            {
+                var cash = await _systemAccountManager.GetCashAccountAsync();
+                await _ledgerRepository.InsertAsync(new LedgerEntry
+                {
+                    AccountId = cash.Id,
+                    TransactionDate = sale.SaleDate,
+                    VoucherType = VoucherTypes.Sale,
+                    VoucherId = sale.Id,
+                    Debit = sale.CashAmount,
+                    Credit = 0,
+                    Description = description + " (Cash)"
+                });
+            }
+
+            if (sale.CardAmount > 0)
+            {
+                var bank = await _systemAccountManager.GetBankAccountAsync();
+                await _ledgerRepository.InsertAsync(new LedgerEntry
+                {
+                    AccountId = bank.Id,
+                    TransactionDate = sale.SaleDate,
+                    VoucherType = VoucherTypes.Sale,
+                    VoucherId = sale.Id,
+                    Debit = sale.CardAmount,
+                    Credit = 0,
+                    Description = description + " (Card)"
+                });
+            }
+
+            if (sale.CreditAmount > 0)
+            {
+                await _ledgerRepository.InsertAsync(new LedgerEntry
+                {
+                    AccountId = customerAccountId,
+                    TransactionDate = sale.SaleDate,
+                    VoucherType = VoucherTypes.Sale,
+                    VoucherId = sale.Id,
+                    Debit = sale.CreditAmount,
+                    Credit = 0,
+                    Description = description + " (Credit)"
+                });
+            }
         }
     }
 }

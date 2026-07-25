@@ -16,7 +16,25 @@ namespace SmartPos.Sales.Dto
 
         public string InvoiceNo { get; set; }
 
+        public decimal SubTotal { get; set; }
+
+        public decimal DiscountAmount { get; set; }
+
+        public decimal DiscountPercent { get; set; }
+
+        public decimal TaxPercent { get; set; }
+
+        public decimal TaxAmount { get; set; }
+
         public decimal TotalAmount { get; set; }
+
+        public int PaymentType { get; set; }
+
+        public decimal CashAmount { get; set; }
+
+        public decimal CardAmount { get; set; }
+
+        public decimal CreditAmount { get; set; }
 
         public string Notes { get; set; }
 

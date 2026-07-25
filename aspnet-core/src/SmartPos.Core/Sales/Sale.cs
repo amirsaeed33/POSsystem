@@ -27,7 +27,29 @@ namespace SmartPos.Sales
         [StringLength(MaxInvoiceNoLength)]
         public virtual string InvoiceNo { get; set; }
 
+        /// <summary>Sum of line totals before discount/tax.</summary>
+        public virtual decimal SubTotal { get; set; }
+
+        public virtual decimal DiscountAmount { get; set; }
+
+        public virtual decimal DiscountPercent { get; set; }
+
+        public virtual decimal TaxPercent { get; set; }
+
+        public virtual decimal TaxAmount { get; set; }
+
+        /// <summary>Grand total after discount and tax.</summary>
         public virtual decimal TotalAmount { get; set; }
+
+        /// <summary><see cref="PaymentTypes"/> value.</summary>
+        public virtual int PaymentType { get; set; } = PaymentTypes.Credit;
+
+        public virtual decimal CashAmount { get; set; }
+
+        public virtual decimal CardAmount { get; set; }
+
+        /// <summary>Amount charged to customer credit (AR).</summary>
+        public virtual decimal CreditAmount { get; set; }
 
         [StringLength(MaxNotesLength)]
         public virtual string Notes { get; set; }

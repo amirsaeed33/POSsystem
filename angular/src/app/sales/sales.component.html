@@ -6,6 +6,10 @@
           <h1>{{ "Sales" | localize }}</h1>
         </div>
         <div class="col-6 text-right">
+          <a routerLink="/app/pos" class="btn bg-success mr-2">
+            <i class="fas fa-barcode"></i>
+            {{ "POS" | localize }}
+          </a>
           <a href="javascript:;" class="btn bg-blue" (click)="createSale()">
             <i class="fa fa-plus-square"></i>
             {{ "Create" | localize }}
@@ -47,6 +51,7 @@
                   <th>{{ "InvoiceNo" | localize }}</th>
                   <th>{{ "SaleDate" | localize }}</th>
                   <th>{{ "Customers" | localize }}</th>
+                  <th>{{ "PaymentType" | localize }}</th>
                   <th>{{ "TotalAmount" | localize }}</th>
                   <th>{{ "Notes" | localize }}</th>
                   <th style="width: 360px;">{{ "Actions" | localize }}</th>
@@ -68,6 +73,7 @@
                   <td>{{ sale.invoiceNo || ('#' + sale.id) }}</td>
                   <td>{{ sale.saleDate }}</td>
                   <td>{{ sale.customerName }}</td>
+                  <td>{{ paymentTypeLabel(sale.paymentType) }}</td>
                   <td>{{ sale.totalAmount }}</td>
                   <td>{{ sale.notes }}</td>
                   <td>

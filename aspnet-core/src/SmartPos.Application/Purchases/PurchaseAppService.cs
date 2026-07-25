@@ -92,6 +92,7 @@ namespace SmartPos.Purchases
                     LineTotal = lineTotal
                 });
 
+                ProductPricing.ApplyPurchaseCost(product, lineInput.Quantity, lineInput.UnitCost);
                 product.StockQuantity += lineInput.Quantity;
             }
 

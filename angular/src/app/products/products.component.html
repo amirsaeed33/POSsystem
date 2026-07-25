@@ -55,6 +55,10 @@
                   <th>{{ "Brand" | localize }}</th>
                   <th>{{ "Unit" | localize }}</th>
                   <th>{{ "Price" | localize }}</th>
+                  <th>{{ "WholesalePrice" | localize }}</th>
+                  <th>{{ "CostPrice" | localize }}</th>
+                  <th>{{ "ProfitPerUnit" | localize }}</th>
+                  <th>{{ "ProfitMargin" | localize }}</th>
                   <th>{{ "StockQuantity" | localize }}</th>
                   <th>{{ "AlertQuantityLimit" | localize }}</th>
                   <th style="width: 200px;">{{ "Actions" | localize }}</th>
@@ -94,7 +98,19 @@
                   <td>{{ product.categoryName }}</td>
                   <td>{{ product.brandName }}</td>
                   <td>{{ product.unitName }}</td>
-                  <td>{{ product.price }}</td>
+                  <td>{{ product.price | number: '1.2-2' }}</td>
+                  <td>{{ product.wholesalePrice | number: '1.2-2' }}</td>
+                  <td>{{ product.costPrice | number: '1.2-2' }}</td>
+                  <td [class.text-success]="product.profitPerUnit > 0" [class.text-danger]="product.profitPerUnit < 0">
+                    {{ product.profitPerUnit | number: '1.2-2' }}
+                  </td>
+                  <td>
+                    @if (product.profitMarginPercent != null) {
+                      {{ product.profitMarginPercent | number: '1.1-1' }}%
+                    } @else {
+                      -
+                    }
+                  </td>
                   <td>{{ product.stockQuantity }}</td>
                   <td>{{ product.alertQuantityLimit }}</td>
                   <td>

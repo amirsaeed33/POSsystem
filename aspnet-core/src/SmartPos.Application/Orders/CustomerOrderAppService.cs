@@ -148,6 +148,7 @@ namespace SmartPos.Orders
             {
                 CustomerId = order.CustomerId,
                 SaleDate = Abp.Timing.Clock.Now,
+                PaymentType = PaymentTypes.Credit,
                 Notes = string.IsNullOrWhiteSpace(order.Notes)
                     ? "From order " + (order.OrderNo ?? ("#" + order.Id))
                     : order.Notes + " (Order " + (order.OrderNo ?? ("#" + order.Id)) + ")",

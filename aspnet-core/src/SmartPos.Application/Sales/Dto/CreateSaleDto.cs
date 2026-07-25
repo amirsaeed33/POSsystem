@@ -18,6 +18,24 @@ namespace SmartPos.Sales.Dto
         [StringLength(Sale.MaxNotesLength)]
         public string Notes { get; set; }
 
+        [Range(0, double.MaxValue)]
+        public decimal DiscountAmount { get; set; }
+
+        [Range(0, 100)]
+        public decimal DiscountPercent { get; set; }
+
+        [Range(0, 100)]
+        public decimal TaxPercent { get; set; }
+
+        /// <summary><see cref="PaymentTypes"/> value. Defaults to Credit.</summary>
+        public int PaymentType { get; set; } = PaymentTypes.Credit;
+
+        [Range(0, double.MaxValue)]
+        public decimal CashAmount { get; set; }
+
+        [Range(0, double.MaxValue)]
+        public decimal CardAmount { get; set; }
+
         [Required]
         [MinLength(1)]
         public List<CreateSaleLineDto> Lines { get; set; }

@@ -28,7 +28,20 @@ namespace SmartPos.Products
         [StringLength(MaxBarcodeLength)]
         public virtual string Barcode { get; set; }
 
+        /// <summary>
+        /// Retail / direct-customer selling price per unit.
+        /// </summary>
         public virtual decimal Price { get; set; }
+
+        /// <summary>
+        /// Wholesale selling price per unit (used for wholesaler customers).
+        /// </summary>
+        public virtual decimal WholesalePrice { get; set; }
+
+        /// <summary>
+        /// Average purchase / cost price per unit (weighted average on purchases).
+        /// </summary>
+        public virtual decimal CostPrice { get; set; }
 
         public virtual decimal StockQuantity { get; set; }
 

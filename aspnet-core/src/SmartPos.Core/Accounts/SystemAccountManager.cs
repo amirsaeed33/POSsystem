@@ -37,6 +37,16 @@ namespace SmartPos.Accounts
             return GetOrCreateAsync(SystemAccountCodes.Expense, "Expense Account", AccountTypes.Expense);
         }
 
+        public Task<BusinessAccount> GetCashAccountAsync()
+        {
+            return GetOrCreateAsync(SystemAccountCodes.Cash, "Cash Account", AccountTypes.Cash);
+        }
+
+        public Task<BusinessAccount> GetBankAccountAsync()
+        {
+            return GetOrCreateAsync(SystemAccountCodes.Bank, "Bank Account", AccountTypes.Bank);
+        }
+
         private async Task<BusinessAccount> GetOrCreateAsync(string code, string name, string accountType)
         {
             var account = await _accountRepository.FirstOrDefaultAsync(x => x.Code == code);

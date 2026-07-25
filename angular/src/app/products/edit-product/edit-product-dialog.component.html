@@ -84,6 +84,45 @@
         ></abp-validation-summary>
       </div>
     </div>
+    <div class="form-group row">
+      <label class="col-md-3 col-form-label" for="wholesalePrice">
+        {{ "WholesalePrice" | localize }}
+      </label>
+      <div class="col-md-9">
+        <input
+          type="number"
+          class="form-control"
+          name="wholesalePrice"
+          id="wholesalePrice"
+          min="0"
+          step="0.01"
+          [(ngModel)]="product.wholesalePrice"
+        />
+      </div>
+    </div>
+    <div class="form-group row">
+      <label class="col-md-3 col-form-label" for="costPrice">
+        {{ "CostPrice" | localize }}
+      </label>
+      <div class="col-md-9">
+        <input
+          type="number"
+          class="form-control"
+          name="costPrice"
+          id="costPrice"
+          min="0"
+          step="0.01"
+          [(ngModel)]="product.costPrice"
+        />
+        <small class="form-text text-muted">
+          {{ "ProfitPerUnit" | localize }}:
+          {{ (product.price || 0) - (product.costPrice || 0) | number: '1.2-2' }}
+          @if (product.price > 0) {
+            ({{ (((product.price || 0) - (product.costPrice || 0)) / product.price) * 100 | number: '1.1-1' }}%)
+          }
+        </small>
+      </div>
+    </div>
     <div class="form-group row required">
       <label class="col-md-3 col-form-label" for="alertQuantityLimit">
         {{ "AlertQuantityLimit" | localize }}

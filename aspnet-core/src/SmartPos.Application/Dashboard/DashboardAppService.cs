@@ -116,6 +116,9 @@ namespace SmartPos.Dashboard
                     CategoryName = p.Category?.Name,
                     BrandName = p.Brand?.Name,
                     Units = p.StockQuantity,
+                    Price = p.Price,
+                    CostPrice = p.CostPrice,
+                    ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
                     Status = StatusOf(p),
                     ImagePath = p.ImagePath
                 })

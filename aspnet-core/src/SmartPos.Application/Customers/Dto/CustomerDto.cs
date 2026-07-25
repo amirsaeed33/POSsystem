@@ -13,6 +13,8 @@ namespace SmartPos.Customers.Dto
         [StringLength(Customer.MaxNameLength)]
         public string Name { get; set; }
 
+        public int CustomerType { get; set; }
+
         [StringLength(Customer.MaxPhoneLength)]
         public string Phone { get; set; }
 

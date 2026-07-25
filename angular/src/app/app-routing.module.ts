@@ -75,6 +75,18 @@ import { AppComponent } from './app.component';
                         canActivate: [AppRouteGuard]
                     },
                     {
+                        path: 'pos',
+                        loadChildren: () => import('./pos/pos.module').then((m) => m.PosModule),
+                        data: { permission: 'Pages.Sales' },
+                        canActivate: [AppRouteGuard]
+                    },
+                    {
+                        path: 'stock-adjustments',
+                        loadChildren: () => import('./stock-adjustments/stock-adjustments.module').then((m) => m.StockAdjustmentsModule),
+                        data: { permission: 'Pages.StockAdjustments' },
+                        canActivate: [AppRouteGuard]
+                    },
+                    {
                         path: 'customer-orders',
                         loadChildren: () => import('./customer-orders/customer-orders.module').then((m) => m.CustomerOrdersModule),
                         data: { permission: 'Pages.CustomerOrders' },

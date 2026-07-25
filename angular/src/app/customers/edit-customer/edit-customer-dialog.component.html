@@ -8,6 +8,15 @@
         <abp-validation-summary [control]="nameModel" [controlEl]="nameEl"></abp-validation-summary>
       </div>
     </div>
+    <div class="form-group row required">
+      <label class="col-md-3 col-form-label" for="customerType">{{ "CustomerType" | localize }}</label>
+      <div class="col-md-9">
+        <select class="form-control" name="customerType" id="customerType" required [(ngModel)]="item.customerType">
+          <option [ngValue]="0">{{ "CustomerTypeDirect" | localize }}</option>
+          <option [ngValue]="1">{{ "CustomerTypeWholesaler" | localize }}</option>
+        </select>
+      </div>
+    </div>
     <div class="form-group row">
       <label class="col-md-3 col-form-label" for="phone">{{ "Phone" | localize }}</label>
       <div class="col-md-9"><input type="text" class="form-control" name="phone" id="phone" maxlength="32" [(ngModel)]="item.phone" /></div>

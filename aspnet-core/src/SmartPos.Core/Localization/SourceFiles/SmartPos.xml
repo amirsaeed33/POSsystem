@@ -126,6 +126,16 @@
     <text name="EditProduct" value="Edit product" />
     <text name="ProductName" value="Product name" />
     <text name="Price" value="Price" />
+    <text name="CostPrice" value="Cost price" />
+    <text name="WholesalePrice" value="Wholesale price" />
+    <text name="CustomerType" value="Customer type" />
+    <text name="CustomerTypeDirect" value="Direct customer" />
+    <text name="CustomerTypeWholesaler" value="Wholesaler" />
+    <text name="ProfitPerUnit" value="Profit / unit" />
+    <text name="ProfitMargin" value="Margin %" />
+    <text name="StockProfit" value="Stock profit" />
+    <text name="StockCostValue" value="Stock cost value" />
+    <text name="StockSellValue" value="Stock sell value" />
     <text name="Category" value="Category" />
     <text name="Brand" value="Brand" />
     <text name="Unit" value="Unit" />
@@ -192,6 +202,39 @@
     <text name="Print" value="Print" />
     <text name="PurchaseInvoice" value="Purchase Invoice" />
     <text name="Sales" value="Sales" />
+    <text name="POS" value="POS Checkout" />
+    <text name="ScanBarcode" value="Scan barcode" />
+    <text name="ScanBarcodeHint" value="Scan or type barcode and press Enter" />
+    <text name="CompleteSale" value="Complete sale" />
+    <text name="ClearCart" value="Clear cart" />
+    <text name="Cart" value="Cart" />
+    <text name="SubTotal" value="Subtotal" />
+    <text name="Discount" value="Discount" />
+    <text name="DiscountAmount" value="Discount amount" />
+    <text name="DiscountPercent" value="Discount %" />
+    <text name="Tax" value="Tax" />
+    <text name="TaxPercent" value="Tax %" />
+    <text name="TaxAmount" value="Tax amount" />
+    <text name="PaymentType" value="Payment type" />
+    <text name="PaymentTypeCash" value="Cash" />
+    <text name="PaymentTypeCard" value="Card" />
+    <text name="PaymentTypeCredit" value="Credit" />
+    <text name="PaymentTypeMixed" value="Mixed" />
+    <text name="CashAmount" value="Cash amount" />
+    <text name="CardAmount" value="Card amount" />
+    <text name="CreditAmount" value="Credit amount" />
+    <text name="StockAdjustments" value="Stock Adjustments" />
+    <text name="CreateStockAdjustment" value="Create stock adjustment" />
+    <text name="ViewStockAdjustment" value="View stock adjustment" />
+    <text name="StockAdjustmentDeleteWarningMessage" value="Stock adjustment {0} will be deleted and stock will be reversed." />
+    <text name="AdjustmentDate" value="Adjustment date" />
+    <text name="QuantityChange" value="Qty change (+/-)" />
+    <text name="AdjustmentReason" value="Reason" />
+    <text name="AdjustmentReasonOpening" value="Opening stock" />
+    <text name="AdjustmentReasonDamage" value="Damage" />
+    <text name="AdjustmentReasonLoss" value="Loss" />
+    <text name="AdjustmentReasonRecount" value="Recount" />
+    <text name="AdjustmentReasonOther" value="Other" />
     <text name="CreateNewSale" value="Create sale" />
     <text name="ViewSale" value="View sale" />
     <text name="SaleDeleteWarningMessage" value="Sale {0} will be deleted and stock will be restored." />
@@ -285,5 +328,7 @@
     <text name="ViewOrder">View Order</text>
     <text name="LinkedSale">Sale</text>
     <text name="AllStatuses">All statuses</text>
+    <text name="InsufficientStock">Insufficient stock</text>
+    <text name="View">View</text>
   </texts>
 </localizationDictionary>

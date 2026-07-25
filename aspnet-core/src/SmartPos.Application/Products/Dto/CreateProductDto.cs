@@ -19,6 +19,10 @@ namespace SmartPos.Products.Dto
 
         public decimal Price { get; set; }
 
+        public decimal WholesalePrice { get; set; }
+
+        public decimal CostPrice { get; set; }
+
         public decimal AlertQuantityLimit { get; set; } = 10;
 
         [Required]

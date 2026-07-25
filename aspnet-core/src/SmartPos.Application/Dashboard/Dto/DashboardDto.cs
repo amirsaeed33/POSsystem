@@ -63,6 +63,12 @@ namespace SmartPos.Dashboard.Dto
 
         public decimal Units { get; set; }
 
+        public decimal Price { get; set; }
+
+        public decimal CostPrice { get; set; }
+
+        public decimal ProfitPerUnit { get; set; }
+
         public string Status { get; set; }
 
         public string ImagePath { get; set; }

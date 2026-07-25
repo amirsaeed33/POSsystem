@@ -37,6 +37,16 @@ export class SalesComponent extends PagedListingComponentBase<SaleDto> {
     super(injector, cd);
   }
 
+  paymentTypeLabel(paymentType: number): string {
+    switch (paymentType) {
+      case 0: return this.l('PaymentTypeCash');
+      case 1: return this.l('PaymentTypeCard');
+      case 2: return this.l('PaymentTypeCredit');
+      case 3: return this.l('PaymentTypeMixed');
+      default: return String(paymentType ?? '');
+    }
+  }
+
   list(
     request: PagedSalesRequestDto,
     pageNumber: number,

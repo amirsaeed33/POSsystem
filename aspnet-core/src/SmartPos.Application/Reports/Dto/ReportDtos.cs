@@ -90,6 +90,12 @@ namespace SmartPos.Reports.Dto
 
         public decimal TotalStockUnits { get; set; }
 
+        public decimal TotalStockCostValue { get; set; }
+
+        public decimal TotalStockSellValue { get; set; }
+
+        public decimal TotalStockProfit { get; set; }
+
         public List<StockReportRowDto> Items { get; set; }
     }
 
@@ -108,6 +114,14 @@ namespace SmartPos.Reports.Dto
         public string UnitName { get; set; }
 
         public decimal Price { get; set; }
+
+        public decimal CostPrice { get; set; }
+
+        public decimal ProfitPerUnit { get; set; }
+
+        public decimal? ProfitMarginPercent { get; set; }
+
+        public decimal StockProfit { get; set; }
 
         public decimal StockQuantity { get; set; }
 

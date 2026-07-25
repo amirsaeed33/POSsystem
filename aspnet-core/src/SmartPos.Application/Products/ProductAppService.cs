@@ -43,6 +43,8 @@ namespace SmartPos.Products
             product.Description = input.Description;
             product.Barcode = NormalizeBarcode(input.Barcode);
             product.Price = input.Price;
+            product.WholesalePrice = input.WholesalePrice;
+            product.CostPrice = input.CostPrice;
             product.AlertQuantityLimit = input.AlertQuantityLimit;
             product.CategoryId = input.CategoryId;
             product.BrandId = input.BrandId;

@@ -53,8 +53,21 @@ export class CreateSaleDialogComponent extends AppComponentBase
     super(injector);
   }
 
+  paymentTypes = [
+    { value: 0, label: 'PaymentTypeCash' },
+    { value: 1, label: 'PaymentTypeCard' },
+    { value: 2, label: 'PaymentTypeCredit' },
+    { value: 3, label: 'PaymentTypeMixed' }
+  ];
+
   ngOnInit(): void {
     this.sale.saleDate = this.toDateInputValue() as any;
+    this.sale.paymentType = 2;
+    this.sale.discountAmount = 0;
+    this.sale.discountPercent = 0;
+    this.sale.taxPercent = 0;
+    this.sale.cashAmount = 0;
+    this.sale.cardAmount = 0;
     this.sale.lines = [];
     this.addLine();
 
@@ -101,11 +114,29 @@ export class CreateSaleDialogComponent extends AppComponentBase
     }
   }
 
+  onCustomerSelected(): void {
+    (this.sale.lines || []).forEach((line) => {
+      if (line.productId) {
+        this.onProductSelected(line);
+      }
+    });
+    this.cd.detectChanges();
+  }
+
   onProductSelected(line: CreateSaleLineDto): void {
     const product = this.products.find((p) => p.id === line.productId);
     if (product) {
-      line.unitPrice = product.price || 0;
+      line.unitPrice = this.getUnitPriceForCustomer(product);
     }
+  }
+
+  getUnitPriceForCustomer(product: ProductDto): number {
+    const customer = this.customers.find((c) => c.id === this.sale.customerId);
+    const isWholesaler = customer?.customerType === 1;
+    if (isWholesaler) {
+      return product.wholesalePrice > 0 ? product.wholesalePrice : product.price || 0;
+    }
+    return product.price || 0;
   }
 
   onUnitPriceTab(event: KeyboardEvent, index: number): void {
@@ -138,8 +169,38 @@ export class CreateSaleDialogComponent extends AppComponentBase
     return (line.quantity || 0) * (line.unitPrice || 0);
   }
 
-  get grandTotal(): number {
+  get subTotal(): number {
     return (this.sale.lines || []).reduce((sum, line) => sum + this.lineTotal(line), 0);
+  }
+
+  get computedDiscount(): number {
+    let discount = this.sale.discountAmount || 0;
+    if ((this.sale.discountPercent || 0) > 0 && discount <= 0) {
+      discount = Math.round((this.subTotal * this.sale.discountPercent) / 100 * 100) / 100;
+    }
+    if (discount < 0) {
+      discount = 0;
+    }
+    if (discount > this.subTotal) {
+      discount = this.subTotal;
+    }
+    return discount;
+  }
+
+  get taxAmount(): number {
+    const taxable = this.subTotal - this.computedDiscount;
+    return Math.round((taxable * (this.sale.taxPercent || 0)) / 100 * 100) / 100;
+  }
+
+  get grandTotal(): number {
+    return Math.round((this.subTotal - this.computedDiscount + this.taxAmount) * 100) / 100;
+  }
+
+  onPaymentTypeChange(): void {
+    if (this.sale.paymentType !== 3) {
+      this.sale.cashAmount = 0;
+      this.sale.cardAmount = 0;
+    }
   }
 
   isFormValid(): boolean {

@@ -56,6 +56,18 @@
         </tbody>
         <tfoot>
           <tr>
+            <td colspan="4" class="text-right">{{ "SubTotal" | localize }}</td>
+            <td class="text-right">{{ sale.subTotal }}</td>
+          </tr>
+          <tr>
+            <td colspan="4" class="text-right">{{ "Discount" | localize }}</td>
+            <td class="text-right">-{{ sale.discountAmount }}</td>
+          </tr>
+          <tr>
+            <td colspan="4" class="text-right">{{ "Tax" | localize }} ({{ sale.taxPercent }}%)</td>
+            <td class="text-right">{{ sale.taxAmount }}</td>
+          </tr>
+          <tr>
             <td colspan="4" class="text-right"><strong>{{ "TotalAmount" | localize }}</strong></td>
             <td class="text-right"><strong>{{ sale.totalAmount }}</strong></td>
           </tr>

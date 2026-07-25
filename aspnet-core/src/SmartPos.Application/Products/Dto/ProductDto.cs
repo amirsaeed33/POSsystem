@@ -18,6 +18,19 @@ namespace SmartPos.Products.Dto
 
         public decimal Price { get; set; }
 
+        public decimal WholesalePrice { get; set; }
+
+        public decimal CostPrice { get; set; }
+
+        /// <summary>Selling price minus cost price (per unit).</summary>
+        public decimal ProfitPerUnit { get; set; }
+
+        /// <summary>Profit as percent of selling price.</summary>
+        public decimal? ProfitMarginPercent { get; set; }
+
+        /// <summary>Potential profit if current stock is sold at Price.</summary>
+        public decimal StockProfit { get; set; }
+
         public decimal StockQuantity { get; set; }
 
         public decimal AlertQuantityLimit { get; set; }

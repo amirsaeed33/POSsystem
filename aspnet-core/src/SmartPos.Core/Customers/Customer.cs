@@ -26,6 +26,11 @@ namespace SmartPos.Customers
         [StringLength(MaxNameLength)]
         public virtual string Name { get; set; }
 
+        /// <summary>
+        /// <see cref="CustomerTypes.Direct"/> or <see cref="CustomerTypes.Wholesaler"/>.
+        /// </summary>
+        public virtual int CustomerType { get; set; } = CustomerTypes.Direct;
+
         [StringLength(MaxPhoneLength)]
         public virtual string Phone { get; set; }
 

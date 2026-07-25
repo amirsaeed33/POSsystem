@@ -5,6 +5,18 @@
       <div class="col-md-6"><strong>{{ "InvoiceNo" | localize }}:</strong> {{ sale.invoiceNo || ('#' + sale.id) }}</div>
       <div class="col-md-6"><strong>{{ "SaleDate" | localize }}:</strong> {{ sale.saleDate }}</div>
       <div class="col-md-6"><strong>{{ "Customers" | localize }}:</strong> {{ sale.customerName }}</div>
+      <div class="col-md-6"><strong>{{ "PaymentType" | localize }}:</strong>
+        @switch (sale.paymentType) {
+          @case (0) { {{ "PaymentTypeCash" | localize }} }
+          @case (1) { {{ "PaymentTypeCard" | localize }} }
+          @case (2) { {{ "PaymentTypeCredit" | localize }} }
+          @case (3) { {{ "PaymentTypeMixed" | localize }} }
+          @default { {{ sale.paymentType }} }
+        }
+      </div>
+      <div class="col-md-6"><strong>{{ "SubTotal" | localize }}:</strong> {{ sale.subTotal }}</div>
+      <div class="col-md-6"><strong>{{ "Discount" | localize }}:</strong> {{ sale.discountAmount }}</div>
+      <div class="col-md-6"><strong>{{ "Tax" | localize }}:</strong> {{ sale.taxAmount }} ({{ sale.taxPercent }}%)</div>
       <div class="col-md-6"><strong>{{ "TotalAmount" | localize }}:</strong> {{ sale.totalAmount }}</div>
       <div class="col-md-12"><strong>{{ "Notes" | localize }}:</strong> {{ sale.notes }}</div>
     </div>

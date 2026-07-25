@@ -97,6 +97,12 @@ export class SidebarMenuComponent extends AppComponentBase implements OnInit {
                     'Pages.Purchases'
                 ),
                 new MenuItem(
+                    this.l('POS'),
+                    '/app/pos',
+                    'fas fa-barcode',
+                    'Pages.Sales'
+                ),
+                new MenuItem(
                     this.l('Sales'),
                     '/app/sales',
                     'fas fa-cash-register',
@@ -107,6 +113,12 @@ export class SidebarMenuComponent extends AppComponentBase implements OnInit {
                     '/app/customer-orders',
                     'fas fa-clipboard-list',
                     'Pages.CustomerOrders'
+                ),
+                new MenuItem(
+                    this.l('StockAdjustments'),
+                    '/app/stock-adjustments',
+                    'fas fa-boxes',
+                    'Pages.StockAdjustments'
                 ),
             ]),
             new MenuItem(this.l('BusinessManagement'), '', 'fas fa-briefcase', '', [

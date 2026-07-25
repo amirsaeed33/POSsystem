@@ -172,6 +172,10 @@ namespace SmartPos.Reports
                 BrandName = p.Brand?.Name,
                 UnitName = p.Unit?.Name,
                 Price = p.Price,
+                CostPrice = p.CostPrice,
+                ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
+                ProfitMarginPercent = ProductPricing.ProfitMarginPercent(p.Price, p.CostPrice),
+                StockProfit = ProductPricing.StockProfit(p.Price, p.CostPrice, p.StockQuantity),
                 StockQuantity = p.StockQuantity,
                 AlertQuantityLimit = p.AlertQuantityLimit,
                 Status = StatusOf(p)
@@ -184,7 +188,10 @@ namespace SmartPos.Reports
                 InStockCount = items.Count(x => x.Status == "InStock"),
                 LowStockCount = items.Count(x => x.Status == "LowStock"),
                 OutOfStockCount = items.Count(x => x.Status == "OutOfStock"),
-                TotalStockUnits = items.Sum(x => x.StockQuantity)
+                TotalStockUnits = items.Sum(x => x.StockQuantity),
+                TotalStockCostValue = items.Sum(x => x.CostPrice * x.StockQuantity),
+                TotalStockSellValue = items.Sum(x => x.Price * x.StockQuantity),
+                TotalStockProfit = items.Sum(x => x.StockProfit)
             };
         }
 

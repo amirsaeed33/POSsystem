@@ -9,18 +9,70 @@
           bindLabel="name"
           bindValue="id"
           [(ngModel)]="sale.customerId"
+          (ngModelChange)="onCustomerSelected()"
           name="customerId"
           [placeholder]="'SelectCustomer' | localize"
           appendTo="body"
           [clearable]="true"
           required
-        ></ng-select>
+        >
+          <ng-template ng-label-tmp let-item="item">
+            {{ item.name }}
+            @if (item.customerType === 1) {
+              ({{ "CustomerTypeWholesaler" | localize }})
+            }
+          </ng-template>
+          <ng-template ng-option-tmp let-item="item">
+            {{ item.name }}
+            @if (item.customerType === 1) {
+              — {{ "CustomerTypeWholesaler" | localize }}
+            } @else {
+              — {{ "CustomerTypeDirect" | localize }}
+            }
+          </ng-template>
+        </ng-select>
       </div>
       <label class="col-md-2 col-form-label">{{ "SaleDate" | localize }}</label>
       <div class="col-md-4">
         <input type="date" class="form-control" name="saleDate" required [(ngModel)]="sale.saleDate" />
       </div>
     </div>
+    <div class="form-group row">
+      <label class="col-md-2 col-form-label">{{ "PaymentType" | localize }}</label>
+      <div class="col-md-4">
+        <select class="form-control" name="paymentType" [(ngModel)]="sale.paymentType" (ngModelChange)="onPaymentTypeChange()">
+          @for (pt of paymentTypes; track pt.value) {
+          <option [ngValue]="pt.value">{{ pt.label | localize }}</option>
+          }
+        </select>
+      </div>
+      <label class="col-md-2 col-form-label">{{ "TaxPercent" | localize }}</label>
+      <div class="col-md-4">
+        <input type="number" class="form-control" name="taxPercent" min="0" max="100" step="0.01" [(ngModel)]="sale.taxPercent" />
+      </div>
+    </div>
+    <div class="form-group row">
+      <label class="col-md-2 col-form-label">{{ "DiscountPercent" | localize }}</label>
+      <div class="col-md-4">
+        <input type="number" class="form-control" name="discountPercent" min="0" max="100" step="0.01" [(ngModel)]="sale.discountPercent" />
+      </div>
+      <label class="col-md-2 col-form-label">{{ "DiscountAmount" | localize }}</label>
+      <div class="col-md-4">
+        <input type="number" class="form-control" name="discountAmount" min="0" step="0.01" [(ngModel)]="sale.discountAmount" />
+      </div>
+    </div>
+    @if (sale.paymentType === 3) {
+    <div class="form-group row">
+      <label class="col-md-2 col-form-label">{{ "CashAmount" | localize }}</label>
+      <div class="col-md-4">
+        <input type="number" class="form-control" name="cashAmount" min="0" step="0.01" [(ngModel)]="sale.cashAmount" />
+      </div>
+      <label class="col-md-2 col-form-label">{{ "CardAmount" | localize }}</label>
+      <div class="col-md-4">
+        <input type="number" class="form-control" name="cardAmount" min="0" step="0.01" [(ngModel)]="sale.cardAmount" />
+      </div>
+    </div>
+    }
     <div class="form-group row">
       <label class="col-md-2 col-form-label">{{ "Notes" | localize }}</label>
       <div class="col-md-10">
@@ -97,8 +149,23 @@
         </tbody>
         <tfoot>
           <tr>
+            <th colspan="3" class="text-right">{{ "SubTotal" | localize }}</th>
+            <th>{{ subTotal | number: '1.2-2' }}</th>
+            <th></th>
+          </tr>
+          <tr>
+            <th colspan="3" class="text-right">{{ "Discount" | localize }}</th>
+            <th>-{{ computedDiscount | number: '1.2-2' }}</th>
+            <th></th>
+          </tr>
+          <tr>
+            <th colspan="3" class="text-right">{{ "Tax" | localize }}</th>
+            <th>{{ taxAmount | number: '1.2-2' }}</th>
+            <th></th>
+          </tr>
+          <tr>
             <th colspan="3" class="text-right">{{ "TotalAmount" | localize }}</th>
-            <th>{{ grandTotal }}</th>
+            <th>{{ grandTotal | number: '1.2-2' }}</th>
             <th></th>
           </tr>
         </tfoot>

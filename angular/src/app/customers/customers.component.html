@@ -33,6 +33,7 @@
               <thead class="bg-light">
                 <tr>
                   <th>{{ "Name" | localize }}</th>
+                  <th>{{ "CustomerType" | localize }}</th>
                   <th>{{ "Phone" | localize }}</th>
                   <th>{{ "EmailAddress" | localize }}</th>
                   <th>{{ "Address" | localize }}</th>
@@ -44,6 +45,13 @@
                 @for (item of items | paginate : { id: 'server', itemsPerPage: pageSize, currentPage: pageNumber, totalItems: totalItems }; track item.id) {
                 <tr>
                   <td>{{ item.name }}</td>
+                  <td>
+                    @if (item.customerType === 1) {
+                      <span class="badge badge-info">{{ "CustomerTypeWholesaler" | localize }}</span>
+                    } @else {
+                      <span class="badge badge-secondary">{{ "CustomerTypeDirect" | localize }}</span>
+                    }
+                  </td>
                   <td>{{ item.phone }}</td>
                   <td>{{ item.email }}</td>
                   <td>{{ item.address }}</td>
