@@ -131,6 +131,7 @@ namespace SmartPos.Dashboard
             return new DashboardDto
             {
                 UserDisplayName = userName,
+                UserImageUrl = user.UserImageUrl,
                 TotalProducts = products.Count,
                 InStockCount = inStock.Count,
                 LowStockCount = lowStock.Count,

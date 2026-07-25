@@ -142,11 +142,12 @@
                     <table class="table table-striped table-bordered" [busy]="isTableLoading">
                       <thead class="bg-light">
                         <tr>
+                          <th style="width: 64px;">{{ "UserImage" | localize }}</th>
                           <th>{{ "UserName" | localize }}</th>
                           <th>{{ "FullName" | localize }}</th>
                           <th>{{ "EmailAddress" | localize }}</th>
                           <th>{{ "IsActive" | localize }}</th>
-                          <th style="width: 310px;">{{ "Actions" | localize }}</th>
+                          <th style="width: 180px;">{{ "Actions" | localize }}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -163,6 +164,19 @@
                         user.id) {
                         <tr
                           >
+                          <td class="text-center align-middle">
+                            @if (user.userImageUrl) {
+                              <img
+                                class="user-thumb"
+                                [src]="getImageUrl(user)"
+                                [alt]="user.fullName || user.userName"
+                              />
+                            } @else {
+                              <span class="user-thumb-placeholder">
+                                <i class="fas fa-user"></i>
+                              </span>
+                            }
+                          </td>
                           <td>{{ user.userName }}</td>
                           <td>{{ user.fullName }}</td>
                           <td>{{ user.emailAddress }}</td>
@@ -182,17 +196,19 @@
                                 type="button"
                                 class="btn btn-sm bg-secondary"
                                 (click)="editUser(user)"
+                                [title]="'Edit' | localize"
+                                [attr.aria-label]="'Edit' | localize"
                                 >
                                 <i class="fas fa-pencil-alt"></i>
-                                {{ "Edit" | localize }}
                               </button>
                               <button
                                 type="button"
                                 class="btn btn-sm bg-danger mx-2"
                                 (click)="delete(user)"
+                                [title]="'Delete' | localize"
+                                [attr.aria-label]="'Delete' | localize"
                                 >
                                 <i class="fas fa-trash"></i>
-                                {{ "Delete" | localize }}
                               </button>
                               <button
                                 type="button"

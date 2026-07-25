@@ -52,8 +52,8 @@
                     <a class="btn btn-sm bg-info text-white" [routerLink]="['/app/ledger-entries']" [queryParams]="{ accountId: item.accountId }" *ngIf="item.accountId">
                       <i class="fas fa-book"></i> {{ "LedgerEntries" | localize }}
                     </a>
-                    <button type="button" class="btn btn-sm bg-secondary mx-1" (click)="edit(item)"><i class="fas fa-pencil-alt"></i> {{ "Edit" | localize }}</button>
-                    <button type="button" class="btn btn-sm bg-danger" (click)="delete(item)"><i class="fas fa-trash"></i> {{ "Delete" | localize }}</button>
+                    <button type="button" class="btn btn-sm bg-secondary mx-1" (click)="edit(item)" [title]="'Edit' | localize" [attr.aria-label]="'Edit' | localize"><i class="fas fa-pencil-alt"></i></button>
+                    <button type="button" class="btn btn-sm bg-danger" (click)="delete(item)" [title]="'Delete' | localize" [attr.aria-label]="'Delete' | localize"><i class="fas fa-trash"></i></button>
                   </td>
                 </tr>
                 }

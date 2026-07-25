@@ -1,6 +1,11 @@
-import { ChangeDetectorRef, Component, Injector } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  Injector,
+  ViewChild,
+} from '@angular/core';
 import { finalize } from 'rxjs/operators';
-import { BsModalService, BsModalRef } from 'ngx-bootstrap/modal';
+import { BsModalService, BsModalRef, ModalDirective } from 'ngx-bootstrap/modal';
 import { appModuleAnimation } from '@shared/animations/routerTransition';
 import {
   PagedListingComponentBase,
@@ -21,11 +26,16 @@ class PagedProductsRequestDto extends PagedRequestDto {
 
 @Component({
   templateUrl: './products.component.html',
+  styleUrls: ['./products.component.less'],
   animations: [appModuleAnimation()]
 })
 export class ProductsComponent extends PagedListingComponentBase<ProductDto> {
+  @ViewChild('imageModal', { static: true }) imageModal: ModalDirective;
+
   products: ProductDto[] = [];
   keyword = '';
+  selectedImageUrl = '';
+  selectedImageName = '';
 
   constructor(
     injector: Injector,
@@ -68,6 +78,22 @@ export class ProductsComponent extends PagedListingComponentBase<ProductDto> {
       return '';
     }
     return AppConsts.remoteServiceBaseUrl + product.imagePath;
+  }
+
+  viewImage(product: ProductDto): void {
+    if (!product?.imagePath) {
+      return;
+    }
+
+    this.selectedImageUrl = this.getImageUrl(product);
+    this.selectedImageName = product.name;
+    this.imageModal.show();
+  }
+
+  closeImage(): void {
+    this.imageModal.hide();
+    this.selectedImageUrl = '';
+    this.selectedImageName = '';
   }
 
   delete(product: ProductDto): void {

@@ -73,13 +73,20 @@
                 ; track
                 product.id) {
                 <tr>
-                  <td>
+                  <td class="text-center align-middle">
                     @if (product.imagePath) {
-                      <img
-                        [src]="getImageUrl(product)"
-                        alt="{{ product.name }}"
-                        style="width: 48px; height: 48px; object-fit: cover;"
-                      />
+                      <button
+                        type="button"
+                        class="product-thumb-btn"
+                        (click)="viewImage(product)"
+                        [attr.title]="product.name"
+                      >
+                        <img
+                          class="product-thumb"
+                          [src]="getImageUrl(product)"
+                          [alt]="product.name"
+                        />
+                      </button>
                     }
                   </td>
                   <td>{{ product.name }}</td>
@@ -95,17 +102,19 @@
                       type="button"
                       class="btn btn-sm bg-secondary"
                       (click)="editProduct(product)"
+                      [title]="'Edit' | localize"
+                      [attr.aria-label]="'Edit' | localize"
                     >
                       <i class="fas fa-pencil-alt"></i>
-                      {{ "Edit" | localize }}
                     </button>
                     <button
                       type="button"
                       class="btn btn-sm bg-danger mx-2"
                       (click)="delete(product)"
+                      [title]="'Delete' | localize"
+                      [attr.aria-label]="'Delete' | localize"
                     >
                       <i class="fas fa-trash"></i>
-                      {{ "Delete" | localize }}
                     </button>
                   </td>
                 </tr>
@@ -140,4 +149,38 @@
       </div>
     </div>
   </section>
+
+  <div
+    bsModal
+    #imageModal="bs-modal"
+    class="modal fade"
+    tabindex="-1"
+    role="dialog"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content product-image-modal">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ selectedImageName }}</h5>
+          <button
+            type="button"
+            class="close"
+            aria-label="Close"
+            (click)="closeImage()"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body text-center">
+          @if (selectedImageUrl) {
+            <img
+              class="product-image-full"
+              [src]="selectedImageUrl"
+              [alt]="selectedImageName"
+            />
+          }
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

@@ -94,17 +94,19 @@
                       type="button"
                       class="btn btn-sm bg-secondary mx-1"
                       (click)="editAccount(account)"
+                      [title]="'Edit' | localize"
+                      [attr.aria-label]="'Edit' | localize"
                     >
                       <i class="fas fa-pencil-alt"></i>
-                      {{ "Edit" | localize }}
                     </button>
                     <button
                       type="button"
                       class="btn btn-sm bg-danger"
                       (click)="delete(account)"
+                      [title]="'Delete' | localize"
+                      [attr.aria-label]="'Delete' | localize"
                     >
                       <i class="fas fa-trash"></i>
-                      {{ "Delete" | localize }}
                     </button>
                   </td>
                 </tr>

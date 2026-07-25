@@ -5,6 +5,7 @@ import {
   OnInit
 } from '@angular/core';
 import { AppComponentBase } from '@shared/app-component-base';
+import { AppConsts } from '@shared/AppConsts';
 
 @Component({
   selector: 'sidebar-user-panel',
@@ -21,5 +22,13 @@ export class SidebarUserPanelComponent extends AppComponentBase
 
   ngOnInit() {
     this.shownLoginName = this.appSession.getShownLoginName();
+  }
+
+  get userImageUrl(): string {
+    const path = this.appSession.user?.userImageUrl;
+    if (path) {
+      return AppConsts.remoteServiceBaseUrl + path;
+    }
+    return 'assets/img/user.png';
   }
 }

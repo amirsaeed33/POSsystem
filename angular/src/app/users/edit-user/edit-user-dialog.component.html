@@ -101,6 +101,27 @@
                     ></abp-validation-summary>
                   </div>
                 </div>
+                <div class="form-group row">
+                  <label class="col-md-3 col-form-label" for="userImage">
+                    {{ "UserImage" | localize }}
+                  </label>
+                  <div class="col-md-9">
+                    <input
+                      type="file"
+                      class="form-control-file"
+                      id="userImage"
+                      accept="image/*"
+                      (change)="onFileSelected($event)"
+                    />
+                    @if (imagePreview) {
+                      <img
+                        class="user-image-preview mt-2"
+                        [src]="imagePreview"
+                        alt="preview"
+                      />
+                    }
+                  </div>
+                </div>
                 <div class="form-group row mb-0">
                   <label class="col-md-3 col-form-label">
                     {{ "IsActive" | localize }}

@@ -3,6 +3,11 @@
     <div class="container-fluid">
       <div class="invento-topbar">
         <div class="greeting">
+          <img
+            class="dashboard-user-avatar"
+            [src]="userImageUrl"
+            [alt]="data?.userDisplayName || 'User'"
+          />
           <h1>{{ greeting }}</h1>
         </div>
         <div class="search-wrap">

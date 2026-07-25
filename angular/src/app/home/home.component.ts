@@ -68,6 +68,15 @@ export class HomeComponent extends AppComponentBase implements OnInit {
     return this.l('DashboardGreeting', name);
   }
 
+  get userImageUrl(): string {
+    const path =
+      this.data?.userImageUrl || this.appSession.user?.userImageUrl || '';
+    if (path) {
+      return AppConsts.remoteServiceBaseUrl + path;
+    }
+    return 'assets/img/user.png';
+  }
+
   get filteredProducts(): DashboardProductRowDto[] {
     const list = this.data?.products || [];
     const q = (this.searchText || '').trim().toLowerCase();

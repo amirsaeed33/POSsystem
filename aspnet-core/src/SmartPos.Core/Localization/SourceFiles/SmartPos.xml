@@ -130,6 +130,7 @@
     <text name="Brand" value="Brand" />
     <text name="Unit" value="Unit" />
     <text name="ProductImage" value="Product image" />
+    <text name="UserImage" value="User image" />
     <text name="ProductDeleteWarningMessage" value="Product {0} will be deleted." />
     <text name="SelectCategory" value="Select category" />
     <text name="SelectBrand" value="Select brand" />

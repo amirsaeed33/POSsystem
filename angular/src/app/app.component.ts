@@ -20,6 +20,10 @@ export class AppComponent extends AppComponentBase implements OnInit {
   ngOnInit(): void {
     this.renderer.addClass(document.body, 'sidebar-mini');
     this.renderer.addClass(document.body, 'layout-fixed');
+    // hold-transition disables AdminLTE sidebar animations; drop it after first paint
+    setTimeout(() => {
+      this.renderer.removeClass(document.body, 'hold-transition');
+    }, 0);
 
     SignalRAspNetCoreHelper.initSignalR();
 

@@ -4340,6 +4340,7 @@ export class CreateUserDto implements ICreateUserDto {
     isActive: boolean;
     roleNames: string[] | undefined;
     password: string;
+    imageBase64: string | undefined;
 
     constructor(data?: ICreateUserDto) {
         if (data) {
@@ -4363,6 +4364,7 @@ export class CreateUserDto implements ICreateUserDto {
                     this.roleNames.push(item);
             }
             this.password = _data["password"];
+            this.imageBase64 = _data["imageBase64"];
         }
     }
 
@@ -4386,6 +4388,7 @@ export class CreateUserDto implements ICreateUserDto {
                 data["roleNames"].push(item);
         }
         data["password"] = this.password;
+        data["imageBase64"] = this.imageBase64;
         return data;
     }
 
@@ -4405,6 +4408,7 @@ export interface ICreateUserDto {
     isActive: boolean;
     roleNames: string[] | undefined;
     password: string;
+    imageBase64: string | undefined;
 }
 
 export class FlatPermissionDto implements IFlatPermissionDto {
@@ -5895,11 +5899,11 @@ export class DashboardProductRowDto implements IDashboardProductRowDto {
 export interface IDashboardProductRowDto { id: number; name: string | undefined; sku: string | undefined; categoryName: string | undefined; brandName: string | undefined; units: number; status: string | undefined; imagePath: string | undefined; }
 
 export class DashboardDto implements IDashboardDto {
-    userDisplayName: string | undefined; totalProducts: number; inStockCount: number; lowStockCount: number; outOfStockCount: number; inStockUnits: number; lowStockUnits: number; lowStockThreshold: number; todaySales: number; todayPurchases: number; todayExpenses: number; todayProfit: number; cashFlow: MonthlyCashFlowDto[] | undefined; products: DashboardProductRowDto[] | undefined;
+    userDisplayName: string | undefined; userImageUrl: string | undefined; totalProducts: number; inStockCount: number; lowStockCount: number; outOfStockCount: number; inStockUnits: number; lowStockUnits: number; lowStockThreshold: number; todaySales: number; todayPurchases: number; todayExpenses: number; todayProfit: number; cashFlow: MonthlyCashFlowDto[] | undefined; products: DashboardProductRowDto[] | undefined;
     constructor(data?: IDashboardDto) { if (data) { for (var property in data) { if (data.hasOwnProperty(property)) (<any>this)[property] = (<any>data)[property]; } } }
     init(_data?: any) {
         if (_data) {
-            this.userDisplayName = _data["userDisplayName"]; this.totalProducts = _data["totalProducts"]; this.inStockCount = _data["inStockCount"]; this.lowStockCount = _data["lowStockCount"]; this.outOfStockCount = _data["outOfStockCount"];
+            this.userDisplayName = _data["userDisplayName"]; this.userImageUrl = _data["userImageUrl"]; this.totalProducts = _data["totalProducts"]; this.inStockCount = _data["inStockCount"]; this.lowStockCount = _data["lowStockCount"]; this.outOfStockCount = _data["outOfStockCount"];
             this.inStockUnits = _data["inStockUnits"]; this.lowStockUnits = _data["lowStockUnits"]; this.lowStockThreshold = _data["lowStockThreshold"];
             this.todaySales = _data["todaySales"]; this.todayPurchases = _data["todayPurchases"]; this.todayExpenses = _data["todayExpenses"]; this.todayProfit = _data["todayProfit"];
             if (Array.isArray(_data["cashFlow"])) { this.cashFlow = [] as any; for (let item of _data["cashFlow"]) this.cashFlow.push(MonthlyCashFlowDto.fromJS(item)); }
@@ -5909,7 +5913,7 @@ export class DashboardDto implements IDashboardDto {
     static fromJS(data: any): DashboardDto { data = typeof data === 'object' ? data : {}; let result = new DashboardDto(); result.init(data); return result; }
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["userDisplayName"] = this.userDisplayName; data["totalProducts"] = this.totalProducts; data["inStockCount"] = this.inStockCount; data["lowStockCount"] = this.lowStockCount; data["outOfStockCount"] = this.outOfStockCount;
+        data["userDisplayName"] = this.userDisplayName; data["userImageUrl"] = this.userImageUrl; data["totalProducts"] = this.totalProducts; data["inStockCount"] = this.inStockCount; data["lowStockCount"] = this.lowStockCount; data["outOfStockCount"] = this.outOfStockCount;
         data["inStockUnits"] = this.inStockUnits; data["lowStockUnits"] = this.lowStockUnits; data["lowStockThreshold"] = this.lowStockThreshold;
         data["todaySales"] = this.todaySales; data["todayPurchases"] = this.todayPurchases; data["todayExpenses"] = this.todayExpenses; data["todayProfit"] = this.todayProfit;
         if (Array.isArray(this.cashFlow)) { data["cashFlow"] = []; for (let item of this.cashFlow) data["cashFlow"].push(item.toJSON()); }
@@ -5917,7 +5921,7 @@ export class DashboardDto implements IDashboardDto {
         return data;
     }
 }
-export interface IDashboardDto { userDisplayName: string | undefined; totalProducts: number; inStockCount: number; lowStockCount: number; outOfStockCount: number; inStockUnits: number; lowStockUnits: number; lowStockThreshold: number; todaySales: number; todayPurchases: number; todayExpenses: number; todayProfit: number; cashFlow: MonthlyCashFlowDto[] | undefined; products: DashboardProductRowDto[] | undefined; }
+export interface IDashboardDto { userDisplayName: string | undefined; userImageUrl: string | undefined; totalProducts: number; inStockCount: number; lowStockCount: number; outOfStockCount: number; inStockUnits: number; lowStockUnits: number; lowStockThreshold: number; todaySales: number; todayPurchases: number; todayExpenses: number; todayProfit: number; cashFlow: MonthlyCashFlowDto[] | undefined; products: DashboardProductRowDto[] | undefined; }
 
 export class SaleReportRowDto implements ISaleReportRowDto {
     id: number; invoiceNo: string | undefined; saleDate: Date; customerName: string | undefined; totalAmount: number; notes: string | undefined;
@@ -6045,6 +6049,8 @@ export class UserDto implements IUserDto {
     lastLoginTime: moment.Moment | undefined;
     creationTime: moment.Moment;
     roleNames: string[] | undefined;
+    userImageUrl: string | undefined;
+    imageBase64: string | undefined;
 
     constructor(data?: IUserDto) {
         if (data) {
@@ -6071,6 +6077,8 @@ export class UserDto implements IUserDto {
                 for (let item of _data["roleNames"])
                     this.roleNames.push(item);
             }
+            this.userImageUrl = _data["userImageUrl"];
+            this.imageBase64 = _data["imageBase64"];
         }
     }
 
@@ -6097,6 +6105,8 @@ export class UserDto implements IUserDto {
             for (let item of this.roleNames)
                 data["roleNames"].push(item);
         }
+        data["userImageUrl"] = this.userImageUrl;
+        data["imageBase64"] = this.imageBase64;
         return data;
     }
 
@@ -6119,6 +6129,8 @@ export interface IUserDto {
     lastLoginTime: moment.Moment | undefined;
     creationTime: moment.Moment;
     roleNames: string[] | undefined;
+    userImageUrl: string | undefined;
+    imageBase64: string | undefined;
 }
 
 export class UserDtoPagedResultDto implements IUserDtoPagedResultDto {
@@ -6182,6 +6194,7 @@ export class UserLoginInfoDto implements IUserLoginInfoDto {
     surname: string | undefined;
     userName: string | undefined;
     emailAddress: string | undefined;
+    userImageUrl: string | undefined;
 
     constructor(data?: IUserLoginInfoDto) {
         if (data) {
@@ -6199,6 +6212,7 @@ export class UserLoginInfoDto implements IUserLoginInfoDto {
             this.surname = _data["surname"];
             this.userName = _data["userName"];
             this.emailAddress = _data["emailAddress"];
+            this.userImageUrl = _data["userImageUrl"];
         }
     }
 
@@ -6216,6 +6230,7 @@ export class UserLoginInfoDto implements IUserLoginInfoDto {
         data["surname"] = this.surname;
         data["userName"] = this.userName;
         data["emailAddress"] = this.emailAddress;
+        data["userImageUrl"] = this.userImageUrl;
         return data;
     }
 
@@ -6233,6 +6248,7 @@ export interface IUserLoginInfoDto {
     surname: string | undefined;
     userName: string | undefined;
     emailAddress: string | undefined;
+    userImageUrl: string | undefined;
 }
 
 export class ApiException extends Error {

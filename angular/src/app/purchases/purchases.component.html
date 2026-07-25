@@ -82,7 +82,7 @@
                       <i class="fas fa-print"></i>
                       {{ "Print" | localize }}
                     </button>
-                    <button type="button" class="btn btn-sm bg-danger" (click)="delete(purchase)">
+                    <button type="button" class="btn btn-sm bg-danger" (click)="delete(purchase)" [title]="'Delete' | localize" [attr.aria-label]="'Delete' | localize">
                       <i class="fas fa-trash"></i>
                     </button>
                   </td>

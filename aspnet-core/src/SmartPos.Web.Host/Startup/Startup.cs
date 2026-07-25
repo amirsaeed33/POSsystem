@@ -53,13 +53,38 @@ namespace SmartPos.Web.Host.Startup
                 options => options.AddPolicy(
                     _defaultCorsPolicyName,
                     builder => builder
-                        .WithOrigins(
-                            // App:CorsOrigins in appsettings.json can contain more than one address separated by comma.
-                            _appConfiguration["App:CorsOrigins"]
+                        .SetIsOriginAllowed(origin =>
+                        {
+                            if (string.IsNullOrWhiteSpace(origin))
+                            {
+                                return false;
+                            }
+
+                            var configured = _appConfiguration["App:CorsOrigins"]
                                 .Split(",", StringSplitOptions.RemoveEmptyEntries)
-                                .Select(o => o.RemovePostFix("/"))
-                                .ToArray()
-                        )
+                                .Select(o => o.RemovePostFix("/").Trim())
+                                .ToArray();
+
+                            if (configured.Any(o =>
+                                    string.Equals(o, origin, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                return true;
+                            }
+
+                            // Allow ngrok public URLs used for local demos / tunneling
+                            try
+                            {
+                                var host = new Uri(origin).Host;
+                                return host.EndsWith(".ngrok-free.dev", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".ngrok-free.app", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".ngrok.io", StringComparison.OrdinalIgnoreCase)
+                                       || host.Equals("ngrok.io", StringComparison.OrdinalIgnoreCase);
+                            }
+                            catch
+                            {
+                                return false;
+                            }
+                        })
                         .AllowAnyHeader()
                         .AllowAnyMethod()
                         .AllowCredentials()

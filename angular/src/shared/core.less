@@ -51,6 +51,41 @@ div.content-wrapper {
   min-height: 100vh;
 }
 
+/* Smooth sidebar open/collapse (AdminLTE toggle) */
+body:not(.hold-transition) {
+  .main-sidebar,
+  .main-sidebar::before {
+    transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out,
+      transform 0.3s ease-in-out !important;
+  }
+
+  .content-wrapper,
+  .main-footer,
+  .main-header {
+    transition: margin-left 0.3s ease-in-out !important;
+  }
+
+  .brand-link,
+  .sidebar .nav-sidebar .nav-link p,
+  .sidebar .user-panel .info {
+    transition: width 0.3s ease-in-out, opacity 0.25s ease-in-out,
+      visibility 0.25s ease-in-out !important;
+  }
+}
+
+#sidebar-overlay {
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+.nav-link .fa-bars {
+  transition: transform 0.25s ease;
+  display: inline-block;
+}
+
+body.sidebar-collapse .nav-link .fa-bars {
+  transform: rotate(90deg);
+}
+
 /* Allow long side menus to scroll inside the fixed sidebar */
 .layout-fixed .wrapper .main-sidebar .sidebar {
   height: calc(100vh - (3.5rem + 1px));

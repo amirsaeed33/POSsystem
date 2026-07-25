@@ -163,12 +163,17 @@ export class AppInitializer {
         },
       })
       .subscribe((response) => {
-        AppConsts.appBaseUrl = response.appBaseUrl;
-        AppConsts.remoteServiceBaseUrl = response.remoteServiceBaseUrl;
+        const isNgrok = this.getDocumentOrigin().includes('ngrok');
+        AppConsts.appBaseUrl = isNgrok
+          ? this.getDocumentOrigin()
+          : response.appBaseUrl;
+        AppConsts.remoteServiceBaseUrl = isNgrok
+          ? this.getDocumentOrigin()
+          : response.remoteServiceBaseUrl;
         AppConsts.localeMappings = response.localeMappings;
 
         // Find tenant from subdomain
-        var tenancyName = this.resolveTenancyName(response.appBaseUrl);
+        var tenancyName = this.resolveTenancyName(AppConsts.appBaseUrl);
 
         if (tenancyName == null) {
           callback();

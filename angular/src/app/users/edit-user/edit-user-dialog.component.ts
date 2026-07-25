@@ -9,6 +9,7 @@ import {
 import { BsModalRef } from 'ngx-bootstrap/modal';
 import { forEach as _forEach, includes as _includes, map as _map } from 'lodash-es';
 import { AppComponentBase } from '@shared/app-component-base';
+import { AppConsts } from '@shared/AppConsts';
 import {
   UserServiceProxy,
   UserDto,
@@ -16,7 +17,8 @@ import {
 } from '@shared/service-proxies/service-proxies';
 
 @Component({
-  templateUrl: './edit-user-dialog.component.html'
+  templateUrl: './edit-user-dialog.component.html',
+  styleUrls: ['../user-image.less']
 })
 export class EditUserDialogComponent extends AppComponentBase
   implements OnInit {
@@ -25,6 +27,7 @@ export class EditUserDialogComponent extends AppComponentBase
   roles: RoleDto[] = [];
   checkedRolesMap: { [key: string]: boolean } = {};
   id: number;
+  imagePreview: string | ArrayBuffer = '';
 
   @Output() onSave = new EventEmitter<any>();
 
@@ -40,6 +43,10 @@ export class EditUserDialogComponent extends AppComponentBase
   ngOnInit(): void {
     this._userService.get(this.id).subscribe((result) => {
       this.user = result;
+      this.user.imageBase64 = undefined;
+      if (result.userImageUrl) {
+        this.imagePreview = AppConsts.remoteServiceBaseUrl + result.userImageUrl;
+      }
 
       this._userService.getRoles().subscribe((result2) => {
         this.roles = result2.items;
@@ -47,6 +54,25 @@ export class EditUserDialogComponent extends AppComponentBase
         this.cd.detectChanges();
       });
     });
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      if (!result || !result.startsWith('data:image')) {
+        return;
+      }
+      this.imagePreview = result;
+      this.user.imageBase64 = result;
+      this.cd.detectChanges();
+    };
+    reader.readAsDataURL(input.files[0]);
   }
 
   setInitialRolesStatus(): void {
@@ -79,6 +105,9 @@ export class EditUserDialogComponent extends AppComponentBase
     this.saving = true;
 
     this.user.roleNames = this.getCheckedRoles();
+    if (!this.user.imageBase64 || !this.user.imageBase64.startsWith('data:image')) {
+      this.user.imageBase64 = undefined;
+    }
 
     this._userService.update(this.user).subscribe(
       () => {

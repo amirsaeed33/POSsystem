@@ -11,6 +11,7 @@ import {
   UserDto,
   UserDtoPagedResultDto
 } from '@shared/service-proxies/service-proxies';
+import { AppConsts } from '@shared/AppConsts';
 import { CreateUserDialogComponent } from './create-user/create-user-dialog.component';
 import { EditUserDialogComponent } from './edit-user/edit-user-dialog.component';
 import { ResetPasswordDialogComponent } from './reset-password/reset-password.component';
@@ -22,6 +23,7 @@ class PagedUsersRequestDto extends PagedRequestDto {
 
 @Component({
   templateUrl: './users.component.html',
+  styleUrls: ['./user-image.less'],
   animations: [appModuleAnimation()]
 })
 export class UsersComponent extends PagedListingComponentBase<UserDto> {
@@ -55,6 +57,13 @@ export class UsersComponent extends PagedListingComponentBase<UserDto> {
     this.keyword = '';
     this.isActive = undefined;
     this.getDataPage(1);
+  }
+
+  getImageUrl(user: UserDto): string {
+    if (!user?.userImageUrl) {
+      return '';
+    }
+    return AppConsts.remoteServiceBaseUrl + user.userImageUrl;
   }
 
   protected list(

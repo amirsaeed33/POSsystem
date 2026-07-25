@@ -36,6 +36,8 @@ namespace SmartPos.Users.Dto
         [DisableAuditing]
         public string Password { get; set; }
 
+        public string ImageBase64 { get; set; }
+
         public void Normalize()
         {
             if (RoleNames == null)

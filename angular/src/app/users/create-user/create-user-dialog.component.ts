@@ -17,7 +17,8 @@ import {
 import { AbpValidationError } from '@shared/components/validation/abp-validation.api';
 
 @Component({
-  templateUrl: './create-user-dialog.component.html'
+  templateUrl: './create-user-dialog.component.html',
+  styleUrls: ['../user-image.less']
 })
 export class CreateUserDialogComponent extends AppComponentBase
   implements OnInit {
@@ -26,6 +27,7 @@ export class CreateUserDialogComponent extends AppComponentBase
   roles: RoleDto[] = [];
   checkedRolesMap: { [key: string]: boolean } = {};
   defaultRoleCheckedStatus = false;
+  imagePreview: string | ArrayBuffer = '';
   passwordValidationErrors: Partial<AbpValidationError>[] = [
     {
       name: 'pattern',
@@ -87,6 +89,21 @@ export class CreateUserDialogComponent extends AppComponentBase
       }
     });
     return roles;
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.imagePreview = reader.result;
+      this.user.imageBase64 = reader.result as string;
+      this.cd.detectChanges();
+    };
+    reader.readAsDataURL(input.files[0]);
   }
 
   save(): void {

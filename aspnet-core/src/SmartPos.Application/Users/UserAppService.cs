@@ -61,6 +61,7 @@ namespace SmartPos.Users
 
             user.TenantId = AbpSession.TenantId;
             user.IsEmailConfirmed = true;
+            user.UserImageUrl = UserImageStore.SaveBase64Image(input.ImageBase64);
 
             await _userManager.InitializeOptionsAsync(AbpSession.TenantId);
 
@@ -84,6 +85,12 @@ namespace SmartPos.Users
 
             MapToEntity(input, user);
 
+            if (UserImageStore.IsNewImagePayload(input.ImageBase64))
+            {
+                UserImageStore.DeleteIfExists(user.UserImageUrl);
+                user.UserImageUrl = UserImageStore.SaveBase64Image(input.ImageBase64);
+            }
+
             CheckErrors(await _userManager.UpdateAsync(user));
 
             if (input.RoleNames != null)
@@ -97,6 +104,7 @@ namespace SmartPos.Users
         public override async Task DeleteAsync(EntityDto<long> input)
         {
             var user = await _userManager.GetUserByIdAsync(input.Id);
+            UserImageStore.DeleteIfExists(user.UserImageUrl);
             await _userManager.DeleteAsync(user);
         }
 

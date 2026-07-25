@@ -36,5 +36,10 @@ namespace SmartPos.Users.Dto
         public DateTime CreationTime { get; set; }
 
         public string[] RoleNames { get; set; }
+
+        [StringLength(User.MaxUserImageUrlLength)]
+        public string UserImageUrl { get; set; }
+
+        public string ImageBase64 { get; set; }
     }
 }

@@ -95,7 +95,7 @@
                     <button type="button" class="btn btn-sm bg-warning mx-1" (click)="reject(order)">
                       <i class="fas fa-times"></i> {{ "RejectOrder" | localize }}
                     </button>
-                    <button type="button" class="btn btn-sm bg-danger" (click)="delete(order)">
+                    <button type="button" class="btn btn-sm bg-danger" (click)="delete(order)" [title]="'Delete' | localize" [attr.aria-label]="'Delete' | localize">
                       <i class="fas fa-trash"></i>
                     </button>
                     }

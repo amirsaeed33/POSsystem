@@ -7,6 +7,8 @@ namespace SmartPos.Dashboard.Dto
     {
         public string UserDisplayName { get; set; }
 
+        public string UserImageUrl { get; set; }
+
         public int TotalProducts { get; set; }
 
         public int InStockCount { get; set; }
