@@ -1,15 +1,20 @@
 <div [@routerTransition] class="pos-page">
-  <section class="content-header">
+  <section class="content-header pos-header">
     <div class="container-fluid">
       <div class="row align-items-center">
-        <div class="col-6">
-          <h1>{{ "POS" | localize }}</h1>
+        <div class="col-12 col-sm-6 mb-2 mb-sm-0">
+          <h1 class="mb-0">{{ "POS" | localize }}</h1>
         </div>
-        <div class="col-6 text-right">
-          <button type="button" class="btn btn-default mr-2" (click)="clearCart()" [disabled]="!cart.length || saving">
+        <div class="col-12 col-sm-6 text-sm-right pos-header-actions">
+          <button type="button" class="btn btn-default" (click)="clearCart()" [disabled]="!cart.length || saving">
             {{ "ClearCart" | localize }}
           </button>
-          <button type="button" class="btn btn-primary" (click)="completeSale()" [disabled]="!canSave()">
+          <button
+            type="button"
+            class="btn btn-primary d-none d-md-inline-block"
+            (click)="completeSale()"
+            [disabled]="!canSave()"
+          >
             {{ "CompleteSale" | localize }}
           </button>
         </div>
@@ -17,32 +22,52 @@
     </div>
   </section>
 
-  <section class="content px-2">
+  <section class="content px-2 pos-content">
     <div class="container-fluid">
       <div class="row">
         <div class="col-lg-8">
           <div class="card pos-scan-card">
             <div class="card-body">
-              <label class="font-weight-bold">{{ "ScanBarcode" | localize }}</label>
-              <input
-                #barcodeInput
-                type="text"
-                class="form-control form-control-lg pos-barcode-input"
-                [(ngModel)]="barcode"
-                (keyup.enter)="onBarcodeEnter()"
-                [placeholder]="'ScanBarcodeHint' | localize"
-                [disabled]="scanning || saving"
-                autocomplete="off"
-              />
+              <label class="font-weight-bold d-block mb-2">{{ "ScanBarcode" | localize }}</label>
+              <div class="input-group pos-barcode-group">
+                <input
+                  #barcodeInput
+                  type="text"
+                  class="form-control form-control-lg pos-barcode-input"
+                  [(ngModel)]="barcode"
+                  (keyup.enter)="onBarcodeEnter()"
+                  [placeholder]="'ScanBarcodeHint' | localize"
+                  [disabled]="scanning || saving"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  inputmode="search"
+                  enterkeyhint="go"
+                />
+                <div class="input-group-append">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    (click)="onBarcodeEnter()"
+                    [disabled]="scanning || saving || !(barcode || '').trim()"
+                  >
+                    <i class="fas fa-plus"></i>
+                    <span class="d-none d-sm-inline ml-1">{{ "Add" | localize }}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title mb-0">{{ "Cart" | localize }}</h3>
+              <span class="badge badge-secondary">{{ "ItemsInCart" | localize: cart.length }}</span>
             </div>
             <div class="card-body p-0">
-              <div class="table-responsive">
+              <!-- Desktop table -->
+              <div class="table-responsive d-none d-md-block">
                 <table class="table table-striped mb-0">
                   <thead class="bg-light">
                     <tr>
@@ -89,12 +114,54 @@
                   </tbody>
                 </table>
               </div>
+
+              <!-- Mobile cart cards -->
+              <div class="pos-cart-mobile d-md-none">
+                @if (!cart.length) {
+                <div class="text-muted text-center py-4 px-3">{{ "ScanBarcodeHint" | localize }}</div>
+                }
+                @for (line of cart; track line.productId) {
+                <div class="pos-cart-item">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div class="pr-2">
+                      <div class="font-weight-bold">{{ line.productName }}</div>
+                      <small class="text-muted">{{ "StockQuantity" | localize }}: {{ line.stockQuantity }}</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger pos-touch-btn" (click)="removeLine(line)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                  <div class="pos-cart-item-controls mt-2">
+                    <div class="pos-qty-control">
+                      <button type="button" class="btn btn-outline-secondary pos-touch-btn" (click)="bumpQty(line, -1)">−</button>
+                      <input
+                        type="number"
+                        class="form-control text-center"
+                        min="0.01"
+                        step="1"
+                        [ngModel]="line.quantity"
+                        (ngModelChange)="updateQty(line, $event)"
+                      />
+                      <button type="button" class="btn btn-outline-secondary pos-touch-btn" (click)="bumpQty(line, 1)">+</button>
+                    </div>
+                    <div class="pos-price-control">
+                      <label class="mb-0 small text-muted">{{ "UnitPrice" | localize }}</label>
+                      <input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="line.unitPrice" />
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-between mt-2">
+                    <span class="text-muted">{{ "LineTotal" | localize }}</span>
+                    <strong>{{ line.quantity * line.unitPrice | number: '1.2-2' }}</strong>
+                  </div>
+                </div>
+                }
+              </div>
             </div>
           </div>
         </div>
 
         <div class="col-lg-4">
-          <div class="card">
+          <div class="card pos-checkout-card">
             <div class="card-body">
               <div class="form-group">
                 <label>{{ "Customers" | localize }}</label>
@@ -113,22 +180,30 @@
 
               <div class="form-group">
                 <label>{{ "PaymentType" | localize }}</label>
-                <select class="form-control" [(ngModel)]="paymentType" (ngModelChange)="onPaymentTypeChange()">
+                <div class="pos-payment-grid">
                   @for (pt of paymentTypes; track pt.value) {
-                  <option [ngValue]="pt.value">{{ pt.label | localize }}</option>
+                  <button
+                    type="button"
+                    class="btn"
+                    [class.btn-primary]="paymentType === pt.value"
+                    [class.btn-outline-secondary]="paymentType !== pt.value"
+                    (click)="setPaymentType(pt.value)"
+                  >
+                    {{ pt.label | localize }}
+                  </button>
                   }
-                </select>
+                </div>
               </div>
 
               @if (paymentType === 3) {
               <div class="form-row">
                 <div class="form-group col-6">
                   <label>{{ "CashAmount" | localize }}</label>
-                  <input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="cashAmount" />
+                  <input type="number" class="form-control" min="0" step="0.01" inputmode="decimal" [(ngModel)]="cashAmount" />
                 </div>
                 <div class="form-group col-6">
                   <label>{{ "CardAmount" | localize }}</label>
-                  <input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="cardAmount" />
+                  <input type="number" class="form-control" min="0" step="0.01" inputmode="decimal" [(ngModel)]="cardAmount" />
                 </div>
               </div>
               }
@@ -136,17 +211,17 @@
               <div class="form-row">
                 <div class="form-group col-6">
                   <label>{{ "DiscountPercent" | localize }}</label>
-                  <input type="number" class="form-control" min="0" max="100" step="0.01" [(ngModel)]="discountPercent" />
+                  <input type="number" class="form-control" min="0" max="100" step="0.01" inputmode="decimal" [(ngModel)]="discountPercent" />
                 </div>
                 <div class="form-group col-6">
                   <label>{{ "DiscountAmount" | localize }}</label>
-                  <input type="number" class="form-control" min="0" step="0.01" [(ngModel)]="discountAmount" />
+                  <input type="number" class="form-control" min="0" step="0.01" inputmode="decimal" [(ngModel)]="discountAmount" />
                 </div>
               </div>
 
               <div class="form-group">
                 <label>{{ "TaxPercent" | localize }}</label>
-                <input type="number" class="form-control" min="0" max="100" step="0.01" [(ngModel)]="taxPercent" />
+                <input type="number" class="form-control" min="0" max="100" step="0.01" inputmode="decimal" [(ngModel)]="taxPercent" />
               </div>
 
               <div class="form-group">
@@ -164,7 +239,7 @@
                 }
               </div>
 
-              <button type="button" class="btn btn-primary btn-block btn-lg mt-3" (click)="completeSale()" [disabled]="!canSave()">
+              <button type="button" class="btn btn-primary btn-block btn-lg mt-3 d-none d-md-block" (click)="completeSale()" [disabled]="!canSave()">
                 {{ "CompleteSale" | localize }}
               </button>
             </div>
@@ -173,4 +248,15 @@
       </div>
     </div>
   </section>
+
+  <!-- Sticky mobile checkout bar -->
+  <div class="pos-mobile-bar d-md-none">
+    <div class="pos-mobile-bar-total">
+      <small class="text-muted d-block">{{ "TotalAmount" | localize }}</small>
+      <strong>{{ grandTotal | number: '1.2-2' }}</strong>
+    </div>
+    <button type="button" class="btn btn-primary btn-lg flex-grow-1" (click)="completeSale()" [disabled]="!canSave()">
+      {{ "CompleteSale" | localize }}
+    </button>
+  </div>
 </div>

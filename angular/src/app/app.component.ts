@@ -25,6 +25,14 @@ export class AppComponent extends AppComponentBase implements OnInit {
       this.renderer.removeClass(document.body, 'hold-transition');
     }, 0);
 
+    // Property is inverted in this app: false = open, true = collapsed.
+    // Phones/tablets: keep sidebar collapsed until opened via menu button.
+    if (window.innerWidth < 992) {
+      this._layoutStore.setSidebarExpanded(true);
+    } else {
+      this._layoutStore.setSidebarExpanded(false);
+    }
+
     SignalRAspNetCoreHelper.initSignalR();
 
     abp.event.on('abp.notifications.received', (userNotification) => {

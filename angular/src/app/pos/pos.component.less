@@ -1,11 +1,45 @@
 .pos-page {
+  padding-bottom: 0.5rem;
+
+  .pos-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+
+    .btn {
+      min-height: 42px;
+    }
+  }
+
   .pos-scan-card {
     border-left: 4px solid #007bff;
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
 
   .pos-barcode-input {
-    font-size: 1.35rem;
+    font-size: 1.2rem;
     letter-spacing: 0.02em;
+    min-height: 48px;
+  }
+
+  .pos-barcode-group .btn {
+    min-width: 52px;
+    min-height: 48px;
+  }
+
+  .pos-payment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+
+    .btn {
+      min-height: 44px;
+      white-space: normal;
+      line-height: 1.2;
+    }
   }
 
   .pos-totals {
@@ -24,5 +58,83 @@
       margin-top: 0.35rem;
       font-size: 1.2rem;
     }
+  }
+
+  .pos-cart-item {
+    border-bottom: 1px solid #e9ecef;
+    padding: 0.9rem 1rem;
+  }
+
+  .pos-cart-item-controls {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 0.75rem;
+    align-items: end;
+  }
+
+  .pos-qty-control {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    gap: 0.35rem;
+    align-items: center;
+  }
+
+  .pos-touch-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .pos-mobile-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 1030;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid #dee2e6;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+
+    .pos-mobile-bar-total {
+      min-width: 6.5rem;
+
+      strong {
+        font-size: 1.2rem;
+      }
+    }
+
+    .btn {
+      min-height: 48px;
+    }
+  }
+}
+
+@media (max-width: 767.98px) {
+  .pos-page {
+    .content-header {
+      padding-bottom: 0.5rem;
+    }
+
+    .pos-content {
+      padding-bottom: 0.25rem;
+    }
+
+    .pos-scan-card {
+      top: 3.5rem;
+    }
+
+    .main-footer + & {
+      padding-bottom: 0;
+    }
+  }
+
+  /* Keep checkout usable above sticky bar */
+  .content-wrapper:has(.pos-page) .main-footer,
+  body:has(.pos-page) .main-footer {
+    margin-bottom: 4.5rem;
   }
 }

@@ -9,6 +9,7 @@ import {
 import {BehaviorSubject} from 'rxjs';
 import {filter} from 'rxjs/operators';
 import {MenuItem} from '@shared/layout/menu-item';
+import {LayoutStoreService} from '@shared/layout/layout-store.service';
 
 @Component({
     selector: 'sidebar-menu',
@@ -21,7 +22,11 @@ export class SidebarMenuComponent extends AppComponentBase implements OnInit {
     routerEvents: BehaviorSubject<RouterEvent> = new BehaviorSubject(undefined);
     homeRoute = '/app/home';
 
-    constructor(injector: Injector, private router: Router) {
+    constructor(
+        injector: Injector,
+        private router: Router,
+        private _layoutStore: LayoutStoreService
+    ) {
         super(injector);
     }
 
@@ -38,6 +43,12 @@ export class SidebarMenuComponent extends AppComponentBase implements OnInit {
                     .children[PRIMARY_OUTLET];
                 if (primaryUrlSegmentGroup) {
                     this.activateMenuItems('/' + primaryUrlSegmentGroup.toString());
+                }
+
+                // Close overlay sidebar after navigation on phones/tablets.
+                // Property is inverted: true = collapsed.
+                if (window.innerWidth < 992) {
+                    this._layoutStore.setSidebarExpanded(true);
                 }
             });
     }

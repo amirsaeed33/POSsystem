@@ -1,0 +1,24 @@
+{
+  "name": "SmartPos",
+  "short_name": "SmartPos",
+  "description": "SmartPos point of sale",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#343a40",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/app-logo-small.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/app-logo-small.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

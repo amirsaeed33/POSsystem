@@ -204,8 +204,11 @@
     <text name="Sales" value="Sales" />
     <text name="POS" value="POS Checkout" />
     <text name="ScanBarcode" value="Scan barcode" />
-    <text name="ScanBarcodeHint" value="Scan or type barcode and press Enter" />
+    <text name="ScanBarcodeHint" value="Scan or type barcode and press Enter / Go" />
     <text name="CompleteSale" value="Complete sale" />
+    <text name="Checkout" value="Checkout" />
+    <text name="ItemsInCart" value="{0} items" />
+    <text name="Add" value="Add" />
     <text name="ClearCart" value="Clear cart" />
     <text name="Cart" value="Cart" />
     <text name="SubTotal" value="Subtotal" />

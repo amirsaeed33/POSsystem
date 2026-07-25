@@ -121,26 +121,44 @@
           </div>
           <div class="cashflow-chart">
             @if (hoveredMonth) {
-            <div class="chart-tooltip">
+            <div class="chart-tooltip d-none d-md-block">
               <div><strong>{{ "Income" | localize }}:</strong> {{ formatMoney(hoveredMonth.income) }}</div>
               <div><strong>{{ "Expense" | localize }}:</strong> {{ formatMoney(hoveredMonth.expense) }}</div>
             </div>
             }
-            <div class="bars">
-              @for (month of data.cashFlow || []; track month.monthLabel + '-' + month.year) {
-              <div
-                class="bar-group"
-                (mouseenter)="hoveredMonth = month; cdr.markForCheck()"
-                [class.active]="hoveredMonth === month"
-              >
-                <div class="bars-inner">
-                  <div class="bar expense" [style.height]="barHeight(month.expense)"></div>
-                  <div class="bar income" [style.height]="barHeight(month.income)"></div>
+            <div class="bars-scroll" #barsScroll>
+              <div class="bars">
+                @for (month of data.cashFlow || []; track month.monthLabel + '-' + month.year) {
+                <div
+                  class="bar-group"
+                  (mouseenter)="selectMonth(month)"
+                  (click)="selectMonth(month)"
+                  [class.active]="hoveredMonth === month"
+                >
+                  <div class="bars-inner">
+                    <div class="bar expense" [style.height]="barHeight(month.expense)"></div>
+                    <div class="bar income" [style.height]="barHeight(month.income)"></div>
+                  </div>
+                  <div class="bar-label">{{ month.monthLabel }}</div>
                 </div>
-                <div class="bar-label">{{ month.monthLabel }}</div>
+                }
               </div>
-              }
             </div>
+            @if (hoveredMonth) {
+            <div class="cashflow-mobile-summary d-md-none">
+              <div class="cashflow-mobile-month">{{ hoveredMonth.monthLabel }} {{ hoveredMonth.year }}</div>
+              <div class="cashflow-mobile-values">
+                <div class="cashflow-mobile-item income">
+                  <span>{{ "Income" | localize }}</span>
+                  <strong>{{ formatMoney(hoveredMonth.income) }}</strong>
+                </div>
+                <div class="cashflow-mobile-item expense">
+                  <span>{{ "Expense" | localize }}</span>
+                  <strong>{{ formatMoney(hoveredMonth.expense) }}</strong>
+                </div>
+              </div>
+            </div>
+            }
           </div>
         </div>
 

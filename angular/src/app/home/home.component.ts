@@ -3,7 +3,10 @@ import {
   Injector,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
-  OnInit
+  OnInit,
+  ViewChild,
+  ElementRef,
+  AfterViewChecked
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AppComponentBase } from '@shared/app-component-base';
@@ -22,12 +25,15 @@ import {
   animations: [appModuleAnimation()],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class HomeComponent extends AppComponentBase implements OnInit {
+export class HomeComponent extends AppComponentBase implements OnInit, AfterViewChecked {
+  @ViewChild('barsScroll') barsScroll?: ElementRef<HTMLDivElement>;
+
   loading = true;
   data: DashboardDto = new DashboardDto();
   searchText = '';
   hoveredMonth: MonthlyCashFlowDto | null = null;
   maxCashFlow = 1;
+  private shouldScrollToActiveMonth = false;
 
   constructor(
     injector: Injector,
@@ -42,6 +48,22 @@ export class HomeComponent extends AppComponentBase implements OnInit {
     this.load();
   }
 
+  ngAfterViewChecked(): void {
+    if (!this.shouldScrollToActiveMonth || !this.barsScroll?.nativeElement || !this.hoveredMonth) {
+      return;
+    }
+
+    const scroller = this.barsScroll.nativeElement;
+    const active = scroller.querySelector('.bar-group.active') as HTMLElement | null;
+    if (active) {
+      const left = active.offsetLeft - scroller.clientWidth / 2 + active.clientWidth / 2;
+      scroller.scrollLeft = Math.max(0, left);
+    } else {
+      scroller.scrollLeft = scroller.scrollWidth;
+    }
+    this.shouldScrollToActiveMonth = false;
+  }
+
   load(): void {
     this.loading = true;
     this._dashboardService.get().subscribe({
@@ -53,6 +75,15 @@ export class HomeComponent extends AppComponentBase implements OnInit {
           (result.cashFlow || []).find((m) => (m.income || 0) + (m.expense || 0) > 0) ||
           (result.cashFlow || [])[result.cashFlow.length - 1] ||
           null;
+        // Prefer current calendar month when present
+        const now = new Date();
+        const current = (result.cashFlow || []).find(
+          (m) => m.year === now.getFullYear() && m.month === now.getMonth() + 1
+        );
+        if (current) {
+          this.hoveredMonth = current;
+        }
+        this.shouldScrollToActiveMonth = true;
         this.loading = false;
         this.cdr.markForCheck();
       },
@@ -118,6 +149,11 @@ export class HomeComponent extends AppComponentBase implements OnInit {
   barHeight(value: number): string {
     const pct = Math.max(4, Math.round(((value || 0) / this.maxCashFlow) * 100));
     return pct + '%';
+  }
+
+  selectMonth(month: MonthlyCashFlowDto): void {
+    this.hoveredMonth = month;
+    this.cdr.markForCheck();
   }
 
   formatMoney(value: number): string {

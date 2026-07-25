@@ -128,6 +128,15 @@ export class PosComponent extends AppComponentBase implements OnInit {
     this.focusBarcode();
   }
 
+  setPaymentType(type: number): void {
+    this.paymentType = type;
+    this.onPaymentTypeChange();
+  }
+
+  bumpQty(line: PosCartLine, delta: number): void {
+    this.updateQty(line, (line.quantity || 0) + delta);
+  }
+
   onBarcodeEnter(): void {
     const code = (this.barcode || '').trim();
     if (!code || this.scanning || this.saving) {

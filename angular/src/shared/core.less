@@ -241,3 +241,99 @@ table-card-footer * {
 body > .ng-dropdown-panel {
   z-index: 2000 !important;
 }
+
+/* ---- Mobile / tablet usability ---- */
+@media (max-width: 991.98px) {
+  .content-header > .container-fluid > .row > [class*='col-'] {
+    margin-bottom: 0.5rem;
+  }
+
+  .content-header .btn,
+  .content-header a.btn {
+    margin-bottom: 0.35rem;
+  }
+
+  .content-wrapper > .content {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .card-header .input-group {
+    width: 100%;
+  }
+
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+
+  .modal-lg,
+  .modal-xl {
+    max-width: calc(100% - 1rem);
+  }
+
+  .btn {
+    min-height: 40px;
+  }
+
+  .form-control,
+  .custom-select,
+  .ng-select .ng-select-container {
+    min-height: 42px;
+  }
+
+  .navbar-nav .nav-link {
+    padding: 0.65rem 0.75rem;
+  }
+
+  /* Login page */
+  .login-box,
+  .register-box {
+    width: 100%;
+    margin: 1rem auto;
+    padding: 0 0.75rem;
+  }
+
+  .login-card-body .form-group.row .col-md-4,
+  .login-card-body .form-group.row .col-md-8 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .login-card-body .form-group.row .col-md-4 {
+    margin-top: 0.75rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .content-header h1 {
+    font-size: 1.5rem;
+  }
+
+  table.table th,
+  table.table td {
+    padding: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .main-header .navbar-nav .nav-item.d-none.d-sm-inline-block {
+    display: none !important;
+  }
+}
+
+/* Safe area for notched phones */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .main-header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
