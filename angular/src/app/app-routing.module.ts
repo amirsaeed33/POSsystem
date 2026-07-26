@@ -10,6 +10,7 @@ const routes: Routes = [
         canActivate: [AuthGuard],
         children: [
             { path: '', loadChildren: () => import('./demo/components/dashboards/dashboards.module').then(m => m.DashboardsModule) },
+            { path: 'pos', data: { breadcrumb: 'POS' }, loadChildren: () => import('./demo/components/pos/pos.module').then(m => m.PosModule) },
             { path: 'categories', data: { breadcrumb: 'Categories' }, loadChildren: () => import('./demo/components/categories/categories.module').then(m => m.CategoriesModule) },
             { path: 'brands', data: { breadcrumb: 'Brands' }, loadChildren: () => import('./demo/components/brands/brands.module').then(m => m.BrandsModule) },
             { path: 'units', data: { breadcrumb: 'Units' }, loadChildren: () => import('./demo/components/units/units.module').then(m => m.UnitsModule) },

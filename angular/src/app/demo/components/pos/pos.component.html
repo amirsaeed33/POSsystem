@@ -1,0 +1,382 @@
+<div class="pos-page">
+    <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h4 class="m-0">POS</h4>
+        <div class="flex flex-wrap gap-2 pos-header-actions">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Clear Cart"
+                class="p-button-outlined"
+                [disabled]="!cart.length || saving"
+                (click)="clearCart()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Complete Sale"
+                icon="pi pi-check"
+                class="hidden md:inline-flex"
+                [disabled]="!canSave()"
+                [loading]="saving"
+                (click)="completeSale()"
+            ></button>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="col-12 lg:col-8">
+            <div class="card pos-scan-card mb-3">
+                <label class="font-bold block mb-2">Scan Barcode</label>
+                <div class="p-inputgroup">
+                    <input
+                        #barcodeInput
+                        pInputText
+                        type="text"
+                        class="pos-barcode-input w-full"
+                        [(ngModel)]="barcode"
+                        (keyup.enter)="onBarcodeEnter()"
+                        placeholder="Scan or type barcode and press Enter"
+                        [disabled]="scanning || saving"
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        inputmode="search"
+                        enterkeyhint="go"
+                    />
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        label="Add"
+                        [disabled]="scanning || saving || !(barcode || '').trim()"
+                        [loading]="scanning"
+                        (click)="onBarcodeEnter()"
+                    ></button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="flex align-items-center justify-content-between mb-3">
+                    <h5 class="m-0">Cart</h5>
+                    <span class="text-500">{{ cart.length }} item(s)</span>
+                </div>
+
+                <!-- Desktop table -->
+                <div class="hidden md:block">
+                    <p-table [value]="cart" responsiveLayout="scroll">
+                        <ng-template pTemplate="header">
+                            <tr>
+                                <th>Product</th>
+                                <th style="width: 8rem">Quantity</th>
+                                <th style="width: 9rem">Unit Price</th>
+                                <th style="width: 8rem" class="text-right">Line Total</th>
+                                <th style="width: 4rem"></th>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="body" let-line>
+                            <tr>
+                                <td>
+                                    <div class="font-medium">{{ line.productName }}</div>
+                                    <small class="text-500">Stock: {{ line.stockQuantity }}</small>
+                                </td>
+                                <td>
+                                    <p-inputNumber
+                                        [ngModel]="line.quantity"
+                                        (ngModelChange)="updateQty(line, $event)"
+                                        [min]="0.01"
+                                        [showButtons]="false"
+                                        styleClass="w-full"
+                                    ></p-inputNumber>
+                                </td>
+                                <td>
+                                    <p-inputNumber
+                                        [(ngModel)]="line.unitPrice"
+                                        [min]="0"
+                                        mode="decimal"
+                                        [minFractionDigits]="0"
+                                        [maxFractionDigits]="2"
+                                        [showButtons]="false"
+                                        styleClass="w-full"
+                                    ></p-inputNumber>
+                                </td>
+                                <td class="text-right white-space-nowrap">
+                                    {{ line.quantity * line.unitPrice | number: '1.2-2' }}
+                                </td>
+                                <td class="text-center">
+                                    <button
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-times"
+                                        class="p-button-text p-button-danger p-button-sm"
+                                        (click)="removeLine(line)"
+                                    ></button>
+                                </td>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="emptymessage">
+                            <tr>
+                                <td colspan="5" class="text-center p-4 text-500">
+                                    Scan or type a barcode and press Enter
+                                </td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </div>
+
+                <!-- Mobile cart -->
+                <div class="pos-cart-mobile md:hidden">
+                    <div *ngIf="!cart.length" class="text-500 text-center p-4">
+                        Scan or type a barcode and press Enter
+                    </div>
+                    <div *ngFor="let line of cart" class="pos-cart-item">
+                        <div class="flex justify-content-between align-items-start">
+                            <div class="pr-2">
+                                <div class="font-medium">{{ line.productName }}</div>
+                                <small class="text-500">Stock: {{ line.stockQuantity }}</small>
+                            </div>
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                icon="pi pi-trash"
+                                class="p-button-outlined p-button-danger pos-touch-btn"
+                                (click)="removeLine(line)"
+                            ></button>
+                        </div>
+                        <div class="pos-cart-item-controls mt-2">
+                            <div class="pos-qty-control">
+                                <button
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    label="−"
+                                    class="p-button-outlined pos-touch-btn"
+                                    (click)="bumpQty(line, -1)"
+                                ></button>
+                                <p-inputNumber
+                                    [ngModel]="line.quantity"
+                                    (ngModelChange)="updateQty(line, $event)"
+                                    [min]="0.01"
+                                    [showButtons]="false"
+                                    inputStyleClass="text-center"
+                                    styleClass="w-full"
+                                ></p-inputNumber>
+                                <button
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    label="+"
+                                    class="p-button-outlined pos-touch-btn"
+                                    (click)="bumpQty(line, 1)"
+                                ></button>
+                            </div>
+                            <div>
+                                <label class="text-500 text-sm block mb-1">Unit Price</label>
+                                <p-inputNumber
+                                    [(ngModel)]="line.unitPrice"
+                                    [min]="0"
+                                    mode="decimal"
+                                    [minFractionDigits]="0"
+                                    [maxFractionDigits]="2"
+                                    [showButtons]="false"
+                                    styleClass="w-full"
+                                ></p-inputNumber>
+                            </div>
+                        </div>
+                        <div class="flex justify-content-between mt-2">
+                            <span class="text-500">Line Total</span>
+                            <strong>{{ line.quantity * line.unitPrice | number: '1.2-2' }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 lg:col-4">
+            <div class="card pos-checkout-card">
+                <div class="field">
+                    <label for="customerId">Customer</label>
+                    <p-dropdown
+                        inputId="customerId"
+                        [options]="customers"
+                        [(ngModel)]="customerId"
+                        (ngModelChange)="onCustomerSelected()"
+                        optionLabel="name"
+                        optionValue="id"
+                        placeholder="Select customer"
+                        [filter]="true"
+                        filterBy="name"
+                        [showClear]="false"
+                        styleClass="w-full"
+                        appendTo="body"
+                    ></p-dropdown>
+                </div>
+
+                <div class="field">
+                    <label>Payment Type</label>
+                    <div class="pos-payment-grid">
+                        <button
+                            *ngFor="let pt of paymentTypes"
+                            pButton
+                            pRipple
+                            type="button"
+                            [label]="pt.label"
+                            [class]="
+                                paymentType === pt.value
+                                    ? 'p-button'
+                                    : 'p-button-outlined p-button-secondary'
+                            "
+                            (click)="setPaymentType(pt.value)"
+                        ></button>
+                    </div>
+                </div>
+
+                <div *ngIf="isMixedPayment" class="grid formgrid p-fluid">
+                    <div class="field col-6">
+                        <label for="cashAmount">Cash Amount</label>
+                        <p-inputNumber
+                            inputId="cashAmount"
+                            [(ngModel)]="cashAmount"
+                            [min]="0"
+                            mode="decimal"
+                            [minFractionDigits]="0"
+                            [maxFractionDigits]="2"
+                            [showButtons]="false"
+                            styleClass="w-full"
+                        ></p-inputNumber>
+                    </div>
+                    <div class="field col-6">
+                        <label for="cardAmount">Card Amount</label>
+                        <p-inputNumber
+                            inputId="cardAmount"
+                            [(ngModel)]="cardAmount"
+                            [min]="0"
+                            mode="decimal"
+                            [minFractionDigits]="0"
+                            [maxFractionDigits]="2"
+                            [showButtons]="false"
+                            styleClass="w-full"
+                        ></p-inputNumber>
+                    </div>
+                </div>
+
+                <div class="grid formgrid p-fluid">
+                    <div class="field col-6">
+                        <label for="discountPercent">Discount %</label>
+                        <p-inputNumber
+                            inputId="discountPercent"
+                            [(ngModel)]="discountPercent"
+                            [min]="0"
+                            [max]="100"
+                            [minFractionDigits]="0"
+                            [maxFractionDigits]="2"
+                            [showButtons]="false"
+                            styleClass="w-full"
+                        ></p-inputNumber>
+                    </div>
+                    <div class="field col-6">
+                        <label for="discountAmount">Discount Amount</label>
+                        <p-inputNumber
+                            inputId="discountAmount"
+                            [(ngModel)]="discountAmount"
+                            [min]="0"
+                            mode="decimal"
+                            [minFractionDigits]="0"
+                            [maxFractionDigits]="2"
+                            [showButtons]="false"
+                            styleClass="w-full"
+                        ></p-inputNumber>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="taxPercent">Tax %</label>
+                    <p-inputNumber
+                        inputId="taxPercent"
+                        [(ngModel)]="taxPercent"
+                        [min]="0"
+                        [max]="100"
+                        [minFractionDigits]="0"
+                        [maxFractionDigits]="2"
+                        [showButtons]="false"
+                        styleClass="w-full"
+                    ></p-inputNumber>
+                </div>
+
+                <div class="field">
+                    <label for="notes">Notes</label>
+                    <input
+                        pInputText
+                        id="notes"
+                        type="text"
+                        class="w-full"
+                        maxlength="512"
+                        [(ngModel)]="notes"
+                    />
+                </div>
+
+                <div class="pos-totals">
+                    <div class="flex justify-content-between mb-2">
+                        <span>Sub Total</span>
+                        <strong>{{ subTotal | number: '1.2-2' }}</strong>
+                    </div>
+                    <div class="flex justify-content-between mb-2">
+                        <span>Discount</span>
+                        <strong>-{{ computedDiscount | number: '1.2-2' }}</strong>
+                    </div>
+                    <div class="flex justify-content-between mb-2">
+                        <span>Tax</span>
+                        <strong>{{ taxAmount | number: '1.2-2' }}</strong>
+                    </div>
+                    <div class="flex justify-content-between pos-grand">
+                        <span>Total Amount</span>
+                        <strong>{{ grandTotal | number: '1.2-2' }}</strong>
+                    </div>
+                    <div
+                        *ngIf="showCreditAmount"
+                        class="flex justify-content-between text-500 mt-2"
+                    >
+                        <span>Credit Amount</span>
+                        <span>{{ creditAmount | number: '1.2-2' }}</span>
+                    </div>
+                </div>
+
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Complete Sale"
+                    icon="pi pi-check"
+                    class="w-full mt-3 hidden md:flex"
+                    [disabled]="!canSave()"
+                    [loading]="saving"
+                    (click)="completeSale()"
+                ></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="pos-mobile-bar md:hidden">
+        <div class="pos-mobile-bar-total">
+            <small class="text-500 block">Total Amount</small>
+            <strong>{{ grandTotal | number: '1.2-2' }}</strong>
+        </div>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Complete Sale"
+            class="flex-grow-1"
+            [disabled]="!canSave()"
+            [loading]="saving"
+            (click)="completeSale()"
+        ></button>
+    </div>
+
+    <p-toast></p-toast>
+</div>
