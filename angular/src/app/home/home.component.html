@@ -109,90 +109,94 @@
         }
       </div>
 
-      <div class="charts-row">
-        <div class="panel cashflow-panel">
-          <div class="panel-head">
-            <h3>{{ "CashFlow" | localize }}</h3>
-            <div class="legend-wrap">
-              <span class="legend"><i class="dot expense"></i>{{ "Expenses" | localize }}</span>
-              <span class="legend"><i class="dot income"></i>{{ "Income" | localize }}</span>
-              <span class="period-chip">{{ "Monthly" | localize }}</span>
+      <div class="row g-3 charts-row">
+        <div class="col-12 col-xl-8 cashflow-col">
+          <div class="panel cashflow-panel h-100">
+            <div class="panel-head">
+              <h3>{{ "CashFlow" | localize }}</h3>
+              <div class="legend-wrap">
+                <span class="legend"><i class="dot expense"></i>{{ "Expenses" | localize }}</span>
+                <span class="legend"><i class="dot income"></i>{{ "Income" | localize }}</span>
+                <span class="period-chip">{{ "Monthly" | localize }}</span>
+              </div>
             </div>
-          </div>
-          <div class="cashflow-chart">
-            @if (hoveredMonth) {
-            <div class="chart-tooltip d-none d-md-block">
-              <div><strong>{{ "Income" | localize }}:</strong> {{ formatMoney(hoveredMonth.income) }}</div>
-              <div><strong>{{ "Expense" | localize }}:</strong> {{ formatMoney(hoveredMonth.expense) }}</div>
-            </div>
-            }
-            <div class="bars-scroll" #barsScroll>
-              <div class="bars">
-                @for (month of data.cashFlow || []; track month.monthLabel + '-' + month.year) {
-                <div
-                  class="bar-group"
-                  (mouseenter)="selectMonth(month)"
-                  (click)="selectMonth(month)"
-                  [class.active]="hoveredMonth === month"
-                >
-                  <div class="bars-inner">
-                    <div class="bar expense" [style.height]="barHeight(month.expense)"></div>
-                    <div class="bar income" [style.height]="barHeight(month.income)"></div>
+            <div class="cashflow-chart">
+              @if (hoveredMonth) {
+              <div class="chart-tooltip d-none d-md-block">
+                <div><strong>{{ "Income" | localize }}:</strong> {{ formatMoney(hoveredMonth.income) }}</div>
+                <div><strong>{{ "Expense" | localize }}:</strong> {{ formatMoney(hoveredMonth.expense) }}</div>
+              </div>
+              }
+              <div class="bars-scroll" #barsScroll>
+                <div class="bars">
+                  @for (month of data.cashFlow || []; track month.monthLabel + '-' + month.year) {
+                  <div
+                    class="bar-group"
+                    (mouseenter)="selectMonth(month)"
+                    (click)="selectMonth(month)"
+                    [class.active]="hoveredMonth === month"
+                  >
+                    <div class="bars-inner">
+                      <div class="bar expense" [style.height]="barHeight(month.expense)"></div>
+                      <div class="bar income" [style.height]="barHeight(month.income)"></div>
+                    </div>
+                    <div class="bar-label">{{ month.monthLabel }}</div>
                   </div>
-                  <div class="bar-label">{{ month.monthLabel }}</div>
-                </div>
-                }
-              </div>
-            </div>
-            @if (hoveredMonth) {
-            <div class="cashflow-mobile-summary d-md-none">
-              <div class="cashflow-mobile-month">{{ hoveredMonth.monthLabel }} {{ hoveredMonth.year }}</div>
-              <div class="cashflow-mobile-values">
-                <div class="cashflow-mobile-item income">
-                  <span>{{ "Income" | localize }}</span>
-                  <strong>{{ formatMoney(hoveredMonth.income) }}</strong>
-                </div>
-                <div class="cashflow-mobile-item expense">
-                  <span>{{ "Expense" | localize }}</span>
-                  <strong>{{ formatMoney(hoveredMonth.expense) }}</strong>
+                  }
                 </div>
               </div>
+              @if (hoveredMonth) {
+              <div class="cashflow-mobile-summary d-md-none">
+                <div class="cashflow-mobile-month">{{ hoveredMonth.monthLabel }} {{ hoveredMonth.year }}</div>
+                <div class="cashflow-mobile-values">
+                  <div class="cashflow-mobile-item income">
+                    <span>{{ "Income" | localize }}</span>
+                    <strong>{{ formatMoney(hoveredMonth.income) }}</strong>
+                  </div>
+                  <div class="cashflow-mobile-item expense">
+                    <span>{{ "Expense" | localize }}</span>
+                    <strong>{{ formatMoney(hoveredMonth.expense) }}</strong>
+                  </div>
+                </div>
+              </div>
+              }
             </div>
-            }
           </div>
         </div>
 
-        <div class="panel alerts-panel">
-          <div class="panel-head">
-            <h3>{{ "InventoryAlerts" | localize }}</h3>
-          </div>
-          <div class="alerts-body">
-            <div class="donut" [style.background]="donutBackground">
-              <div class="donut-hole">
-                <div class="donut-pct">{{ inStockPercent }}%</div>
-                <div class="donut-sub">{{ "InStock" | localize }}</div>
-              </div>
+        <div class="col-12 col-xl-4 alerts-col">
+          <div class="panel alerts-panel h-100">
+            <div class="panel-head">
+              <h3>{{ "InventoryAlerts" | localize }}</h3>
             </div>
-            <div class="alert-legend">
-              <div class="alert-item">
-                <span class="swatch in"></span>
-                <div>
-                  <div class="alert-title">{{ "InStock" | localize }} · {{ inStockPercent }}%</div>
-                  <div class="alert-sub">{{ formatNumber(data.inStockUnits) }} units</div>
+            <div class="alerts-body">
+              <div class="donut" [style.background]="donutBackground">
+                <div class="donut-hole">
+                  <div class="donut-pct">{{ inStockPercent }}%</div>
+                  <div class="donut-sub">{{ "InStock" | localize }}</div>
                 </div>
               </div>
-              <div class="alert-item">
-                <span class="swatch low"></span>
-                <div>
-                  <div class="alert-title">{{ "LowStock" | localize }} · {{ lowStockPercent }}%</div>
-                  <div class="alert-sub">{{ formatNumber(data.lowStockUnits) }} units</div>
+              <div class="alert-legend">
+                <div class="alert-item">
+                  <span class="swatch in"></span>
+                  <div>
+                    <div class="alert-title">{{ "InStock" | localize }} · {{ inStockPercent }}%</div>
+                    <div class="alert-sub">{{ formatNumber(data.inStockUnits) }} units</div>
+                  </div>
                 </div>
-              </div>
-              <div class="alert-item">
-                <span class="swatch out"></span>
-                <div>
-                  <div class="alert-title">{{ "OutOfStock" | localize }} · {{ outOfStockPercent }}%</div>
-                  <div class="alert-sub">{{ formatNumber(data.outOfStockCount) }} products</div>
+                <div class="alert-item">
+                  <span class="swatch low"></span>
+                  <div>
+                    <div class="alert-title">{{ "LowStock" | localize }} · {{ lowStockPercent }}%</div>
+                    <div class="alert-sub">{{ formatNumber(data.lowStockUnits) }} units</div>
+                  </div>
+                </div>
+                <div class="alert-item">
+                  <span class="swatch out"></span>
+                  <div>
+                    <div class="alert-title">{{ "OutOfStock" | localize }} · {{ outOfStockPercent }}%</div>
+                    <div class="alert-sub">{{ formatNumber(data.outOfStockCount) }} products</div>
+                  </div>
                 </div>
               </div>
             </div>
