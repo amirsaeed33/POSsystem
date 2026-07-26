@@ -1,0 +1,126 @@
+import {
+    Component,
+    EventEmitter,
+    Input,
+    OnChanges,
+    Output,
+    SimpleChanges,
+} from '@angular/core';
+import { CategoryDto } from 'src/app/demo/api/category';
+import { CategoryService } from 'src/app/demo/service/category.service';
+import { MessageService } from 'primeng/api';
+
+@Component({
+    selector: 'app-category-form-dialog',
+    templateUrl: './category-form-dialog.component.html',
+})
+export class CategoryFormDialogComponent implements OnChanges {
+    @Input() visible = false;
+    @Input() categoryId: number | null = null;
+    @Output() visibleChange = new EventEmitter<boolean>();
+    @Output() saved = new EventEmitter<void>();
+
+    category: CategoryDto = { id: 0, name: '', description: '' };
+    saving = false;
+    loading = false;
+
+    constructor(
+        private categoryService: CategoryService,
+        private messageService: MessageService
+    ) {}
+
+    get dialogTitle(): string {
+        return this.categoryId ? 'Edit Category' : 'Create Category';
+    }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes['visible'] && this.visible) {
+            this.resetForm();
+            if (this.categoryId) {
+                this.loadCategory(this.categoryId);
+            }
+        }
+    }
+
+    onVisibleChange(visible: boolean): void {
+        this.visible = visible;
+        this.visibleChange.emit(visible);
+    }
+
+    onHide(): void {
+        this.onVisibleChange(false);
+    }
+
+    save(): void {
+        const name = (this.category.name || '').trim();
+        if (!name) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Name is required',
+            });
+            return;
+        }
+
+        this.saving = true;
+        const request = this.categoryId
+            ? this.categoryService.update({
+                  id: this.categoryId,
+                  name,
+                  description: this.category.description?.trim() || undefined,
+              })
+            : this.categoryService.create({
+                  name,
+                  description: this.category.description?.trim() || undefined,
+              });
+
+        request
+            .then(() => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: this.categoryId
+                        ? 'Category updated successfully'
+                        : 'Category created successfully',
+                });
+                this.saved.emit();
+                this.onHide();
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.message || 'Failed to save category',
+                });
+            })
+            .finally(() => {
+                this.saving = false;
+            });
+    }
+
+    private resetForm(): void {
+        this.category = { id: 0, name: '', description: '' };
+        this.saving = false;
+        this.loading = false;
+    }
+
+    private loadCategory(id: number): void {
+        this.loading = true;
+        this.categoryService
+            .get(id)
+            .then((category) => {
+                this.category = { ...category };
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.message || 'Failed to load category',
+                });
+                this.onHide();
+            })
+            .finally(() => {
+                this.loading = false;
+            });
+    }
+}
