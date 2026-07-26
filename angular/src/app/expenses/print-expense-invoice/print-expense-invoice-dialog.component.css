@@ -7,19 +7,41 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 16px;
   border-bottom: 2px solid #222;
   padding-bottom: 12px;
   margin-bottom: 16px;
 }
 
+.company-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.company-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
 .invoice-header h2 {
-  margin: 0;
+  margin: 0 0 4px;
   font-size: 22px;
   font-weight: 700;
 }
 
-.invoice-meta div {
+.invoice-meta {
   text-align: right;
+}
+
+.invoice-meta .doc-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.invoice-meta div {
   margin-bottom: 4px;
 }
 

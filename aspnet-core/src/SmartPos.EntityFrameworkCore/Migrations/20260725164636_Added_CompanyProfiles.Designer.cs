@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartPos.EntityFrameworkCore;
 
@@ -11,9 +12,11 @@ using SmartPos.EntityFrameworkCore;
 namespace SmartPos.Migrations
 {
     [DbContext(typeof(SmartPosDbContext))]
-    partial class SmartPosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260725164636_Added_CompanyProfiles")]
+    partial class Added_CompanyProfiles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1812,9 +1815,9 @@ namespace SmartPos.Migrations
                     b.Property<DateTime?>("DeletionTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("ImagePath")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
+                    b.Property<string>("IconName")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("InvoiceAddress")
                         .HasMaxLength(512)

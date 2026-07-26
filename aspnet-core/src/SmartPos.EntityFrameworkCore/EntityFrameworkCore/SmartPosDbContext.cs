@@ -5,6 +5,7 @@ using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
 using SmartPos.Brands;
 using SmartPos.Categories;
+using SmartPos.CompanyProfiles;
 using SmartPos.Customers;
 using SmartPos.Expenses;
 using SmartPos.Inventory;
@@ -23,6 +24,8 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<Category> Categories { get; set; }
 
         public virtual DbSet<Brand> Brands { get; set; }
+
+        public virtual DbSet<CompanyProfile> CompanyProfiles { get; set; }
 
         public virtual DbSet<Unit> Units { get; set; }
 

@@ -5,11 +5,18 @@ import {
   ChangeDetectorRef
 } from '@angular/core';
 import { BsModalRef } from 'ngx-bootstrap/modal';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { AppComponentBase } from '@shared/app-component-base';
+import { AppConsts } from '@shared/AppConsts';
 import {
   PurchaseServiceProxy,
   PurchaseDto
 } from '@shared/service-proxies/service-proxies';
+import {
+  CompanyProfileDto,
+  CompanyProfileServiceProxy
+} from '@shared/service-proxies/company-profile-service-proxy';
 
 @Component({
   templateUrl: 'print-purchase-invoice-dialog.component.html',
@@ -20,12 +27,14 @@ export class PrintPurchaseInvoiceDialogComponent extends AppComponentBase
   id: number;
   autoPrint = false;
   purchase: PurchaseDto = new PurchaseDto();
+  company: CompanyProfileDto | null = null;
   loading = true;
   today = new Date().toLocaleString();
 
   constructor(
     injector: Injector,
     public _purchaseService: PurchaseServiceProxy,
+    private _companyProfileService: CompanyProfileServiceProxy,
     public bsModalRef: BsModalRef,
     private cd: ChangeDetectorRef
   ) {
@@ -33,14 +42,25 @@ export class PrintPurchaseInvoiceDialogComponent extends AppComponentBase
   }
 
   ngOnInit(): void {
-    this._purchaseService.get(this.id).subscribe((result) => {
-      this.purchase = result;
+    forkJoin({
+      purchase: this._purchaseService.get(this.id),
+      company: this._companyProfileService.getCurrent().pipe(catchError(() => of(null)))
+    }).subscribe(({ purchase, company }) => {
+      this.purchase = purchase;
+      this.company = company;
       this.loading = false;
       this.cd.detectChanges();
       if (this.autoPrint) {
         this.print();
       }
     });
+  }
+
+  get companyLogoUrl(): string {
+    if (!this.company?.imagePath) {
+      return '';
+    }
+    return AppConsts.remoteServiceBaseUrl + this.company.imagePath;
   }
 
   print(): void {

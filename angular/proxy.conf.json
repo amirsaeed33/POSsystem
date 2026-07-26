@@ -26,6 +26,11 @@
     "secure": false,
     "changeOrigin": true
   },
+  "/CompanyImages": {
+    "target": "https://localhost:44311",
+    "secure": false,
+    "changeOrigin": true
+  },
   "/UserImages": {
     "target": "https://localhost:44311",
     "secure": false,

@@ -51,6 +51,12 @@ import { AppComponent } from './app.component';
                         canActivate: [AppRouteGuard]
                     },
                     {
+                        path: 'company-profiles',
+                        loadChildren: () => import('./company-profiles/company-profiles.module').then((m) => m.CompanyProfilesModule),
+                        data: { permission: 'Pages.CompanyProfiles' },
+                        canActivate: [AppRouteGuard]
+                    },
+                    {
                         path: 'units',
                         loadChildren: () => import('./units/units.module').then((m) => m.UnitsModule),
                         data: { permission: 'Pages.Units' },

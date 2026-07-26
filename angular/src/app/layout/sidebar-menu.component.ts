@@ -75,6 +75,12 @@ export class SidebarMenuComponent extends AppComponentBase implements OnInit {
                     'fas fa-users',
                     'Pages.Users'
                 ),
+                new MenuItem(
+                    this.l('CompanyProfiles'),
+                    '/app/company-profiles',
+                    'fas fa-file-invoice',
+                    'Pages.CompanyProfiles'
+                ),
             ]),
             new MenuItem(this.l('ProductManagement'), '', 'fas fa-cubes', '', [
                 new MenuItem(

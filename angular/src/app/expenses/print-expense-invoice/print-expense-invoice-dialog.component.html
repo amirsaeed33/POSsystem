@@ -9,8 +9,28 @@
     } @else {
     <div class="print-area invoice-sheet">
       <div class="invoice-header">
-        <h2>{{ "ExpenseInvoice" | localize }}</h2>
+        <div class="company-block">
+          @if (companyLogoUrl) {
+            <img [src]="companyLogoUrl" alt="" class="company-logo" />
+          }
+          <div>
+            <h2>{{ company?.name || ("ExpenseInvoice" | localize) }}</h2>
+            @if (company?.invoiceAddress) {
+              <div>{{ company.invoiceAddress }}</div>
+            }
+            @if (company?.invoiceContactPhone) {
+              <div>{{ "Phone" | localize }}: {{ company.invoiceContactPhone }}</div>
+            }
+            @if (company?.invoiceContactEmail) {
+              <div>{{ "EmailAddress" | localize }}: {{ company.invoiceContactEmail }}</div>
+            }
+            @if (company?.taxNumber) {
+              <div>{{ "TaxNumber" | localize }}: {{ company.taxNumber }}</div>
+            }
+          </div>
+        </div>
         <div class="invoice-meta">
+          <div class="doc-title">{{ "ExpenseInvoice" | localize }}</div>
           <div><strong>{{ "ReferenceNo" | localize }}:</strong> {{ expense.referenceNo || ('#' + expense.id) }}</div>
           <div><strong>{{ "ExpenseDate" | localize }}:</strong> {{ expense.expenseDate }}</div>
         </div>
@@ -63,6 +83,9 @@
       </table>
 
       <div class="invoice-footer">
+        @if (company?.invoiceFooter) {
+          <div class="mb-1">{{ company.invoiceFooter }}</div>
+        }
         <div>{{ "PrintedOn" | localize }}: {{ today }}</div>
       </div>
     </div>

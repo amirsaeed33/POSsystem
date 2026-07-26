@@ -13,6 +13,8 @@
 
         public const string Pages_Brands = "Pages.Brands";
 
+        public const string Pages_CompanyProfiles = "Pages.CompanyProfiles";
+
         public const string Pages_Units = "Pages.Units";
 
         public const string Pages_Products = "Pages.Products";
