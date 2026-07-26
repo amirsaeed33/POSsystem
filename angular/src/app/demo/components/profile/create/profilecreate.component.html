@@ -1,0 +1,142 @@
+<div class="card">
+    <span class="text-900 text-xl font-bold mb-4 block">{{ isEditMode ? 'Edit User' : 'Create User' }}</span>
+    
+    <!-- Circular Profile Picture at Center -->
+    <div class="flex justify-content-center align-items-center mb-5">
+        <div class="profile-picture-container" (click)="onProfilePictureClick()" 
+            style="cursor: pointer; position: relative; display: inline-block;">
+            <img [src]="profilePictureUrl || 'assets/layout/images/avatar.png'" 
+                alt="Profile Picture" 
+                class="border-circle profile-picture"
+                style="width: 150px; height: 150px; object-fit: cover; border: 3px solid var(--primary-color); box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block;"
+                (error)="onImageError($event)">
+            <div class="profile-picture-overlay" 
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background-color: rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;">
+                <i class="pi pi-camera" style="font-size: 2rem; color: white;"></i>
+                <span style="color: white; font-weight: 500; margin-top: 0.5rem; font-size: 0.875rem;">Change Photo</span>
+            </div>
+            <input #fileInput type="file" accept="image/*" (change)="onFileSelect($event)" 
+                style="display: none;" />
+        </div>
+    </div>
+    <style>
+        .profile-picture-container:hover .profile-picture-overlay {
+            opacity: 1 !important;
+        }
+    </style>
+    <div class="flex justify-content-center mb-4">
+        <small class="text-500 text-center">Max file size: 5MB. Supported formats: JPEG, PNG, GIF, WebP</small>
+    </div>
+
+    <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+        <div class="grid formgrid p-fluid">
+            <div class="field mb-4 col-12 md:col-6">
+                <label for="userName" class="font-medium text-900">Username <span class="text-red-500">*</span></label>
+                <input id="userName" type="text" pInputText formControlName="userName" 
+                    [class.ng-invalid]="userForm.get('userName')?.invalid && userForm.get('userName')?.touched">
+                <small class="p-error" *ngIf="userForm.get('userName')?.invalid && userForm.get('userName')?.touched">
+                    Username is required
+                </small>
+            </div>
+
+            <div class="field mb-4 col-12 md:col-6">
+                <label for="emailAddress" class="font-medium text-900">Email <span class="text-red-500">*</span></label>
+                <input id="emailAddress" type="email" pInputText formControlName="emailAddress"
+                    [class.ng-invalid]="userForm.get('emailAddress')?.invalid && userForm.get('emailAddress')?.touched">
+                <small class="p-error" *ngIf="userForm.get('emailAddress')?.invalid && userForm.get('emailAddress')?.touched">
+                    <span *ngIf="userForm.get('emailAddress')?.errors?.['required']">Email is required</span>
+                    <span *ngIf="userForm.get('emailAddress')?.errors?.['email']">Invalid email format</span>
+                </small>
+            </div>
+
+            <div class="field mb-4 col-12 md:col-6">
+                <label for="name" class="font-medium text-900">First Name <span class="text-red-500">*</span></label>
+                <input id="name" type="text" pInputText formControlName="name"
+                    [class.ng-invalid]="userForm.get('name')?.invalid && userForm.get('name')?.touched">
+                <small class="p-error" *ngIf="userForm.get('name')?.invalid && userForm.get('name')?.touched">
+                    First name is required
+                </small>
+            </div>
+
+            <div class="field mb-4 col-12 md:col-6">
+                <label for="surname" class="font-medium text-900">Last Name <span class="text-red-500">*</span></label>
+                <input id="surname" type="text" pInputText formControlName="surname"
+                    [class.ng-invalid]="userForm.get('surname')?.invalid && userForm.get('surname')?.touched">
+                <small class="p-error" *ngIf="userForm.get('surname')?.invalid && userForm.get('surname')?.touched">
+                    Last name is required
+                </small>
+            </div>
+
+            <div class="field mb-4 col-12 md:col-6">
+                <label for="password" class="font-medium text-900">
+                    Password <span *ngIf="!isEditMode" class="text-red-500">*</span>
+                    <span *ngIf="isEditMode" class="text-500 text-sm">(Leave blank to keep current password)</span>
+                </label>
+                <input id="password" type="password" pInputText formControlName="password"
+                    [class.ng-invalid]="userForm.get('password')?.invalid && userForm.get('password')?.touched">
+                <small class="p-error" *ngIf="userForm.get('password')?.invalid && userForm.get('password')?.touched">
+                    <span *ngIf="userForm.get('password')?.errors?.['required']">Password is required</span>
+                    <span *ngIf="userForm.get('password')?.errors?.['minlength']">Password must be at least 6 characters</span>
+                </small>
+            </div>
+
+            <div class="field mb-4 col-12 md:col-6">
+                <label for="roles" class="font-medium text-900">Roles</label>
+                <p-multiSelect inputId="roles" [options]="roles" optionLabel="displayName" optionValue="name" 
+                    [(ngModel)]="selectedRoles" [ngModelOptions]="{standalone: true}"
+                    placeholder="Select Roles" [filter]="true" [showClear]="true">
+                </p-multiSelect>
+            </div>
+
+
+            <div class="field mb-4 col-12">
+                <p-checkbox formControlName="isActive" inputId="isActive" [binary]="true"></p-checkbox>
+                <label for="isActive" class="ml-2">Active</label>
+            </div>
+
+            <div class="field mb-4 col-12">
+                <label for="userPermissions" class="font-medium text-900 mb-3 block">User Permissions</label>
+                <div *ngIf="loadingPermissions" class="flex align-items-center justify-content-center p-4">
+                    <i class="pi pi-spin pi-spinner mr-2"></i>
+                    <span>Loading permissions...</span>
+                </div>
+                <div *ngIf="!loadingPermissions && getPermissionGroups().length === 0" class="p-4 text-center text-500">
+                    No permissions available
+                </div>
+                <div *ngIf="!loadingPermissions && getPermissionGroups().length > 0" class="grid">
+                    <div class="col-12 md:col-6 lg:col-4" *ngFor="let groupName of getPermissionGroups()">
+                        <div class="card mb-3">
+                            <h5 class="text-900 font-semibold mb-3">{{ groupName }}</h5>
+                            <div class="flex flex-column gap-2">
+                                <div *ngFor="let permission of permissionGroups[groupName]" class="flex align-items-center">
+                                    <p-checkbox 
+                                        [inputId]="'user-' + permission.name"
+                                        [value]="permission.name"
+                                        [(ngModel)]="selectedUserPermissions"
+                                        [ngModelOptions]="{standalone: true}">
+                                    </p-checkbox>
+                                    <label [for]="'user-' + permission.name" class="ml-2 cursor-pointer">
+                                        {{ permission.displayName }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 flex gap-2">
+                <button type="submit" pButton pRipple [label]="isEditMode ? 'Update User' : 'Create User'" class="w-auto" 
+                    [disabled]="loading || userForm.invalid">
+                    <i *ngIf="loading" class="pi pi-spin pi-spinner mr-2"></i>
+                    <span *ngIf="!loading">{{ isEditMode ? 'Update User' : 'Create User' }}</span>
+                    <span *ngIf="loading">{{ isEditMode ? 'Updating...' : 'Creating...' }}</span>
+                </button>
+                <button type="button" pButton pRipple label="Cancel" class="p-button-outlined w-auto" 
+                    (click)="onCancel()" [disabled]="loading">
+                </button>
+            </div>
+        </div>
+    </form>
+    <p-toast></p-toast>
+</div>

@@ -1,0 +1,76 @@
+<div class="card">
+    <p-table #dt [value]="users" [paginator]="true" [rows]="10" [showCurrentPageReport]="true" 
+        responsiveLayout="scroll" [loading]="loading"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" 
+        [rowsPerPageOptions]="[10,25,50]"
+        [globalFilterFields]="['userName','name','surname','emailAddress']">
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <span class="p-input-icon-left w-full sm:w-20rem flex-order-1 sm:flex-order-0">
+                    <i class="pi pi-search"></i>
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Global Search" class="w-full" />
+                </span>
+                <button (click)="navigateToCreateUser()" pButton class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1" icon="pi pi-user-plus" label="Add New"></button>
+            </div>
+        </ng-template>
+        <ng-template pTemplate="header">
+            <tr>
+                <th class="white-space-nowrap">Picture</th>
+                <th pSortableColumn="userName" class="white-space-nowrap">Username <p-sortIcon field="userName"></p-sortIcon></th>
+                <th pSortableColumn="name" class="white-space-nowrap">Name <p-sortIcon field="name"></p-sortIcon></th>
+                <th pSortableColumn="emailAddress" class="white-space-nowrap">Email <p-sortIcon field="emailAddress"></p-sortIcon></th>
+                <th class="white-space-nowrap">Roles</th>
+                <th pSortableColumn="isActive" class="white-space-nowrap">Status <p-sortIcon field="isActive"></p-sortIcon></th>
+                <th pSortableColumn="creationTime" class="white-space-nowrap">Created <p-sortIcon field="creationTime"></p-sortIcon></th>
+                <th class="white-space-nowrap">Actions</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-user>
+            <tr>
+                <td>
+                    <img [src]="getProfilePictureUrl(user.profilePictureUrl)" 
+                        [alt]="user.userName" 
+                        class="border-circle" 
+                        style="width: 40px; height: 40px; object-fit: cover; border: 1px solid var(--surface-border);"
+                        (error)="onImageError($event)">
+                </td>
+                <td>{{user.userName}}</td>
+                <td>{{user.name}} {{user.surname}}</td>
+                <td>{{user.emailAddress}}</td>
+                <td>
+                    <span *ngFor="let role of user.roleNames; let last = last">
+                        <span class="p-tag">{{role}}</span><span *ngIf="!last">, </span>
+                    </span>
+                    <span *ngIf="!user.roleNames || user.roleNames.length === 0" class="text-500">No roles</span>
+                </td>
+                <td>
+                    <span [class]="user.isActive ? 'p-tag p-tag-success' : 'p-tag p-tag-danger'">
+                        {{user.isActive ? 'Active' : 'Inactive'}}
+                    </span>
+                </td>
+                <td>{{user.creationTime | date: 'MM/dd/yyyy'}}</td>
+                <td>
+                    <div class="flex gap-2">
+                        <button pButton pRipple icon="pi pi-pencil" class="p-button-text p-button-sm" 
+                            (click)="onEditUser(user)" pTooltip="Edit" tooltipPosition="top"></button>
+                        <button pButton pRipple [icon]="user.isActive ? 'pi pi-ban' : 'pi pi-check'" 
+                            class="p-button-text p-button-sm" 
+                            (click)="onToggleActive(user)" 
+                            [pTooltip]="user.isActive ? 'Deactivate' : 'Activate'" tooltipPosition="top"></button>
+                        <button pButton pRipple icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" 
+                            (click)="onDeleteUser(user)" pTooltip="Delete" tooltipPosition="top"></button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="8" class="text-center p-4">
+                    <div class="text-500">No users found</div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+</div>

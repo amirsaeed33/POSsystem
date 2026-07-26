@@ -60,6 +60,9 @@ yarn-debug.log*
 yarn-error.log*
 *.tsbuildinfo
 
+# Previous ASP.NET Zero Angular UI kept locally as migration reference only
+angular-old/
+
 # =========================
 # Secrets / local config
 # =========================

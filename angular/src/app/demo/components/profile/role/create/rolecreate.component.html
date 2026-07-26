@@ -1,0 +1,77 @@
+<div class="card">
+    <span class="text-900 text-xl font-bold mb-4 block">{{ isEditMode ? 'Edit Role' : 'Create Role' }}</span>
+    
+    <form [formGroup]="roleForm" (ngSubmit)="onSubmit()">
+        <div class="grid formgrid p-fluid">
+            <div class="field mb-4 col-12 md:col-6">
+                <label for="name" class="font-medium text-900">Name <span class="text-red-500">*</span></label>
+                <input id="name" type="text" pInputText formControlName="name" 
+                    [class.ng-invalid]="roleForm.get('name')?.invalid && roleForm.get('name')?.touched">
+                <small class="p-error" *ngIf="roleForm.get('name')?.invalid && roleForm.get('name')?.touched">
+                    Name is required
+                </small>
+            </div>
+
+            <div class="field mb-4 col-12 md:col-6">
+                <label for="displayName" class="font-medium text-900">Display Name <span class="text-red-500">*</span></label>
+                <input id="displayName" type="text" pInputText formControlName="displayName"
+                    [class.ng-invalid]="roleForm.get('displayName')?.invalid && roleForm.get('displayName')?.touched">
+                <small class="p-error" *ngIf="roleForm.get('displayName')?.invalid && roleForm.get('displayName')?.touched">
+                    Display name is required
+                </small>
+            </div>
+
+            <div class="field mb-4 col-12">
+                <label for="description" class="font-medium text-900">Description</label>
+                <textarea id="description" pInputTextarea formControlName="description" rows="3"
+                    [class.ng-invalid]="roleForm.get('description')?.invalid && roleForm.get('description')?.touched">
+                </textarea>
+            </div>
+
+            <div class="field mb-4 col-12">
+                <label for="permissions" class="font-medium text-900 mb-3 block">Permissions</label>
+                <div *ngIf="loadingPermissions" class="flex align-items-center justify-content-center p-4">
+                    <i class="pi pi-spin pi-spinner mr-2"></i>
+                    <span>Loading permissions...</span>
+                </div>
+                <div *ngIf="!loadingPermissions && getPermissionGroups().length === 0" class="p-4 text-center text-500">
+                    No permissions available
+                </div>
+                <div *ngIf="!loadingPermissions && getPermissionGroups().length > 0" class="grid">
+                    <div class="col-12 md:col-6 lg:col-4" *ngFor="let groupName of getPermissionGroups()">
+                        <div class="card mb-3">
+                            <h5 class="text-900 font-semibold mb-3">{{ groupName }}</h5>
+                            <div class="flex flex-column gap-2">
+                                <div *ngFor="let permission of permissionGroups[groupName]" class="flex align-items-center">
+                                    <p-checkbox 
+                                        [inputId]="permission.name"
+                                        [value]="permission.name"
+                                        [(ngModel)]="selectedPermissions"
+                                        [ngModelOptions]="{standalone: true}">
+                                    </p-checkbox>
+                                    <label [for]="permission.name" class="ml-2 cursor-pointer">
+                                        {{ permission.displayName }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 flex gap-2">
+                <button type="submit" pButton pRipple [label]="isEditMode ? 'Update Role' : 'Create Role'" class="w-auto" 
+                    [disabled]="loading || roleForm.invalid">
+                    <i *ngIf="loading" class="pi pi-spin pi-spinner mr-2"></i>
+                    <span *ngIf="!loading">{{ isEditMode ? 'Update Role' : 'Create Role' }}</span>
+                    <span *ngIf="loading">{{ isEditMode ? 'Updating...' : 'Creating...' }}</span>
+                </button>
+                <button type="button" pButton pRipple label="Cancel" class="p-button-outlined w-auto" 
+                    (click)="onCancel()" [disabled]="loading">
+                </button>
+            </div>
+        </div>
+    </form>
+    <p-toast></p-toast>
+</div>
+
