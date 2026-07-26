@@ -47,7 +47,8 @@ $gutter: 1rem; //for primeflex grid system
   body.printing-invoice .p-dialog,
   body.printing-invoice .p-dialog-content,
   body.printing-invoice .sale-invoice-dialog,
-  body.printing-invoice .purchase-invoice-dialog {
+  body.printing-invoice .purchase-invoice-dialog,
+  body.printing-invoice .expense-invoice-dialog {
     position: static !important;
     width: 100% !important;
     max-width: none !important;

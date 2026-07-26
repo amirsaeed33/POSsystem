@@ -1,0 +1,128 @@
+<p-dialog
+    header="Expense Invoice"
+    [(visible)]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    [style]="{ width: '48rem' }"
+    [breakpoints]="{ '960px': '90vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    styleClass="expense-invoice-dialog"
+    (onHide)="onHide()"
+>
+    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+
+    <div *ngIf="!loading && expense" class="print-area invoice-sheet">
+        <div class="invoice-header">
+            <div class="company-block">
+                <img
+                    *ngIf="companyLogoUrl"
+                    [src]="companyLogoUrl"
+                    alt=""
+                    class="company-logo"
+                />
+                <div>
+                    <h2>{{ company?.name || 'Expense Invoice' }}</h2>
+                    <div *ngIf="company?.invoiceAddress">{{ company?.invoiceAddress }}</div>
+                    <div *ngIf="company?.invoiceContactPhone">
+                        Phone: {{ company?.invoiceContactPhone }}
+                    </div>
+                    <div *ngIf="company?.invoiceContactEmail">
+                        Email: {{ company?.invoiceContactEmail }}
+                    </div>
+                    <div *ngIf="company?.taxNumber">
+                        Tax Number: {{ company?.taxNumber }}
+                    </div>
+                </div>
+            </div>
+            <div class="invoice-meta">
+                <div class="doc-title">Expense Invoice</div>
+                <div>
+                    <strong>Reference No:</strong>
+                    {{ expense.referenceNo || ('#' + expense.id) }}
+                </div>
+                <div>
+                    <strong>Expense Date:</strong>
+                    {{ expense.expenseDate | date: 'mediumDate' }}
+                </div>
+            </div>
+        </div>
+
+        <div class="invoice-parties">
+            <div>
+                <div class="label">Payment Account</div>
+                <div class="value">{{ expense.paymentAccountName || '—' }}</div>
+            </div>
+            <div>
+                <div class="label">Expense Account</div>
+                <div class="value">{{ expense.expenseAccountName || '—' }}</div>
+            </div>
+            <div>
+                <div class="label">Amount</div>
+                <div class="value total">{{ expense.amount }}</div>
+            </div>
+        </div>
+
+        <div *ngIf="expense.description" class="invoice-notes">
+            <strong>Description:</strong> {{ expense.description }}
+        </div>
+
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Payment Account</th>
+                    <th>Expense Account</th>
+                    <th class="text-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ expense.description || '-' }}</td>
+                    <td>{{ expense.paymentAccountName || '—' }}</td>
+                    <td>{{ expense.expenseAccountName || '—' }}</td>
+                    <td class="text-right">{{ expense.amount }}</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" class="text-right">
+                        <strong>Total Amount</strong>
+                    </td>
+                    <td class="text-right">
+                        <strong>{{ expense.amount }}</strong>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="invoice-footer">
+            <div *ngIf="company?.invoiceFooter" class="mb-1">
+                {{ company?.invoiceFooter }}
+            </div>
+            <div>Printed On: {{ today }}</div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="no-print flex justify-content-end gap-2 w-full">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="onHide()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Print"
+                icon="pi pi-print"
+                [disabled]="loading || !expense"
+                (click)="print()"
+            ></button>
+        </div>
+    </ng-template>
+</p-dialog>

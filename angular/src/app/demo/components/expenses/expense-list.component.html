@@ -73,7 +73,7 @@
                 <th pSortableColumn="amount">
                     Amount <p-sortIcon field="amount"></p-sortIcon>
                 </th>
-                <th style="width: 8rem">Actions</th>
+                <th style="width: 11rem">Actions</th>
             </tr>
         </ng-template>
 
@@ -96,6 +96,16 @@
                             pTooltip="Edit"
                             tooltipPosition="top"
                             (click)="openEditDialog(expense)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-print"
+                            class="p-button-text p-button-sm"
+                            pTooltip="Print"
+                            tooltipPosition="top"
+                            (click)="openPrintDialog(expense)"
                         ></button>
                         <button
                             pButton
@@ -126,6 +136,11 @@
         [expenseId]="editingExpenseId"
         (saved)="onDialogSaved()"
     ></app-expense-form-dialog>
+
+    <app-print-expense-invoice-dialog
+        [(visible)]="printDialogVisible"
+        [expenseId]="printingExpenseId"
+    ></app-print-expense-invoice-dialog>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>

@@ -16,6 +16,8 @@ export class ExpenseListComponent implements OnInit {
 
     dialogVisible = false;
     editingExpenseId: number | null = null;
+    printDialogVisible = false;
+    printingExpenseId: number | null = null;
 
     constructor(
         private expenseService: ExpenseService,
@@ -70,6 +72,11 @@ export class ExpenseListComponent implements OnInit {
     openEditDialog(expense: ExpenseDto): void {
         this.editingExpenseId = expense.id;
         this.dialogVisible = true;
+    }
+
+    openPrintDialog(expense: ExpenseDto): void {
+        this.printingExpenseId = expense.id;
+        this.printDialogVisible = true;
     }
 
     onDialogSaved(): void {

@@ -15,6 +15,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { ExpensesRoutingModule } from './expenses-routing.module';
 import { ExpenseListComponent } from './expense-list.component';
 import { ExpenseFormDialogComponent } from './expense-form-dialog.component';
+import { PrintExpenseInvoiceDialogComponent } from './print-expense-invoice-dialog.component';
 
 @NgModule({
     imports: [
@@ -33,6 +34,10 @@ import { ExpenseFormDialogComponent } from './expense-form-dialog.component';
         ConfirmDialogModule,
         DropdownModule,
     ],
-    declarations: [ExpenseListComponent, ExpenseFormDialogComponent],
+    declarations: [
+        ExpenseListComponent,
+        ExpenseFormDialogComponent,
+        PrintExpenseInvoiceDialogComponent,
+    ],
 })
 export class ExpensesModule {}
