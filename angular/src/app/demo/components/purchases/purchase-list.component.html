@@ -55,7 +55,7 @@
                 <th pSortableColumn="supplierName">Supplier <p-sortIcon field="supplierName"></p-sortIcon></th>
                 <th pSortableColumn="totalAmount">Total Amount <p-sortIcon field="totalAmount"></p-sortIcon></th>
                 <th pSortableColumn="notes">Notes <p-sortIcon field="notes"></p-sortIcon></th>
-                <th style="width: 8rem">Actions</th>
+                <th style="width: 11rem">Actions</th>
             </tr>
         </ng-template>
 
@@ -77,6 +77,16 @@
                             pTooltip="View"
                             tooltipPosition="top"
                             (click)="openViewDialog(purchase)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-print"
+                            class="p-button-text p-button-sm"
+                            pTooltip="Print"
+                            tooltipPosition="top"
+                            (click)="openPrintDialog(purchase.id)"
                         ></button>
                         <button
                             pButton
@@ -105,12 +115,20 @@
     <app-purchase-form-dialog
         [(visible)]="createDialogVisible"
         (saved)="onDialogSaved()"
+        (printRequested)="onPrintRequested($event)"
     ></app-purchase-form-dialog>
 
     <app-purchase-view-dialog
         [(visible)]="viewDialogVisible"
         [purchaseId]="viewingPurchaseId"
+        (printRequested)="openPrintDialog($event)"
     ></app-purchase-view-dialog>
+
+    <app-print-purchase-invoice-dialog
+        [(visible)]="printDialogVisible"
+        [purchaseId]="printingPurchaseId"
+        [autoPrint]="printAutoPrint"
+    ></app-print-purchase-invoice-dialog>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>

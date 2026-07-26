@@ -22,6 +22,7 @@ export class PurchaseFormDialogComponent implements OnChanges {
     @Input() visible = false;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
+    @Output() printRequested = new EventEmitter<number>();
 
     purchase: CreatePurchaseDto = this.emptyPurchase();
     products: ProductDto[] = [];
@@ -81,6 +82,14 @@ export class PurchaseFormDialogComponent implements OnChanges {
     }
 
     save(): void {
+        this.saveInternal(false);
+    }
+
+    saveAndPrint(): void {
+        this.saveInternal(true);
+    }
+
+    private saveInternal(printAfter: boolean): void {
         if (!this.purchase.supplierId) {
             this.messageService.add({
                 severity: 'warn',
@@ -141,7 +150,7 @@ export class PurchaseFormDialogComponent implements OnChanges {
                     unitCost: line.unitCost || 0,
                 })),
             })
-            .then(() => {
+            .then((created) => {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',
@@ -149,6 +158,9 @@ export class PurchaseFormDialogComponent implements OnChanges {
                 });
                 this.saved.emit();
                 this.onHide();
+                if (printAfter && created?.id) {
+                    this.printRequested.emit(created.id);
+                }
             })
             .catch((error) => {
                 this.messageService.add({

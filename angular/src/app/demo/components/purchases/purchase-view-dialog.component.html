@@ -69,5 +69,14 @@
             class="p-button-text"
             (click)="onHide()"
         ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Print"
+            icon="pi pi-print"
+            [disabled]="loading || !purchase"
+            (click)="printInvoice()"
+        ></button>
     </ng-template>
 </p-dialog>

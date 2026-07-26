@@ -15,6 +15,7 @@ import { PurchasesRoutingModule } from './purchases-routing.module';
 import { PurchaseListComponent } from './purchase-list.component';
 import { PurchaseFormDialogComponent } from './purchase-form-dialog.component';
 import { PurchaseViewDialogComponent } from './purchase-view-dialog.component';
+import { PrintPurchaseInvoiceDialogComponent } from './print-purchase-invoice-dialog.component';
 
 @NgModule({
     imports: [
@@ -36,6 +37,7 @@ import { PurchaseViewDialogComponent } from './purchase-view-dialog.component';
         PurchaseListComponent,
         PurchaseFormDialogComponent,
         PurchaseViewDialogComponent,
+        PrintPurchaseInvoiceDialogComponent,
     ],
 })
 export class PurchasesModule {}

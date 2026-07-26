@@ -163,6 +163,17 @@
             pButton
             pRipple
             type="button"
+            label="Print"
+            icon="pi pi-print"
+            class="p-button-outlined"
+            [loading]="saving"
+            [disabled]="loading"
+            (click)="saveAndPrint()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
             label="Save"
             icon="pi pi-check"
             [loading]="saving"

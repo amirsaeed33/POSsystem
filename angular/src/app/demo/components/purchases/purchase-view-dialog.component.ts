@@ -18,6 +18,7 @@ export class PurchaseViewDialogComponent implements OnChanges {
     @Input() visible = false;
     @Input() purchaseId: number | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
+    @Output() printRequested = new EventEmitter<number>();
 
     purchase: PurchaseDto | null = null;
     loading = false;
@@ -43,6 +44,13 @@ export class PurchaseViewDialogComponent implements OnChanges {
 
     onHide(): void {
         this.onVisibleChange(false);
+    }
+
+    printInvoice(): void {
+        if (!this.purchase?.id) {
+            return;
+        }
+        this.printRequested.emit(this.purchase.id);
     }
 
     private loadPurchase(id: number): void {

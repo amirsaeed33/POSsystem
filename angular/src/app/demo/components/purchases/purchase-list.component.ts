@@ -17,6 +17,9 @@ export class PurchaseListComponent implements OnInit {
     createDialogVisible = false;
     viewDialogVisible = false;
     viewingPurchaseId: number | null = null;
+    printDialogVisible = false;
+    printingPurchaseId: number | null = null;
+    printAutoPrint = false;
 
     constructor(
         private purchaseService: PurchaseService,
@@ -67,6 +70,16 @@ export class PurchaseListComponent implements OnInit {
     openViewDialog(purchase: PurchaseDto): void {
         this.viewingPurchaseId = purchase.id;
         this.viewDialogVisible = true;
+    }
+
+    openPrintDialog(purchaseId: number, autoPrint = false): void {
+        this.printingPurchaseId = purchaseId;
+        this.printAutoPrint = autoPrint;
+        this.printDialogVisible = true;
+    }
+
+    onPrintRequested(purchaseId: number): void {
+        this.openPrintDialog(purchaseId, true);
     }
 
     onDialogSaved(): void {
