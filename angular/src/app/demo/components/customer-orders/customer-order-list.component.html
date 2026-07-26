@@ -1,0 +1,165 @@
+<div class="card">
+    <p-table
+        #dt
+        [value]="orders"
+        [paginator]="true"
+        [rows]="10"
+        [showCurrentPageReport]="true"
+        responsiveLayout="scroll"
+        [loading]="loading"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['orderNo', 'customerName', 'statusName', 'saleInvoiceNo', 'notes']"
+    >
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-20rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search customer orders"
+                            [(ngModel)]="keyword"
+                            (keyup.enter)="onSearch()"
+                            (input)="onGlobalFilter(dt, $event)"
+                        />
+                    </span>
+                    <p-dropdown
+                        [options]="statusOptions"
+                        [(ngModel)]="statusFilter"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="All statuses"
+                        [showClear]="true"
+                        (onChange)="onSearch()"
+                        styleClass="w-full sm:w-14rem"
+                    ></p-dropdown>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="onSearch()"
+                    ></button>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-plus"
+                    label="Create"
+                    class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
+                    (click)="openCreateDialog()"
+                ></button>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="orderNo">Order No <p-sortIcon field="orderNo"></p-sortIcon></th>
+                <th pSortableColumn="orderDate">
+                    Order Date <p-sortIcon field="orderDate"></p-sortIcon>
+                </th>
+                <th pSortableColumn="customerName">
+                    Customer <p-sortIcon field="customerName"></p-sortIcon>
+                </th>
+                <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
+                <th pSortableColumn="totalAmount">
+                    Total <p-sortIcon field="totalAmount"></p-sortIcon>
+                </th>
+                <th pSortableColumn="saleInvoiceNo">
+                    Sale Invoice <p-sortIcon field="saleInvoiceNo"></p-sortIcon>
+                </th>
+                <th style="width: 12rem">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-order>
+            <tr>
+                <td>{{ order.orderNo || ('#' + order.id) }}</td>
+                <td>{{ order.orderDate | date: 'mediumDate' }}</td>
+                <td>{{ order.customerName || '—' }}</td>
+                <td>
+                    <p-tag
+                        [value]="statusLabel(order)"
+                        [severity]="statusSeverity(order.status)"
+                    ></p-tag>
+                </td>
+                <td>{{ order.totalAmount | number: '1.2-2' }}</td>
+                <td>{{ order.saleInvoiceNo || '—' }}</td>
+                <td>
+                    <div class="flex gap-2">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-eye"
+                            class="p-button-text p-button-sm"
+                            pTooltip="View"
+                            tooltipPosition="top"
+                            (click)="openViewDialog(order)"
+                        ></button>
+                        <button
+                            *ngIf="isPending(order)"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-check"
+                            class="p-button-text p-button-success p-button-sm"
+                            pTooltip="Approve"
+                            tooltipPosition="top"
+                            (click)="onApprove(order)"
+                        ></button>
+                        <button
+                            *ngIf="isPending(order)"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-times"
+                            class="p-button-text p-button-warning p-button-sm"
+                            pTooltip="Reject"
+                            tooltipPosition="top"
+                            (click)="onReject(order)"
+                        ></button>
+                        <button
+                            *ngIf="isPending(order)"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-trash"
+                            class="p-button-text p-button-danger p-button-sm"
+                            pTooltip="Delete"
+                            tooltipPosition="top"
+                            (click)="onDelete(order)"
+                        ></button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="7" class="text-center p-4">
+                    <div class="text-500">No customer orders found</div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <app-customer-order-form-dialog
+        [(visible)]="createDialogVisible"
+        (saved)="onDialogSaved()"
+    ></app-customer-order-form-dialog>
+
+    <app-customer-order-view-dialog
+        [(visible)]="viewDialogVisible"
+        [orderId]="viewingOrderId"
+    ></app-customer-order-view-dialog>
+
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+</div>

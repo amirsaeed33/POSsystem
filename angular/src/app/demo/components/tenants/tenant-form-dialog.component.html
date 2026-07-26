@@ -1,0 +1,113 @@
+<p-dialog
+    [header]="dialogTitle"
+    [visible]="visible"
+    [modal]="true"
+    [style]="{ width: '36rem' }"
+    [breakpoints]="{ '960px': '75vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (visibleChange)="onVisibleChange($event)"
+>
+    <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
+        <div class="flex flex-column gap-2">
+            <label for="tenancyName" class="font-medium">
+                Tenancy Name <span class="p-error">*</span>
+            </label>
+            <input
+                id="tenancyName"
+                type="text"
+                pInputText
+                class="w-full"
+                maxlength="64"
+                [(ngModel)]="tenant.tenancyName"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="tenantName" class="font-medium">
+                Name <span class="p-error">*</span>
+            </label>
+            <input
+                id="tenantName"
+                type="text"
+                pInputText
+                class="w-full"
+                maxlength="128"
+                [(ngModel)]="tenant.name"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2" *ngIf="!isEdit">
+            <label for="adminEmailAddress" class="font-medium">
+                Admin Email Address <span class="p-error">*</span>
+            </label>
+            <input
+                id="adminEmailAddress"
+                type="email"
+                pInputText
+                class="w-full"
+                maxlength="256"
+                [(ngModel)]="tenant.adminEmailAddress"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2" *ngIf="!isEdit">
+            <label for="connectionString" class="font-medium">Connection String</label>
+            <textarea
+                id="connectionString"
+                pInputTextarea
+                rows="2"
+                class="w-full"
+                [(ngModel)]="tenant.connectionString"
+                [disabled]="saving"
+            ></textarea>
+        </div>
+
+        <div class="flex align-items-center gap-2">
+            <p-checkbox
+                [(ngModel)]="tenant.isActive"
+                [binary]="true"
+                inputId="tenantIsActive"
+                [disabled]="saving"
+            ></p-checkbox>
+            <label for="tenantIsActive" class="font-medium">Active</label>
+        </div>
+    </div>
+
+    <ng-template #loadingTpl>
+        <div class="flex align-items-center justify-content-center p-4">
+            <i class="pi pi-spin pi-spinner text-2xl"></i>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="onHide()"
+            [disabled]="saving"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            (click)="save()"
+            [disabled]="
+                saving ||
+                loading ||
+                !(tenant.tenancyName || '').trim() ||
+                !(tenant.name || '').trim() ||
+                (!isEdit && !(tenant.adminEmailAddress || '').trim())
+            "
+            [loading]="saving"
+        ></button>
+    </ng-template>
+</p-dialog>

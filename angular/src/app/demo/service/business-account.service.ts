@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
     BusinessAccountDto,
+    CreateBusinessAccountDto,
     PagedBusinessAccountResultRequestDto,
     PagedResultDto,
 } from '../api/business-account';
@@ -43,6 +44,47 @@ export class BusinessAccountService {
             ),
             totalCount,
         };
+    }
+
+    async get(id: number): Promise<BusinessAccountDto> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/Get`, { params: { Id: id } })
+        );
+        return this.mapAccount(this.unwrap(res, 'Failed to load account'));
+    }
+
+    async create(input: CreateBusinessAccountDto): Promise<BusinessAccountDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/Create`, input)
+        );
+        return this.mapAccount(this.unwrap(res, 'Failed to create account'));
+    }
+
+    async update(input: BusinessAccountDto): Promise<BusinessAccountDto> {
+        const res: any = await firstValueFrom(
+            this.http.put<any>(`${this.apiUrl}/Update`, {
+                id: input.id,
+                name: input.name,
+                code: input.code,
+                accountType: input.accountType,
+                openingBalance: input.openingBalance,
+                description: input.description,
+                isActive: input.isActive,
+            })
+        );
+        return this.mapAccount(this.unwrap(res, 'Failed to update account'));
+    }
+
+    async delete(id: number): Promise<void> {
+        const res: any = await firstValueFrom(
+            this.http.delete<any>(`${this.apiUrl}/Delete`, {
+                params: { Id: id },
+            })
+        );
+        if (res == null) {
+            return;
+        }
+        this.unwrap(res, 'Failed to delete account');
     }
 
     private unwrap(res: any, fallbackMessage: string): any {

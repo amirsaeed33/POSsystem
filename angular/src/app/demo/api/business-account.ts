@@ -9,6 +9,15 @@ export interface BusinessAccountDto {
     isActive: boolean;
 }
 
+export interface CreateBusinessAccountDto {
+    name: string;
+    code?: string;
+    accountType?: string;
+    openingBalance: number;
+    description?: string;
+    isActive: boolean;
+}
+
 export interface PagedBusinessAccountResultRequestDto {
     keyword?: string;
     skipCount?: number;

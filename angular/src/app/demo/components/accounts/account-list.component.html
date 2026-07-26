@@ -1,0 +1,131 @@
+<div class="card">
+    <p-table
+        #dt
+        [value]="accounts"
+        [paginator]="true"
+        [rows]="10"
+        [showCurrentPageReport]="true"
+        responsiveLayout="scroll"
+        [loading]="loading"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['name', 'code', 'accountType', 'description']"
+    >
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-20rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search accounts"
+                            [(ngModel)]="keyword"
+                            (keyup.enter)="onSearch()"
+                            (input)="onGlobalFilter(dt, $event)"
+                        />
+                    </span>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="onSearch()"
+                    ></button>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-plus"
+                    label="Create"
+                    class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
+                    (click)="openCreateDialog()"
+                ></button>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="name" class="white-space-nowrap">
+                    Name <p-sortIcon field="name"></p-sortIcon>
+                </th>
+                <th pSortableColumn="code" class="white-space-nowrap">
+                    Code <p-sortIcon field="code"></p-sortIcon>
+                </th>
+                <th pSortableColumn="accountType" class="white-space-nowrap">
+                    Type <p-sortIcon field="accountType"></p-sortIcon>
+                </th>
+                <th pSortableColumn="openingBalance" class="white-space-nowrap">
+                    Opening Balance <p-sortIcon field="openingBalance"></p-sortIcon>
+                </th>
+                <th pSortableColumn="balance" class="white-space-nowrap">
+                    Balance <p-sortIcon field="balance"></p-sortIcon>
+                </th>
+                <th pSortableColumn="isActive" class="white-space-nowrap">
+                    Active <p-sortIcon field="isActive"></p-sortIcon>
+                </th>
+                <th class="white-space-nowrap" style="width: 8rem">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-account>
+            <tr>
+                <td>{{ account.name }}</td>
+                <td>{{ account.code || '—' }}</td>
+                <td>{{ account.accountType || '—' }}</td>
+                <td>{{ account.openingBalance | number: '1.2-2' }}</td>
+                <td>{{ account.balance | number: '1.2-2' }}</td>
+                <td>
+                    <span [class]="account.isActive ? 'p-tag p-tag-success' : 'p-tag p-tag-danger'">
+                        {{ account.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-pencil"
+                            class="p-button-text p-button-sm"
+                            pTooltip="Edit"
+                            tooltipPosition="top"
+                            (click)="openEditDialog(account)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-trash"
+                            class="p-button-text p-button-danger p-button-sm"
+                            pTooltip="Delete"
+                            tooltipPosition="top"
+                            (click)="onDelete(account)"
+                        ></button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="7" class="text-center p-4">
+                    <div class="text-500">No accounts found</div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <app-account-form-dialog
+        [(visible)]="dialogVisible"
+        [accountId]="editingAccountId"
+        (saved)="onDialogSaved()"
+    ></app-account-form-dialog>
+
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+</div>

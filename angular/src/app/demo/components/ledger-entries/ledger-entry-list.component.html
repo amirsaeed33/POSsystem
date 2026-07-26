@@ -1,0 +1,139 @@
+<div class="card">
+    <p-table
+        #dt
+        [value]="entries"
+        [paginator]="true"
+        [rows]="10"
+        [showCurrentPageReport]="true"
+        responsiveLayout="scroll"
+        [loading]="loading"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['accountName', 'voucherType', 'description']"
+    >
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-20rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search ledger entries"
+                            [(ngModel)]="keyword"
+                            (keyup.enter)="onSearch()"
+                            (input)="onGlobalFilter(dt, $event)"
+                        />
+                    </span>
+                    <p-dropdown
+                        [options]="accounts"
+                        [(ngModel)]="accountId"
+                        optionLabel="name"
+                        optionValue="id"
+                        placeholder="All accounts"
+                        [filter]="true"
+                        filterBy="name,code"
+                        [showClear]="true"
+                        (onChange)="onSearch()"
+                        styleClass="w-full sm:w-16rem"
+                    ></p-dropdown>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="onSearch()"
+                    ></button>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-plus"
+                    label="Create"
+                    class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
+                    (click)="openCreateDialog()"
+                ></button>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="transactionDate">
+                    Date <p-sortIcon field="transactionDate"></p-sortIcon>
+                </th>
+                <th pSortableColumn="accountName">
+                    Account <p-sortIcon field="accountName"></p-sortIcon>
+                </th>
+                <th pSortableColumn="voucherType">
+                    Voucher Type <p-sortIcon field="voucherType"></p-sortIcon>
+                </th>
+                <th pSortableColumn="voucherId">
+                    Voucher Id <p-sortIcon field="voucherId"></p-sortIcon>
+                </th>
+                <th pSortableColumn="debit">Debit <p-sortIcon field="debit"></p-sortIcon></th>
+                <th pSortableColumn="credit">Credit <p-sortIcon field="credit"></p-sortIcon></th>
+                <th pSortableColumn="description">
+                    Description <p-sortIcon field="description"></p-sortIcon>
+                </th>
+                <th style="width: 8rem">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-entry>
+            <tr>
+                <td>{{ entry.transactionDate | date: 'mediumDate' }}</td>
+                <td>{{ entry.accountName || '—' }}</td>
+                <td>{{ entry.voucherType || '—' }}</td>
+                <td>{{ entry.voucherId != null ? entry.voucherId : '—' }}</td>
+                <td>{{ entry.debit | number: '1.2-2' }}</td>
+                <td>{{ entry.credit | number: '1.2-2' }}</td>
+                <td>{{ entry.description || '—' }}</td>
+                <td>
+                    <div class="flex gap-2">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-pencil"
+                            class="p-button-text p-button-sm"
+                            pTooltip="Edit"
+                            tooltipPosition="top"
+                            (click)="openEditDialog(entry)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-trash"
+                            class="p-button-text p-button-danger p-button-sm"
+                            pTooltip="Delete"
+                            tooltipPosition="top"
+                            (click)="onDelete(entry)"
+                        ></button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="8" class="text-center p-4">
+                    <div class="text-500">No ledger entries found</div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <app-ledger-entry-form-dialog
+        [(visible)]="dialogVisible"
+        [entryId]="editingEntryId"
+        (saved)="onDialogSaved()"
+    ></app-ledger-entry-form-dialog>
+
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+</div>

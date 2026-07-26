@@ -1,0 +1,142 @@
+<p-dialog
+    [header]="dialogTitle"
+    [(visible)]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    [style]="{ width: '36rem' }"
+    [breakpoints]="{ '960px': '90vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onHide()"
+>
+    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+
+    <div *ngIf="!loading" class="grid formgrid p-fluid">
+        <div class="field col-12">
+            <label for="accountId">Account <span class="text-red-500">*</span></label>
+            <p-dropdown
+                inputId="accountId"
+                [options]="accounts"
+                [(ngModel)]="entry.accountId"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Select account"
+                [filter]="true"
+                filterBy="name,code"
+                [showClear]="true"
+                appendTo="body"
+            >
+                <ng-template let-item pTemplate="item">
+                    {{ item.name }}<span *ngIf="item.code"> ({{ item.code }})</span>
+                </ng-template>
+                <ng-template let-item pTemplate="selectedItem">
+                    <span *ngIf="item">
+                        {{ item.name }}<span *ngIf="item.code"> ({{ item.code }})</span>
+                    </span>
+                </ng-template>
+            </p-dropdown>
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label for="transactionDate">Transaction Date <span class="text-red-500">*</span></label>
+            <input
+                pInputText
+                id="transactionDate"
+                type="date"
+                [(ngModel)]="entry.transactionDate"
+            />
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label for="voucherType">Voucher Type <span class="text-red-500">*</span></label>
+            <p-dropdown
+                inputId="voucherType"
+                [options]="voucherTypes"
+                [(ngModel)]="entry.voucherType"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select voucher type"
+                appendTo="body"
+            ></p-dropdown>
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label for="voucherId">Voucher Id</label>
+            <p-inputNumber
+                inputId="voucherId"
+                [(ngModel)]="entry.voucherId"
+                [useGrouping]="false"
+                [showButtons]="false"
+                styleClass="w-full"
+                placeholder="Optional"
+            ></p-inputNumber>
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label for="description">Description</label>
+            <input
+                pInputText
+                id="description"
+                type="text"
+                maxlength="512"
+                [(ngModel)]="entry.description"
+            />
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label for="debit">Debit</label>
+            <p-inputNumber
+                inputId="debit"
+                [(ngModel)]="entry.debit"
+                [min]="0"
+                mode="decimal"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+                [showButtons]="false"
+                styleClass="w-full"
+            ></p-inputNumber>
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label for="credit">Credit</label>
+            <p-inputNumber
+                inputId="credit"
+                [(ngModel)]="entry.credit"
+                [min]="0"
+                mode="decimal"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+                [showButtons]="false"
+                styleClass="w-full"
+            ></p-inputNumber>
+        </div>
+
+        <div class="col-12">
+            <small class="text-500">
+                Exactly one of debit or credit must be greater than zero.
+            </small>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            [disabled]="saving"
+            (click)="onHide()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            [loading]="saving"
+            [disabled]="loading"
+            (click)="save()"
+        ></button>
+    </ng-template>
+</p-dialog>

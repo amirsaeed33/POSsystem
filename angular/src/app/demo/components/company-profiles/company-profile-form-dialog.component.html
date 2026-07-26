@@ -1,0 +1,151 @@
+<p-dialog
+    [header]="dialogTitle"
+    [visible]="visible"
+    [modal]="true"
+    [style]="{ width: '40rem' }"
+    [breakpoints]="{ '960px': '75vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (visibleChange)="onVisibleChange($event)"
+>
+    <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
+        <div class="flex flex-column gap-2">
+            <label for="profileName" class="font-medium">
+                Name <span class="p-error">*</span>
+            </label>
+            <input
+                id="profileName"
+                type="text"
+                pInputText
+                class="w-full"
+                maxlength="256"
+                [(ngModel)]="profile.name"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="invoiceAddress" class="font-medium">Invoice Address</label>
+            <textarea
+                id="invoiceAddress"
+                pInputTextarea
+                rows="2"
+                class="w-full"
+                maxlength="512"
+                [(ngModel)]="profile.invoiceAddress"
+                [disabled]="saving"
+            ></textarea>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="invoiceContactEmail" class="font-medium">Invoice Contact Email</label>
+            <input
+                id="invoiceContactEmail"
+                type="email"
+                pInputText
+                class="w-full"
+                maxlength="256"
+                [(ngModel)]="profile.invoiceContactEmail"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="invoiceContactPhone" class="font-medium">Invoice Contact Phone</label>
+            <input
+                id="invoiceContactPhone"
+                type="text"
+                pInputText
+                class="w-full"
+                maxlength="64"
+                [(ngModel)]="profile.invoiceContactPhone"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="taxNumber" class="font-medium">Tax Number</label>
+            <input
+                id="taxNumber"
+                type="text"
+                pInputText
+                class="w-full"
+                maxlength="64"
+                [(ngModel)]="profile.taxNumber"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="website" class="font-medium">Website</label>
+            <input
+                id="website"
+                type="text"
+                pInputText
+                class="w-full"
+                maxlength="256"
+                [(ngModel)]="profile.website"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="invoiceFooter" class="font-medium">Invoice Footer</label>
+            <textarea
+                id="invoiceFooter"
+                pInputTextarea
+                rows="2"
+                class="w-full"
+                maxlength="512"
+                [(ngModel)]="profile.invoiceFooter"
+                [disabled]="saving"
+            ></textarea>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="profileImage" class="font-medium">Image</label>
+            <input
+                id="profileImage"
+                type="file"
+                accept="image/*"
+                (change)="onFileSelected($event)"
+                [disabled]="saving"
+            />
+            <img
+                *ngIf="imagePreview"
+                [src]="imagePreview"
+                alt="preview"
+                class="mt-2 border-round"
+                style="max-width: 160px; max-height: 160px; object-fit: cover"
+            />
+        </div>
+    </div>
+
+    <ng-template #loadingTpl>
+        <div class="flex align-items-center justify-content-center p-4">
+            <i class="pi pi-spin pi-spinner text-2xl"></i>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="onHide()"
+            [disabled]="saving"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            (click)="save()"
+            [disabled]="saving || loading || !(profile.name || '').trim()"
+            [loading]="saving"
+        ></button>
+    </ng-template>
+</p-dialog>
