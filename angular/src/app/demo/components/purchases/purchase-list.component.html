@@ -1,0 +1,117 @@
+<div class="card">
+    <p-table
+        #dt
+        [value]="purchases"
+        [paginator]="true"
+        [rows]="10"
+        [showCurrentPageReport]="true"
+        responsiveLayout="scroll"
+        [loading]="loading"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['invoiceNo', 'supplierName', 'notes']"
+    >
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-20rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search purchases"
+                            [(ngModel)]="keyword"
+                            (keyup.enter)="onSearch()"
+                            (input)="onGlobalFilter(dt, $event)"
+                        />
+                    </span>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="onSearch()"
+                    ></button>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-plus"
+                    label="Create"
+                    class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
+                    (click)="openCreateDialog()"
+                ></button>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="invoiceNo">Invoice No <p-sortIcon field="invoiceNo"></p-sortIcon></th>
+                <th pSortableColumn="purchaseDate">Purchase Date <p-sortIcon field="purchaseDate"></p-sortIcon></th>
+                <th pSortableColumn="supplierName">Supplier <p-sortIcon field="supplierName"></p-sortIcon></th>
+                <th pSortableColumn="totalAmount">Total Amount <p-sortIcon field="totalAmount"></p-sortIcon></th>
+                <th pSortableColumn="notes">Notes <p-sortIcon field="notes"></p-sortIcon></th>
+                <th style="width: 8rem">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-purchase>
+            <tr>
+                <td>{{ purchase.invoiceNo || ('#' + purchase.id) }}</td>
+                <td>{{ purchase.purchaseDate | date: 'mediumDate' }}</td>
+                <td>{{ purchase.supplierName || '—' }}</td>
+                <td>{{ purchase.totalAmount | number: '1.2-2' }}</td>
+                <td>{{ purchase.notes || '—' }}</td>
+                <td>
+                    <div class="flex gap-2">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-eye"
+                            class="p-button-text p-button-sm"
+                            pTooltip="View"
+                            tooltipPosition="top"
+                            (click)="openViewDialog(purchase)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-trash"
+                            class="p-button-text p-button-danger p-button-sm"
+                            pTooltip="Delete"
+                            tooltipPosition="top"
+                            (click)="onDelete(purchase)"
+                        ></button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="6" class="text-center p-4">
+                    <div class="text-500">No purchases found</div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <app-purchase-form-dialog
+        [(visible)]="createDialogVisible"
+        (saved)="onDialogSaved()"
+    ></app-purchase-form-dialog>
+
+    <app-purchase-view-dialog
+        [(visible)]="viewDialogVisible"
+        [purchaseId]="viewingPurchaseId"
+    ></app-purchase-view-dialog>
+
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+</div>
