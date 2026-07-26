@@ -45,7 +45,7 @@
                 pRipple
                 type="button"
                 icon="pi pi-sync"
-                label="Generate"
+                label="Generate Report"
                 class="w-full"
                 [loading]="loading"
                 (click)="generate()"
@@ -56,12 +56,13 @@
     <p-table
         [value]="report.items"
         [loading]="loading"
-        [paginator]="true"
-        [rows]="25"
+        [paginator]="!printing"
+        [rows]="tableRows"
         [rowsPerPageOptions]="[10, 25, 50]"
         [showCurrentPageReport]="true"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
         responsiveLayout="scroll"
+        styleClass="report-data-table"
     >
         <ng-template pTemplate="header">
             <tr>

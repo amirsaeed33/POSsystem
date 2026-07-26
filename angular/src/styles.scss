@@ -114,6 +114,8 @@ $gutter: 1rem; //for primeflex grid system
     width: 100%;
     padding: 12px;
     background: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   body:not(.printing-invoice) .report-page .no-print {
@@ -125,9 +127,18 @@ $gutter: 1rem; //for primeflex grid system
     display: block !important;
   }
 
+  body:not(.printing-invoice) .report-page .p-paginator,
+  body:not(.printing-invoice) .report-page .p-datatable-footer .p-paginator,
+  body:not(.printing-invoice) .report-page .p-toast,
+  body:not(.printing-invoice) .p-toast {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
   body:not(.printing-invoice) .report-page .p-datatable,
   body:not(.printing-invoice) .report-page .p-datatable-wrapper,
-  body:not(.printing-invoice) .report-page .p-datatable-table-container {
+  body:not(.printing-invoice) .report-page .p-datatable-table-container,
+  body:not(.printing-invoice) .report-page .p-datatable-scrollable-body {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
@@ -135,8 +146,23 @@ $gutter: 1rem; //for primeflex grid system
     box-shadow: none !important;
   }
 
+  body:not(.printing-invoice) .report-page .card,
+  body:not(.printing-invoice) .report-page.card {
+    border: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    padding: 0 !important;
+  }
+
   body:not(.printing-invoice) .report-page table {
     width: 100% !important;
+  }
+
+  body:not(.printing-invoice) .report-page .report-data-table th,
+  body:not(.printing-invoice) .report-page .report-data-table td {
+    border: 1px solid #ccc !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
   }
 
   body:not(.printing-invoice) .report-print-title {

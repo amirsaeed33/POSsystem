@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { PurchaseReportDto } from 'src/app/demo/api/report';
 import { ReportService } from 'src/app/demo/service/report.service';
@@ -9,6 +9,7 @@ import { ReportService } from 'src/app/demo/service/report.service';
 })
 export class PurchaseReportComponent implements OnInit {
     loading = false;
+    printing = false;
     fromDate = '';
     toDate = '';
     keyword = '';
@@ -19,7 +20,8 @@ export class PurchaseReportComponent implements OnInit {
 
     constructor(
         private reportService: ReportService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private cd: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
@@ -27,6 +29,13 @@ export class PurchaseReportComponent implements OnInit {
         this.fromDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
         this.toDate = this.toDateInputValue();
         this.generate();
+    }
+
+    get tableRows(): number {
+        if (this.printing) {
+            return Math.max(this.report.items?.length || 0, 1);
+        }
+        return 25;
     }
 
     generate(): void {
@@ -52,8 +61,20 @@ export class PurchaseReportComponent implements OnInit {
             });
     }
 
+    /** Match angular-old: print full generated dataset (not just current page). */
     printReport(): void {
-        window.print();
+        this.printing = true;
+        this.cd.detectChanges();
+        setTimeout(() => {
+            const cleanup = () => {
+                this.printing = false;
+                this.cd.detectChanges();
+                window.removeEventListener('afterprint', cleanup);
+            };
+            window.addEventListener('afterprint', cleanup);
+            window.print();
+            setTimeout(cleanup, 1000);
+        }, 100);
     }
 
     printInvoice(purchaseId: number): void {

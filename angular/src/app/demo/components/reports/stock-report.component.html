@@ -79,7 +79,7 @@
                 pRipple
                 type="button"
                 icon="pi pi-sync"
-                label="Generate"
+                label="Generate Report"
                 class="w-full"
                 [loading]="loading"
                 (click)="generate()"
@@ -90,12 +90,13 @@
     <p-table
         [value]="report.items"
         [loading]="loading"
-        [paginator]="true"
-        [rows]="25"
+        [paginator]="!printing"
+        [rows]="tableRows"
         [rowsPerPageOptions]="[10, 25, 50]"
         [showCurrentPageReport]="true"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
         responsiveLayout="scroll"
+        styleClass="report-data-table"
     >
         <ng-template pTemplate="header">
             <tr>
@@ -105,12 +106,12 @@
                 <th>Brand</th>
                 <th>Unit</th>
                 <th class="text-right">Price</th>
-                <th class="text-right">Cost</th>
-                <th class="text-right">Profit/Unit</th>
-                <th class="text-right">Margin</th>
+                <th class="text-right">Cost Price</th>
+                <th class="text-right">Profit Per Unit</th>
+                <th class="text-right">Profit Margin</th>
                 <th class="text-right">Stock Profit</th>
-                <th class="text-right">Stock Qty</th>
-                <th class="text-right">Alert</th>
+                <th class="text-right">Stock Quantity</th>
+                <th class="text-right">Alert Quantity Limit</th>
                 <th>Status</th>
             </tr>
         </ng-template>
