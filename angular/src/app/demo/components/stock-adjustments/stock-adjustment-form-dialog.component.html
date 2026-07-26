@@ -1,0 +1,147 @@
+<p-dialog
+    [header]="dialogTitle"
+    [(visible)]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    [style]="{ width: '56rem' }"
+    [breakpoints]="{ '960px': '90vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onHide()"
+>
+    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+
+    <div *ngIf="!loading" class="grid formgrid p-fluid">
+        <div class="field col-12 md:col-6">
+            <label for="adjustmentDate">Adjustment Date <span class="text-red-500">*</span></label>
+            <input
+                pInputText
+                id="adjustmentDate"
+                type="date"
+                [(ngModel)]="adjustment.adjustmentDate"
+            />
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label for="reason">Reason <span class="text-red-500">*</span></label>
+            <p-dropdown
+                inputId="reason"
+                [options]="reasons"
+                [(ngModel)]="adjustment.reason"
+                optionLabel="label"
+                optionValue="value"
+                appendTo="body"
+            ></p-dropdown>
+        </div>
+
+        <div class="field col-12">
+            <label for="notes">Notes</label>
+            <input
+                pInputText
+                id="notes"
+                type="text"
+                maxlength="512"
+                [(ngModel)]="adjustment.notes"
+            />
+        </div>
+
+        <div class="col-12">
+            <div class="flex align-items-center justify-content-between mb-2">
+                <h5 class="m-0">Products</h5>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-plus"
+                    label="Add Line"
+                    class="p-button-outlined p-button-sm"
+                    (click)="addLine()"
+                ></button>
+            </div>
+
+            <div class="surface-border border-1 border-round overflow-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="surface-100">
+                            <th class="text-left p-2">Product</th>
+                            <th class="text-left p-2" style="width: 10rem">Quantity Change</th>
+                            <th class="p-2" style="width: 4rem"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let line of adjustment.lines; let i = index">
+                            <td class="p-2">
+                                <p-dropdown
+                                    [options]="products"
+                                    [(ngModel)]="line.productId"
+                                    optionLabel="name"
+                                    optionValue="id"
+                                    placeholder="Select product"
+                                    [filter]="true"
+                                    filterBy="name"
+                                    [showClear]="true"
+                                    appendTo="body"
+                                    [style]="{ width: '100%' }"
+                                >
+                                    <ng-template let-item pTemplate="item">
+                                        {{ item.name }} (Stock: {{ item.stockQuantity || 0 }})
+                                    </ng-template>
+                                    <ng-template let-item pTemplate="selectedItem">
+                                        <span *ngIf="item">
+                                            {{ item.name }} (Stock: {{ item.stockQuantity || 0 }})
+                                        </span>
+                                    </ng-template>
+                                </p-dropdown>
+                            </td>
+                            <td class="p-2">
+                                <p-inputNumber
+                                    [(ngModel)]="line.quantityChange"
+                                    [minFractionDigits]="0"
+                                    [maxFractionDigits]="2"
+                                    [showButtons]="false"
+                                    styleClass="w-full"
+                                ></p-inputNumber>
+                            </td>
+                            <td class="p-2 text-center">
+                                <button
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    icon="pi pi-times"
+                                    class="p-button-text p-button-danger p-button-sm"
+                                    [disabled]="adjustment.lines.length === 1"
+                                    (click)="removeLine(i)"
+                                ></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <small class="text-500 block mt-2">
+                Quantity change: + increases stock, − decreases stock.
+            </small>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            [disabled]="saving"
+            (click)="onHide()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            [loading]="saving"
+            [disabled]="loading"
+            (click)="save()"
+        ></button>
+    </ng-template>
+</p-dialog>

@@ -1,0 +1,73 @@
+<p-dialog
+    header="View Stock Adjustment"
+    [(visible)]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    [style]="{ width: '40rem' }"
+    [breakpoints]="{ '960px': '90vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onHide()"
+>
+    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+
+    <div *ngIf="!loading && adjustment">
+        <div class="grid mb-3">
+            <div class="col-12 md:col-6">
+                <div class="text-500 mb-1">Reference No</div>
+                <div class="font-medium">
+                    {{ adjustment.referenceNo || ('#' + adjustment.id) }}
+                </div>
+            </div>
+            <div class="col-12 md:col-6">
+                <div class="text-500 mb-1">Adjustment Date</div>
+                <div class="font-medium">
+                    {{ adjustment.adjustmentDate | date: 'mediumDate' }}
+                </div>
+            </div>
+            <div class="col-12 md:col-6">
+                <div class="text-500 mb-1">Reason</div>
+                <div class="font-medium">{{ reasonLabel(adjustment.reason) }}</div>
+            </div>
+            <div class="col-12">
+                <div class="text-500 mb-1">Notes</div>
+                <div class="font-medium">{{ adjustment.notes || '—' }}</div>
+            </div>
+        </div>
+
+        <div class="surface-border border-1 border-round overflow-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="surface-100">
+                        <th class="text-left p-2">Product</th>
+                        <th class="text-right p-2">Quantity Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let line of adjustment.lines || []">
+                        <td class="p-2">
+                            {{ line.productName || ('#' + line.productId) }}
+                        </td>
+                        <td class="p-2 text-right">{{ line.quantityChange }}</td>
+                    </tr>
+                    <tr *ngIf="!(adjustment.lines || []).length">
+                        <td colspan="2" class="p-3 text-center text-500">
+                            No line items
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Close"
+            class="p-button-text"
+            (click)="onHide()"
+        ></button>
+    </ng-template>
+</p-dialog>
