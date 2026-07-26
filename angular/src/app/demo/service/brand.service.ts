@@ -2,50 +2,24 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-    CreateCustomerDto,
-    Customer,
-    CustomerDto,
-    PagedCustomerResultRequestDto,
+    BrandDto,
+    CreateBrandDto,
+    PagedBrandResultRequestDto,
     PagedResultDto,
-} from '../api/customer';
+} from '../api/brand';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
     providedIn: 'root',
 })
-export class CustomerService {
-    private readonly apiUrl = `${environment.apiUrl}/api/services/app/Customer`;
+export class BrandService {
+    private readonly apiUrl = `${environment.apiUrl}/api/services/app/Brand`;
 
     constructor(private http: HttpClient) {}
 
-    // Verona UI Kit demo helpers (tabledemo)
-    getCustomersSmall() {
-        return this.http
-            .get<any>('assets/demo/data/customers-small.json')
-            .toPromise()
-            .then((res) => res.data as Customer[])
-            .then((data) => data);
-    }
-
-    getCustomersMedium() {
-        return this.http
-            .get<any>('assets/demo/data/customers-medium.json')
-            .toPromise()
-            .then((res) => res.data as Customer[])
-            .then((data) => data);
-    }
-
-    getCustomersLarge() {
-        return this.http
-            .get<any>('assets/demo/data/customers-large.json')
-            .toPromise()
-            .then((res) => res.data as Customer[])
-            .then((data) => data);
-    }
-
     async getAll(
-        input?: PagedCustomerResultRequestDto
-    ): Promise<PagedResultDto<CustomerDto>> {
+        input?: PagedBrandResultRequestDto
+    ): Promise<PagedResultDto<BrandDto>> {
         const params: any = {};
         if (input?.keyword) {
             params.Keyword = input.keyword;
@@ -60,52 +34,44 @@ export class CustomerService {
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetAll`, { params })
         );
-        const result = this.unwrap(res, 'Failed to load customers');
+        const result = this.unwrap(res, 'Failed to load brands');
         const items = result.items || result.Items || [];
         const totalCount = result.totalCount ?? result.TotalCount ?? items.length;
 
         return {
             items: (Array.isArray(items) ? items : []).map((item: any) =>
-                this.mapCustomer(item)
+                this.mapBrand(item)
             ),
             totalCount,
         };
     }
 
-    async get(id: number): Promise<CustomerDto> {
+    async get(id: number): Promise<BrandDto> {
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/Get`, { params: { Id: id } })
         );
-        return this.mapCustomer(this.unwrap(res, 'Failed to load customer'));
+        return this.mapBrand(this.unwrap(res, 'Failed to load brand'));
     }
 
-    async create(input: CreateCustomerDto): Promise<CustomerDto> {
+    async create(input: CreateBrandDto): Promise<BrandDto> {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 name: input.name,
-                customerType: input.customerType,
-                phone: input.phone,
-                email: input.email,
-                address: input.address,
                 description: input.description,
             })
         );
-        return this.mapCustomer(this.unwrap(res, 'Failed to create customer'));
+        return this.mapBrand(this.unwrap(res, 'Failed to create brand'));
     }
 
-    async update(input: CustomerDto): Promise<CustomerDto> {
+    async update(input: BrandDto): Promise<BrandDto> {
         const res: any = await firstValueFrom(
             this.http.put<any>(`${this.apiUrl}/Update`, {
                 id: input.id,
                 name: input.name,
-                customerType: input.customerType,
-                phone: input.phone,
-                email: input.email,
-                address: input.address,
                 description: input.description,
             })
         );
-        return this.mapCustomer(this.unwrap(res, 'Failed to update customer'));
+        return this.mapBrand(this.unwrap(res, 'Failed to update brand'));
     }
 
     async delete(id: number): Promise<void> {
@@ -117,7 +83,7 @@ export class CustomerService {
         if (res == null) {
             return;
         }
-        this.unwrap(res, 'Failed to delete customer');
+        this.unwrap(res, 'Failed to delete brand');
     }
 
     private unwrap(res: any, fallbackMessage: string): any {
@@ -132,17 +98,11 @@ export class CustomerService {
         return res.result ?? res;
     }
 
-    private mapCustomer(item: any): CustomerDto {
+    private mapBrand(item: any): BrandDto {
         return {
             id: item.id ?? item.Id,
             name: item.name ?? item.Name,
-            customerType: item.customerType ?? item.CustomerType ?? 0,
-            phone: item.phone ?? item.Phone,
-            email: item.email ?? item.Email,
-            address: item.address ?? item.Address,
             description: item.description ?? item.Description,
-            accountId: item.accountId ?? item.AccountId,
-            balance: item.balance ?? item.Balance ?? 0,
         };
     }
 }

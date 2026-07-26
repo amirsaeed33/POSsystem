@@ -12,8 +12,6 @@ export class AppMenuComponent implements OnInit {
     constructor(public layoutService: LayoutService) { }
 
     ngOnInit() {
-        // Only Dashboard has an existing page/route in Verona today.
-        // Other POS modules are menu entries only — no placeholder pages or new routes.
         this.model = [
             {
                 label: 'POS',
@@ -21,10 +19,10 @@ export class AppMenuComponent implements OnInit {
                 items: [
                     { label: 'Dashboard', icon: 'pi pi-home', routerLink: ['/'] },
                     { label: 'Categories', icon: 'pi pi-tags', routerLink: ['/categories'] },
-                    { label: 'Brands', icon: 'pi pi-bookmark' },
-                    { label: 'Units', icon: 'pi pi-percentage' },
-                    { label: 'Customers', icon: 'pi pi-users' },
-                    { label: 'Suppliers', icon: 'pi pi-truck' },
+                    { label: 'Brands', icon: 'pi pi-bookmark', routerLink: ['/brands'] },
+                    { label: 'Units', icon: 'pi pi-percentage', routerLink: ['/units'] },
+                    { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'] },
+                    { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'] },
                     { label: 'Products', icon: 'pi pi-box' },
                     { label: 'Purchases', icon: 'pi pi-shopping-bag' },
                     { label: 'Sales', icon: 'pi pi-shopping-cart' },

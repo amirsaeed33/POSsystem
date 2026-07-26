@@ -1,0 +1,70 @@
+<p-dialog
+    [header]="dialogTitle"
+    [visible]="visible"
+    [modal]="true"
+    [style]="{ width: '36rem' }"
+    [breakpoints]="{ '960px': '75vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (visibleChange)="onVisibleChange($event)"
+>
+    <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
+        <div class="flex flex-column gap-2">
+            <label for="customerName" class="font-medium">Name <span class="p-error">*</span></label>
+            <input id="customerName" type="text" pInputText class="w-full" maxlength="128"
+                [(ngModel)]="customer.name" [disabled]="saving" />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="customerType" class="font-medium">Customer Type <span class="p-error">*</span></label>
+            <p-dropdown
+                inputId="customerType"
+                [options]="customerTypeOptions"
+                [(ngModel)]="customer.customerType"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+                [disabled]="saving"
+            ></p-dropdown>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="customerPhone" class="font-medium">Phone</label>
+            <input id="customerPhone" type="text" pInputText class="w-full" maxlength="32"
+                [(ngModel)]="customer.phone" [disabled]="saving" />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="customerEmail" class="font-medium">Email</label>
+            <input id="customerEmail" type="email" pInputText class="w-full" maxlength="256"
+                [(ngModel)]="customer.email" [disabled]="saving" />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="customerAddress" class="font-medium">Address</label>
+            <textarea id="customerAddress" pInputTextarea rows="2" class="w-full" maxlength="512"
+                [(ngModel)]="customer.address" [disabled]="saving"></textarea>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="customerDescription" class="font-medium">Description</label>
+            <textarea id="customerDescription" pInputTextarea rows="2" class="w-full" maxlength="512"
+                [(ngModel)]="customer.description" [disabled]="saving"></textarea>
+        </div>
+    </div>
+
+    <ng-template #loadingTpl>
+        <div class="flex align-items-center justify-content-center p-4">
+            <i class="pi pi-spin pi-spinner text-2xl"></i>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <button pButton pRipple type="button" label="Cancel" class="p-button-text"
+            (click)="onHide()" [disabled]="saving"></button>
+        <button pButton pRipple type="button" label="Save" icon="pi pi-check"
+            (click)="save()"
+            [disabled]="saving || loading || !(customer.name || '').trim()"
+            [loading]="saving"></button>
+    </ng-template>
+</p-dialog>

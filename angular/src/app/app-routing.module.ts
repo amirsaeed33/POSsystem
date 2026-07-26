@@ -11,6 +11,10 @@ const routes: Routes = [
         children: [
             { path: '', loadChildren: () => import('./demo/components/dashboards/dashboards.module').then(m => m.DashboardsModule) },
             { path: 'categories', data: { breadcrumb: 'Categories' }, loadChildren: () => import('./demo/components/categories/categories.module').then(m => m.CategoriesModule) },
+            { path: 'brands', data: { breadcrumb: 'Brands' }, loadChildren: () => import('./demo/components/brands/brands.module').then(m => m.BrandsModule) },
+            { path: 'units', data: { breadcrumb: 'Units' }, loadChildren: () => import('./demo/components/units/units.module').then(m => m.UnitsModule) },
+            { path: 'customers', data: { breadcrumb: 'Customers' }, loadChildren: () => import('./demo/components/customers/customers.module').then(m => m.CustomersModule) },
+            { path: 'suppliers', data: { breadcrumb: 'Suppliers' }, loadChildren: () => import('./demo/components/suppliers/suppliers.module').then(m => m.SuppliersModule) },
             { path: 'uikit', data: { breadcrumb: 'UI Kit' }, loadChildren: () => import('./demo/components/uikit/uikit.module').then(m => m.UIkitModule) },
             { path: 'utilities', data: { breadcrumb: 'Utilities' }, loadChildren: () => import('./demo/components/utilities/utilities.module').then(m => m.UtilitiesModule) },
             { path: 'pages', data: { breadcrumb: 'Pages' }, loadChildren: () => import('./demo/components/pages/pages.module').then(m => m.PagesModule) },
