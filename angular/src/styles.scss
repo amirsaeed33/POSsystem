@@ -18,13 +18,19 @@ $gutter: 1rem; //for primeflex grid system
 @import "assets/demo/styles/badges.scss";
 @import "assets/demo/styles/code.scss";
 
-/* Invoice print — aligned with angular-old core.less invoice rules */
+/* Screen-only: print title blocks (shown in @media print) */
+.d-print-block {
+  display: none;
+}
+
+/* Invoice + report print — match angular-old (core.less + reports-print.less) */
 @page {
   size: A4 portrait;
   margin: 12mm;
 }
 
 @media print {
+  /* ---- Invoice print (body.printing-invoice) ---- */
   body.printing-invoice * {
     visibility: hidden !important;
   }
@@ -46,11 +52,12 @@ $gutter: 1rem; //for primeflex grid system
     print-color-adjust: exact;
   }
 
+  /* Only hide chrome that is NOT an ancestor of .print-area.
+     Do NOT display:none .p-dialog-mask — in PrimeNG the mask wraps the dialog
+     (unlike Bootstrap .modal-backdrop which is a sibling). */
   body.printing-invoice .no-print,
   body.printing-invoice .p-dialog-header,
   body.printing-invoice .p-dialog-footer,
-  body.printing-invoice .p-dialog-mask,
-  body.printing-invoice .p-component-overlay,
   body.printing-invoice .layout-topbar,
   body.printing-invoice .layout-sidebar,
   body.printing-invoice .layout-mask,
@@ -59,9 +66,10 @@ $gutter: 1rem; //for primeflex grid system
   body.printing-invoice .p-toast,
   body.printing-invoice .p-confirm-dialog {
     display: none !important;
-    visibility: hidden !important;
   }
 
+  body.printing-invoice .p-dialog-mask,
+  body.printing-invoice .p-component-overlay,
   body.printing-invoice .p-dialog,
   body.printing-invoice .p-dialog-content,
   body.printing-invoice .p-dialog-draggable,
@@ -80,12 +88,81 @@ $gutter: 1rem; //for primeflex grid system
     overflow: visible !important;
     background: transparent !important;
     transform: none !important;
+    inset: auto !important;
   }
 
   body.printing-invoice .layout-wrapper,
   body.printing-invoice .layout-main,
   body.printing-invoice .layout-main-container,
   body.printing-invoice .layout-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* ---- Report print (angular-old reports-print.less) ---- */
+  body:not(.printing-invoice) .report-page,
+  body:not(.printing-invoice) .report-page * {
+    visibility: visible !important;
+  }
+
+  body:not(.printing-invoice) .report-page {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 12px;
+    background: #fff !important;
+  }
+
+  body:not(.printing-invoice) .report-page .no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body:not(.printing-invoice) .report-page .d-print-block {
+    display: block !important;
+  }
+
+  body:not(.printing-invoice) .report-page .p-datatable,
+  body:not(.printing-invoice) .report-page .p-datatable-wrapper,
+  body:not(.printing-invoice) .report-page .p-datatable-table-container {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  body:not(.printing-invoice) .report-page table {
+    width: 100% !important;
+  }
+
+  body:not(.printing-invoice) .report-print-title {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  body:not(.printing-invoice) .report-print-meta {
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: #444;
+  }
+
+  body:not(.printing-invoice) .layout-topbar,
+  body:not(.printing-invoice) .layout-sidebar,
+  body:not(.printing-invoice) .layout-mask,
+  body:not(.printing-invoice) .layout-config,
+  body:not(.printing-invoice) .layout-config-button,
+  body:not(.printing-invoice) .layout-footer {
+    display: none !important;
+  }
+
+  body:not(.printing-invoice) .layout-main,
+  body:not(.printing-invoice) .layout-main-container,
+  body:not(.printing-invoice) .layout-content {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
