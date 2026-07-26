@@ -18,7 +18,12 @@ $gutter: 1rem; //for primeflex grid system
 @import "assets/demo/styles/badges.scss";
 @import "assets/demo/styles/code.scss";
 
-/* Sale invoice print: scoped so other pages are not blanked out */
+/* Invoice print — aligned with angular-old core.less invoice rules */
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
 @media print {
   body.printing-invoice * {
     visibility: hidden !important;
@@ -35,28 +40,55 @@ $gutter: 1rem; //for primeflex grid system
     top: 0;
     width: 100%;
     padding: 16px;
+    background: #fff !important;
+    color: #111 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   body.printing-invoice .no-print,
   body.printing-invoice .p-dialog-header,
   body.printing-invoice .p-dialog-footer,
-  body.printing-invoice .p-dialog-mask {
+  body.printing-invoice .p-dialog-mask,
+  body.printing-invoice .p-component-overlay,
+  body.printing-invoice .layout-topbar,
+  body.printing-invoice .layout-sidebar,
+  body.printing-invoice .layout-mask,
+  body.printing-invoice .layout-config,
+  body.printing-invoice .layout-config-button,
+  body.printing-invoice .p-toast,
+  body.printing-invoice .p-confirm-dialog {
     display: none !important;
+    visibility: hidden !important;
   }
 
   body.printing-invoice .p-dialog,
   body.printing-invoice .p-dialog-content,
+  body.printing-invoice .p-dialog-draggable,
   body.printing-invoice .sale-invoice-dialog,
   body.printing-invoice .purchase-invoice-dialog,
   body.printing-invoice .expense-invoice-dialog {
     position: static !important;
     width: 100% !important;
     max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
     box-shadow: none !important;
     overflow: visible !important;
     background: transparent !important;
+    transform: none !important;
+  }
+
+  body.printing-invoice .layout-wrapper,
+  body.printing-invoice .layout-main,
+  body.printing-invoice .layout-main-container,
+  body.printing-invoice .layout-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
   }
 }

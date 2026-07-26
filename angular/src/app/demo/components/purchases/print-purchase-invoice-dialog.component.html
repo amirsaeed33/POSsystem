@@ -10,7 +10,7 @@
     styleClass="purchase-invoice-dialog"
     (onHide)="onHide()"
 >
-    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+    <div *ngIf="loading" class="text-center p-4 text-500 no-print">Loading...</div>
 
     <div *ngIf="!loading && purchase" class="print-area invoice-sheet">
         <div class="invoice-header">

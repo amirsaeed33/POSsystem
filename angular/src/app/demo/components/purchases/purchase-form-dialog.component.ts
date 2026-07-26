@@ -1,6 +1,7 @@
 import {
     Component,
     EventEmitter,
+    HostListener,
     Input,
     OnChanges,
     Output,
@@ -61,6 +62,25 @@ export class PurchaseFormDialogComponent implements OnChanges {
 
     onHide(): void {
         this.onVisibleChange(false);
+    }
+
+    @HostListener('document:keydown', ['$event'])
+    handleKeyboard(event: KeyboardEvent): void {
+        if (!this.visible || this.saving || this.loading) {
+            return;
+        }
+        if (!(event.ctrlKey || event.metaKey)) {
+            return;
+        }
+
+        const key = (event.key || '').toLowerCase();
+        if (key === 's') {
+            event.preventDefault();
+            this.save();
+        } else if (key === 'p') {
+            event.preventDefault();
+            this.saveAndPrint();
+        }
     }
 
     addLine(): void {

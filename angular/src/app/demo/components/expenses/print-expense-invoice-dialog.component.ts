@@ -1,4 +1,5 @@
 import {
+    ChangeDetectorRef,
     Component,
     EventEmitter,
     Input,
@@ -30,7 +31,8 @@ export class PrintExpenseInvoiceDialogComponent implements OnChanges {
     constructor(
         private expenseService: ExpenseService,
         private companyProfileService: CompanyProfileService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private cd: ChangeDetectorRef
     ) {}
 
     get companyLogoUrl(): string {
@@ -38,7 +40,9 @@ export class PrintExpenseInvoiceDialogComponent implements OnChanges {
     }
 
     ngOnChanges(changes: SimpleChanges): void {
-        if (changes['visible'] && this.visible && this.expenseId) {
+        const becameVisible = changes['visible']?.currentValue === true;
+        const expenseIdChanged = !!changes['expenseId'] && this.visible;
+        if ((becameVisible || expenseIdChanged) && this.visible && this.expenseId) {
             this.load(this.expenseId);
         }
     }
@@ -82,17 +86,16 @@ export class PrintExpenseInvoiceDialogComponent implements OnChanges {
             .then(([expense, company]) => {
                 this.expense = expense;
                 this.company = company;
+                this.loading = false;
+                this.cd.detectChanges();
             })
             .catch((error) => {
+                this.loading = false;
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
                     detail: error?.message || 'Failed to load expense invoice',
                 });
                 this.onHide();
-            })
-            .finally(() => {
-                this.loading = false;
-            });
-    }
+            });    }
 }

@@ -1,4 +1,5 @@
 import {
+    ChangeDetectorRef,
     Component,
     EventEmitter,
     Input,
@@ -31,7 +32,8 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
     constructor(
         private purchaseService: PurchaseService,
         private companyProfileService: CompanyProfileService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private cd: ChangeDetectorRef
     ) {}
 
     get companyLogoUrl(): string {
@@ -39,7 +41,9 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
     }
 
     ngOnChanges(changes: SimpleChanges): void {
-        if (changes['visible'] && this.visible && this.purchaseId) {
+        const becameVisible = changes['visible']?.currentValue === true;
+        const purchaseIdChanged = !!changes['purchaseId'] && this.visible;
+        if ((becameVisible || purchaseIdChanged) && this.visible && this.purchaseId) {
             this.load(this.purchaseId);
         }
     }
@@ -50,7 +54,6 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
         if (!visible) {
             this.purchase = null;
             this.company = null;
-            this.autoPrint = false;
         }
     }
 
@@ -84,20 +87,20 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
             .then(([purchase, company]) => {
                 this.purchase = purchase;
                 this.company = company;
+                this.loading = false;
+                this.cd.detectChanges();
                 if (this.autoPrint) {
                     this.print();
                 }
             })
             .catch((error) => {
+                this.loading = false;
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
                     detail: error?.message || 'Failed to load purchase invoice',
                 });
                 this.onHide();
-            })
-            .finally(() => {
-                this.loading = false;
             });
     }
 }

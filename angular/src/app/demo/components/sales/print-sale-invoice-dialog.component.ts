@@ -1,4 +1,5 @@
 import {
+    ChangeDetectorRef,
     Component,
     EventEmitter,
     Input,
@@ -7,11 +8,10 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
-import { PaymentType, SaleDto } from 'src/app/demo/api/sale';
+import { SaleDto } from 'src/app/demo/api/sale';
 import { CompanyProfileDto } from 'src/app/demo/api/company-profile';
 import { SaleService } from 'src/app/demo/service/sale.service';
 import { CompanyProfileService } from 'src/app/demo/service/company-profile.service';
-import { AuthService } from 'src/app/demo/service/auth.service';
 
 @Component({
     selector: 'app-print-sale-invoice-dialog',
@@ -28,13 +28,12 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
     company: CompanyProfileDto | null = null;
     loading = false;
     today = new Date().toLocaleString();
-    cashierName = '';
 
     constructor(
         private saleService: SaleService,
         private companyProfileService: CompanyProfileService,
-        private authService: AuthService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private cd: ChangeDetectorRef
     ) {}
 
     get companyLogoUrl(): string {
@@ -62,21 +61,6 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
         this.onVisibleChange(false);
     }
 
-    paymentTypeLabel(paymentType: number | undefined): string {
-        switch (paymentType) {
-            case PaymentType.Cash:
-                return 'Cash';
-            case PaymentType.Card:
-                return 'Card';
-            case PaymentType.Credit:
-                return 'Credit';
-            case PaymentType.Mixed:
-                return 'Mixed';
-            default:
-                return paymentType == null ? '—' : String(paymentType);
-        }
-    }
-
     print(): void {
         setTimeout(() => {
             document.body.classList.add('printing-invoice');
@@ -95,7 +79,6 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
         this.sale = null;
         this.company = null;
         this.today = new Date().toLocaleString();
-        this.cashierName = this.resolveCashierName();
 
         Promise.all([
             this.saleService.get(id),
@@ -104,39 +87,20 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
             .then(([sale, company]) => {
                 this.sale = sale;
                 this.company = company;
+                this.loading = false;
+                this.cd.detectChanges();
                 if (this.autoPrint) {
                     this.print();
                 }
             })
             .catch((error) => {
+                this.loading = false;
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
                     detail: error?.message || 'Failed to load sale invoice',
                 });
                 this.onHide();
-            })
-            .finally(() => {
-                this.loading = false;
             });
-    }
-
-    private resolveCashierName(): string {
-        const user = this.authService.getUserInfo();
-        if (!user) {
-            return '';
-        }
-        const fullName = [user.name || user.Name, user.surname || user.Surname]
-            .filter(Boolean)
-            .join(' ')
-            .trim();
-        return (
-            fullName ||
-            user.userName ||
-            user.UserName ||
-            user.emailAddress ||
-            user.EmailAddress ||
-            ''
-        );
     }
 }

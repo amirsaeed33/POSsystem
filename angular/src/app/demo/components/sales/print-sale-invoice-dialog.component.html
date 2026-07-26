@@ -10,7 +10,7 @@
     styleClass="sale-invoice-dialog"
     (onHide)="onHide()"
 >
-    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+    <div *ngIf="loading" class="text-center p-4 text-500 no-print">Loading...</div>
 
     <div *ngIf="!loading && sale" class="print-area invoice-sheet">
         <div class="invoice-header">
@@ -44,14 +44,6 @@
                 <div>
                     <strong>Sale Date:</strong>
                     {{ sale.saleDate | date: 'mediumDate' }}
-                </div>
-                <div>
-                    <strong>Payment Method:</strong>
-                    {{ paymentTypeLabel(sale.paymentType) }}
-                </div>
-                <div *ngIf="cashierName">
-                    <strong>Cashier:</strong>
-                    {{ cashierName }}
                 </div>
             </div>
         </div>
@@ -88,9 +80,6 @@
                     <td class="text-right">{{ line.quantity }}</td>
                     <td class="text-right">{{ line.unitPrice }}</td>
                     <td class="text-right">{{ line.lineTotal }}</td>
-                </tr>
-                <tr *ngIf="!(sale.lines || []).length">
-                    <td colspan="5" class="text-center">No line items</td>
                 </tr>
             </tbody>
             <tfoot>
