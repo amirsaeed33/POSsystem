@@ -20,6 +20,7 @@ const routes: Routes = [
             { path: 'sales', data: { breadcrumb: 'Sales' }, loadChildren: () => import('./demo/components/sales/sales.module').then(m => m.SalesModule) },
             { path: 'stock-adjustments', data: { breadcrumb: 'Stock Adjustments' }, loadChildren: () => import('./demo/components/stock-adjustments/stock-adjustments.module').then(m => m.StockAdjustmentsModule) },
             { path: 'expenses', data: { breadcrumb: 'Expenses' }, loadChildren: () => import('./demo/components/expenses/expenses.module').then(m => m.ExpensesModule) },
+            { path: 'reports', data: { breadcrumb: 'Reports' }, loadChildren: () => import('./demo/components/reports/reports.module').then(m => m.ReportsModule) },
             { path: 'uikit', data: { breadcrumb: 'UI Kit' }, loadChildren: () => import('./demo/components/uikit/uikit.module').then(m => m.UIkitModule) },
             { path: 'utilities', data: { breadcrumb: 'Utilities' }, loadChildren: () => import('./demo/components/utilities/utilities.module').then(m => m.UtilitiesModule) },
             { path: 'pages', data: { breadcrumb: 'Pages' }, loadChildren: () => import('./demo/components/pages/pages.module').then(m => m.PagesModule) },

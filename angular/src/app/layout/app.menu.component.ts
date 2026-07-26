@@ -28,7 +28,16 @@ export class AppMenuComponent implements OnInit {
                     { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'] },
                     { label: 'Stock Adjustments', icon: 'pi pi-sync', routerLink: ['/stock-adjustments'] },
                     { label: 'Expenses', icon: 'pi pi-wallet', routerLink: ['/expenses'] },
-                    { label: 'Reports', icon: 'pi pi-chart-bar' }
+                    {
+                        label: 'Reports',
+                        icon: 'pi pi-chart-bar',
+                        items: [
+                            { label: 'Sale Report', icon: 'pi pi-shopping-cart', routerLink: ['/reports/sales'] },
+                            { label: 'Purchase Report', icon: 'pi pi-shopping-bag', routerLink: ['/reports/purchases'] },
+                            { label: 'Expense Report', icon: 'pi pi-wallet', routerLink: ['/reports/expenses'] },
+                            { label: 'Stock Report', icon: 'pi pi-box', routerLink: ['/reports/stock'] },
+                        ]
+                    }
                 ]
             }
         ];

@@ -1,0 +1,92 @@
+<div class="card">
+    <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3 no-print">
+        <h5 class="m-0">Sale Report</h5>
+        <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-print"
+            label="Print"
+            class="p-button-outlined"
+            (click)="print()"
+        ></button>
+    </div>
+
+    <div class="grid formgrid p-fluid no-print mb-3">
+        <div class="field col-12 md:col-3">
+            <label for="fromDate">From Date</label>
+            <input pInputText id="fromDate" type="date" [(ngModel)]="fromDate" />
+        </div>
+        <div class="field col-12 md:col-3">
+            <label for="toDate">To Date</label>
+            <input pInputText id="toDate" type="date" [(ngModel)]="toDate" />
+        </div>
+        <div class="field col-12 md:col-4">
+            <label for="keyword">Search</label>
+            <input
+                pInputText
+                id="keyword"
+                type="text"
+                placeholder="Search..."
+                [(ngModel)]="keyword"
+                (keyup.enter)="generate()"
+            />
+        </div>
+        <div class="field col-12 md:col-2 flex align-items-end">
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-sync"
+                label="Generate"
+                class="w-full"
+                [loading]="loading"
+                (click)="generate()"
+            ></button>
+        </div>
+    </div>
+
+    <p-table
+        [value]="report.items"
+        [loading]="loading"
+        [paginator]="true"
+        [rows]="25"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        responsiveLayout="scroll"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Invoice No</th>
+                <th>Sale Date</th>
+                <th>Customer</th>
+                <th class="text-right">Total Amount</th>
+                <th>Notes</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+            <tr>
+                <td>{{ row.invoiceNo || ('#' + row.id) }}</td>
+                <td>{{ row.saleDate | date: 'mediumDate' }}</td>
+                <td>{{ row.customerName || '—' }}</td>
+                <td class="text-right">{{ row.totalAmount | number: '1.2-2' }}</td>
+                <td>{{ row.notes || '—' }}</td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="5" class="text-center p-4 text-500">No data</td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="footer">
+            <tr>
+                <td colspan="3" class="text-right font-bold">Total Amount</td>
+                <td class="text-right font-bold">{{ report.totalAmount | number: '1.2-2' }}</td>
+                <td></td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <p-toast></p-toast>
+</div>

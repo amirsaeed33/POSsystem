@@ -1,0 +1,160 @@
+<div class="card">
+    <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3 no-print">
+        <h5 class="m-0">Stock Report</h5>
+        <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-print"
+            label="Print"
+            class="p-button-outlined"
+            (click)="print()"
+        ></button>
+    </div>
+
+    <div class="grid mb-3">
+        <div class="col-12 md:col-3">
+            <div class="surface-100 border-round p-3">
+                <div class="text-500 mb-1">Total Products</div>
+                <div class="text-xl font-bold">{{ report.totalProducts | number }}</div>
+            </div>
+        </div>
+        <div class="col-12 md:col-3">
+            <div class="surface-100 border-round p-3">
+                <div class="text-500 mb-1">In Stock</div>
+                <div class="text-xl font-bold text-green-600">{{ report.inStockCount | number }}</div>
+            </div>
+        </div>
+        <div class="col-12 md:col-3">
+            <div class="surface-100 border-round p-3">
+                <div class="text-500 mb-1">Low Stock</div>
+                <div class="text-xl font-bold text-orange-500">{{ report.lowStockCount | number }}</div>
+            </div>
+        </div>
+        <div class="col-12 md:col-3">
+            <div class="surface-100 border-round p-3">
+                <div class="text-500 mb-1">Out of Stock</div>
+                <div class="text-xl font-bold text-red-500">{{ report.outOfStockCount | number }}</div>
+            </div>
+        </div>
+        <div class="col-12 md:col-4">
+            <div class="surface-100 border-round p-3">
+                <div class="text-500 mb-1">Stock Cost Value</div>
+                <div class="text-xl font-bold">{{ report.totalStockCostValue | number: '1.2-2' }}</div>
+            </div>
+        </div>
+        <div class="col-12 md:col-4">
+            <div class="surface-100 border-round p-3">
+                <div class="text-500 mb-1">Stock Sell Value</div>
+                <div class="text-xl font-bold">{{ report.totalStockSellValue | number: '1.2-2' }}</div>
+            </div>
+        </div>
+        <div class="col-12 md:col-4">
+            <div class="surface-100 border-round p-3">
+                <div class="text-500 mb-1">Stock Profit</div>
+                <div class="text-xl font-bold">{{ report.totalStockProfit | number: '1.2-2' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid formgrid p-fluid no-print mb-3">
+        <div class="field col-12 md:col-8">
+            <label for="keyword">Search</label>
+            <input
+                pInputText
+                id="keyword"
+                type="text"
+                placeholder="Search..."
+                [(ngModel)]="keyword"
+                (keyup.enter)="generate()"
+            />
+        </div>
+        <div class="field col-12 md:col-4 flex align-items-end">
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-sync"
+                label="Generate"
+                class="w-full"
+                [loading]="loading"
+                (click)="generate()"
+            ></button>
+        </div>
+    </div>
+
+    <p-table
+        [value]="report.items"
+        [loading]="loading"
+        [paginator]="true"
+        [rows]="25"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        responsiveLayout="scroll"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Name</th>
+                <th>Barcode</th>
+                <th>Category</th>
+                <th>Brand</th>
+                <th>Unit</th>
+                <th class="text-right">Price</th>
+                <th class="text-right">Cost</th>
+                <th class="text-right">Profit/Unit</th>
+                <th class="text-right">Margin</th>
+                <th class="text-right">Stock Profit</th>
+                <th class="text-right">Stock Qty</th>
+                <th class="text-right">Alert</th>
+                <th>Status</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+            <tr>
+                <td>{{ row.name || '—' }}</td>
+                <td>{{ row.barcode || '—' }}</td>
+                <td>{{ row.categoryName || '—' }}</td>
+                <td>{{ row.brandName || '—' }}</td>
+                <td>{{ row.unitName || '—' }}</td>
+                <td class="text-right">{{ row.price | number: '1.2-2' }}</td>
+                <td class="text-right">{{ row.costPrice | number: '1.2-2' }}</td>
+                <td
+                    class="text-right"
+                    [class.text-green-600]="row.profitPerUnit > 0"
+                    [class.text-red-500]="row.profitPerUnit < 0"
+                >
+                    {{ row.profitPerUnit | number: '1.2-2' }}
+                </td>
+                <td class="text-right">
+                    <ng-container *ngIf="row.profitMarginPercent != null; else noMargin">
+                        {{ row.profitMarginPercent | number: '1.0-2' }}%
+                    </ng-container>
+                    <ng-template #noMargin>—</ng-template>
+                </td>
+                <td
+                    class="text-right"
+                    [class.text-green-600]="row.stockProfit > 0"
+                    [class.text-red-500]="row.stockProfit < 0"
+                >
+                    {{ row.stockProfit | number: '1.2-2' }}
+                </td>
+                <td class="text-right">{{ row.stockQuantity | number }}</td>
+                <td class="text-right">{{ row.alertQuantityLimit | number }}</td>
+                <td>
+                    <p-tag
+                        [value]="statusLabel(row.status)"
+                        [severity]="statusSeverity(row.status)"
+                    ></p-tag>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="13" class="text-center p-4 text-500">No data</td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <p-toast></p-toast>
+</div>
