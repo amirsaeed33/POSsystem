@@ -17,6 +17,7 @@ const routes: Routes = [
             { path: 'suppliers', data: { breadcrumb: 'Suppliers' }, loadChildren: () => import('./demo/components/suppliers/suppliers.module').then(m => m.SuppliersModule) },
             { path: 'products', data: { breadcrumb: 'Products' }, loadChildren: () => import('./demo/components/products/products.module').then(m => m.ProductsModule) },
             { path: 'purchases', data: { breadcrumb: 'Purchases' }, loadChildren: () => import('./demo/components/purchases/purchases.module').then(m => m.PurchasesModule) },
+            { path: 'sales', data: { breadcrumb: 'Sales' }, loadChildren: () => import('./demo/components/sales/sales.module').then(m => m.SalesModule) },
             { path: 'uikit', data: { breadcrumb: 'UI Kit' }, loadChildren: () => import('./demo/components/uikit/uikit.module').then(m => m.UIkitModule) },
             { path: 'utilities', data: { breadcrumb: 'Utilities' }, loadChildren: () => import('./demo/components/utilities/utilities.module').then(m => m.UtilitiesModule) },
             { path: 'pages', data: { breadcrumb: 'Pages' }, loadChildren: () => import('./demo/components/pages/pages.module').then(m => m.PagesModule) },
