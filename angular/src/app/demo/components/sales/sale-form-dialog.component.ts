@@ -26,6 +26,7 @@ export class SaleFormDialogComponent implements OnChanges {
     @Input() visible = false;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
+    @Output() printRequested = new EventEmitter<number>();
 
     sale: CreateSaleDto = this.emptySale();
     products: ProductDto[] = [];
@@ -153,6 +154,14 @@ export class SaleFormDialogComponent implements OnChanges {
     }
 
     save(): void {
+        this.saveInternal(false);
+    }
+
+    saveAndPrint(): void {
+        this.saveInternal(true);
+    }
+
+    private saveInternal(printAfter: boolean): void {
         if (!this.sale.customerId) {
             this.messageService.add({
                 severity: 'warn',
@@ -219,7 +228,7 @@ export class SaleFormDialogComponent implements OnChanges {
                     unitPrice: line.unitPrice || 0,
                 })),
             })
-            .then(() => {
+            .then((created) => {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',
@@ -227,6 +236,9 @@ export class SaleFormDialogComponent implements OnChanges {
                 });
                 this.saved.emit();
                 this.onHide();
+                if (printAfter && created?.id) {
+                    this.printRequested.emit(created.id);
+                }
             })
             .catch((error) => {
                 this.messageService.add({

@@ -42,6 +42,21 @@ export class CompanyProfileService {
         return this.map(this.unwrap(res, 'Failed to load company profile'));
     }
 
+    async getCurrent(): Promise<CompanyProfileDto | null> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.get<any>(`${this.apiUrl}/GetCurrent`)
+            );
+            const result = this.unwrap(res, 'Failed to load company profile');
+            if (!result) {
+                return null;
+            }
+            return this.map(result);
+        } catch {
+            return null;
+        }
+    }
+
     async create(input: CreateCompanyProfileDto): Promise<CompanyProfileDto> {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, input)

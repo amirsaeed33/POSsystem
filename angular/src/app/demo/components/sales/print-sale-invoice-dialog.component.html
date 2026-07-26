@@ -1,0 +1,151 @@
+<p-dialog
+    header="Sale Invoice"
+    [(visible)]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    [style]="{ width: '48rem' }"
+    [breakpoints]="{ '960px': '90vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    styleClass="sale-invoice-dialog"
+    (onHide)="onHide()"
+>
+    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+
+    <div *ngIf="!loading && sale" class="print-area invoice-sheet">
+        <div class="invoice-header">
+            <div class="company-block">
+                <img
+                    *ngIf="companyLogoUrl"
+                    [src]="companyLogoUrl"
+                    alt=""
+                    class="company-logo"
+                />
+                <div>
+                    <h2>{{ company?.name || 'Sale Invoice' }}</h2>
+                    <div *ngIf="company?.invoiceAddress">{{ company?.invoiceAddress }}</div>
+                    <div *ngIf="company?.invoiceContactPhone">
+                        Phone: {{ company?.invoiceContactPhone }}
+                    </div>
+                    <div *ngIf="company?.invoiceContactEmail">
+                        Email: {{ company?.invoiceContactEmail }}
+                    </div>
+                    <div *ngIf="company?.taxNumber">
+                        Tax Number: {{ company?.taxNumber }}
+                    </div>
+                </div>
+            </div>
+            <div class="invoice-meta">
+                <div class="doc-title">Sale Invoice</div>
+                <div>
+                    <strong>Invoice No:</strong>
+                    {{ sale.invoiceNo || ('#' + sale.id) }}
+                </div>
+                <div>
+                    <strong>Sale Date:</strong>
+                    {{ sale.saleDate | date: 'mediumDate' }}
+                </div>
+                <div>
+                    <strong>Payment Method:</strong>
+                    {{ paymentTypeLabel(sale.paymentType) }}
+                </div>
+                <div *ngIf="cashierName">
+                    <strong>Cashier:</strong>
+                    {{ cashierName }}
+                </div>
+            </div>
+        </div>
+
+        <div class="invoice-parties">
+            <div>
+                <div class="label">Customer</div>
+                <div class="value">{{ sale.customerName || '—' }}</div>
+            </div>
+            <div>
+                <div class="label">Total Amount</div>
+                <div class="value total">{{ sale.totalAmount }}</div>
+            </div>
+        </div>
+
+        <div *ngIf="sale.notes" class="invoice-notes">
+            <strong>Notes:</strong> {{ sale.notes }}
+        </div>
+
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product</th>
+                    <th class="text-right">Quantity</th>
+                    <th class="text-right">Unit Price</th>
+                    <th class="text-right">Line Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let line of sale.lines || []; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td>{{ line.productName || ('#' + line.productId) }}</td>
+                    <td class="text-right">{{ line.quantity }}</td>
+                    <td class="text-right">{{ line.unitPrice }}</td>
+                    <td class="text-right">{{ line.lineTotal }}</td>
+                </tr>
+                <tr *ngIf="!(sale.lines || []).length">
+                    <td colspan="5" class="text-center">No line items</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" class="text-right">Sub Total</td>
+                    <td class="text-right">{{ sale.subTotal }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">Discount</td>
+                    <td class="text-right">-{{ sale.discountAmount }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">
+                        Tax ({{ sale.taxPercent }}%)
+                    </td>
+                    <td class="text-right">{{ sale.taxAmount }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">
+                        <strong>Total Amount</strong>
+                    </td>
+                    <td class="text-right">
+                        <strong>{{ sale.totalAmount }}</strong>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="invoice-footer">
+            <div *ngIf="company?.invoiceFooter" class="mb-1">
+                {{ company?.invoiceFooter }}
+            </div>
+            <div>Printed On: {{ today }}</div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="no-print flex justify-content-end gap-2 w-full">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="onHide()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Print"
+                icon="pi pi-print"
+                [disabled]="loading || !sale"
+                (click)="print()"
+            ></button>
+        </div>
+    </ng-template>
+</p-dialog>

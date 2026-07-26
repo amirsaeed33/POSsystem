@@ -17,6 +17,9 @@ export class SaleListComponent implements OnInit {
     createDialogVisible = false;
     viewDialogVisible = false;
     viewingSaleId: number | null = null;
+    printDialogVisible = false;
+    printingSaleId: number | null = null;
+    printAutoPrint = false;
 
     constructor(
         private saleService: SaleService,
@@ -67,6 +70,16 @@ export class SaleListComponent implements OnInit {
     openViewDialog(sale: SaleDto): void {
         this.viewingSaleId = sale.id;
         this.viewDialogVisible = true;
+    }
+
+    openPrintDialog(saleId: number, autoPrint = false): void {
+        this.printingSaleId = saleId;
+        this.printAutoPrint = autoPrint;
+        this.printDialogVisible = true;
+    }
+
+    onPrintRequested(saleId: number): void {
+        this.openPrintDialog(saleId, true);
     }
 
     onDialogSaved(): void {

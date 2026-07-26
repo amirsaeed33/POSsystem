@@ -15,6 +15,7 @@ import { SalesRoutingModule } from './sales-routing.module';
 import { SaleListComponent } from './sale-list.component';
 import { SaleFormDialogComponent } from './sale-form-dialog.component';
 import { SaleViewDialogComponent } from './sale-view-dialog.component';
+import { PrintSaleInvoiceDialogComponent } from './print-sale-invoice-dialog.component';
 
 @NgModule({
     imports: [
@@ -36,6 +37,7 @@ import { SaleViewDialogComponent } from './sale-view-dialog.component';
         SaleListComponent,
         SaleFormDialogComponent,
         SaleViewDialogComponent,
+        PrintSaleInvoiceDialogComponent,
     ],
 })
 export class SalesModule {}

@@ -18,6 +18,7 @@ export class SaleViewDialogComponent implements OnChanges {
     @Input() visible = false;
     @Input() saleId: number | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
+    @Output() printRequested = new EventEmitter<number>();
 
     sale: SaleDto | null = null;
     loading = false;
@@ -43,6 +44,13 @@ export class SaleViewDialogComponent implements OnChanges {
 
     onHide(): void {
         this.onVisibleChange(false);
+    }
+
+    printInvoice(): void {
+        if (!this.sale?.id) {
+            return;
+        }
+        this.printRequested.emit(this.sale.id);
     }
 
     paymentTypeLabel(paymentType: number): string {

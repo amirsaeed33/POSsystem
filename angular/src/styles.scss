@@ -17,3 +17,44 @@ $gutter: 1rem; //for primeflex grid system
 @import "assets/demo/styles/flags/flags.css";
 @import "assets/demo/styles/badges.scss";
 @import "assets/demo/styles/code.scss";
+
+/* Sale invoice print: scoped so other pages are not blanked out */
+@media print {
+  body.printing-invoice * {
+    visibility: hidden !important;
+  }
+
+  body.printing-invoice .print-area,
+  body.printing-invoice .print-area * {
+    visibility: visible !important;
+  }
+
+  body.printing-invoice .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 16px;
+  }
+
+  body.printing-invoice .no-print,
+  body.printing-invoice .p-dialog-header,
+  body.printing-invoice .p-dialog-footer,
+  body.printing-invoice .p-dialog-mask {
+    display: none !important;
+  }
+
+  body.printing-invoice .p-dialog,
+  body.printing-invoice .p-dialog-content,
+  body.printing-invoice .sale-invoice-dialog {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+}
