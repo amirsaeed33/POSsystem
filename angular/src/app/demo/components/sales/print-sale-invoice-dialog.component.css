@@ -81,6 +81,7 @@
 .invoice-table td {
   border: 1px solid #ccc;
   padding: 8px 10px;
+  text-align: center;
 }
 
 .invoice-table thead {
