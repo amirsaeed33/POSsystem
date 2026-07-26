@@ -22,13 +22,16 @@ export class PurchaseFormDialogComponent implements OnChanges {
     @Input() visible = false;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
-    @Output() printRequested = new EventEmitter<number>();
 
     purchase: CreatePurchaseDto = this.emptyPurchase();
     products: ProductDto[] = [];
     suppliers: SupplierDto[] = [];
     saving = false;
     loading = false;
+
+    printDialogVisible = false;
+    printingPurchaseId: number | null = null;
+    printAutoPrint = false;
 
     constructor(
         private purchaseService: PurchaseService,
@@ -158,8 +161,12 @@ export class PurchaseFormDialogComponent implements OnChanges {
                 });
                 this.saved.emit();
                 this.onHide();
+
+                // Match angular-old: close create dialog, then open invoice print dialog.
                 if (printAfter && created?.id) {
-                    this.printRequested.emit(created.id);
+                    setTimeout(() => {
+                        this.openInvoicePrint(created.id, true);
+                    }, 0);
                 }
             })
             .catch((error) => {
@@ -172,6 +179,12 @@ export class PurchaseFormDialogComponent implements OnChanges {
             .finally(() => {
                 this.saving = false;
             });
+    }
+
+    private openInvoicePrint(purchaseId: number, autoPrint: boolean): void {
+        this.printingPurchaseId = purchaseId;
+        this.printAutoPrint = autoPrint;
+        this.printDialogVisible = true;
     }
 
     private emptyLine(): CreatePurchaseLineDto {

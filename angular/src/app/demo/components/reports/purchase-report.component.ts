@@ -14,6 +14,9 @@ export class PurchaseReportComponent implements OnInit {
     keyword = '';
     report: PurchaseReportDto = { totalAmount: 0, items: [] };
 
+    printDialogVisible = false;
+    printingPurchaseId: number | null = null;
+
     constructor(
         private reportService: ReportService,
         private messageService: MessageService
@@ -49,8 +52,13 @@ export class PurchaseReportComponent implements OnInit {
             });
     }
 
-    print(): void {
+    printReport(): void {
         window.print();
+    }
+
+    printInvoice(purchaseId: number): void {
+        this.printingPurchaseId = purchaseId;
+        this.printDialogVisible = true;
     }
 
     private toDateInputValue(date: Date = new Date()): string {

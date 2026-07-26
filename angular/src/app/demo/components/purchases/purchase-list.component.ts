@@ -78,10 +78,6 @@ export class PurchaseListComponent implements OnInit {
         this.printDialogVisible = true;
     }
 
-    onPrintRequested(purchaseId: number): void {
-        this.openPrintDialog(purchaseId, true);
-    }
-
     onDialogSaved(): void {
         this.loadPurchases();
     }

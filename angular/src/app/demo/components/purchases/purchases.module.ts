@@ -15,13 +15,14 @@ import { PurchasesRoutingModule } from './purchases-routing.module';
 import { PurchaseListComponent } from './purchase-list.component';
 import { PurchaseFormDialogComponent } from './purchase-form-dialog.component';
 import { PurchaseViewDialogComponent } from './purchase-view-dialog.component';
-import { PrintPurchaseInvoiceDialogComponent } from './print-purchase-invoice-dialog.component';
+import { InvoicePrintModule } from '../invoices/invoice-print.module';
 
 @NgModule({
     imports: [
         CommonModule,
         FormsModule,
         PurchasesRoutingModule,
+        InvoicePrintModule,
         ButtonModule,
         RippleModule,
         InputTextModule,
@@ -37,7 +38,6 @@ import { PrintPurchaseInvoiceDialogComponent } from './print-purchase-invoice-di
         PurchaseListComponent,
         PurchaseFormDialogComponent,
         PurchaseViewDialogComponent,
-        PrintPurchaseInvoiceDialogComponent,
     ],
 })
 export class PurchasesModule {}

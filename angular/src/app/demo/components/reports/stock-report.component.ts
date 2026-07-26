@@ -50,7 +50,7 @@ export class StockReportComponent implements OnInit {
             });
     }
 
-    print(): void {
+    printReport(): void {
         window.print();
     }
 

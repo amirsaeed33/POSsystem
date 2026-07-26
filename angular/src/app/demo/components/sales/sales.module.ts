@@ -15,13 +15,14 @@ import { SalesRoutingModule } from './sales-routing.module';
 import { SaleListComponent } from './sale-list.component';
 import { SaleFormDialogComponent } from './sale-form-dialog.component';
 import { SaleViewDialogComponent } from './sale-view-dialog.component';
-import { PrintSaleInvoiceDialogComponent } from './print-sale-invoice-dialog.component';
+import { InvoicePrintModule } from '../invoices/invoice-print.module';
 
 @NgModule({
     imports: [
         CommonModule,
         FormsModule,
         SalesRoutingModule,
+        InvoicePrintModule,
         ButtonModule,
         RippleModule,
         InputTextModule,
@@ -37,7 +38,6 @@ import { PrintSaleInvoiceDialogComponent } from './print-sale-invoice-dialog.com
         SaleListComponent,
         SaleFormDialogComponent,
         SaleViewDialogComponent,
-        PrintSaleInvoiceDialogComponent,
     ],
 })
 export class SalesModule {}

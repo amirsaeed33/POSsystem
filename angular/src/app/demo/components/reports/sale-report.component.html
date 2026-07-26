@@ -6,9 +6,9 @@
             pRipple
             type="button"
             icon="pi pi-print"
-            label="Print"
+            label="Print Report"
             class="p-button-outlined"
-            (click)="print()"
+            (click)="printReport()"
         ></button>
     </div>
 
@@ -63,6 +63,7 @@
                 <th>Customer</th>
                 <th class="text-right">Total Amount</th>
                 <th>Notes</th>
+                <th class="no-print" style="width: 5rem">Invoice</th>
             </tr>
         </ng-template>
         <ng-template pTemplate="body" let-row>
@@ -72,21 +73,38 @@
                 <td>{{ row.customerName || '—' }}</td>
                 <td class="text-right">{{ row.totalAmount | number: '1.2-2' }}</td>
                 <td>{{ row.notes || '—' }}</td>
+                <td class="no-print">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-print"
+                        class="p-button-text p-button-sm"
+                        pTooltip="Print Invoice"
+                        tooltipPosition="top"
+                        (click)="printInvoice(row.id)"
+                    ></button>
+                </td>
             </tr>
         </ng-template>
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="5" class="text-center p-4 text-500">No data</td>
+                <td colspan="6" class="text-center p-4 text-500">No data</td>
             </tr>
         </ng-template>
         <ng-template pTemplate="footer">
             <tr>
                 <td colspan="3" class="text-right font-bold">Total Amount</td>
                 <td class="text-right font-bold">{{ report.totalAmount | number: '1.2-2' }}</td>
-                <td></td>
+                <td colspan="2"></td>
             </tr>
         </ng-template>
     </p-table>
+
+    <app-print-sale-invoice-dialog
+        [(visible)]="printDialogVisible"
+        [saleId]="printingSaleId"
+    ></app-print-sale-invoice-dialog>
 
     <p-toast></p-toast>
 </div>

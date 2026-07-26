@@ -163,7 +163,7 @@
             pButton
             pRipple
             type="button"
-            label="Print"
+            label="Save & Print"
             icon="pi pi-print"
             class="p-button-outlined"
             [loading]="saving"
@@ -182,3 +182,9 @@
         ></button>
     </ng-template>
 </p-dialog>
+
+<app-print-purchase-invoice-dialog
+    [(visible)]="printDialogVisible"
+    [purchaseId]="printingPurchaseId"
+    [autoPrint]="printAutoPrint"
+></app-print-purchase-invoice-dialog>
