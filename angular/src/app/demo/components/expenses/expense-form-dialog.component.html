@@ -1,0 +1,106 @@
+<p-dialog
+    [header]="dialogTitle"
+    [(visible)]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    [style]="{ width: '36rem' }"
+    [breakpoints]="{ '960px': '90vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onHide()"
+>
+    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+
+    <div *ngIf="!loading" class="grid formgrid p-fluid">
+        <div class="field col-12">
+            <label for="expenseDate">Expense Date <span class="text-red-500">*</span></label>
+            <input
+                pInputText
+                id="expenseDate"
+                type="date"
+                [(ngModel)]="expense.expenseDate"
+            />
+        </div>
+
+        <div class="field col-12">
+            <label for="paymentAccountId">Payment Account <span class="text-red-500">*</span></label>
+            <p-dropdown
+                inputId="paymentAccountId"
+                [options]="paymentAccounts"
+                [(ngModel)]="expense.paymentAccountId"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Select payment account"
+                [filter]="true"
+                filterBy="name,accountType"
+                [showClear]="true"
+                appendTo="body"
+            >
+                <ng-template let-item pTemplate="item">
+                    {{ accountOptionLabel(item) }}
+                </ng-template>
+                <ng-template let-item pTemplate="selectedItem">
+                    <span *ngIf="item">{{ accountOptionLabel(item) }}</span>
+                </ng-template>
+            </p-dropdown>
+        </div>
+
+        <div class="field col-12">
+            <label for="amount">Amount <span class="text-red-500">*</span></label>
+            <p-inputNumber
+                inputId="amount"
+                [(ngModel)]="expense.amount"
+                [min]="0.01"
+                mode="decimal"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+                [showButtons]="false"
+                styleClass="w-full"
+            ></p-inputNumber>
+        </div>
+
+        <div class="field col-12">
+            <label for="referenceNo">Reference No</label>
+            <input
+                pInputText
+                id="referenceNo"
+                type="text"
+                maxlength="64"
+                [(ngModel)]="expense.referenceNo"
+            />
+        </div>
+
+        <div class="field col-12">
+            <label for="description">Description</label>
+            <textarea
+                pInputTextarea
+                id="description"
+                rows="2"
+                maxlength="512"
+                [(ngModel)]="expense.description"
+            ></textarea>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            [disabled]="saving"
+            (click)="onHide()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            [loading]="saving"
+            [disabled]="loading"
+            (click)="save()"
+        ></button>
+    </ng-template>
+</p-dialog>
