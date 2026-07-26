@@ -1,6 +1,7 @@
 import { Injectable, effect, signal } from '@angular/core';
 import { MenuItem } from 'primeng/api';
-import { Subject } from 'rxjs';
+import { fromEvent, Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { TabCloseEvent } from '../api/tabcloseevent';
 
 export type MenuMode = 'static' | 'overlay' | 'slim-plus' | 'slim';
@@ -30,10 +31,12 @@ interface LayoutState {
     providedIn: 'root',
 })
 export class LayoutService {
+    private readonly desktopBreakpoint = 991;
+
     _config: AppConfig = {
         ripple: false,
         inputStyle: 'outlined',
-        menuMode: 'slim',
+        menuMode: this.getDefaultMenuMode(),
         colorScheme: 'light',
         theme: 'indigo',
         layoutTheme: 'colorScheme',
@@ -78,6 +81,32 @@ export class LayoutService {
             this.changeScale(config.scale);
             this.onConfigUpdate();
         });
+
+        this.applyResponsiveMenuMode();
+        fromEvent(window, 'resize')
+            .pipe(debounceTime(100))
+            .subscribe(() => this.applyResponsiveMenuMode());
+    }
+
+    private getDefaultMenuMode(): MenuMode {
+        return this.isDesktop() ? 'static' : 'slim';
+    }
+
+    private applyResponsiveMenuMode(): void {
+        const nextMode = this.getDefaultMenuMode();
+        if (this.config().menuMode === nextMode) {
+            return;
+        }
+
+        this.config.update((cfg) => ({
+            ...cfg,
+            menuMode: nextMode,
+        }));
+
+        this.state.staticMenuDesktopInactive = false;
+        this.state.staticMenuMobileActive = false;
+        this.state.overlayMenuActive = false;
+        this.state.menuHoverActive = false;
     }
 
     updateStyle(config: AppConfig) {
