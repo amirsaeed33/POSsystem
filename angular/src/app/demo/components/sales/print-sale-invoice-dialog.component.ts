@@ -42,7 +42,9 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
     }
 
     ngOnChanges(changes: SimpleChanges): void {
-        if (changes['visible'] && this.visible && this.saleId) {
+        const becameVisible = changes['visible']?.currentValue === true;
+        const saleIdChanged = !!changes['saleId'] && this.visible;
+        if ((becameVisible || saleIdChanged) && this.visible && this.saleId) {
             this.load(this.saleId);
         }
     }
@@ -53,7 +55,6 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
         if (!visible) {
             this.sale = null;
             this.company = null;
-            this.autoPrint = false;
         }
     }
 

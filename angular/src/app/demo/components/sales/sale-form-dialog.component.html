@@ -270,9 +270,11 @@
             pButton
             pRipple
             type="button"
-            label="Print"
+            label="Save & Print"
             icon="pi pi-print"
             class="p-button-outlined"
+            pTooltip="Ctrl+P"
+            tooltipPosition="top"
             [loading]="saving"
             [disabled]="loading"
             (click)="saveAndPrint()"
@@ -283,9 +285,17 @@
             type="button"
             label="Save"
             icon="pi pi-check"
+            pTooltip="Ctrl+S"
+            tooltipPosition="top"
             [loading]="saving"
             [disabled]="loading"
             (click)="save()"
         ></button>
     </ng-template>
 </p-dialog>
+
+<app-print-sale-invoice-dialog
+    [(visible)]="printDialogVisible"
+    [saleId]="printingSaleId"
+    [autoPrint]="printAutoPrint"
+></app-print-sale-invoice-dialog>

@@ -78,10 +78,6 @@ export class SaleListComponent implements OnInit {
         this.printDialogVisible = true;
     }
 
-    onPrintRequested(saleId: number): void {
-        this.openPrintDialog(saleId, true);
-    }
-
     onDialogSaved(): void {
         this.loadSales();
     }

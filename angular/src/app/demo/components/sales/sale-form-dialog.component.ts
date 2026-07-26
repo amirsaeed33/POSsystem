@@ -1,6 +1,7 @@
 import {
     Component,
     EventEmitter,
+    HostListener,
     Input,
     OnChanges,
     Output,
@@ -26,13 +27,16 @@ export class SaleFormDialogComponent implements OnChanges {
     @Input() visible = false;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
-    @Output() printRequested = new EventEmitter<number>();
 
     sale: CreateSaleDto = this.emptySale();
     products: ProductDto[] = [];
     customers: CustomerDto[] = [];
     saving = false;
     loading = false;
+
+    printDialogVisible = false;
+    printingSaleId: number | null = null;
+    printAutoPrint = false;
 
     paymentTypes = [
         { value: PaymentType.Cash, label: 'Cash' },
@@ -107,6 +111,25 @@ export class SaleFormDialogComponent implements OnChanges {
 
     onHide(): void {
         this.onVisibleChange(false);
+    }
+
+    @HostListener('document:keydown', ['$event'])
+    handleKeyboard(event: KeyboardEvent): void {
+        if (!this.visible || this.saving || this.loading) {
+            return;
+        }
+        if (!(event.ctrlKey || event.metaKey)) {
+            return;
+        }
+
+        const key = (event.key || '').toLowerCase();
+        if (key === 's') {
+            event.preventDefault();
+            this.save();
+        } else if (key === 'p') {
+            event.preventDefault();
+            this.saveAndPrint();
+        }
     }
 
     addLine(): void {
@@ -236,8 +259,12 @@ export class SaleFormDialogComponent implements OnChanges {
                 });
                 this.saved.emit();
                 this.onHide();
+
+                // Match angular-old: close create dialog, then open invoice print dialog.
                 if (printAfter && created?.id) {
-                    this.printRequested.emit(created.id);
+                    setTimeout(() => {
+                        this.openInvoicePrint(created.id, true);
+                    }, 0);
                 }
             })
             .catch((error) => {
@@ -250,6 +277,12 @@ export class SaleFormDialogComponent implements OnChanges {
             .finally(() => {
                 this.saving = false;
             });
+    }
+
+    private openInvoicePrint(saleId: number, autoPrint: boolean): void {
+        this.printingSaleId = saleId;
+        this.printAutoPrint = autoPrint;
+        this.printDialogVisible = true;
     }
 
     private getUnitPriceForCustomer(product: ProductDto): number {
