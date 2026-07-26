@@ -1,0 +1,108 @@
+<p-dialog
+    [header]="dialogTitle"
+    [visible]="visible"
+    [modal]="true"
+    [style]="{ width: '44rem' }"
+    [breakpoints]="{ '960px': '85vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (visibleChange)="onVisibleChange($event)"
+>
+    <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
+        <div class="flex flex-column gap-2">
+            <label for="productName" class="font-medium">Name <span class="p-error">*</span></label>
+            <input id="productName" type="text" pInputText class="w-full" maxlength="256"
+                [(ngModel)]="product.name" [disabled]="saving" />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="productDescription" class="font-medium">Description</label>
+            <textarea id="productDescription" pInputTextarea rows="2" class="w-full" maxlength="1024"
+                [(ngModel)]="product.description" [disabled]="saving"></textarea>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="productBarcode" class="font-medium">Barcode</label>
+            <input id="productBarcode" type="text" pInputText class="w-full" maxlength="64"
+                [(ngModel)]="product.barcode" [disabled]="saving" />
+        </div>
+
+        <div class="formgrid grid">
+            <div class="field col-12 md:col-4 flex flex-column gap-2">
+                <label for="productPrice" class="font-medium">Price <span class="p-error">*</span></label>
+                <p-inputNumber inputId="productPrice" [(ngModel)]="product.price" mode="decimal"
+                    [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
+                    [disabled]="saving"></p-inputNumber>
+            </div>
+            <div class="field col-12 md:col-4 flex flex-column gap-2">
+                <label for="productWholesale" class="font-medium">Wholesale Price</label>
+                <p-inputNumber inputId="productWholesale" [(ngModel)]="product.wholesalePrice" mode="decimal"
+                    [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
+                    [disabled]="saving"></p-inputNumber>
+            </div>
+            <div class="field col-12 md:col-4 flex flex-column gap-2">
+                <label for="productCost" class="font-medium">Cost Price</label>
+                <p-inputNumber inputId="productCost" [(ngModel)]="product.costPrice" mode="decimal"
+                    [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
+                    [disabled]="saving"></p-inputNumber>
+            </div>
+        </div>
+
+        <small class="text-color-secondary" *ngIf="productId">
+            Profit/unit: {{ profitPerUnit | number: '1.2-2' }}
+            <span *ngIf="profitMarginPercent !== null">
+                ({{ profitMarginPercent | number: '1.1-1' }}%)
+            </span>
+        </small>
+
+        <div class="flex flex-column gap-2">
+            <label for="alertLimit" class="font-medium">Alert Quantity Limit <span class="p-error">*</span></label>
+            <p-inputNumber inputId="alertLimit" [(ngModel)]="product.alertQuantityLimit"
+                [min]="0" [useGrouping]="false" styleClass="w-full" inputStyleClass="w-full"
+                [disabled]="saving"></p-inputNumber>
+        </div>
+
+        <div class="formgrid grid">
+            <div class="field col-12 md:col-4 flex flex-column gap-2">
+                <label for="categoryId" class="font-medium">Category <span class="p-error">*</span></label>
+                <p-dropdown inputId="categoryId" [options]="categories" [(ngModel)]="product.categoryId"
+                    optionLabel="name" optionValue="id" placeholder="Select category"
+                    [filter]="true" styleClass="w-full" [disabled]="saving"></p-dropdown>
+            </div>
+            <div class="field col-12 md:col-4 flex flex-column gap-2">
+                <label for="brandId" class="font-medium">Brand <span class="p-error">*</span></label>
+                <p-dropdown inputId="brandId" [options]="brands" [(ngModel)]="product.brandId"
+                    optionLabel="name" optionValue="id" placeholder="Select brand"
+                    [filter]="true" styleClass="w-full" [disabled]="saving"></p-dropdown>
+            </div>
+            <div class="field col-12 md:col-4 flex flex-column gap-2">
+                <label for="unitId" class="font-medium">Unit <span class="p-error">*</span></label>
+                <p-dropdown inputId="unitId" [options]="units" [(ngModel)]="product.unitId"
+                    optionLabel="name" optionValue="id" placeholder="Select unit"
+                    [filter]="true" styleClass="w-full" [disabled]="saving"></p-dropdown>
+            </div>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="productImage" class="font-medium">Product Image</label>
+            <input id="productImage" type="file" accept="image/*" (change)="onFileSelected($event)" [disabled]="saving" />
+            <img *ngIf="imagePreview" [src]="imagePreview" alt="preview"
+                class="mt-2 border-round" style="max-width: 160px; max-height: 160px; object-fit: cover;" />
+        </div>
+    </div>
+
+    <ng-template #loadingTpl>
+        <div class="flex align-items-center justify-content-center p-4">
+            <i class="pi pi-spin pi-spinner text-2xl"></i>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <button pButton pRipple type="button" label="Cancel" class="p-button-text"
+            (click)="onHide()" [disabled]="saving"></button>
+        <button pButton pRipple type="button" label="Save" icon="pi pi-check"
+            (click)="save()"
+            [disabled]="saving || loading || !(product.name || '').trim()"
+            [loading]="saving"></button>
+    </ng-template>
+</p-dialog>
