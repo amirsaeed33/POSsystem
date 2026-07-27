@@ -34,6 +34,43 @@
             </span>
         </div>
     </div>
+
+    <div class="topbar-language relative ml-2" *ngIf="languages?.length">
+        <button
+            class="p-link flex align-items-center gap-2 px-2 py-2 border-round hover:surface-hover"
+            type="button"
+            pStyleClass="@next"
+            enterClass="hidden"
+            enterActiveClass="scalein"
+            leaveToClass="hidden"
+            leaveActiveClass="fadeout"
+            [hideOnOutsideClick]="true"
+            [disabled]="changingLanguage"
+        >
+            <i class="pi pi-globe text-xl"></i>
+            <span class="hidden md:inline font-medium white-space-nowrap">
+                {{ currentLanguage?.displayName || 'English' }}
+            </span>
+            <i class="pi pi-angle-down"></i>
+        </button>
+        <ul class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-2 right-0 top-auto z-5"
+            style="min-width: 12rem; max-height: 20rem; overflow: auto;">
+            <li *ngFor="let language of languages">
+                <a
+                    pRipple
+                    class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                    [class.surface-hover]="language.name === currentLanguage?.name"
+                    (click)="onChangeLanguage(language)"
+                >
+                    <span class="flex-1">{{ language.displayName }}</span>
+                    <i
+                        class="pi pi-check text-primary"
+                        *ngIf="language.name === currentLanguage?.name"
+                    ></i>
+                </a>
+            </li>
+        </ul>
+    </div>
     
     <div class="topbar-profile">
         <button class="topbar-profile-button p-link" type="button" pStyleClass="@next" enterClass="hidden" enterActiveClass="scalein" leaveToClass="hidden" leaveActiveClass="fadeout" [hideOnOutsideClick]="true">
@@ -70,3 +107,4 @@
         </ul>
     </div>
 </div>
+<p-toast></p-toast>

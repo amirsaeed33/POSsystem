@@ -1,16 +1,19 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { MenuItem } from 'primeng/api';
+import { MenuItem, MessageService } from 'primeng/api';
 import { Router } from '@angular/router';
 import { LayoutService } from "./service/app.layout.service";
 import { AuthService } from 'src/app/demo/service/auth.service';
 import { SessionService } from 'src/app/demo/service/session.service';
 import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
+import { LocalizationService } from 'src/app/demo/service/localization.service';
+import { LanguageInfo } from 'src/app/demo/api/localization';
 import { UserLoginInfoDto } from 'src/app/demo/api/session';
 import { environment } from 'src/environments/environment';
 
 @Component({
     selector: 'app-topbar',
-    templateUrl: './app.topbar.component.html'
+    templateUrl: './app.topbar.component.html',
+    providers: [MessageService],
 })
 export class AppTopBarComponent implements OnInit {
 
@@ -27,18 +30,51 @@ export class AppTopBarComponent implements OnInit {
     userRole: string = '';
     userImage: string = 'assets/layout/images/avatar.png';
 
+    languages: LanguageInfo[] = [];
+    currentLanguage: LanguageInfo | null = null;
+    changingLanguage = false;
+
     constructor(
         public layoutService: LayoutService,
         private authService: AuthService,
         private sessionService: SessionService,
         private tenantContext: TenantContextService,
+        private localizationService: LocalizationService,
+        private messageService: MessageService,
         private router: Router
     ) {}
 
     ngOnInit(): void {
-        this.tenantContext.ensureMultiTenancyLoaded().finally(() => {
+        Promise.all([
+            this.tenantContext.ensureMultiTenancyLoaded().catch(() => undefined),
+            this.localizationService.ensureLoaded().catch(() => undefined),
+        ]).finally(() => {
+            this.languages = this.localizationService.getLanguages();
+            this.currentLanguage = this.localizationService.getCurrentLanguage();
             this.loadUserInfo();
         });
+    }
+
+    onChangeLanguage(language: LanguageInfo): void {
+        if (
+            !language?.name ||
+            language.name === this.currentLanguage?.name ||
+            this.changingLanguage
+        ) {
+            return;
+        }
+
+        this.changingLanguage = true;
+        this.localizationService
+            .changeLanguage(language.name)
+            .catch((error) => {
+                this.changingLanguage = false;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.message || 'Failed to change language',
+                });
+            });
     }
 
     loadUserInfo(): void {

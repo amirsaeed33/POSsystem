@@ -11,6 +11,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { TenantContextService } from './tenant-context.service';
+import { LocalizationService } from './localization.service';
 import { environment } from '../../../environments/environment';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class AuthInterceptor implements HttpInterceptor {
     constructor(
         private authService: AuthService,
         private tenantContext: TenantContextService,
+        private localizationService: LocalizationService,
         private router: Router
     ) {}
 
@@ -29,7 +31,10 @@ export class AuthInterceptor implements HttpInterceptor {
         const isApiRequest = req.url.startsWith(environment.apiUrl);
 
         if (isApiRequest) {
-            const headers: Record<string, string> = {};
+            const headers: Record<string, string> = {
+                '.AspNetCore.Culture':
+                    this.localizationService.getCultureHeaderValue(),
+            };
             const token = this.authService.getAccessToken();
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
@@ -40,9 +45,7 @@ export class AuthInterceptor implements HttpInterceptor {
                 headers['Abp.TenantId'] = String(tenantId);
             }
 
-            if (Object.keys(headers).length) {
-                request = req.clone({ setHeaders: headers });
-            }
+            request = req.clone({ setHeaders: headers });
         }
 
         return next.handle(request).pipe(
