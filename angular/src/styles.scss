@@ -17,6 +17,7 @@ $gutter: 1rem; //for primeflex grid system
 @import "assets/demo/styles/flags/flags.css";
 @import "assets/demo/styles/badges.scss";
 @import "assets/demo/styles/code.scss";
+@import "assets/demo/styles/force-light-invoice-print.scss";
 
 /* Screen-only: print title blocks (shown in @media print) */
 .d-print-block {
@@ -48,6 +49,7 @@ $gutter: 1rem; //for primeflex grid system
     padding: 16px;
     background: #fff !important;
     color: #111 !important;
+    color-scheme: light !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -114,8 +116,12 @@ $gutter: 1rem; //for primeflex grid system
     width: 100%;
     padding: 12px;
     background: #fff !important;
+    color: #111 !important;
+    color-scheme: light !important;
     border: none !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   body:not(.printing-invoice) .report-page .no-print {
@@ -201,5 +207,13 @@ $gutter: 1rem; //for primeflex grid system
     padding: 0 !important;
     width: 100% !important;
     overflow: visible !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  body:not(.printing-invoice) .layout-wrapper {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
   }
 }

@@ -1,0 +1,218 @@
+/**
+ * Force light theme for invoice dialogs and ALL printed pages.
+ * App Dark Theme must not affect invoice preview or print output.
+ */
+
+@mixin force-light-tokens {
+  color-scheme: light !important;
+  --text-color: #212529 !important;
+  --text-color-secondary: #6c757d !important;
+  --surface-ground: #ffffff !important;
+  --surface-section: #ffffff !important;
+  --surface-card: #ffffff !important;
+  --surface-overlay: #ffffff !important;
+  --surface-border: #dee2e6 !important;
+  --surface-hover: rgba(0, 0, 0, 0.04) !important;
+  --surface-0: #ffffff !important;
+  --surface-50: #f8f9fa !important;
+  --surface-100: #f3f4f6 !important;
+  --surface-200: #e9ecef !important;
+  --surface-300: #dee2e6 !important;
+  --surface-400: #ced4da !important;
+  --surface-500: #adb5bd !important;
+  --surface-600: #6c757d !important;
+  --surface-700: #495057 !important;
+  --surface-800: #343a40 !important;
+  --surface-900: #212529 !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+/* ---- Invoice dialog (screen preview) — always light ---- */
+.p-dialog.sale-invoice-dialog,
+.p-dialog.purchase-invoice-dialog,
+.p-dialog.expense-invoice-dialog {
+  @include force-light-tokens;
+
+  .p-dialog-header,
+  .p-dialog-content,
+  .p-dialog-footer {
+    @include force-light-tokens;
+    background: #ffffff !important;
+    color: #212529 !important;
+    border-color: #dee2e6 !important;
+  }
+
+  .p-dialog-header .p-dialog-title,
+  .p-dialog-header-icon {
+    color: #212529 !important;
+  }
+
+  .p-button.p-button-text {
+    color: #495057 !important;
+  }
+}
+
+.print-area.invoice-sheet,
+.invoice-sheet {
+  @include force-light-tokens;
+  background: #ffffff !important;
+  color: #111111 !important;
+}
+
+.invoice-sheet h2,
+.invoice-sheet .doc-title,
+.invoice-sheet .value,
+.invoice-sheet strong,
+.invoice-sheet td,
+.invoice-sheet th {
+  color: #111111 !important;
+}
+
+.invoice-sheet .invoice-parties .label,
+.invoice-sheet .invoice-footer {
+  color: #666666 !important;
+}
+
+.invoice-sheet .invoice-table thead,
+.invoice-sheet .invoice-table thead th {
+  background: #f3f3f3 !important;
+}
+
+.invoice-sheet .invoice-table th,
+.invoice-sheet .invoice-table td {
+  background: #ffffff !important;
+  border-color: #cccccc !important;
+  color: #111111 !important;
+}
+
+/* ---- Print: entire page always light ---- */
+@media print {
+  html,
+  body,
+  app-root,
+  .layout-wrapper,
+  .layout-main,
+  .layout-main-container,
+  .layout-content,
+  .layout-content-wrapper,
+  .layout-topbar,
+  .layout-sidebar {
+    @include force-light-tokens;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  /* Invoice print sheet */
+  body.printing-invoice .print-area,
+  body.printing-invoice .print-area.invoice-sheet,
+  body.printing-invoice .invoice-sheet {
+    @include force-light-tokens;
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  body.printing-invoice .invoice-sheet,
+  body.printing-invoice .invoice-sheet * {
+    background-color: #ffffff !important;
+    color: #111111 !important;
+    box-shadow: none !important;
+  }
+
+  body.printing-invoice .invoice-sheet .invoice-parties .label,
+  body.printing-invoice .invoice-sheet .invoice-footer {
+    color: #666666 !important;
+  }
+
+  body.printing-invoice .invoice-sheet .invoice-table thead,
+  body.printing-invoice .invoice-sheet .invoice-table thead th {
+    background: #f3f3f3 !important;
+    background-color: #f3f3f3 !important;
+  }
+
+  body.printing-invoice .invoice-sheet .invoice-table th,
+  body.printing-invoice .invoice-sheet .invoice-table td {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border-color: #cccccc !important;
+    color: #111111 !important;
+  }
+
+  /* Report print — paint every node white (fixes dark table body / empty area) */
+  body:not(.printing-invoice) .report-page {
+    @include force-light-tokens;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+    min-height: 100vh !important;
+  }
+
+  body:not(.printing-invoice) .report-page,
+  body:not(.printing-invoice) .report-page *,
+  body:not(.printing-invoice) .report-page::before,
+  body:not(.printing-invoice) .report-page::after {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #111111 !important;
+    box-shadow: none !important;
+  }
+
+  body:not(.printing-invoice) .report-page .report-print-meta {
+    color: #444444 !important;
+  }
+
+  body:not(.printing-invoice) .report-page .p-datatable,
+  body:not(.printing-invoice) .report-page .p-datatable-wrapper,
+  body:not(.printing-invoice) .report-page .p-datatable-table-container,
+  body:not(.printing-invoice) .report-page .p-datatable-scrollable-wrapper,
+  body:not(.printing-invoice) .report-page .p-datatable-scrollable-view,
+  body:not(.printing-invoice) .report-page .p-datatable-scrollable-body,
+  body:not(.printing-invoice) .report-page .p-datatable-thead,
+  body:not(.printing-invoice) .report-page .p-datatable-tbody,
+  body:not(.printing-invoice) .report-page .p-datatable-tfoot,
+  body:not(.printing-invoice) .report-page .p-datatable-table,
+  body:not(.printing-invoice) .report-page table,
+  body:not(.printing-invoice) .report-page tr,
+  body:not(.printing-invoice) .report-page th,
+  body:not(.printing-invoice) .report-page td {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  body:not(.printing-invoice) .report-page .p-datatable .p-datatable-thead > tr > th,
+  body:not(.printing-invoice) .report-page table thead th,
+  body:not(.printing-invoice) .report-page .report-data-table thead th {
+    background: #f3f3f3 !important;
+    background-color: #f3f3f3 !important;
+    color: #111111 !important;
+  }
+
+  body:not(.printing-invoice) .report-page .p-datatable .p-datatable-tbody > tr > td,
+  body:not(.printing-invoice) .report-page .p-datatable .p-datatable-tfoot > tr > td,
+  body:not(.printing-invoice) .report-page table tbody td,
+  body:not(.printing-invoice) .report-page table tfoot td {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+    border-color: #cccccc !important;
+  }
+
+  body:not(.printing-invoice) .report-page .text-green-600 {
+    color: #16a34a !important;
+  }
+
+  body:not(.printing-invoice) .report-page .text-orange-500 {
+    color: #f97316 !important;
+  }
+
+  body:not(.printing-invoice) .report-page .text-red-500 {
+    color: #ef4444 !important;
+  }
+
+  body:not(.printing-invoice) .report-page .p-tag {
+    color: #111111 !important;
+  }
+}

@@ -1,6 +1,8 @@
 .invoice-sheet {
   color: #111;
   font-size: 14px;
+  background: #fff;
+  color-scheme: light;
 }
 
 .invoice-header {
