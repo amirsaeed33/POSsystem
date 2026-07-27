@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -20,6 +21,7 @@ import { TagModule } from 'primeng/tag';
 @NgModule({
     imports: [
         CommonModule,
+        RouterModule,
         ButtonModule,
         RippleModule,
         TagModule,

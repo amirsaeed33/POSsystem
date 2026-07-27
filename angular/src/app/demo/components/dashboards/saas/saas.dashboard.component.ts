@@ -2,7 +2,16 @@ import {Component, OnDestroy, OnInit} from '@angular/core';
 import { Subscription, debounceTime } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { DashboardService } from 'src/app/demo/service/dashboard.service';
+import { SaleService } from 'src/app/demo/service/sale.service';
 import { MonthlyCashFlowDto } from 'src/app/demo/api/dashboard';
+import { SaleDto } from 'src/app/demo/api/sale';
+
+interface LatestListItem {
+    title: string;
+    subtitle: string;
+    initials: string;
+    avatarStyle: Record<string, string>;
+}
 
 @Component({
     templateUrl: './saas.dashboard.component.html'
@@ -30,9 +39,22 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     cashFlow: MonthlyCashFlowDto[] = [];
 
+    latestListTitle = 'Latest Customers';
+    latestListItems: LatestListItem[] = [];
+
+    private readonly avatarStyles: Record<string, string>[] = [
+        {'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'},
+        {'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'},
+        {'background-color':'rgba(94, 208, 250, 0.1)', 'color': '#1992D4', 'border': '1px solid #5ED0FA'},
+        {'background-color':'rgba(43, 176, 237, 0.1)', 'color': '#127FBF', 'border': '1px solid #2BB0ED'},
+        {'background-color':'rgba(255, 155, 155, 0.1)', 'color': '#CF1124', 'border': '1px solid #FF9B9B'},
+        {'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'},
+    ];
+
     constructor(
         public layoutService: LayoutService,
-        private dashboardService: DashboardService
+        private dashboardService: DashboardService,
+        private saleService: SaleService
     ) {
         this.subscription = this.layoutService.configUpdate$
         .pipe(debounceTime(25))
@@ -51,6 +73,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
         this.initCharts();
         this.loadDashboard();
+        this.loadLatestList();
     }
 
     async loadDashboard() {
@@ -69,6 +92,101 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.cashFlow = [];
         }
         this.buildOverviewChart();
+    }
+
+    async loadLatestList() {
+        try {
+            const result = await this.saleService.getAll({
+                skipCount: 0,
+                maxResultCount: 50,
+            });
+            const sales = this.sortSalesByDateDesc(result.items || []);
+
+            const customers = this.buildLatestCustomers(sales);
+            if (customers.length) {
+                this.latestListTitle = 'Latest Customers';
+                this.latestListItems = customers;
+                return;
+            }
+
+            this.latestListTitle = 'Latest Sales';
+            this.latestListItems = this.buildLatestSales(sales);
+        } catch {
+            this.latestListTitle = 'Latest Sales';
+            this.latestListItems = [];
+        }
+    }
+
+    private sortSalesByDateDesc(sales: SaleDto[]): SaleDto[] {
+        return [...sales].sort((a, b) => {
+            const aTime = new Date(a.saleDate).getTime() || 0;
+            const bTime = new Date(b.saleDate).getTime() || 0;
+            return bTime - aTime;
+        });
+    }
+
+    private buildLatestCustomers(sales: SaleDto[]): LatestListItem[] {
+        const seen = new Set<number>();
+        const items: LatestListItem[] = [];
+
+        for (const sale of sales) {
+            if (!sale.customerId || !sale.customerName || seen.has(sale.customerId)) {
+                continue;
+            }
+            seen.add(sale.customerId);
+            items.push({
+                title: sale.customerName,
+                subtitle: `${this.formatPkr(sale.totalAmount)} · ${this.formatDate(sale.saleDate)}`,
+                initials: this.getInitials(sale.customerName),
+                avatarStyle: this.avatarStyles[items.length % this.avatarStyles.length],
+            });
+            if (items.length >= 6) {
+                break;
+            }
+        }
+
+        return items;
+    }
+
+    private buildLatestSales(sales: SaleDto[]): LatestListItem[] {
+        return sales.slice(0, 6).map((sale, index) => {
+            const title =
+                sale.customerName ||
+                sale.invoiceNo ||
+                `Sale #${sale.id}`;
+            return {
+                title,
+                subtitle: `${this.formatPkr(sale.totalAmount)} · ${this.formatDate(sale.saleDate)}`,
+                initials: this.getInitials(title),
+                avatarStyle: this.avatarStyles[index % this.avatarStyles.length],
+            };
+        });
+    }
+
+    private getInitials(name: string): string {
+        const parts = (name || '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+        if (!parts.length) {
+            return '?';
+        }
+        if (parts.length === 1) {
+            return parts[0].substring(0, 2).toUpperCase();
+        }
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+
+    private formatDate(value: string | Date): string {
+        const date = new Date(value);
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+        return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        });
     }
 
     formatPkr(amount: number): string {
