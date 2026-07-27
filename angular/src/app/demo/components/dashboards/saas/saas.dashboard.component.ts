@@ -3,8 +3,14 @@ import { Subscription, debounceTime } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { DashboardService } from 'src/app/demo/service/dashboard.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
+import { PurchaseService } from 'src/app/demo/service/purchase.service';
+import { ExpenseService } from 'src/app/demo/service/expense.service';
+import { StockAdjustmentService } from 'src/app/demo/service/stock-adjustment.service';
 import { MonthlyCashFlowDto, DashboardProductRowDto } from 'src/app/demo/api/dashboard';
 import { SaleDto } from 'src/app/demo/api/sale';
+import { PurchaseDto } from 'src/app/demo/api/purchase';
+import { ExpenseDto } from 'src/app/demo/api/expense';
+import { StockAdjustmentDto } from 'src/app/demo/api/stock-adjustment';
 
 interface LatestListItem {
     title: string;
@@ -34,6 +40,19 @@ interface StockHighlightItem {
     unitsSold: number;
     isLowStock: boolean;
     statusLabel: string;
+}
+
+interface TimelineEvent {
+    type: 'sale' | 'purchase' | 'expense' | 'stock';
+    title: string;
+    amountLabel: string;
+    timeAgo: string;
+    occurredAt: number;
+    icon: string;
+    iconClass: string;
+    lineClass: string;
+    detailBg: string;
+    detailBgDark: string;
 }
 
 @Component({
@@ -77,6 +96,9 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     latestListTitle = 'Latest Customers';
     latestListItems: LatestListItem[] = [];
 
+    timelineEvents: TimelineEvent[] = [];
+    timelineVisibleCount = 5;
+
     private readonly avatarStyles: Record<string, string>[] = [
         {'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'},
         {'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'},
@@ -89,7 +111,10 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     constructor(
         public layoutService: LayoutService,
         private dashboardService: DashboardService,
-        private saleService: SaleService
+        private saleService: SaleService,
+        private purchaseService: PurchaseService,
+        private expenseService: ExpenseService,
+        private stockAdjustmentService: StockAdjustmentService
     ) {
         this.subscription = this.layoutService.configUpdate$
         .pipe(debounceTime(25))
@@ -109,6 +134,157 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         this.initCharts();
         this.loadDashboard();
         this.loadLatestList();
+        this.loadTimeline();
+    }
+
+    get visibleTimelineEvents(): TimelineEvent[] {
+        return this.timelineEvents.slice(0, this.timelineVisibleCount);
+    }
+
+    get hasMoreTimelineEvents(): boolean {
+        return this.timelineEvents.length > this.timelineVisibleCount;
+    }
+
+    showMoreTimelineEvents() {
+        this.timelineVisibleCount = Math.min(
+            this.timelineVisibleCount + 5,
+            this.timelineEvents.length
+        );
+    }
+
+    async loadTimeline() {
+        const page = { skipCount: 0, maxResultCount: 10 };
+        try {
+            const [sales, purchases, expenses, adjustments] =
+                await Promise.all([
+                    this.saleService.getAll(page).catch(() => ({ items: [] })),
+                    this.purchaseService.getAll(page).catch(() => ({ items: [] })),
+                    this.expenseService.getAll(page).catch(() => ({ items: [] })),
+                    this.stockAdjustmentService
+                        .getAll(page)
+                        .catch(() => ({ items: [] })),
+                ]);
+
+            const events: TimelineEvent[] = [
+                ...this.mapSaleEvents(sales.items || []),
+                ...this.mapPurchaseEvents(purchases.items || []),
+                ...this.mapExpenseEvents(expenses.items || []),
+                ...this.mapStockEvents(adjustments.items || []),
+            ];
+
+            this.timelineEvents = events.sort(
+                (a, b) => b.occurredAt - a.occurredAt
+            );
+            this.timelineVisibleCount = 5;
+        } catch {
+            this.timelineEvents = [];
+        }
+    }
+
+    private mapSaleEvents(sales: SaleDto[]): TimelineEvent[] {
+        return sales.map((sale) => {
+            const ref = sale.invoiceNo || String(sale.id);
+            return {
+                type: 'sale' as const,
+                title: `Sale #${ref}`,
+                amountLabel: this.formatPkr(sale.totalAmount ?? 0),
+                timeAgo: this.formatTimeAgo(sale.saleDate),
+                occurredAt: new Date(sale.saleDate).getTime() || 0,
+                icon: 'pi pi-shopping-cart',
+                iconClass: 'bg-blue-100 text-blue-500',
+                lineClass: 'bg-blue-100',
+                detailBg: 'rgba(227, 248, 255, 0.5)',
+                detailBgDark: 'rgba(227, 248, 255, 0.1)',
+            };
+        });
+    }
+
+    private mapPurchaseEvents(purchases: PurchaseDto[]): TimelineEvent[] {
+        return purchases.map((purchase) => {
+            const ref = purchase.invoiceNo || String(purchase.id);
+            return {
+                type: 'purchase' as const,
+                title: `Purchase #${ref}`,
+                amountLabel: this.formatPkr(purchase.totalAmount ?? 0),
+                timeAgo: this.formatTimeAgo(purchase.purchaseDate),
+                occurredAt: new Date(purchase.purchaseDate).getTime() || 0,
+                icon: 'pi pi-shopping-bag',
+                iconClass: 'bg-yellow-100 text-yellow-500',
+                lineClass: 'bg-yellow-100',
+                detailBg: 'rgba(255, 249, 230, 0.5)',
+                detailBgDark: 'rgba(255, 249, 230, 0.1)',
+            };
+        });
+    }
+
+    private mapExpenseEvents(expenses: ExpenseDto[]): TimelineEvent[] {
+        return expenses.map((expense) => {
+            const ref = expense.referenceNo || String(expense.id);
+            return {
+                type: 'expense' as const,
+                title: `Expense #${ref}`,
+                amountLabel: this.formatPkr(expense.amount ?? 0),
+                timeAgo: this.formatTimeAgo(expense.expenseDate),
+                occurredAt: new Date(expense.expenseDate).getTime() || 0,
+                icon: 'pi pi-wallet',
+                iconClass: 'bg-red-100 text-red-500',
+                lineClass: 'bg-red-100',
+                detailBg: 'rgba(255, 235, 238, 0.5)',
+                detailBgDark: 'rgba(255, 235, 238, 0.1)',
+            };
+        });
+    }
+
+    private mapStockEvents(adjustments: StockAdjustmentDto[]): TimelineEvent[] {
+        return adjustments.map((adj) => {
+            const ref = adj.referenceNo || String(adj.id);
+            const qty = (adj.lines || []).reduce(
+                (sum, line) => sum + (line.quantityChange || 0),
+                0
+            );
+            const qtyLabel =
+                qty === 0
+                    ? 'Stock adjusted'
+                    : `${qty > 0 ? '+' : ''}${qty} units`;
+            return {
+                type: 'stock' as const,
+                title: `Stock Adjusted #${ref}`,
+                amountLabel: qtyLabel,
+                timeAgo: this.formatTimeAgo(adj.adjustmentDate),
+                occurredAt: new Date(adj.adjustmentDate).getTime() || 0,
+                icon: 'pi pi-sync',
+                iconClass: 'bg-green-100 text-green-500',
+                lineClass: 'bg-green-100',
+                detailBg: 'rgba(232, 245, 233, 0.5)',
+                detailBgDark: 'rgba(232, 245, 233, 0.1)',
+            };
+        });
+    }
+
+    private formatTimeAgo(value: string | Date): string {
+        const date = new Date(value);
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+        const seconds = Math.max(
+            0,
+            Math.floor((Date.now() - date.getTime()) / 1000)
+        );
+        if (seconds < 60) {
+            return 'just now';
+        }
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) {
+            return minutes === 1
+                ? '1 minute ago'
+                : `${minutes} minutes ago`;
+        }
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) {
+            return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
+        }
+        const days = Math.floor(hours / 24);
+        return days === 1 ? '1 day ago' : `${days} days ago`;
     }
 
     async loadDashboard() {
