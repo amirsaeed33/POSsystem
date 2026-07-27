@@ -29,6 +29,11 @@ export class AppMenuComponent implements OnInit {
                 items: [
                     { label: 'Dashboard', icon: 'pi pi-home', routerLink: ['/'] },
                     { label: 'POS Screen', icon: 'pi pi-desktop', routerLink: ['/pos'], permission: PermissionNames.Sales },
+                    { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'], permission: PermissionNames.Sales },
+                    { label: 'Sale Returns', icon: 'pi pi-replay', routerLink: ['/sale-returns'], permission: PermissionNames.Sales },
+                    { label: 'Customer Orders', icon: 'pi pi-file', routerLink: ['/customer-orders'], permission: PermissionNames.CustomerOrders },
+                    { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'], permission: PermissionNames.Customers },
+                    { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'], permission: PermissionNames.Suppliers },
                     {
                         label: 'Products',
                         icon: 'pi pi-box',
@@ -42,11 +47,15 @@ export class AppMenuComponent implements OnInit {
                             { label: 'Stock Adjustments', icon: 'pi pi-sync', routerLink: ['/stock-adjustments'], permission: PermissionNames.StockAdjustments },
                         ]
                     },
-                    { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'], permission: PermissionNames.Sales },
-                    { label: 'Sale Returns', icon: 'pi pi-replay', routerLink: ['/sale-returns'], permission: PermissionNames.Sales },
-                    { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'], permission: PermissionNames.Customers },
-                    { label: 'Customer Orders', icon: 'pi pi-file', routerLink: ['/customer-orders'], permission: PermissionNames.CustomerOrders },
-                    { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'], permission: PermissionNames.Suppliers },
+                    {
+                        label: 'Business',
+                        icon: 'pi pi-briefcase',
+                        items: [
+                            { label: 'Accounts', icon: 'pi pi-building', routerLink: ['/accounts'], permission: PermissionNames.Accounts },
+                            { label: 'Ledger', icon: 'pi pi-book', routerLink: ['/ledger-entries'], permission: PermissionNames.LedgerEntries },
+                            { label: 'Company Profiles', icon: 'pi pi-id-card', routerLink: ['/company-profiles'], permission: PermissionNames.CompanyProfiles },
+                        ]
+                    },
                     { label: 'Expenses', icon: 'pi pi-wallet', routerLink: ['/expenses'], permission: PermissionNames.Expenses },
                     {
                         label: 'Reports',
@@ -57,15 +66,6 @@ export class AppMenuComponent implements OnInit {
                             { label: 'Purchase Report', icon: 'pi pi-shopping-bag', routerLink: ['/reports/purchases'], permission: PermissionNames.Reports },
                             { label: 'Expense Report', icon: 'pi pi-wallet', routerLink: ['/reports/expenses'], permission: PermissionNames.Reports },
                             { label: 'Stock Report', icon: 'pi pi-box', routerLink: ['/reports/stock'], permission: PermissionNames.Reports },
-                        ]
-                    },
-                    {
-                        label: 'Business',
-                        icon: 'pi pi-briefcase',
-                        items: [
-                            { label: 'Accounts', icon: 'pi pi-building', routerLink: ['/accounts'], permission: PermissionNames.Accounts },
-                            { label: 'Ledger', icon: 'pi pi-book', routerLink: ['/ledger-entries'], permission: PermissionNames.LedgerEntries },
-                            { label: 'Company Profiles', icon: 'pi pi-id-card', routerLink: ['/company-profiles'], permission: PermissionNames.CompanyProfiles },
                         ]
                     },
                     {
@@ -81,7 +81,7 @@ export class AppMenuComponent implements OnInit {
             }
         ];
 
-        this.model = this.sortMenuItems(this.filterMenuByPermission(menu));
+        this.model = this.filterMenuByPermission(menu);
     }
 
     private filterMenuByPermission(items: any[]): any[] {
@@ -104,14 +104,5 @@ export class AppMenuComponent implements OnInit {
                 }
                 return true;
             });
-    }
-
-    private sortMenuItems(items: any[]): any[] {
-        return items
-            .map((item) => ({
-                ...item,
-                items: item.items ? this.sortMenuItems(item.items) : undefined
-            }))
-            .sort((a, b) => (a.label || '').localeCompare(b.label || '', undefined, { sensitivity: 'base' }));
     }
 }
