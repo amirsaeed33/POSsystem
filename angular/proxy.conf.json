@@ -5,6 +5,17 @@
     "changeOrigin": true,
     "logLevel": "warn"
   },
+  "/AbpUserConfiguration": {
+    "target": "https://localhost:44311",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
+  "/AbpServiceProxies": {
+    "target": "https://localhost:44311",
+    "secure": false,
+    "changeOrigin": true
+  },
   "/ProductImages": {
     "target": "https://localhost:44311",
     "secure": false,
