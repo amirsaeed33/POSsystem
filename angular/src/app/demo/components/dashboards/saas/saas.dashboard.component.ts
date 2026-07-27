@@ -20,6 +20,13 @@ interface TopProductItem {
     rank: number;
 }
 
+interface SalesGroupRow {
+    name: string;
+    salesAmount: number;
+    growthPercent: number;
+    isGrowthPositive: boolean;
+}
+
 @Component({
     templateUrl: './saas.dashboard.component.html'
 })
@@ -47,6 +54,13 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     cashFlow: MonthlyCashFlowDto[] = [];
 
     topProducts: TopProductItem[] = [];
+    salesByCategory: SalesGroupRow[] = [];
+    salesByBrand: SalesGroupRow[] = [];
+
+    averageProfitMargin = 0;
+    previousAverageProfitMargin = 0;
+    growthPercentage = 0;
+    isGrowthPositive = true;
 
     latestListTitle = 'Latest Customers';
     latestListItems: LatestListItem[] = [];
@@ -92,15 +106,29 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.todayPurchases = data.todayPurchases ?? 0;
             this.todayExpenses = data.todayExpenses ?? 0;
             this.todayProfit = data.todayProfit ?? 0;
+            this.averageProfitMargin = data.averageProfitMargin ?? 0;
+            this.previousAverageProfitMargin =
+                data.previousAverageProfitMargin ?? 0;
+            this.growthPercentage = data.growthPercentage ?? 0;
+            this.isGrowthPositive = data.isGrowthPositive ?? true;
             this.cashFlow = data.cashFlow ?? [];
-            this.topProducts = this.buildTopProducts(data.products ?? []);
+            const products = data.products ?? [];
+            this.topProducts = this.buildTopProducts(products);
+            this.salesByCategory = this.buildSalesGroups(products, 'category');
+            this.salesByBrand = this.buildSalesGroups(products, 'brand');
         } catch {
             this.todaySales = 0;
             this.todayPurchases = 0;
             this.todayExpenses = 0;
             this.todayProfit = 0;
+            this.averageProfitMargin = 0;
+            this.previousAverageProfitMargin = 0;
+            this.growthPercentage = 0;
+            this.isGrowthPositive = true;
             this.cashFlow = [];
             this.topProducts = [];
+            this.salesByCategory = [];
+            this.salesByBrand = [];
         }
         this.buildOverviewChart();
     }
@@ -115,6 +143,31 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                 unitsSold: product.units ?? 0,
                 rank: index + 1,
             }));
+    }
+
+    private buildSalesGroups(
+        products: DashboardProductRowDto[],
+        groupBy: 'category' | 'brand'
+    ): SalesGroupRow[] {
+        const groups = new Map<string, number>();
+
+        for (const product of products) {
+            const name =
+                (groupBy === 'category'
+                    ? product.categoryName
+                    : product.brandName) || 'Uncategorized';
+            const amount = (product.price ?? 0) * (product.units ?? 0);
+            groups.set(name, (groups.get(name) || 0) + amount);
+        }
+
+        return Array.from(groups.entries())
+            .map(([name, salesAmount]) => ({
+                name,
+                salesAmount,
+                growthPercent: this.growthPercentage,
+                isGrowthPositive: this.isGrowthPositive,
+            }))
+            .sort((a, b) => b.salesAmount - a.salesAmount);
     }
 
     async loadLatestList() {

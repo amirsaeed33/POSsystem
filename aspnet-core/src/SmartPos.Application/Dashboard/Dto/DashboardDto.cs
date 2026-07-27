@@ -31,6 +31,17 @@ namespace SmartPos.Dashboard.Dto
 
         public decimal TodayProfit { get; set; }
 
+        /// <summary>Average profit margin % for the current month-to-date period.</summary>
+        public decimal AverageProfitMargin { get; set; }
+
+        /// <summary>Average profit margin % for the previous equivalent month-to-date period.</summary>
+        public decimal PreviousAverageProfitMargin { get; set; }
+
+        /// <summary>((Current - Previous) / Previous) * 100. Safe when previous is zero.</summary>
+        public decimal GrowthPercentage { get; set; }
+
+        public bool IsGrowthPositive { get; set; }
+
         public List<MonthlyCashFlowDto> CashFlow { get; set; }
 
         public List<DashboardProductRowDto> Products { get; set; }

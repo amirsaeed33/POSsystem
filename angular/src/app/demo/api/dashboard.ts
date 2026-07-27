@@ -12,6 +12,10 @@ export interface DashboardDto {
     todayPurchases: number;
     todayExpenses: number;
     todayProfit: number;
+    averageProfitMargin: number;
+    previousAverageProfitMargin: number;
+    growthPercentage: number;
+    isGrowthPositive: boolean;
     cashFlow: MonthlyCashFlowDto[];
     products: DashboardProductRowDto[];
 }

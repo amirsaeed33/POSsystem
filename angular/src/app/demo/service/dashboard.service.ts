@@ -58,6 +58,16 @@ export class DashboardService {
             todayPurchases: data.todayPurchases ?? data.TodayPurchases ?? 0,
             todayExpenses: data.todayExpenses ?? data.TodayExpenses ?? 0,
             todayProfit: data.todayProfit ?? data.TodayProfit ?? 0,
+            averageProfitMargin:
+                data.averageProfitMargin ?? data.AverageProfitMargin ?? 0,
+            previousAverageProfitMargin:
+                data.previousAverageProfitMargin ??
+                data.PreviousAverageProfitMargin ??
+                0,
+            growthPercentage:
+                data.growthPercentage ?? data.GrowthPercentage ?? 0,
+            isGrowthPositive:
+                data.isGrowthPositive ?? data.IsGrowthPositive ?? true,
             cashFlow: (Array.isArray(cashFlow) ? cashFlow : []).map(
                 (item: any): MonthlyCashFlowDto => ({
                     year: item.year ?? item.Year ?? 0,

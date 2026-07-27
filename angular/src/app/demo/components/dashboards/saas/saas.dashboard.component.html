@@ -167,226 +167,62 @@
 
     <div class="col-12 lg:col-6 xl:col-4">
         <div class="card h-full">
-            <h5>Leads By Region</h5>
+            <div class="flex justify-content-between align-items-center mb-3 gap-2">
+                <h5 class="m-0">Sales Breakdown</h5>
+                <div class="flex align-items-center gap-2">
+                    <span class="text-color-secondary white-space-nowrap">
+                        Avg Margin {{ averageProfitMargin | number:'1.0-2' }}%
+                    </span>
+                    <div
+                        class="inline-flex align-items-center justify-content-between px-2 py-1 border-round"
+                        [ngClass]="isGrowthPositive ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'"
+                        style="min-width:3.5rem">
+                        <i [class]="isGrowthPositive ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"></i>
+                        <span class="font-bold ml-1">{{ growthPercentage | number:'1.0-0' }}</span>
+                    </div>
+                </div>
+            </div>
             <p-tabView>
-                <p-tabPanel header="Europe" styleClass="p-0">
+                <p-tabPanel header="By Category" styleClass="p-0">
                     <table class="w-full">
                         <tbody>
-                            <tr>
-                                <td class="py-1">🇮🇹 Italy</td>
-                                <td><span class="font-bold">90</span></td>
+                            <tr *ngFor="let row of salesByCategory">
+                                <td class="py-1">{{ row.name }}</td>
+                                <td><span class="font-bold">{{ formatPkr(row.salesAmount) }}</span></td>
                                 <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-green-100 text-green-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-up"></i>
-                                        <span class="font-bold ml-1">12</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-100 text-700 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">LOW</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1">🇫🇷 France</td>
-                                <td><span class="font-bold">61</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-green-100 text-green-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-up"></i>
-                                        <span class="font-bold ml-1">8</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-700 text-100 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">HIGH</span>
+                                    <div
+                                        class="inline-flex align-items-center justify-content-between px-2 py-1 border-round"
+                                        [ngClass]="row.isGrowthPositive ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'"
+                                        style="min-width:3.5rem">
+                                        <i [class]="row.isGrowthPositive ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"></i>
+                                        <span class="font-bold ml-1">{{ row.growthPercent | number:'1.0-0' }}</span>
                                     </div>
                                 </td>
                             </tr>
-                            <tr>
-                                <td class="py-1">🇩🇪 Germany</td>
-                                <td><span class="font-bold">46</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-green-100 text-green-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-up"></i>
-                                        <span class="font-bold ml-1">5</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-700 text-100 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">HIGH</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1">🇳🇱 Netherlands</td>
-                                <td><span class="font-bold">28</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-red-100 text-red-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-down"></i>
-                                        <span class="font-bold ml-1">19</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-100 text-700 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">LOW</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1">🇪🇸 Spain</td>
-                                <td><span class="font-bold">17</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-red-100 text-red-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-down"></i>
-                                        <span class="font-bold ml-1">7</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-700 text-100 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">HIGH</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1">🇧🇷 Brazil</td>
-                                <td><span class="font-bold">37</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-red-100 text-red-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-down"></i>
-                                        <span class="font-bold ml-1">7</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-700 text-100 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">HIGH</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1">🇲🇽 Mexico</td>
-                                <td><span class="font-bold">27</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-green-100 text-green-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-up"></i>
-                                        <span class="font-bold ml-1">4</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-700 text-100 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">HIGH</span>
-                                    </div>
-                                </td>
+                            <tr *ngIf="!salesByCategory.length">
+                                <td class="py-1 text-color-secondary" colspan="3">No data available</td>
                             </tr>
                         </tbody>
                     </table>
                 </p-tabPanel>
-                <p-tabPanel header="United States">
+                <p-tabPanel header="By Brand">
                     <table class="w-full">
                         <tbody>
-                            <tr>
-                                <td class="py-1">California</td>
-                                <td><span class="font-bold">79</span></td>
+                            <tr *ngFor="let row of salesByBrand">
+                                <td class="py-1">{{ row.name }}</td>
+                                <td><span class="font-bold">{{ formatPkr(row.salesAmount) }}</span></td>
                                 <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-green-100 text-green-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-up"></i>
-                                        <span class="font-bold ml-1">11</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-700 text-100 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">HIGH</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1">Texas</td>
-                                <td><span class="font-bold">71</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-green-100 text-green-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-up"></i>
-                                        <span class="font-bold ml-1">9</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-100 text-700 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">LOW</span>
+                                    <div
+                                        class="inline-flex align-items-center justify-content-between px-2 py-1 border-round"
+                                        [ngClass]="row.isGrowthPositive ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'"
+                                        style="min-width:3.5rem">
+                                        <i [class]="row.isGrowthPositive ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"></i>
+                                        <span class="font-bold ml-1">{{ row.growthPercent | number:'1.0-0' }}</span>
                                     </div>
                                 </td>
                             </tr>
-                            <tr>
-                                <td class="py-1">Florida</td>
-                                <td><span class="font-bold">55</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-red-100 text-red-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-down"></i>
-                                        <span class="font-bold ml-1">15</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-100 text-700 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">LOW</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1">New York</td>
-                                <td><span class="font-bold">48</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-red-100 text-red-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-down"></i>
-                                        <span class="font-bold ml-1">10</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-700 text-100 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">HIGH</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1">Ohio</td>
-                                <td><span class="font-bold">26</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-red-100 text-red-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-down"></i>
-                                        <span class="font-bold ml-1">6</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-700 text-100 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">HIGH</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1">New York</td>
-                                <td><span class="font-bold">48</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-red-100 text-red-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-down"></i>
-                                        <span class="font-bold ml-1">10</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-700 text-100 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">HIGH</span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1">Ohio</td>
-                                <td><span class="font-bold">26</span></td>
-                                <td class="text-right">
-                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 bg-red-100 text-red-900 border-round" style="min-width:3.5rem">
-                                        <i class="pi pi-arrow-down"></i>
-                                        <span class="font-bold ml-1">6</span>
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <div class="inline-flex p-1 align-items-center justify-content-center surface-700 text-100 p-1 border-round text-sm" style="min-width:4rem">
-                                        <span class="font-bold">HIGH</span>
-                                    </div>
-                                </td>
+                            <tr *ngIf="!salesByBrand.length">
+                                <td class="py-1 text-color-secondary" colspan="3">No data available</td>
                             </tr>
                         </tbody>
                     </table>

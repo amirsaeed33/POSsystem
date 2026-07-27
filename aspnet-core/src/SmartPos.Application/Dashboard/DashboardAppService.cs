@@ -52,6 +52,11 @@ namespace SmartPos.Dashboard
             var tomorrow = todayStart.AddDays(1);
             var startMonth = new DateTime(now.Year, now.Month, 1).AddMonths(-11);
 
+            var currentPeriodStart = new DateTime(now.Year, now.Month, 1);
+            var currentPeriodEnd = tomorrow;
+            var previousPeriodStart = currentPeriodStart.AddMonths(-1);
+            var previousPeriodEnd = EquivalentPreviousPeriodEnd(now, currentPeriodStart, previousPeriodStart);
+
             var sales = await _saleRepository.GetAll()
                 .AsNoTracking()
                 .Where(x => x.SaleDate >= startMonth)
@@ -83,6 +88,24 @@ namespace SmartPos.Dashboard
                 .Sum(x => x.Amount);
 
             var todayProfit = todaySales - todayPurchases - todayExpenses;
+
+            var costByProductId = products.ToDictionary(p => p.Id, p => p.CostPrice);
+
+            var marginSales = await _saleRepository.GetAllIncluding(x => x.Lines)
+                .AsNoTracking()
+                .Where(x => x.SaleDate >= previousPeriodStart && x.SaleDate < currentPeriodEnd)
+                .ToListAsync();
+
+            var currentMarginSales = marginSales
+                .Where(x => x.SaleDate >= currentPeriodStart && x.SaleDate < currentPeriodEnd);
+            var previousMarginSales = marginSales
+                .Where(x => x.SaleDate >= previousPeriodStart && x.SaleDate < previousPeriodEnd);
+
+            var averageProfitMargin = CalculateAverageProfitMargin(currentMarginSales, costByProductId);
+            var previousAverageProfitMargin = CalculateAverageProfitMargin(previousMarginSales, costByProductId);
+            var (growthPercentage, isGrowthPositive) = ComputeGrowthPercentage(
+                averageProfitMargin,
+                previousAverageProfitMargin);
 
             var cashFlow = new List<MonthlyCashFlowDto>();
             for (var i = 0; i < 12; i++)
@@ -146,9 +169,81 @@ namespace SmartPos.Dashboard
                 TodayPurchases = todayPurchases,
                 TodayExpenses = todayExpenses,
                 TodayProfit = todayProfit,
+                AverageProfitMargin = averageProfitMargin,
+                PreviousAverageProfitMargin = previousAverageProfitMargin,
+                GrowthPercentage = growthPercentage,
+                IsGrowthPositive = isGrowthPositive,
                 CashFlow = cashFlow,
                 Products = productRows
             };
+        }
+
+        /// <summary>
+        /// Previous equivalent period end (exclusive): same MTD day count in the previous month,
+        /// clamped to the start of the current month.
+        /// </summary>
+        private static DateTime EquivalentPreviousPeriodEnd(
+            DateTime now,
+            DateTime currentPeriodStart,
+            DateTime previousPeriodStart)
+        {
+            var dayCount = (now.Date - currentPeriodStart).Days + 1;
+            var previousEnd = previousPeriodStart.AddDays(dayCount);
+            return previousEnd > currentPeriodStart ? currentPeriodStart : previousEnd;
+        }
+
+        private static decimal CalculateAverageProfitMargin(
+            IEnumerable<Sale> sales,
+            IReadOnlyDictionary<int, decimal> costByProductId)
+        {
+            decimal revenue = 0;
+            decimal cost = 0;
+
+            foreach (var sale in sales)
+            {
+                if (sale.Lines == null)
+                {
+                    continue;
+                }
+
+                foreach (var line in sale.Lines)
+                {
+                    var lineRevenue = line.LineTotal > 0
+                        ? line.LineTotal
+                        : line.UnitPrice * line.Quantity;
+                    revenue += lineRevenue;
+
+                    if (costByProductId.TryGetValue(line.ProductId, out var unitCost))
+                    {
+                        cost += unitCost * line.Quantity;
+                    }
+                }
+            }
+
+            if (revenue <= 0)
+            {
+                return 0;
+            }
+
+            return Math.Round((revenue - cost) / revenue * 100m, 2);
+        }
+
+        private static (decimal GrowthPercentage, bool IsGrowthPositive) ComputeGrowthPercentage(
+            decimal current,
+            decimal previous)
+        {
+            decimal growth;
+            if (previous == 0)
+            {
+                // Avoid divide-by-zero: no change when both zero; otherwise treat as +/-100%.
+                growth = current == 0 ? 0 : (current > 0 ? 100m : -100m);
+            }
+            else
+            {
+                growth = Math.Round((current - previous) / previous * 100m, 2);
+            }
+
+            return (growth, growth >= 0);
         }
 
         private static decimal EffectiveAlertLimit(Product product)
