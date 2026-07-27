@@ -9,6 +9,7 @@ using Abp.AspNetCore.SignalR;
 using Abp.Modules;
 using Abp.Reflection.Extensions;
 using Abp.Zero.Configuration;
+using SmartPos.Authentication.External;
 using SmartPos.Authentication.JwtBearer;
 using SmartPos.Configuration;
 using SmartPos.EntityFrameworkCore;
@@ -71,6 +72,32 @@ namespace SmartPos
         {
             IocManager.Resolve<ApplicationPartManager>()
                 .AddApplicationPartsIfNotAddedBefore(typeof(SmartPosWebCoreModule).Assembly);
+
+            ConfigureExternalAuthProviders();
+        }
+
+        private void ConfigureExternalAuthProviders()
+        {
+            var isGoogleEnabled = string.Equals(
+                _appConfiguration["Authentication:Google:IsEnabled"],
+                "true",
+                StringComparison.OrdinalIgnoreCase);
+
+            var clientId = _appConfiguration["Authentication:Google:ClientId"];
+            if (!isGoogleEnabled || string.IsNullOrWhiteSpace(clientId) || clientId.Contains("YOUR_GOOGLE"))
+            {
+                return;
+            }
+
+            var externalAuthConfiguration = IocManager.Resolve<IExternalAuthConfiguration>();
+            externalAuthConfiguration.Providers.Add(
+                new ExternalLoginProviderInfo(
+                    GoogleAuthProviderApi.ProviderName,
+                    clientId,
+                    _appConfiguration["Authentication:Google:ClientSecret"] ?? string.Empty,
+                    typeof(GoogleAuthProviderApi)
+                )
+            );
         }
     }
 }

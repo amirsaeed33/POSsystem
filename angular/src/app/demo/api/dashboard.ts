@@ -18,6 +18,31 @@ export interface DashboardDto {
     isGrowthPositive: boolean;
     cashFlow: MonthlyCashFlowDto[];
     products: DashboardProductRowDto[];
+    quickActions: DashboardQuickActionCountsDto;
+    latestListTitle: string;
+    latestListItems: DashboardLatestListItemDto[];
+    timeline: DashboardTimelineEventDto[];
+}
+
+export interface DashboardQuickActionCountsDto {
+    lowStockCount: number;
+    pendingOrdersCount: number;
+    todaySalesCount: number;
+    companyProfileCount: number;
+}
+
+export interface DashboardLatestListItemDto {
+    title: string;
+    subtitle: string;
+    initials: string;
+}
+
+export interface DashboardTimelineEventDto {
+    type: 'sale' | 'purchase' | 'expense' | 'stock' | string;
+    title: string;
+    amount: number;
+    quantityLabel?: string;
+    occurredAt: string;
 }
 
 export interface MonthlyCashFlowDto {

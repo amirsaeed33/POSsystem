@@ -59,6 +59,22 @@
         min-height: 8rem;
     }
 
+    .product-initials {
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--primary-color);
+        background: color-mix(in srgb, var(--primary-color) 12%, var(--surface-ground));
+        user-select: none;
+    }
+
+    .product-shop-image.product-initials {
+        font-size: 2rem;
+    }
+
+    .order-cart-thumb.product-initials {
+        font-size: 0.95rem;
+    }
+
     .product-shop-badge {
         position: absolute;
         top: 0.5rem;

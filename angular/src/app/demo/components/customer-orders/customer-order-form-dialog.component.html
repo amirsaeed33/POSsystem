@@ -88,15 +88,20 @@
                             (click)="addProduct(product)"
                         >
                             <div class="product-shop-image-wrap">
-                                <img
-                                    *ngIf="product.imagePath; else noImg"
-                                    [src]="getImageUrl(product)"
-                                    [alt]="product.name"
-                                    class="product-shop-image"
-                                />
-                                <ng-template #noImg>
-                                    <div class="product-shop-image placeholder">
-                                        <i class="pi pi-box text-3xl text-400"></i>
+                                <ng-container *ngIf="product.imagePath; else productInitials">
+                                    <img
+                                        [src]="getImageUrl(product)"
+                                        [alt]="product.name"
+                                        class="product-shop-image"
+                                        (error)="onProductImageError($event)"
+                                    />
+                                    <div class="product-shop-image placeholder product-initials" hidden>
+                                        {{ getProductInitials(product.name) }}
+                                    </div>
+                                </ng-container>
+                                <ng-template #productInitials>
+                                    <div class="product-shop-image placeholder product-initials">
+                                        {{ getProductInitials(product.name) }}
                                     </div>
                                 </ng-template>
                                 <span
@@ -166,15 +171,20 @@
 
                     <div class="order-cart-list" *ngIf="cart.length">
                         <div class="order-cart-item" *ngFor="let line of cart">
-                            <img
-                                *ngIf="line.imagePath; else cartNoImg"
-                                [src]="getImageUrl(line)"
-                                [alt]="line.productName"
-                                class="order-cart-thumb"
-                            />
-                            <ng-template #cartNoImg>
-                                <div class="order-cart-thumb placeholder">
-                                    <i class="pi pi-box"></i>
+                            <ng-container *ngIf="line.imagePath; else cartInitials">
+                                <img
+                                    [src]="getImageUrl(line)"
+                                    [alt]="line.productName"
+                                    class="order-cart-thumb"
+                                    (error)="onProductImageError($event)"
+                                />
+                                <div class="order-cart-thumb placeholder product-initials" hidden>
+                                    {{ getProductInitials(line.productName) }}
+                                </div>
+                            </ng-container>
+                            <ng-template #cartInitials>
+                                <div class="order-cart-thumb placeholder product-initials">
+                                    {{ getProductInitials(line.productName) }}
                                 </div>
                             </ng-template>
 

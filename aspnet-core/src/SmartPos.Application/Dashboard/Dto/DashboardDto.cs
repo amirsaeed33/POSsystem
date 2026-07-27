@@ -45,6 +45,52 @@ namespace SmartPos.Dashboard.Dto
         public List<MonthlyCashFlowDto> CashFlow { get; set; }
 
         public List<DashboardProductRowDto> Products { get; set; }
+
+        /// <summary>Counts for dashboard Quick Actions badges.</summary>
+        public DashboardQuickActionCountsDto QuickActions { get; set; }
+
+        /// <summary>Latest customers or sales for the side list.</summary>
+        public string LatestListTitle { get; set; }
+
+        public List<DashboardLatestListItemDto> LatestListItems { get; set; }
+
+        /// <summary>Merged recent activity for the timeline widget.</summary>
+        public List<DashboardTimelineEventDto> Timeline { get; set; }
+    }
+
+    public class DashboardQuickActionCountsDto
+    {
+        public int LowStockCount { get; set; }
+
+        public int PendingOrdersCount { get; set; }
+
+        public int TodaySalesCount { get; set; }
+
+        public int CompanyProfileCount { get; set; }
+    }
+
+    public class DashboardLatestListItemDto
+    {
+        public string Title { get; set; }
+
+        public string Subtitle { get; set; }
+
+        public string Initials { get; set; }
+    }
+
+    public class DashboardTimelineEventDto
+    {
+        /// <summary>sale | purchase | expense | stock</summary>
+        public string Type { get; set; }
+
+        public string Title { get; set; }
+
+        public decimal Amount { get; set; }
+
+        /// <summary>Optional quantity label for stock adjustments.</summary>
+        public string QuantityLabel { get; set; }
+
+        public DateTime OccurredAt { get; set; }
     }
 
     public class MonthlyCashFlowDto

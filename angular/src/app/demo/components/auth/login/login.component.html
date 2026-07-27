@@ -66,17 +66,14 @@
         <span class="text-color-secondary text-center mb-4">or sign in with below</span>
 
         <div class="flex gap-4 align-items-center justify-content-center">
-            <a href="https://www.facebook.com" class="inline-flex flex-shrink-0 w-3rem h-3rem justify-content-center align-items-center surface-ground border-circle">
-                <i class="pi pi-facebook text-2xl text-color"></i>
-            </a>
-            <a href="https://www.twitter.com" class="inline-flex flex-shrink-0 w-3rem h-3rem justify-content-center align-items-center surface-ground border-circle">
-                <i class="pi pi-twitter text-2xl text-color"></i>
-            </a>
-            <a href="https://www.google.com" class="inline-flex flex-shrink-0 w-3rem h-3rem justify-content-center align-items-center surface-ground border-circle">
+            <a
+                href="#"
+                class="inline-flex flex-shrink-0 w-3rem h-3rem justify-content-center align-items-center surface-ground border-circle social-login-btn"
+                [class.opacity-60]="!googleEnabled"
+                (click)="loginWithGoogle($event)"
+                title="Sign in with Google"
+            >
                 <i class="pi pi-google text-2xl text-color"></i>
-            </a>
-            <a href="https://www.github.com" class="inline-flex flex-shrink-0 w-3rem h-3rem justify-content-center align-items-center surface-ground border-circle">
-                <i class="pi pi-github text-2xl text-color"></i>
             </a>
         </div>
     </div>

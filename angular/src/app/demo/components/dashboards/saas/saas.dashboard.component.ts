@@ -2,15 +2,11 @@ import {Component, OnDestroy, OnInit} from '@angular/core';
 import { Subscription, debounceTime } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { DashboardService } from 'src/app/demo/service/dashboard.service';
-import { SaleService } from 'src/app/demo/service/sale.service';
-import { PurchaseService } from 'src/app/demo/service/purchase.service';
-import { ExpenseService } from 'src/app/demo/service/expense.service';
-import { StockAdjustmentService } from 'src/app/demo/service/stock-adjustment.service';
-import { MonthlyCashFlowDto, DashboardProductRowDto } from 'src/app/demo/api/dashboard';
-import { SaleDto } from 'src/app/demo/api/sale';
-import { PurchaseDto } from 'src/app/demo/api/purchase';
-import { ExpenseDto } from 'src/app/demo/api/expense';
-import { StockAdjustmentDto } from 'src/app/demo/api/stock-adjustment';
+import {
+    MonthlyCashFlowDto,
+    DashboardProductRowDto,
+    DashboardTimelineEventDto,
+} from 'src/app/demo/api/dashboard';
 
 interface LatestListItem {
     title: string;
@@ -56,7 +52,8 @@ interface TimelineEvent {
 }
 
 @Component({
-    templateUrl: './saas.dashboard.component.html'
+    templateUrl: './saas.dashboard.component.html',
+    styleUrls: ['./saas.dashboard.component.scss']
 })
 export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
@@ -99,6 +96,11 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     timelineEvents: TimelineEvent[] = [];
     timelineVisibleCount = 5;
 
+    lowStockCount = 0;
+    pendingOrdersCount = 0;
+    todaySalesCount = 0;
+    companyProfileCount = 0;
+
     private readonly avatarStyles: Record<string, string>[] = [
         {'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'},
         {'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'},
@@ -110,11 +112,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     constructor(
         public layoutService: LayoutService,
-        private dashboardService: DashboardService,
-        private saleService: SaleService,
-        private purchaseService: PurchaseService,
-        private expenseService: ExpenseService,
-        private stockAdjustmentService: StockAdjustmentService
+        private dashboardService: DashboardService
     ) {
         this.subscription = this.layoutService.configUpdate$
         .pipe(debounceTime(25))
@@ -133,8 +131,6 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
         this.initCharts();
         this.loadDashboard();
-        this.loadLatestList();
-        this.loadTimeline();
     }
 
     get visibleTimelineEvents(): TimelineEvent[] {
@@ -152,111 +148,132 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         );
     }
 
-    async loadTimeline() {
-        const page = { skipCount: 0, maxResultCount: 10 };
+    async loadDashboard() {
         try {
-            const [sales, purchases, expenses, adjustments] =
-                await Promise.all([
-                    this.saleService.getAll(page).catch(() => ({ items: [] })),
-                    this.purchaseService.getAll(page).catch(() => ({ items: [] })),
-                    this.expenseService.getAll(page).catch(() => ({ items: [] })),
-                    this.stockAdjustmentService
-                        .getAll(page)
-                        .catch(() => ({ items: [] })),
-                ]);
+            const data = await this.dashboardService.get();
+            this.todaySales = data.todaySales ?? 0;
+            this.todayPurchases = data.todayPurchases ?? 0;
+            this.todayExpenses = data.todayExpenses ?? 0;
+            this.todayProfit = data.todayProfit ?? 0;
+            this.averageProfitMargin = data.averageProfitMargin ?? 0;
+            this.previousAverageProfitMargin =
+                data.previousAverageProfitMargin ?? 0;
+            this.growthPercentage = data.growthPercentage ?? 0;
+            this.isGrowthPositive = data.isGrowthPositive ?? true;
+            this.cashFlow = data.cashFlow ?? [];
+            const products = data.products ?? [];
+            this.topProducts = this.buildTopProducts(products);
+            this.salesByCategory = this.buildSalesGroups(products, 'category');
+            this.salesByBrand = this.buildSalesGroups(products, 'brand');
+            this.stockHighlights = this.buildStockHighlights(products);
+            this.stockHighlightIndex = 0;
 
-            const events: TimelineEvent[] = [
-                ...this.mapSaleEvents(sales.items || []),
-                ...this.mapPurchaseEvents(purchases.items || []),
-                ...this.mapExpenseEvents(expenses.items || []),
-                ...this.mapStockEvents(adjustments.items || []),
-            ];
+            const quick = data.quickActions;
+            this.lowStockCount =
+                quick?.lowStockCount ?? data.lowStockCount ?? 0;
+            this.pendingOrdersCount = quick?.pendingOrdersCount ?? 0;
+            this.todaySalesCount = quick?.todaySalesCount ?? 0;
+            this.companyProfileCount = quick?.companyProfileCount ?? 0;
 
-            this.timelineEvents = events.sort(
-                (a, b) => b.occurredAt - a.occurredAt
+            this.latestListTitle = data.latestListTitle || 'Latest Sales';
+            this.latestListItems = (data.latestListItems || []).map(
+                (item, index) => ({
+                    title: item.title,
+                    subtitle: item.subtitle,
+                    initials: item.initials || '?',
+                    avatarStyle:
+                        this.avatarStyles[index % this.avatarStyles.length],
+                })
             );
+
+            this.timelineEvents = this.mapTimelineEvents(data.timeline || []);
             this.timelineVisibleCount = 5;
         } catch {
+            this.todaySales = 0;
+            this.todayPurchases = 0;
+            this.todayExpenses = 0;
+            this.todayProfit = 0;
+            this.averageProfitMargin = 0;
+            this.previousAverageProfitMargin = 0;
+            this.growthPercentage = 0;
+            this.isGrowthPositive = true;
+            this.cashFlow = [];
+            this.topProducts = [];
+            this.salesByCategory = [];
+            this.salesByBrand = [];
+            this.stockHighlights = [];
+            this.stockHighlightIndex = 0;
+            this.lowStockCount = 0;
+            this.pendingOrdersCount = 0;
+            this.todaySalesCount = 0;
+            this.companyProfileCount = 0;
+            this.latestListTitle = 'Latest Sales';
+            this.latestListItems = [];
             this.timelineEvents = [];
         }
+        this.buildOverviewChart();
+        this.buildRevenueChart();
     }
 
-    private mapSaleEvents(sales: SaleDto[]): TimelineEvent[] {
-        return sales.map((sale) => {
-            const ref = sale.invoiceNo || String(sale.id);
-            return {
-                type: 'sale' as const,
-                title: `Sale #${ref}`,
-                amountLabel: this.formatPkr(sale.totalAmount ?? 0),
-                timeAgo: this.formatTimeAgo(sale.saleDate),
-                occurredAt: new Date(sale.saleDate).getTime() || 0,
+    private mapTimelineEvents(
+        events: DashboardTimelineEventDto[]
+    ): TimelineEvent[] {
+        const styles: Record<
+            string,
+            Pick<
+                TimelineEvent,
+                'icon' | 'iconClass' | 'lineClass' | 'detailBg' | 'detailBgDark'
+            >
+        > = {
+            sale: {
                 icon: 'pi pi-shopping-cart',
                 iconClass: 'bg-blue-100 text-blue-500',
                 lineClass: 'bg-blue-100',
                 detailBg: 'rgba(227, 248, 255, 0.5)',
                 detailBgDark: 'rgba(227, 248, 255, 0.1)',
-            };
-        });
-    }
-
-    private mapPurchaseEvents(purchases: PurchaseDto[]): TimelineEvent[] {
-        return purchases.map((purchase) => {
-            const ref = purchase.invoiceNo || String(purchase.id);
-            return {
-                type: 'purchase' as const,
-                title: `Purchase #${ref}`,
-                amountLabel: this.formatPkr(purchase.totalAmount ?? 0),
-                timeAgo: this.formatTimeAgo(purchase.purchaseDate),
-                occurredAt: new Date(purchase.purchaseDate).getTime() || 0,
+            },
+            purchase: {
                 icon: 'pi pi-shopping-bag',
                 iconClass: 'bg-yellow-100 text-yellow-500',
                 lineClass: 'bg-yellow-100',
                 detailBg: 'rgba(255, 249, 230, 0.5)',
                 detailBgDark: 'rgba(255, 249, 230, 0.1)',
-            };
-        });
-    }
-
-    private mapExpenseEvents(expenses: ExpenseDto[]): TimelineEvent[] {
-        return expenses.map((expense) => {
-            const ref = expense.referenceNo || String(expense.id);
-            return {
-                type: 'expense' as const,
-                title: `Expense #${ref}`,
-                amountLabel: this.formatPkr(expense.amount ?? 0),
-                timeAgo: this.formatTimeAgo(expense.expenseDate),
-                occurredAt: new Date(expense.expenseDate).getTime() || 0,
+            },
+            expense: {
                 icon: 'pi pi-wallet',
                 iconClass: 'bg-red-100 text-red-500',
                 lineClass: 'bg-red-100',
                 detailBg: 'rgba(255, 235, 238, 0.5)',
                 detailBgDark: 'rgba(255, 235, 238, 0.1)',
-            };
-        });
-    }
-
-    private mapStockEvents(adjustments: StockAdjustmentDto[]): TimelineEvent[] {
-        return adjustments.map((adj) => {
-            const ref = adj.referenceNo || String(adj.id);
-            const qty = (adj.lines || []).reduce(
-                (sum, line) => sum + (line.quantityChange || 0),
-                0
-            );
-            const qtyLabel =
-                qty === 0
-                    ? 'Stock adjusted'
-                    : `${qty > 0 ? '+' : ''}${qty} units`;
-            return {
-                type: 'stock' as const,
-                title: `Stock Adjusted #${ref}`,
-                amountLabel: qtyLabel,
-                timeAgo: this.formatTimeAgo(adj.adjustmentDate),
-                occurredAt: new Date(adj.adjustmentDate).getTime() || 0,
+            },
+            stock: {
                 icon: 'pi pi-sync',
                 iconClass: 'bg-green-100 text-green-500',
                 lineClass: 'bg-green-100',
                 detailBg: 'rgba(232, 245, 233, 0.5)',
                 detailBgDark: 'rgba(232, 245, 233, 0.1)',
+            },
+        };
+
+        return events.map((event) => {
+            const type = (
+                ['sale', 'purchase', 'expense', 'stock'].includes(event.type)
+                    ? event.type
+                    : 'sale'
+            ) as TimelineEvent['type'];
+            const style = styles[type] || styles['sale'];
+            const amountLabel =
+                type === 'stock'
+                    ? event.quantityLabel || 'Stock adjusted'
+                    : this.formatPkr(event.amount ?? 0);
+
+            return {
+                type,
+                title: event.title,
+                amountLabel,
+                timeAgo: this.formatTimeAgo(event.occurredAt),
+                occurredAt: new Date(event.occurredAt).getTime() || 0,
+                ...style,
             };
         });
     }
@@ -287,43 +304,11 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         return days === 1 ? '1 day ago' : `${days} days ago`;
     }
 
-    async loadDashboard() {
-        try {
-            const data = await this.dashboardService.get();
-            this.todaySales = data.todaySales ?? 0;
-            this.todayPurchases = data.todayPurchases ?? 0;
-            this.todayExpenses = data.todayExpenses ?? 0;
-            this.todayProfit = data.todayProfit ?? 0;
-            this.averageProfitMargin = data.averageProfitMargin ?? 0;
-            this.previousAverageProfitMargin =
-                data.previousAverageProfitMargin ?? 0;
-            this.growthPercentage = data.growthPercentage ?? 0;
-            this.isGrowthPositive = data.isGrowthPositive ?? true;
-            this.cashFlow = data.cashFlow ?? [];
-            const products = data.products ?? [];
-            this.topProducts = this.buildTopProducts(products);
-            this.salesByCategory = this.buildSalesGroups(products, 'category');
-            this.salesByBrand = this.buildSalesGroups(products, 'brand');
-            this.stockHighlights = this.buildStockHighlights(products);
-            this.stockHighlightIndex = 0;
-        } catch {
-            this.todaySales = 0;
-            this.todayPurchases = 0;
-            this.todayExpenses = 0;
-            this.todayProfit = 0;
-            this.averageProfitMargin = 0;
-            this.previousAverageProfitMargin = 0;
-            this.growthPercentage = 0;
-            this.isGrowthPositive = true;
-            this.cashFlow = [];
-            this.topProducts = [];
-            this.salesByCategory = [];
-            this.salesByBrand = [];
-            this.stockHighlights = [];
-            this.stockHighlightIndex = 0;
+    formatQuickActionCount(count: number): string {
+        if (count > 99) {
+            return '99+';
         }
-        this.buildOverviewChart();
-        this.buildRevenueChart();
+        return String(count ?? 0);
     }
 
     get currentStockHighlight(): StockHighlightItem | null {
@@ -416,101 +401,6 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                 isGrowthPositive: this.isGrowthPositive,
             }))
             .sort((a, b) => b.salesAmount - a.salesAmount);
-    }
-
-    async loadLatestList() {
-        try {
-            const result = await this.saleService.getAll({
-                skipCount: 0,
-                maxResultCount: 50,
-            });
-            const sales = this.sortSalesByDateDesc(result.items || []);
-
-            const customers = this.buildLatestCustomers(sales);
-            if (customers.length) {
-                this.latestListTitle = 'Latest Customers';
-                this.latestListItems = customers;
-                return;
-            }
-
-            this.latestListTitle = 'Latest Sales';
-            this.latestListItems = this.buildLatestSales(sales);
-        } catch {
-            this.latestListTitle = 'Latest Sales';
-            this.latestListItems = [];
-        }
-    }
-
-    private sortSalesByDateDesc(sales: SaleDto[]): SaleDto[] {
-        return [...sales].sort((a, b) => {
-            const aTime = new Date(a.saleDate).getTime() || 0;
-            const bTime = new Date(b.saleDate).getTime() || 0;
-            return bTime - aTime;
-        });
-    }
-
-    private buildLatestCustomers(sales: SaleDto[]): LatestListItem[] {
-        const seen = new Set<number>();
-        const items: LatestListItem[] = [];
-
-        for (const sale of sales) {
-            if (!sale.customerId || !sale.customerName || seen.has(sale.customerId)) {
-                continue;
-            }
-            seen.add(sale.customerId);
-            items.push({
-                title: sale.customerName,
-                subtitle: `${this.formatPkr(sale.totalAmount)} · ${this.formatDate(sale.saleDate)}`,
-                initials: this.getInitials(sale.customerName),
-                avatarStyle: this.avatarStyles[items.length % this.avatarStyles.length],
-            });
-            if (items.length >= 6) {
-                break;
-            }
-        }
-
-        return items;
-    }
-
-    private buildLatestSales(sales: SaleDto[]): LatestListItem[] {
-        return sales.slice(0, 6).map((sale, index) => {
-            const title =
-                sale.customerName ||
-                sale.invoiceNo ||
-                `Sale #${sale.id}`;
-            return {
-                title,
-                subtitle: `${this.formatPkr(sale.totalAmount)} · ${this.formatDate(sale.saleDate)}`,
-                initials: this.getInitials(title),
-                avatarStyle: this.avatarStyles[index % this.avatarStyles.length],
-            };
-        });
-    }
-
-    private getInitials(name: string): string {
-        const parts = (name || '')
-            .trim()
-            .split(/\s+/)
-            .filter(Boolean);
-        if (!parts.length) {
-            return '?';
-        }
-        if (parts.length === 1) {
-            return parts[0].substring(0, 2).toUpperCase();
-        }
-        return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-
-    private formatDate(value: string | Date): string {
-        const date = new Date(value);
-        if (isNaN(date.getTime())) {
-            return '';
-        }
-        return date.toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-        });
     }
 
     formatPkr(amount: number): string {

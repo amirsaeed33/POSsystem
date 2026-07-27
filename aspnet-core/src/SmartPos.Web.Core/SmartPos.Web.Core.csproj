@@ -23,6 +23,7 @@
     <ProjectReference Include="..\SmartPos.EntityFrameworkCore\SmartPos.EntityFrameworkCore.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.3" />
     <PackageReference Include="Abp.AspNetCore" Version="9.4.1" />

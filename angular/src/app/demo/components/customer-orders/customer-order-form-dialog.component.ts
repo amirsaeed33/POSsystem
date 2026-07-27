@@ -109,6 +109,21 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
         );
     }
 
+    getProductInitials(name?: string | null): string {
+        return this.productService.getProductInitials(name);
+    }
+
+    onProductImageError(event: Event): void {
+        const img = event.target as HTMLImageElement | null;
+        if (img) {
+            img.style.display = 'none';
+            const fallback = img.nextElementSibling as HTMLElement | null;
+            if (fallback?.classList.contains('product-initials')) {
+                fallback.hidden = false;
+            }
+        }
+    }
+
     getDisplayPrice(product: ProductDto): number {
         return this.getUnitPriceForCustomer(product);
     }

@@ -4,13 +4,19 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Abp.Authorization;
 using Abp.Authorization.Users;
+using Abp.IdentityFramework;
 using Abp.MultiTenancy;
 using Abp.Runtime.Security;
+using Abp.UI;
+using SmartPos.Authentication.External;
 using SmartPos.Authentication.JwtBearer;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
 using SmartPos.Models.TokenAuth;
 using SmartPos.MultiTenancy;
@@ -24,17 +30,29 @@ namespace SmartPos.Controllers
         private readonly ITenantCache _tenantCache;
         private readonly AbpLoginResultTypeHelper _abpLoginResultTypeHelper;
         private readonly TokenAuthConfiguration _configuration;
+        private readonly IExternalAuthConfiguration _externalAuthConfiguration;
+        private readonly IExternalAuthManager _externalAuthManager;
+        private readonly UserManager _userManager;
+        private readonly RoleManager _roleManager;
 
         public TokenAuthController(
             LogInManager logInManager,
             ITenantCache tenantCache,
             AbpLoginResultTypeHelper abpLoginResultTypeHelper,
-            TokenAuthConfiguration configuration)
+            TokenAuthConfiguration configuration,
+            IExternalAuthConfiguration externalAuthConfiguration,
+            IExternalAuthManager externalAuthManager,
+            UserManager userManager,
+            RoleManager roleManager)
         {
             _logInManager = logInManager;
             _tenantCache = tenantCache;
             _abpLoginResultTypeHelper = abpLoginResultTypeHelper;
             _configuration = configuration;
+            _externalAuthConfiguration = externalAuthConfiguration;
+            _externalAuthManager = externalAuthManager;
+            _userManager = userManager;
+            _roleManager = roleManager;
         }
 
         [HttpPost]
@@ -57,6 +75,160 @@ namespace SmartPos.Controllers
             };
         }
 
+        [HttpGet]
+        public List<ExternalLoginProviderInfoModel> GetExternalAuthenticationProviders()
+        {
+            return _externalAuthConfiguration.Providers
+                .Select(p => new ExternalLoginProviderInfoModel
+                {
+                    Name = p.Name,
+                    ClientId = p.ClientId
+                })
+                .ToList();
+        }
+
+        [HttpPost]
+        public async Task<ExternalAuthenticateResultModel> ExternalAuthenticate(
+            [FromBody] ExternalAuthenticateModel model)
+        {
+            var externalUser = await GetExternalUserInfo(model);
+
+            var loginResult = await _logInManager.LoginAsync(
+                new UserLoginInfo(model.AuthProvider, externalUser.ProviderKey, model.AuthProvider),
+                GetTenancyNameOrNull()
+            );
+
+            switch (loginResult.Result)
+            {
+                case AbpLoginResultType.Success:
+                {
+                    var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
+                    return new ExternalAuthenticateResultModel
+                    {
+                        AccessToken = accessToken,
+                        EncryptedAccessToken = GetEncryptedAccessToken(accessToken),
+                        ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
+                        UserId = loginResult.User.Id
+                    };
+                }
+                case AbpLoginResultType.UnknownExternalLogin:
+                {
+                    var newUser = await RegisterExternalUserAsync(externalUser);
+                    if (!newUser.IsActive)
+                    {
+                        return new ExternalAuthenticateResultModel
+                        {
+                            WaitingForActivation = true
+                        };
+                    }
+
+                    loginResult = await _logInManager.LoginAsync(
+                        new UserLoginInfo(model.AuthProvider, externalUser.ProviderKey, model.AuthProvider),
+                        GetTenancyNameOrNull()
+                    );
+
+                    if (loginResult.Result != AbpLoginResultType.Success)
+                    {
+                        throw _abpLoginResultTypeHelper.CreateExceptionForFailedLoginAttempt(
+                            loginResult.Result,
+                            externalUser.ProviderKey,
+                            GetTenancyNameOrNull()
+                        );
+                    }
+
+                    var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
+                    return new ExternalAuthenticateResultModel
+                    {
+                        AccessToken = accessToken,
+                        EncryptedAccessToken = GetEncryptedAccessToken(accessToken),
+                        ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
+                        UserId = loginResult.User.Id
+                    };
+                }
+                default:
+                    throw _abpLoginResultTypeHelper.CreateExceptionForFailedLoginAttempt(
+                        loginResult.Result,
+                        externalUser.ProviderKey,
+                        GetTenancyNameOrNull()
+                    );
+            }
+        }
+
+        private async Task<User> RegisterExternalUserAsync(ExternalAuthUserInfo externalUser)
+        {
+            var existingUser = await _userManager.FindByEmailAsync(externalUser.EmailAddress);
+            if (existingUser != null)
+            {
+                CheckErrors(await _userManager.AddLoginAsync(
+                    existingUser,
+                    new UserLoginInfo(externalUser.Provider, externalUser.ProviderKey, externalUser.Provider)
+                ));
+                return existingUser;
+            }
+
+            var user = new User
+            {
+                TenantId = AbpSession.TenantId,
+                EmailAddress = externalUser.EmailAddress,
+                Name = string.IsNullOrWhiteSpace(externalUser.Name) ? externalUser.EmailAddress : externalUser.Name,
+                Surname = string.IsNullOrWhiteSpace(externalUser.Surname) ? "-" : externalUser.Surname,
+                IsActive = true,
+                IsEmailConfirmed = true,
+                UserName = await EnsureUniqueUserNameAsync(externalUser.EmailAddress),
+                Roles = new List<UserRole>()
+            };
+
+            user.SetNormalizedNames();
+
+            foreach (var defaultRole in await _roleManager.Roles.Where(r => r.IsDefault).ToListAsync())
+            {
+                user.Roles.Add(new UserRole(AbpSession.TenantId, user.Id, defaultRole.Id));
+            }
+
+            await _userManager.InitializeOptionsAsync(AbpSession.TenantId);
+
+            CheckErrors(await _userManager.CreateAsync(user));
+            CheckErrors(await _userManager.AddLoginAsync(
+                user,
+                new UserLoginInfo(externalUser.Provider, externalUser.ProviderKey, externalUser.Provider)
+            ));
+
+            await CurrentUnitOfWork.SaveChangesAsync();
+            return user;
+        }
+
+        private async Task<string> EnsureUniqueUserNameAsync(string emailAddress)
+        {
+            var baseName = emailAddress;
+            if (await _userManager.FindByNameAsync(baseName) == null)
+            {
+                return baseName;
+            }
+
+            for (var i = 1; i < 1000; i++)
+            {
+                var candidate = $"{baseName}_{i}";
+                if (await _userManager.FindByNameAsync(candidate) == null)
+                {
+                    return candidate;
+                }
+            }
+
+            return $"{baseName}_{Guid.NewGuid():N}".Substring(0, Math.Min(256, baseName.Length + 33));
+        }
+
+        private async Task<ExternalAuthUserInfo> GetExternalUserInfo(ExternalAuthenticateModel model)
+        {
+            var userInfo = await _externalAuthManager.GetUserInfo(model.AuthProvider, model.ProviderAccessCode);
+            if (!string.IsNullOrWhiteSpace(model.ProviderKey) &&
+                !string.Equals(userInfo.ProviderKey, model.ProviderKey, System.StringComparison.Ordinal))
+            {
+                throw new UserFriendlyException("Could not authenticate external user.");
+            }
+
+            return userInfo;
+        }
+
         private string GetTenancyNameOrNull()
         {
             if (!AbpSession.TenantId.HasValue)
@@ -67,7 +239,10 @@ namespace SmartPos.Controllers
             return _tenantCache.GetOrNull(AbpSession.TenantId.Value)?.TenancyName;
         }
 
-        private async Task<AbpLoginResult<Tenant, User>> GetLoginResultAsync(string usernameOrEmailAddress, string password, string tenancyName)
+        private async Task<AbpLoginResult<Tenant, User>> GetLoginResultAsync(
+            string usernameOrEmailAddress,
+            string password,
+            string tenancyName)
         {
             var loginResult = await _logInManager.LoginAsync(usernameOrEmailAddress, password, tenancyName);
 
@@ -76,7 +251,10 @@ namespace SmartPos.Controllers
                 case AbpLoginResultType.Success:
                     return loginResult;
                 default:
-                    throw _abpLoginResultTypeHelper.CreateExceptionForFailedLoginAttempt(loginResult.Result, usernameOrEmailAddress, tenancyName);
+                    throw _abpLoginResultTypeHelper.CreateExceptionForFailedLoginAttempt(
+                        loginResult.Result,
+                        usernameOrEmailAddress,
+                        tenancyName);
             }
         }
 
@@ -101,7 +279,6 @@ namespace SmartPos.Controllers
             var claims = identity.Claims.ToList();
             var nameIdClaim = claims.First(c => c.Type == ClaimTypes.NameIdentifier);
 
-            // Specifically add the jti (random nonce), iat (issued timestamp), and sub (subject/user) claims.
             claims.AddRange(new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, nameIdClaim.Value),
@@ -115,6 +292,11 @@ namespace SmartPos.Controllers
         private string GetEncryptedAccessToken(string accessToken)
         {
             return SimpleStringCipher.Instance.Encrypt(accessToken);
+        }
+
+        private void CheckErrors(IdentityResult identityResult)
+        {
+            identityResult.CheckErrors(LocalizationManager);
         }
     }
 }

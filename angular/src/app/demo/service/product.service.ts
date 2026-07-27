@@ -131,6 +131,15 @@ export class ProductService {
         return `${environment.apiUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
     }
 
+    /** First two letters of the product name for image placeholders. */
+    getProductInitials(name?: string | null): string {
+        const cleaned = (name || '').trim().replace(/\s+/g, '');
+        if (!cleaned) {
+            return '?';
+        }
+        return cleaned.substring(0, 2).toUpperCase();
+    }
+
     private unwrap(res: any, fallbackMessage: string): any {
         if (!res) {
             throw new Error('No response from server');

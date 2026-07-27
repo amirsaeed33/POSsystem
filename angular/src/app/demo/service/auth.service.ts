@@ -11,11 +11,24 @@ const USER_ID_KEY = 'userId';
 const EXPIRE_KEY = 'expireInSeconds';
 const USER_INFO_KEY = 'userInfo';
 
+export interface ExternalLoginProviderInfo {
+    name: string;
+    clientId: string;
+}
+
+export interface ExternalAuthenticateModel {
+    authProvider: string;
+    providerKey?: string;
+    providerAccessCode: string;
+}
+
 @Injectable({
     providedIn: 'root',
 })
 export class AuthService {
     private readonly authenticateUrl = `${environment.apiUrl}/api/TokenAuth/Authenticate`;
+    private readonly externalAuthenticateUrl = `${environment.apiUrl}/api/TokenAuth/ExternalAuthenticate`;
+    private readonly externalProvidersUrl = `${environment.apiUrl}/api/TokenAuth/GetExternalAuthenticationProviders`;
 
     constructor(
         private http: HttpClient,
@@ -32,63 +45,58 @@ export class AuthService {
                 })
             );
 
+            return this.persistAuthResult(res, 'Authentication failed');
+        } catch (error: any) {
+            throw new Error(this.extractErrorMessage(error, 'Login failed. Please check your credentials.'));
+        }
+    }
+
+    async getExternalAuthenticationProviders(): Promise<ExternalLoginProviderInfo[]> {
+        try {
+            const res: any = await firstValueFrom(this.http.get<any>(this.externalProvidersUrl));
+            const result = res?.result ?? res;
+            const list = Array.isArray(result) ? result : [];
+            return list.map((p: any) => ({
+                name: p.name ?? p.Name,
+                clientId: p.clientId ?? p.ClientId,
+            }));
+        } catch {
+            return [];
+        }
+    }
+
+    async externalAuthenticate(model: ExternalAuthenticateModel): Promise<AuthenticateResultModel> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.post<any>(this.externalAuthenticateUrl, {
+                    authProvider: model.authProvider,
+                    providerKey: model.providerKey || '',
+                    providerAccessCode: model.providerAccessCode,
+                })
+            );
+
             if (!res) {
                 throw new Error('No response from server');
             }
 
-            // ASP.NET Zero / ABP wraps payloads as { success, result, error }
             if (res.success === false || res.error) {
                 throw new Error(
                     res.error?.message ||
                         res.error?.details ||
-                        'Authentication failed'
+                        'External authentication failed'
                 );
             }
 
             const result = res.result ?? res;
-            const accessToken = result.accessToken ?? result.AccessToken;
-            const encryptedAccessToken =
-                result.encryptedAccessToken ?? result.EncryptedAccessToken ?? '';
-            const userId = result.userId ?? result.UserId ?? 0;
-            const expireInSeconds =
-                result.expireInSeconds ?? result.ExpireInSeconds ?? 0;
-
-            if (!accessToken) {
-                throw new Error(
-                    'Invalid response: access token not found. Please check your credentials.'
-                );
+            if (result.waitingForActivation || result.WaitingForActivation) {
+                throw new Error('Your account is waiting for activation.');
             }
 
-            // Drop previous session profile so navbar does not keep the old user's photo
-            localStorage.removeItem(USER_INFO_KEY);
-
-            localStorage.setItem(TOKEN_KEY, accessToken);
-            if (encryptedAccessToken) {
-                localStorage.setItem(ENCRYPTED_TOKEN_KEY, encryptedAccessToken);
-            }
-            if (userId != null) {
-                localStorage.setItem(USER_ID_KEY, String(userId));
-            }
-            if (expireInSeconds != null) {
-                localStorage.setItem(EXPIRE_KEY, String(expireInSeconds));
-            }
-
-            return {
-                accessToken,
-                encryptedAccessToken,
-                expireInSeconds,
-                userId,
-            };
+            return this.persistAuthResult(res, 'External authentication failed');
         } catch (error: any) {
-            const abpError = error?.error;
-            const errorMessage =
-                abpError?.error?.message ||
-                abpError?.message ||
-                abpError?.details ||
-                error?.message ||
-                'Login failed. Please check your credentials.';
-
-            throw new Error(errorMessage);
+            throw new Error(
+                this.extractErrorMessage(error, 'Google sign-in failed. Please try again.')
+            );
         }
     }
 
@@ -116,5 +124,61 @@ export class AuthService {
     getUserInfo(): any {
         const userInfo = localStorage.getItem(USER_INFO_KEY);
         return userInfo ? JSON.parse(userInfo) : null;
+    }
+
+    private persistAuthResult(res: any, fallbackMessage: string): AuthenticateResultModel {
+        if (!res) {
+            throw new Error('No response from server');
+        }
+
+        if (res.success === false || res.error) {
+            throw new Error(
+                res.error?.message || res.error?.details || fallbackMessage
+            );
+        }
+
+        const result = res.result ?? res;
+        const accessToken = result.accessToken ?? result.AccessToken;
+        const encryptedAccessToken =
+            result.encryptedAccessToken ?? result.EncryptedAccessToken ?? '';
+        const userId = result.userId ?? result.UserId ?? 0;
+        const expireInSeconds =
+            result.expireInSeconds ?? result.ExpireInSeconds ?? 0;
+
+        if (!accessToken) {
+            throw new Error(
+                'Invalid response: access token not found. Please check your credentials.'
+            );
+        }
+
+        localStorage.removeItem(USER_INFO_KEY);
+        localStorage.setItem(TOKEN_KEY, accessToken);
+        if (encryptedAccessToken) {
+            localStorage.setItem(ENCRYPTED_TOKEN_KEY, encryptedAccessToken);
+        }
+        if (userId != null) {
+            localStorage.setItem(USER_ID_KEY, String(userId));
+        }
+        if (expireInSeconds != null) {
+            localStorage.setItem(EXPIRE_KEY, String(expireInSeconds));
+        }
+
+        return {
+            accessToken,
+            encryptedAccessToken,
+            expireInSeconds,
+            userId,
+        };
+    }
+
+    private extractErrorMessage(error: any, fallback: string): string {
+        const abpError = error?.error;
+        return (
+            abpError?.error?.message ||
+            abpError?.message ||
+            abpError?.details ||
+            error?.message ||
+            fallback
+        );
     }
 }

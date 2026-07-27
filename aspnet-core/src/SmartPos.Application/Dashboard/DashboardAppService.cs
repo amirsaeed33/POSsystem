@@ -7,8 +7,11 @@ using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Timing;
 using Microsoft.EntityFrameworkCore;
+using SmartPos.CompanyProfiles;
 using SmartPos.Dashboard.Dto;
 using SmartPos.Expenses;
+using SmartPos.Inventory;
+using SmartPos.Orders;
 using SmartPos.Products;
 using SmartPos.Purchases;
 using SmartPos.Sales;
@@ -24,17 +27,26 @@ namespace SmartPos.Dashboard
         private readonly IRepository<Sale> _saleRepository;
         private readonly IRepository<Purchase> _purchaseRepository;
         private readonly IRepository<Expense> _expenseRepository;
+        private readonly IRepository<CustomerOrder> _customerOrderRepository;
+        private readonly IRepository<StockAdjustment> _stockAdjustmentRepository;
+        private readonly IRepository<CompanyProfile> _companyProfileRepository;
 
         public DashboardAppService(
             IRepository<Product> productRepository,
             IRepository<Sale> saleRepository,
             IRepository<Purchase> purchaseRepository,
-            IRepository<Expense> expenseRepository)
+            IRepository<Expense> expenseRepository,
+            IRepository<CustomerOrder> customerOrderRepository,
+            IRepository<StockAdjustment> stockAdjustmentRepository,
+            IRepository<CompanyProfile> companyProfileRepository)
         {
             _productRepository = productRepository;
             _saleRepository = saleRepository;
             _purchaseRepository = purchaseRepository;
             _expenseRepository = expenseRepository;
+            _customerOrderRepository = customerOrderRepository;
+            _stockAdjustmentRepository = stockAdjustmentRepository;
+            _companyProfileRepository = companyProfileRepository;
         }
 
         public async Task<DashboardDto> GetAsync()
@@ -158,6 +170,8 @@ namespace SmartPos.Dashboard
                 userName = user.UserName;
             }
 
+            var widgetData = await LoadWidgetDataAsync(todayStart, tomorrow, lowStock.Count);
+
             return new DashboardDto
             {
                 UserDisplayName = userName,
@@ -178,8 +192,210 @@ namespace SmartPos.Dashboard
                 GrowthPercentage = growthPercentage,
                 IsGrowthPositive = isGrowthPositive,
                 CashFlow = cashFlow,
-                Products = productRows
+                Products = productRows,
+                QuickActions = widgetData.QuickActions,
+                LatestListTitle = widgetData.LatestListTitle,
+                LatestListItems = widgetData.LatestListItems,
+                Timeline = widgetData.Timeline
             };
+        }
+
+        private async Task<(
+            DashboardQuickActionCountsDto QuickActions,
+            string LatestListTitle,
+            List<DashboardLatestListItemDto> LatestListItems,
+            List<DashboardTimelineEventDto> Timeline)> LoadWidgetDataAsync(
+            DateTime todayStart,
+            DateTime tomorrow,
+            int lowStockCount)
+        {
+            var pendingOrdersCount = await _customerOrderRepository.CountAsync(
+                x => x.Status == CustomerOrderStatus.Pending);
+
+            var companyProfileCount = await _companyProfileRepository.CountAsync();
+
+            var todaySalesCount = await _saleRepository.CountAsync(
+                x => x.SaleDate >= todayStart && x.SaleDate < tomorrow);
+
+            var recentSales = await _saleRepository.GetAllIncluding(x => x.Customer)
+                .AsNoTracking()
+                .OrderByDescending(x => x.SaleDate)
+                .Take(50)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.InvoiceNo,
+                    x.SaleDate,
+                    x.TotalAmount,
+                    x.CustomerId,
+                    CustomerName = x.Customer != null ? x.Customer.Name : null
+                })
+                .ToListAsync();
+
+            var recentPurchases = await _purchaseRepository.GetAll()
+                .AsNoTracking()
+                .OrderByDescending(x => x.PurchaseDate)
+                .Take(10)
+                .Select(x => new { x.Id, x.InvoiceNo, x.PurchaseDate, x.TotalAmount })
+                .ToListAsync();
+
+            var recentExpenses = await _expenseRepository.GetAll()
+                .AsNoTracking()
+                .OrderByDescending(x => x.ExpenseDate)
+                .Take(10)
+                .Select(x => new { x.Id, x.ReferenceNo, x.ExpenseDate, x.Amount })
+                .ToListAsync();
+
+            var recentAdjustments = await _stockAdjustmentRepository.GetAllIncluding(x => x.Lines)
+                .AsNoTracking()
+                .OrderByDescending(x => x.AdjustmentDate)
+                .Take(10)
+                .ToListAsync();
+
+            var (latestTitle, latestItems) = BuildLatestListFromSales(
+                recentSales.Select(sale => (
+                    sale.Id,
+                    sale.InvoiceNo,
+                    sale.SaleDate,
+                    sale.TotalAmount,
+                    (int?)sale.CustomerId,
+                    sale.CustomerName
+                )));
+
+            var timeline = new List<DashboardTimelineEventDto>();
+            timeline.AddRange(recentSales.Take(10).Select(sale => new DashboardTimelineEventDto
+            {
+                Type = "sale",
+                Title = "Sale #" + (string.IsNullOrWhiteSpace(sale.InvoiceNo) ? sale.Id.ToString() : sale.InvoiceNo),
+                Amount = sale.TotalAmount,
+                OccurredAt = sale.SaleDate
+            }));
+            timeline.AddRange(recentPurchases.Select(purchase => new DashboardTimelineEventDto
+            {
+                Type = "purchase",
+                Title = "Purchase #" + (string.IsNullOrWhiteSpace(purchase.InvoiceNo) ? purchase.Id.ToString() : purchase.InvoiceNo),
+                Amount = purchase.TotalAmount,
+                OccurredAt = purchase.PurchaseDate
+            }));
+            timeline.AddRange(recentExpenses.Select(expense => new DashboardTimelineEventDto
+            {
+                Type = "expense",
+                Title = "Expense #" + (string.IsNullOrWhiteSpace(expense.ReferenceNo) ? expense.Id.ToString() : expense.ReferenceNo),
+                Amount = expense.Amount,
+                OccurredAt = expense.ExpenseDate
+            }));
+            timeline.AddRange(recentAdjustments.Select(adj =>
+            {
+                var qty = (adj.Lines ?? Enumerable.Empty<StockAdjustmentLine>())
+                    .Sum(line => line.QuantityChange);
+                var qtyLabel = qty == 0
+                    ? "Stock adjusted"
+                    : (qty > 0 ? "+" : "") + qty.ToString(CultureInfo.InvariantCulture) + " units";
+                return new DashboardTimelineEventDto
+                {
+                    Type = "stock",
+                    Title = "Stock Adjusted #" + (string.IsNullOrWhiteSpace(adj.ReferenceNo) ? adj.Id.ToString() : adj.ReferenceNo),
+                    Amount = 0,
+                    QuantityLabel = qtyLabel,
+                    OccurredAt = adj.AdjustmentDate
+                };
+            }));
+
+            timeline = timeline
+                .OrderByDescending(x => x.OccurredAt)
+                .Take(40)
+                .ToList();
+
+            return (
+                new DashboardQuickActionCountsDto
+                {
+                    LowStockCount = lowStockCount,
+                    PendingOrdersCount = pendingOrdersCount,
+                    TodaySalesCount = todaySalesCount,
+                    CompanyProfileCount = companyProfileCount
+                },
+                latestTitle,
+                latestItems,
+                timeline);
+        }
+
+        private static (string Title, List<DashboardLatestListItemDto> Items) BuildLatestListFromSales(
+            IEnumerable<(int Id, string InvoiceNo, DateTime SaleDate, decimal TotalAmount, int? CustomerId, string CustomerName)> recentSales)
+        {
+            var sales = recentSales.ToList();
+            var customers = new List<DashboardLatestListItemDto>();
+            var seen = new HashSet<int>();
+
+            foreach (var sale in sales)
+            {
+                if (!sale.CustomerId.HasValue ||
+                    string.IsNullOrWhiteSpace(sale.CustomerName) ||
+                    seen.Contains(sale.CustomerId.Value))
+                {
+                    continue;
+                }
+
+                seen.Add(sale.CustomerId.Value);
+                customers.Add(new DashboardLatestListItemDto
+                {
+                    Title = sale.CustomerName,
+                    Subtitle = FormatMoney(sale.TotalAmount) + " · " + FormatDate(sale.SaleDate),
+                    Initials = GetInitials(sale.CustomerName)
+                });
+
+                if (customers.Count >= 6)
+                {
+                    break;
+                }
+            }
+
+            if (customers.Count > 0)
+            {
+                return ("Latest Customers", customers);
+            }
+
+            var latestSales = sales.Take(6).Select(sale =>
+            {
+                var title = !string.IsNullOrWhiteSpace(sale.CustomerName)
+                    ? sale.CustomerName
+                    : (!string.IsNullOrWhiteSpace(sale.InvoiceNo) ? sale.InvoiceNo : "Sale #" + sale.Id);
+                return new DashboardLatestListItemDto
+                {
+                    Title = title,
+                    Subtitle = FormatMoney(sale.TotalAmount) + " · " + FormatDate(sale.SaleDate),
+                    Initials = GetInitials(title)
+                };
+            }).ToList();
+
+            return ("Latest Sales", latestSales);
+        }
+
+        private static string FormatMoney(decimal amount)
+        {
+            return "PKR " + amount.ToString("N0", CultureInfo.GetCultureInfo("en-PK"));
+        }
+
+        private static string FormatDate(DateTime date)
+        {
+            return date.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("en-GB"));
+        }
+
+        private static string GetInitials(string name)
+        {
+            var parts = (name ?? string.Empty)
+                .Trim()
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0)
+            {
+                return "?";
+            }
+
+            if (parts.Length == 1)
+            {
+                return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpperInvariant();
+            }
+
+            return (parts[0][0].ToString() + parts[1][0]).ToUpperInvariant();
         }
 
         /// <summary>
@@ -239,7 +455,6 @@ namespace SmartPos.Dashboard
             decimal growth;
             if (previous == 0)
             {
-                // Avoid divide-by-zero: no change when both zero; otherwise treat as +/-100%.
                 growth = current == 0 ? 0 : (current > 0 ? 100m : -100m);
             }
             else

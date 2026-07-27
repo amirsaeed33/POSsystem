@@ -68,16 +68,22 @@
         <ng-template pTemplate="body" let-product>
             <tr>
                 <td>
-                    <img
-                        *ngIf="product.imagePath; else noImage"
-                        [src]="getImageUrl(product)"
-                        [alt]="product.name"
-                        class="border-round cursor-pointer"
-                        style="width: 40px; height: 40px; object-fit: cover;"
-                        (click)="viewImage(product)"
-                    />
-                    <ng-template #noImage>
-                        <span class="text-500">—</span>
+                    <ng-container *ngIf="product.imagePath; else productInitials">
+                        <img
+                            [src]="getImageUrl(product)"
+                            [alt]="product.name"
+                            class="product-list-thumb border-round cursor-pointer"
+                            (click)="viewImage(product)"
+                            (error)="onProductImageError($event)"
+                        />
+                        <div class="product-list-thumb product-initials" hidden>
+                            {{ getProductInitials(product.name) }}
+                        </div>
+                    </ng-container>
+                    <ng-template #productInitials>
+                        <div class="product-list-thumb product-initials">
+                            {{ getProductInitials(product.name) }}
+                        </div>
                     </ng-template>
                 </td>
                 <td>{{ product.name }}</td>

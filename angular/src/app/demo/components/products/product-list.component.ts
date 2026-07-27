@@ -6,6 +6,7 @@ import { ProductService } from 'src/app/demo/service/product.service';
 
 @Component({
     templateUrl: './product-list.component.html',
+    styleUrls: ['./product-list.component.scss'],
     providers: [MessageService, ConfirmationService],
 })
 export class ProductListComponent implements OnInit {
@@ -65,6 +66,21 @@ export class ProductListComponent implements OnInit {
 
     getImageUrl(product: ProductDto): string {
         return this.productService.getImageUrl(product.imagePath);
+    }
+
+    getProductInitials(name?: string | null): string {
+        return this.productService.getProductInitials(name);
+    }
+
+    onProductImageError(event: Event): void {
+        const img = event.target as HTMLImageElement | null;
+        if (img) {
+            img.style.display = 'none';
+            const fallback = img.nextElementSibling as HTMLElement | null;
+            if (fallback?.classList.contains('product-initials')) {
+                fallback.hidden = false;
+            }
+        }
     }
 
     viewImage(product: ProductDto): void {

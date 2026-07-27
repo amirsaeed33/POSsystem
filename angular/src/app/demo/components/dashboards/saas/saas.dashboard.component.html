@@ -94,40 +94,76 @@
             </div>
 
             <ul class="list-none p-0 m-0">
-                <li class="mb-4 flex align-items-center justify-content-start">
-                    <p-avatar icon="pi pi-box" size="large" shape="circle" styleClass="text-base font-bold"
-                              [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
-                    <div class="ml-3">
-                        <span class="block">Low Stock Products</span>
-                        <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/reports/stock">View Stock</a>
+                <li class="mb-4 flex align-items-center justify-content-between gap-2">
+                    <div class="flex align-items-center min-w-0">
+                        <p-avatar icon="pi pi-box" size="large" shape="circle" styleClass="text-base font-bold"
+                                  [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
+                        <div class="ml-3 min-w-0">
+                            <span class="block">Low Stock Products</span>
+                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/reports/stock">View Stock</a>
+                        </div>
                     </div>
+                    <span
+                        class="quick-action-badge"
+                        [class.quick-action-badge-warn]="lowStockCount > 0"
+                        [class.quick-action-badge-muted]="lowStockCount === 0"
+                        [attr.title]="lowStockCount + ' low stock products'">
+                        {{ formatQuickActionCount(lowStockCount) }}
+                    </span>
                 </li>
-    
-                <li class="mb-4 flex align-items-center justify-content-start">
-                    <p-avatar icon="pi pi-file" size="large" shape="circle" styleClass="text-base font-bold"
-                              [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
-                    <div class="ml-3">
-                        <span class="block">Pending Customer Orders</span>
-                        <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/customer-orders">View Orders</a>
+
+                <li class="mb-4 flex align-items-center justify-content-between gap-2">
+                    <div class="flex align-items-center min-w-0">
+                        <p-avatar icon="pi pi-file" size="large" shape="circle" styleClass="text-base font-bold"
+                                  [style]="{'background-color':'rgba(94, 208, 250, 0.1)', 'color': '#1992D4', 'border': '1px solid #5ED0FA'}"></p-avatar>
+                        <div class="ml-3 min-w-0">
+                            <span class="block">Pending Customer Orders</span>
+                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/customer-orders">View Orders</a>
+                        </div>
                     </div>
+                    <span
+                        class="quick-action-badge"
+                        [class.quick-action-badge-info]="pendingOrdersCount > 0"
+                        [class.quick-action-badge-muted]="pendingOrdersCount === 0"
+                        [attr.title]="pendingOrdersCount + ' pending orders'">
+                        {{ formatQuickActionCount(pendingOrdersCount) }}
+                    </span>
                 </li>
-    
-                <li class="mb-4 flex align-items-center justify-content-start">
-                    <p-avatar icon="pi pi-desktop" size="large" shape="circle" styleClass="text-base font-bold"
-                              [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
-                    <div class="ml-3">
-                        <span class="block">Open POS</span>
-                        <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/pos">Open POS</a>
+
+                <li class="mb-4 flex align-items-center justify-content-between gap-2">
+                    <div class="flex align-items-center min-w-0">
+                        <p-avatar icon="pi pi-desktop" size="large" shape="circle" styleClass="text-base font-bold"
+                                  [style]="{'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'}"></p-avatar>
+                        <div class="ml-3 min-w-0">
+                            <span class="block">Open POS</span>
+                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/pos">Open POS</a>
+                        </div>
                     </div>
+                    <span
+                        class="quick-action-badge"
+                        [class.quick-action-badge-success]="todaySalesCount > 0"
+                        [class.quick-action-badge-muted]="todaySalesCount === 0"
+                        [attr.title]="todaySalesCount + ' sales today'">
+                        {{ formatQuickActionCount(todaySalesCount) }}
+                    </span>
                 </li>
-    
-                <li class="mb-4 flex align-items-center justify-content-start">
-                    <p-avatar icon="pi pi-id-card" size="large" shape="circle" styleClass="text-base font-bold"
-                              [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
-                    <div class="ml-3">
-                        <span class="block">Company Profile</span>
-                        <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/company-profiles">Open Profile</a>
+
+                <li class="mb-4 flex align-items-center justify-content-between gap-2">
+                    <div class="flex align-items-center min-w-0">
+                        <p-avatar icon="pi pi-id-card" size="large" shape="circle" styleClass="text-base font-bold"
+                                  [style]="{'background-color':'rgba(167, 139, 250, 0.12)', 'color': '#7C3AED', 'border': '1px solid #C4B5FD'}"></p-avatar>
+                        <div class="ml-3 min-w-0">
+                            <span class="block">Company Profile</span>
+                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/company-profiles">Open Profile</a>
+                        </div>
                     </div>
+                    <span
+                        class="quick-action-badge"
+                        [class.quick-action-badge-purple]="companyProfileCount > 0"
+                        [class.quick-action-badge-muted]="companyProfileCount === 0"
+                        [attr.title]="companyProfileCount + ' company profiles'">
+                        {{ formatQuickActionCount(companyProfileCount) }}
+                    </span>
                 </li>
             </ul>
         </div>

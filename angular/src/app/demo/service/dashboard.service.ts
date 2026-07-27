@@ -3,7 +3,10 @@ import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
     DashboardDto,
+    DashboardLatestListItemDto,
     DashboardProductRowDto,
+    DashboardQuickActionCountsDto,
+    DashboardTimelineEventDto,
     MonthlyCashFlowDto,
 } from '../api/dashboard';
 import { environment } from '../../../environments/environment';
@@ -40,6 +43,11 @@ export class DashboardService {
     private mapDashboard(data: any): DashboardDto {
         const cashFlow = data.cashFlow || data.CashFlow || [];
         const products = data.products || data.Products || [];
+        const quickActions =
+            data.quickActions || data.QuickActions || {};
+        const latestListItems =
+            data.latestListItems || data.LatestListItems || [];
+        const timeline = data.timeline || data.Timeline || [];
 
         return {
             userDisplayName:
@@ -94,6 +102,41 @@ export class DashboardService {
                     imagePath: item.imagePath ?? item.ImagePath,
                 })
             ),
+            quickActions: this.mapQuickActions(quickActions),
+            latestListTitle:
+                data.latestListTitle ?? data.LatestListTitle ?? 'Latest Sales',
+            latestListItems: (Array.isArray(latestListItems)
+                ? latestListItems
+                : []
+            ).map(
+                (item: any): DashboardLatestListItemDto => ({
+                    title: item.title ?? item.Title ?? '',
+                    subtitle: item.subtitle ?? item.Subtitle ?? '',
+                    initials: item.initials ?? item.Initials ?? '?',
+                })
+            ),
+            timeline: (Array.isArray(timeline) ? timeline : []).map(
+                (item: any): DashboardTimelineEventDto => ({
+                    type: (item.type ?? item.Type ?? '').toLowerCase(),
+                    title: item.title ?? item.Title ?? '',
+                    amount: item.amount ?? item.Amount ?? 0,
+                    quantityLabel:
+                        item.quantityLabel ?? item.QuantityLabel,
+                    occurredAt: item.occurredAt ?? item.OccurredAt,
+                })
+            ),
+        };
+    }
+
+    private mapQuickActions(data: any): DashboardQuickActionCountsDto {
+        return {
+            lowStockCount: data.lowStockCount ?? data.LowStockCount ?? 0,
+            pendingOrdersCount:
+                data.pendingOrdersCount ?? data.PendingOrdersCount ?? 0,
+            todaySalesCount:
+                data.todaySalesCount ?? data.TodaySalesCount ?? 0,
+            companyProfileCount:
+                data.companyProfileCount ?? data.CompanyProfileCount ?? 0,
         };
     }
 }
