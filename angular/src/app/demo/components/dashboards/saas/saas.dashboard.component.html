@@ -4,8 +4,9 @@
             <div class="flex align-items-center p-3">
                 <i class="pi pi-users text-6xl text-blue-500"></i>
                 <div class="ml-3">
-                    <span class="text-blue-500 block white-space-nowrap">USERS SIGNED UP</span>
-                    <span class="text-blue-500 block text-4xl font-bold">3882</span>
+                    <span class="text-blue-500 block white-space-nowrap">Today's Sales</span>
+                    <span class="text-blue-500 block text-4xl font-bold">{{ formatPkr(todaySales) }}</span>
+                    <span class="text-blue-500 block" *ngIf="salesSubtitle">{{ salesSubtitle }}</span>
                 </div>
             </div>
             <img [src]="'assets/demo/images/dashboard/users' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full" alt="users">
@@ -16,8 +17,9 @@
             <div class="flex align-items-center p-3">
                 <i class="pi pi-map text-6xl text-orange-500"></i>
                 <div class="ml-3">
-                    <span class="text-orange-500 block white-space-nowrap">LIFETIME VALUE</span>
-                    <span class="text-orange-500 block text-4xl font-bold">532</span>
+                    <span class="text-orange-500 block white-space-nowrap">Today's Purchases</span>
+                    <span class="text-orange-500 block text-4xl font-bold">{{ formatPkr(todayPurchases) }}</span>
+                    <span class="text-orange-500 block" *ngIf="purchasesSubtitle">{{ purchasesSubtitle }}</span>
                 </div>
             </div>
             <img [src]="'assets/demo/images/dashboard/locations' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full" alt="locations">
@@ -28,8 +30,9 @@
             <div class="flex align-items-center p-3">
                 <i class="pi pi-directions text-6xl text-green-500"></i>
                 <div class="ml-3">
-                    <span class="text-green-500 block white-space-nowrap">CONVERSION RATE</span>
-                    <span class="text-green-500 block text-4xl font-bold">12.6%</span>
+                    <span class="text-green-500 block white-space-nowrap">Today's Expenses</span>
+                    <span class="text-green-500 block text-4xl font-bold">{{ formatPkr(todayExpenses) }}</span>
+                    <span class="text-green-500 block" *ngIf="expensesSubtitle">{{ expensesSubtitle }}</span>
                 </div>
             </div>
             <img [src]="'assets/demo/images/dashboard/rate' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full" alt="conversion">
@@ -40,8 +43,9 @@
             <div class="flex align-items-center p-3">
                 <i class="pi pi-comments text-6xl text-purple-500"></i>
                 <div class="ml-3">
-                    <span class="text-purple-500 block white-space-nowrap">ACTIVE TRIALS</span>
-                    <span class="text-purple-500 block text-4xl font-bold">440</span>
+                    <span class="text-purple-500 block white-space-nowrap">Today's Profit</span>
+                    <span class="text-purple-500 block text-4xl font-bold">{{ formatPkr(todayProfit) }}</span>
+                    <span class="text-purple-500 block" *ngIf="profitSubtitle">{{ profitSubtitle }}</span>
                 </div>
             </div>
             <img [src]="'assets/demo/images/dashboard/interactions' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full mt-auto" alt="interactions">

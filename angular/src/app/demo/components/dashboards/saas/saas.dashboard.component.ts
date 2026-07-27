@@ -1,6 +1,7 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import { Subscription, debounceTime } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
+import { DashboardService } from 'src/app/demo/service/dashboard.service';
 
 @Component({
     templateUrl: './saas.dashboard.component.html'
@@ -21,7 +22,15 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     subscription: Subscription;
 
-    constructor(public layoutService: LayoutService) { 
+    todaySales = 0;
+    todayPurchases = 0;
+    todayExpenses = 0;
+    todayProfit = 0;
+
+    constructor(
+        public layoutService: LayoutService,
+        private dashboardService: DashboardService
+    ) {
         this.subscription = this.layoutService.configUpdate$
         .pipe(debounceTime(25))
         .subscribe((config) => {
@@ -31,12 +40,63 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     ngOnInit() {
         this.initCharts();
+        this.loadDashboard();
 
         this.overviewWeeks = [
             {name: 'Last Week', code: '0'},
             {name: 'This Week', code: '1'}
         ];
         this.selectedOverviewWeek = this.overviewWeeks[0]
+    }
+
+    async loadDashboard() {
+        try {
+            const data = await this.dashboardService.get();
+            this.todaySales = data.todaySales ?? 0;
+            this.todayPurchases = data.todayPurchases ?? 0;
+            this.todayExpenses = data.todayExpenses ?? 0;
+            this.todayProfit = data.todayProfit ?? 0;
+        } catch {
+            this.todaySales = 0;
+            this.todayPurchases = 0;
+            this.todayExpenses = 0;
+            this.todayProfit = 0;
+        }
+    }
+
+    formatPkr(amount: number): string {
+        const value = amount ?? 0;
+        return (
+            'PKR ' +
+            value.toLocaleString('en-PK', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+            })
+        );
+    }
+
+    kpiSubtitle(amount: number): string {
+        return (amount ?? 0) === 0 ? 'No data today' : '';
+    }
+
+    get salesSubtitle(): string {
+        return this.kpiSubtitle(this.todaySales);
+    }
+
+    get purchasesSubtitle(): string {
+        return this.kpiSubtitle(this.todayPurchases);
+    }
+
+    get expensesSubtitle(): string {
+        return this.kpiSubtitle(this.todayExpenses);
+    }
+
+    get profitSubtitle(): string {
+        const noActivity =
+            this.todaySales === 0 &&
+            this.todayPurchases === 0 &&
+            this.todayExpenses === 0;
+        return noActivity ? 'No data today' : '';
     }
 
     initCharts() {
