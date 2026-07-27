@@ -27,6 +27,15 @@ interface SalesGroupRow {
     isGrowthPositive: boolean;
 }
 
+interface StockHighlightItem {
+    name: string;
+    categoryName: string;
+    stockRemaining: number;
+    unitsSold: number;
+    isLowStock: boolean;
+    statusLabel: string;
+}
+
 @Component({
     templateUrl: './saas.dashboard.component.html'
 })
@@ -61,6 +70,9 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     previousAverageProfitMargin = 0;
     growthPercentage = 0;
     isGrowthPositive = true;
+
+    stockHighlights: StockHighlightItem[] = [];
+    stockHighlightIndex = 0;
 
     latestListTitle = 'Latest Customers';
     latestListItems: LatestListItem[] = [];
@@ -116,6 +128,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.topProducts = this.buildTopProducts(products);
             this.salesByCategory = this.buildSalesGroups(products, 'category');
             this.salesByBrand = this.buildSalesGroups(products, 'brand');
+            this.stockHighlights = this.buildStockHighlights(products);
+            this.stockHighlightIndex = 0;
         } catch {
             this.todaySales = 0;
             this.todayPurchases = 0;
@@ -129,8 +143,65 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.topProducts = [];
             this.salesByCategory = [];
             this.salesByBrand = [];
+            this.stockHighlights = [];
+            this.stockHighlightIndex = 0;
         }
         this.buildOverviewChart();
+    }
+
+    get currentStockHighlight(): StockHighlightItem | null {
+        if (!this.stockHighlights.length) {
+            return null;
+        }
+        return this.stockHighlights[this.stockHighlightIndex] || null;
+    }
+
+    prevStockHighlight() {
+        if (!this.stockHighlights.length) {
+            return;
+        }
+        this.stockHighlightIndex =
+            (this.stockHighlightIndex - 1 + this.stockHighlights.length) %
+            this.stockHighlights.length;
+    }
+
+    nextStockHighlight() {
+        if (!this.stockHighlights.length) {
+            return;
+        }
+        this.stockHighlightIndex =
+            (this.stockHighlightIndex + 1) % this.stockHighlights.length;
+    }
+
+    private buildStockHighlights(
+        products: DashboardProductRowDto[]
+    ): StockHighlightItem[] {
+        const items = products.map((product) => {
+            const status = (product.status || '').toLowerCase();
+            const isLowStock =
+                status === 'lowstock' || status === 'outofstock';
+            return {
+                name: product.name || '—',
+                categoryName: product.categoryName || '—',
+                stockRemaining: product.units ?? 0,
+                // Units sold is not on DashboardProductRowDto; stock Units is remaining qty.
+                unitsSold: 0,
+                isLowStock,
+                statusLabel:
+                    status === 'outofstock'
+                        ? 'Out of Stock'
+                        : status === 'lowstock'
+                          ? 'Low Stock'
+                          : 'In Stock',
+            };
+        });
+
+        return items.sort((a, b) => {
+            if (a.isLowStock === b.isLowStock) {
+                return a.stockRemaining - b.stockRemaining;
+            }
+            return a.isLowStock ? -1 : 1;
+        });
     }
 
     private buildTopProducts(products: DashboardProductRowDto[]): TopProductItem[] {

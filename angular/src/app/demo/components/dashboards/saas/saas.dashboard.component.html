@@ -233,38 +233,60 @@
     
     <div class="col-12 lg:col-6 xl:col-4">
         <div class="card h-full">
-            <h5>Recent Blog Posts</h5>
-            <div class="flex flex-column mb-3">
-                <span class="text-lg mb-3">What is the Customer Journey?</span>
-                <p-tag value="Conversion" styleClass="mb-3"></p-tag>
-                
-                <span class="inline-flex align-items-center">
-                    <i class="pi pi-clock mr-1 text-color-secondary"></i>
-                    <span class="text-color-secondary">Jan 15.</span> 
-                    <span class="font-bold ml-2">4 days 36 mins</span>
-                </span>
-            </div>
-            <p class="line-height-3 mt-0 mb-5">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-                Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+            <h5>Stock Highlights</h5>
+            <ng-container *ngIf="currentStockHighlight as item; else noStockHighlight">
+                <div
+                    class="flex flex-column mb-3"
+                    [class.p-3]="item.isLowStock"
+                    [class.border-round]="item.isLowStock"
+                    [style]="item.isLowStock ? {'background-color': colorScheme === 'dark' ? 'rgba(255, 155, 155, 0.12)' : 'rgba(255, 155, 155, 0.18)'} : null">
+                    <span
+                        class="text-lg mb-3"
+                        [class.text-red-500]="item.isLowStock"
+                        [class.font-bold]="item.isLowStock">{{ item.name }}</span>
+                    <p-tag
+                        [value]="item.categoryName"
+                        [severity]="item.isLowStock ? 'danger' : undefined"
+                        styleClass="mb-3"></p-tag>
 
-            <p class="line-height-3 mt-0 mb-5">Sit amet nulla facilisi morbi tempus iaculis. Dolor magna eget est lorem ipsum
-                dolor sit. Turpis egestas pretium aenean pharetra magna ac placerat vestibulum lectus.</p>
-
-            <div class="flex flex-wrap align-items-center justify-content-between">
-                <div class="flex align-items-center">
-                    <button pButton type="button" icon="pi pi-angle-left"  class="p-button-outlined p-button-rounded p-button-plain p-button-sm mr-2 p-2 w-2rem h-2rem"></button>
-                    <button pButton type="button" icon="pi pi-angle-right" class="p-button-outlined p-button-rounded p-button-plain p-button-sm p-2 w-2rem h-2rem"></button>
-                    <span class="font-bold ml-3">4</span>
-                    <span>/8</span>
+                    <span class="inline-flex align-items-center">
+                        <i class="pi pi-box mr-1 text-color-secondary"></i>
+                        <span class="text-color-secondary">{{ item.statusLabel }}</span>
+                        <span
+                            class="font-bold ml-2"
+                            [class.text-red-500]="item.isLowStock">{{ item.stockRemaining | number }} left</span>
+                    </span>
                 </div>
-                <p-avatarGroup>
-                    <p-avatar image="assets/demo/images/avatar/amyelsner.png" shape="circle"></p-avatar>
-                    <p-avatar image="assets/demo/images/avatar/asiyajavayant.png" shape="circle"></p-avatar>
-                    <p-avatar image="assets/demo/images/avatar/onyamalimba.png" shape="circle"></p-avatar>
-                    <p-avatar image="assets/demo/images/avatar/ionibowcher.png" shape="circle"></p-avatar>
-                    <p-avatar image="assets/demo/images/avatar/xuxuefeng.png" shape="circle"></p-avatar>
-                </p-avatarGroup>
-            </div>
+                <p class="line-height-3 mt-0 mb-5">
+                    <span class="font-bold">Stock Remaining:</span>
+                    <span [class.text-red-500]="item.isLowStock" [class.font-bold]="item.isLowStock">
+                        {{ item.stockRemaining | number }}
+                    </span>
+                </p>
+
+                <p class="line-height-3 mt-0 mb-5">
+                    <span class="font-bold">Units Sold:</span> {{ item.unitsSold | number }}
+                </p>
+
+                <div class="flex flex-wrap align-items-center justify-content-between">
+                    <div class="flex align-items-center">
+                        <button pButton type="button" icon="pi pi-angle-left" class="p-button-outlined p-button-rounded p-button-plain p-button-sm mr-2 p-2 w-2rem h-2rem" (click)="prevStockHighlight()"></button>
+                        <button pButton type="button" icon="pi pi-angle-right" class="p-button-outlined p-button-rounded p-button-plain p-button-sm p-2 w-2rem h-2rem" (click)="nextStockHighlight()"></button>
+                        <span class="font-bold ml-3">{{ stockHighlightIndex + 1 }}</span>
+                        <span>/{{ stockHighlights.length }}</span>
+                    </div>
+                    <p-avatarGroup>
+                        <p-avatar image="assets/demo/images/avatar/amyelsner.png" shape="circle"></p-avatar>
+                        <p-avatar image="assets/demo/images/avatar/asiyajavayant.png" shape="circle"></p-avatar>
+                        <p-avatar image="assets/demo/images/avatar/onyamalimba.png" shape="circle"></p-avatar>
+                        <p-avatar image="assets/demo/images/avatar/ionibowcher.png" shape="circle"></p-avatar>
+                        <p-avatar image="assets/demo/images/avatar/xuxuefeng.png" shape="circle"></p-avatar>
+                    </p-avatarGroup>
+                </div>
+            </ng-container>
+            <ng-template #noStockHighlight>
+                <p class="line-height-3 text-color-secondary m-0">No data available</p>
+            </ng-template>
         </div>
     </div>
     
