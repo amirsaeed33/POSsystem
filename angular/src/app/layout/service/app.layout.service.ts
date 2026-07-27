@@ -32,7 +32,9 @@ interface LayoutState {
 })
 export class LayoutService {
     private readonly desktopBreakpoint = 991;
+    private readonly storageKey = 'verona-layout-config';
 
+    /** Baseline matching index.html theme link (used for first theme swap detection). */
     _config: AppConfig = {
         ripple: false,
         inputStyle: 'outlined',
@@ -73,6 +75,12 @@ export class LayoutService {
     tabClose$ = this.tabClose.asObservable();
 
     constructor() {
+        const saved = this.loadConfig();
+        if (saved) {
+            // Keep _config as index.html baseline so updateStyle/changeTheme run on restore.
+            this.config.set({ ...this._config, ...saved });
+        }
+
         effect(() => {
             const config = this.config();
             if (this.updateStyle(config)) {
@@ -107,6 +115,69 @@ export class LayoutService {
         this.state.staticMenuMobileActive = false;
         this.state.overlayMenuActive = false;
         this.state.menuHoverActive = false;
+    }
+
+    private loadConfig(): Partial<AppConfig> | null {
+        try {
+            const raw = localStorage.getItem(this.storageKey);
+            if (!raw) {
+                return null;
+            }
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') {
+                return null;
+            }
+            return this.sanitizeConfig(parsed);
+        } catch {
+            return null;
+        }
+    }
+
+    private saveConfig(config: AppConfig): void {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(config));
+        } catch {
+            // Ignore quota / private-mode failures.
+        }
+    }
+
+    private sanitizeConfig(value: Record<string, unknown>): Partial<AppConfig> {
+        const menuModes: MenuMode[] = ['static', 'overlay', 'slim', 'slim-plus'];
+        const result: Partial<AppConfig> = {};
+
+        const theme = value['theme'];
+        if (typeof theme === 'string' && theme.trim()) {
+            result.theme = theme;
+        }
+        const colorScheme = value['colorScheme'];
+        if (colorScheme === 'light' || colorScheme === 'dark') {
+            result.colorScheme = colorScheme;
+        }
+        const menuMode = value['menuMode'];
+        if (
+            typeof menuMode === 'string' &&
+            menuModes.includes(menuMode as MenuMode)
+        ) {
+            result.menuMode = menuMode as MenuMode;
+        }
+        const layoutTheme = value['layoutTheme'];
+        if (typeof layoutTheme === 'string' && layoutTheme.trim()) {
+            result.layoutTheme = layoutTheme;
+        }
+        const inputStyle = value['inputStyle'];
+        if (inputStyle === 'outlined' || inputStyle === 'filled') {
+            result.inputStyle = inputStyle;
+        }
+        const ripple = value['ripple'];
+        if (typeof ripple === 'boolean') {
+            result.ripple = ripple;
+        }
+        const scale = value['scale'];
+        if (typeof scale === 'number' && scale >= 12 && scale <= 16) {
+            result.scale = scale;
+        }
+
+        return result;
     }
 
     updateStyle(config: AppConfig) {
@@ -210,6 +281,7 @@ export class LayoutService {
     onConfigUpdate() {
         this._config = { ...this.config() };
         this.configUpdate.next(this.config());
+        this.saveConfig(this._config);
     }
 
     onTabOpen(value: MenuItem) {
