@@ -59,6 +59,9 @@ export class AuthService {
                 );
             }
 
+            // Drop previous session profile so navbar does not keep the old user's photo
+            localStorage.removeItem(USER_INFO_KEY);
+
             localStorage.setItem(TOKEN_KEY, accessToken);
             if (encryptedAccessToken) {
                 localStorage.setItem(ENCRYPTED_TOKEN_KEY, encryptedAccessToken);

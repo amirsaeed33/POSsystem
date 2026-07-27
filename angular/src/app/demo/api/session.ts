@@ -22,7 +22,7 @@ export interface ApplicationInfoDto {
 
 export interface GetCurrentLoginInformationsOutput {
     application: ApplicationInfoDto;
-    user: UserLoginInfoDto;
-    tenant: TenantLoginInfoDto;
+    user: UserLoginInfoDto | null;
+    tenant: TenantLoginInfoDto | null;
 }
 

@@ -125,16 +125,21 @@ export class AppTopBarComponent implements OnInit {
             this.userDisplayName = baseName;
         }
 
-        if (user.profilePictureUrl) {
+        const pictureUrl =
+            user.profilePictureUrl ||
+            (user as any).userImageUrl ||
+            (user as any).UserImageUrl;
+
+        if (pictureUrl) {
             if (
-                user.profilePictureUrl.startsWith('http://') ||
-                user.profilePictureUrl.startsWith('https://')
+                pictureUrl.startsWith('http://') ||
+                pictureUrl.startsWith('https://')
             ) {
-                this.userImage = user.profilePictureUrl;
+                this.userImage = pictureUrl;
             } else {
                 this.userImage = `${environment.apiUrl}${
-                    user.profilePictureUrl.startsWith('/') ? '' : '/'
-                }${user.profilePictureUrl}`;
+                    pictureUrl.startsWith('/') ? '' : '/'
+                }${pictureUrl}`;
             }
         } else {
             this.userImage = 'assets/layout/images/avatar.png';

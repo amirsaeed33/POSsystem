@@ -29,27 +29,29 @@ export class SessionService {
                 // ABP Framework wraps responses in a result property
                 const result = res.result || res;
                 
+                const rawUser = result.user || result.User;
                 const sessionInfo: GetCurrentLoginInformationsOutput = {
                     application: result.application || result.Application,
-                    user: result.user || result.User,
+                    user: this.normalizeSessionUser(rawUser),
                     tenant: result.tenant || result.Tenant
                 };
 
                 // If we have a user, also fetch their roles and profile picture
-                if (sessionInfo.user?.id) {
-                    return this.getCurrentUserWithRoles(sessionInfo.user.id)
+                const currentUser = sessionInfo.user;
+                if (currentUser?.id) {
+                    return this.getCurrentUserWithRoles(currentUser.id)
                         .then((userWithRoles) => {
                             if (userWithRoles) {
                                 if (userWithRoles.roleNames && userWithRoles.roleNames.length > 0) {
-                                    sessionInfo.user.roleNames = userWithRoles.roleNames;
+                                    currentUser.roleNames = userWithRoles.roleNames;
                                 }
                                 if (userWithRoles.profilePictureUrl) {
-                                    sessionInfo.user.profilePictureUrl = userWithRoles.profilePictureUrl;
+                                    currentUser.profilePictureUrl = userWithRoles.profilePictureUrl;
                                 }
                             }
                             return sessionInfo;
                         })
-                        .catch((error) => {
+                        .catch(() => {
                             // If role fetch fails, return session info without roles
                             return sessionInfo;
                         });
@@ -57,6 +59,36 @@ export class SessionService {
 
                 return sessionInfo;
             }) as Promise<GetCurrentLoginInformationsOutput>;
+    }
+
+    /** Backend uses userImageUrl; UI/navbar uses profilePictureUrl. */
+    private resolveProfilePictureUrl(source: any): string | null {
+        if (!source) {
+            return null;
+        }
+        return (
+            source.profilePictureUrl ||
+            source.ProfilePictureUrl ||
+            source.userImageUrl ||
+            source.UserImageUrl ||
+            null
+        );
+    }
+
+    private normalizeSessionUser(rawUser: any): UserLoginInfoDto | null {
+        if (!rawUser) {
+            return null;
+        }
+
+        return {
+            id: rawUser.id ?? rawUser.Id,
+            name: rawUser.name ?? rawUser.Name,
+            surname: rawUser.surname ?? rawUser.Surname,
+            userName: rawUser.userName ?? rawUser.UserName,
+            emailAddress: rawUser.emailAddress ?? rawUser.EmailAddress,
+            roleNames: rawUser.roleNames || rawUser.RoleNames || [],
+            profilePictureUrl: this.resolveProfilePictureUrl(rawUser) || undefined,
+        };
     }
 
     private getCurrentUserWithRoles(userId: number): Promise<any> {
@@ -71,14 +103,13 @@ export class SessionService {
 
                 const result = res.result || res;
                 const roleNames = result.roleNames || result.RoleNames || [];
-                const profilePictureUrl = result.profilePictureUrl || result.ProfilePictureUrl || null;
                 
                 return {
                     roleNames: Array.isArray(roleNames) ? roleNames : [],
-                    profilePictureUrl: profilePictureUrl
+                    profilePictureUrl: this.resolveProfilePictureUrl(result)
                 };
             })
-            .catch((error) => {
+            .catch(() => {
                 // If getting user fails, try to get roles from session or return empty
                 return { roleNames: [], profilePictureUrl: null };
             });
