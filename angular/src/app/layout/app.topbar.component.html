@@ -36,6 +36,26 @@
     </ul>
 
     <div class="flex align-items-center gap-2 ml-auto">
+        <div class="topbar-search" [ngClass]="{ 'topbar-search-active': searchActive }">
+            <button class="topbar-searchbutton p-link" type="button" (click)="activateSearch()">
+                <i class="pi pi-search"></i>
+            </button>
+
+            <div class="search-input-wrapper">
+                <span class="p-input-icon-right">
+                    <input
+                        #searchinput
+                        type="text"
+                        pInputText
+                        placeholder="Search"
+                        (blur)="deactivateSearch()"
+                        (keydown.escape)="deactivateSearch()"
+                    />
+                    <i class="pi pi-search"></i>
+                </span>
+            </div>
+        </div>
+
         <div class="topbar-language relative" *ngIf="languages?.length">
             <button
                 class="p-link flex align-items-center gap-2 px-2 py-2 border-round hover:surface-hover"

@@ -3,7 +3,6 @@ import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
     CreateCustomerDto,
-    Customer,
     CustomerDto,
     PagedCustomerResultRequestDto,
     PagedResultDto,
@@ -17,31 +16,6 @@ export class CustomerService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Customer`;
 
     constructor(private http: HttpClient) {}
-
-    // Verona UI Kit demo helpers (tabledemo)
-    getCustomersSmall() {
-        return this.http
-            .get<any>('assets/demo/data/customers-small.json')
-            .toPromise()
-            .then((res) => res.data as Customer[])
-            .then((data) => data);
-    }
-
-    getCustomersMedium() {
-        return this.http
-            .get<any>('assets/demo/data/customers-medium.json')
-            .toPromise()
-            .then((res) => res.data as Customer[])
-            .then((data) => data);
-    }
-
-    getCustomersLarge() {
-        return this.http
-            .get<any>('assets/demo/data/customers-large.json')
-            .toPromise()
-            .then((res) => res.data as Customer[])
-            .then((data) => data);
-    }
 
     async getAll(
         input?: PagedCustomerResultRequestDto

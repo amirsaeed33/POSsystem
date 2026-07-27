@@ -18,15 +18,7 @@ export class ProductService {
 
     constructor(private http: HttpClient) {}
 
-    // Verona UI Kit demo helpers
-    getProductsSmall() {
-        return this.http
-            .get<any>('assets/demo/data/products-small.json')
-            .toPromise()
-            .then((res) => res.data as Product[])
-            .then((data) => data);
-    }
-
+    // Demo product helpers used by Sales dashboard widgets
     getProducts() {
         return this.http
             .get<any>('assets/demo/data/products.json')
@@ -38,22 +30,6 @@ export class ProductService {
     getProductsMixed() {
         return this.http
             .get<any>('assets/demo/data/products-mixed.json')
-            .toPromise()
-            .then((res) => res.data as Product[])
-            .then((data) => data);
-    }
-
-    getProductsWithOrdersSmall() {
-        return this.http
-            .get<any>('assets/demo/data/products-orders-small.json')
-            .toPromise()
-            .then((res) => res.data as Product[])
-            .then((data) => data);
-    }
-
-    getProductsWithOrdersLarge() {
-        return this.http
-            .get<any>('assets/demo/data/products-orders.json')
             .toPromise()
             .then((res) => res.data as Product[])
             .then((data) => data);

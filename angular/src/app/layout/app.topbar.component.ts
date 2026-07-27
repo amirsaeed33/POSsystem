@@ -17,6 +17,9 @@ import { environment } from 'src/environments/environment';
 })
 export class AppTopBarComponent implements OnInit {
     @ViewChild('menubutton') menuButton!: ElementRef;
+    @ViewChild('searchinput') searchInput!: ElementRef;
+
+    searchActive = false;
 
     userInfo: UserLoginInfoDto | null = null;
     userDisplayName = 'User';
@@ -165,6 +168,17 @@ export class AppTopBarComponent implements OnInit {
 
     onMenuButtonClick(): void {
         this.layoutService.onMenuToggle();
+    }
+
+    activateSearch(): void {
+        this.searchActive = true;
+        setTimeout(() => {
+            this.searchInput?.nativeElement?.focus();
+        }, 100);
+    }
+
+    deactivateSearch(): void {
+        this.searchActive = false;
     }
 
     removeTab(event: MouseEvent, item: MenuItem, index: number): void {
