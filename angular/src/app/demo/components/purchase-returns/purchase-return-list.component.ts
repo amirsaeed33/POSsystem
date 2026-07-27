@@ -1,55 +1,51 @@
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { PurchaseDto } from 'src/app/demo/api/purchase';
-import { PurchaseService } from 'src/app/demo/service/purchase.service';
+import { PurchaseReturnDto } from 'src/app/demo/api/purchase-return';
+import { PurchaseReturnService } from 'src/app/demo/service/purchase-return.service';
 
 @Component({
-    templateUrl: './purchase-list.component.html',
+    templateUrl: './purchase-return-list.component.html',
     providers: [MessageService, ConfirmationService],
 })
-export class PurchaseListComponent implements OnInit {
-    purchases: PurchaseDto[] = [];
+export class PurchaseReturnListComponent implements OnInit {
+    returns: PurchaseReturnDto[] = [];
     loading = false;
     totalRecords = 0;
     keyword = '';
 
     createDialogVisible = false;
     viewDialogVisible = false;
-    viewingPurchaseId: number | null = null;
-    printDialogVisible = false;
-    printingPurchaseId: number | null = null;
-    printAutoPrint = false;
-    returnDialogVisible = false;
-    returningPurchaseId: number | null = null;
+    viewingReturnId: number | null = null;
+    createPurchaseId: number | null = null;
 
     constructor(
-        private purchaseService: PurchaseService,
+        private purchaseReturnService: PurchaseReturnService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
-        this.loadPurchases();
+        this.loadReturns();
     }
 
-    loadPurchases(): void {
+    loadReturns(): void {
         this.loading = true;
-        this.purchaseService
+        this.purchaseReturnService
             .getAll({
                 keyword: this.keyword?.trim() || undefined,
                 skipCount: 0,
                 maxResultCount: 1000,
             })
             .then((result) => {
-                this.purchases = result.items;
+                this.returns = result.items;
                 this.totalRecords = result.totalCount;
             })
             .catch((error) => {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: error?.message || 'Failed to load purchases',
+                    detail: error?.message || 'Failed to load purchase returns',
                 });
             })
             .finally(() => {
@@ -58,64 +54,54 @@ export class PurchaseListComponent implements OnInit {
     }
 
     onSearch(): void {
-        this.loadPurchases();
+        this.loadReturns();
     }
 
     onGlobalFilter(table: Table, event: Event): void {
-        table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
+        table.filterGlobal(
+            (event.target as HTMLInputElement).value,
+            'contains'
+        );
     }
 
     openCreateDialog(): void {
+        this.createPurchaseId = null;
         this.createDialogVisible = true;
     }
 
-    openViewDialog(purchase: PurchaseDto): void {
-        this.viewingPurchaseId = purchase.id;
+    openViewDialog(item: PurchaseReturnDto): void {
+        this.viewingReturnId = item.id;
         this.viewDialogVisible = true;
     }
 
-    openPrintDialog(purchaseId: number, autoPrint = false): void {
-        this.printingPurchaseId = purchaseId;
-        this.printAutoPrint = autoPrint;
-        this.printDialogVisible = true;
-    }
-
-    openReturnDialog(purchase: PurchaseDto): void {
-        this.openReturnDialogForPurchaseId(purchase.id);
-    }
-
-    openReturnDialogForPurchaseId(purchaseId: number): void {
-        this.returningPurchaseId = purchaseId;
-        this.returnDialogVisible = true;
-    }
-
     onDialogSaved(): void {
-        this.loadPurchases();
+        this.loadReturns();
     }
 
-    onDelete(purchase: PurchaseDto): void {
-        const label = purchase.invoiceNo || `#${purchase.id}`;
+    onDelete(item: PurchaseReturnDto): void {
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete purchase "${label}"?`,
+            message: `Are you sure you want to delete purchase return #${item.id}?`,
             header: 'Delete Confirmation',
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
-                this.purchaseService
-                    .delete(purchase.id)
+                this.purchaseReturnService
+                    .delete(item.id)
                     .then(() => {
                         this.messageService.add({
                             severity: 'success',
                             summary: 'Success',
-                            detail: 'Purchase deleted successfully',
+                            detail: 'Purchase return deleted successfully',
                         });
-                        this.loadPurchases();
+                        this.loadReturns();
                     })
                     .catch((error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: error?.message || 'Failed to delete purchase',
+                            detail:
+                                error?.message ||
+                                'Failed to delete purchase return',
                         });
                     });
             },

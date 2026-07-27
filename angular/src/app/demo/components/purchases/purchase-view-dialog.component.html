@@ -35,7 +35,7 @@
             </div>
         </div>
 
-        <div class="surface-border border-1 border-round overflow-auto">
+        <div class="surface-border border-1 border-round overflow-auto mb-3">
             <table class="w-full">
                 <thead>
                     <tr class="surface-100">
@@ -58,6 +58,48 @@
                 </tbody>
             </table>
         </div>
+
+        <h5 class="mt-0 mb-2">Purchase Returns</h5>
+        <div *ngIf="!returns.length" class="text-500 mb-2">No purchase returns</div>
+
+        <div *ngFor="let purchaseReturn of returns" class="surface-border border-1 border-round p-3 mb-2">
+            <div class="flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
+                <div>
+                    <strong>#{{ purchaseReturn.id }}</strong>
+                    — {{ purchaseReturn.returnDate | date: 'mediumDate' }}
+                    — Total: {{ purchaseReturn.totalAmount | number: '1.2-2' }}
+                    <span *ngIf="purchaseReturn.notes" class="text-500"> ({{ purchaseReturn.notes }})</span>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-trash"
+                    class="p-button-text p-button-danger p-button-sm"
+                    pTooltip="Delete Return"
+                    tooltipPosition="top"
+                    (click)="deleteReturn(purchaseReturn)"
+                ></button>
+            </div>
+            <table class="w-full">
+                <thead>
+                    <tr class="surface-100">
+                        <th class="text-left p-2">Product</th>
+                        <th class="text-right p-2">Return Qty</th>
+                        <th class="text-right p-2">Unit Cost</th>
+                        <th class="text-right p-2">Line Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let line of purchaseReturn.lines || []">
+                        <td class="p-2">{{ line.productName || ('#' + line.productId) }}</td>
+                        <td class="p-2 text-right">{{ line.quantity }}</td>
+                        <td class="p-2 text-right">{{ line.unitCost | number: '1.2-2' }}</td>
+                        <td class="p-2 text-right">{{ line.lineTotal | number: '1.2-2' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <ng-template pTemplate="footer">
@@ -68,6 +110,16 @@
             label="Close"
             class="p-button-text"
             (click)="onHide()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Return Purchase"
+            icon="pi pi-replay"
+            class="p-button-warning"
+            [disabled]="loading || !purchase"
+            (click)="returnProducts()"
         ></button>
         <button
             pButton

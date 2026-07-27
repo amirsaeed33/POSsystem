@@ -11,20 +11,16 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
-import { PurchasesRoutingModule } from './purchases-routing.module';
-import { PurchaseListComponent } from './purchase-list.component';
-import { PurchaseFormDialogComponent } from './purchase-form-dialog.component';
-import { PurchaseViewDialogComponent } from './purchase-view-dialog.component';
-import { InvoicePrintModule } from '../invoices/invoice-print.module';
-import { PurchaseReturnsModule } from '../purchase-returns/purchase-returns.module';
+import { PurchaseReturnsRoutingModule } from './purchase-returns-routing.module';
+import { PurchaseReturnListComponent } from './purchase-return-list.component';
+import { PurchaseReturnFormDialogComponent } from './purchase-return-form-dialog.component';
+import { PurchaseReturnViewDialogComponent } from './purchase-return-view-dialog.component';
 
 @NgModule({
     imports: [
         CommonModule,
         FormsModule,
-        PurchasesRoutingModule,
-        InvoicePrintModule,
-        PurchaseReturnsModule,
+        PurchaseReturnsRoutingModule,
         ButtonModule,
         RippleModule,
         InputTextModule,
@@ -37,9 +33,10 @@ import { PurchaseReturnsModule } from '../purchase-returns/purchase-returns.modu
         DropdownModule,
     ],
     declarations: [
-        PurchaseListComponent,
-        PurchaseFormDialogComponent,
-        PurchaseViewDialogComponent,
+        PurchaseReturnListComponent,
+        PurchaseReturnFormDialogComponent,
+        PurchaseReturnViewDialogComponent,
     ],
+    exports: [PurchaseReturnFormDialogComponent],
 })
-export class PurchasesModule {}
+export class PurchaseReturnsModule {}

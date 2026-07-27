@@ -1,0 +1,141 @@
+<p-dialog
+    header="Create Purchase Return"
+    [(visible)]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    [style]="{ width: '64rem' }"
+    [breakpoints]="{ '1199px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onHide()"
+>
+    <div *ngIf="needsPurchasePicker" class="field mb-3">
+        <label for="purchaseId">Purchase <span class="text-red-500">*</span></label>
+        <p-dropdown
+            inputId="purchaseId"
+            [options]="purchaseOptions"
+            [(ngModel)]="selectedPurchaseId"
+            (ngModelChange)="onPurchaseSelected()"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select purchase"
+            [filter]="true"
+            filterBy="label"
+            [showClear]="true"
+            appendTo="body"
+            styleClass="w-full"
+        ></p-dropdown>
+    </div>
+
+    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+
+    <div *ngIf="!loading && selectedPurchaseId && !lines.length" class="p-3 surface-100 border-round">
+        No returnable products for this purchase.
+    </div>
+
+    <div *ngIf="!loading && purchaseInfo && lines.length">
+        <div class="grid mb-3">
+            <div class="col-12 md:col-4">
+                <div class="text-500 mb-1">Invoice No</div>
+                <div class="font-medium">{{ purchaseInfo.invoiceNo || ('#' + purchaseInfo.id) }}</div>
+            </div>
+            <div class="col-12 md:col-4">
+                <div class="text-500 mb-1">Supplier</div>
+                <div class="font-medium">{{ purchaseInfo.supplierName || '—' }}</div>
+            </div>
+            <div class="col-12 md:col-4">
+                <div class="text-500 mb-1">Purchase Date</div>
+                <div class="font-medium">{{ purchaseInfo.purchaseDate | date: 'mediumDate' }}</div>
+            </div>
+        </div>
+
+        <div class="grid formgrid p-fluid mb-3">
+            <div class="field col-12 md:col-6">
+                <label for="returnDate">Return Date <span class="text-red-500">*</span></label>
+                <input
+                    pInputText
+                    id="returnDate"
+                    type="date"
+                    [(ngModel)]="returnDate"
+                    required
+                />
+            </div>
+            <div class="field col-12 md:col-6">
+                <label for="notes">Notes</label>
+                <input
+                    pInputText
+                    id="notes"
+                    type="text"
+                    maxlength="512"
+                    [(ngModel)]="notes"
+                />
+            </div>
+        </div>
+
+        <div class="surface-border border-1 border-round overflow-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="surface-100">
+                        <th class="text-left p-2">Product</th>
+                        <th class="text-right p-2">Purchased</th>
+                        <th class="text-right p-2">Returned</th>
+                        <th class="text-right p-2">Returnable</th>
+                        <th class="text-right p-2" style="min-width: 8rem">Return Qty</th>
+                        <th class="text-right p-2">Unit Cost</th>
+                        <th class="text-right p-2">Line Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let line of lines; let i = index">
+                        <td class="p-2">{{ line.productName }}</td>
+                        <td class="p-2 text-right">{{ line.purchasedQuantity }}</td>
+                        <td class="p-2 text-right">{{ line.returnedQuantity }}</td>
+                        <td class="p-2 text-right">{{ line.returnableQuantity }}</td>
+                        <td class="p-2">
+                            <p-inputNumber
+                                [(ngModel)]="line.returnQuantity"
+                                [min]="0"
+                                [max]="line.returnableQuantity"
+                                [minFractionDigits]="0"
+                                [maxFractionDigits]="2"
+                                [showButtons]="false"
+                                inputStyleClass="w-full text-right"
+                                styleClass="w-full"
+                            ></p-inputNumber>
+                        </td>
+                        <td class="p-2 text-right">{{ line.unitCost | number: '1.2-2' }}</td>
+                        <td class="p-2 text-right">{{ lineTotal(line) | number: '1.2-2' }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="surface-50">
+                        <td colspan="6" class="p-2 text-right font-bold">Total Amount</td>
+                        <td class="p-2 text-right font-bold">{{ grandTotal | number: '1.2-2' }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            [disabled]="saving"
+            (click)="onHide()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            [loading]="saving"
+            [disabled]="!canSave"
+            (click)="save()"
+        ></button>
+    </ng-template>
+</p-dialog>

@@ -7,37 +7,31 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { PurchaseDto } from 'src/app/demo/api/purchase';
 import { PurchaseReturnDto } from 'src/app/demo/api/purchase-return';
-import { PurchaseService } from 'src/app/demo/service/purchase.service';
 import { PurchaseReturnService } from 'src/app/demo/service/purchase-return.service';
 
 @Component({
-    selector: 'app-purchase-view-dialog',
-    templateUrl: './purchase-view-dialog.component.html',
+    selector: 'app-purchase-return-view-dialog',
+    templateUrl: './purchase-return-view-dialog.component.html',
 })
-export class PurchaseViewDialogComponent implements OnChanges {
+export class PurchaseReturnViewDialogComponent implements OnChanges {
     @Input() visible = false;
-    @Input() purchaseId: number | null = null;
+    @Input() purchaseReturnId: number | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
-    @Output() printRequested = new EventEmitter<number>();
-    @Output() returnRequested = new EventEmitter<number>();
-    @Output() changed = new EventEmitter<void>();
+    @Output() deleted = new EventEmitter<void>();
 
-    purchase: PurchaseDto | null = null;
-    returns: PurchaseReturnDto[] = [];
+    purchaseReturn: PurchaseReturnDto | null = null;
     loading = false;
 
     constructor(
-        private purchaseService: PurchaseService,
         private purchaseReturnService: PurchaseReturnService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnChanges(changes: SimpleChanges): void {
-        if (changes['visible'] && this.visible && this.purchaseId) {
-            this.load(this.purchaseId);
+        if (changes['visible'] && this.visible && this.purchaseReturnId) {
+            this.load(this.purchaseReturnId);
         }
     }
 
@@ -45,8 +39,7 @@ export class PurchaseViewDialogComponent implements OnChanges {
         this.visible = visible;
         this.visibleChange.emit(visible);
         if (!visible) {
-            this.purchase = null;
-            this.returns = [];
+            this.purchaseReturn = null;
         }
     }
 
@@ -54,41 +47,27 @@ export class PurchaseViewDialogComponent implements OnChanges {
         this.onVisibleChange(false);
     }
 
-    printInvoice(): void {
-        if (!this.purchase?.id) {
+    onDelete(): void {
+        if (!this.purchaseReturn?.id) {
             return;
         }
-        this.printRequested.emit(this.purchase.id);
-    }
-
-    returnProducts(): void {
-        if (!this.purchase?.id) {
-            return;
-        }
-        const purchaseId = this.purchase.id;
-        this.onHide();
-        this.returnRequested.emit(purchaseId);
-    }
-
-    deleteReturn(purchaseReturn: PurchaseReturnDto): void {
+        const id = this.purchaseReturn.id;
         this.confirmationService.confirm({
-            message: `Are you sure you want to delete purchase return #${purchaseReturn.id}?`,
+            message: `Are you sure you want to delete purchase return #${id}?`,
             header: 'Delete Confirmation',
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
                 this.purchaseReturnService
-                    .delete(purchaseReturn.id)
+                    .delete(id)
                     .then(() => {
                         this.messageService.add({
                             severity: 'success',
                             summary: 'Success',
                             detail: 'Purchase return deleted successfully',
                         });
-                        if (this.purchaseId) {
-                            this.load(this.purchaseId);
-                        }
-                        this.changed.emit();
+                        this.deleted.emit();
+                        this.onHide();
                     })
                     .catch((error) => {
                         this.messageService.add({
@@ -105,26 +84,17 @@ export class PurchaseViewDialogComponent implements OnChanges {
 
     private load(id: number): void {
         this.loading = true;
-        this.purchase = null;
-        this.returns = [];
-
-        Promise.all([
-            this.purchaseService.get(id),
-            this.purchaseReturnService.getAll({
-                purchaseId: id,
-                skipCount: 0,
-                maxResultCount: 100,
-            }),
-        ])
-            .then(([purchase, returnsResult]) => {
-                this.purchase = purchase;
-                this.returns = returnsResult.items || [];
+        this.purchaseReturn = null;
+        this.purchaseReturnService
+            .get(id)
+            .then((result) => {
+                this.purchaseReturn = result;
             })
             .catch((error) => {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: error?.message || 'Failed to load purchase',
+                    detail: error?.message || 'Failed to load purchase return',
                 });
                 this.onHide();
             })

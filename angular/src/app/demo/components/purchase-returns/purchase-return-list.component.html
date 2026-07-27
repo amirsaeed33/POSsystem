@@ -1,7 +1,7 @@
 <div class="card">
     <p-table
         #dt
-        [value]="purchases"
+        [value]="returns"
         [paginator]="true"
         [rows]="10"
         [showCurrentPageReport]="true"
@@ -9,7 +9,7 @@
         [loading]="loading"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
         [rowsPerPageOptions]="[10, 25, 50]"
-        [globalFilterFields]="['invoiceNo', 'supplierName', 'notes']"
+        [globalFilterFields]="['purchaseInvoiceNo', 'supplierName', 'notes']"
     >
         <ng-template pTemplate="caption">
             <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
@@ -20,7 +20,7 @@
                             pInputText
                             type="text"
                             class="w-full"
-                            placeholder="Search purchases"
+                            placeholder="Search purchase returns"
                             [(ngModel)]="keyword"
                             (keyup.enter)="onSearch()"
                             (input)="onGlobalFilter(dt, $event)"
@@ -50,22 +50,24 @@
 
         <ng-template pTemplate="header">
             <tr>
-                <th pSortableColumn="invoiceNo">Invoice No <p-sortIcon field="invoiceNo"></p-sortIcon></th>
-                <th pSortableColumn="purchaseDate">Purchase Date <p-sortIcon field="purchaseDate"></p-sortIcon></th>
+                <th pSortableColumn="id">Return # <p-sortIcon field="id"></p-sortIcon></th>
+                <th pSortableColumn="returnDate">Return Date <p-sortIcon field="returnDate"></p-sortIcon></th>
+                <th pSortableColumn="purchaseInvoiceNo">Purchase Invoice <p-sortIcon field="purchaseInvoiceNo"></p-sortIcon></th>
                 <th pSortableColumn="supplierName">Supplier <p-sortIcon field="supplierName"></p-sortIcon></th>
-                <th pSortableColumn="totalAmount">Total Amount <p-sortIcon field="totalAmount"></p-sortIcon></th>
-                <th pSortableColumn="notes">Notes <p-sortIcon field="notes"></p-sortIcon></th>
-                <th style="width: 13rem">Actions</th>
+                <th pSortableColumn="totalAmount">Total <p-sortIcon field="totalAmount"></p-sortIcon></th>
+                <th>Notes</th>
+                <th style="width: 9rem">Actions</th>
             </tr>
         </ng-template>
 
-        <ng-template pTemplate="body" let-purchase>
+        <ng-template pTemplate="body" let-item>
             <tr>
-                <td>{{ purchase.invoiceNo || ('#' + purchase.id) }}</td>
-                <td>{{ purchase.purchaseDate | date: 'mediumDate' }}</td>
-                <td>{{ purchase.supplierName || '—' }}</td>
-                <td>{{ purchase.totalAmount | number: '1.2-2' }}</td>
-                <td>{{ purchase.notes || '—' }}</td>
+                <td>#{{ item.id }}</td>
+                <td>{{ item.returnDate | date: 'mediumDate' }}</td>
+                <td>{{ item.purchaseInvoiceNo || ('Purchase #' + item.purchaseId) }}</td>
+                <td>{{ item.supplierName || '—' }}</td>
+                <td>{{ item.totalAmount | number: '1.2-2' }}</td>
+                <td>{{ item.notes || '—' }}</td>
                 <td>
                     <div class="flex gap-2">
                         <button
@@ -76,27 +78,7 @@
                             class="p-button-text p-button-sm"
                             pTooltip="View"
                             tooltipPosition="top"
-                            (click)="openViewDialog(purchase)"
-                        ></button>
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-replay"
-                            class="p-button-text p-button-warning p-button-sm"
-                            pTooltip="Return Purchase"
-                            tooltipPosition="top"
-                            (click)="openReturnDialog(purchase)"
-                        ></button>
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-print"
-                            class="p-button-text p-button-sm"
-                            pTooltip="Print"
-                            tooltipPosition="top"
-                            (click)="openPrintDialog(purchase.id)"
+                            (click)="openViewDialog(item)"
                         ></button>
                         <button
                             pButton
@@ -106,7 +88,7 @@
                             class="p-button-text p-button-danger p-button-sm"
                             pTooltip="Delete"
                             tooltipPosition="top"
-                            (click)="onDelete(purchase)"
+                            (click)="onDelete(item)"
                         ></button>
                     </div>
                 </td>
@@ -115,37 +97,24 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="6" class="text-center p-4">
-                    <div class="text-500">No purchases found</div>
+                <td colspan="7" class="text-center p-4">
+                    <div class="text-500">No purchase returns found</div>
                 </td>
             </tr>
         </ng-template>
     </p-table>
 
-    <app-purchase-form-dialog
-        [(visible)]="createDialogVisible"
-        (saved)="onDialogSaved()"
-    ></app-purchase-form-dialog>
-
-    <app-purchase-view-dialog
-        [(visible)]="viewDialogVisible"
-        [purchaseId]="viewingPurchaseId"
-        (printRequested)="openPrintDialog($event)"
-        (returnRequested)="openReturnDialogForPurchaseId($event)"
-        (changed)="onDialogSaved()"
-    ></app-purchase-view-dialog>
-
-    <app-print-purchase-invoice-dialog
-        [(visible)]="printDialogVisible"
-        [purchaseId]="printingPurchaseId"
-        [autoPrint]="printAutoPrint"
-    ></app-print-purchase-invoice-dialog>
-
     <app-purchase-return-form-dialog
-        [(visible)]="returnDialogVisible"
-        [purchaseId]="returningPurchaseId"
+        [(visible)]="createDialogVisible"
+        [purchaseId]="createPurchaseId"
         (saved)="onDialogSaved()"
     ></app-purchase-return-form-dialog>
+
+    <app-purchase-return-view-dialog
+        [(visible)]="viewDialogVisible"
+        [purchaseReturnId]="viewingReturnId"
+        (deleted)="onDialogSaved()"
+    ></app-purchase-return-view-dialog>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
