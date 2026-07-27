@@ -1,4 +1,5 @@
-<div class="card report-page">
+<div class="card report-page stock-report-page">
+    <!-- Verona screen UI -->
     <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3 no-print">
         <h5 class="m-0">Stock Report</h5>
         <button
@@ -12,11 +13,7 @@
         ></button>
     </div>
 
-    <div class="d-print-block">
-        <h2 class="report-print-title">Stock Report</h2>
-    </div>
-
-    <div class="grid mb-3">
+    <div class="grid mb-3 no-print">
         <div class="col-12 md:col-3">
             <div class="surface-100 border-round p-3">
                 <div class="text-500 mb-1">Total Products</div>
@@ -88,10 +85,11 @@
     </div>
 
     <p-table
+        class="no-print"
         [value]="report.items"
         [loading]="loading"
-        [paginator]="!printing"
-        [rows]="tableRows"
+        [paginator]="true"
+        [rows]="25"
         [rowsPerPageOptions]="[10, 25, 50]"
         [showCurrentPageReport]="true"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
@@ -160,6 +158,112 @@
             </tr>
         </ng-template>
     </p-table>
+
+    <!-- angular-old print layout (screen-hidden; shown only in @media print) -->
+    <div class="d-print-block stock-report-print">
+        <h2 class="report-print-title">Stock Report</h2>
+
+        <table class="stock-report-summary">
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="summary-label">Total Products</div>
+                        <div class="summary-value">{{ formatNumber(report.totalProducts) }}</div>
+                    </td>
+                    <td>
+                        <div class="summary-label">In Stock</div>
+                        <div class="summary-value">{{ formatNumber(report.inStockCount) }}</div>
+                    </td>
+                    <td>
+                        <div class="summary-label">Low Stock</div>
+                        <div class="summary-value">{{ formatNumber(report.lowStockCount) }}</div>
+                    </td>
+                    <td>
+                        <div class="summary-label">Out of Stock</div>
+                        <div class="summary-value">{{ formatNumber(report.outOfStockCount) }}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="summary-label">Stock Cost Value</div>
+                        <div class="summary-value">{{ formatMoney(report.totalStockCostValue) }}</div>
+                    </td>
+                    <td>
+                        <div class="summary-label">Stock Sell Value</div>
+                        <div class="summary-value">{{ formatMoney(report.totalStockSellValue) }}</div>
+                    </td>
+                    <td colspan="2">
+                        <div class="summary-label">Stock Profit</div>
+                        <div class="summary-value">{{ formatMoney(report.totalStockProfit) }}</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="stock-report-print-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Barcode</th>
+                    <th>Category</th>
+                    <th>Brand</th>
+                    <th>Unit</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Cost Price</th>
+                    <th class="text-right">Profit Per Unit</th>
+                    <th class="text-right">Profit Margin</th>
+                    <th class="text-right">Stock Profit</th>
+                    <th class="text-right">Stock Quantity</th>
+                    <th class="text-right">Alert Quantity Limit</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let row of report.items || []; trackBy: trackById">
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.barcode }}</td>
+                    <td>{{ row.categoryName }}</td>
+                    <td>{{ row.brandName }}</td>
+                    <td>{{ row.unitName }}</td>
+                    <td class="text-right">{{ formatMoney(row.price) }}</td>
+                    <td class="text-right">{{ formatMoney(row.costPrice) }}</td>
+                    <td
+                        class="text-right"
+                        [class.text-success]="row.profitPerUnit > 0"
+                        [class.text-danger]="row.profitPerUnit < 0"
+                    >
+                        {{ formatMoney(row.profitPerUnit) }}
+                    </td>
+                    <td class="text-right">
+                        <ng-container *ngIf="row.profitMarginPercent != null; else printNoMargin">
+                            {{ formatNumber(row.profitMarginPercent) }}%
+                        </ng-container>
+                        <ng-template #printNoMargin>-</ng-template>
+                    </td>
+                    <td
+                        class="text-right"
+                        [class.text-success]="row.stockProfit > 0"
+                        [class.text-danger]="row.stockProfit < 0"
+                    >
+                        {{ formatMoney(row.stockProfit) }}
+                    </td>
+                    <td class="text-right">{{ formatNumber(row.stockQuantity) }}</td>
+                    <td class="text-right">{{ formatNumber(row.alertQuantityLimit) }}</td>
+                    <td>
+                        <span
+                            class="badge"
+                            [class.badge-success]="row.status === 'InStock'"
+                            [class.badge-warning]="row.status === 'LowStock'"
+                            [class.badge-danger]="row.status === 'OutOfStock'"
+                        >{{ statusLabel(row.status) }}</span>
+                    </td>
+                </tr>
+                <tr *ngIf="!(report.items && report.items.length)">
+                    <td colspan="13" class="text-center text-muted">No data</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
     <p-toast></p-toast>
 </div>

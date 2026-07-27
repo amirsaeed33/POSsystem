@@ -1,15 +1,16 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { MessageService } from 'primeng/api';
-import { StockReportDto } from 'src/app/demo/api/report';
+import { StockReportDto, StockReportRowDto } from 'src/app/demo/api/report';
 import { ReportService } from 'src/app/demo/service/report.service';
 
 @Component({
     templateUrl: './stock-report.component.html',
+    styleUrls: ['./stock-report.component.css'],
     providers: [MessageService],
+    encapsulation: ViewEncapsulation.None,
 })
 export class StockReportComponent implements OnInit {
     loading = false;
-    printing = false;
     keyword = '';
     report: StockReportDto = {
         totalProducts: 0,
@@ -25,19 +26,11 @@ export class StockReportComponent implements OnInit {
 
     constructor(
         private reportService: ReportService,
-        private messageService: MessageService,
-        private cd: ChangeDetectorRef
+        private messageService: MessageService
     ) {}
 
     ngOnInit(): void {
         this.generate();
-    }
-
-    get tableRows(): number {
-        if (this.printing) {
-            return Math.max(this.report.items?.length || 0, 1);
-        }
-        return 25;
     }
 
     generate(): void {
@@ -59,20 +52,20 @@ export class StockReportComponent implements OnInit {
             });
     }
 
-    /** Match angular-old: print full generated dataset (not just current page). */
+    /** Match angular-old: page-level print of the dedicated print layout. */
     printReport(): void {
-        this.printing = true;
-        this.cd.detectChanges();
-        setTimeout(() => {
-            const cleanup = () => {
-                this.printing = false;
-                this.cd.detectChanges();
-                window.removeEventListener('afterprint', cleanup);
-            };
-            window.addEventListener('afterprint', cleanup);
-            window.print();
-            setTimeout(cleanup, 1000);
-        }, 100);
+        window.print();
+    }
+
+    formatMoney(value: number | null | undefined): string {
+        return (value || 0).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    }
+
+    formatNumber(value: number | null | undefined): string {
+        return (value || 0).toLocaleString();
     }
 
     statusLabel(status?: string): string {
@@ -95,5 +88,9 @@ export class StockReportComponent implements OnInit {
             return 'warning';
         }
         return 'danger';
+    }
+
+    trackById(_: number, item: StockReportRowDto): number {
+        return item.id;
     }
 }

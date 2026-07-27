@@ -165,6 +165,14 @@ $gutter: 1rem; //for primeflex grid system
     font-size: 12px !important;
   }
 
+  /* Stock report print uses dedicated native table (angular-old font/padding). */
+  body:not(.printing-invoice) .report-page .stock-report-print-table th,
+  body:not(.printing-invoice) .report-page .stock-report-print-table td {
+    border: 1px solid #dee2e6 !important;
+    padding: 8px !important;
+    font-size: 14px !important;
+  }
+
   body:not(.printing-invoice) .report-print-title {
     margin: 0 0 12px;
     font-size: 20px;
