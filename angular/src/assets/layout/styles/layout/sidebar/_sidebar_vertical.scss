@@ -36,8 +36,47 @@
                 }
             }
 
+            // Group roots: section title + children (Verona static/overlay).
             > a {
                 display: none;
+            }
+
+            // Leaf roots (routerLink only): show as normal menu rows so Static/Overlay
+            // keep icon + label without requiring a dummy "Home" wrapper.
+            &:not(:has(> ul)) {
+                > .layout-menuitem-root-text {
+                    display: none;
+                }
+
+                > a {
+                    display: flex;
+                    align-items: center;
+                    outline: 0 none;
+                    position: relative;
+                    color: var(--v-menuitem-text-color);
+                    padding: .5rem;
+                    margin-bottom: .25rem;
+                    border-radius: var(--border-radius);
+                    line-height: 1;
+                    transition: background-color var(--transition-duration), box-shadow var(--transition-duration);
+                    cursor: pointer;
+
+                    .layout-menuitem-icon {
+                        margin-right: .5rem;
+                    }
+
+                    .layout-submenu-toggler {
+                        display: none;
+                    }
+
+                    &.active-route {
+                        font-weight: 700;
+                    }
+
+                    &:hover {
+                        background: var(--v-menuitem-hover-bg);
+                    }
+                }
             }
         }
 

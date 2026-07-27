@@ -78,6 +78,10 @@ export class AppConfigComponent implements OnInit {
             ...config,
             menuMode: _val,
         }));
+        this.layoutService.state.staticMenuDesktopInactive = false;
+        this.layoutService.state.overlayMenuActive = false;
+        this.layoutService.state.staticMenuMobileActive = false;
+        this.layoutService.state.menuHoverActive = false;
         if (this.layoutService.isSlimPlus() || this.layoutService.isSlim()) {
             this.menuService.reset();
         }

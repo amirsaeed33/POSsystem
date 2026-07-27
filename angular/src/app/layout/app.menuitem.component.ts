@@ -166,7 +166,7 @@ export class AppMenuitemComponent implements OnInit, OnDestroy {
         }
 
         // navigate with hover
-        if (this.root && this.isSlim || this.isSlimPlus) {
+        if (this.root && (this.isSlim || this.isSlimPlus)) {
             this.layoutService.state.menuHoverActive = !this.layoutService.state.menuHoverActive;
         }
 
