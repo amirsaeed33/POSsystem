@@ -3,7 +3,7 @@ import { Subscription, debounceTime } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { DashboardService } from 'src/app/demo/service/dashboard.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
-import { MonthlyCashFlowDto } from 'src/app/demo/api/dashboard';
+import { MonthlyCashFlowDto, DashboardProductRowDto } from 'src/app/demo/api/dashboard';
 import { SaleDto } from 'src/app/demo/api/sale';
 
 interface LatestListItem {
@@ -11,6 +11,13 @@ interface LatestListItem {
     subtitle: string;
     initials: string;
     avatarStyle: Record<string, string>;
+}
+
+interface TopProductItem {
+    name: string;
+    categoryName: string;
+    unitsSold: number;
+    rank: number;
 }
 
 @Component({
@@ -38,6 +45,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     todayProfit = 0;
 
     cashFlow: MonthlyCashFlowDto[] = [];
+
+    topProducts: TopProductItem[] = [];
 
     latestListTitle = 'Latest Customers';
     latestListItems: LatestListItem[] = [];
@@ -84,14 +93,28 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.todayExpenses = data.todayExpenses ?? 0;
             this.todayProfit = data.todayProfit ?? 0;
             this.cashFlow = data.cashFlow ?? [];
+            this.topProducts = this.buildTopProducts(data.products ?? []);
         } catch {
             this.todaySales = 0;
             this.todayPurchases = 0;
             this.todayExpenses = 0;
             this.todayProfit = 0;
             this.cashFlow = [];
+            this.topProducts = [];
         }
         this.buildOverviewChart();
+    }
+
+    private buildTopProducts(products: DashboardProductRowDto[]): TopProductItem[] {
+        return [...products]
+            .sort((a, b) => (b.units ?? 0) - (a.units ?? 0))
+            .slice(0, 8)
+            .map((product, index) => ({
+                name: product.name || '—',
+                categoryName: product.categoryName || '—',
+                unitsSold: product.units ?? 0,
+                rank: index + 1,
+            }));
     }
 
     async loadLatestList() {
