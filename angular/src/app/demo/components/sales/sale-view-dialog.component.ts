@@ -6,9 +6,11 @@ import {
     Output,
     SimpleChanges,
 } from '@angular/core';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { PaymentType, SaleDto } from 'src/app/demo/api/sale';
+import { SaleReturnDto } from 'src/app/demo/api/sale-return';
 import { SaleService } from 'src/app/demo/service/sale.service';
+import { SaleReturnService } from 'src/app/demo/service/sale-return.service';
 
 @Component({
     selector: 'app-sale-view-dialog',
@@ -19,18 +21,23 @@ export class SaleViewDialogComponent implements OnChanges {
     @Input() saleId: number | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() printRequested = new EventEmitter<number>();
+    @Output() returnRequested = new EventEmitter<number>();
+    @Output() changed = new EventEmitter<void>();
 
     sale: SaleDto | null = null;
+    returns: SaleReturnDto[] = [];
     loading = false;
 
     constructor(
         private saleService: SaleService,
-        private messageService: MessageService
+        private saleReturnService: SaleReturnService,
+        private messageService: MessageService,
+        private confirmationService: ConfirmationService
     ) {}
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible && this.saleId) {
-            this.loadSale(this.saleId);
+            this.load(this.saleId);
         }
     }
 
@@ -39,6 +46,7 @@ export class SaleViewDialogComponent implements OnChanges {
         this.visibleChange.emit(visible);
         if (!visible) {
             this.sale = null;
+            this.returns = [];
         }
     }
 
@@ -51,6 +59,47 @@ export class SaleViewDialogComponent implements OnChanges {
             return;
         }
         this.printRequested.emit(this.sale.id);
+    }
+
+    returnProducts(): void {
+        if (!this.sale?.id) {
+            return;
+        }
+        const saleId = this.sale.id;
+        this.onHide();
+        this.returnRequested.emit(saleId);
+    }
+
+    deleteReturn(saleReturn: SaleReturnDto): void {
+        this.confirmationService.confirm({
+            message: `Are you sure you want to delete sale return #${saleReturn.id}?`,
+            header: 'Delete Confirmation',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => {
+                this.saleReturnService
+                    .delete(saleReturn.id)
+                    .then(() => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: 'Success',
+                            detail: 'Sale return deleted successfully',
+                        });
+                        if (this.saleId) {
+                            this.load(this.saleId);
+                        }
+                        this.changed.emit();
+                    })
+                    .catch((error) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail:
+                                error?.message || 'Failed to delete sale return',
+                        });
+                    });
+            },
+        });
     }
 
     paymentTypeLabel(paymentType: number): string {
@@ -68,13 +117,22 @@ export class SaleViewDialogComponent implements OnChanges {
         }
     }
 
-    private loadSale(id: number): void {
+    private load(id: number): void {
         this.loading = true;
         this.sale = null;
-        this.saleService
-            .get(id)
-            .then((sale) => {
+        this.returns = [];
+
+        Promise.all([
+            this.saleService.get(id),
+            this.saleReturnService.getAll({
+                saleId: id,
+                skipCount: 0,
+                maxResultCount: 100,
+            }),
+        ])
+            .then(([sale, returnsResult]) => {
                 this.sale = sale;
+                this.returns = returnsResult.items || [];
             })
             .catch((error) => {
                 this.messageService.add({

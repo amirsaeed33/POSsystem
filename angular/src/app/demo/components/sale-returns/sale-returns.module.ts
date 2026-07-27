@@ -11,20 +11,16 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
-import { SalesRoutingModule } from './sales-routing.module';
-import { SaleListComponent } from './sale-list.component';
-import { SaleFormDialogComponent } from './sale-form-dialog.component';
-import { SaleViewDialogComponent } from './sale-view-dialog.component';
-import { InvoicePrintModule } from '../invoices/invoice-print.module';
-import { SaleReturnsModule } from '../sale-returns/sale-returns.module';
+import { SaleReturnsRoutingModule } from './sale-returns-routing.module';
+import { SaleReturnListComponent } from './sale-return-list.component';
+import { SaleReturnFormDialogComponent } from './sale-return-form-dialog.component';
+import { SaleReturnViewDialogComponent } from './sale-return-view-dialog.component';
 
 @NgModule({
     imports: [
         CommonModule,
         FormsModule,
-        SalesRoutingModule,
-        InvoicePrintModule,
-        SaleReturnsModule,
+        SaleReturnsRoutingModule,
         ButtonModule,
         RippleModule,
         InputTextModule,
@@ -37,9 +33,10 @@ import { SaleReturnsModule } from '../sale-returns/sale-returns.module';
         DropdownModule,
     ],
     declarations: [
-        SaleListComponent,
-        SaleFormDialogComponent,
-        SaleViewDialogComponent,
+        SaleReturnListComponent,
+        SaleReturnFormDialogComponent,
+        SaleReturnViewDialogComponent,
     ],
+    exports: [SaleReturnFormDialogComponent],
 })
-export class SalesModule {}
+export class SaleReturnsModule {}

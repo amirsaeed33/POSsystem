@@ -1,0 +1,89 @@
+<p-dialog
+    header="View Sale Return"
+    [(visible)]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    [style]="{ width: '48rem' }"
+    [breakpoints]="{ '960px': '90vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onHide()"
+>
+    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+
+    <div *ngIf="!loading && saleReturn">
+        <div class="grid mb-3">
+            <div class="col-12 md:col-6">
+                <div class="text-500 mb-1">Return #</div>
+                <div class="font-medium">#{{ saleReturn.id }}</div>
+            </div>
+            <div class="col-12 md:col-6">
+                <div class="text-500 mb-1">Return Date</div>
+                <div class="font-medium">{{ saleReturn.returnDate | date: 'mediumDate' }}</div>
+            </div>
+            <div class="col-12 md:col-6">
+                <div class="text-500 mb-1">Sale Invoice</div>
+                <div class="font-medium">
+                    {{ saleReturn.saleInvoiceNo || ('Sale #' + saleReturn.saleId) }}
+                </div>
+            </div>
+            <div class="col-12 md:col-6">
+                <div class="text-500 mb-1">Customer</div>
+                <div class="font-medium">{{ saleReturn.customerName || '—' }}</div>
+            </div>
+            <div class="col-12 md:col-6">
+                <div class="text-500 mb-1">Total Amount</div>
+                <div class="font-medium">{{ saleReturn.totalAmount | number: '1.2-2' }}</div>
+            </div>
+            <div class="col-12">
+                <div class="text-500 mb-1">Notes</div>
+                <div class="font-medium">{{ saleReturn.notes || '—' }}</div>
+            </div>
+        </div>
+
+        <div class="surface-border border-1 border-round overflow-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="surface-100">
+                        <th class="text-left p-2">Product</th>
+                        <th class="text-right p-2">Return Qty</th>
+                        <th class="text-right p-2">Unit Price</th>
+                        <th class="text-right p-2">Line Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let line of saleReturn.lines || []">
+                        <td class="p-2">{{ line.productName || ('#' + line.productId) }}</td>
+                        <td class="p-2 text-right">{{ line.quantity }}</td>
+                        <td class="p-2 text-right">{{ line.unitPrice | number: '1.2-2' }}</td>
+                        <td class="p-2 text-right">{{ line.lineTotal | number: '1.2-2' }}</td>
+                    </tr>
+                    <tr *ngIf="!(saleReturn.lines || []).length">
+                        <td colspan="4" class="p-3 text-center text-500">No line items</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Delete"
+            icon="pi pi-trash"
+            class="p-button-danger p-button-text"
+            [disabled]="loading || !saleReturn"
+            (click)="onDelete()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Close"
+            class="p-button-text"
+            (click)="onHide()"
+        ></button>
+    </ng-template>
+</p-dialog>

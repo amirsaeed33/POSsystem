@@ -20,6 +20,8 @@ export class SaleListComponent implements OnInit {
     printDialogVisible = false;
     printingSaleId: number | null = null;
     printAutoPrint = false;
+    returnDialogVisible = false;
+    returningSaleId: number | null = null;
 
     constructor(
         private saleService: SaleService,
@@ -76,6 +78,15 @@ export class SaleListComponent implements OnInit {
         this.printingSaleId = saleId;
         this.printAutoPrint = autoPrint;
         this.printDialogVisible = true;
+    }
+
+    openReturnDialog(sale: SaleDto): void {
+        this.openReturnDialogForSaleId(sale.id);
+    }
+
+    openReturnDialogForSaleId(saleId: number): void {
+        this.returningSaleId = saleId;
+        this.returnDialogVisible = true;
     }
 
     onDialogSaved(): void {
