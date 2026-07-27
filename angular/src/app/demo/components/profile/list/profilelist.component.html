@@ -53,6 +53,8 @@
                     <div class="flex gap-2">
                         <button pButton pRipple icon="pi pi-pencil" class="p-button-text p-button-sm" 
                             (click)="onEditUser(user)" pTooltip="Edit" tooltipPosition="top"></button>
+                        <button pButton pRipple icon="pi pi-key" class="p-button-text p-button-sm"
+                            (click)="onResetPassword(user)" pTooltip="Reset Password" tooltipPosition="top"></button>
                         <button pButton pRipple [icon]="user.isActive ? 'pi pi-ban' : 'pi pi-check'" 
                             class="p-button-text p-button-sm" 
                             (click)="onToggleActive(user)" 
@@ -71,6 +73,13 @@
             </tr>
         </ng-template>
     </p-table>
+
+    <app-reset-password-dialog
+        [(visible)]="resetDialogVisible"
+        [userId]="resetUserId"
+        [userName]="resetUserName"
+    ></app-reset-password-dialog>
+
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
 </div>

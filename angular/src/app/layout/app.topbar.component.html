@@ -54,9 +54,13 @@
                     <i class="pi pi-inbox mr-3"></i>
                     <span>Inbox</span>
                 </a>
-                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer">
-                    <i class="pi pi-cog mr-3"></i>
-                    <span>Settings</span>
+                <a
+                    pRipple
+                    class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                    routerLink="/auth/changepassword"
+                >
+                    <i class="pi pi-key mr-3"></i>
+                    <span>Change Password</span>
                 </a>
                 <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer" (click)="onSignOut()">
                     <i class="pi pi-power-off mr-3"></i>

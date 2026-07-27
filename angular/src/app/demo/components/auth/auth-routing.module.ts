@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { AuthGuard } from 'src/app/demo/service/auth.guard';
 
 @NgModule({
     imports: [RouterModule.forChild([
@@ -7,6 +8,7 @@ import { RouterModule } from '@angular/router';
         { path: 'error', loadChildren: () => import('./error/error.module').then(m => m.ErrorModule) },
         { path: 'access', loadChildren: () => import('./accessdenied/accessdenied.module').then(m => m.AccessdeniedModule) },
         { path: 'login', loadChildren: () => import('./login/login.module').then(m => m.LoginModule) },
+        { path: 'changepassword', canActivate: [AuthGuard], loadChildren: () => import('./changepassword/changepassword.module').then(m => m.ChangePasswordModule) },
         { path: 'forgotpassword', loadChildren: () => import('./forgotpassword/forgotpassword.module').then(m => m.ForgotPasswordModule) },
         { path: 'register', loadChildren: () => import('./register/register.module').then(m => m.RegisterModule) },
         { path: 'newpassword', loadChildren: () => import('./newpassword/newpassword.module').then(m => m.NewPasswordModule) },

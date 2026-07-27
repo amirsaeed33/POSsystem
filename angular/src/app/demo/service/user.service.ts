@@ -1,8 +1,9 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { UserDto, CreateUserDto, PagedUserResultRequestDto, PagedResultDto, RoleDto, UpdateUserPermissionsInput } from '../api/user-management';
+import { UserDto, CreateUserDto, PagedUserResultRequestDto, PagedResultDto, RoleDto, UpdateUserPermissionsInput, ChangePasswordDto, ResetPasswordDto } from '../api/user-management';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
     providedIn: 'root',
@@ -266,6 +267,65 @@ export class UserService {
                 }
                 throw error;
             }) as Promise<void>;
+    }
+
+    async changePassword(input: ChangePasswordDto): Promise<boolean> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.post<any>(`${this.apiUrl}/ChangePassword`, {
+                    currentPassword: input.currentPassword,
+                    newPassword: input.newPassword,
+                })
+            );
+            return this.unwrapBoolean(res, 'Failed to change password');
+        } catch (error: any) {
+            throw new Error(this.extractErrorMessage(error, 'Failed to change password'));
+        }
+    }
+
+    async resetPassword(input: ResetPasswordDto): Promise<boolean> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.post<any>(`${this.apiUrl}/ResetPassword`, {
+                    adminPassword: input.adminPassword,
+                    userId: input.userId,
+                    newPassword: input.newPassword,
+                })
+            );
+            return this.unwrapBoolean(res, 'Failed to reset password');
+        } catch (error: any) {
+            throw new Error(this.extractErrorMessage(error, 'Failed to reset password'));
+        }
+    }
+
+    private unwrapBoolean(res: any, fallback: string): boolean {
+        if (!res) {
+            throw new Error('No response from server');
+        }
+        if (res.success === false || res.error) {
+            throw new Error(
+                res.error?.message || res.error?.details || fallback
+            );
+        }
+        const result = res.result ?? res;
+        if (result === true || result === 'true') {
+            return true;
+        }
+        if (res.success === true) {
+            return true;
+        }
+        return !!result;
+    }
+
+    private extractErrorMessage(error: any, fallback: string): string {
+        const abpError = error?.error;
+        return (
+            abpError?.error?.message ||
+            abpError?.message ||
+            abpError?.details ||
+            error?.message ||
+            fallback
+        );
     }
 
     private mapUserDto(item: any): UserDto {

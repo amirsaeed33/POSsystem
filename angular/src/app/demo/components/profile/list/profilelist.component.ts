@@ -16,6 +16,10 @@ export class ProfileListComponent implements OnInit {
     loading = false;
     totalRecords = 0;
 
+    resetDialogVisible = false;
+    resetUserId: number | null = null;
+    resetUserName = '';
+
     constructor(
         private userService: UserService,
         private router: Router,
@@ -60,6 +64,12 @@ export class ProfileListComponent implements OnInit {
 
     onEditUser(user: UserDto) {
         this.router.navigate(['profile/edit', user.id]);
+    }
+
+    onResetPassword(user: UserDto) {
+        this.resetUserId = user.id;
+        this.resetUserName = user.userName;
+        this.resetDialogVisible = true;
     }
 
     onDeleteUser(user: UserDto) {

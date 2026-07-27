@@ -49,3 +49,18 @@ export interface UpdateUserPermissionsInput {
     grantedPermissionNames: string[];
 }
 
+export interface ChangePasswordDto {
+    currentPassword: string;
+    newPassword: string;
+}
+
+export interface ResetPasswordDto {
+    adminPassword: string;
+    userId: number;
+    newPassword: string;
+}
+
+/** Same client rule as angular-old change-password form. */
+export const PASSWORD_COMPLEXITY_PATTERN =
+    /(?=^.{8,}$)(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.*\s)[0-9a-zA-Z!@#$%^&*()]*$/;
+
