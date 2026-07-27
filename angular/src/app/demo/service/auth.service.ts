@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AuthenticateModel, AuthenticateResultModel } from '../api/auth';
 import { environment } from '../../../environments/environment';
+import { PermissionService } from './permission.service';
 
 const TOKEN_KEY = 'accessToken';
 const ENCRYPTED_TOKEN_KEY = 'encryptedAccessToken';
@@ -16,7 +17,10 @@ const USER_INFO_KEY = 'userInfo';
 export class AuthService {
     private readonly authenticateUrl = `${environment.apiUrl}/api/TokenAuth/Authenticate`;
 
-    constructor(private http: HttpClient) {}
+    constructor(
+        private http: HttpClient,
+        private permissionService: PermissionService
+    ) {}
 
     async authenticate(model: AuthenticateModel): Promise<AuthenticateResultModel> {
         try {
@@ -99,6 +103,7 @@ export class AuthService {
         localStorage.removeItem(USER_ID_KEY);
         localStorage.removeItem(EXPIRE_KEY);
         localStorage.removeItem(USER_INFO_KEY);
+        this.permissionService.clear();
     }
 
     setUserInfo(userInfo: any): void {

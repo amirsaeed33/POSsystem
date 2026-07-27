@@ -1,0 +1,21 @@
+/** Frontend mirrors of backend PermissionNames (do not change backend). */
+export const PermissionNames = {
+    Tenants: 'Pages.Tenants',
+    Users: 'Pages.Users',
+    Roles: 'Pages.Roles',
+    Categories: 'Pages.Categories',
+    Brands: 'Pages.Brands',
+    CompanyProfiles: 'Pages.CompanyProfiles',
+    Units: 'Pages.Units',
+    Products: 'Pages.Products',
+    Customers: 'Pages.Customers',
+    Suppliers: 'Pages.Suppliers',
+    Accounts: 'Pages.Accounts',
+    LedgerEntries: 'Pages.LedgerEntries',
+    Purchases: 'Pages.Purchases',
+    Sales: 'Pages.Sales',
+    StockAdjustments: 'Pages.StockAdjustments',
+    Expenses: 'Pages.Expenses',
+    Reports: 'Pages.Reports',
+    CustomerOrders: 'Pages.CustomerOrders',
+} as const;

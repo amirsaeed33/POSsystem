@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { AuthService } from 'src/app/demo/service/auth.service';
+import { PermissionService } from 'src/app/demo/service/permission.service';
 import { SessionService } from 'src/app/demo/service/session.service';
 import { MessageService } from 'primeng/api';
 
@@ -21,6 +22,7 @@ export class LoginComponent implements OnInit {
 		private fb: FormBuilder,
 		private authService: AuthService,
 		private sessionService: SessionService,
+		private permissionService: PermissionService,
 		private router: Router,
 		private route: ActivatedRoute,
 		private messageService: MessageService
@@ -59,6 +61,9 @@ export class LoginComponent implements OnInit {
 				if (sessionInfo?.user) {
 					this.authService.setUserInfo(sessionInfo.user);
 				}
+				return this.permissionService.load();
+			})
+			.then(() => {
 				this.messageService.add({
 					severity: 'success',
 					summary: 'Success',
