@@ -117,6 +117,9 @@ namespace SmartPos.Dashboard
                 var expense = expenses
                     .Where(x => x.ExpenseDate.Year == monthDate.Year && x.ExpenseDate.Month == monthDate.Month)
                     .Sum(x => x.Amount);
+                var monthPurchases = purchases
+                    .Where(x => x.PurchaseDate.Year == monthDate.Year && x.PurchaseDate.Month == monthDate.Month)
+                    .Sum(x => x.TotalAmount);
 
                 cashFlow.Add(new MonthlyCashFlowDto
                 {
@@ -124,7 +127,8 @@ namespace SmartPos.Dashboard
                     Month = monthDate.Month,
                     MonthLabel = monthDate.ToString("MMM", CultureInfo.InvariantCulture),
                     Income = income,
-                    Expense = expense
+                    Expense = expense,
+                    Purchases = monthPurchases
                 });
             }
 

@@ -323,6 +323,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.stockHighlightIndex = 0;
         }
         this.buildOverviewChart();
+        this.buildRevenueChart();
     }
 
     get currentStockHighlight(): StockHighlightItem | null {
@@ -591,12 +592,26 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         };
 
         this.buildOverviewChart();
+        this.buildRevenueChart();
+    }
+
+    buildRevenueChart() {
+        const documentStyle = getComputedStyle(document.documentElement);
+        const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
+        const borderColor = documentStyle.getPropertyValue('--surface-border');
+
+        const labels = (this.cashFlow || []).map((x) => x.monthLabel);
+        const sales = (this.cashFlow || []).map((x) => x.income ?? 0);
+        const outgoing = (this.cashFlow || []).map(
+            (x) => (x.purchases ?? 0) + (x.expense ?? 0)
+        );
 
         this.revenueChartData = {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            labels: labels.length ? labels : ['—'],
             datasets: [
                 {
-                    data: [11, 17, 30, 60, 88, 92],
+                    label: 'Sales',
+                    data: labels.length ? sales : [0],
                     borderColor: 'rgba(25, 146, 212, 0.5)',
                     pointBorderColor: 'transparent',
                     pointBackgroundColor: 'transparent',
@@ -604,15 +619,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     tension: .4
                 },
                 {
-                    data: [11, 19, 39, 59, 69, 71],
-                    borderColor: 'rgba(25, 146, 212, 0.5)',
-                    pointBorderColor: 'transparent',
-                    pointBackgroundColor: 'transparent',
-                    fill: false,
-                    tension: .4
-                },
-                {
-                    data: [11, 17, 21, 30, 47, 83],
+                    label: 'Outgoing',
+                    data: labels.length ? outgoing : [0],
                     backgroundColor: 'rgba(25, 146, 212, 0.2)',
                     borderColor: 'rgba(25, 146, 212, 0.5)',
                     pointBorderColor: 'transparent',
@@ -626,7 +634,12 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         this.revenueChartOptions = {
             plugins: {
                 legend: {
-                    display: false
+                    display: true,
+                    position: 'bottom',
+                    align: 'end',
+                    labels: {
+                        color: textColorSecondary
+                    }
                 }
             },
             scales: {
@@ -634,7 +647,6 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     grid: {
                         color: borderColor
                     },
-                    max: 100,
                     min: 0,
                     ticks: {
                         color: textColorSecondary
@@ -672,7 +684,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             labels = this.cashFlow.map((x) => x.monthLabel);
             sales = this.cashFlow.map((x) => x.income ?? 0);
             expenses = this.cashFlow.map((x) => x.expense ?? 0);
-            purchases = this.cashFlow.map(() => 0);
+            purchases = this.cashFlow.map((x) => x.purchases ?? 0);
         } else {
             // This Week / Last Week: API has no weekly cash-flow breakdown
             labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];

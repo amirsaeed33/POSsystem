@@ -75,6 +75,7 @@ export class DashboardService {
                     monthLabel: item.monthLabel ?? item.MonthLabel ?? '',
                     income: item.income ?? item.Income ?? 0,
                     expense: item.expense ?? item.Expense ?? 0,
+                    purchases: item.purchases ?? item.Purchases ?? 0,
                 })
             ),
             products: (Array.isArray(products) ? products : []).map(

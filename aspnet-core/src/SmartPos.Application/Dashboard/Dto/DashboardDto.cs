@@ -58,6 +58,9 @@ namespace SmartPos.Dashboard.Dto
         public decimal Income { get; set; }
 
         public decimal Expense { get; set; }
+
+        /// <summary>Purchase totals for the month (used with Expense for outgoing).</summary>
+        public decimal Purchases { get; set; }
     }
 
     public class DashboardProductRowDto

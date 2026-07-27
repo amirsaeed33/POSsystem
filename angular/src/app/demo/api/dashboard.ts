@@ -26,6 +26,7 @@ export interface MonthlyCashFlowDto {
     monthLabel: string;
     income: number;
     expense: number;
+    purchases: number;
 }
 
 export interface DashboardProductRowDto {
