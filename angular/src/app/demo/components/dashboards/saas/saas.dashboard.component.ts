@@ -2,6 +2,7 @@ import {Component, OnDestroy, OnInit} from '@angular/core';
 import { Subscription, debounceTime } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { DashboardService } from 'src/app/demo/service/dashboard.service';
+import { MonthlyCashFlowDto } from 'src/app/demo/api/dashboard';
 
 @Component({
     templateUrl: './saas.dashboard.component.html'
@@ -27,6 +28,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     todayExpenses = 0;
     todayProfit = 0;
 
+    cashFlow: MonthlyCashFlowDto[] = [];
+
     constructor(
         public layoutService: LayoutService,
         private dashboardService: DashboardService
@@ -39,14 +42,15 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit() {
+        this.overviewWeeks = [
+            {name: 'This Week', code: 'this-week'},
+            {name: 'Last Week', code: 'last-week'},
+            {name: 'This Month', code: 'this-month'}
+        ];
+        this.selectedOverviewWeek = this.overviewWeeks[2];
+
         this.initCharts();
         this.loadDashboard();
-
-        this.overviewWeeks = [
-            {name: 'Last Week', code: '0'},
-            {name: 'This Week', code: '1'}
-        ];
-        this.selectedOverviewWeek = this.overviewWeeks[0]
     }
 
     async loadDashboard() {
@@ -56,12 +60,15 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.todayPurchases = data.todayPurchases ?? 0;
             this.todayExpenses = data.todayExpenses ?? 0;
             this.todayProfit = data.todayProfit ?? 0;
+            this.cashFlow = data.cashFlow ?? [];
         } catch {
             this.todaySales = 0;
             this.todayPurchases = 0;
             this.todayExpenses = 0;
             this.todayProfit = 0;
+            this.cashFlow = [];
         }
+        this.buildOverviewChart();
     }
 
     formatPkr(amount: number): string {
@@ -102,36 +109,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     initCharts() {
         const documentStyle = getComputedStyle(document.documentElement);
         const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
-        const primaryColor = documentStyle.getPropertyValue('--primary-color');
-        const primaryColor300 = documentStyle.getPropertyValue('--primary-200');
         const borderColor = documentStyle.getPropertyValue('--surface-border');
-
-        this.overviewChartData = {
-            labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
-            datasets: [
-                {
-                    label: 'Organic',
-                    data: [2, 1, 0.5, 0.6, 0.5, 1.3, 1],
-                    borderColor: [
-                        primaryColor
-                    ],
-                    pointBorderColor: 'transparent',
-                    pointBackgroundColor: 'transparent',
-                    type: 'line',
-                    fill: false,
-                },
-                {
-                    label: 'Referral',
-                    data: [4.88, 3, 6.2, 4.5, 2.1, 5.1, 4.1],
-                    backgroundColor: [this.layoutService.config().colorScheme === 'dark' ? '#879AAF' : '#E4E7EB'] ,
-                    hoverBackgroundColor: [primaryColor300],
-                    fill: true,
-                    borderRadius: 10,
-                    borderSkipped: 'top bottom',
-                    barPercentage: 0.3
-                }
-            ]
-        };
 
         this.overviewChartOptions = {
             plugins: {
@@ -149,18 +127,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             },
             scales: {
                 y: {
-                    max: 7,
                     min: 0,
                     ticks: {
-                        stepSize: 0,
-                        callback: function(value: number, index: number) {
-                            if (index === 0) {
-                                return value;
-                            }
-                            else {
-                                return value + 'k';
-                            }
-                        },
                         color: textColorSecondary
                     },
                     grid: {
@@ -180,6 +148,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                 }
             }
         };
+
+        this.buildOverviewChart();
 
         this.revenueChartData = {
             labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
@@ -242,26 +212,72 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         };
     }
 
-    changeOverviewWeek() {
-        const dataSet1 = [
-            [2, 1, 0.5, 0.6, 0.5, 1.3, 1],
-            [4.88, 3, 6.2, 4.5, 2.1, 5.1, 4.1]
-        ];
-        const dataSet2 = [
-            [3, 2.4, 1.5, 0.6, 4.5, 3.3, 2],
-            [3.2, 4.1, 2.2, 5.5, 4.1, 3.6, 3.5],
-        ];
+    buildOverviewChart() {
+        const documentStyle = getComputedStyle(document.documentElement);
+        const primaryColor = documentStyle.getPropertyValue('--primary-color');
+        const primaryColor300 = documentStyle.getPropertyValue('--primary-200');
+        const isDark = this.layoutService.config().colorScheme === 'dark';
+        const barColor = isDark ? '#879AAF' : '#E4E7EB';
+        const barColorAlt = isDark ? '#5B6B7C' : '#C5CBD3';
 
-        if (this.selectedOverviewWeek.code === '1') {
-            this.overviewChartData.datasets[0].data = dataSet2[parseInt('0')];
-            this.overviewChartData.datasets[1].data = dataSet2[parseInt('1')];
-        } 
-        else {
-            this.overviewChartData.datasets[0].data = dataSet1[parseInt('0')];
-            this.overviewChartData.datasets[1].data = dataSet1[parseInt('1')];
+        const period = this.selectedOverviewWeek?.code;
+        let labels: string[];
+        let sales: number[];
+        let purchases: number[];
+        let expenses: number[];
+
+        if (period === 'this-month' && this.cashFlow.length) {
+            // Cash flow is monthly: Income = sales, Expense = expenses (no purchases in API)
+            labels = this.cashFlow.map((x) => x.monthLabel);
+            sales = this.cashFlow.map((x) => x.income ?? 0);
+            expenses = this.cashFlow.map((x) => x.expense ?? 0);
+            purchases = this.cashFlow.map(() => 0);
+        } else {
+            // This Week / Last Week: API has no weekly cash-flow breakdown
+            labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+            sales = [0, 0, 0, 0, 0, 0, 0];
+            purchases = [0, 0, 0, 0, 0, 0, 0];
+            expenses = [0, 0, 0, 0, 0, 0, 0];
         }
 
-        this.overviewChartData = {...this.overviewChartData};
+        this.overviewChartData = {
+            labels,
+            datasets: [
+                {
+                    label: 'Sales',
+                    data: sales,
+                    borderColor: [primaryColor],
+                    pointBorderColor: 'transparent',
+                    pointBackgroundColor: 'transparent',
+                    type: 'line',
+                    fill: false,
+                },
+                {
+                    label: 'Purchases',
+                    data: purchases,
+                    backgroundColor: [barColor],
+                    hoverBackgroundColor: [primaryColor300],
+                    fill: true,
+                    borderRadius: 10,
+                    borderSkipped: 'top bottom',
+                    barPercentage: 0.3
+                },
+                {
+                    label: 'Expenses',
+                    data: expenses,
+                    backgroundColor: [barColorAlt],
+                    hoverBackgroundColor: [primaryColor300],
+                    fill: true,
+                    borderRadius: 10,
+                    borderSkipped: 'top bottom',
+                    barPercentage: 0.3
+                }
+            ]
+        };
+    }
+
+    changeOverviewWeek() {
+        this.buildOverviewChart();
     }
 
     get colorScheme(): string {
