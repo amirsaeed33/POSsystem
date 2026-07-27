@@ -3,18 +3,24 @@
         <h1 class="font-bold text-2xl mt-0 mb-2">SmartPos</h1>
         <p class="text-color-secondary mb-4">Sign in with your POSsystem account to continue.</p>
 
+        <app-tenant-change
+            *ngIf="tenantReady && isMultiTenancyEnabled"
+            [tenancyName]="tenancyName"
+            [name]="tenantDisplayName"
+        ></app-tenant-change>
+
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
             <div class="mb-4">
                 <span class="p-input-icon-left w-full">
                     <i class="pi pi-user"></i>
-                    <input 
-                        type="text" 
-                        pInputText 
-                        placeholder="Email or Username" 
+                    <input
+                        type="text"
+                        pInputText
+                        placeholder="Email or Username"
                         class="w-full"
                         formControlName="userNameOrEmailAddress"
                         [class.ng-invalid]="loginForm.get('userNameOrEmailAddress')?.invalid && loginForm.get('userNameOrEmailAddress')?.touched"
-                        style="padding-left: 2.5rem;">         
+                        style="padding-left: 2.5rem;">
                 </span>
                 <small class="p-error block mt-1" *ngIf="loginForm.get('userNameOrEmailAddress')?.invalid && loginForm.get('userNameOrEmailAddress')?.touched">
                     Email or Username is required
@@ -24,14 +30,14 @@
             <div class="mb-4">
                 <span class="p-input-icon-left w-full">
                     <i class="pi pi-key"></i>
-                    <input 
-                        type="password" 
-                        pInputText 
-                        placeholder="Password" 
+                    <input
+                        type="password"
+                        pInputText
+                        placeholder="Password"
                         class="w-full"
                         formControlName="password"
                         [class.ng-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
-                        style="padding-left: 2.5rem;">         
+                        style="padding-left: 2.5rem;">
                 </span>
                 <small class="p-error block mt-1" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
                     Password is required
@@ -43,10 +49,10 @@
                 <label for="remember" class="ml-2 text-sm">Remember me</label>
             </div>
 
-            <button 
+            <button
                 type="submit"
-                pButton 
-                pRipple 
+                pButton
+                pRipple
                 class="mb-4 w-full"
                 [disabled]="loading || loginForm.invalid">
                 <i *ngIf="loading" class="pi pi-spin pi-spinner mr-2"></i>

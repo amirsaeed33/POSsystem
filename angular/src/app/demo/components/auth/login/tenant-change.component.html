@@ -1,0 +1,56 @@
+<div *ngIf="isMultiTenancyEnabled" class="text-center mb-4">
+    <span class="text-color-secondary">
+        Current tenant:
+        <strong *ngIf="tenancyName" [title]="name || tenancyName">{{ tenancyName }}</strong>
+        <span *ngIf="!tenancyName">Not selected</span>
+        (<a href="javascript:;" class="text-primary cursor-pointer" (click)="showChangeModal()">Change</a>)
+    </span>
+</div>
+
+<p-dialog
+    header="Change tenant"
+    [(visible)]="dialogVisible"
+    [modal]="true"
+    [style]="{ width: '28rem' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onHide()"
+>
+    <div class="field">
+        <label for="tenancyName" class="block mb-2">Tenancy name</label>
+        <input
+            pInputText
+            id="tenancyName"
+            type="text"
+            class="w-full"
+            maxlength="64"
+            [(ngModel)]="editTenancyName"
+            (keyup.enter)="save()"
+        />
+        <small class="text-color-secondary block mt-2">
+            <i class="pi pi-info-circle mr-1"></i>
+            Leave empty to switch to the host.
+        </small>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            [disabled]="saving"
+            (click)="onHide()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            [loading]="saving"
+            (click)="save()"
+        ></button>
+    </ng-template>
+</p-dialog>

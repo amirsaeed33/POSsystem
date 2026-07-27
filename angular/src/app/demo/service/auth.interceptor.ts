@@ -10,12 +10,14 @@ import { Router } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+import { TenantContextService } from './tenant-context.service';
 import { environment } from '../../../environments/environment';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
     constructor(
         private authService: AuthService,
+        private tenantContext: TenantContextService,
         private router: Router
     ) {}
 
@@ -24,15 +26,23 @@ export class AuthInterceptor implements HttpInterceptor {
         next: HttpHandler
     ): Observable<HttpEvent<any>> {
         let request = req;
-        const token = this.authService.getAccessToken();
         const isApiRequest = req.url.startsWith(environment.apiUrl);
 
-        if (token && isApiRequest) {
-            request = req.clone({
-                setHeaders: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+        if (isApiRequest) {
+            const headers: Record<string, string> = {};
+            const token = this.authService.getAccessToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const tenantId = this.tenantContext.getTenantId();
+            if (tenantId != null) {
+                headers['Abp.TenantId'] = String(tenantId);
+            }
+
+            if (Object.keys(headers).length) {
+                request = req.clone({ setHeaders: headers });
+            }
         }
 
         return next.handle(request).pipe(

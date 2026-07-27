@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { LayoutService } from "./service/app.layout.service";
 import { AuthService } from 'src/app/demo/service/auth.service';
 import { SessionService } from 'src/app/demo/service/session.service';
+import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
 import { UserLoginInfoDto } from 'src/app/demo/api/session';
 import { environment } from 'src/environments/environment';
 
@@ -30,11 +31,14 @@ export class AppTopBarComponent implements OnInit {
         public layoutService: LayoutService,
         private authService: AuthService,
         private sessionService: SessionService,
+        private tenantContext: TenantContextService,
         private router: Router
     ) {}
 
     ngOnInit(): void {
-        this.loadUserInfo();
+        this.tenantContext.ensureMultiTenancyLoaded().finally(() => {
+            this.loadUserInfo();
+        });
     }
 
     loadUserInfo(): void {
@@ -52,6 +56,20 @@ export class AppTopBarComponent implements OnInit {
                         this.authService.setUserInfo(sessionInfo.user);
                         this.setUserInfo(sessionInfo.user);
                     }
+                    if (sessionInfo?.tenant) {
+                        this.tenantContext.setTenantInfo(sessionInfo.tenant);
+                        if (sessionInfo.tenant.id) {
+                            this.tenantContext.setTenantId(sessionInfo.tenant.id);
+                        }
+                        if (sessionInfo.user) {
+                            this.setUserInfo(sessionInfo.user);
+                        }
+                    } else {
+                        this.tenantContext.setTenantInfo(null);
+                        if (sessionInfo?.user) {
+                            this.setUserInfo(sessionInfo.user);
+                        }
+                    }
                 })
                 .catch(() => {
                     // If API call fails, use cached info or defaults
@@ -64,8 +82,18 @@ export class AppTopBarComponent implements OnInit {
 
     setUserInfo(user: UserLoginInfoDto): void {
         this.userInfo = user;
-        this.userDisplayName = `${user.name || ''} ${user.surname || ''}`.trim() || user.userName || 'User';
-        
+        const baseName =
+            `${user.name || ''} ${user.surname || ''}`.trim() ||
+            user.userName ||
+            'User';
+
+        if (this.tenantContext.isMultiTenancyEnabled()) {
+            const tenant = this.tenantContext.getTenantInfo();
+            const prefix = tenant?.tenancyName || '.';
+            this.userDisplayName = `${prefix}\\${user.userName || baseName}`;
+        } else {
+            this.userDisplayName = baseName;
+        }
         // Set user image if available, otherwise use default
         if (user.profilePictureUrl) {
             // Construct full URL from relative path

@@ -1,18 +1,21 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LoginRoutingModule } from './login-routing.module';
 import { LoginComponent } from './login.component';
+import { TenantChangeComponent } from './tenant-change.component';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { AppConfigModule } from 'src/app/layout/config/config.module';
 import { RippleModule } from 'primeng/ripple';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ToastModule } from 'primeng/toast';
+import { DialogModule } from 'primeng/dialog';
 
 @NgModule({
     imports: [
         CommonModule,
+        FormsModule,
         ReactiveFormsModule,
         LoginRoutingModule,
         ButtonModule,
@@ -20,8 +23,9 @@ import { ToastModule } from 'primeng/toast';
         RippleModule,
         CheckboxModule,
         ToastModule,
+        DialogModule,
         AppConfigModule
     ],
-    declarations: [LoginComponent]
+    declarations: [LoginComponent, TenantChangeComponent]
 })
 export class LoginModule { }
