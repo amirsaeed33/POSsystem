@@ -17,9 +17,19 @@ import { CustomerOrderService } from 'src/app/demo/service/customer-order.servic
 import { ProductService } from 'src/app/demo/service/product.service';
 import { CustomerService } from 'src/app/demo/service/customer.service';
 
+interface OrderCartLine {
+    productId: number;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    imagePath?: string;
+    stockQuantity: number;
+}
+
 @Component({
     selector: 'app-customer-order-form-dialog',
     templateUrl: './customer-order-form-dialog.component.html',
+    styleUrls: ['./customer-order-form-dialog.component.scss'],
 })
 export class CustomerOrderFormDialogComponent implements OnChanges {
     @Input() visible = false;
@@ -28,7 +38,10 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
 
     order: CreateCustomerOrderDto = this.emptyOrder();
     products: ProductDto[] = [];
+    filteredProducts: ProductDto[] = [];
     customers: CustomerDto[] = [];
+    cart: OrderCartLine[] = [];
+    productSearch = '';
     saving = false;
     loading = false;
 
@@ -40,10 +53,14 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
     ) {}
 
     get grandTotal(): number {
-        return (this.order.lines || []).reduce(
+        return this.cart.reduce(
             (sum, line) => sum + this.lineTotal(line),
             0
         );
+    }
+
+    get cartItemCount(): number {
+        return this.cart.reduce((sum, line) => sum + (line.quantity || 0), 0);
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -62,32 +79,84 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
         this.onVisibleChange(false);
     }
 
-    addLine(): void {
-        this.order.lines.push(this.emptyLine());
-    }
-
-    removeLine(index: number): void {
-        if (this.order.lines.length > 1) {
-            this.order.lines.splice(index, 1);
-        }
-    }
-
     onCustomerSelected(): void {
-        (this.order.lines || []).forEach((line) => {
-            if (line.productId) {
-                this.onProductSelected(line);
+        this.cart.forEach((line) => {
+            const product = this.products.find((p) => p.id === line.productId);
+            if (product) {
+                line.unitPrice = this.getUnitPriceForCustomer(product);
             }
         });
     }
 
-    onProductSelected(line: CreateCustomerOrderLineDto): void {
-        const product = this.products.find((p) => p.id === line.productId);
-        if (product) {
-            line.unitPrice = this.getUnitPriceForCustomer(product);
+    onProductSearch(): void {
+        const q = (this.productSearch || '').trim().toLowerCase();
+        if (!q) {
+            this.filteredProducts = [...this.products];
+            return;
         }
+        this.filteredProducts = this.products.filter(
+            (p) =>
+                (p.name || '').toLowerCase().includes(q) ||
+                (p.barcode || '').toLowerCase().includes(q) ||
+                (p.categoryName || '').toLowerCase().includes(q) ||
+                (p.brandName || '').toLowerCase().includes(q)
+        );
     }
 
-    lineTotal(line: CreateCustomerOrderLineDto): number {
+    getImageUrl(product: ProductDto | OrderCartLine): string {
+        return this.productService.getImageUrl(
+            (product as ProductDto).imagePath || (product as OrderCartLine).imagePath
+        );
+    }
+
+    getDisplayPrice(product: ProductDto): number {
+        return this.getUnitPriceForCustomer(product);
+    }
+
+    cartQty(productId: number): number {
+        return this.cart.find((l) => l.productId === productId)?.quantity || 0;
+    }
+
+    addProduct(product: ProductDto): void {
+        const existing = this.cart.find((l) => l.productId === product.id);
+        if (existing) {
+            existing.quantity = Number((existing.quantity + 1).toFixed(2));
+            existing.unitPrice = this.getUnitPriceForCustomer(product);
+            return;
+        }
+
+        this.cart.push({
+            productId: product.id,
+            productName: product.name,
+            quantity: 1,
+            unitPrice: this.getUnitPriceForCustomer(product),
+            imagePath: product.imagePath,
+            stockQuantity: product.stockQuantity || 0,
+        });
+    }
+
+    increaseQty(line: OrderCartLine): void {
+        line.quantity = Number(((line.quantity || 0) + 1).toFixed(2));
+    }
+
+    decreaseQty(line: OrderCartLine): void {
+        const next = Number(((line.quantity || 0) - 1).toFixed(2));
+        if (next <= 0) {
+            this.removeFromCart(line.productId);
+            return;
+        }
+        line.quantity = next;
+    }
+
+    removeFromCart(productId: number): void {
+        this.cart = this.cart.filter((l) => l.productId !== productId);
+    }
+
+    clearCart(): void {
+        this.cart = [];
+    }
+
+    lineTotal(line: OrderCartLine): number {
         return (line.quantity || 0) * (line.unitPrice || 0);
     }
 
@@ -117,14 +186,19 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
             return;
         }
 
-        const lines = (this.order.lines || []).filter(
-            (line) => line.productId && (line.quantity || 0) > 0
-        );
+        const lines: CreateCustomerOrderLineDto[] = this.cart
+            .filter((line) => line.productId && (line.quantity || 0) > 0)
+            .map((line) => ({
+                productId: line.productId,
+                quantity: line.quantity,
+                unitPrice: line.unitPrice || 0,
+            }));
+
         if (!lines.length) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Validation',
-                detail: 'Add at least one product line',
+                detail: 'Add at least one product',
             });
             return;
         }
@@ -154,11 +228,7 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
                 customerId: this.order.customerId,
                 orderDate: this.order.orderDate,
                 notes: this.order.notes?.trim() || undefined,
-                lines: lines.map((line) => ({
-                    productId: line.productId,
-                    quantity: line.quantity,
-                    unitPrice: line.unitPrice || 0,
-                })),
+                lines,
             })
             .then(() => {
                 this.messageService.add({
@@ -192,25 +262,20 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
         return product.price || 0;
     }
 
-    private emptyLine(): CreateCustomerOrderLineDto {
-        return {
-            productId: null as any,
-            quantity: 1,
-            unitPrice: 0,
-        };
-    }
-
     private emptyOrder(): CreateCustomerOrderDto {
         return {
             customerId: null as any,
             orderDate: this.toDateInputValue(),
             notes: '',
-            lines: [this.emptyLine()],
+            lines: [],
         };
     }
 
     private resetForm(): void {
         this.order = this.emptyOrder();
+        this.cart = [];
+        this.productSearch = '';
+        this.filteredProducts = [];
         this.saving = false;
         this.loading = false;
     }
@@ -229,8 +294,9 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
             this.customerService.getAll({ skipCount: 0, maxResultCount: 1000 }),
         ])
             .then(([products, customers]) => {
-                this.products = products.items;
-                this.customers = customers.items;
+                this.products = products.items || [];
+                this.filteredProducts = [...this.products];
+                this.customers = customers.items || [];
             })
             .catch((error) => {
                 this.messageService.add({
