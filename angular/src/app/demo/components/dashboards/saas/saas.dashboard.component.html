@@ -88,44 +88,45 @@
 
     <div class="col-12 lg:col-6 xl:col-3">
         <div class="card">
+            <h5>Quick Actions</h5>
             <div class="text-center mb-5">
                 <img [src]="'assets/demo/images/dashboard/completion-graph-' + (colorScheme === 'light' ? 'light' : 'dark') + '.svg'" alt="graph" class="w-full">
             </div>
 
             <ul class="list-none p-0 m-0">
                 <li class="mb-4 flex align-items-center justify-content-start">
-                    <p-avatar icon="pi pi-user-edit" size="large" shape="circle" styleClass="text-base font-bold"
+                    <p-avatar icon="pi pi-box" size="large" shape="circle" styleClass="text-base font-bold"
                               [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
                     <div class="ml-3">
-                        <span class="block">Add your personal information</span>
-                        <span class="text-blue-500 hover:underline cursor-pointer block font-bold">Go Profile Edit</span>
+                        <span class="block">Low Stock Products</span>
+                        <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/reports/stock">View Stock</a>
                     </div>
                 </li>
     
                 <li class="mb-4 flex align-items-center justify-content-start">
-                    <p-avatar icon="pi pi-send" size="large" shape="circle" styleClass="text-base font-bold"
+                    <p-avatar icon="pi pi-file" size="large" shape="circle" styleClass="text-base font-bold"
                               [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
                     <div class="ml-3">
-                        <span class="block">Verify your phone</span>
-                        <span class="text-blue-500 hover:underline cursor-pointer block font-bold">Send Verification SMS</span>
+                        <span class="block">Pending Customer Orders</span>
+                        <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/customer-orders">View Orders</a>
                     </div>
                 </li>
     
                 <li class="mb-4 flex align-items-center justify-content-start">
-                    <p-avatar icon="pi pi-video" size="large" shape="circle" styleClass="text-base font-bold"
+                    <p-avatar icon="pi pi-desktop" size="large" shape="circle" styleClass="text-base font-bold"
                               [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
                     <div class="ml-3">
-                        <span class="block">Verify your Face ID</span>
-                        <span class="text-blue-500 hover:underline cursor-pointer block font-bold">Upload Pictures</span>
+                        <span class="block">Open POS</span>
+                        <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/pos">Open POS</a>
                     </div>
                 </li>
     
                 <li class="mb-4 flex align-items-center justify-content-start">
-                    <p-avatar icon="pi pi-briefcase" size="large" shape="circle" styleClass="text-base font-bold"
+                    <p-avatar icon="pi pi-id-card" size="large" shape="circle" styleClass="text-base font-bold"
                               [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
                     <div class="ml-3">
-                        <span class="block">Give permissions for personal data</span>
-                        <span class="text-blue-500 hover:underline cursor-pointer block font-bold">View Agreement</span>
+                        <span class="block">Company Profile</span>
+                        <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/company-profiles">Open Profile</a>
                     </div>
                 </li>
             </ul>
