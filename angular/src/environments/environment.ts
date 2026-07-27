@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost:44311'
+  // Empty = same origin (localhost:4200 or ngrok). Angular proxy forwards to the API.
+  apiUrl: ''
 };
-

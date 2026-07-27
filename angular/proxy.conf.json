@@ -1,0 +1,29 @@
+{
+  "/api": {
+    "target": "https://localhost:44311",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
+  "/ProductImages": {
+    "target": "https://localhost:44311",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/CompanyImages": {
+    "target": "https://localhost:44311",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/UserImages": {
+    "target": "https://localhost:44311",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/signalr": {
+    "target": "https://localhost:44311",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true
+  }
+}
