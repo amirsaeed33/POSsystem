@@ -14,5 +14,9 @@ namespace SmartPos.Users
         Task ChangeLanguage(ChangeUserLanguageDto input);
 
         Task<bool> ChangePassword(ChangePasswordDto input);
+
+        Task<ListResultDto<string>> GetUserPermissions(EntityDto<long> input);
+
+        Task UpdateUserPermissions(UpdateUserPermissionsDto input);
     }
 }

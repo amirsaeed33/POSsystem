@@ -196,9 +196,26 @@ export class RoleService {
 
     delete(id: number): Promise<void> {
         const headers = this.getAuthHeaders();
-        return this.http.delete<any>(`${this.apiUrl}?Id=${id}`, { headers })
+        return this.http.delete<any>(`${this.apiUrl}/Delete`, { headers, params: { Id: String(id) } })
             .toPromise()
-            .then(() => {});
+            .then((res: any) => {
+                if (res && (res.error || res.success === false)) {
+                    throw new Error(res.error?.message || res.error?.details || 'Failed to delete role');
+                }
+            })
+            .catch((error: any) => {
+                if (error?.error) {
+                    const abpError = error.error;
+                    throw new Error(
+                        abpError.error?.message ||
+                        abpError.message ||
+                        abpError.details ||
+                        error.message ||
+                        'Failed to delete role'
+                    );
+                }
+                throw error;
+            }) as Promise<void>;
     }
 
     getAllPermissions(): Promise<PermissionDto[]> {

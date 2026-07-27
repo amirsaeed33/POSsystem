@@ -3,7 +3,6 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { UserService } from 'src/app/demo/service/user.service';
 import { RoleService } from 'src/app/demo/service/role.service';
-import { FileUploadService } from 'src/app/demo/service/file-upload.service';
 import { RoleDto, UserDto } from 'src/app/demo/api/user-management';
 import { PermissionDto } from 'src/app/demo/api/role-management';
 import { MessageService } from 'primeng/api';
@@ -22,7 +21,8 @@ export class ProfileCreateComponent implements OnInit {
     isEditMode = false;
     userId: number | null = null;
     profilePictureUrl: string | null = null;
-    profilePictureFile: File | null = null;
+    /** True when user picked a new image this session (data URL ready for ImageBase64). */
+    profilePictureChanged = false;
     permissions: PermissionDto[] = [];
     loadingPermissions = false;
     selectedUserPermissions: string[] = [];
@@ -33,7 +33,6 @@ export class ProfileCreateComponent implements OnInit {
         private fb: FormBuilder,
         private userService: UserService,
         private roleService: RoleService,
-        private fileUploadService: FileUploadService,
         private router: Router,
         private route: ActivatedRoute,
         private messageService: MessageService
@@ -114,6 +113,7 @@ export class ProfileCreateComponent implements OnInit {
                 } else {
                     this.profilePictureUrl = null;
                 }
+                this.profilePictureChanged = false;
                 
                 // Map roleNames to match the role options
                 // Backend returns normalized role names (e.g., "ADMIN"), but we need regular names for multiSelect
@@ -218,39 +218,21 @@ export class ProfileCreateComponent implements OnInit {
         }
 
         this.loading = true;
-        const formValue = this.userForm.value;
+        const formValue: any = { ...this.userForm.value };
         formValue.roleNames = this.selectedRoles;
-        
-        // Handle profile picture - if a new file is selected, upload it first
-        if (this.profilePictureFile) {
-            this.fileUploadService.uploadProfilePicture(this.profilePictureFile)
-                .then((url: string) => {
-                    formValue.profilePictureUrl = url;
-                    this.submitForm(formValue);
-                })
-                .catch((error) => {
-                    this.loading = false;
-                    const errorMessage = error?.message || 'Failed to upload profile picture';
-                    this.messageService.add({ 
-                        severity: 'error', 
-                        summary: 'Error', 
-                        detail: errorMessage
-                    });
-                });
-        } else {
-            // If no new file, keep existing profilePictureUrl (extract relative path if full URL)
-            if (this.profilePictureUrl) {
-                // If it's a full URL, extract the relative path
-                if (this.profilePictureUrl.startsWith(environment.apiUrl)) {
-                    formValue.profilePictureUrl = this.profilePictureUrl.replace(environment.apiUrl, '');
-                } else {
-                    formValue.profilePictureUrl = this.profilePictureUrl;
-                }
-            } else {
-                formValue.profilePictureUrl = null;
-            }
-            this.submitForm(formValue);
+        delete formValue.profilePictureUrl;
+
+        // Backend saves images via ImageBase64 (same pattern as products/company profiles).
+        // Do not call /api/FileUpload — that endpoint does not exist.
+        if (
+            this.profilePictureChanged &&
+            this.profilePictureUrl &&
+            this.profilePictureUrl.startsWith('data:image')
+        ) {
+            formValue.imageBase64 = this.profilePictureUrl;
         }
+
+        this.submitForm(formValue);
     }
 
     private submitForm(formValue: any): void {
@@ -358,21 +340,23 @@ export class ProfileCreateComponent implements OnInit {
                 return;
             }
             
-            this.profilePictureFile = file;
-            
-            // Preview the image
+            // Preview + keep data URL for ImageBase64 on save
             const reader = new FileReader();
             reader.onload = (e: any) => {
                 this.profilePictureUrl = e.target.result;
+                this.profilePictureChanged = true;
             };
             reader.readAsDataURL(file);
         }
     }
 
     onFileRemove(): void {
-        this.profilePictureFile = null;
+        this.profilePictureChanged = false;
         this.profilePictureUrl = null;
         this.userForm.patchValue({ profilePictureUrl: '' });
+        if (this.fileInput) {
+            this.fileInput.nativeElement.value = '';
+        }
     }
 
     onImageError(event: Event): void {

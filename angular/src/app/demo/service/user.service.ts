@@ -100,10 +100,10 @@ export class UserService {
             }) as Promise<UserDto>;
     }
 
-    create(input: CreateUserDto): Promise<UserDto> {
+    create(input: CreateUserDto | any): Promise<UserDto> {
         const headers = this.getAuthHeaders();
-        // ABP Framework exposes Create method explicitly
-        return this.http.post<any>(`${this.apiUrl}/Create`, input, { headers })
+        const body = this.toApiUserPayload(input, true);
+        return this.http.post<any>(`${this.apiUrl}/Create`, body, { headers })
             .toPromise()
             .then((res: any) => {
                 if (!res) {
@@ -134,10 +134,10 @@ export class UserService {
             }) as Promise<UserDto>;
     }
 
-    update(input: UserDto): Promise<UserDto> {
+    update(input: UserDto | any): Promise<UserDto> {
         const headers = this.getAuthHeaders();
-        // ABP Framework exposes Update method explicitly
-        return this.http.put<any>(`${this.apiUrl}/Update`, input, { headers })
+        const body = this.toApiUserPayload(input, false);
+        return this.http.put<any>(`${this.apiUrl}/Update`, body, { headers })
             .toPromise()
             .then((res: any) => {
                 if (!res) {
@@ -169,9 +169,26 @@ export class UserService {
 
     delete(id: number): Promise<void> {
         const headers = this.getAuthHeaders();
-        return this.http.delete<any>(`${this.apiUrl}?Id=${id}`, { headers })
+        return this.http.delete<any>(`${this.apiUrl}/Delete`, { headers, params: { Id: String(id) } })
             .toPromise()
-            .then(() => {});
+            .then((res: any) => {
+                if (res && (res.error || res.success === false)) {
+                    throw new Error(res.error?.message || res.error?.details || 'Failed to delete user');
+                }
+            })
+            .catch((error: any) => {
+                if (error?.error) {
+                    const abpError = error.error;
+                    throw new Error(
+                        abpError.error?.message ||
+                        abpError.message ||
+                        abpError.details ||
+                        error.message ||
+                        'Failed to delete user'
+                    );
+                }
+                throw error;
+            }) as Promise<void>;
     }
 
     activate(id: number): Promise<void> {
@@ -340,8 +357,47 @@ export class UserService {
             lastLoginTime: item.lastLoginTime || item.LastLoginTime,
             creationTime: item.creationTime || item.CreationTime,
             roleNames: item.roleNames || item.RoleNames || [],
-            profilePictureUrl: item.profilePictureUrl || item.ProfilePictureUrl || null
+            // Backend field is userImageUrl; older clients may send profilePictureUrl
+            profilePictureUrl:
+                item.profilePictureUrl ||
+                item.ProfilePictureUrl ||
+                item.userImageUrl ||
+                item.UserImageUrl ||
+                null
         };
+    }
+
+    /** Map UI form fields to backend User Create/Update DTO (ImageBase64, not profilePictureUrl). */
+    private toApiUserPayload(input: any, isCreate: boolean): any {
+        const body: any = {
+            userName: input.userName,
+            name: input.name,
+            surname: input.surname,
+            emailAddress: input.emailAddress,
+            isActive: input.isActive !== false,
+            roleNames: Array.isArray(input.roleNames) ? input.roleNames : [],
+        };
+
+        if (input.id != null) {
+            body.id = input.id;
+        }
+
+        if (isCreate) {
+            body.password = input.password;
+        } else if (input.password && String(input.password).trim() !== '') {
+            // Backend UserDto has no password; password changes go through ResetPassword.
+            // Ignore accidental password field on update.
+        }
+
+        if (
+            input.imageBase64 &&
+            typeof input.imageBase64 === 'string' &&
+            input.imageBase64.startsWith('data:image')
+        ) {
+            body.imageBase64 = input.imageBase64;
+        }
+
+        return body;
     }
 
     private getAuthHeaders(): HttpHeaders {

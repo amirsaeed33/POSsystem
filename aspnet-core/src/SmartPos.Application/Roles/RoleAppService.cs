@@ -79,7 +79,11 @@ namespace SmartPos.Roles
 
             await _roleManager.SetGrantedPermissionsAsync(role, grantedPermissions);
 
-            return MapToEntityDto(role);
+            var roleDto = MapToEntityDto(role);
+            roleDto.GrantedPermissions = (await _roleManager.GetGrantedPermissionsAsync(role))
+                .Select(p => p.Name)
+                .ToList();
+            return roleDto;
         }
 
         public override async Task DeleteAsync(EntityDto<int> input)

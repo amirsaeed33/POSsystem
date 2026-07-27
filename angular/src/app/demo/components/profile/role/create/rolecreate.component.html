@@ -60,13 +60,12 @@
             </div>
 
             <div class="col-12 flex gap-2">
-                <button type="submit" pButton pRipple [label]="isEditMode ? 'Update Role' : 'Create Role'" class="w-auto" 
+                <button type="submit" pButton pRipple class="w-auto"
+                    [label]="loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Role' : 'Create Role')"
+                    [loading]="loading"
                     [disabled]="loading || roleForm.invalid">
-                    <i *ngIf="loading" class="pi pi-spin pi-spinner mr-2"></i>
-                    <span *ngIf="!loading">{{ isEditMode ? 'Update Role' : 'Create Role' }}</span>
-                    <span *ngIf="loading">{{ isEditMode ? 'Updating...' : 'Creating...' }}</span>
                 </button>
-                <button type="button" pButton pRipple label="Cancel" class="p-button-outlined w-auto" 
+                <button type="button" pButton pRipple label="Cancel" class="p-button-outlined w-auto"
                     (click)="onCancel()" [disabled]="loading">
                 </button>
             </div>

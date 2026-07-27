@@ -132,6 +132,29 @@ namespace SmartPos.Users
             return new ListResultDto<RoleDto>(ObjectMapper.Map<List<RoleDto>>(roles));
         }
 
+        public async Task<ListResultDto<string>> GetUserPermissions(EntityDto<long> input)
+        {
+            var user = await _userManager.GetUserByIdAsync(input.Id);
+            var grantedPermissions = await _userManager.GetGrantedPermissionsAsync(user);
+
+            return new ListResultDto<string>(
+                grantedPermissions.Select(p => p.Name).ToList()
+            );
+        }
+
+        public async Task UpdateUserPermissions(UpdateUserPermissionsDto input)
+        {
+            var user = await _userManager.GetUserByIdAsync(input.Id);
+            var permissionNames = input.GrantedPermissionNames ?? new List<string>();
+
+            var grantedPermissions = PermissionManager
+                .GetAllPermissions()
+                .Where(p => permissionNames.Contains(p.Name))
+                .ToList();
+
+            await _userManager.SetGrantedPermissionsAsync(user, grantedPermissions);
+        }
+
         public async Task ChangeLanguage(ChangeUserLanguageDto input)
         {
             await SettingManager.ChangeSettingForUserAsync(
