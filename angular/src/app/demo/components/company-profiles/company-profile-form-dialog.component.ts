@@ -27,6 +27,7 @@ export class CompanyProfileFormDialogComponent implements OnChanges {
     imagePreview = '';
     saving = false;
     loading = false;
+    receiptPreviewVisible = false;
 
     constructor(
         private companyProfileService: CompanyProfileService,
@@ -37,6 +38,13 @@ export class CompanyProfileFormDialogComponent implements OnChanges {
         return this.profileId
             ? 'Edit Company Profile'
             : 'Create Company Profile';
+    }
+
+    openReceiptPreview(): void {
+        if (!(this.profile.name || '').trim()) {
+            return;
+        }
+        this.receiptPreviewVisible = true;
     }
 
     ngOnChanges(changes: SimpleChanges): void {

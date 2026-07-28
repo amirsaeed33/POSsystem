@@ -214,10 +214,12 @@ export class AppMenuitemComponent implements OnInit, OnDestroy {
     }
 
     get submenuAnimation() {
-        if (this.layoutService.isDesktop() && (this.layoutService.isSlim() || this.layoutService.isSlimPlus()))
+        if (this.layoutService.isDesktop() && (this.layoutService.isSlim() || this.layoutService.isSlimPlus())) {
             return this.active ? 'visible' : 'hidden';
-        else
-            return this.root ? 'expanded' : (this.active ? 'expanded' : 'collapsed');
+        }
+
+        // Static / overlay: every group (including root) expands and collapses.
+        return this.active ? 'expanded' : 'collapsed';
     }
 
     get isSlim() {
@@ -234,7 +236,7 @@ export class AppMenuitemComponent implements OnInit, OnDestroy {
 
     @HostBinding('class.active-menuitem') 
     get activeClass() {
-        return this.active && !this.root;
+        return this.active;
     }
 
     ngOnDestroy() {

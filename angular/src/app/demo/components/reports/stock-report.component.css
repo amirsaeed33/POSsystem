@@ -1,5 +1,20 @@
 /* Match angular-old stock report print (reports-print.less + AdminLTE table styles). */
 
+.stock-report-page .stock-stat-card {
+  height: 100%;
+}
+
+.stock-report-page .stock-stat-icon {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+}
+
 .stock-report-print {
   display: none;
 }

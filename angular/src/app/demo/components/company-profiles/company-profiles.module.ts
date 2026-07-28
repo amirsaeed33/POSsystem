@@ -13,6 +13,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CompanyProfilesRoutingModule } from './company-profiles-routing.module';
 import { CompanyProfileListComponent } from './company-profile-list.component';
 import { CompanyProfileFormDialogComponent } from './company-profile-form-dialog.component';
+import { CompanyProfileReceiptPreviewDialogComponent } from './company-profile-receipt-preview-dialog.component';
 
 @NgModule({
     imports: [
@@ -32,6 +33,7 @@ import { CompanyProfileFormDialogComponent } from './company-profile-form-dialog
     declarations: [
         CompanyProfileListComponent,
         CompanyProfileFormDialogComponent,
+        CompanyProfileReceiptPreviewDialogComponent,
     ],
 })
 export class CompanyProfilesModule {}

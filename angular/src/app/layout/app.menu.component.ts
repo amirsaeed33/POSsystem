@@ -23,16 +23,26 @@ export class AppMenuComponent implements OnInit {
             // Menu falls back to cached grants (if any).
         }
 
-        // Verona Slim/Slim+ only surface root items. Each entry must be a root with an icon
-        // (matching the original Verona menu model), not nested under a single "Home" wrapper.
+        // Every root entry is a collapsible group (static/overlay) or hover panel (slim).
         const menu = [
-            { label: 'Dashboard', icon: 'pi pi-home', routerLink: ['/'] },
-            { label: 'POS Screen', icon: 'pi pi-desktop', routerLink: ['/pos'], permission: PermissionNames.Sales },
-            { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'], permission: PermissionNames.Sales },
-            { label: 'Sale Returns', icon: 'pi pi-replay', routerLink: ['/sale-returns'], permission: PermissionNames.Sales },
-            { label: 'Customer Orders', icon: 'pi pi-file', routerLink: ['/customer-orders'], permission: PermissionNames.CustomerOrders },
-            { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'], permission: PermissionNames.Customers },
-            { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'], permission: PermissionNames.Suppliers },
+            {
+                label: 'Main',
+                icon: 'pi pi-home',
+                items: [
+                    { label: 'Dashboard', icon: 'pi pi-home', routerLink: ['/'] },
+                    { label: 'POS Screen', icon: 'pi pi-desktop', routerLink: ['/pos'], permission: PermissionNames.Sales },
+                ]
+            },
+            {
+                label: 'Sales',
+                icon: 'pi pi-shopping-cart',
+                items: [
+                    { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'], permission: PermissionNames.Sales },
+                    { label: 'Sale Returns', icon: 'pi pi-replay', routerLink: ['/sale-returns'], permission: PermissionNames.Sales },
+                    { label: 'Customer Orders', icon: 'pi pi-file', routerLink: ['/customer-orders'], permission: PermissionNames.CustomerOrders },
+                    { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'], permission: PermissionNames.Customers },
+                ]
+            },
             {
                 label: 'Products',
                 icon: 'pi pi-box',
@@ -50,12 +60,13 @@ export class AppMenuComponent implements OnInit {
                 label: 'Business',
                 icon: 'pi pi-briefcase',
                 items: [
+                    { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'], permission: PermissionNames.Suppliers },
                     { label: 'Accounts', icon: 'pi pi-building', routerLink: ['/accounts'], permission: PermissionNames.Accounts },
                     { label: 'Ledger', icon: 'pi pi-book', routerLink: ['/ledger-entries'], permission: PermissionNames.LedgerEntries },
+                    { label: 'Expenses', icon: 'pi pi-wallet', routerLink: ['/expenses'], permission: PermissionNames.Expenses },
                     { label: 'Company Profiles', icon: 'pi pi-id-card', routerLink: ['/company-profiles'], permission: PermissionNames.CompanyProfiles },
                 ]
             },
-            { label: 'Expenses', icon: 'pi pi-wallet', routerLink: ['/expenses'], permission: PermissionNames.Expenses },
             {
                 label: 'Reports',
                 icon: 'pi pi-chart-bar',

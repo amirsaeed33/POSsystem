@@ -132,6 +132,16 @@
             pButton
             pRipple
             type="button"
+            label="Preview Receipt"
+            icon="pi pi-print"
+            class="p-button-outlined mr-auto"
+            (click)="openReceiptPreview()"
+            [disabled]="saving || loading || !(profile.name || '').trim()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
             label="Cancel"
             class="p-button-text"
             (click)="onHide()"
@@ -149,3 +159,9 @@
         ></button>
     </ng-template>
 </p-dialog>
+
+<app-company-profile-receipt-preview-dialog
+    [(visible)]="receiptPreviewVisible"
+    [profile]="profile"
+    [logoPreviewUrl]="imagePreview"
+></app-company-profile-receipt-preview-dialog>

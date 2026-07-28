@@ -25,58 +25,53 @@
 
         .layout-root-menuitem {
             > .layout-menuitem-root-text {
-                font-size: .857rem;
-                text-transform: uppercase;
-                font-weight: 700;
-                padding: 1rem 0 .5rem 0;
-                color: var(--v-menuitem-text-color-secondary);
-
-                .active-route {
-                    font-weight: 700;
-                }
-            }
-
-            // Group roots: section title + children (Verona static/overlay).
-            > a {
                 display: none;
             }
 
-            // Leaf roots (routerLink only): show as normal menu rows so Static/Overlay
-            // keep icon + label without requiring a dummy "Home" wrapper.
-            &:not(:has(> ul)) {
-                > .layout-menuitem-root-text {
-                    display: none;
+            // Collapsible group roots and leaf roots both use the normal menu row.
+            > a {
+                display: flex;
+                align-items: center;
+                outline: 0 none;
+                position: relative;
+                color: var(--v-menuitem-text-color);
+                padding: .5rem;
+                margin-bottom: .25rem;
+                border-radius: var(--border-radius);
+                line-height: 1;
+                transition: background-color var(--transition-duration), box-shadow var(--transition-duration);
+                cursor: pointer;
+
+                .layout-menuitem-icon {
+                    margin-right: .5rem;
                 }
 
+                .layout-submenu-toggler {
+                    margin-left: auto;
+                    transition: transform var(--transition-duration);
+                }
+
+                &.active-route {
+                    font-weight: 700;
+                }
+
+                &:hover {
+                    background: var(--v-menuitem-hover-bg);
+                }
+            }
+
+            // Leaf roots (no children): hide chevron if any.
+            &:not(:has(> ul)) {
                 > a {
-                    display: flex;
-                    align-items: center;
-                    outline: 0 none;
-                    position: relative;
-                    color: var(--v-menuitem-text-color);
-                    padding: .5rem;
-                    margin-bottom: .25rem;
-                    border-radius: var(--border-radius);
-                    line-height: 1;
-                    transition: background-color var(--transition-duration), box-shadow var(--transition-duration);
-                    cursor: pointer;
-
-                    .layout-menuitem-icon {
-                        margin-right: .5rem;
-                    }
-
                     .layout-submenu-toggler {
                         display: none;
                     }
-
-                    &.active-route {
-                        font-weight: 700;
-                    }
-
-                    &:hover {
-                        background: var(--v-menuitem-hover-bg);
-                    }
                 }
+            }
+
+            // Nested submenu under a root group.
+            > ul {
+                overflow: hidden;
             }
         }
 

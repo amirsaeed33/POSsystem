@@ -15,45 +15,94 @@
 
     <div class="grid mb-3 no-print">
         <div class="col-12 md:col-3">
-            <div class="surface-100 border-round p-3">
-                <div class="text-500 mb-1">Total Products</div>
-                <div class="text-xl font-bold">{{ report.totalProducts | number }}</div>
+            <div class="surface-100 border-round p-3 stock-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="stock-stat-icon bg-blue-100 text-blue-600">
+                        <i class="pi pi-box"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">Total Products</div>
+                        <div class="text-xl font-bold">{{ report.totalProducts | number }}</div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-12 md:col-3">
-            <div class="surface-100 border-round p-3">
-                <div class="text-500 mb-1">In Stock</div>
-                <div class="text-xl font-bold text-green-600">{{ report.inStockCount | number }}</div>
+            <div class="surface-100 border-round p-3 stock-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="stock-stat-icon bg-green-100 text-green-600">
+                        <i class="pi pi-check-circle"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">In Stock</div>
+                        <div class="text-xl font-bold text-green-600">{{ report.inStockCount | number }}</div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-12 md:col-3">
-            <div class="surface-100 border-round p-3">
-                <div class="text-500 mb-1">Low Stock</div>
-                <div class="text-xl font-bold text-orange-500">{{ report.lowStockCount | number }}</div>
+            <div class="surface-100 border-round p-3 stock-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="stock-stat-icon bg-orange-100 text-orange-500">
+                        <i class="pi pi-exclamation-triangle"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">Low Stock</div>
+                        <div class="text-xl font-bold text-orange-500">{{ report.lowStockCount | number }}</div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-12 md:col-3">
-            <div class="surface-100 border-round p-3">
-                <div class="text-500 mb-1">Out of Stock</div>
-                <div class="text-xl font-bold text-red-500">{{ report.outOfStockCount | number }}</div>
+            <div class="surface-100 border-round p-3 stock-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="stock-stat-icon bg-red-100 text-red-500">
+                        <i class="pi pi-times-circle"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">Out of Stock</div>
+                        <div class="text-xl font-bold text-red-500">{{ report.outOfStockCount | number }}</div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-12 md:col-4">
-            <div class="surface-100 border-round p-3">
-                <div class="text-500 mb-1">Stock Cost Value</div>
-                <div class="text-xl font-bold">{{ report.totalStockCostValue | number: '1.2-2' }}</div>
+            <div class="surface-100 border-round p-3 stock-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="stock-stat-icon bg-indigo-100 text-indigo-500">
+                        <i class="pi pi-wallet"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">Stock Cost Value</div>
+                        <div class="text-xl font-bold">{{ report.totalStockCostValue | number: '1.2-2' }}</div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-12 md:col-4">
-            <div class="surface-100 border-round p-3">
-                <div class="text-500 mb-1">Stock Sell Value</div>
-                <div class="text-xl font-bold">{{ report.totalStockSellValue | number: '1.2-2' }}</div>
+            <div class="surface-100 border-round p-3 stock-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="stock-stat-icon bg-cyan-100 text-cyan-600">
+                        <i class="pi pi-tag"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">Stock Sell Value</div>
+                        <div class="text-xl font-bold">{{ report.totalStockSellValue | number: '1.2-2' }}</div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-12 md:col-4">
-            <div class="surface-100 border-round p-3">
-                <div class="text-500 mb-1">Stock Profit</div>
-                <div class="text-xl font-bold">{{ report.totalStockProfit | number: '1.2-2' }}</div>
+            <div class="surface-100 border-round p-3 stock-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="stock-stat-icon bg-teal-100 text-teal-600">
+                        <i class="pi pi-chart-line"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">Stock Profit</div>
+                        <div class="text-xl font-bold">{{ report.totalStockProfit | number: '1.2-2' }}</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

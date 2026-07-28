@@ -71,7 +71,7 @@
                 <th pSortableColumn="invoiceContactEmail" class="white-space-nowrap">
                     Email <p-sortIcon field="invoiceContactEmail"></p-sortIcon>
                 </th>
-                <th class="white-space-nowrap" style="width: 8rem">Actions</th>
+                <th class="white-space-nowrap" style="width: 10rem">Actions</th>
             </tr>
         </ng-template>
 
@@ -84,6 +84,16 @@
                 <td>{{ profile.invoiceContactEmail || '—' }}</td>
                 <td>
                     <div class="flex gap-2">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-print"
+                            class="p-button-text p-button-sm"
+                            pTooltip="Preview receipt"
+                            tooltipPosition="top"
+                            (click)="openReceiptPreview(profile)"
+                        ></button>
                         <button
                             pButton
                             pRipple
@@ -123,6 +133,11 @@
         [profileId]="editingProfileId"
         (saved)="onDialogSaved()"
     ></app-company-profile-form-dialog>
+
+    <app-company-profile-receipt-preview-dialog
+        [(visible)]="receiptPreviewVisible"
+        [profile]="previewProfile"
+    ></app-company-profile-receipt-preview-dialog>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>

@@ -17,6 +17,9 @@ export class CompanyProfileListComponent implements OnInit {
     dialogVisible = false;
     editingProfileId: number | null = null;
 
+    receiptPreviewVisible = false;
+    previewProfile: CompanyProfileDto | null = null;
+
     constructor(
         private companyProfileService: CompanyProfileService,
         private messageService: MessageService,
@@ -71,6 +74,11 @@ export class CompanyProfileListComponent implements OnInit {
     openEditDialog(profile: CompanyProfileDto): void {
         this.editingProfileId = profile.id;
         this.dialogVisible = true;
+    }
+
+    openReceiptPreview(profile: CompanyProfileDto): void {
+        this.previewProfile = profile;
+        this.receiptPreviewVisible = true;
     }
 
     onDialogSaved(): void {

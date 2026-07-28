@@ -1,0 +1,147 @@
+<p-dialog
+    header="Receipt Preview"
+    [(visible)]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    [style]="{ width: '48rem' }"
+    [breakpoints]="{ '960px': '90vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    styleClass="company-receipt-preview-dialog"
+    (onHide)="onHide()"
+>
+    <div class="no-print mb-3 text-color-secondary text-sm">
+        Sample receipt using this company profile. Values below match what customers will see on printed invoices.
+    </div>
+
+    <div *ngIf="profile" class="print-area invoice-sheet">
+        <div class="invoice-header">
+            <div class="company-block">
+                <img
+                    *ngIf="companyLogoUrl"
+                    [src]="companyLogoUrl"
+                    alt=""
+                    class="company-logo"
+                />
+                <div>
+                    <h2>{{ profile.name || 'Company Name' }}</h2>
+                    <div *ngIf="profile.invoiceAddress">{{ profile.invoiceAddress }}</div>
+                    <div *ngIf="profile.invoiceContactPhone">
+                        Phone: {{ profile.invoiceContactPhone }}
+                    </div>
+                    <div *ngIf="profile.invoiceContactEmail">
+                        Email: {{ profile.invoiceContactEmail }}
+                    </div>
+                    <div *ngIf="profile.taxNumber">
+                        Tax Number: {{ profile.taxNumber }}
+                    </div>
+                    <div *ngIf="profile.website">
+                        Website: {{ profile.website }}
+                    </div>
+                </div>
+            </div>
+            <div class="invoice-meta">
+                <div class="doc-title">Sale Invoice</div>
+                <div>
+                    <strong>Invoice No:</strong> PREVIEW-001
+                </div>
+                <div>
+                    <strong>Sale Date:</strong>
+                    {{ sampleDate | date: 'mediumDate' }}
+                </div>
+            </div>
+        </div>
+
+        <div class="invoice-parties">
+            <div>
+                <div class="label">Customer</div>
+                <div class="value">Sample Customer</div>
+            </div>
+            <div>
+                <div class="label">Total Amount</div>
+                <div class="value total">{{ sampleTotal | number: '1.2-2' }}</div>
+            </div>
+        </div>
+
+        <div class="invoice-notes">
+            <strong>Notes:</strong> This is a preview receipt for company branding.
+        </div>
+
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product</th>
+                    <th class="text-right">Quantity</th>
+                    <th class="text-right">Unit Price</th>
+                    <th class="text-right">Line Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let line of sampleLines; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td>{{ line.name }}</td>
+                    <td class="text-right">{{ line.quantity }}</td>
+                    <td class="text-right">{{ line.unitPrice | number: '1.2-2' }}</td>
+                    <td class="text-right">{{ line.lineTotal | number: '1.2-2' }}</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" class="text-right">Sub Total</td>
+                    <td class="text-right">{{ sampleSubTotal | number: '1.2-2' }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">Discount</td>
+                    <td class="text-right">-{{ sampleDiscount | number: '1.2-2' }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">
+                        Tax ({{ sampleTaxPercent }}%)
+                    </td>
+                    <td class="text-right">{{ sampleTax | number: '1.2-2' }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">
+                        <strong>Total Amount</strong>
+                    </td>
+                    <td class="text-right">
+                        <strong>{{ sampleTotal | number: '1.2-2' }}</strong>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="invoice-footer">
+            <div *ngIf="profile.invoiceFooter" class="mb-1">
+                {{ profile.invoiceFooter }}
+            </div>
+            <div *ngIf="!profile.invoiceFooter" class="mb-1 text-color-secondary">
+                (No invoice footer text set)
+            </div>
+            <div>Printed On: {{ today }}</div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="no-print flex justify-content-end gap-2 w-full">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                class="p-button-text"
+                (click)="onHide()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Print"
+                icon="pi pi-print"
+                [disabled]="!profile"
+                (click)="print()"
+            ></button>
+        </div>
+    </ng-template>
+</p-dialog>
