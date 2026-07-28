@@ -23,8 +23,10 @@ export class AppTopBarComponent implements OnInit {
 
     userInfo: UserLoginInfoDto | null = null;
     userDisplayName = 'User';
+    userInitials = 'U';
     userRole = '';
-    userImage = 'assets/layout/images/avatar.png';
+    userImage: string | null = null;
+    hasUserImage = false;
 
     languages: LanguageInfo[] = [];
     currentLanguage: LanguageInfo | null = null;
@@ -112,18 +114,11 @@ export class AppTopBarComponent implements OnInit {
 
     setUserInfo(user: UserLoginInfoDto): void {
         this.userInfo = user;
-        const baseName =
-            `${user.name || ''} ${user.surname || ''}`.trim() ||
-            user.userName ||
-            'User';
-
-        if (this.tenantContext.isMultiTenancyEnabled()) {
-            const tenant = this.tenantContext.getTenantInfo();
-            const prefix = tenant?.tenancyName || '.';
-            this.userDisplayName = `${prefix}\\${user.userName || baseName}`;
-        } else {
-            this.userDisplayName = baseName;
-        }
+        const firstName = (user.name || '').trim();
+        const lastName = (user.surname || '').trim();
+        this.userDisplayName =
+            `${firstName} ${lastName}`.trim() || user.userName || 'User';
+        this.userInitials = this.getInitials(firstName, lastName, user.userName);
 
         const pictureUrl =
             user.profilePictureUrl ||
@@ -141,8 +136,10 @@ export class AppTopBarComponent implements OnInit {
                     pictureUrl.startsWith('/') ? '' : '/'
                 }${pictureUrl}`;
             }
+            this.hasUserImage = true;
         } else {
-            this.userImage = 'assets/layout/images/avatar.png';
+            this.userImage = null;
+            this.hasUserImage = false;
         }
 
         if (user.roleNames && Array.isArray(user.roleNames) && user.roleNames.length > 0) {
@@ -164,11 +161,20 @@ export class AppTopBarComponent implements OnInit {
         }
     }
 
-    onImageError(event: Event): void {
-        const img = event.target as HTMLImageElement;
-        if (img) {
-            img.src = 'assets/layout/images/avatar.png';
+    getInitials(firstName: string, lastName: string, userName?: string): string {
+        const first = firstName?.charAt(0) || '';
+        const last = lastName?.charAt(0) || '';
+        const initials = `${first}${last}`.toUpperCase();
+        if (initials) {
+            return initials;
         }
+        const fromUser = (userName || 'U').trim().charAt(0).toUpperCase();
+        return fromUser || 'U';
+    }
+
+    onImageError(): void {
+        this.hasUserImage = false;
+        this.userImage = null;
     }
 
     onMenuButtonClick(): void {

@@ -1,14 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { UnitDto } from 'src/app/demo/api/unit';
 import { UnitService } from 'src/app/demo/service/unit.service';
 
 @Component({
+    selector: 'app-unit-list',
     templateUrl: './unit-list.component.html',
     providers: [MessageService, ConfirmationService],
 })
 export class UnitListComponent implements OnInit {
+    /** When true, omit outer card wrapper (used inside Product Settings tabs). */
+    @Input() embedded = false;
+
     units: UnitDto[] = [];
     loading = false;
     totalRecords = 0;

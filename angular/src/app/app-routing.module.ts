@@ -14,9 +14,24 @@ const routes: Routes = [
         children: [
             { path: '', loadChildren: () => import('./demo/components/dashboards/dashboards.module').then(m => m.DashboardsModule) },
             { path: 'pos', data: { breadcrumb: 'POS', permission: PermissionNames.Sales }, loadChildren: () => import('./demo/components/pos/pos.module').then(m => m.PosModule) },
-            { path: 'categories', data: { breadcrumb: 'Categories', permission: PermissionNames.Categories }, loadChildren: () => import('./demo/components/categories/categories.module').then(m => m.CategoriesModule) },
-            { path: 'brands', data: { breadcrumb: 'Brands', permission: PermissionNames.Brands }, loadChildren: () => import('./demo/components/brands/brands.module').then(m => m.BrandsModule) },
-            { path: 'units', data: { breadcrumb: 'Units', permission: PermissionNames.Units }, loadChildren: () => import('./demo/components/units/units.module').then(m => m.UnitsModule) },
+            { path: 'categories', redirectTo: '/product-settings', pathMatch: 'full' },
+            { path: 'brands', redirectTo: '/product-settings', pathMatch: 'full' },
+            { path: 'units', redirectTo: '/product-settings', pathMatch: 'full' },
+            {
+                path: 'product-settings',
+                data: {
+                    breadcrumb: 'Product Settings',
+                    anyPermission: [
+                        PermissionNames.Brands,
+                        PermissionNames.Units,
+                        PermissionNames.Categories,
+                    ],
+                },
+                loadChildren: () =>
+                    import('./demo/components/product-settings/product-settings.module').then(
+                        (m) => m.ProductSettingsModule
+                    ),
+            },
             { path: 'customers', data: { breadcrumb: 'Customers', permission: PermissionNames.Customers }, loadChildren: () => import('./demo/components/customers/customers.module').then(m => m.CustomersModule) },
             { path: 'suppliers', data: { breadcrumb: 'Suppliers', permission: PermissionNames.Suppliers }, loadChildren: () => import('./demo/components/suppliers/suppliers.module').then(m => m.SuppliersModule) },
             { path: 'products', data: { breadcrumb: 'Products', permission: PermissionNames.Products }, loadChildren: () => import('./demo/components/products/products.module').then(m => m.ProductsModule) },

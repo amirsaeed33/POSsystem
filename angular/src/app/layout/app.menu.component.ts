@@ -48,9 +48,16 @@ export class AppMenuComponent implements OnInit {
                 icon: 'pi pi-box',
                 items: [
                     { label: 'Products', icon: 'pi pi-box', routerLink: ['/products'], permission: PermissionNames.Products },
-                    { label: 'Categories', icon: 'pi pi-tags', routerLink: ['/categories'], permission: PermissionNames.Categories },
-                    { label: 'Brands', icon: 'pi pi-bookmark', routerLink: ['/brands'], permission: PermissionNames.Brands },
-                    { label: 'Units', icon: 'pi pi-percentage', routerLink: ['/units'], permission: PermissionNames.Units },
+                    {
+                        label: 'Settings',
+                        icon: 'pi pi-cog',
+                        routerLink: ['/product-settings'],
+                        anyPermission: [
+                            PermissionNames.Brands,
+                            PermissionNames.Units,
+                            PermissionNames.Categories,
+                        ],
+                    },
                     { label: 'Purchases', icon: 'pi pi-shopping-bag', routerLink: ['/purchases'], permission: PermissionNames.Purchases },
                     { label: 'Purchase Returns', icon: 'pi pi-replay', routerLink: ['/purchase-returns'], permission: PermissionNames.Purchases },
                     { label: 'Stock Adjustments', icon: 'pi pi-sync', routerLink: ['/stock-adjustments'], permission: PermissionNames.StockAdjustments },
@@ -104,7 +111,15 @@ export class AppMenuComponent implements OnInit {
                 };
             })
             .filter((item) => {
-                if (!this.permissionService.isGranted(item.permission)) {
+                if (Array.isArray(item.anyPermission) && item.anyPermission.length) {
+                    if (
+                        !item.anyPermission.some((p: string) =>
+                            this.permissionService.isGranted(p)
+                        )
+                    ) {
+                        return false;
+                    }
+                } else if (!this.permissionService.isGranted(item.permission)) {
                     return false;
                 }
                 if (item.items) {

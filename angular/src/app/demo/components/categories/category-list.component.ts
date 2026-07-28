@@ -1,14 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { CategoryDto } from 'src/app/demo/api/category';
 import { CategoryService } from 'src/app/demo/service/category.service';
 
 @Component({
+    selector: 'app-category-list',
     templateUrl: './category-list.component.html',
     providers: [MessageService, ConfirmationService],
 })
 export class CategoryListComponent implements OnInit {
+    /** When true, omit outer card wrapper (used inside Product Settings tabs). */
+    @Input() embedded = false;
+
     categories: CategoryDto[] = [];
     loading = false;
     totalRecords = 0;

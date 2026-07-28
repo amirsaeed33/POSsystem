@@ -46,7 +46,8 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
         } catch {
             // If permissions cannot be loaded, deny protected routes.
             const permission = this.resolvePermission(route);
-            if (permission) {
+            const anyPermission = this.resolveAnyPermission(route);
+            if (permission || anyPermission?.length) {
                 return this.router.createUrlTree(['/auth/access']);
             }
             return true;
@@ -54,7 +55,14 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
 
         const permission = this.resolvePermission(route);
         if (!permission) {
-            return true;
+            const anyPermission = this.resolveAnyPermission(route);
+            if (!anyPermission?.length) {
+                return true;
+            }
+            if (anyPermission.some((p) => this.permissionService.isGranted(p))) {
+                return true;
+            }
+            return this.router.createUrlTree(['/auth/access']);
         }
 
         if (this.permissionService.isGranted(permission)) {
@@ -67,5 +75,12 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
     private resolvePermission(route: ActivatedRouteSnapshot): string | null {
         const permission = route.data?.['permission'];
         return typeof permission === 'string' && permission ? permission : null;
+    }
+
+    private resolveAnyPermission(route: ActivatedRouteSnapshot): string[] | null {
+        const anyPermission = route.data?.['anyPermission'];
+        return Array.isArray(anyPermission) && anyPermission.length
+            ? anyPermission.filter((p) => typeof p === 'string' && p)
+            : null;
     }
 }

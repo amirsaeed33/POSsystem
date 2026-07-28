@@ -107,12 +107,19 @@
                 [hideOnOutsideClick]="true"
             >
                 <img
+                    *ngIf="hasUserImage && userImage"
                     alt="avatar"
                     [src]="userImage"
-                    (error)="onImageError($event)"
-                    class="border-circle"
-                    style="width: 40px; height: 40px; object-fit: cover"
+                    (error)="onImageError()"
+                    class="profile-avatar border-circle"
                 />
+                <span
+                    *ngIf="!hasUserImage || !userImage"
+                    class="profile-avatar profile-initials border-circle"
+                    aria-hidden="true"
+                >
+                    {{ userInitials }}
+                </span>
                 <span class="profile-details">
                     <span class="profile-name">{{ userDisplayName }}</span>
                     <span class="profile-job">{{ userRole }}</span>

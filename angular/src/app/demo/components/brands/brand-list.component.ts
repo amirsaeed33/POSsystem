@@ -1,14 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { BrandDto } from 'src/app/demo/api/brand';
 import { BrandService } from 'src/app/demo/service/brand.service';
 
 @Component({
+    selector: 'app-brand-list',
     templateUrl: './brand-list.component.html',
     providers: [MessageService, ConfirmationService],
 })
 export class BrandListComponent implements OnInit {
+    /** When true, omit outer card wrapper (used inside Product Settings tabs). */
+    @Input() embedded = false;
+
     brands: BrandDto[] = [];
     loading = false;
     totalRecords = 0;
