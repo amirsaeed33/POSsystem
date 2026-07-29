@@ -435,7 +435,10 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.todaySales === 0 &&
             this.todayPurchases === 0 &&
             this.todayExpenses === 0;
-        return noActivity ? 'No data today' : '';
+        if (noActivity) {
+            return 'No data today';
+        }
+        return 'Sales − product cost − expenses';
     }
 
     initCharts() {

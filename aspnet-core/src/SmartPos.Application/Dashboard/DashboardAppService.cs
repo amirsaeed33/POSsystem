@@ -99,9 +99,16 @@ namespace SmartPos.Dashboard
                 .Where(x => x.ExpenseDate >= todayStart && x.ExpenseDate < tomorrow)
                 .Sum(x => x.Amount);
 
-            var todayProfit = todaySales - todayPurchases - todayExpenses;
-
             var costByProductId = products.ToDictionary(p => p.Id, p => p.CostPrice);
+
+            // Today's profit = sales revenue − COGS of items sold − today's expenses.
+            // Purchases are inventory investment, not deducted here (they raise stock cost).
+            var todaySaleLines = await _saleRepository.GetAllIncluding(x => x.Lines)
+                .AsNoTracking()
+                .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
+                .ToListAsync();
+            var todayCogs = CalculateCostOfGoodsSold(todaySaleLines, costByProductId);
+            var todayProfit = Math.Round(todaySales - todayCogs - todayExpenses, 2);
 
             var marginSales = await _saleRepository.GetAllIncluding(x => x.Lines)
                 .AsNoTracking()
@@ -428,11 +435,7 @@ namespace SmartPos.Dashboard
 
                 foreach (var line in sale.Lines)
                 {
-                    var lineRevenue = line.LineTotal > 0
-                        ? line.LineTotal
-                        : line.UnitPrice * line.Quantity;
-                    revenue += lineRevenue;
-
+                    revenue += LineRevenue(line);
                     if (costByProductId.TryGetValue(line.ProductId, out var unitCost))
                     {
                         cost += unitCost * line.Quantity;
@@ -446,6 +449,37 @@ namespace SmartPos.Dashboard
             }
 
             return Math.Round((revenue - cost) / revenue * 100m, 2);
+        }
+
+        private static decimal CalculateCostOfGoodsSold(
+            IEnumerable<Sale> sales,
+            IReadOnlyDictionary<int, decimal> costByProductId)
+        {
+            decimal cost = 0;
+            foreach (var sale in sales)
+            {
+                if (sale.Lines == null)
+                {
+                    continue;
+                }
+
+                foreach (var line in sale.Lines)
+                {
+                    if (costByProductId.TryGetValue(line.ProductId, out var unitCost))
+                    {
+                        cost += unitCost * line.Quantity;
+                    }
+                }
+            }
+
+            return cost;
+        }
+
+        private static decimal LineRevenue(SaleLine line)
+        {
+            return line.LineTotal > 0
+                ? line.LineTotal
+                : line.UnitPrice * line.Quantity;
         }
 
         private static (decimal GrowthPercentage, bool IsGrowthPositive) ComputeGrowthPercentage(
