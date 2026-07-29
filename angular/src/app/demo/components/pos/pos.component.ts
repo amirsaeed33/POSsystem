@@ -175,10 +175,6 @@ export class PosComponent implements OnInit {
         this.onPaymentTypeChange();
     }
 
-    bumpQty(line: PosCartLine, delta: number): void {
-        this.updateQty(line, (line.quantity || 0) + delta);
-    }
-
     onSearchEnter(): void {
         const code = (this.searchText || '').trim();
         if (!code || this.scanning || this.saving) {
@@ -264,11 +260,33 @@ export class PosComponent implements OnInit {
         this.focusSearch();
     }
 
-    updateQty(line: PosCartLine, qty: number): void {
-        if (qty <= 0) {
+    bumpQty(line: PosCartLine, delta: number): void {
+        const next = Number(((line.quantity || 0) + delta).toFixed(2));
+        // Minus at qty 1 is an intentional remove; clearing the input is not.
+        if (next <= 0) {
             this.removeLine(line);
             return;
         }
+        this.applyQty(line, next);
+    }
+
+    updateQty(line: PosCartLine, qty: number | null): void {
+        // Empty/cleared field while typing — keep the cart line.
+        if (qty == null || Number.isNaN(Number(qty))) {
+            return;
+        }
+
+        const value = Number(qty);
+        if (value <= 0) {
+            // Typed 0 or negative: keep the line at a valid minimum.
+            line.quantity = 1;
+            return;
+        }
+
+        this.applyQty(line, value);
+    }
+
+    private applyQty(line: PosCartLine, qty: number): void {
         if (qty > line.stockQuantity) {
             this.messageService.add({
                 severity: 'warn',
@@ -329,6 +347,18 @@ export class PosComponent implements OnInit {
 
     completeSale(): void {
         if (!this.canSave()) {
+            return;
+        }
+
+        const invalidLine = this.cart.find(
+            (line) => !line.quantity || line.quantity <= 0
+        );
+        if (invalidLine) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: `Enter a valid quantity for "${invalidLine.productName}".`,
+            });
             return;
         }
 
