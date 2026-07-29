@@ -110,16 +110,8 @@
                                         styleClass="w-full"
                                     ></p-inputNumber>
                                 </td>
-                                <td>
-                                    <p-inputNumber
-                                        [(ngModel)]="line.unitPrice"
-                                        [min]="0"
-                                        mode="decimal"
-                                        [minFractionDigits]="0"
-                                        [maxFractionDigits]="2"
-                                        [showButtons]="false"
-                                        styleClass="w-full"
-                                    ></p-inputNumber>
+                                <td class="white-space-nowrap">
+                                    {{ line.unitPrice | number: '1.2-2' }}
                                 </td>
                                 <td class="text-right white-space-nowrap">
                                     {{ line.quantity * line.unitPrice | number: '1.2-2' }}
@@ -195,15 +187,7 @@
                             </div>
                             <div>
                                 <label class="text-500 text-sm block mb-1">Unit Price</label>
-                                <p-inputNumber
-                                    [(ngModel)]="line.unitPrice"
-                                    [min]="0"
-                                    mode="decimal"
-                                    [minFractionDigits]="0"
-                                    [maxFractionDigits]="2"
-                                    [showButtons]="false"
-                                    styleClass="w-full"
-                                ></p-inputNumber>
+                                <div class="font-medium">{{ line.unitPrice | number: '1.2-2' }}</div>
                             </div>
                         </div>
                         <div class="flex justify-content-between mt-2">

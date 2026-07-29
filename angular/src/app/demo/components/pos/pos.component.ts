@@ -167,7 +167,6 @@ export class PosComponent implements OnInit {
             this.cashAmount = this.grandTotal;
             this.cardAmount = 0;
         }
-        this.focusSearch();
     }
 
     setPaymentType(type: number): void {
@@ -213,6 +212,10 @@ export class PosComponent implements OnInit {
     }
 
     addProduct(product: ProductDto): void {
+        const retailPrice = product.price || 0;
+        const wholesalePrice = product.wholesalePrice || 0;
+        const unitPrice = this.resolveUnitPrice(retailPrice, wholesalePrice);
+
         const existing = this.cart.find((x) => x.productId === product.id);
         if (existing) {
             if (existing.quantity + 1 > (product.stockQuantity || 0)) {
@@ -224,6 +227,10 @@ export class PosComponent implements OnInit {
                 return;
             }
             existing.quantity += 1;
+            existing.retailPrice = retailPrice;
+            existing.wholesalePrice = wholesalePrice;
+            existing.unitPrice = unitPrice;
+            existing.stockQuantity = product.stockQuantity || 0;
             return;
         }
 
@@ -240,23 +247,31 @@ export class PosComponent implements OnInit {
             productId: product.id,
             productName: product.name,
             quantity: 1,
-            unitPrice: this.getUnitPrice(product),
+            unitPrice,
+            retailPrice,
+            wholesalePrice,
             stockQuantity: product.stockQuantity || 0,
         });
     }
 
     getUnitPrice(product: ProductDto): number {
+        return this.resolveUnitPrice(product.price || 0, product.wholesalePrice || 0);
+    }
+
+    private resolveUnitPrice(retailPrice: number, wholesalePrice: number): number {
         const customer = this.customers.find((c) => c.id === this.customerId);
         const isWholesaler = customer?.customerType === CustomerType.Wholesaler;
         if (isWholesaler) {
-            return product.wholesalePrice > 0
-                ? product.wholesalePrice
-                : product.price || 0;
+            return wholesalePrice > 0 ? wholesalePrice : retailPrice;
         }
-        return product.price || 0;
+        return retailPrice;
     }
 
     onCustomerSelected(): void {
+        // Re-apply locked catalog prices for the new customer type.
+        for (const line of this.cart) {
+            line.unitPrice = this.resolveUnitPrice(line.retailPrice, line.wholesalePrice);
+        }
         this.focusSearch();
     }
 
