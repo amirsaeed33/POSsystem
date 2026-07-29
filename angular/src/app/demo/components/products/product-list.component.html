@@ -142,6 +142,8 @@
         [header]="selectedImageName || 'Product Image'"
         [(visible)]="imageDialogVisible"
         [modal]="true"
+        appendTo="body"
+        [blockScroll]="true"
         [style]="{ width: '28rem' }"
     >
         <div class="flex justify-content-center">

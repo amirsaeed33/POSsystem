@@ -3,6 +3,8 @@
     [(visible)]="visible"
     (visibleChange)="onVisibleChange($event)"
     [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
     [style]="{ width: '64rem' }"
     [breakpoints]="{ '1199px': '95vw' }"
     [draggable]="false"
