@@ -250,7 +250,7 @@ export class ProfileCreateComponent implements OnInit {
                     if (this.isEditMode && this.userId) {
                         return this.userService.updateUserPermissions({
                             id: this.userId,
-                            grantedPermissionNames: this.selectedUserPermissions
+                            grantedPermissionNames: this.selectedUserPermissions || []
                         });
                     }
                     return Promise.resolve();
@@ -280,7 +280,7 @@ export class ProfileCreateComponent implements OnInit {
                     if (createdUser && createdUser.id && this.selectedUserPermissions.length > 0) {
                         return this.userService.updateUserPermissions({
                             id: createdUser.id,
-                            grantedPermissionNames: this.selectedUserPermissions
+                            grantedPermissionNames: this.selectedUserPermissions || []
                         });
                     }
                     return Promise.resolve();

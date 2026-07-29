@@ -8,7 +8,11 @@ namespace SmartPos.Users.Dto
         [Range(1, long.MaxValue)]
         public long Id { get; set; }
 
-        [Required]
         public List<string> GrantedPermissionNames { get; set; }
+
+        public UpdateUserPermissionsDto()
+        {
+            GrantedPermissionNames = new List<string>();
+        }
     }
 }

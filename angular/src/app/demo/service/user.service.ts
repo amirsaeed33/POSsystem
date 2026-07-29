@@ -336,11 +336,25 @@ export class UserService {
 
     private extractErrorMessage(error: any, fallback: string): string {
         const abpError = error?.error;
+        // Empty-body 400 is often antiforgery rejection (no JSON details).
+        if (error?.status === 400 && (abpError == null || abpError === '')) {
+            return 'Request rejected (400). Refresh the page and try again.';
+        }
+        const validationErrors = abpError?.error?.validationErrors;
+        if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+            const messages = validationErrors
+                .map((v: any) => v?.message)
+                .filter((m: string) => !!m);
+            if (messages.length > 0) {
+                return messages.join(' ');
+            }
+        }
         return (
+            abpError?.error?.details ||
             abpError?.error?.message ||
             abpError?.message ||
             abpError?.details ||
-            error?.message ||
+            (typeof abpError === 'string' && abpError) ||
             fallback
         );
     }

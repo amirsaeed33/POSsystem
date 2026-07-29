@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Castle.Facilities.Logging;
 using Abp.AspNetCore;
-using Abp.AspNetCore.Mvc.Antiforgery;
 using Abp.Castle.Logging.Log4Net;
 using Abp.Extensions;
 using SmartPos.Configuration;
@@ -38,10 +37,10 @@ namespace SmartPos.Web.Host.Startup
         public void ConfigureServices(IServiceCollection services)
         {
             //MVC
-            services.AddControllersWithViews(options =>
-            {
-                options.Filters.Add(new AbpAutoValidateAntiforgeryTokenAttribute());
-            });
+            // JWT Bearer Angular client — do not globally validate antiforgery.
+            // Same-origin proxy can attach .AspNetCore.Antiforgery cookies (e.g. after Swagger),
+            // which then rejects PUT/POST with an empty 400 when X-XSRF-TOKEN is missing.
+            services.AddControllersWithViews();
 
             IdentityRegistrar.Register(services);
             AuthConfigurer.Configure(services, _appConfiguration);
