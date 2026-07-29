@@ -82,31 +82,39 @@ export class ProductService {
     }
 
     async create(input: CreateProductDto): Promise<ProductDto> {
-        const res: any = await firstValueFrom(
-            this.http.post<any>(`${this.apiUrl}/Create`, input)
-        );
-        return this.mapProduct(this.unwrap(res, 'Failed to create product'));
+        try {
+            const res: any = await firstValueFrom(
+                this.http.post<any>(`${this.apiUrl}/Create`, input)
+            );
+            return this.mapProduct(this.unwrap(res, 'Failed to create product'));
+        } catch (error) {
+            throw new Error(this.extractErrorMessage(error, 'Failed to create product'));
+        }
     }
 
     async update(input: ProductDto): Promise<ProductDto> {
-        const res: any = await firstValueFrom(
-            this.http.put<any>(`${this.apiUrl}/Update`, {
-                id: input.id,
-                name: input.name,
-                description: input.description,
-                barcode: input.barcode,
-                price: input.price,
-                wholesalePrice: input.wholesalePrice,
-                costPrice: input.costPrice,
-                alertQuantityLimit: input.alertQuantityLimit,
-                categoryId: input.categoryId,
-                brandId: input.brandId,
-                unitId: input.unitId,
-                imagePath: input.imagePath,
-                imageBase64: input.imageBase64,
-            })
-        );
-        return this.mapProduct(this.unwrap(res, 'Failed to update product'));
+        try {
+            const res: any = await firstValueFrom(
+                this.http.put<any>(`${this.apiUrl}/Update`, {
+                    id: input.id,
+                    name: input.name,
+                    description: input.description,
+                    barcode: input.barcode,
+                    price: input.price,
+                    wholesalePrice: input.wholesalePrice,
+                    costPrice: input.costPrice,
+                    alertQuantityLimit: input.alertQuantityLimit,
+                    categoryId: input.categoryId,
+                    brandId: input.brandId,
+                    unitId: input.unitId,
+                    imagePath: input.imagePath,
+                    imageBase64: input.imageBase64,
+                })
+            );
+            return this.mapProduct(this.unwrap(res, 'Failed to update product'));
+        } catch (error) {
+            throw new Error(this.extractErrorMessage(error, 'Failed to update product'));
+        }
     }
 
     async delete(id: number): Promise<void> {
@@ -150,6 +158,17 @@ export class ProductService {
             );
         }
         return res.result ?? res;
+    }
+
+    private extractErrorMessage(error: any, fallbackMessage: string): string {
+        const abpError = error?.error;
+        return (
+            abpError?.error?.message ||
+            abpError?.message ||
+            abpError?.error?.details ||
+            error?.message ||
+            fallbackMessage
+        );
     }
 
     private mapProduct(item: any): ProductDto {

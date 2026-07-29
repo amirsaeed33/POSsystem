@@ -2362,13 +2362,15 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Barcode");
-
                     b.HasIndex("BrandId");
 
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("UnitId");
+
+                    b.HasIndex("TenantId", "Barcode")
+                        .IsUnique()
+                        .HasFilter("[Barcode] IS NOT NULL AND [IsDeleted] = 0");
 
                     b.ToTable("AppProducts");
                 });

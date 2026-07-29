@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -6,6 +7,8 @@ using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Abp.UI;
+using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Products.Dto;
 
@@ -14,6 +17,9 @@ namespace SmartPos.Products
     [AbpAuthorize(PermissionNames.Pages_Products)]
     public class ProductAppService : AsyncCrudAppService<Product, ProductDto, int, PagedProductResultRequestDto, CreateProductDto, ProductDto>, IProductAppService
     {
+        private const string DuplicateBarcodeMessage =
+            "Barcode already exists. Please enter a unique barcode.";
+
         public ProductAppService(IRepository<Product> repository)
             : base(repository)
         {
@@ -23,12 +29,23 @@ namespace SmartPos.Products
         {
             CheckCreatePermission();
 
+            var barcode = NormalizeBarcode(input.Barcode);
+            await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: null);
+
             var product = ObjectMapper.Map<Product>(input);
-            product.Barcode = NormalizeBarcode(input.Barcode);
+            product.TenantId = AbpSession.TenantId;
+            product.Barcode = barcode;
             product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
 
-            await Repository.InsertAsync(product);
-            await CurrentUnitOfWork.SaveChangesAsync();
+            try
+            {
+                await Repository.InsertAsync(product);
+                await CurrentUnitOfWork.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsDuplicateBarcodeViolation(ex))
+            {
+                throw new UserFriendlyException(DuplicateBarcodeMessage);
+            }
 
             return await GetAsync(new EntityDto<int>(product.Id));
         }
@@ -38,10 +55,12 @@ namespace SmartPos.Products
             CheckUpdatePermission();
 
             var product = await GetEntityByIdAsync(input.Id);
+            var barcode = NormalizeBarcode(input.Barcode);
+            await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: product.Id);
 
             product.Name = input.Name;
             product.Description = input.Description;
-            product.Barcode = NormalizeBarcode(input.Barcode);
+            product.Barcode = barcode;
             product.Price = input.Price;
             product.WholesalePrice = input.WholesalePrice;
             product.CostPrice = input.CostPrice;
@@ -56,7 +75,14 @@ namespace SmartPos.Products
                 product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
             }
 
-            await CurrentUnitOfWork.SaveChangesAsync();
+            try
+            {
+                await CurrentUnitOfWork.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsDuplicateBarcodeViolation(ex))
+            {
+                throw new UserFriendlyException(DuplicateBarcodeMessage);
+            }
 
             return await GetAsync(new EntityDto<int>(product.Id));
         }
@@ -87,6 +113,33 @@ namespace SmartPos.Products
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
                 Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
                     .Where(x => x.Id == id));
+        }
+
+        private async Task EnsureBarcodeIsUniqueAsync(string barcode, int? excludeProductId)
+        {
+            if (barcode.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+
+            // Match current tenant (including host null) and ignore soft-deleted rows via ABP filters.
+            var query = Repository.GetAll().Where(x => x.Barcode == barcode);
+            if (excludeProductId.HasValue)
+            {
+                query = query.Where(x => x.Id != excludeProductId.Value);
+            }
+
+            if (await AsyncQueryableExecuter.AnyAsync(query))
+            {
+                throw new UserFriendlyException(DuplicateBarcodeMessage);
+            }
+        }
+
+        private static bool IsDuplicateBarcodeViolation(DbUpdateException ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message ?? string.Empty;
+            return message.IndexOf("IX_AppProducts_TenantId_Barcode", StringComparison.OrdinalIgnoreCase) >= 0
+                   || message.IndexOf("duplicate key", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static string NormalizeBarcode(string barcode)
