@@ -29,6 +29,8 @@ namespace SmartPos.Products
         {
             CheckCreatePermission();
 
+            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice);
+
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: null);
 
@@ -55,6 +57,9 @@ namespace SmartPos.Products
             CheckUpdatePermission();
 
             var product = await GetEntityByIdAsync(input.Id);
+
+            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice);
+
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: product.Id);
 
@@ -113,6 +118,21 @@ namespace SmartPos.Products
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
                 Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
                     .Where(x => x.Id == id));
+        }
+
+        private static void EnsureValidPricing(decimal price, decimal wholesalePrice, decimal costPrice)
+        {
+            if (price < costPrice)
+            {
+                throw new UserFriendlyException(
+                    "Selling price cannot be lower than the cost price.");
+            }
+
+            if (price < wholesalePrice)
+            {
+                throw new UserFriendlyException(
+                    "Selling price cannot be lower than the wholesale price.");
+            }
         }
 
         private async Task EnsureBarcodeIsUniqueAsync(string barcode, int? excludeProductId)

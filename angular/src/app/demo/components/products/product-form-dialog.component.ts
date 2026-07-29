@@ -115,6 +115,26 @@ export class ProductFormDialogComponent implements OnChanges {
             return;
         }
 
+        const price = this.product.price || 0;
+        const wholesalePrice = this.product.wholesalePrice || 0;
+        const costPrice = this.product.costPrice || 0;
+        if (price < costPrice) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Selling price cannot be lower than the cost price.',
+            });
+            return;
+        }
+        if (price < wholesalePrice) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Selling price cannot be lower than the wholesale price.',
+            });
+            return;
+        }
+
         this.saving = true;
         const imageBase64 =
             this.product.imageBase64?.startsWith('data:image')
