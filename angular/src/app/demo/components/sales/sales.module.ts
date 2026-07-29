@@ -11,6 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
+import { TagModule } from 'primeng/tag';
 import { SalesRoutingModule } from './sales-routing.module';
 import { SaleListComponent } from './sale-list.component';
 import { SaleFormDialogComponent } from './sale-form-dialog.component';
@@ -35,6 +36,7 @@ import { SaleReturnsModule } from '../sale-returns/sale-returns.module';
         TooltipModule,
         ConfirmDialogModule,
         DropdownModule,
+        TagModule,
     ],
     declarations: [
         SaleListComponent,

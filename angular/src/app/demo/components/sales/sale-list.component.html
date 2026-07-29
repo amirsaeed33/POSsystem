@@ -53,6 +53,7 @@
                 <th pSortableColumn="invoiceNo">Invoice No <p-sortIcon field="invoiceNo"></p-sortIcon></th>
                 <th pSortableColumn="saleDate">Sale Date <p-sortIcon field="saleDate"></p-sortIcon></th>
                 <th pSortableColumn="customerName">Customer <p-sortIcon field="customerName"></p-sortIcon></th>
+                <th>Return</th>
                 <th pSortableColumn="paymentType">Payment <p-sortIcon field="paymentType"></p-sortIcon></th>
                 <th pSortableColumn="subTotal">Sub Total <p-sortIcon field="subTotal"></p-sortIcon></th>
                 <th pSortableColumn="discountAmount">Discount <p-sortIcon field="discountAmount"></p-sortIcon></th>
@@ -67,6 +68,16 @@
                 <td>{{ sale.invoiceNo || ('#' + sale.id) }}</td>
                 <td>{{ sale.saleDate | date: 'mediumDate' }}</td>
                 <td>{{ sale.customerName || '—' }}</td>
+                <td>
+                    <p-tag
+                        *ngIf="sale.hasReturns; else noReturn"
+                        [value]="(sale.returnCount || 1) + ' return(s)'"
+                        severity="warn"
+                    ></p-tag>
+                    <ng-template #noReturn>
+                        <span class="text-500">—</span>
+                    </ng-template>
+                </td>
                 <td>{{ paymentTypeLabel(sale.paymentType) }}</td>
                 <td>{{ sale.subTotal | number: '1.2-2' }}</td>
                 <td>{{ sale.discountAmount | number: '1.2-2' }}</td>
@@ -121,7 +132,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="9" class="text-center p-4">
+                <td colspan="10" class="text-center p-4">
                     <div class="text-500">No sales found</div>
                 </td>
             </tr>

@@ -326,7 +326,41 @@ namespace SmartPos.Sales
                 line.Product = await _productRepository.FirstOrDefaultAsync(line.ProductId);
             }
 
-            return MapToEntityDto(entity);
+            var dto = MapToEntityDto(entity);
+            await PopulateReturnFlagsAsync(new[] { dto });
+            return dto;
+        }
+
+        public override async Task<PagedResultDto<SaleDto>> GetAllAsync(PagedSaleResultRequestDto input)
+        {
+            var result = await base.GetAllAsync(input);
+            await PopulateReturnFlagsAsync(result.Items);
+            return result;
+        }
+
+        private async Task PopulateReturnFlagsAsync(IReadOnlyList<SaleDto> items)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return;
+            }
+
+            var saleIds = items.Select(x => x.Id).ToList();
+            var counts = await _saleReturnRepository.GetAll()
+                .Where(x => saleIds.Contains(x.SaleId))
+                .GroupBy(x => x.SaleId)
+                .Select(g => new { SaleId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var bySaleId = counts.ToDictionary(x => x.SaleId, x => x.Count);
+            foreach (var item in items)
+            {
+                if (bySaleId.TryGetValue(item.Id, out var count) && count > 0)
+                {
+                    item.ReturnCount = count;
+                    item.HasReturns = true;
+                }
+            }
         }
 
         private static void ApplyPaymentSplit(Sale sale, CreateSaleDto input)

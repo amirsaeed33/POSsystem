@@ -219,6 +219,8 @@ export class SaleService {
             cardAmount: item.cardAmount ?? item.CardAmount ?? 0,
             creditAmount: item.creditAmount ?? item.CreditAmount ?? 0,
             notes: item.notes ?? item.Notes,
+            hasReturns: !!(item.hasReturns ?? item.HasReturns),
+            returnCount: item.returnCount ?? item.ReturnCount ?? 0,
             lines: (Array.isArray(lines) ? lines : []).map((line: any) =>
                 this.mapLine(line)
             ),

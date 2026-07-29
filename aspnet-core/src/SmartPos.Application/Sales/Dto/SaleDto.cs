@@ -38,6 +38,12 @@ namespace SmartPos.Sales.Dto
 
         public string Notes { get; set; }
 
+        /// <summary>True when at least one sale return exists for this sale.</summary>
+        public bool HasReturns { get; set; }
+
+        /// <summary>Number of sale return documents linked to this sale.</summary>
+        public int ReturnCount { get; set; }
+
         public List<SaleLineDto> Lines { get; set; }
     }
 }

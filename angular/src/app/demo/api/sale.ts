@@ -32,6 +32,8 @@ export interface SaleDto {
     cardAmount: number;
     creditAmount: number;
     notes?: string;
+    hasReturns?: boolean;
+    returnCount?: number;
     lines?: SaleLineDto[];
 }
 
