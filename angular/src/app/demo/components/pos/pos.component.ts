@@ -22,7 +22,8 @@ export class PosComponent implements OnInit {
 
     saving = false;
     scanning = false;
-    barcode = '';
+    searchText = '';
+    suggestions: ProductDto[] = [];
     customers: CustomerDto[] = [];
     cart: PosCartLine[] = [];
 
@@ -41,6 +42,8 @@ export class PosComponent implements OnInit {
         { value: PaymentType.Credit, label: 'Credit' },
         { value: PaymentType.Mixed, label: 'Mixed' },
     ];
+
+    private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
     constructor(
         private saleService: SaleService,
@@ -125,7 +128,7 @@ export class PosComponent implements OnInit {
                     (c.name || '').toLowerCase().includes('walk')
                 );
                 this.customerId = walkIn?.id || this.customers[0]?.id || null;
-                this.focusBarcode();
+                this.focusSearch();
             })
             .catch((error) => {
                 this.messageService.add({
@@ -136,8 +139,20 @@ export class PosComponent implements OnInit {
             });
     }
 
-    focusBarcode(): void {
+    focusSearch(): void {
         setTimeout(() => this.barcodeInput?.nativeElement?.focus(), 50);
+    }
+
+    onSearchInput(): void {
+        if (this.searchTimer) {
+            clearTimeout(this.searchTimer);
+        }
+        const q = (this.searchText || '').trim();
+        if (!q) {
+            this.suggestions = [];
+            return;
+        }
+        this.searchTimer = setTimeout(() => this.loadSuggestions(q), 250);
     }
 
     onPaymentTypeChange(): void {
@@ -152,7 +167,7 @@ export class PosComponent implements OnInit {
             this.cashAmount = this.grandTotal;
             this.cardAmount = 0;
         }
-        this.focusBarcode();
+        this.focusSearch();
     }
 
     setPaymentType(type: number): void {
@@ -164,18 +179,19 @@ export class PosComponent implements OnInit {
         this.updateQty(line, (line.quantity || 0) + delta);
     }
 
-    onBarcodeEnter(): void {
-        const code = (this.barcode || '').trim();
+    onSearchEnter(): void {
+        const code = (this.searchText || '').trim();
         if (!code || this.scanning || this.saving) {
             return;
         }
 
         this.scanning = true;
         this.saleService
-            .getProductByBarcode(code)
+            .findPosProduct(code)
             .then((product) => {
                 this.addProduct(product);
-                this.barcode = '';
+                this.searchText = '';
+                this.suggestions = [];
             })
             .catch((error) => {
                 this.messageService.add({
@@ -183,12 +199,21 @@ export class PosComponent implements OnInit {
                     summary: 'Not found',
                     detail: error?.message || 'Product not found',
                 });
-                this.barcode = '';
             })
             .finally(() => {
                 this.scanning = false;
-                this.focusBarcode();
+                this.focusSearch();
             });
+    }
+
+    selectSuggestion(product: ProductDto): void {
+        if (this.scanning || this.saving) {
+            return;
+        }
+        this.addProduct(product);
+        this.searchText = '';
+        this.suggestions = [];
+        this.focusSearch();
     }
 
     addProduct(product: ProductDto): void {
@@ -210,7 +235,7 @@ export class PosComponent implements OnInit {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Stock',
-                detail: 'Out of stock',
+                detail: `"${product.name}" is out of stock. Add stock via Purchases first.`,
             });
             return;
         }
@@ -236,7 +261,7 @@ export class PosComponent implements OnInit {
     }
 
     onCustomerSelected(): void {
-        this.focusBarcode();
+        this.focusSearch();
     }
 
     updateQty(line: PosCartLine, qty: number): void {
@@ -258,7 +283,7 @@ export class PosComponent implements OnInit {
 
     removeLine(line: PosCartLine): void {
         this.cart = this.cart.filter((x) => x !== line);
-        this.focusBarcode();
+        this.focusSearch();
     }
 
     clearCart(): void {
@@ -270,7 +295,7 @@ export class PosComponent implements OnInit {
         this.paymentType = PaymentType.Cash;
         this.cashAmount = 0;
         this.cardAmount = 0;
-        this.focusBarcode();
+        this.focusSearch();
     }
 
     canSave(): boolean {
@@ -339,7 +364,21 @@ export class PosComponent implements OnInit {
             })
             .finally(() => {
                 this.saving = false;
-                this.focusBarcode();
+                this.focusSearch();
+            });
+    }
+
+    private loadSuggestions(keyword: string): void {
+        this.saleService
+            .searchPosProducts(keyword)
+            .then((items) => {
+                if ((this.searchText || '').trim() !== keyword) {
+                    return;
+                }
+                this.suggestions = items;
+            })
+            .catch(() => {
+                this.suggestions = [];
             });
     }
 

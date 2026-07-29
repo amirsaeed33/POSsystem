@@ -28,16 +28,17 @@
     <div class="grid">
         <div class="col-12 lg:col-8">
             <div class="card pos-scan-card mb-3">
-                <label class="font-bold block mb-2">Scan Barcode</label>
+                <label class="font-bold block mb-2">Scan barcode or search by name</label>
                 <div class="p-inputgroup">
                     <input
                         #barcodeInput
                         pInputText
                         type="text"
                         class="pos-barcode-input w-full"
-                        [(ngModel)]="barcode"
-                        (keyup.enter)="onBarcodeEnter()"
-                        placeholder="Scan or type barcode and press Enter"
+                        [(ngModel)]="searchText"
+                        (input)="onSearchInput()"
+                        (keyup.enter)="onSearchEnter()"
+                        placeholder="Barcode or product name, then Enter"
                         [disabled]="scanning || saving"
                         autocomplete="off"
                         autocorrect="off"
@@ -52,10 +53,27 @@
                         type="button"
                         icon="pi pi-plus"
                         label="Add"
-                        [disabled]="scanning || saving || !(barcode || '').trim()"
+                        [disabled]="scanning || saving || !(searchText || '').trim()"
                         [loading]="scanning"
-                        (click)="onBarcodeEnter()"
+                        (click)="onSearchEnter()"
                     ></button>
+                </div>
+
+                <div class="pos-suggestions" *ngIf="suggestions.length">
+                    <button
+                        type="button"
+                        class="pos-suggestion-item"
+                        *ngFor="let product of suggestions"
+                        (click)="selectSuggestion(product)"
+                        [disabled]="scanning || saving"
+                    >
+                        <span class="pos-suggestion-name">{{ product.name }}</span>
+                        <span class="pos-suggestion-meta text-500">
+                            <span *ngIf="product.barcode">{{ product.barcode }} · </span>
+                            Stock: {{ product.stockQuantity || 0 }} ·
+                            {{ product.price | number: '1.2-2' }}
+                        </span>
+                    </button>
                 </div>
             </div>
 
@@ -121,7 +139,7 @@
                         <ng-template pTemplate="emptymessage">
                             <tr>
                                 <td colspan="5" class="text-center p-4 text-500">
-                                    Scan or type a barcode and press Enter
+                                    Scan barcode, search by name, or pick a suggestion
                                 </td>
                             </tr>
                         </ng-template>
@@ -131,7 +149,7 @@
                 <!-- Mobile cart -->
                 <div class="pos-cart-mobile md:hidden">
                     <div *ngIf="!cart.length" class="text-500 text-center p-4">
-                        Scan or type a barcode and press Enter
+                        Scan barcode, search by name, or pick a suggestion
                     </div>
                     <div *ngFor="let line of cart" class="pos-cart-item">
                         <div class="flex justify-content-between align-items-start">

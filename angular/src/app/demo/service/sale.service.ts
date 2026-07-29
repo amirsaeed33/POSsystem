@@ -94,12 +94,50 @@ export class SaleService {
     }
 
     async getProductByBarcode(barcode: string): Promise<ProductDto> {
-        const res: any = await firstValueFrom(
-            this.http.get<any>(`${this.apiUrl}/GetProductByBarcode`, {
-                params: { barcode },
-            })
-        );
-        const item = this.unwrap(res, 'Failed to find product by barcode');
+        return this.findPosProduct(barcode);
+    }
+
+    async findPosProduct(keyword: string): Promise<ProductDto> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.get<any>(`${this.apiUrl}/GetPosProduct`, {
+                    params: { keyword },
+                })
+            );
+            return this.mapProduct(
+                this.unwrap(res, 'Failed to find product')
+            );
+        } catch (error) {
+            throw new Error(
+                this.extractErrorMessage(error, 'Product not found')
+            );
+        }
+    }
+
+    async searchPosProducts(keyword: string): Promise<ProductDto[]> {
+        try {
+            const params: any = {};
+            if (keyword?.trim()) {
+                params.keyword = keyword.trim();
+            }
+            const res: any = await firstValueFrom(
+                this.http.get<any>(`${this.apiUrl}/GetPosProductSuggestions`, {
+                    params,
+                })
+            );
+            const result = this.unwrap(res, 'Failed to search products');
+            const items = result.items || result.Items || result || [];
+            return (Array.isArray(items) ? items : []).map((item: any) =>
+                this.mapProduct(item)
+            );
+        } catch (error) {
+            throw new Error(
+                this.extractErrorMessage(error, 'Failed to search products')
+            );
+        }
+    }
+
+    private mapProduct(item: any): ProductDto {
         return {
             id: item.id ?? item.Id,
             name: item.name ?? item.Name,
@@ -123,6 +161,17 @@ export class SaleService {
             unitName: item.unitName ?? item.UnitName,
             imagePath: item.imagePath ?? item.ImagePath,
         };
+    }
+
+    private extractErrorMessage(error: any, fallbackMessage: string): string {
+        const abpError = error?.error;
+        return (
+            abpError?.error?.message ||
+            abpError?.message ||
+            abpError?.error?.details ||
+            error?.message ||
+            fallbackMessage
+        );
     }
 
     private toApiDate(value: string | Date | undefined): string | undefined {

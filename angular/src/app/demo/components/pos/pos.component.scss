@@ -21,6 +21,47 @@
     min-height: 3rem;
 }
 
+.pos-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.75rem;
+    max-height: 14rem;
+    overflow: auto;
+}
+
+.pos-suggestion-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--surface-border);
+    background: var(--surface-ground);
+    border-radius: var(--border-radius);
+    padding: 0.65rem 0.8rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        border-color: var(--primary-color);
+        background: var(--surface-hover);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: default;
+    }
+}
+
+.pos-suggestion-name {
+    font-weight: 600;
+}
+
+.pos-suggestion-meta {
+    font-size: 0.85rem;
+}
+
 .pos-payment-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

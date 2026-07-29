@@ -49,21 +49,73 @@ namespace SmartPos.Sales
 
         public async Task<ProductDto> GetProductByBarcodeAsync(string barcode)
         {
-            var normalized = barcode.IsNullOrWhiteSpace() ? null : barcode.Trim();
+            return await GetPosProductAsync(barcode);
+        }
+
+        public async Task<ProductDto> GetPosProductAsync(string keyword)
+        {
+            var normalized = keyword.IsNullOrWhiteSpace() ? null : keyword.Trim();
             if (normalized.IsNullOrWhiteSpace())
             {
-                throw new UserFriendlyException("Barcode is required.");
+                throw new UserFriendlyException("Enter a barcode or product name.");
             }
 
-            var product = await _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
-                .FirstOrDefaultAsync(x => x.Barcode == normalized);
+            var query = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit);
 
-            if (product == null)
+            var byBarcode = await query.FirstOrDefaultAsync(x => x.Barcode == normalized);
+            if (byBarcode != null)
             {
-                throw new UserFriendlyException("No product found for barcode: " + normalized);
+                return ObjectMapper.Map<ProductDto>(byBarcode);
             }
 
-            return ObjectMapper.Map<ProductDto>(product);
+            var lower = normalized.ToLowerInvariant();
+            var nameMatches = await query
+                .Where(x => x.Name != null && x.Name.ToLower().Contains(lower))
+                .OrderBy(x => x.Name)
+                .Take(20)
+                .ToListAsync();
+
+            if (nameMatches.Count == 0)
+            {
+                throw new UserFriendlyException("No product found for: " + normalized);
+            }
+
+            var exactName = nameMatches.FirstOrDefault(x =>
+                string.Equals(x.Name, normalized, StringComparison.OrdinalIgnoreCase));
+            if (exactName != null)
+            {
+                return ObjectMapper.Map<ProductDto>(exactName);
+            }
+
+            if (nameMatches.Count == 1)
+            {
+                return ObjectMapper.Map<ProductDto>(nameMatches[0]);
+            }
+
+            throw new UserFriendlyException(
+                "Multiple products match \"" + normalized + "\". Pick a more specific name or use the barcode.");
+        }
+
+        public async Task<ListResultDto<ProductDto>> GetPosProductSuggestionsAsync(string keyword)
+        {
+            var normalized = keyword.IsNullOrWhiteSpace() ? null : keyword.Trim();
+            var query = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit);
+
+            if (!normalized.IsNullOrWhiteSpace())
+            {
+                var lower = normalized.ToLowerInvariant();
+                query = query.Where(x =>
+                    (x.Barcode != null && x.Barcode == normalized) ||
+                    (x.Name != null && x.Name.ToLower().Contains(lower)) ||
+                    (x.Barcode != null && x.Barcode.ToLower().Contains(lower)));
+            }
+
+            var items = await query
+                .OrderBy(x => x.Name)
+                .Take(50)
+                .ToListAsync();
+
+            return new ListResultDto<ProductDto>(ObjectMapper.Map<List<ProductDto>>(items));
         }
 
         public override async Task<SaleDto> CreateAsync(CreateSaleDto input)
