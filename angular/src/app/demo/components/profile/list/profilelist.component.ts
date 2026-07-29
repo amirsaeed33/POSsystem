@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
 import { Table } from 'primeng/table';
 import { UserDto } from 'src/app/demo/api/user-management';
 import { UserService } from 'src/app/demo/service/user.service';
@@ -16,13 +15,15 @@ export class ProfileListComponent implements OnInit {
     loading = false;
     totalRecords = 0;
 
+    dialogVisible = false;
+    editingUserId: number | null = null;
+
     resetDialogVisible = false;
     resetUserId: number | null = null;
     resetUserName = '';
 
     constructor(
         private userService: UserService,
-        private router: Router,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) { }
@@ -58,12 +59,18 @@ export class ProfileListComponent implements OnInit {
         table.filterGlobal(value, 'contains');
     }
 
-    navigateToCreateUser() {
-        this.router.navigate(['profile/create']);
+    openCreateDialog() {
+        this.editingUserId = null;
+        this.dialogVisible = true;
     }
 
-    onEditUser(user: UserDto) {
-        this.router.navigate(['profile/edit', user.id]);
+    openEditDialog(user: UserDto) {
+        this.editingUserId = user.id;
+        this.dialogVisible = true;
+    }
+
+    onDialogSaved() {
+        this.loadUsers();
     }
 
     onResetPassword(user: UserDto) {
@@ -92,7 +99,7 @@ export class ProfileListComponent implements OnInit {
                         this.messageService.add({ 
                             severity: 'error', 
                             summary: 'Error', 
-                            detail: 'Failed to delete user' 
+                            detail: error?.message || 'Failed to delete user' 
                         });
                     });
             }
@@ -114,16 +121,9 @@ export class ProfileListComponent implements OnInit {
                 this.messageService.add({ 
                     severity: 'error', 
                     summary: 'Error', 
-                    detail: 'Failed to update user status' 
+                    detail: error?.message || 'Failed to update user status' 
                 });
             });
-    }
-
-    getRoleNames(user: UserDto): string {
-        if (user.roleNames && user.roleNames.length > 0) {
-            return user.roleNames.join(', ');
-        }
-        return 'No roles';
     }
 
     getProfilePictureUrl(profilePictureUrl: string | undefined): string {
@@ -131,12 +131,10 @@ export class ProfileListComponent implements OnInit {
             return 'assets/layout/images/avatar.png';
         }
         
-        // If it's already a full URL, use it; otherwise construct from base URL
         if (profilePictureUrl.startsWith('http://') || profilePictureUrl.startsWith('https://')) {
             return profilePictureUrl;
         }
         
-        // It's a relative path, construct full URL
         return `${environment.apiUrl}${profilePictureUrl.startsWith('/') ? '' : '/'}${profilePictureUrl}`;
     }
 

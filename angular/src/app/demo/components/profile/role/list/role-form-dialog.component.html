@@ -1,0 +1,131 @@
+<p-dialog
+    [header]="dialogTitle"
+    [visible]="visible"
+    [modal]="true"
+    [style]="{ width: '52rem' }"
+    [breakpoints]="{ '960px': '85vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    [contentStyle]="{ 'max-height': '70vh', overflow: 'auto' }"
+    (visibleChange)="onVisibleChange($event)"
+>
+    <div *ngIf="loading" class="flex align-items-center justify-content-center p-5">
+        <i class="pi pi-spin pi-spinner text-2xl"></i>
+    </div>
+
+    <form *ngIf="!loading" [formGroup]="roleForm" (ngSubmit)="onSubmit()">
+        <div class="grid formgrid p-fluid">
+            <div class="field mb-3 col-12 md:col-6">
+                <label for="dlgRoleName" class="font-medium text-900">
+                    Name <span class="text-red-500">*</span>
+                </label>
+                <input
+                    id="dlgRoleName"
+                    type="text"
+                    pInputText
+                    formControlName="name"
+                    [disabled]="saving"
+                />
+                <small
+                    class="p-error"
+                    *ngIf="roleForm.get('name')?.invalid && roleForm.get('name')?.touched"
+                >
+                    Name is required
+                </small>
+            </div>
+
+            <div class="field mb-3 col-12 md:col-6">
+                <label for="dlgRoleDisplayName" class="font-medium text-900">
+                    Display Name <span class="text-red-500">*</span>
+                </label>
+                <input
+                    id="dlgRoleDisplayName"
+                    type="text"
+                    pInputText
+                    formControlName="displayName"
+                    [disabled]="saving"
+                />
+                <small
+                    class="p-error"
+                    *ngIf="roleForm.get('displayName')?.invalid && roleForm.get('displayName')?.touched"
+                >
+                    Display name is required
+                </small>
+            </div>
+
+            <div class="field mb-3 col-12">
+                <label for="dlgRoleDescription" class="font-medium text-900">Description</label>
+                <textarea
+                    id="dlgRoleDescription"
+                    pInputTextarea
+                    formControlName="description"
+                    rows="3"
+                    [disabled]="saving"
+                ></textarea>
+            </div>
+
+            <div class="field mb-2 col-12">
+                <label class="font-medium text-900 mb-2 block">Permissions</label>
+                <div *ngIf="loadingPermissions" class="flex align-items-center justify-content-center p-3">
+                    <i class="pi pi-spin pi-spinner mr-2"></i>
+                    <span>Loading permissions...</span>
+                </div>
+                <div
+                    *ngIf="!loadingPermissions && getPermissionGroups().length === 0"
+                    class="p-3 text-center text-500"
+                >
+                    No permissions available
+                </div>
+                <div *ngIf="!loadingPermissions && getPermissionGroups().length > 0" class="grid">
+                    <div class="col-12 md:col-6 lg:col-4" *ngFor="let groupName of getPermissionGroups()">
+                        <div class="surface-ground border-round p-3 mb-2">
+                            <h5 class="text-900 font-semibold mb-2 mt-0">{{ groupName }}</h5>
+                            <div class="flex flex-column gap-2">
+                                <div
+                                    *ngFor="let permission of permissionGroups[groupName]"
+                                    class="flex align-items-center"
+                                >
+                                    <p-checkbox
+                                        [inputId]="'dlg-role-' + permission.name"
+                                        [value]="permission.name"
+                                        [(ngModel)]="selectedPermissions"
+                                        [ngModelOptions]="{ standalone: true }"
+                                        [disabled]="saving"
+                                    ></p-checkbox>
+                                    <label
+                                        [for]="'dlg-role-' + permission.name"
+                                        class="ml-2 cursor-pointer"
+                                    >
+                                        {{ permission.displayName }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="onHide()"
+            [disabled]="saving"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            [label]="isEdit ? 'Update' : 'Save'"
+            icon="pi pi-check"
+            (click)="onSubmit()"
+            [disabled]="saving || loading || roleForm.invalid"
+            [loading]="saving"
+        ></button>
+    </ng-template>
+</p-dialog>

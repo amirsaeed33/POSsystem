@@ -10,7 +10,7 @@
                     <i class="pi pi-search"></i>
                     <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Global Search" class="w-full" />
                 </span>
-                <button (click)="navigateToCreateRole()" pButton class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1" icon="pi pi-plus" label="Add New"></button>
+                <button (click)="openCreateDialog()" pButton class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1" icon="pi pi-plus" label="Add New"></button>
             </div>
         </ng-template>
         <ng-template pTemplate="header">
@@ -36,7 +36,7 @@
                 <td>
                     <div class="flex gap-2">
                         <button pButton pRipple icon="pi pi-pencil" class="p-button-text p-button-sm" 
-                            (click)="onEditRole(role)" pTooltip="Edit" tooltipPosition="top"></button>
+                            (click)="openEditDialog(role)" pTooltip="Edit" tooltipPosition="top"></button>
                         <button pButton pRipple icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" 
                             (click)="onDeleteRole(role)" pTooltip="Delete" tooltipPosition="top"></button>
                     </div>
@@ -51,6 +51,13 @@
             </tr>
         </ng-template>
     </p-table>
+
+    <app-role-form-dialog
+        [(visible)]="dialogVisible"
+        [roleId]="editingRoleId"
+        (saved)="onDialogSaved()"
+    ></app-role-form-dialog>
+
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
 </div>

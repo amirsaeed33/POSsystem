@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
 import { Table } from 'primeng/table';
 import { RoleDto } from 'src/app/demo/api/role-management';
 import { RoleService } from 'src/app/demo/service/role.service';
@@ -15,9 +14,11 @@ export class RoleListComponent implements OnInit {
     loading = false;
     totalRecords = 0;
 
+    dialogVisible = false;
+    editingRoleId: number | null = null;
+
     constructor(
         private roleService: RoleService,
-        private router: Router,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) { }
@@ -53,12 +54,18 @@ export class RoleListComponent implements OnInit {
         table.filterGlobal(value, 'contains');
     }
 
-    navigateToCreateRole() {
-        this.router.navigate(['profile/role/create']);
+    openCreateDialog() {
+        this.editingRoleId = null;
+        this.dialogVisible = true;
     }
 
-    onEditRole(role: RoleDto) {
-        this.router.navigate(['profile/role/edit', role.id]);
+    openEditDialog(role: RoleDto) {
+        this.editingRoleId = role.id;
+        this.dialogVisible = true;
+    }
+
+    onDialogSaved() {
+        this.loadRoles();
     }
 
     onDeleteRole(role: RoleDto) {
@@ -88,4 +95,3 @@ export class RoleListComponent implements OnInit {
         });
     }
 }
-
