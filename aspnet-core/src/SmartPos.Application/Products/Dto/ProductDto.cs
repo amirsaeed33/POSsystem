@@ -6,20 +6,24 @@ namespace SmartPos.Products.Dto
 {
     public class ProductDto : EntityDto
     {
-        [Required]
+        [Required(ErrorMessage = "Name is required.")]
         [StringLength(Product.MaxNameLength)]
         public string Name { get; set; }
 
         [StringLength(Product.MaxDescriptionLength)]
         public string Description { get; set; }
 
+        [Required(ErrorMessage = "Barcode is required.")]
         [StringLength(Product.MaxBarcodeLength)]
         public string Barcode { get; set; }
 
+        [Range(0.01, double.MaxValue, ErrorMessage = "Price is required.")]
         public decimal Price { get; set; }
 
+        [Range(0, double.MaxValue, ErrorMessage = "Wholesale price is required.")]
         public decimal WholesalePrice { get; set; }
 
+        [Range(0, double.MaxValue, ErrorMessage = "Cost price is required.")]
         public decimal CostPrice { get; set; }
 
         /// <summary>Selling price minus cost price (per unit).</summary>
@@ -33,19 +37,20 @@ namespace SmartPos.Products.Dto
 
         public decimal StockQuantity { get; set; }
 
+        [Range(0, double.MaxValue, ErrorMessage = "Alert quantity limit is required.")]
         public decimal AlertQuantityLimit { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Category is required.")]
         public int CategoryId { get; set; }
 
         public string CategoryName { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Brand is required.")]
         public int BrandId { get; set; }
 
         public string BrandName { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Unit is required.")]
         public int UnitId { get; set; }
 
         public string UnitName { get; set; }

@@ -57,6 +57,10 @@ export class ProductFormDialogComponent implements OnChanges {
         return (this.profitPerUnit / this.product.price) * 100;
     }
 
+    get isFormValid(): boolean {
+        return !this.getValidationMessage();
+    }
+
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.resetForm();
@@ -97,27 +101,22 @@ export class ProductFormDialogComponent implements OnChanges {
     }
 
     save(): void {
-        const name = (this.product.name || '').trim();
-        if (!name) {
+        const validationMessage = this.getValidationMessage();
+        if (validationMessage) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Validation',
-                detail: 'Name is required',
-            });
-            return;
-        }
-        if (!this.product.categoryId || !this.product.brandId || !this.product.unitId) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Validation',
-                detail: 'Category, Brand and Unit are required',
+                detail: validationMessage,
             });
             return;
         }
 
-        const price = this.product.price || 0;
-        const wholesalePrice = this.product.wholesalePrice || 0;
-        const costPrice = this.product.costPrice || 0;
+        const name = (this.product.name || '').trim();
+        const barcode = (this.product.barcode || '').trim();
+        const price = Number(this.product.price);
+        const wholesalePrice = Number(this.product.wholesalePrice);
+        const costPrice = Number(this.product.costPrice);
+
         if (price < costPrice) {
             this.messageService.add({
                 severity: 'warn',
@@ -146,18 +145,22 @@ export class ProductFormDialogComponent implements OnChanges {
                   ...this.product,
                   id: this.productId,
                   name,
+                  barcode,
                   description: this.product.description?.trim() || undefined,
-                  barcode: this.product.barcode?.trim() || undefined,
+                  price,
+                  wholesalePrice,
+                  costPrice,
+                  alertQuantityLimit: Number(this.product.alertQuantityLimit),
                   imageBase64,
               })
             : this.productService.create({
                   name,
                   description: this.product.description?.trim() || undefined,
-                  barcode: this.product.barcode?.trim() || undefined,
-                  price: this.product.price || 0,
-                  wholesalePrice: this.product.wholesalePrice || 0,
-                  costPrice: this.product.costPrice || 0,
-                  alertQuantityLimit: this.product.alertQuantityLimit || 0,
+                  barcode,
+                  price,
+                  wholesalePrice,
+                  costPrice,
+                  alertQuantityLimit: Number(this.product.alertQuantityLimit),
                   categoryId: this.product.categoryId,
                   brandId: this.product.brandId,
                   unitId: this.product.unitId,
@@ -188,19 +191,50 @@ export class ProductFormDialogComponent implements OnChanges {
             });
     }
 
+    private getValidationMessage(): string | null {
+        if (!(this.product.name || '').trim()) {
+            return 'Name is required.';
+        }
+        if (!(this.product.barcode || '').trim()) {
+            return 'Barcode is required.';
+        }
+        if (this.product.price == null || Number(this.product.price) <= 0) {
+            return 'Price is required.';
+        }
+        if (this.product.wholesalePrice == null || Number(this.product.wholesalePrice) < 0) {
+            return 'Wholesale price is required.';
+        }
+        if (this.product.costPrice == null || Number(this.product.costPrice) < 0) {
+            return 'Cost price is required.';
+        }
+        if (this.product.alertQuantityLimit == null || Number(this.product.alertQuantityLimit) < 0) {
+            return 'Alert quantity limit is required.';
+        }
+        if (!this.product.categoryId) {
+            return 'Category is required.';
+        }
+        if (!this.product.brandId) {
+            return 'Brand is required.';
+        }
+        if (!this.product.unitId) {
+            return 'Unit is required.';
+        }
+        return null;
+    }
+
     private emptyProduct(): ProductDto {
         return {
             id: 0,
             name: '',
             description: '',
             barcode: '',
-            price: 0,
-            wholesalePrice: 0,
-            costPrice: 0,
+            price: null as any,
+            wholesalePrice: null as any,
+            costPrice: null as any,
             profitPerUnit: 0,
             stockProfit: 0,
             stockQuantity: 0,
-            alertQuantityLimit: 10,
+            alertQuantityLimit: null as any,
             categoryId: null as any,
             brandId: null as any,
             unitId: null as any,

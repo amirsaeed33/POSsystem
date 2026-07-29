@@ -24,7 +24,7 @@
         </div>
 
         <div class="flex flex-column gap-2">
-            <label for="productBarcode" class="font-medium">Barcode</label>
+            <label for="productBarcode" class="font-medium">Barcode <span class="p-error">*</span></label>
             <input id="productBarcode" type="text" pInputText class="w-full" maxlength="64"
                 [(ngModel)]="product.barcode" [disabled]="saving" />
         </div>
@@ -37,13 +37,13 @@
                     [disabled]="saving"></p-inputNumber>
             </div>
             <div class="field col-12 md:col-4 flex flex-column gap-2">
-                <label for="productWholesale" class="font-medium">Wholesale Price</label>
+                <label for="productWholesale" class="font-medium">Wholesale Price <span class="p-error">*</span></label>
                 <p-inputNumber inputId="productWholesale" [(ngModel)]="product.wholesalePrice" mode="decimal"
                     [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
                     [disabled]="saving"></p-inputNumber>
             </div>
             <div class="field col-12 md:col-4 flex flex-column gap-2">
-                <label for="productCost" class="font-medium">Cost Price</label>
+                <label for="productCost" class="font-medium">Cost Price <span class="p-error">*</span></label>
                 <p-inputNumber inputId="productCost" [(ngModel)]="product.costPrice" mode="decimal"
                     [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
                     [disabled]="saving"></p-inputNumber>
@@ -104,7 +104,7 @@
             (click)="onHide()" [disabled]="saving"></button>
         <button pButton pRipple type="button" label="Save" icon="pi pi-check"
             (click)="save()"
-            [disabled]="saving || loading || !(product.name || '').trim()"
+            [disabled]="saving || loading || !isFormValid"
             [loading]="saving"></button>
     </ng-template>
 </p-dialog>

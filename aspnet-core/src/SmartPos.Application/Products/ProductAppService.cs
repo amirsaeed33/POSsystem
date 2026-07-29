@@ -29,6 +29,16 @@ namespace SmartPos.Products
         {
             CheckCreatePermission();
 
+            EnsureRequiredFields(
+                input.Name,
+                input.Barcode,
+                input.Price,
+                input.WholesalePrice,
+                input.CostPrice,
+                input.AlertQuantityLimit,
+                input.CategoryId,
+                input.BrandId,
+                input.UnitId);
             EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice);
 
             var barcode = NormalizeBarcode(input.Barcode);
@@ -58,6 +68,16 @@ namespace SmartPos.Products
 
             var product = await GetEntityByIdAsync(input.Id);
 
+            EnsureRequiredFields(
+                input.Name,
+                input.Barcode,
+                input.Price,
+                input.WholesalePrice,
+                input.CostPrice,
+                input.AlertQuantityLimit,
+                input.CategoryId,
+                input.BrandId,
+                input.UnitId);
             EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice);
 
             var barcode = NormalizeBarcode(input.Barcode);
@@ -118,6 +138,63 @@ namespace SmartPos.Products
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
                 Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
                     .Where(x => x.Id == id));
+        }
+
+        private static void EnsureRequiredFields(
+            string name,
+            string barcode,
+            decimal price,
+            decimal wholesalePrice,
+            decimal costPrice,
+            decimal alertQuantityLimit,
+            int categoryId,
+            int brandId,
+            int unitId)
+        {
+            if (name.IsNullOrWhiteSpace())
+            {
+                throw new UserFriendlyException("Name is required.");
+            }
+
+            if (barcode.IsNullOrWhiteSpace())
+            {
+                throw new UserFriendlyException("Barcode is required.");
+            }
+
+            if (price <= 0)
+            {
+                throw new UserFriendlyException("Price is required.");
+            }
+
+            if (wholesalePrice < 0)
+            {
+                throw new UserFriendlyException("Wholesale price is required.");
+            }
+
+            if (costPrice < 0)
+            {
+                throw new UserFriendlyException("Cost price is required.");
+            }
+
+            if (alertQuantityLimit < 0)
+            {
+                throw new UserFriendlyException("Alert quantity limit is required.");
+            }
+
+            if (categoryId <= 0)
+            {
+                throw new UserFriendlyException("Category is required.");
+            }
+
+            if (brandId <= 0)
+            {
+                throw new UserFriendlyException("Brand is required.");
+            }
+
+            if (unitId <= 0)
+            {
+                throw new UserFriendlyException("Unit is required.");
+            }
         }
 
         private static void EnsureValidPricing(decimal price, decimal wholesalePrice, decimal costPrice)
