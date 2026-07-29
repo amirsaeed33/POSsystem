@@ -81,6 +81,13 @@ export class StockAdjustmentFormDialogComponent implements OnChanges {
         }
     }
 
+    onProductSelected(line: CreateStockAdjustmentLineDto): void {
+        if (!line.productId) {
+            return;
+        }
+        this.mergeDuplicateProductLine(line);
+    }
+
     save(): void {
         if (!this.adjustment.adjustmentDate) {
             this.messageService.add({
@@ -99,9 +106,12 @@ export class StockAdjustmentFormDialogComponent implements OnChanges {
             return;
         }
 
-        const lines = (this.adjustment.lines || []).filter(
-            (line) => line.productId && line.quantityChange !== 0
+        const lines = this.mergeLinesByProduct(
+            (this.adjustment.lines || []).filter(
+                (line) => line.productId && line.quantityChange !== 0
+            )
         );
+        this.adjustment.lines = lines.length ? [...lines] : [this.emptyLine()];
         if (!lines.length) {
             this.messageService.add({
                 severity: 'warn',
@@ -170,6 +180,63 @@ export class StockAdjustmentFormDialogComponent implements OnChanges {
             productId: null as any,
             quantityChange: 1,
         };
+    }
+
+    private mergeDuplicateProductLine(line: CreateStockAdjustmentLineDto): void {
+        const lines = this.adjustment.lines || [];
+        const existing = lines.find(
+            (l) => l !== line && l.productId === line.productId
+        );
+        if (!existing) {
+            return;
+        }
+
+        existing.quantityChange = Number(
+            (
+                (existing.quantityChange || 0) + (line.quantityChange || 0)
+            ).toFixed(2)
+        );
+
+        const index = lines.indexOf(line);
+        if (index < 0) {
+            return;
+        }
+        if (lines.length > 1) {
+            lines.splice(index, 1);
+        } else {
+            Object.assign(line, this.emptyLine());
+        }
+
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Merged',
+            detail: 'Same product combined into one line',
+        });
+    }
+
+    private mergeLinesByProduct(
+        lines: CreateStockAdjustmentLineDto[]
+    ): CreateStockAdjustmentLineDto[] {
+        const merged = new Map<number, CreateStockAdjustmentLineDto>();
+        for (const line of lines) {
+            const existing = merged.get(line.productId);
+            if (existing) {
+                existing.quantityChange = Number(
+                    (
+                        (existing.quantityChange || 0) +
+                        (line.quantityChange || 0)
+                    ).toFixed(2)
+                );
+            } else {
+                merged.set(line.productId, {
+                    productId: line.productId,
+                    quantityChange: line.quantityChange || 0,
+                });
+            }
+        }
+        return Array.from(merged.values()).filter(
+            (line) => line.quantityChange !== 0
+        );
     }
 
     private emptyAdjustment(): CreateStockAdjustmentDto {

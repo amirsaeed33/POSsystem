@@ -94,10 +94,14 @@ export class PurchaseFormDialogComponent implements OnChanges {
     }
 
     onProductSelected(line: CreatePurchaseLineDto): void {
+        if (!line.productId) {
+            return;
+        }
         const product = this.products.find((p) => p.id === line.productId);
         if (product) {
             line.unitCost = product.price || 0;
         }
+        this.mergeDuplicateProductLine(line);
     }
 
     lineTotal(line: CreatePurchaseLineDto): number {
@@ -130,9 +134,12 @@ export class PurchaseFormDialogComponent implements OnChanges {
             return;
         }
 
-        const lines = (this.purchase.lines || []).filter(
-            (line) => line.productId && (line.quantity || 0) > 0
+        const lines = this.mergeLinesByProduct(
+            (this.purchase.lines || []).filter(
+                (line) => line.productId && (line.quantity || 0) > 0
+            )
         );
+        this.purchase.lines = lines.length ? [...lines] : [this.emptyLine()];
         if (!lines.length) {
             this.messageService.add({
                 severity: 'warn',
@@ -205,6 +212,61 @@ export class PurchaseFormDialogComponent implements OnChanges {
         this.printingPurchaseId = purchaseId;
         this.printAutoPrint = autoPrint;
         this.printDialogVisible = true;
+    }
+
+    private mergeDuplicateProductLine(line: CreatePurchaseLineDto): void {
+        const lines = this.purchase.lines || [];
+        const existing = lines.find(
+            (l) => l !== line && l.productId === line.productId
+        );
+        if (!existing) {
+            return;
+        }
+
+        existing.quantity = Number(
+            ((existing.quantity || 0) + (line.quantity || 0)).toFixed(2)
+        );
+        const product = this.products.find((p) => p.id === existing.productId);
+        if (product) {
+            existing.unitCost = product.price || 0;
+        }
+
+        const index = lines.indexOf(line);
+        if (index < 0) {
+            return;
+        }
+        if (lines.length > 1) {
+            lines.splice(index, 1);
+        } else {
+            Object.assign(line, this.emptyLine());
+        }
+
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Merged',
+            detail: 'Same product combined into one line',
+        });
+    }
+
+    private mergeLinesByProduct(
+        lines: CreatePurchaseLineDto[]
+    ): CreatePurchaseLineDto[] {
+        const merged = new Map<number, CreatePurchaseLineDto>();
+        for (const line of lines) {
+            const existing = merged.get(line.productId);
+            if (existing) {
+                existing.quantity = Number(
+                    ((existing.quantity || 0) + (line.quantity || 0)).toFixed(2)
+                );
+            } else {
+                merged.set(line.productId, {
+                    productId: line.productId,
+                    quantity: line.quantity || 0,
+                    unitCost: line.unitCost || 0,
+                });
+            }
+        }
+        return Array.from(merged.values());
     }
 
     private emptyLine(): CreatePurchaseLineDto {

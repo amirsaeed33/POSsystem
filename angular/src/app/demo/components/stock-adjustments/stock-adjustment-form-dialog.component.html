@@ -76,6 +76,7 @@
                                 <p-dropdown
                                     [options]="products"
                                     [(ngModel)]="line.productId"
+                                    (ngModelChange)="onProductSelected(line)"
                                     optionLabel="name"
                                     optionValue="id"
                                     placeholder="Select product"
