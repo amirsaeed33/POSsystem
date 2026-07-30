@@ -83,6 +83,17 @@
                     font-weight: 500;
                     font-size: 0.95em;
                     color: var(--text-color-secondary, var(--v-menuitem-text-color));
+
+                    &.active-route {
+                        color: var(--primary-color);
+                        font-weight: 700;
+                        background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+                        box-shadow: inset 3px 0 0 0 var(--primary-color);
+
+                        .layout-menuitem-icon {
+                            color: var(--primary-color);
+                        }
+                    }
                 }
             }
         }
@@ -90,8 +101,15 @@
         li {
             &.active-menuitem {
                 > a {
+                    color: var(--primary-color);
+
                     .layout-submenu-toggler {
                         transform: rotate(-180deg);
+                        color: var(--primary-color);
+                    }
+
+                    .layout-menuitem-icon {
+                        color: var(--primary-color);
                     }
                 }
             }
@@ -112,7 +130,7 @@
                 margin-bottom: .2rem;
                 border-radius: var(--border-radius);
                 line-height: 1.2;
-                transition: background-color var(--transition-duration), box-shadow var(--transition-duration);
+                transition: background-color var(--transition-duration), box-shadow var(--transition-duration), color var(--transition-duration);
                 cursor: pointer;
 
                 .layout-menuitem-icon {
@@ -127,12 +145,23 @@
 
                 &.active-route {
                     font-weight: 700;
-                    color: var(--v-menuitem-text-color);
+                    color: var(--primary-color);
+                    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+                    box-shadow: inset 3px 0 0 0 var(--primary-color);
+
+                    .layout-menuitem-icon {
+                        color: var(--primary-color);
+                    }
                 }
 
                 &:hover {
                     background: var(--v-menuitem-hover-bg);
                     color: var(--v-menuitem-text-color);
+                }
+
+                &.active-route:hover {
+                    background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+                    color: var(--primary-color);
                 }
             }
 
