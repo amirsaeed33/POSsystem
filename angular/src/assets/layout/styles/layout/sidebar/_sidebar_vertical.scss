@@ -35,10 +35,11 @@
                 outline: 0 none;
                 position: relative;
                 color: var(--v-menuitem-text-color);
-                padding: .5rem;
-                margin-bottom: .25rem;
+                padding: .65rem .5rem;
+                margin-bottom: .35rem;
                 border-radius: var(--border-radius);
-                line-height: 1;
+                line-height: 1.2;
+                font-weight: 700;
                 transition: background-color var(--transition-duration), box-shadow var(--transition-duration);
                 cursor: pointer;
 
@@ -69,9 +70,20 @@
                 }
             }
 
-            // Nested submenu under a root group.
+            // Nested submenu under a root group — indent so children read as sub-items.
             > ul {
                 overflow: hidden;
+                margin: 0 0 .5rem 0;
+                padding: .15rem 0 .35rem .35rem;
+                border-left: 2px solid var(--surface-border, rgba(0, 0, 0, 0.08));
+                margin-left: .65rem;
+
+                > li > a {
+                    padding-left: 1.25rem;
+                    font-weight: 500;
+                    font-size: 0.95em;
+                    color: var(--text-color-secondary, var(--v-menuitem-text-color));
+                }
             }
         }
 
@@ -97,9 +109,9 @@
                 position: relative;
                 color: var(--v-menuitem-text-color);
                 padding: .5rem;
-                margin-bottom: .25rem;
+                margin-bottom: .2rem;
                 border-radius: var(--border-radius);
-                line-height: 1;
+                line-height: 1.2;
                 transition: background-color var(--transition-duration), box-shadow var(--transition-duration);
                 cursor: pointer;
 
@@ -115,10 +127,12 @@
 
                 &.active-route {
                     font-weight: 700;
+                    color: var(--v-menuitem-text-color);
                 }
 
                 &:hover {
                     background: var(--v-menuitem-hover-bg);
+                    color: var(--v-menuitem-text-color);
                 }
             }
 
@@ -128,12 +142,12 @@
 
                 li {
                     a {
-                        padding-left: 1.5rem;
+                        padding-left: 2rem;
                     }
 
                     li {
                         a {
-                            padding-left: 2.5rem;
+                            padding-left: 2.75rem;
                         }
 
                         li {
@@ -143,17 +157,17 @@
 
                             li {
                                 a {
-                                    padding-left: 4.5rem;
+                                    padding-left: 4.25rem;
                                 }
 
                                 li {
                                     a {
-                                        padding-left: 5.5rem;
+                                        padding-left: 5rem;
                                     }
 
                                     li {
                                         a {
-                                            padding-left: 6.5rem;
+                                            padding-left: 5.75rem;
                                         }
                                     }
                                 }
@@ -165,4 +179,3 @@
         }
     }
 }
-
