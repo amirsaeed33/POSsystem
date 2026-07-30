@@ -1,4 +1,4 @@
-import { Component, NgZone, OnInit } from '@angular/core';
+import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
@@ -11,21 +11,29 @@ import { MessageService } from 'primeng/api';
 
 declare const google: any;
 
+type LoginMode = 'password' | 'emailCode';
+
 @Component({
 	templateUrl: './login.component.html',
 	providers: [MessageService]
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
 
 	loginForm: FormGroup;
+	emailCodeForm: FormGroup;
 	loading = false;
 	tenantReady = false;
 	tenancyName = '';
 	tenantDisplayName = '';
 	googleEnabled = false;
+	loginMode: LoginMode = 'password';
+	emailCodeSent = false;
+	emailCodeExpirationMinutes = 5;
+	resendCooldownRemaining = 0;
 	private googleClientId = '';
 	private googleScriptLoaded = false;
 	private returnUrl = '/';
+	private resendTimer: ReturnType<typeof setInterval> | null = null;
 
 	constructor(
 		private layoutService: LayoutService,
@@ -43,6 +51,11 @@ export class LoginComponent implements OnInit {
 			userNameOrEmailAddress: ['', [Validators.required]],
 			password: ['', [Validators.required]],
 			rememberClient: [false]
+		});
+
+		this.emailCodeForm = this.fb.group({
+			emailAddress: ['', [Validators.required, Validators.email]],
+			code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]]
 		});
 	}
 
@@ -63,6 +76,10 @@ export class LoginComponent implements OnInit {
 		if (this.authService.isAuthenticated()) {
 			this.router.navigateByUrl(this.returnUrl);
 		}
+	}
+
+	ngOnDestroy(): void {
+		this.clearResendTimer();
 	}
 
 	get filledInput(): boolean {
@@ -88,6 +105,43 @@ export class LoginComponent implements OnInit {
 			.finally(() => {
 				this.loading = false;
 			});
+	}
+
+	switchToEmailCodeLogin(event?: Event): void {
+		event?.preventDefault();
+		this.loginMode = 'emailCode';
+		this.emailCodeSent = false;
+		this.emailCodeForm.reset({ emailAddress: '', code: '' });
+		this.clearResendTimer();
+	}
+
+	switchToPasswordLogin(): void {
+		this.loginMode = 'password';
+		this.emailCodeSent = false;
+		this.emailCodeForm.reset({ emailAddress: '', code: '' });
+		this.clearResendTimer();
+	}
+
+	resetEmailCodeFlow(): void {
+		this.emailCodeSent = false;
+		this.emailCodeForm.patchValue({ code: '' });
+		this.emailCodeForm.get('code')?.markAsUntouched();
+		this.clearResendTimer();
+	}
+
+	onEmailCodeSubmit(): void {
+		if (!this.emailCodeSent) {
+			this.sendEmailCode();
+			return;
+		}
+		this.verifyEmailCode();
+	}
+
+	resendEmailCode(): void {
+		if (this.resendCooldownRemaining > 0) {
+			return;
+		}
+		this.sendEmailCode(true);
 	}
 
 	loginWithGoogle(event?: Event): void {
@@ -129,6 +183,79 @@ export class LoginComponent implements OnInit {
 		});
 
 		tokenClient.requestAccessToken({ prompt: 'select_account' });
+	}
+
+	private sendEmailCode(isResend = false): void {
+		const emailControl = this.emailCodeForm.get('emailAddress');
+		emailControl?.markAsTouched();
+		if (emailControl?.invalid) {
+			return;
+		}
+
+		this.loading = true;
+		const email = (emailControl?.value || '').trim();
+
+		this.authService
+			.sendEmailLoginCode(email)
+			.then((result) => {
+				this.emailCodeSent = true;
+				this.emailCodeExpirationMinutes = result.expirationMinutes || 5;
+				this.startResendCooldown(result.resendCooldownSeconds || 60);
+				this.messageService.add({
+					severity: 'success',
+					summary: 'Code sent',
+					detail: isResend
+						? 'A new sign-in code was sent to your email.'
+						: `We sent a 6-digit code to ${email}.`,
+				});
+			})
+			.catch((error) => this.showLoginError(error))
+			.finally(() => {
+				this.loading = false;
+			});
+	}
+
+	private verifyEmailCode(): void {
+		const codeControl = this.emailCodeForm.get('code');
+		codeControl?.markAsTouched();
+		if (this.emailCodeForm.get('emailAddress')?.invalid || codeControl?.invalid) {
+			return;
+		}
+
+		this.loading = true;
+		const email = (this.emailCodeForm.get('emailAddress')?.value || '').trim();
+		const code = (codeControl?.value || '').trim();
+
+		this.authService
+			.authenticateWithEmailCode(email, code)
+			.then(() => this.completeLogin())
+			.catch((error) => this.showLoginError(error))
+			.finally(() => {
+				this.loading = false;
+			});
+	}
+
+	private startResendCooldown(seconds: number): void {
+		this.clearResendTimer();
+		this.resendCooldownRemaining = Math.max(0, seconds);
+		if (this.resendCooldownRemaining <= 0) {
+			return;
+		}
+
+		this.resendTimer = setInterval(() => {
+			this.resendCooldownRemaining = Math.max(0, this.resendCooldownRemaining - 1);
+			if (this.resendCooldownRemaining <= 0) {
+				this.clearResendTimer();
+			}
+		}, 1000);
+	}
+
+	private clearResendTimer(): void {
+		if (this.resendTimer) {
+			clearInterval(this.resendTimer);
+			this.resendTimer = null;
+		}
+		this.resendCooldownRemaining = 0;
 	}
 
 	private async handleGoogleTokenResponse(tokenResponse: any): Promise<void> {

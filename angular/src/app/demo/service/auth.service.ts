@@ -29,6 +29,8 @@ export class AuthService {
     private readonly authenticateUrl = `${environment.apiUrl}/api/TokenAuth/Authenticate`;
     private readonly externalAuthenticateUrl = `${environment.apiUrl}/api/TokenAuth/ExternalAuthenticate`;
     private readonly externalProvidersUrl = `${environment.apiUrl}/api/TokenAuth/GetExternalAuthenticationProviders`;
+    private readonly sendEmailLoginCodeUrl = `${environment.apiUrl}/api/TokenAuth/SendEmailLoginCode`;
+    private readonly authenticateWithEmailCodeUrl = `${environment.apiUrl}/api/TokenAuth/AuthenticateWithEmailCode`;
 
     constructor(
         private http: HttpClient,
@@ -48,6 +50,57 @@ export class AuthService {
             return this.persistAuthResult(res, 'Authentication failed');
         } catch (error: any) {
             throw new Error(this.extractErrorMessage(error, 'Login failed. Please check your credentials.'));
+        }
+    }
+
+    async sendEmailLoginCode(emailAddress: string): Promise<{ expirationMinutes: number; resendCooldownSeconds: number }> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.post<any>(this.sendEmailLoginCodeUrl, {
+                    emailAddress: (emailAddress || '').trim(),
+                })
+            );
+
+            if (!res) {
+                throw new Error('No response from server');
+            }
+            if (res.success === false || res.error) {
+                throw new Error(
+                    res.error?.message || res.error?.details || 'Failed to send sign-in code'
+                );
+            }
+
+            const result = res.result ?? res;
+            return {
+                expirationMinutes:
+                    result.expirationMinutes ?? result.ExpirationMinutes ?? 5,
+                resendCooldownSeconds:
+                    result.resendCooldownSeconds ?? result.ResendCooldownSeconds ?? 60,
+            };
+        } catch (error: any) {
+            throw new Error(
+                this.extractErrorMessage(error, 'Failed to send sign-in code. Please try again.')
+            );
+        }
+    }
+
+    async authenticateWithEmailCode(
+        emailAddress: string,
+        code: string
+    ): Promise<AuthenticateResultModel> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.post<any>(this.authenticateWithEmailCodeUrl, {
+                    emailAddress: (emailAddress || '').trim(),
+                    code: (code || '').trim(),
+                })
+            );
+
+            return this.persistAuthResult(res, 'Email code authentication failed');
+        } catch (error: any) {
+            throw new Error(
+                this.extractErrorMessage(error, 'Invalid or expired sign-in code.')
+            );
         }
     }
 

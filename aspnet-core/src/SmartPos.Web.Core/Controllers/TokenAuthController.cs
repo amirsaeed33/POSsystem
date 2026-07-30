@@ -13,6 +13,7 @@ using Abp.IdentityFramework;
 using Abp.MultiTenancy;
 using Abp.Runtime.Security;
 using Abp.UI;
+using SmartPos.Authentication.EmailLogin;
 using SmartPos.Authentication.External;
 using SmartPos.Authentication.JwtBearer;
 using SmartPos.Authorization;
@@ -20,6 +21,7 @@ using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
 using SmartPos.Models.TokenAuth;
 using SmartPos.MultiTenancy;
+using SmartPos.Net.Emailing;
 
 namespace SmartPos.Controllers
 {
@@ -34,6 +36,9 @@ namespace SmartPos.Controllers
         private readonly IExternalAuthManager _externalAuthManager;
         private readonly UserManager _userManager;
         private readonly RoleManager _roleManager;
+        private readonly UserClaimsPrincipalFactory _claimsPrincipalFactory;
+        private readonly EmailLoginCodeStore _emailLoginCodeStore;
+        private readonly ISmtpMailSender _smtpMailSender;
 
         public TokenAuthController(
             LogInManager logInManager,
@@ -43,7 +48,10 @@ namespace SmartPos.Controllers
             IExternalAuthConfiguration externalAuthConfiguration,
             IExternalAuthManager externalAuthManager,
             UserManager userManager,
-            RoleManager roleManager)
+            RoleManager roleManager,
+            UserClaimsPrincipalFactory claimsPrincipalFactory,
+            EmailLoginCodeStore emailLoginCodeStore,
+            ISmtpMailSender smtpMailSender)
         {
             _logInManager = logInManager;
             _tenantCache = tenantCache;
@@ -53,6 +61,9 @@ namespace SmartPos.Controllers
             _externalAuthManager = externalAuthManager;
             _userManager = userManager;
             _roleManager = roleManager;
+            _claimsPrincipalFactory = claimsPrincipalFactory;
+            _emailLoginCodeStore = emailLoginCodeStore;
+            _smtpMailSender = smtpMailSender;
         }
 
         [HttpPost]
@@ -72,6 +83,84 @@ namespace SmartPos.Controllers
                 EncryptedAccessToken = GetEncryptedAccessToken(accessToken),
                 ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
                 UserId = loginResult.User.Id
+            };
+        }
+
+        [HttpPost]
+        public async Task<SendEmailLoginCodeResultModel> SendEmailLoginCode(
+            [FromBody] SendEmailLoginCodeModel model)
+        {
+            EnsureEmailLoginEnabled();
+
+            var email = (model?.EmailAddress ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                throw new UserFriendlyException("Email address is required.");
+            }
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null || !user.IsActive)
+            {
+                throw new UserFriendlyException(
+                    "No active account was found for that email address.");
+            }
+
+            var code = _emailLoginCodeStore.CreateCode(AbpSession.TenantId, email);
+            var expirationMinutes = _emailLoginCodeStore.ExpirationMinutes;
+
+            var subject = "Your SmartPos sign-in code";
+            var body =
+                $"Your SmartPos sign-in code is {code}.{Environment.NewLine}" +
+                $"It expires in {expirationMinutes} minutes.{Environment.NewLine}" +
+                "If you did not request this code, you can ignore this email.";
+
+            await _smtpMailSender.SendAsync(user.EmailAddress, subject, body);
+
+            return new SendEmailLoginCodeResultModel
+            {
+                ExpirationMinutes = expirationMinutes,
+                ResendCooldownSeconds = _emailLoginCodeStore.ResendCooldownSeconds
+            };
+        }
+
+        [HttpPost]
+        public async Task<AuthenticateResultModel> AuthenticateWithEmailCode(
+            [FromBody] AuthenticateWithEmailCodeModel model)
+        {
+            EnsureEmailLoginEnabled();
+
+            var email = (model?.EmailAddress ?? string.Empty).Trim();
+            var code = (model?.Code ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(code))
+            {
+                throw new UserFriendlyException("Email address and code are required.");
+            }
+
+            _emailLoginCodeStore.VerifyAndConsume(AbpSession.TenantId, email, code);
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null || !user.IsActive)
+            {
+                throw new UserFriendlyException(
+                    "No active account was found for that email address.");
+            }
+
+            var principal = await _claimsPrincipalFactory.CreateAsync(user);
+            var identity = principal.Identity as ClaimsIdentity;
+            if (identity == null)
+            {
+                throw new UserFriendlyException("Could not create login identity.");
+            }
+
+            var accessToken = CreateAccessToken(CreateJwtClaims(identity));
+
+            return new AuthenticateResultModel
+            {
+                AccessToken = accessToken,
+                EncryptedAccessToken = GetEncryptedAccessToken(accessToken),
+                ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
+                UserId = user.Id
             };
         }
 
@@ -151,6 +240,14 @@ namespace SmartPos.Controllers
                         externalUser.ProviderKey,
                         GetTenancyNameOrNull()
                     );
+            }
+        }
+
+        private void EnsureEmailLoginEnabled()
+        {
+            if (!_emailLoginCodeStore.IsEnabled)
+            {
+                throw new UserFriendlyException("Email sign-in is disabled.");
             }
         }
 
