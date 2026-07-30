@@ -12,6 +12,15 @@
     line-height: 1;
 }
 
+.kpi-card {
+    min-height: 100%;
+}
+
+.kpi-subtitle {
+    min-height: 1.25rem;
+    line-height: 1.25rem;
+}
+
 .quick-action-badge-muted {
     background: var(--surface-200);
     color: var(--text-color-secondary);

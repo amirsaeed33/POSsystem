@@ -1,51 +1,51 @@
 <div class="grid">
     <div class="col-12 lg:col-6 xl:col-3">
-        <div class="card p-0 overflow-hidden flex flex-column">
-            <div class="flex align-items-center p-3">
+        <div class="card kpi-card p-0 overflow-hidden flex flex-column h-full">
+            <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-users text-6xl text-blue-500"></i>
                 <div class="ml-3">
                     <span class="text-blue-500 block white-space-nowrap">Today's Sales</span>
                     <span class="text-blue-500 block text-4xl font-bold">{{ formatPkr(todaySales) }}</span>
-                    <span class="text-blue-500 block" *ngIf="salesSubtitle">{{ salesSubtitle }}</span>
+                    <span class="text-blue-500 block kpi-subtitle">{{ salesSubtitle }}</span>
                 </div>
             </div>
-            <img [src]="'assets/demo/images/dashboard/users' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full" alt="users">
+            <img [src]="'assets/demo/images/dashboard/users' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full mt-auto" alt="users">
         </div>
     </div>
     <div class="col-12 lg:col-6 xl:col-3">
-        <div class="card p-0 overflow-hidden flex flex-column">
-            <div class="flex align-items-center p-3">
+        <div class="card kpi-card p-0 overflow-hidden flex flex-column h-full">
+            <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-map text-6xl text-orange-500"></i>
                 <div class="ml-3">
                     <span class="text-orange-500 block white-space-nowrap">Today's Purchases</span>
                     <span class="text-orange-500 block text-4xl font-bold">{{ formatPkr(todayPurchases) }}</span>
-                    <span class="text-orange-500 block" *ngIf="purchasesSubtitle">{{ purchasesSubtitle }}</span>
+                    <span class="text-orange-500 block kpi-subtitle">{{ purchasesSubtitle }}</span>
                 </div>
             </div>
-            <img [src]="'assets/demo/images/dashboard/locations' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full" alt="locations">
+            <img [src]="'assets/demo/images/dashboard/locations' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full mt-auto" alt="locations">
         </div>
     </div>
     <div class="col-12 lg:col-6 xl:col-3">
-        <div class="card p-0 overflow-hidden flex flex-column">
-            <div class="flex align-items-center p-3">
+        <div class="card kpi-card p-0 overflow-hidden flex flex-column h-full">
+            <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-directions text-6xl text-green-500"></i>
                 <div class="ml-3">
                     <span class="text-green-500 block white-space-nowrap">Today's Expenses</span>
                     <span class="text-green-500 block text-4xl font-bold">{{ formatPkr(todayExpenses) }}</span>
-                    <span class="text-green-500 block" *ngIf="expensesSubtitle">{{ expensesSubtitle }}</span>
+                    <span class="text-green-500 block kpi-subtitle">{{ expensesSubtitle }}</span>
                 </div>
             </div>
-            <img [src]="'assets/demo/images/dashboard/rate' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full" alt="conversion">
+            <img [src]="'assets/demo/images/dashboard/rate' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full mt-auto" alt="conversion">
         </div>
     </div>
     <div class="col-12 lg:col-6 xl:col-3">
-        <div class="card h-full p-0 overflow-hidden flex flex-column">
-            <div class="flex align-items-center p-3">
+        <div class="card kpi-card p-0 overflow-hidden flex flex-column h-full">
+            <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-comments text-6xl text-purple-500"></i>
                 <div class="ml-3">
                     <span class="text-purple-500 block white-space-nowrap">Today's Profit</span>
                     <span class="text-purple-500 block text-4xl font-bold">{{ formatPkr(todayProfit) }}</span>
-                    <span class="text-purple-500 block" *ngIf="profitSubtitle">{{ profitSubtitle }}</span>
+                    <span class="text-purple-500 block kpi-subtitle">{{ profitSubtitle }}</span>
                 </div>
             </div>
             <img [src]="'assets/demo/images/dashboard/interactions' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full mt-auto" alt="interactions">
