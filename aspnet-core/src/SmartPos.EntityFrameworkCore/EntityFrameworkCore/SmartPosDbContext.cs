@@ -7,6 +7,7 @@ using SmartPos.Brands;
 using SmartPos.Categories;
 using SmartPos.CompanyProfiles;
 using SmartPos.Customers;
+using SmartPos.Emailing;
 using SmartPos.Expenses;
 using SmartPos.Inventory;
 using SmartPos.MultiTenancy;
@@ -24,6 +25,8 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<Category> Categories { get; set; }
 
         public virtual DbSet<Brand> Brands { get; set; }
+
+        public virtual DbSet<EmailTemplate> EmailTemplates { get; set; }
 
         public virtual DbSet<CompanyProfile> CompanyProfiles { get; set; }
 
@@ -84,6 +87,13 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasIndex(x => new { x.TenantId, x.Barcode })
                     .IsUnique()
                     .HasFilter("[Barcode] IS NOT NULL AND [IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<EmailTemplate>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.Code })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
             });
 
             modelBuilder.Entity<BusinessAccount>(b =>

@@ -18,4 +18,5 @@ export const PermissionNames = {
     Expenses: 'Pages.Expenses',
     Reports: 'Pages.Reports',
     CustomerOrders: 'Pages.CustomerOrders',
+    EmailTemplates: 'Pages.EmailTemplates',
 } as const;

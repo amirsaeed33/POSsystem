@@ -19,9 +19,11 @@ using SmartPos.Authentication.JwtBearer;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
+using SmartPos.Emailing;
 using SmartPos.Models.TokenAuth;
 using SmartPos.MultiTenancy;
 using SmartPos.Net.Emailing;
+using Abp.Domain.Repositories;
 
 namespace SmartPos.Controllers
 {
@@ -39,6 +41,7 @@ namespace SmartPos.Controllers
         private readonly UserClaimsPrincipalFactory _claimsPrincipalFactory;
         private readonly EmailLoginCodeStore _emailLoginCodeStore;
         private readonly ISmtpMailSender _smtpMailSender;
+        private readonly IRepository<EmailTemplate> _emailTemplateRepository;
 
         public TokenAuthController(
             LogInManager logInManager,
@@ -51,7 +54,8 @@ namespace SmartPos.Controllers
             RoleManager roleManager,
             UserClaimsPrincipalFactory claimsPrincipalFactory,
             EmailLoginCodeStore emailLoginCodeStore,
-            ISmtpMailSender smtpMailSender)
+            ISmtpMailSender smtpMailSender,
+            IRepository<EmailTemplate> emailTemplateRepository)
         {
             _logInManager = logInManager;
             _tenantCache = tenantCache;
@@ -64,6 +68,7 @@ namespace SmartPos.Controllers
             _claimsPrincipalFactory = claimsPrincipalFactory;
             _emailLoginCodeStore = emailLoginCodeStore;
             _smtpMailSender = smtpMailSender;
+            _emailTemplateRepository = emailTemplateRepository;
         }
 
         [HttpPost]
@@ -108,19 +113,43 @@ namespace SmartPos.Controllers
             var code = _emailLoginCodeStore.CreateCode(AbpSession.TenantId, email);
             var expirationMinutes = _emailLoginCodeStore.ExpirationMinutes;
 
-            var subject = "Your SmartPos sign-in code";
-            var body =
-                $"Your SmartPos sign-in code is {code}.{Environment.NewLine}" +
-                $"It expires in {expirationMinutes} minutes.{Environment.NewLine}" +
-                "If you did not request this code, you can ignore this email.";
+            var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Code"] = code,
+                ["ExpirationMinutes"] = expirationMinutes.ToString(),
+                ["UserName"] = user.UserName ?? string.Empty,
+                ["Name"] = string.IsNullOrWhiteSpace(user.Name)
+                    ? (user.UserName ?? "there")
+                    : $"{user.Name} {user.Surname}".Trim(),
+                ["Email"] = user.EmailAddress ?? email,
+                ["AppName"] = "SmartPos"
+            };
 
-            await _smtpMailSender.SendAsync(user.EmailAddress, subject, body);
+            var (subject, bodyHtml) = await ResolveEmailLoginTemplateAsync(placeholders);
+            await _smtpMailSender.SendAsync(user.EmailAddress, subject, bodyHtml, isBodyHtml: true);
 
             return new SendEmailLoginCodeResultModel
             {
                 ExpirationMinutes = expirationMinutes,
                 ResendCooldownSeconds = _emailLoginCodeStore.ResendCooldownSeconds
             };
+        }
+
+        private async Task<(string Subject, string BodyHtml)> ResolveEmailLoginTemplateAsync(
+            IReadOnlyDictionary<string, string> placeholders)
+        {
+            var template = await _emailTemplateRepository.FirstOrDefaultAsync(
+                x => x.Code == EmailTemplateCodes.EmailLoginCode && x.IsActive);
+
+            var subjectTemplate = template?.Subject ?? "Your {{AppName}} sign-in code";
+            var bodyTemplate = !string.IsNullOrWhiteSpace(template?.BodyHtml)
+                ? template.BodyHtml
+                : EmailTemplateDefaults.EmailLoginCodeBodyHtml();
+
+            return (
+                EmailTemplateRenderer.Render(subjectTemplate, placeholders),
+                EmailTemplateRenderer.Render(bodyTemplate, placeholders)
+            );
         }
 
         [HttpPost]

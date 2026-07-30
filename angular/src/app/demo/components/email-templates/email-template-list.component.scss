@@ -1,0 +1,38 @@
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-pill-on {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.status-pill-off {
+    background: var(--surface-200);
+    color: var(--text-color-secondary);
+}
+
+.email-preview-shell {
+    background: #f4f6f8;
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.email-preview-meta {
+    background: #fff;
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.email-preview-frame {
+    background: transparent;
+    border-radius: 8px;
+    overflow: auto;
+    max-height: 28rem;
+}

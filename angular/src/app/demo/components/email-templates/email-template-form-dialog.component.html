@@ -1,0 +1,86 @@
+<p-dialog
+    [header]="dialogTitle"
+    [visible]="visible"
+    [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
+    [style]="{ width: '72rem' }"
+    [breakpoints]="{ '1200px': '95vw', '960px': '96vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (visibleChange)="onVisibleChange($event)"
+>
+    <div class="formgrid grid" *ngIf="!loading; else loadingTpl">
+        <div class="col-12 lg:col-6">
+            <div class="flex flex-column gap-3">
+                <div class="formgrid grid">
+                    <div class="field col-12 md:col-6 flex flex-column gap-2 mb-0">
+                        <label for="tplName" class="font-medium">Name <span class="p-error">*</span></label>
+                        <input id="tplName" type="text" pInputText class="w-full" maxlength="128"
+                            [(ngModel)]="template.name" [disabled]="saving" />
+                    </div>
+                    <div class="field col-12 md:col-6 flex flex-column gap-2 mb-0">
+                        <label for="tplCode" class="font-medium">Code <span class="p-error">*</span></label>
+                        <input id="tplCode" type="text" pInputText class="w-full" maxlength="64"
+                            [(ngModel)]="template.code" [disabled]="saving"
+                            placeholder="e.g. EmailLoginCode" />
+                    </div>
+                </div>
+
+                <div class="flex flex-column gap-2">
+                    <label for="tplSubject" class="font-medium">Subject <span class="p-error">*</span></label>
+                    <input id="tplSubject" type="text" pInputText class="w-full" maxlength="256"
+                        [(ngModel)]="template.subject" [disabled]="saving"
+                        placeholder="Your sign-in code" />
+                </div>
+
+                <div class="flex flex-column gap-2">
+                    <label for="tplBody" class="font-medium">HTML body <span class="p-error">*</span></label>
+                    <textarea id="tplBody" pInputTextarea rows="14" class="w-full font-mono text-sm"
+                        [(ngModel)]="template.bodyHtml" [disabled]="saving"></textarea>
+                    <small class="text-color-secondary" ngNonBindable>
+                        Placeholders: {{Code}}, {{ExpirationMinutes}}, {{UserName}}, {{Name}}, {{Email}}, {{AppName}}
+                    </small>
+                </div>
+
+                <div class="flex flex-column gap-2">
+                    <label for="tplDescription" class="font-medium">Description</label>
+                    <textarea id="tplDescription" pInputTextarea rows="2" class="w-full" maxlength="512"
+                        [(ngModel)]="template.description" [disabled]="saving"></textarea>
+                </div>
+
+                <div class="flex align-items-center gap-2">
+                    <p-checkbox [(ngModel)]="template.isActive" [binary]="true" inputId="tplActive" [disabled]="saving"></p-checkbox>
+                    <label for="tplActive">Active</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 lg:col-6">
+            <div class="email-live-preview">
+                <div class="flex align-items-center justify-content-between mb-2">
+                    <span class="font-semibold">Preview (as sent)</span>
+                    <span class="text-xs text-color-secondary">Sample data</span>
+                </div>
+                <div class="email-live-preview-meta">
+                    <div class="text-500 text-sm mb-1">Subject</div>
+                    <div class="font-medium">{{ previewSubject || '—' }}</div>
+                </div>
+                <div class="email-live-preview-body" [innerHTML]="previewBodySafeHtml"></div>
+            </div>
+        </div>
+    </div>
+
+    <ng-template #loadingTpl>
+        <div class="flex align-items-center justify-content-center p-4">
+            <i class="pi pi-spin pi-spinner text-2xl"></i>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <button pButton pRipple type="button" label="Cancel" class="p-button-text"
+            (click)="onHide()" [disabled]="saving"></button>
+        <button pButton pRipple type="button" label="Save" icon="pi pi-check"
+            (click)="save()" [disabled]="saving || loading" [loading]="saving"></button>
+    </ng-template>
+</p-dialog>

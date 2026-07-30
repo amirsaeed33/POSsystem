@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartPos.EntityFrameworkCore;
 
@@ -11,9 +12,11 @@ using SmartPos.EntityFrameworkCore;
 namespace SmartPos.Migrations
 {
     [DbContext(typeof(SmartPosDbContext))]
-    partial class SmartPosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260730060949_Added_EmailTemplates")]
+    partial class Added_EmailTemplates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -26,6 +26,7 @@ namespace SmartPos.Authorization
             context.CreatePermission(PermissionNames.Pages_Expenses, L("Expenses"));
             context.CreatePermission(PermissionNames.Pages_Reports, L("Reports"));
             context.CreatePermission(PermissionNames.Pages_CustomerOrders, L("CustomerOrders"));
+            context.CreatePermission(PermissionNames.Pages_EmailTemplates, L("EmailTemplates"));
             context.CreatePermission(PermissionNames.Pages_Tenants, L("Tenants"), multiTenancySides: MultiTenancySides.Host);
         }
 

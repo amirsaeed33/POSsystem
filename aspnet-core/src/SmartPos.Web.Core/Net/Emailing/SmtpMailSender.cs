@@ -17,7 +17,7 @@ namespace SmartPos.Net.Emailing
             _configuration = configuration;
         }
 
-        public async Task SendAsync(string toAddress, string subject, string body)
+        public async Task SendAsync(string toAddress, string subject, string body, bool isBodyHtml = false)
         {
             if (string.IsNullOrWhiteSpace(toAddress))
             {
@@ -58,7 +58,7 @@ namespace SmartPos.Net.Emailing
                     message.From = new MailAddress(fromAddress, fromDisplayName);
                     message.To.Add(new MailAddress(toAddress.Trim()));
                     message.Subject = subject ?? string.Empty;
-                    message.IsBodyHtml = false;
+                    message.IsBodyHtml = isBodyHtml;
                     message.Body = body ?? string.Empty;
 
                     smtp.Host = host;

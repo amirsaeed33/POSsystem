@@ -111,6 +111,7 @@
     <text name="Description" value="Description" />
     <text name="CategoryDeleteWarningMessage" value="Category {0} will be deleted." />
     <text name="Brands" value="Brands" />
+    <text name="EmailTemplates" value="Email templates" />
     <text name="CreateNewBrand" value="Create new brand" />
     <text name="EditBrand" value="Edit brand" />
     <text name="BrandName" value="Brand name" />

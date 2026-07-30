@@ -28,6 +28,8 @@ namespace SmartPos.EntityFrameworkCore.Seed
             new DefaultTenantBuilder(context).Create();
             new TenantRoleAndUserBuilder(context, 1).Create();
             new DefaultSystemAccountsCreator(context, 1).Create();
+            new DefaultEmailTemplatesCreator(context, null).Create();
+            new DefaultEmailTemplatesCreator(context, 1).Create();
             new Host.BikeSparePartsDemoDataCreator(context, null).Create();
             new Host.BikeSparePartsDemoDataCreator(context, 1).Create();
         }

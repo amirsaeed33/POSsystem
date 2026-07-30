@@ -38,5 +38,7 @@
         public const string Pages_Reports = "Pages.Reports";
 
         public const string Pages_CustomerOrders = "Pages.CustomerOrders";
+
+        public const string Pages_EmailTemplates = "Pages.EmailTemplates";
     }
 }

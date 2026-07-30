@@ -1,0 +1,148 @@
+<div class="card">
+    <p-table
+        #dt
+        [value]="templates"
+        [paginator]="true"
+        [rows]="10"
+        [showCurrentPageReport]="true"
+        responsiveLayout="scroll"
+        [loading]="loading"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['name', 'code', 'subject', 'description']"
+    >
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-20rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search templates"
+                            [(ngModel)]="keyword"
+                            (keyup.enter)="onSearch()"
+                            (input)="onGlobalFilter(dt, $event)"
+                        />
+                    </span>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="onSearch()"
+                    ></button>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-plus"
+                    label="Create"
+                    class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
+                    (click)="openCreateDialog()"
+                ></button>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+                <th pSortableColumn="code">Code <p-sortIcon field="code"></p-sortIcon></th>
+                <th pSortableColumn="subject">Subject <p-sortIcon field="subject"></p-sortIcon></th>
+                <th style="width: 7rem">Active</th>
+                <th style="width: 10rem">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-template>
+            <tr>
+                <td>{{ template.name }}</td>
+                <td><code>{{ template.code }}</code></td>
+                <td>{{ template.subject }}</td>
+                <td>
+                    <span
+                        class="status-pill"
+                        [class.status-pill-on]="template.isActive"
+                        [class.status-pill-off]="!template.isActive"
+                    >
+                        {{ template.isActive ? 'Yes' : 'No' }}
+                    </span>
+                </td>
+                <td>
+                    <div class="flex gap-1">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-eye"
+                            class="p-button-text p-button-sm"
+                            pTooltip="Preview as sent"
+                            tooltipPosition="top"
+                            (click)="openPreview(template)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-pencil"
+                            class="p-button-text p-button-sm"
+                            pTooltip="Edit"
+                            tooltipPosition="top"
+                            (click)="openEditDialog(template)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-trash"
+                            class="p-button-text p-button-danger p-button-sm"
+                            pTooltip="Delete"
+                            tooltipPosition="top"
+                            (click)="onDelete(template)"
+                        ></button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="5" class="text-center p-4">
+                    <div class="text-500">No email templates found</div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <app-email-template-form-dialog
+        [(visible)]="dialogVisible"
+        [templateId]="editingId"
+        (saved)="onDialogSaved()"
+    ></app-email-template-form-dialog>
+
+    <p-dialog
+        header="Email preview (as sent)"
+        [(visible)]="previewVisible"
+        [modal]="true"
+        appendTo="body"
+        [style]="{ width: '44rem' }"
+        [breakpoints]="{ '960px': '90vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="email-preview-shell">
+            <div class="email-preview-meta">
+                <div class="text-500 text-sm mb-1">Subject</div>
+                <div class="font-semibold mb-3">{{ previewSubject }}</div>
+            </div>
+            <div class="email-preview-frame" [innerHTML]="previewBodySafeHtml"></div>
+        </div>
+    </p-dialog>
+
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+</div>
