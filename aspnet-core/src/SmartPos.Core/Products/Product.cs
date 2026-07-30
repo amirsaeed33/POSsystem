@@ -15,6 +15,7 @@ namespace SmartPos.Products
         public const int MaxDescriptionLength = 1024;
         public const int MaxImagePathLength = 512;
         public const int MaxBarcodeLength = 64;
+        public const int MaxLocationLength = 256;
 
         public virtual int? TenantId { get; set; }
 
@@ -24,6 +25,9 @@ namespace SmartPos.Products
 
         [StringLength(MaxDescriptionLength)]
         public virtual string Description { get; set; }
+
+        [StringLength(MaxLocationLength)]
+        public virtual string Location { get; set; }
 
         [StringLength(MaxBarcodeLength)]
         public virtual string Barcode { get; set; }

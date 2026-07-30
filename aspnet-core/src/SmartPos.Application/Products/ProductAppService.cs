@@ -85,6 +85,7 @@ namespace SmartPos.Products
 
             product.Name = input.Name;
             product.Description = input.Description;
+            product.Location = input.Location;
             product.Barcode = barcode;
             product.Price = input.Price;
             product.WholesalePrice = input.WholesalePrice;
@@ -127,6 +128,7 @@ namespace SmartPos.Products
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Description != null && x.Description.Contains(input.Keyword))
+                         || (x.Location != null && x.Location.Contains(input.Keyword))
                          || (x.Barcode != null && x.Barcode.Contains(input.Keyword)))
                 .WhereIf(input.CategoryId.HasValue, x => x.CategoryId == input.CategoryId.Value)
                 .WhereIf(input.BrandId.HasValue, x => x.BrandId == input.BrandId.Value)

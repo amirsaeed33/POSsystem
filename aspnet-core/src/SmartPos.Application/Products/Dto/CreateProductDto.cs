@@ -14,6 +14,9 @@ namespace SmartPos.Products.Dto
         [StringLength(Product.MaxDescriptionLength)]
         public string Description { get; set; }
 
+        [StringLength(Product.MaxLocationLength)]
+        public string Location { get; set; }
+
         [Required(ErrorMessage = "Barcode is required.")]
         [StringLength(Product.MaxBarcodeLength)]
         public string Barcode { get; set; }

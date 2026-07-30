@@ -22,6 +22,7 @@ export interface ProductDto {
     id: number;
     name: string;
     description?: string;
+    location?: string;
     barcode: string;
     price: number;
     wholesalePrice: number;
@@ -44,6 +45,7 @@ export interface ProductDto {
 export interface CreateProductDto {
     name: string;
     description?: string;
+    location?: string;
     barcode: string;
     price: number;
     wholesalePrice: number;

@@ -147,6 +147,7 @@ export class ProductFormDialogComponent implements OnChanges {
                   name,
                   barcode,
                   description: this.product.description?.trim() || undefined,
+                  location: this.product.location?.trim() || undefined,
                   price,
                   wholesalePrice,
                   costPrice,
@@ -156,6 +157,7 @@ export class ProductFormDialogComponent implements OnChanges {
             : this.productService.create({
                   name,
                   description: this.product.description?.trim() || undefined,
+                  location: this.product.location?.trim() || undefined,
                   barcode,
                   price,
                   wholesalePrice,
@@ -227,6 +229,7 @@ export class ProductFormDialogComponent implements OnChanges {
             id: 0,
             name: '',
             description: '',
+            location: '',
             barcode: '',
             price: null as any,
             wholesalePrice: null as any,
