@@ -75,23 +75,27 @@
                 overflow: hidden;
                 margin: 0 0 .5rem 0;
                 padding: .15rem 0 .35rem .35rem;
-                border-left: 2px solid var(--surface-border, rgba(0, 0, 0, 0.08));
+                border-left: 2px solid var(--v-menuitem-submenu-border);
                 margin-left: .65rem;
 
                 > li > a {
                     padding-left: 1.25rem;
                     font-weight: 500;
                     font-size: 0.95em;
-                    color: var(--text-color-secondary, var(--v-menuitem-text-color));
+                    color: var(--v-menuitem-text-color);
+
+                    .layout-menuitem-icon {
+                        color: inherit;
+                    }
 
                     &.active-route {
-                        color: var(--primary-color);
+                        color: var(--v-menuitem-active-color);
                         font-weight: 700;
-                        background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-                        box-shadow: inset 3px 0 0 0 var(--primary-color);
+                        background: var(--v-menuitem-active-bg);
+                        box-shadow: inset 3px 0 0 0 var(--v-menuitem-active-indicator);
 
                         .layout-menuitem-icon {
-                            color: var(--primary-color);
+                            color: var(--v-menuitem-active-color);
                         }
                     }
                 }
@@ -101,15 +105,15 @@
         li {
             &.active-menuitem {
                 > a {
-                    color: var(--primary-color);
+                    color: var(--v-menuitem-active-color);
 
                     .layout-submenu-toggler {
                         transform: rotate(-180deg);
-                        color: var(--primary-color);
+                        color: var(--v-menuitem-active-color);
                     }
 
                     .layout-menuitem-icon {
-                        color: var(--primary-color);
+                        color: var(--v-menuitem-active-color);
                     }
                 }
             }
@@ -145,12 +149,12 @@
 
                 &.active-route {
                     font-weight: 700;
-                    color: var(--primary-color);
-                    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-                    box-shadow: inset 3px 0 0 0 var(--primary-color);
+                    color: var(--v-menuitem-active-color);
+                    background: var(--v-menuitem-active-bg);
+                    box-shadow: inset 3px 0 0 0 var(--v-menuitem-active-indicator);
 
                     .layout-menuitem-icon {
-                        color: var(--primary-color);
+                        color: var(--v-menuitem-active-color);
                     }
                 }
 
@@ -160,8 +164,8 @@
                 }
 
                 &.active-route:hover {
-                    background: color-mix(in srgb, var(--primary-color) 18%, transparent);
-                    color: var(--primary-color);
+                    background: var(--v-menuitem-active-hover-bg);
+                    color: var(--v-menuitem-active-color);
                 }
             }
 

@@ -3,6 +3,11 @@
     --v-menuitem-text-color-secondary: var(--text-color-secondary);
     --v-menuitem-text-color: var(--text-color);
     --v-menuitem-hover-bg: var(--surface-hover);
+    --v-menuitem-active-color: var(--primary-color);
+    --v-menuitem-active-bg: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    --v-menuitem-active-hover-bg: color-mix(in srgb, var(--primary-color) 18%, transparent);
+    --v-menuitem-active-indicator: var(--primary-color);
+    --v-menuitem-submenu-border: var(--surface-border, rgba(0, 0, 0, 0.08));
     --v-overlay-menuitem-text-color: var(--text-color);
     --v-overlay-menuitem-hover-bg: var(--surface-hover);
     --v-topbar-search-button-bg: var(--surface-ground);

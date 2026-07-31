@@ -3,6 +3,12 @@
     --v-menuitem-text-color-secondary: var(--primary-color-text);
     --v-menuitem-text-color: var(--primary-color-text);
     --v-menuitem-hover-bg: rgba(255, 255, 255, .1);
+    /* Primary sidebar already uses the primary hue — keep active text light for contrast */
+    --v-menuitem-active-color: var(--primary-color-text);
+    --v-menuitem-active-bg: rgba(255, 255, 255, .18);
+    --v-menuitem-active-hover-bg: rgba(255, 255, 255, .26);
+    --v-menuitem-active-indicator: var(--primary-color-text);
+    --v-menuitem-submenu-border: rgba(255, 255, 255, .25);
     --v-overlay-menuitem-text-color: var(--text-color);
     --v-overlay-menuitem-hover-bg: var(--surface-hover);
     --v-topbar-search-button-bg: var(--primary-color-text);
