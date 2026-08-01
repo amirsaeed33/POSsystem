@@ -30,12 +30,6 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
         {
             SoftDeleteLegacyBikeProducts();
 
-            if (_context.Products.IgnoreQueryFilters()
-                .Any(x => x.TenantId == _tenantId && !x.IsDeleted && x.Barcode != null && x.Barcode.StartsWith(BarcodePrefix)))
-            {
-                return;
-            }
-
             var unitPiece = EnsureUnit("Piece", "Single piece");
             var unitPack = EnsureUnit("Pack", "Pack / multipack");
             var unitLitre = EnsureUnit("Litre", "Liquid volume");
@@ -47,6 +41,7 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
             var catCakes = EnsureCategory("Cakes & Pastries", "Cakes, muffins, and pastries");
             var catCookies = EnsureCategory("Cookies & Biscuits", "Cookies, biscuits, and rusk");
             var catDairy = EnsureCategory("Dairy", "Milk, yogurt, cheese, butter");
+            var catSweets = EnsureCategory("Sweets", "Traditional and bakery sweets");
             var catBeverages = EnsureCategory("Beverages", "Tea, coffee, juices, soft drinks");
             var catSnacks = EnsureCategory("Snacks", "Chips, namkeen, and savory snacks");
             var catGrocery = EnsureCategory("Grocery Staples", "Flour, sugar, rice, oil, spices");
@@ -74,15 +69,25 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
 
             var catalog = BuildCatalog(
                 unitPiece, unitPack, unitLitre, unitKg, unitDozen, unitPacket,
-                catBread, catCakes, catCookies, catDairy, catBeverages,
+                catBread, catCakes, catCookies, catDairy, catSweets, catBeverages,
                 catSnacks, catGrocery, catBreakfast, catHousehold, catPersonal,
                 brandDawn, brandBakeParlor, brandBreadGarden, brandOlpers, brandNestle,
                 brandTapal, brandLipton, brandLux, brandSurf, brandNational, brandShan,
                 brandLays, brandKurkure, brandMitchells, brandStore);
 
-            var index = 1;
-            foreach (var item in catalog.Take(100))
+            var existingNames = _context.Products.IgnoreQueryFilters()
+                .Where(x => x.TenantId == _tenantId && !x.IsDeleted)
+                .Select(x => x.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var index = NextStoreBarcodeIndex();
+            foreach (var item in catalog)
             {
+                if (existingNames.Contains(item.Name))
+                {
+                    continue;
+                }
+
                 _context.Products.Add(new Product
                 {
                     TenantId = _tenantId,
@@ -98,10 +103,31 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
                     BrandId = item.BrandId,
                     UnitId = item.UnitId
                 });
+                existingNames.Add(item.Name);
                 index++;
             }
 
             _context.SaveChanges();
+        }
+
+        private int NextStoreBarcodeIndex()
+        {
+            var barcodes = _context.Products.IgnoreQueryFilters()
+                .Where(x => x.TenantId == _tenantId && x.Barcode != null && x.Barcode.StartsWith(BarcodePrefix))
+                .Select(x => x.Barcode)
+                .ToList();
+
+            var max = 0;
+            foreach (var barcode in barcodes)
+            {
+                var suffix = barcode.Substring(BarcodePrefix.Length);
+                if (int.TryParse(suffix, out var n) && n > max)
+                {
+                    max = n;
+                }
+            }
+
+            return max + 1;
         }
 
         private void SoftDeleteLegacyBikeProducts()
@@ -187,7 +213,7 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
 
         private static List<SeedProduct> BuildCatalog(
             Unit piece, Unit pack, Unit litre, Unit kg, Unit dozen, Unit packet,
-            Category bread, Category cakes, Category cookies, Category dairy, Category beverages,
+            Category bread, Category cakes, Category cookies, Category dairy, Category sweets, Category beverages,
             Category snacks, Category grocery, Category breakfast, Category household, Category personal,
             Brand dawn, Brand bakeParlor, Brand breadGarden, Brand olpers, Brand nestle,
             Brand tapal, Brand lipton, Brand lux, Brand surf, Brand national, Brand shan,
@@ -195,6 +221,12 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
         {
             return new List<SeedProduct>
             {
+                // Popular bakery / dairy sale items (English names)
+                P("Milk", "Fresh full cream milk 1 litre", 280, 120, 25, dairy, olpers, litre),
+                P("Butter", "Salted butter 200g", 320, 80, 15, dairy, store, packet),
+                P("Desi Ghee", "Pure desi ghee 500g", 950, 45, 8, dairy, store, packet),
+                P("Barfi", "Milk barfi sweet per piece", 60, 150, 30, sweets, breadGarden, piece),
+
                 // Bread & Buns
                 P("Milk Bread Large", "Soft white milk bread loaf", 160, 80, 15, bread, dawn, piece),
                 P("Milk Bread Small", "Small milk bread loaf", 90, 100, 20, bread, dawn, piece),
