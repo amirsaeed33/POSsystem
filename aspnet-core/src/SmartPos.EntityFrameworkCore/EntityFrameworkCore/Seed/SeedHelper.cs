@@ -30,8 +30,8 @@ namespace SmartPos.EntityFrameworkCore.Seed
             new DefaultSystemAccountsCreator(context, 1).Create();
             new DefaultEmailTemplatesCreator(context, null).Create();
             new DefaultEmailTemplatesCreator(context, 1).Create();
-            new Host.BikeSparePartsDemoDataCreator(context, null).Create();
-            new Host.BikeSparePartsDemoDataCreator(context, 1).Create();
+            new Host.BakeryGeneralStoreDemoDataCreator(context, null).Create();
+            new Host.BakeryGeneralStoreDemoDataCreator(context, 1).Create();
         }
 
         private static void WithDbContext<TDbContext>(IIocResolver iocResolver, Action<TDbContext> contextAction)
