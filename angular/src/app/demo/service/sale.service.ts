@@ -137,6 +137,32 @@ export class SaleService {
         }
     }
 
+    async getPosCustomers(): Promise<
+        { id: number; name: string; customerType: number }[]
+    > {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetPosCustomers`)
+        );
+        const result = this.unwrap(res, 'Failed to load customers');
+        const items = result.items || result.Items || result || [];
+        return (Array.isArray(items) ? items : []).map((item: any) => ({
+            id: item.id ?? item.Id,
+            name: item.name ?? item.Name,
+            customerType: item.customerType ?? item.CustomerType ?? 0,
+        }));
+    }
+
+    async getPosProducts(): Promise<ProductDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetPosProducts`)
+        );
+        const result = this.unwrap(res, 'Failed to load products');
+        const items = result.items || result.Items || result || [];
+        return (Array.isArray(items) ? items : []).map((item: any) =>
+            this.mapProduct(item)
+        );
+    }
+
     private mapProduct(item: any): ProductDto {
         return {
             id: item.id ?? item.Id,

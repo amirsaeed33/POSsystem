@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
 using SmartPos.Customers;
+using SmartPos.Customers.Dto;
 using SmartPos.Products;
 using SmartPos.Products.Dto;
 using SmartPos.Sales.Dto;
@@ -116,6 +117,26 @@ namespace SmartPos.Sales
                 .ToListAsync();
 
             return new ListResultDto<ProductDto>(ObjectMapper.Map<List<ProductDto>>(items));
+        }
+
+        public async Task<ListResultDto<CustomerDto>> GetPosCustomersAsync()
+        {
+            var customers = await _customerRepository.GetAll()
+                .OrderBy(x => x.Name)
+                .Take(1000)
+                .ToListAsync();
+
+            return new ListResultDto<CustomerDto>(ObjectMapper.Map<List<CustomerDto>>(customers));
+        }
+
+        public async Task<ListResultDto<ProductDto>> GetPosProductsAsync()
+        {
+            var products = await _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
+                .OrderBy(x => x.Name)
+                .Take(1000)
+                .ToListAsync();
+
+            return new ListResultDto<ProductDto>(ObjectMapper.Map<List<ProductDto>>(products));
         }
 
         public override async Task<SaleDto> CreateAsync(CreateSaleDto input)

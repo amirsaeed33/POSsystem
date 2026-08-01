@@ -16,8 +16,6 @@ import {
 import { ProductDto } from 'src/app/demo/api/product';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { SaleService } from 'src/app/demo/service/sale.service';
-import { ProductService } from 'src/app/demo/service/product.service';
-import { CustomerService } from 'src/app/demo/service/customer.service';
 
 @Component({
     selector: 'app-sale-form-dialog',
@@ -47,8 +45,6 @@ export class SaleFormDialogComponent implements OnChanges {
 
     constructor(
         private saleService: SaleService,
-        private productService: ProductService,
-        private customerService: CustomerService,
         private messageService: MessageService
     ) {}
 
@@ -398,12 +394,16 @@ export class SaleFormDialogComponent implements OnChanges {
     private loadLookups(): void {
         this.loading = true;
         Promise.all([
-            this.productService.getAll({ skipCount: 0, maxResultCount: 1000 }),
-            this.customerService.getAll({ skipCount: 0, maxResultCount: 1000 }),
+            this.saleService.getPosProducts(),
+            this.saleService.getPosCustomers(),
         ])
             .then(([products, customers]) => {
-                this.products = products.items;
-                this.customers = customers.items;
+                this.products = products || [];
+                this.customers = (customers || []).map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    customerType: c.customerType,
+                })) as CustomerDto[];
             })
             .catch((error) => {
                 this.messageService.add({

@@ -10,7 +10,6 @@ import { CreateSaleDto, PaymentType } from 'src/app/demo/api/sale';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { ProductDto } from 'src/app/demo/api/product';
 import { SaleService } from 'src/app/demo/service/sale.service';
-import { CustomerService } from 'src/app/demo/service/customer.service';
 
 @Component({
     templateUrl: './pos.component.html',
@@ -47,7 +46,6 @@ export class PosComponent implements OnInit {
 
     constructor(
         private saleService: SaleService,
-        private customerService: CustomerService,
         private messageService: MessageService
     ) {}
 
@@ -120,10 +118,14 @@ export class PosComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.customerService
-            .getAll({ skipCount: 0, maxResultCount: 1000 })
-            .then((result) => {
-                this.customers = result.items || [];
+        this.saleService
+            .getPosCustomers()
+            .then((customers) => {
+                this.customers = (customers || []).map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    customerType: c.customerType,
+                })) as CustomerDto[];
                 const walkIn = this.customers.find((c) =>
                     (c.name || '').toLowerCase().includes('walk')
                 );
