@@ -205,6 +205,7 @@ export class AuthService {
         }
 
         localStorage.removeItem(USER_INFO_KEY);
+        this.permissionService.clear();
         localStorage.setItem(TOKEN_KEY, accessToken);
         if (encryptedAccessToken) {
             localStorage.setItem(ENCRYPTED_TOKEN_KEY, encryptedAccessToken);

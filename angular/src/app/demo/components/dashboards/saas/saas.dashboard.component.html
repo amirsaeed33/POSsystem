@@ -130,7 +130,7 @@
                     </span>
                 </li>
 
-                <li class="mb-4 flex align-items-center justify-content-between gap-2">
+                <li class="mb-4 flex align-items-center justify-content-between gap-2" *ngIf="canOpenPos()">
                     <div class="flex align-items-center min-w-0">
                         <p-avatar icon="pi pi-desktop" size="large" shape="circle" styleClass="text-base font-bold"
                                   [style]="{'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'}"></p-avatar>

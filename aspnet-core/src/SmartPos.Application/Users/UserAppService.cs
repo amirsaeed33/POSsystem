@@ -145,14 +145,27 @@ namespace SmartPos.Users
         public async Task UpdateUserPermissions(UpdateUserPermissionsDto input)
         {
             var user = await _userManager.GetUserByIdAsync(input.Id);
-            var permissionNames = input.GrantedPermissionNames ?? new List<string>();
-
-            var grantedPermissions = PermissionManager
-                .GetAllPermissions()
-                .Where(p => permissionNames.Contains(p.Name))
+            var permissionNames = (input.GrantedPermissionNames ?? new List<string>())
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Distinct()
                 .ToList();
 
-            await _userManager.SetGrantedPermissionsAsync(user, grantedPermissions);
+            // Clear user-level grants/prohibits so role permissions stay effective.
+            // Then only GRANT extra permissions selected on the user (additive).
+            // Do NOT use SetGrantedPermissionsAsync here — it prohibits role permissions
+            // that are missing from the checkbox list and breaks POS/Sales access.
+            await _userManager.ResetAllPermissionsAsync(user);
+
+            foreach (var permissionName in permissionNames)
+            {
+                var permission = PermissionManager.GetPermissionOrNull(permissionName);
+                if (permission == null)
+                {
+                    continue;
+                }
+
+                await _userManager.GrantPermissionAsync(user, permission);
+            }
         }
 
         public async Task ChangeLanguage(ChangeUserLanguageDto input)

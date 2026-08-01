@@ -276,14 +276,13 @@ export class ProfileCreateComponent implements OnInit {
             // Create new user
             this.userService.create(formValue)
                 .then((createdUser) => {
-                    // Set permissions for newly created user
-                    if (createdUser && createdUser.id && this.selectedUserPermissions.length > 0) {
-                        return this.userService.updateUserPermissions({
-                            id: createdUser.id,
-                            grantedPermissionNames: this.selectedUserPermissions || []
-                        });
+                    if (!createdUser?.id) {
+                        return Promise.resolve();
                     }
-                    return Promise.resolve();
+                    return this.userService.updateUserPermissions({
+                        id: createdUser.id,
+                        grantedPermissionNames: this.selectedUserPermissions || []
+                    });
                 })
                 .then(() => {
                     this.messageService.add({ 

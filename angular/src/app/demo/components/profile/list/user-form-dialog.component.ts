@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
-import { RoleDto } from 'src/app/demo/api/user-management';
+import { RoleDto } from 'src/app/demo/api/role-management';
 import { PermissionDto } from 'src/app/demo/api/role-management';
 import { RoleService } from 'src/app/demo/service/role.service';
 import { UserService } from 'src/app/demo/service/user.service';
@@ -98,6 +98,10 @@ export class UserFormDialogComponent implements OnChanges {
         return Object.keys(this.permissionGroups);
     }
 
+    onRolesChange(): void {
+        this.syncPermissionsFromSelectedRoles();
+    }
+
     onSubmit(): void {
         if (this.userForm.invalid) {
             this.userForm.markAllAsTouched();
@@ -155,17 +159,16 @@ export class UserFormDialogComponent implements OnChanges {
             this.userService
                 .create(formValue)
                 .then((createdUser) => {
-                    if (
-                        createdUser?.id &&
-                        (this.selectedUserPermissions || []).length > 0
-                    ) {
-                        return this.userService.updateUserPermissions({
-                            id: createdUser.id,
-                            grantedPermissionNames:
-                                this.selectedUserPermissions || [],
-                        });
+                    if (!createdUser?.id) {
+                        return Promise.resolve();
                     }
-                    return Promise.resolve();
+                    // Always sync permissions after create so role grants are not
+                    // left in a prohibited state from stale user permission settings.
+                    return this.userService.updateUserPermissions({
+                        id: createdUser.id,
+                        grantedPermissionNames:
+                            this.selectedUserPermissions || [],
+                    });
                 })
                 .then(() => {
                     this.messageService.add({
@@ -267,10 +270,10 @@ export class UserFormDialogComponent implements OnChanges {
     }
 
     private loadRoles(): void {
-        this.userService
-            .getRoles()
-            .then((roles) => {
-                this.roles = roles;
+        this.roleService
+            .getAll({ maxResultCount: 1000 })
+            .then((result) => {
+                this.roles = result.items || [];
             })
             .catch(() => {
                 this.messageService.add({
@@ -278,6 +281,42 @@ export class UserFormDialogComponent implements OnChanges {
                     summary: 'Error',
                     detail: 'Failed to load roles',
                 });
+            });
+    }
+
+    private syncPermissionsFromSelectedRoles(): void {
+        const roleNames = this.selectedRoles || [];
+        if (!roleNames.length) {
+            return;
+        }
+
+        const roleIds = this.roles
+            .filter((role) => roleNames.includes(role.name))
+            .map((role) => role.id)
+            .filter((id) => !!id);
+
+        if (!roleIds.length) {
+            return;
+        }
+
+        Promise.all(
+            roleIds.map((id) => this.roleService.getRoleForEdit(id))
+        )
+            .then((results) => {
+                const fromRoles = new Set<string>(
+                    this.selectedUserPermissions || []
+                );
+                results.forEach((result) => {
+                    (result.grantedPermissionNames || []).forEach((name) => {
+                        if (name) {
+                            fromRoles.add(name);
+                        }
+                    });
+                });
+                this.selectedUserPermissions = Array.from(fromRoles);
+            })
+            .catch((error) => {
+                console.error('Failed to sync role permissions:', error);
             });
     }
 
@@ -299,10 +338,10 @@ export class UserFormDialogComponent implements OnChanges {
 
     private loadUser(id: number): void {
         this.loading = true;
-        this.userService
-            .getRoles()
-            .then((roles) => {
-                this.roles = roles;
+        this.roleService
+            .getAll({ maxResultCount: 1000 })
+            .then((result) => {
+                this.roles = result.items || [];
                 return this.userService.get(id);
             })
             .then((user) => {

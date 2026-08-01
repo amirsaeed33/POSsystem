@@ -2,6 +2,8 @@ import {Component, OnDestroy, OnInit} from '@angular/core';
 import { Subscription, debounceTime } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { DashboardService } from 'src/app/demo/service/dashboard.service';
+import { PermissionService } from 'src/app/demo/service/permission.service';
+import { PermissionNames } from 'src/app/demo/api/permission-names';
 import {
     MonthlyCashFlowDto,
     DashboardProductRowDto,
@@ -112,13 +114,18 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     constructor(
         public layoutService: LayoutService,
-        private dashboardService: DashboardService
+        private dashboardService: DashboardService,
+        private permissionService: PermissionService
     ) {
         this.subscription = this.layoutService.configUpdate$
         .pipe(debounceTime(25))
         .subscribe((config) => {
             this.initCharts();
         });
+    }
+
+    canOpenPos(): boolean {
+        return this.permissionService.isGranted(PermissionNames.Sales);
     }
 
     ngOnInit() {
