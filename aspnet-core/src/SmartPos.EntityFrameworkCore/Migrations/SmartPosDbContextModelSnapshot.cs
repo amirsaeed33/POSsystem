@@ -1700,6 +1700,99 @@ namespace SmartPos.Migrations
                     b.ToTable("AbpUsers");
                 });
 
+            modelBuilder.Entity("SmartPos.Branches.Branch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatorUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("DeleterUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("LastModifierUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("AppBranches");
+                });
+
+            modelBuilder.Entity("SmartPos.Branches.UserBranch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatorUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TenantId", "UserId", "BranchId")
+                        .IsUnique()
+                        .HasFilter("[TenantId] IS NOT NULL");
+
+                    b.ToTable("AppUserBranches");
+                });
+
             modelBuilder.Entity("SmartPos.Brands.Brand", b =>
                 {
                     b.Property<int>("Id")
@@ -2007,6 +2100,9 @@ namespace SmartPos.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
 
@@ -2050,11 +2146,68 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BranchId");
+
                     b.HasIndex("ExpenseAccountId");
 
                     b.HasIndex("PaymentAccountId");
 
                     b.ToTable("AppExpenses");
+                });
+
+            modelBuilder.Entity("SmartPos.Inventory.BranchStock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatorUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("DeleterUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("LastModifierUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TenantId", "BranchId", "ProductId")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("AppBranchStocks");
                 });
 
             modelBuilder.Entity("SmartPos.Inventory.StockAdjustment", b =>
@@ -2067,6 +2220,9 @@ namespace SmartPos.Migrations
 
                     b.Property<DateTime>("AdjustmentDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
@@ -2104,6 +2260,8 @@ namespace SmartPos.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("ReferenceNo");
 
@@ -2233,6 +2391,9 @@ namespace SmartPos.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
 
@@ -2282,6 +2443,8 @@ namespace SmartPos.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("CustomerId");
 
@@ -2417,10 +2580,6 @@ namespace SmartPos.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("StockQuantity")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<int?>("TenantId")
                         .HasColumnType("int");
 
@@ -2453,6 +2612,9 @@ namespace SmartPos.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
@@ -2497,6 +2659,8 @@ namespace SmartPos.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("SupplierId");
 
@@ -2570,6 +2734,9 @@ namespace SmartPos.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
 
@@ -2609,6 +2776,8 @@ namespace SmartPos.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("PurchaseId");
 
@@ -2686,6 +2855,9 @@ namespace SmartPos.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("CardAmount")
                         .HasPrecision(18, 2)
@@ -2766,6 +2938,8 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BranchId");
+
                     b.HasIndex("CustomerId");
 
                     b.ToTable("AppSales");
@@ -2838,6 +3012,9 @@ namespace SmartPos.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
 
@@ -2877,6 +3054,8 @@ namespace SmartPos.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("SaleId");
 
@@ -3285,6 +3464,25 @@ namespace SmartPos.Migrations
                     b.Navigation("LastModifierUser");
                 });
 
+            modelBuilder.Entity("SmartPos.Branches.UserBranch", b =>
+                {
+                    b.HasOne("SmartPos.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SmartPos.Authorization.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("SmartPos.Customers.Customer", b =>
                 {
                     b.HasOne("SmartPos.Accounts.BusinessAccount", "Account")
@@ -3297,6 +3495,12 @@ namespace SmartPos.Migrations
 
             modelBuilder.Entity("SmartPos.Expenses.Expense", b =>
                 {
+                    b.HasOne("SmartPos.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("SmartPos.Accounts.BusinessAccount", "ExpenseAccount")
                         .WithMany()
                         .HasForeignKey("ExpenseAccountId")
@@ -3309,9 +3513,41 @@ namespace SmartPos.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Branch");
+
                     b.Navigation("ExpenseAccount");
 
                     b.Navigation("PaymentAccount");
+                });
+
+            modelBuilder.Entity("SmartPos.Inventory.BranchStock", b =>
+                {
+                    b.HasOne("SmartPos.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartPos.Products.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("SmartPos.Inventory.StockAdjustment", b =>
+                {
+                    b.HasOne("SmartPos.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("SmartPos.Inventory.StockAdjustmentLine", b =>
@@ -3362,6 +3598,12 @@ namespace SmartPos.Migrations
 
             modelBuilder.Entity("SmartPos.Orders.CustomerOrder", b =>
                 {
+                    b.HasOne("SmartPos.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("SmartPos.Customers.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -3372,6 +3614,8 @@ namespace SmartPos.Migrations
                         .WithMany()
                         .HasForeignKey("SaleId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Customer");
 
@@ -3426,11 +3670,19 @@ namespace SmartPos.Migrations
 
             modelBuilder.Entity("SmartPos.Purchases.Purchase", b =>
                 {
+                    b.HasOne("SmartPos.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("SmartPos.Suppliers.Supplier", "Supplier")
                         .WithMany()
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Supplier");
                 });
@@ -3456,11 +3708,19 @@ namespace SmartPos.Migrations
 
             modelBuilder.Entity("SmartPos.Purchases.PurchaseReturn", b =>
                 {
+                    b.HasOne("SmartPos.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("SmartPos.Purchases.Purchase", "Purchase")
                         .WithMany()
                         .HasForeignKey("PurchaseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Purchase");
                 });
@@ -3494,11 +3754,19 @@ namespace SmartPos.Migrations
 
             modelBuilder.Entity("SmartPos.Sales.Sale", b =>
                 {
+                    b.HasOne("SmartPos.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("SmartPos.Customers.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Customer");
                 });
@@ -3524,11 +3792,19 @@ namespace SmartPos.Migrations
 
             modelBuilder.Entity("SmartPos.Sales.SaleReturn", b =>
                 {
+                    b.HasOne("SmartPos.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("SmartPos.Sales.Sale", "Sale")
                         .WithMany()
                         .HasForeignKey("SaleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Sale");
                 });

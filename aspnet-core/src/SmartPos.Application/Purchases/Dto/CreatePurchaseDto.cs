@@ -8,6 +8,9 @@ namespace SmartPos.Purchases.Dto
     public class CreatePurchaseDto
     {
         [Required]
+        public int BranchId { get; set; }
+
+        [Required]
         public int SupplierId { get; set; }
 
         public DateTime PurchaseDate { get; set; }

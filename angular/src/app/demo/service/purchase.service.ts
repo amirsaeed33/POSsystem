@@ -61,6 +61,7 @@ export class PurchaseService {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 supplierId: input.supplierId,
+                branchId: input.branchId,
                 purchaseDate: this.toApiDate(input.purchaseDate),
                 invoiceNo: input.invoiceNo,
                 notes: input.notes,
@@ -118,6 +119,8 @@ export class PurchaseService {
             id: item.id ?? item.Id,
             supplierId: item.supplierId ?? item.SupplierId,
             supplierName: item.supplierName ?? item.SupplierName,
+            branchId: item.branchId ?? item.BranchId,
+            branchName: item.branchName ?? item.BranchName,
             purchaseDate: item.purchaseDate ?? item.PurchaseDate,
             invoiceNo: item.invoiceNo ?? item.InvoiceNo,
             totalAmount: item.totalAmount ?? item.TotalAmount ?? 0,

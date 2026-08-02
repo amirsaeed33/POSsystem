@@ -10,6 +10,8 @@ using Abp.Linq.Extensions;
 using Abp.UI;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
+using SmartPos.Branches;
+using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Purchases.Dto;
 using SmartPos.Suppliers;
@@ -25,6 +27,8 @@ namespace SmartPos.Purchases
         private readonly IRepository<LedgerEntry> _ledgerRepository;
         private readonly IRepository<PurchaseReturn> _purchaseReturnRepository;
         private readonly SystemAccountManager _systemAccountManager;
+        private readonly IBranchStockManager _branchStockManager;
+        private readonly IBranchAccessChecker _branchAccessChecker;
 
         public PurchaseAppService(
             IRepository<Purchase> repository,
@@ -33,7 +37,9 @@ namespace SmartPos.Purchases
             IRepository<Supplier> supplierRepository,
             IRepository<LedgerEntry> ledgerRepository,
             IRepository<PurchaseReturn> purchaseReturnRepository,
-            SystemAccountManager systemAccountManager)
+            SystemAccountManager systemAccountManager,
+            IBranchStockManager branchStockManager,
+            IBranchAccessChecker branchAccessChecker)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -42,11 +48,15 @@ namespace SmartPos.Purchases
             _ledgerRepository = ledgerRepository;
             _purchaseReturnRepository = purchaseReturnRepository;
             _systemAccountManager = systemAccountManager;
+            _branchStockManager = branchStockManager;
+            _branchAccessChecker = branchAccessChecker;
         }
 
         public override async Task<PurchaseDto> CreateAsync(CreatePurchaseDto input)
         {
             CheckCreatePermission();
+
+            await _branchAccessChecker.EnsureCanAccessAsync(input.BranchId);
 
             if (input.Lines == null || !input.Lines.Any())
             {
@@ -66,6 +76,7 @@ namespace SmartPos.Purchases
 
             var purchase = new Purchase
             {
+                BranchId = input.BranchId,
                 SupplierId = input.SupplierId,
                 PurchaseDate = input.PurchaseDate,
                 Notes = input.Notes,
@@ -81,6 +92,7 @@ namespace SmartPos.Purchases
                 }
 
                 var product = await _productRepository.GetAsync(lineInput.ProductId);
+                var currentQty = await _branchStockManager.GetQuantityAsync(input.BranchId, lineInput.ProductId);
                 var lineTotal = lineInput.Quantity * lineInput.UnitCost;
                 total += lineTotal;
 
@@ -92,8 +104,8 @@ namespace SmartPos.Purchases
                     LineTotal = lineTotal
                 });
 
-                ProductPricing.ApplyPurchaseCost(product, lineInput.Quantity, lineInput.UnitCost);
-                product.StockQuantity += lineInput.Quantity;
+                ProductPricing.ApplyPurchaseCost(product, currentQty, lineInput.Quantity, lineInput.UnitCost);
+                await _branchStockManager.IncreaseAsync(input.BranchId, lineInput.ProductId, lineInput.Quantity, product.Name);
             }
 
             purchase.TotalAmount = total;
@@ -155,12 +167,7 @@ namespace SmartPos.Purchases
             foreach (var line in purchase.Lines.ToList())
             {
                 var product = await _productRepository.GetAsync(line.ProductId);
-                product.StockQuantity -= line.Quantity;
-                if (product.StockQuantity < 0)
-                {
-                    product.StockQuantity = 0;
-                }
-
+                await _branchStockManager.DecreaseAsync(purchase.BranchId, line.ProductId, line.Quantity, product.Name);
                 await _lineRepository.DeleteAsync(line);
             }
 
@@ -176,7 +183,7 @@ namespace SmartPos.Purchases
 
         protected override IQueryable<Purchase> CreateFilteredQuery(PagedPurchaseResultRequestDto input)
         {
-            return Repository.GetAllIncluding(x => x.Supplier, x => x.Lines)
+            return Repository.GetAllIncluding(x => x.Supplier, x => x.Branch, x => x.Lines)
                 .WhereIf(input.SupplierId.HasValue, x => x.SupplierId == input.SupplierId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))
@@ -187,7 +194,7 @@ namespace SmartPos.Purchases
         protected override async Task<Purchase> GetEntityByIdAsync(int id)
         {
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.Supplier, x => x.Lines)
+                Repository.GetAllIncluding(x => x.Supplier, x => x.Branch, x => x.Lines)
                     .Where(x => x.Id == id));
         }
 
@@ -196,6 +203,8 @@ namespace SmartPos.Purchases
             var dto = new PurchaseDto
             {
                 Id = entity.Id,
+                BranchId = entity.BranchId,
+                BranchName = entity.Branch?.Name,
                 SupplierId = entity.SupplierId,
                 SupplierName = entity.Supplier?.Name,
                 PurchaseDate = entity.PurchaseDate,
@@ -228,7 +237,7 @@ namespace SmartPos.Purchases
         public override async Task<PurchaseDto> GetAsync(EntityDto<int> input)
         {
             var entity = await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.Supplier, x => x.Lines)
+                Repository.GetAllIncluding(x => x.Supplier, x => x.Branch, x => x.Lines)
                     .Where(x => x.Id == input.Id));
 
             if (entity == null)

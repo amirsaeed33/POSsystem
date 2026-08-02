@@ -44,24 +44,23 @@ namespace SmartPos.Products
         }
 
         /// <summary>
-        /// Updates average cost from a purchase. Call before increasing <see cref="Product.StockQuantity"/>.
+        /// Updates average cost from a purchase. Pass current on-hand quantity for the branch before the purchase is applied.
         /// </summary>
-        public static void ApplyPurchaseCost(Product product, decimal purchaseQuantity, decimal unitCost)
+        public static void ApplyPurchaseCost(Product product, decimal currentStockQuantity, decimal purchaseQuantity, decimal unitCost)
         {
             if (product == null || purchaseQuantity <= 0)
             {
                 return;
             }
 
-            var oldQty = product.StockQuantity;
-            if (oldQty <= 0)
+            if (currentStockQuantity <= 0)
             {
                 product.CostPrice = unitCost;
                 return;
             }
 
-            var totalCost = (oldQty * product.CostPrice) + (purchaseQuantity * unitCost);
-            var newQty = oldQty + purchaseQuantity;
+            var totalCost = (currentStockQuantity * product.CostPrice) + (purchaseQuantity * unitCost);
+            var newQty = currentStockQuantity + purchaseQuantity;
             product.CostPrice = Math.Round(totalCost / newQty, 4);
         }
     }

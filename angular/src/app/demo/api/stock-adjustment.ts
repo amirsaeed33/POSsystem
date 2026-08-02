@@ -16,6 +16,8 @@ export interface StockAdjustmentLineDto {
 
 export interface StockAdjustmentDto {
     id: number;
+    branchId?: number;
+    branchName?: string;
     adjustmentDate: string | Date;
     reason: number;
     referenceNo?: string;
@@ -29,6 +31,7 @@ export interface CreateStockAdjustmentLineDto {
 }
 
 export interface CreateStockAdjustmentDto {
+    branchId: number;
     adjustmentDate: string | Date;
     reason: number;
     notes?: string;

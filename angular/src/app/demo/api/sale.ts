@@ -19,6 +19,8 @@ export interface SaleDto {
     id: number;
     customerId: number;
     customerName?: string;
+    branchId?: number;
+    branchName?: string;
     saleDate: string | Date;
     invoiceNo?: string;
     subTotal: number;
@@ -45,6 +47,7 @@ export interface CreateSaleLineDto {
 
 export interface CreateSaleDto {
     customerId: number;
+    branchId: number;
     saleDate: string | Date;
     invoiceNo?: string;
     notes?: string;

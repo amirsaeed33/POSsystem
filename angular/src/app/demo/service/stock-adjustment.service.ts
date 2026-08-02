@@ -59,6 +59,7 @@ export class StockAdjustmentService {
     async create(input: CreateStockAdjustmentDto): Promise<StockAdjustmentDto> {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
+                branchId: input.branchId,
                 adjustmentDate: this.toApiDate(input.adjustmentDate),
                 reason: input.reason,
                 notes: input.notes,
@@ -135,6 +136,8 @@ export class StockAdjustmentService {
         const lines = item.lines || item.Lines || [];
         return {
             id: item.id ?? item.Id,
+            branchId: item.branchId ?? item.BranchId,
+            branchName: item.branchName ?? item.BranchName,
             adjustmentDate: item.adjustmentDate ?? item.AdjustmentDate,
             reason: item.reason ?? item.Reason ?? 4,
             referenceNo: item.referenceNo ?? item.ReferenceNo,

@@ -10,6 +10,7 @@ using Abp.Linq.Extensions;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
+using SmartPos.Branches;
 using SmartPos.Inventory.Dto;
 using SmartPos.Products;
 
@@ -21,19 +22,27 @@ namespace SmartPos.Inventory
         private readonly IRepository<StockAdjustment> _adjustmentRepository;
         private readonly IRepository<StockAdjustmentLine> _lineRepository;
         private readonly IRepository<Product> _productRepository;
+        private readonly IBranchStockManager _branchStockManager;
+        private readonly IBranchAccessChecker _branchAccessChecker;
 
         public StockAdjustmentAppService(
             IRepository<StockAdjustment> adjustmentRepository,
             IRepository<StockAdjustmentLine> lineRepository,
-            IRepository<Product> productRepository)
+            IRepository<Product> productRepository,
+            IBranchStockManager branchStockManager,
+            IBranchAccessChecker branchAccessChecker)
         {
             _adjustmentRepository = adjustmentRepository;
             _lineRepository = lineRepository;
             _productRepository = productRepository;
+            _branchStockManager = branchStockManager;
+            _branchAccessChecker = branchAccessChecker;
         }
 
         public async Task<StockAdjustmentDto> CreateAsync(CreateStockAdjustmentDto input)
         {
+            await _branchAccessChecker.EnsureCanAccessAsync(input.BranchId);
+
             if (input.Lines == null || !input.Lines.Any())
             {
                 throw new UserFriendlyException("Add at least one product line.");
@@ -46,6 +55,7 @@ namespace SmartPos.Inventory
 
             var adjustment = new StockAdjustment
             {
+                BranchId = input.BranchId,
                 AdjustmentDate = input.AdjustmentDate,
                 Reason = input.Reason,
                 Notes = input.Notes,
@@ -60,14 +70,7 @@ namespace SmartPos.Inventory
                 }
 
                 var product = await _productRepository.GetAsync(lineInput.ProductId);
-                var newQty = product.StockQuantity + lineInput.QuantityChange;
-                if (newQty < 0)
-                {
-                    throw new UserFriendlyException(
-                        $"Adjustment would make stock negative for '{product.Name}'. Available: {product.StockQuantity}.");
-                }
-
-                product.StockQuantity = newQty;
+                await _branchStockManager.AdjustAsync(input.BranchId, lineInput.ProductId, lineInput.QuantityChange, product.Name);
                 adjustment.Lines.Add(new StockAdjustmentLine
                 {
                     ProductId = lineInput.ProductId,
@@ -84,7 +87,7 @@ namespace SmartPos.Inventory
 
         public async Task<StockAdjustmentDto> GetAsync(EntityDto<int> input)
         {
-            var entity = await _adjustmentRepository.GetAllIncluding(x => x.Lines)
+            var entity = await _adjustmentRepository.GetAllIncluding(x => x.Branch, x => x.Lines)
                 .FirstOrDefaultAsync(x => x.Id == input.Id);
             if (entity == null)
             {
@@ -96,7 +99,7 @@ namespace SmartPos.Inventory
 
         public async Task<PagedResultDto<StockAdjustmentDto>> GetAllAsync(PagedStockAdjustmentResultRequestDto input)
         {
-            var query = _adjustmentRepository.GetAllIncluding(x => x.Lines)
+            var query = _adjustmentRepository.GetAllIncluding(x => x.Branch, x => x.Lines)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.ReferenceNo != null && x.ReferenceNo.Contains(input.Keyword))
                          || (x.Notes != null && x.Notes.Contains(input.Keyword)));
@@ -117,7 +120,7 @@ namespace SmartPos.Inventory
 
         public async Task DeleteAsync(EntityDto<int> input)
         {
-            var entity = await _adjustmentRepository.GetAllIncluding(x => x.Lines)
+            var entity = await _adjustmentRepository.GetAllIncluding(x => x.Branch, x => x.Lines)
                 .FirstOrDefaultAsync(x => x.Id == input.Id);
             if (entity == null)
             {
@@ -127,14 +130,7 @@ namespace SmartPos.Inventory
             foreach (var line in entity.Lines.ToList())
             {
                 var product = await _productRepository.GetAsync(line.ProductId);
-                var reversed = product.StockQuantity - line.QuantityChange;
-                if (reversed < 0)
-                {
-                    throw new UserFriendlyException(
-                        $"Cannot delete adjustment; reversing would make stock negative for '{product.Name}'.");
-                }
-
-                product.StockQuantity = reversed;
+                await _branchStockManager.AdjustAsync(entity.BranchId, line.ProductId, -line.QuantityChange, product.Name);
                 await _lineRepository.DeleteAsync(line);
             }
 
@@ -146,6 +142,8 @@ namespace SmartPos.Inventory
             var dto = new StockAdjustmentDto
             {
                 Id = entity.Id,
+                BranchId = entity.BranchId,
+                BranchName = entity.Branch?.Name,
                 AdjustmentDate = entity.AdjustmentDate,
                 Reason = entity.Reason,
                 ReferenceNo = entity.ReferenceNo,

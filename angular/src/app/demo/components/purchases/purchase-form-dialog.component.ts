@@ -12,6 +12,7 @@ import { CreatePurchaseDto, CreatePurchaseLineDto } from 'src/app/demo/api/purch
 import { ProductDto } from 'src/app/demo/api/product';
 import { SupplierDto } from 'src/app/demo/api/supplier';
 import { PurchaseService } from 'src/app/demo/service/purchase.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { ProductService } from 'src/app/demo/service/product.service';
 import { SupplierService } from 'src/app/demo/service/supplier.service';
 
@@ -38,6 +39,7 @@ export class PurchaseFormDialogComponent implements OnChanges {
         private purchaseService: PurchaseService,
         private productService: ProductService,
         private supplierService: SupplierService,
+        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -168,10 +170,23 @@ export class PurchaseFormDialogComponent implements OnChanges {
             }
         }
 
+        let branchId: number;
+        try {
+            branchId = this.branchContext.requireBranchId();
+        } catch (e: any) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: e?.message || 'Please select a branch from the top navigation.',
+            });
+            return;
+        }
+
         this.saving = true;
         this.purchaseService
             .create({
                 supplierId: this.purchase.supplierId,
+                branchId,
                 purchaseDate: this.purchase.purchaseDate,
                 notes: this.purchase.notes?.trim() || undefined,
                 lines: lines.map((line) => ({
@@ -280,6 +295,7 @@ export class PurchaseFormDialogComponent implements OnChanges {
     private emptyPurchase(): CreatePurchaseDto {
         return {
             supplierId: null as any,
+            branchId: 0,
             purchaseDate: this.toDateInputValue(),
             notes: '',
             lines: [this.emptyLine()],

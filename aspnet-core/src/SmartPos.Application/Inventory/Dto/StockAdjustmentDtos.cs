@@ -8,6 +8,9 @@ namespace SmartPos.Inventory.Dto
 {
     public class CreateStockAdjustmentDto
     {
+        [Required]
+        public int BranchId { get; set; }
+
         public DateTime AdjustmentDate { get; set; }
 
         public int Reason { get; set; } = StockAdjustmentReasons.Other;
@@ -31,6 +34,10 @@ namespace SmartPos.Inventory.Dto
 
     public class StockAdjustmentDto : EntityDto
     {
+        public int BranchId { get; set; }
+
+        public string BranchName { get; set; }
+
         public DateTime AdjustmentDate { get; set; }
 
         public int Reason { get; set; }

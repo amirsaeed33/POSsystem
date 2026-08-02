@@ -3,6 +3,7 @@ using Abp.Zero.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
+using SmartPos.Branches;
 using SmartPos.Brands;
 using SmartPos.Categories;
 using SmartPos.CompanyProfiles;
@@ -23,6 +24,12 @@ namespace SmartPos.EntityFrameworkCore
     public class SmartPosDbContext : AbpZeroDbContext<Tenant, Role, User, SmartPosDbContext>
     {
         public virtual DbSet<Category> Categories { get; set; }
+
+        public virtual DbSet<Branch> Branches { get; set; }
+
+        public virtual DbSet<UserBranch> UserBranches { get; set; }
+
+        public virtual DbSet<BranchStock> BranchStocks { get; set; }
 
         public virtual DbSet<Brand> Brands { get; set; }
 
@@ -82,11 +89,46 @@ namespace SmartPos.EntityFrameworkCore
                 b.Property(x => x.Price).HasPrecision(18, 2);
                 b.Property(x => x.WholesalePrice).HasPrecision(18, 2);
                 b.Property(x => x.CostPrice).HasPrecision(18, 2);
-                b.Property(x => x.StockQuantity).HasPrecision(18, 2);
                 b.Property(x => x.AlertQuantityLimit).HasPrecision(18, 2);
                 b.HasIndex(x => new { x.TenantId, x.Barcode })
                     .IsUnique()
                     .HasFilter("[Barcode] IS NOT NULL AND [IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<Branch>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.Code })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<UserBranch>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.UserId, x.BranchId }).IsUnique();
+                b.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<BranchStock>(b =>
+            {
+                b.Property(x => x.Quantity).HasPrecision(18, 2);
+                b.HasIndex(x => new { x.TenantId, x.BranchId, x.ProductId })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<EmailTemplate>(b =>
@@ -136,6 +178,11 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.SupplierId)
                     .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasIndex(x => x.BranchId);
             });
 
             modelBuilder.Entity<PurchaseLine>(b =>
@@ -160,6 +207,11 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.PurchaseId)
                     .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasIndex(x => x.BranchId);
             });
 
             modelBuilder.Entity<PurchaseReturnLine>(b =>
@@ -196,6 +248,11 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.CustomerId)
                     .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasIndex(x => x.BranchId);
             });
 
             modelBuilder.Entity<SaleLine>(b =>
@@ -220,6 +277,11 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.SaleId)
                     .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasIndex(x => x.BranchId);
             });
 
             modelBuilder.Entity<SaleReturnLine>(b =>
@@ -252,6 +314,11 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.ExpenseAccountId)
                     .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasIndex(x => x.BranchId);
             });
 
             modelBuilder.Entity<CustomerOrder>(b =>
@@ -265,6 +332,11 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.SaleId)
                     .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasIndex(x => x.BranchId);
             });
 
             modelBuilder.Entity<CustomerOrderLine>(b =>
@@ -285,6 +357,11 @@ namespace SmartPos.EntityFrameworkCore
             modelBuilder.Entity<StockAdjustment>(b =>
             {
                 b.HasIndex(x => x.ReferenceNo);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasIndex(x => x.BranchId);
             });
 
             modelBuilder.Entity<StockAdjustmentLine>(b =>

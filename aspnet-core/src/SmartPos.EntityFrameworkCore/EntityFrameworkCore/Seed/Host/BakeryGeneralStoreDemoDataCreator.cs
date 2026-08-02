@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using SmartPos.Branches;
 using SmartPos.Brands;
 using SmartPos.Categories;
+using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Units;
 
@@ -75,6 +77,15 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
                 brandTapal, brandLipton, brandLux, brandSurf, brandNational, brandShan,
                 brandLays, brandKurkure, brandMitchells, brandStore);
 
+            var defaultBranch = _context.Branches.IgnoreQueryFilters()
+                .FirstOrDefault(x => x.TenantId == _tenantId
+                                     && x.Code == Branch.DefaultBranchCode
+                                     && !x.IsDeleted);
+            if (defaultBranch == null)
+            {
+                return;
+            }
+
             var existingNames = _context.Products.IgnoreQueryFilters()
                 .Where(x => x.TenantId == _tenantId && !x.IsDeleted)
                 .Select(x => x.Name)
@@ -88,7 +99,7 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
                     continue;
                 }
 
-                _context.Products.Add(new Product
+                var product = new Product
                 {
                     TenantId = _tenantId,
                     Name = item.Name,
@@ -97,11 +108,20 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
                     Price = item.Price,
                     WholesalePrice = Math.Round(item.Price * 0.85m, 2),
                     CostPrice = Math.Round(item.Price * 0.7m, 2),
-                    StockQuantity = item.Stock,
                     AlertQuantityLimit = item.Alert,
                     CategoryId = item.CategoryId,
                     BrandId = item.BrandId,
                     UnitId = item.UnitId
+                };
+                _context.Products.Add(product);
+                _context.SaveChanges();
+
+                _context.BranchStocks.Add(new BranchStock
+                {
+                    TenantId = _tenantId,
+                    BranchId = defaultBranch.Id,
+                    ProductId = product.Id,
+                    Quantity = item.Stock
                 });
                 existingNames.Add(item.Name);
                 index++;

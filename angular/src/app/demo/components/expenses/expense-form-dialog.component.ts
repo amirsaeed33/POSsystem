@@ -10,6 +10,7 @@ import { MessageService } from 'primeng/api';
 import { CreateExpenseDto } from 'src/app/demo/api/expense';
 import { BusinessAccountDto } from 'src/app/demo/api/business-account';
 import { ExpenseService } from 'src/app/demo/service/expense.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
 
 @Component({
@@ -38,6 +39,7 @@ export class ExpenseFormDialogComponent implements OnChanges {
     constructor(
         private expenseService: ExpenseService,
         private businessAccountService: BusinessAccountService,
+        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -97,7 +99,20 @@ export class ExpenseFormDialogComponent implements OnChanges {
             return;
         }
 
+        let branchId: number;
+        try {
+            branchId = this.branchContext.requireBranchId();
+        } catch (e: any) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: e?.message || 'Please select a branch from the top navigation.',
+            });
+            return;
+        }
+
         const payload: CreateExpenseDto = {
+            branchId,
             expenseDate: this.expense.expenseDate,
             amount: this.expense.amount,
             referenceNo: this.expense.referenceNo?.trim() || undefined,
@@ -140,6 +155,7 @@ export class ExpenseFormDialogComponent implements OnChanges {
 
     private emptyExpense(): CreateExpenseDto {
         return {
+            branchId: 0,
             expenseDate: this.toDateInputValue(),
             amount: 0,
             referenceNo: '',
@@ -205,6 +221,7 @@ export class ExpenseFormDialogComponent implements OnChanges {
             .get(id)
             .then((item) => {
                 this.expense = {
+                    branchId: item.branchId ?? 0,
                     expenseDate: this.toDateInputValue(item.expenseDate),
                     amount: item.amount,
                     referenceNo: item.referenceNo || '',

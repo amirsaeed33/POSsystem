@@ -12,6 +12,8 @@ export interface PurchaseDto {
     id: number;
     supplierId: number;
     supplierName?: string;
+    branchId?: number;
+    branchName?: string;
     purchaseDate: string | Date;
     invoiceNo?: string;
     totalAmount: number;
@@ -27,6 +29,7 @@ export interface CreatePurchaseLineDto {
 
 export interface CreatePurchaseDto {
     supplierId: number;
+    branchId: number;
     purchaseDate: string | Date;
     invoiceNo?: string;
     notes?: string;

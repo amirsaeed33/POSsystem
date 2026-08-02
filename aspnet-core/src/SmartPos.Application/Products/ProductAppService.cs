@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -10,6 +11,8 @@ using Abp.Linq.Extensions;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
+using SmartPos.Branches;
+using SmartPos.Inventory;
 using SmartPos.Products.Dto;
 
 namespace SmartPos.Products
@@ -20,9 +23,31 @@ namespace SmartPos.Products
         private const string DuplicateBarcodeMessage =
             "Barcode already exists. Please enter a unique barcode.";
 
-        public ProductAppService(IRepository<Product> repository)
+        private readonly IBranchStockManager _branchStockManager;
+        private readonly IBranchContext _branchContext;
+
+        public ProductAppService(
+            IRepository<Product> repository,
+            IBranchStockManager branchStockManager,
+            IBranchContext branchContext)
             : base(repository)
         {
+            _branchStockManager = branchStockManager;
+            _branchContext = branchContext;
+        }
+
+        public override async Task<PagedResultDto<ProductDto>> GetAllAsync(PagedProductResultRequestDto input)
+        {
+            var result = await base.GetAllAsync(input);
+            await PopulateStockFieldsAsync(result.Items);
+            return result;
+        }
+
+        public override async Task<ProductDto> GetAsync(EntityDto<int> input)
+        {
+            var dto = await base.GetAsync(input);
+            await PopulateStockFieldsAsync(new[] { dto });
+            return dto;
         }
 
         public override async Task<ProductDto> CreateAsync(CreateProductDto input)
@@ -140,6 +165,36 @@ namespace SmartPos.Products
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
                 Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
                     .Where(x => x.Id == id));
+        }
+
+        private async Task PopulateStockFieldsAsync(IReadOnlyList<ProductDto> dtos)
+        {
+            if (dtos == null || dtos.Count == 0)
+            {
+                return;
+            }
+
+            var branchId = _branchContext.BranchId ?? 0;
+            if (branchId <= 0)
+            {
+                foreach (var dto in dtos)
+                {
+                    dto.StockQuantity = 0;
+                    dto.StockProfit = 0;
+                }
+
+                return;
+            }
+
+            var quantities = await _branchStockManager.GetQuantitiesAsync(
+                branchId,
+                dtos.Select(x => x.Id));
+
+            foreach (var dto in dtos)
+            {
+                dto.StockQuantity = quantities.TryGetValue(dto.Id, out var qty) ? qty : 0;
+                dto.StockProfit = ProductPricing.StockProfit(dto.Price, dto.CostPrice, dto.StockQuantity);
+            }
         }
 
         private static void EnsureRequiredFields(

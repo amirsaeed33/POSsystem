@@ -8,6 +8,11 @@ namespace SmartPos.Purchases.Dto
     public class PurchaseDto : EntityDto
     {
         [Required]
+        public int BranchId { get; set; }
+
+        public string BranchName { get; set; }
+
+        [Required]
         public int SupplierId { get; set; }
 
         public string SupplierName { get; set; }

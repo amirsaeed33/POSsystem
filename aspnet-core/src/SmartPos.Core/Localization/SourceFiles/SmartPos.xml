@@ -107,6 +107,9 @@
     <text name="Categories" value="Categories" />
     <text name="CreateNewCategory" value="Create new category" />
     <text name="EditCategory" value="Edit category" />
+    <text name="Branches" value="Branches" />
+    <text name="CreateNewBranch" value="Create new branch" />
+    <text name="EditBranch" value="Edit branch" />
     <text name="CategoryName" value="Category name" />
     <text name="Description" value="Description" />
     <text name="CategoryDeleteWarningMessage" value="Category {0} will be deleted." />

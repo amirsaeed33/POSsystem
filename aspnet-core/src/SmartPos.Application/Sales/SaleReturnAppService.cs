@@ -11,6 +11,8 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
+using SmartPos.Branches;
+using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Sales.Dto;
 
@@ -25,6 +27,8 @@ namespace SmartPos.Sales
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
         private readonly SystemAccountManager _systemAccountManager;
+        private readonly IBranchStockManager _branchStockManager;
+        private readonly IBranchAccessChecker _branchAccessChecker;
 
         public SaleReturnAppService(
             IRepository<Sale> saleRepository,
@@ -32,7 +36,9 @@ namespace SmartPos.Sales
             IRepository<SaleReturnLine> returnLineRepository,
             IRepository<Product> productRepository,
             IRepository<LedgerEntry> ledgerRepository,
-            SystemAccountManager systemAccountManager)
+            SystemAccountManager systemAccountManager,
+            IBranchStockManager branchStockManager,
+            IBranchAccessChecker branchAccessChecker)
         {
             _saleRepository = saleRepository;
             _returnRepository = returnRepository;
@@ -40,6 +46,8 @@ namespace SmartPos.Sales
             _productRepository = productRepository;
             _ledgerRepository = ledgerRepository;
             _systemAccountManager = systemAccountManager;
+            _branchStockManager = branchStockManager;
+            _branchAccessChecker = branchAccessChecker;
         }
 
         public async Task<SaleReturnableDto> GetReturnableSaleAsync(EntityDto<int> input)
@@ -104,6 +112,13 @@ namespace SmartPos.Sales
                 throw new UserFriendlyException("Sale not found.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessAsync(input.BranchId);
+
+            if (input.BranchId != sale.BranchId)
+            {
+                throw new UserFriendlyException("Branch must match the original sale branch.");
+            }
+
             if (!sale.Customer.AccountId.HasValue)
             {
                 throw new UserFriendlyException("Customer has no linked account.");
@@ -117,6 +132,7 @@ namespace SmartPos.Sales
             var returnedByLine = await GetReturnedQuantitiesBySaleLineAsync(sale.Id);
             var saleReturn = new SaleReturn
             {
+                BranchId = sale.BranchId,
                 SaleId = sale.Id,
                 ReturnDate = input.ReturnDate,
                 Notes = input.Notes,
@@ -154,7 +170,7 @@ namespace SmartPos.Sales
                 });
 
                 var productEntity = await _productRepository.GetAsync(saleLine.ProductId);
-                productEntity.StockQuantity += lineInput.Quantity;
+                await _branchStockManager.IncreaseAsync(sale.BranchId, saleLine.ProductId, lineInput.Quantity, productEntity.Name);
                 returnedByLine[saleLine.Id] = alreadyReturned + lineInput.Quantity;
             }
 
@@ -209,12 +225,7 @@ namespace SmartPos.Sales
             foreach (var line in saleReturn.Lines.ToList())
             {
                 var product = await _productRepository.GetAsync(line.ProductId);
-                product.StockQuantity -= line.Quantity;
-                if (product.StockQuantity < 0)
-                {
-                    product.StockQuantity = 0;
-                }
-
+                await _branchStockManager.DecreaseAsync(saleReturn.BranchId, line.ProductId, line.Quantity, product.Name);
                 await _returnLineRepository.DeleteAsync(line);
             }
 
@@ -230,7 +241,7 @@ namespace SmartPos.Sales
 
         public async Task<PagedResultDto<SaleReturnDto>> GetAllAsync(PagedSaleReturnResultRequestDto input)
         {
-            var query = _returnRepository.GetAllIncluding(x => x.Sale, x => x.Lines)
+            var query = _returnRepository.GetAllIncluding(x => x.Sale, x => x.Branch, x => x.Lines)
                 .Include(x => x.Sale.Customer)
                 .WhereIf(input.SaleId.HasValue, x => x.SaleId == input.SaleId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
@@ -258,7 +269,7 @@ namespace SmartPos.Sales
 
         public async Task<SaleReturnDto> GetAsync(EntityDto<int> input)
         {
-            var saleReturn = await _returnRepository.GetAllIncluding(x => x.Sale, x => x.Lines)
+            var saleReturn = await _returnRepository.GetAllIncluding(x => x.Sale, x => x.Branch, x => x.Lines)
                 .Include(x => x.Sale.Customer)
                 .FirstOrDefaultAsync(x => x.Id == input.Id);
 
@@ -291,6 +302,8 @@ namespace SmartPos.Sales
             return new SaleReturnDto
             {
                 Id = entity.Id,
+                BranchId = entity.BranchId,
+                BranchName = entity.Branch?.Name,
                 SaleId = entity.SaleId,
                 SaleInvoiceNo = entity.Sale?.InvoiceNo,
                 CustomerName = entity.Sale?.Customer?.Name,

@@ -14,6 +14,8 @@ export interface SaleReturnDto {
     saleId: number;
     saleInvoiceNo?: string;
     customerName?: string;
+    branchId?: number;
+    branchName?: string;
     returnDate: string | Date;
     totalAmount: number;
     notes?: string;
@@ -47,6 +49,7 @@ export interface CreateSaleReturnLineDto {
 
 export interface CreateSaleReturnDto {
     saleId: number;
+    branchId: number;
     returnDate: string | Date;
     notes?: string;
     lines: CreateSaleReturnLineDto[];

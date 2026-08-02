@@ -6,7 +6,9 @@ import { AuthService } from 'src/app/demo/service/auth.service';
 import { SessionService } from 'src/app/demo/service/session.service';
 import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
 import { LocalizationService } from 'src/app/demo/service/localization.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { LanguageInfo } from 'src/app/demo/api/localization';
+import { BranchDto } from 'src/app/demo/api/branch';
 import { UserLoginInfoDto } from 'src/app/demo/api/session';
 import { environment } from 'src/environments/environment';
 
@@ -32,12 +34,16 @@ export class AppTopBarComponent implements OnInit {
     currentLanguage: LanguageInfo | null = null;
     changingLanguage = false;
 
+    branches: BranchDto[] = [];
+    currentBranch: BranchDto | null = null;
+
     constructor(
         public layoutService: LayoutService,
         private authService: AuthService,
         private sessionService: SessionService,
         private tenantContext: TenantContextService,
         private localizationService: LocalizationService,
+        private branchContext: BranchContextService,
         private messageService: MessageService,
         private router: Router
     ) {}
@@ -50,7 +56,31 @@ export class AppTopBarComponent implements OnInit {
             this.languages = this.localizationService.getLanguages();
             this.currentLanguage = this.localizationService.getCurrentLanguage();
             this.loadUserInfo();
+            this.loadBranches();
         });
+    }
+
+    onSelectBranch(branch: BranchDto): void {
+        if (!branch || branch.id === this.currentBranch?.id) {
+            return;
+        }
+        this.branchContext.setBranch(branch);
+        this.currentBranch = branch;
+    }
+
+    private loadBranches(): void {
+        if (!this.authService.isAuthenticated()) {
+            return;
+        }
+
+        this.branchContext.branches$.subscribe((branches) => {
+            this.branches = branches;
+        });
+        this.branchContext.currentBranch$.subscribe((branch) => {
+            this.currentBranch = branch;
+        });
+
+        this.branchContext.ensureLoaded().catch(() => undefined);
     }
 
     onChangeLanguage(language: LanguageInfo): void {

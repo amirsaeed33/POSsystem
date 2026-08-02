@@ -56,6 +56,44 @@
             </div>
         </div>
 
+        <div class="topbar-branch relative" *ngIf="branches?.length">
+            <button
+                class="p-link flex align-items-center gap-2 px-2 py-2 border-round hover:surface-hover"
+                type="button"
+                pStyleClass="@next"
+                enterClass="hidden"
+                enterActiveClass="scalein"
+                leaveToClass="hidden"
+                leaveActiveClass="fadeout"
+                [hideOnOutsideClick]="true"
+            >
+                <i class="pi pi-sitemap text-xl"></i>
+                <span class="hidden md:inline font-medium white-space-nowrap">
+                    {{ currentBranch?.name || 'Select Branch' }}
+                </span>
+                <i class="pi pi-angle-down"></i>
+            </button>
+            <ul
+                class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-2 right-0 top-auto z-5"
+                style="min-width: 12rem; max-height: 20rem; overflow: auto"
+            >
+                <li *ngFor="let branch of branches">
+                    <a
+                        pRipple
+                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                        [class.surface-hover]="branch.id === currentBranch?.id"
+                        (click)="onSelectBranch(branch)"
+                    >
+                        <span class="flex-1">{{ branch.name }}</span>
+                        <i
+                            class="pi pi-check text-primary"
+                            *ngIf="branch.id === currentBranch?.id"
+                        ></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
         <div class="topbar-language relative" *ngIf="languages?.length">
             <button
                 class="p-link flex align-items-center gap-2 px-2 py-2 border-round hover:surface-hover"

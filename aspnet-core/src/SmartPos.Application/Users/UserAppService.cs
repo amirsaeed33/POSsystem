@@ -18,6 +18,7 @@ using SmartPos.Authorization;
 using SmartPos.Authorization.Accounts;
 using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
+using SmartPos.Branches;
 using SmartPos.Roles.Dto;
 using SmartPos.Users.Dto;
 using Microsoft.AspNetCore.Identity;
@@ -34,6 +35,8 @@ namespace SmartPos.Users
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly IAbpSession _abpSession;
         private readonly LogInManager _logInManager;
+        private readonly IRepository<UserBranch> _userBranchRepository;
+        private readonly IRepository<Branch> _branchRepository;
 
         public UserAppService(
             IRepository<User, long> repository,
@@ -42,7 +45,9 @@ namespace SmartPos.Users
             IRepository<Role> roleRepository,
             IPasswordHasher<User> passwordHasher,
             IAbpSession abpSession,
-            LogInManager logInManager)
+            LogInManager logInManager,
+            IRepository<UserBranch> userBranchRepository,
+            IRepository<Branch> branchRepository)
             : base(repository)
         {
             _userManager = userManager;
@@ -51,6 +56,8 @@ namespace SmartPos.Users
             _passwordHasher = passwordHasher;
             _abpSession = abpSession;
             _logInManager = logInManager;
+            _userBranchRepository = userBranchRepository;
+            _branchRepository = branchRepository;
         }
 
         public override async Task<UserDto> CreateAsync(CreateUserDto input)
@@ -74,7 +81,9 @@ namespace SmartPos.Users
 
             CurrentUnitOfWork.SaveChanges();
 
-            return MapToEntityDto(user);
+            await SyncUserBranchesAsync(user.Id, input.BranchIds);
+
+            return await GetAsync(new EntityDto<long>(user.Id));
         }
 
         public override async Task<UserDto> UpdateAsync(UserDto input)
@@ -97,6 +106,8 @@ namespace SmartPos.Users
             {
                 CheckErrors(await _userManager.SetRolesAsync(user, input.RoleNames));
             }
+
+            await SyncUserBranchesAsync(user.Id, input.BranchIds);
 
             return await GetAsync(input);
         }
@@ -190,6 +201,20 @@ namespace SmartPos.Users
             user.SetNormalizedNames();
         }
 
+        public override async Task<UserDto> GetAsync(EntityDto<long> input)
+        {
+            var dto = await base.GetAsync(input);
+            dto.BranchIds = await GetBranchIdsAsync(input.Id);
+            return dto;
+        }
+
+        public override async Task<PagedResultDto<UserDto>> GetAllAsync(PagedUserResultRequestDto input)
+        {
+            var result = await base.GetAllAsync(input);
+            await PopulateBranchIdsAsync(result.Items);
+            return result;
+        }
+
         protected override UserDto MapToEntityDto(User user)
         {
             var roleIds = user.Roles.Select(x => x.RoleId).ToArray();
@@ -229,6 +254,75 @@ namespace SmartPos.Users
         protected virtual void CheckErrors(IdentityResult identityResult)
         {
             identityResult.CheckErrors(LocalizationManager);
+        }
+
+        private async Task<int[]> GetBranchIdsAsync(long userId)
+        {
+            return await _userBranchRepository.GetAll()
+                .Where(x => x.UserId == userId)
+                .Select(x => x.BranchId)
+                .ToArrayAsync();
+        }
+
+        private async Task PopulateBranchIdsAsync(IReadOnlyList<UserDto> users)
+        {
+            if (users == null || users.Count == 0)
+            {
+                return;
+            }
+
+            var userIds = users.Select(x => x.Id).ToList();
+            var assignments = await _userBranchRepository.GetAll()
+                .Where(x => userIds.Contains(x.UserId))
+                .Select(x => new { x.UserId, x.BranchId })
+                .ToListAsync();
+
+            var byUserId = assignments
+                .GroupBy(x => x.UserId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.BranchId).ToArray());
+
+            foreach (var user in users)
+            {
+                user.BranchIds = byUserId.TryGetValue(user.Id, out var branchIds)
+                    ? branchIds
+                    : Array.Empty<int>();
+            }
+        }
+
+        private async Task SyncUserBranchesAsync(long userId, int[] branchIds)
+        {
+            branchIds = branchIds ?? Array.Empty<int>();
+            var distinctBranchIds = branchIds.Where(id => id > 0).Distinct().ToArray();
+
+            if (distinctBranchIds.Length > 0)
+            {
+                var validCount = await _branchRepository.GetAll()
+                    .CountAsync(x => distinctBranchIds.Contains(x.Id));
+                if (validCount != distinctBranchIds.Length)
+                {
+                    throw new UserFriendlyException("One or more selected branches were not found for this tenant.");
+                }
+            }
+
+            var existing = await _userBranchRepository.GetAll()
+                .Where(x => x.UserId == userId)
+                .ToListAsync();
+
+            var existingIds = existing.Select(x => x.BranchId).ToHashSet();
+            foreach (var assignment in existing.Where(x => !distinctBranchIds.Contains(x.BranchId)).ToList())
+            {
+                await _userBranchRepository.DeleteAsync(assignment);
+            }
+
+            foreach (var branchId in distinctBranchIds.Where(id => !existingIds.Contains(id)))
+            {
+                await _userBranchRepository.InsertAsync(new UserBranch
+                {
+                    TenantId = AbpSession.TenantId,
+                    UserId = userId,
+                    BranchId = branchId
+                });
+            }
         }
 
         public async Task<bool> ChangePassword(ChangePasswordDto input)

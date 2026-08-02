@@ -18,6 +18,8 @@ export interface CustomerOrderDto {
     id: number;
     customerId: number;
     customerName?: string;
+    branchId?: number;
+    branchName?: string;
     orderDate: string | Date;
     orderNo?: string;
     status: number;
@@ -37,6 +39,7 @@ export interface CreateCustomerOrderLineDto {
 
 export interface CreateCustomerOrderDto {
     customerId: number;
+    branchId: number;
     orderDate: string | Date;
     notes?: string;
     lines: CreateCustomerOrderLineDto[];

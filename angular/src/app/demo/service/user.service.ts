@@ -371,6 +371,7 @@ export class UserService {
             lastLoginTime: item.lastLoginTime || item.LastLoginTime,
             creationTime: item.creationTime || item.CreationTime,
             roleNames: item.roleNames || item.RoleNames || [],
+            branchIds: item.branchIds || item.BranchIds || [],
             // Backend field is userImageUrl; older clients may send profilePictureUrl
             profilePictureUrl:
                 item.profilePictureUrl ||
@@ -390,6 +391,7 @@ export class UserService {
             emailAddress: input.emailAddress,
             isActive: input.isActive !== false,
             roleNames: Array.isArray(input.roleNames) ? input.roleNames : [],
+            branchIds: Array.isArray(input.branchIds) ? input.branchIds : [],
         };
 
         if (input.id != null) {

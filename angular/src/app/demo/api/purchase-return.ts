@@ -14,6 +14,8 @@ export interface PurchaseReturnDto {
     purchaseId: number;
     purchaseInvoiceNo?: string;
     supplierName?: string;
+    branchId?: number;
+    branchName?: string;
     returnDate: string | Date;
     totalAmount: number;
     notes?: string;
@@ -47,6 +49,7 @@ export interface CreatePurchaseReturnLineDto {
 
 export interface CreatePurchaseReturnDto {
     purchaseId: number;
+    branchId: number;
     returnDate: string | Date;
     notes?: string;
     lines: CreatePurchaseReturnLineDto[];

@@ -19,6 +19,8 @@
 
         public const string Pages_Products = "Pages.Products";
 
+        public const string Pages_Branches = "Pages.Branches";
+
         public const string Pages_Customers = "Pages.Customers";
 
         public const string Pages_Suppliers = "Pages.Suppliers";

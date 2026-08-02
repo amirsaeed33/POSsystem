@@ -9,6 +9,9 @@ namespace SmartPos.Orders.Dto
     public class CreateCustomerOrderDto
     {
         [Required]
+        public int BranchId { get; set; }
+
+        [Required]
         public int CustomerId { get; set; }
 
         public DateTime OrderDate { get; set; }
@@ -50,6 +53,10 @@ namespace SmartPos.Orders.Dto
 
     public class CustomerOrderDto : EntityDto
     {
+        public int BranchId { get; set; }
+
+        public string BranchName { get; set; }
+
         public int CustomerId { get; set; }
 
         public string CustomerName { get; set; }

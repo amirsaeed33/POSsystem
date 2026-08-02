@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthenticateModel, AuthenticateResultModel } from '../api/auth';
 import { environment } from '../../../environments/environment';
 import { PermissionService } from './permission.service';
+import { BranchContextService } from './branch-context.service';
 
 const TOKEN_KEY = 'accessToken';
 const ENCRYPTED_TOKEN_KEY = 'encryptedAccessToken';
@@ -34,7 +35,8 @@ export class AuthService {
 
     constructor(
         private http: HttpClient,
-        private permissionService: PermissionService
+        private permissionService: PermissionService,
+        private branchContext: BranchContextService
     ) {}
 
     async authenticate(model: AuthenticateModel): Promise<AuthenticateResultModel> {
@@ -168,6 +170,7 @@ export class AuthService {
         localStorage.removeItem(EXPIRE_KEY);
         localStorage.removeItem(USER_INFO_KEY);
         this.permissionService.clear();
+        this.branchContext.clear();
     }
 
     setUserInfo(userInfo: any): void {

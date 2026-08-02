@@ -11,6 +11,8 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
+using SmartPos.Branches;
+using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Purchases.Dto;
 
@@ -25,6 +27,8 @@ namespace SmartPos.Purchases
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
         private readonly SystemAccountManager _systemAccountManager;
+        private readonly IBranchStockManager _branchStockManager;
+        private readonly IBranchAccessChecker _branchAccessChecker;
 
         public PurchaseReturnAppService(
             IRepository<Purchase> purchaseRepository,
@@ -32,7 +36,9 @@ namespace SmartPos.Purchases
             IRepository<PurchaseReturnLine> returnLineRepository,
             IRepository<Product> productRepository,
             IRepository<LedgerEntry> ledgerRepository,
-            SystemAccountManager systemAccountManager)
+            SystemAccountManager systemAccountManager,
+            IBranchStockManager branchStockManager,
+            IBranchAccessChecker branchAccessChecker)
         {
             _purchaseRepository = purchaseRepository;
             _returnRepository = returnRepository;
@@ -40,6 +46,8 @@ namespace SmartPos.Purchases
             _productRepository = productRepository;
             _ledgerRepository = ledgerRepository;
             _systemAccountManager = systemAccountManager;
+            _branchStockManager = branchStockManager;
+            _branchAccessChecker = branchAccessChecker;
         }
 
         public async Task<PurchaseReturnableDto> GetReturnablePurchaseAsync(EntityDto<int> input)
@@ -104,6 +112,13 @@ namespace SmartPos.Purchases
                 throw new UserFriendlyException("Purchase not found.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessAsync(input.BranchId);
+
+            if (input.BranchId != purchase.BranchId)
+            {
+                throw new UserFriendlyException("Branch must match the original purchase branch.");
+            }
+
             if (!purchase.Supplier.AccountId.HasValue)
             {
                 throw new UserFriendlyException("Supplier has no linked account.");
@@ -117,6 +132,7 @@ namespace SmartPos.Purchases
             var returnedByLine = await GetReturnedQuantitiesByPurchaseLineAsync(purchase.Id);
             var purchaseReturn = new PurchaseReturn
             {
+                BranchId = purchase.BranchId,
                 PurchaseId = purchase.Id,
                 ReturnDate = input.ReturnDate,
                 Notes = input.Notes,
@@ -142,12 +158,6 @@ namespace SmartPos.Purchases
                 }
 
                 var productEntity = await _productRepository.GetAsync(purchaseLine.ProductId);
-                if (productEntity.StockQuantity < lineInput.Quantity)
-                {
-                    throw new UserFriendlyException(
-                        $"Insufficient stock to return '{productEntity.Name}'. Available: {productEntity.StockQuantity}.");
-                }
-
                 var lineTotal = lineInput.Quantity * purchaseLine.UnitCost;
                 total += lineTotal;
 
@@ -160,7 +170,7 @@ namespace SmartPos.Purchases
                     LineTotal = lineTotal
                 });
 
-                productEntity.StockQuantity -= lineInput.Quantity;
+                await _branchStockManager.DecreaseAsync(purchase.BranchId, purchaseLine.ProductId, lineInput.Quantity, productEntity.Name);
                 returnedByLine[purchaseLine.Id] = alreadyReturned + lineInput.Quantity;
             }
 
@@ -215,7 +225,7 @@ namespace SmartPos.Purchases
             foreach (var line in purchaseReturn.Lines.ToList())
             {
                 var product = await _productRepository.GetAsync(line.ProductId);
-                product.StockQuantity += line.Quantity;
+                await _branchStockManager.IncreaseAsync(purchaseReturn.BranchId, line.ProductId, line.Quantity, product.Name);
                 await _returnLineRepository.DeleteAsync(line);
             }
 
@@ -231,7 +241,7 @@ namespace SmartPos.Purchases
 
         public async Task<PagedResultDto<PurchaseReturnDto>> GetAllAsync(PagedPurchaseReturnResultRequestDto input)
         {
-            var query = _returnRepository.GetAllIncluding(x => x.Purchase, x => x.Lines)
+            var query = _returnRepository.GetAllIncluding(x => x.Purchase, x => x.Branch, x => x.Lines)
                 .Include(x => x.Purchase.Supplier)
                 .WhereIf(input.PurchaseId.HasValue, x => x.PurchaseId == input.PurchaseId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
@@ -259,7 +269,7 @@ namespace SmartPos.Purchases
 
         public async Task<PurchaseReturnDto> GetAsync(EntityDto<int> input)
         {
-            var purchaseReturn = await _returnRepository.GetAllIncluding(x => x.Purchase, x => x.Lines)
+            var purchaseReturn = await _returnRepository.GetAllIncluding(x => x.Purchase, x => x.Branch, x => x.Lines)
                 .Include(x => x.Purchase.Supplier)
                 .FirstOrDefaultAsync(x => x.Id == input.Id);
 
@@ -292,6 +302,8 @@ namespace SmartPos.Purchases
             return new PurchaseReturnDto
             {
                 Id = entity.Id,
+                BranchId = entity.BranchId,
+                BranchName = entity.Branch?.Name,
                 PurchaseId = entity.PurchaseId,
                 PurchaseInvoiceNo = entity.Purchase?.InvoiceNo,
                 SupplierName = entity.Purchase?.Supplier?.Name,

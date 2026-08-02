@@ -8,6 +8,11 @@ namespace SmartPos.Sales.Dto
     public class SaleDto : EntityDto
     {
         [Required]
+        public int BranchId { get; set; }
+
+        public string BranchName { get; set; }
+
+        [Required]
         public int CustomerId { get; set; }
 
         public string CustomerName { get; set; }
