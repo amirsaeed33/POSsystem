@@ -70,14 +70,19 @@ namespace SmartPos.Web.Host.Startup
                                 return true;
                             }
 
-                            // Allow ngrok public URLs used for local demos / tunneling
+                            // Allow free static hosts + local tunnel demos
                             try
                             {
                                 var host = new Uri(origin).Host;
                                 return host.EndsWith(".ngrok-free.dev", StringComparison.OrdinalIgnoreCase)
                                        || host.EndsWith(".ngrok-free.app", StringComparison.OrdinalIgnoreCase)
                                        || host.EndsWith(".ngrok.io", StringComparison.OrdinalIgnoreCase)
-                                       || host.Equals("ngrok.io", StringComparison.OrdinalIgnoreCase);
+                                       || host.Equals("ngrok.io", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".pages.dev", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".web.app", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".firebaseapp.com", StringComparison.OrdinalIgnoreCase);
                             }
                             catch
                             {
