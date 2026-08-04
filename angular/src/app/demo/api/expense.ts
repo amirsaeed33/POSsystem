@@ -1,7 +1,5 @@
 export interface ExpenseDto {
     id: number;
-    branchId?: number;
-    branchName?: string;
     expenseDate: string | Date;
     amount: number;
     referenceNo?: string;
@@ -13,7 +11,6 @@ export interface ExpenseDto {
 }
 
 export interface CreateExpenseDto {
-    branchId: number;
     expenseDate: string | Date;
     amount: number;
     referenceNo?: string;

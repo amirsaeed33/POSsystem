@@ -31,8 +31,6 @@ namespace SmartPos.Users.Dto
 
         public string[] RoleNames { get; set; }
 
-        public int[] BranchIds { get; set; }
-
         [Required]
         [StringLength(AbpUserBase.MaxPlainPasswordLength)]
         [DisableAuditing]
@@ -45,11 +43,6 @@ namespace SmartPos.Users.Dto
             if (RoleNames == null)
             {
                 RoleNames = new string[0];
-            }
-
-            if (BranchIds == null)
-            {
-                BranchIds = new int[0];
             }
         }
     }

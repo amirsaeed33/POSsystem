@@ -49,7 +49,6 @@ export class CustomerOrderService {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 customerId: input.customerId,
-                branchId: input.branchId,
                 orderDate: this.toApiDate(input.orderDate),
                 notes: input.notes,
                 lines: input.lines,
@@ -125,8 +124,6 @@ export class CustomerOrderService {
             id: item.id ?? item.Id,
             customerId: item.customerId ?? item.CustomerId,
             customerName: item.customerName ?? item.CustomerName,
-            branchId: item.branchId ?? item.BranchId,
-            branchName: item.branchName ?? item.BranchName,
             orderDate: item.orderDate ?? item.OrderDate,
             orderNo: item.orderNo ?? item.OrderNo,
             status: item.status ?? item.Status ?? 0,

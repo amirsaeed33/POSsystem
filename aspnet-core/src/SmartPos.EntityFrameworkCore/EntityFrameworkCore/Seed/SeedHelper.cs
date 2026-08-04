@@ -27,8 +27,6 @@ namespace SmartPos.EntityFrameworkCore.Seed
             // Default tenant seed (in host database).
             new DefaultTenantBuilder(context).Create();
             new TenantRoleAndUserBuilder(context, 1).Create();
-            new DefaultBranchCreator(context, null).Create();
-            new DefaultBranchCreator(context, 1).Create();
             new DefaultSystemAccountsCreator(context, 1).Create();
             new DefaultEmailTemplatesCreator(context, null).Create();
             new DefaultEmailTemplatesCreator(context, 1).Create();

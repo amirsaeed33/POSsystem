@@ -14,7 +14,6 @@ import {
 } from 'src/app/demo/api/stock-adjustment';
 import { ProductDto } from 'src/app/demo/api/product';
 import { StockAdjustmentService } from 'src/app/demo/service/stock-adjustment.service';
-import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { ProductService } from 'src/app/demo/service/product.service';
 
 @Component({
@@ -43,7 +42,6 @@ export class StockAdjustmentFormDialogComponent implements OnChanges {
     constructor(
         private stockAdjustmentService: StockAdjustmentService,
         private productService: ProductService,
-        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -134,20 +132,7 @@ export class StockAdjustmentFormDialogComponent implements OnChanges {
             }
         }
 
-        let branchId: number;
-        try {
-            branchId = this.branchContext.requireBranchId();
-        } catch (e: any) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Validation',
-                detail: e?.message || 'Please select a branch from the top navigation.',
-            });
-            return;
-        }
-
         const payload: CreateStockAdjustmentDto = {
-            branchId,
             adjustmentDate: this.adjustment.adjustmentDate,
             reason: this.adjustment.reason,
             notes: this.adjustment.notes?.trim() || undefined,
@@ -256,7 +241,6 @@ export class StockAdjustmentFormDialogComponent implements OnChanges {
 
     private emptyAdjustment(): CreateStockAdjustmentDto {
         return {
-            branchId: 0,
             adjustmentDate: this.toDateInputValue(),
             reason: StockAdjustmentReasons.Other,
             notes: '',
@@ -308,7 +292,6 @@ export class StockAdjustmentFormDialogComponent implements OnChanges {
             .get(id)
             .then((item) => {
                 this.adjustment = {
-                    branchId: item.branchId ?? 0,
                     adjustmentDate: this.toDateInputValue(item.adjustmentDate),
                     reason: item.reason,
                     notes: item.notes || '',

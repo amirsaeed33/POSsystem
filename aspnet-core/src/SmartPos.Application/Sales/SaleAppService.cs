@@ -12,13 +12,11 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
-using SmartPos.Branches;
 using SmartPos.Customers;
 using SmartPos.Customers.Dto;
 using SmartPos.Products;
 using SmartPos.Products.Dto;
 using SmartPos.Sales.Dto;
-using SmartPos.Inventory;
 
 namespace SmartPos.Sales
 {
@@ -31,9 +29,6 @@ namespace SmartPos.Sales
         private readonly IRepository<LedgerEntry> _ledgerRepository;
         private readonly IRepository<SaleReturn> _saleReturnRepository;
         private readonly SystemAccountManager _systemAccountManager;
-        private readonly IBranchStockManager _branchStockManager;
-        private readonly IBranchAccessChecker _branchAccessChecker;
-        private readonly IBranchContext _branchContext;
 
         public SaleAppService(
             IRepository<Sale> repository,
@@ -42,10 +37,7 @@ namespace SmartPos.Sales
             IRepository<Customer> customerRepository,
             IRepository<LedgerEntry> ledgerRepository,
             IRepository<SaleReturn> saleReturnRepository,
-            SystemAccountManager systemAccountManager,
-            IBranchStockManager branchStockManager,
-            IBranchAccessChecker branchAccessChecker,
-            IBranchContext branchContext)
+            SystemAccountManager systemAccountManager)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -54,9 +46,6 @@ namespace SmartPos.Sales
             _ledgerRepository = ledgerRepository;
             _saleReturnRepository = saleReturnRepository;
             _systemAccountManager = systemAccountManager;
-            _branchStockManager = branchStockManager;
-            _branchAccessChecker = branchAccessChecker;
-            _branchContext = branchContext;
         }
 
         public async Task<ProductDto> GetProductByBarcodeAsync(string barcode)
@@ -66,8 +55,6 @@ namespace SmartPos.Sales
 
         public async Task<ProductDto> GetPosProductAsync(string keyword)
         {
-            var branchId = RequireBranchContext();
-
             var normalized = keyword.IsNullOrWhiteSpace() ? null : keyword.Trim();
             if (normalized.IsNullOrWhiteSpace())
             {
@@ -77,49 +64,41 @@ namespace SmartPos.Sales
             var query = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit);
 
             var byBarcode = await query.FirstOrDefaultAsync(x => x.Barcode == normalized);
-            Product product;
             if (byBarcode != null)
             {
-                product = byBarcode;
+                return ObjectMapper.Map<ProductDto>(byBarcode);
             }
-            else
+
+            var lower = normalized.ToLowerInvariant();
+            var nameMatches = await query
+                .Where(x => x.Name != null && x.Name.ToLower().Contains(lower))
+                .OrderBy(x => x.Name)
+                .Take(20)
+                .ToListAsync();
+
+            if (nameMatches.Count == 0)
             {
-                var lower = normalized.ToLowerInvariant();
-                var nameMatches = await query
-                    .Where(x => x.Name != null && x.Name.ToLower().Contains(lower))
-                    .OrderBy(x => x.Name)
-                    .Take(20)
-                    .ToListAsync();
-
-                if (nameMatches.Count == 0)
-                {
-                    throw new UserFriendlyException("No product found for: " + normalized);
-                }
-
-                var exactName = nameMatches.FirstOrDefault(x =>
-                    string.Equals(x.Name, normalized, StringComparison.OrdinalIgnoreCase));
-                if (exactName != null)
-                {
-                    product = exactName;
-                }
-                else if (nameMatches.Count == 1)
-                {
-                    product = nameMatches[0];
-                }
-                else
-                {
-                    throw new UserFriendlyException(
-                        "Multiple products match \"" + normalized + "\". Pick a more specific name or use the barcode.");
-                }
+                throw new UserFriendlyException("No product found for: " + normalized);
             }
 
-            return await MapPosProductAsync(product, branchId);
+            var exactName = nameMatches.FirstOrDefault(x =>
+                string.Equals(x.Name, normalized, StringComparison.OrdinalIgnoreCase));
+            if (exactName != null)
+            {
+                return ObjectMapper.Map<ProductDto>(exactName);
+            }
+
+            if (nameMatches.Count == 1)
+            {
+                return ObjectMapper.Map<ProductDto>(nameMatches[0]);
+            }
+
+            throw new UserFriendlyException(
+                "Multiple products match \"" + normalized + "\". Pick a more specific name or use the barcode.");
         }
 
         public async Task<ListResultDto<ProductDto>> GetPosProductSuggestionsAsync(string keyword)
         {
-            var branchId = RequireBranchContext();
-
             var normalized = keyword.IsNullOrWhiteSpace() ? null : keyword.Trim();
             var query = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit);
 
@@ -137,13 +116,7 @@ namespace SmartPos.Sales
                 .Take(50)
                 .ToListAsync();
 
-            var dtos = new List<ProductDto>();
-            foreach (var item in items)
-            {
-                dtos.Add(await MapPosProductAsync(item, branchId));
-            }
-
-            return new ListResultDto<ProductDto>(dtos);
+            return new ListResultDto<ProductDto>(ObjectMapper.Map<List<ProductDto>>(items));
         }
 
         public async Task<ListResultDto<CustomerDto>> GetPosCustomersAsync()
@@ -158,27 +131,17 @@ namespace SmartPos.Sales
 
         public async Task<ListResultDto<ProductDto>> GetPosProductsAsync()
         {
-            var branchId = RequireBranchContext();
-
             var products = await _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
                 .OrderBy(x => x.Name)
                 .Take(1000)
                 .ToListAsync();
 
-            var dtos = new List<ProductDto>();
-            foreach (var product in products)
-            {
-                dtos.Add(await MapPosProductAsync(product, branchId));
-            }
-
-            return new ListResultDto<ProductDto>(dtos);
+            return new ListResultDto<ProductDto>(ObjectMapper.Map<List<ProductDto>>(products));
         }
 
         public override async Task<SaleDto> CreateAsync(CreateSaleDto input)
         {
             CheckCreatePermission();
-
-            await _branchAccessChecker.EnsureCanAccessAsync(input.BranchId);
 
             if (input.Lines == null || !input.Lines.Any())
             {
@@ -198,7 +161,6 @@ namespace SmartPos.Sales
 
             var sale = new Sale
             {
-                BranchId = input.BranchId,
                 CustomerId = input.CustomerId,
                 SaleDate = input.SaleDate,
                 Notes = input.Notes,
@@ -217,11 +179,10 @@ namespace SmartPos.Sales
                 }
 
                 var product = await _productRepository.GetAsync(lineInput.ProductId);
-                var stockQuantity = await _branchStockManager.GetQuantityAsync(input.BranchId, lineInput.ProductId);
-                if (stockQuantity < lineInput.Quantity)
+                if (product.StockQuantity < lineInput.Quantity)
                 {
                     throw new UserFriendlyException(
-                        $"Insufficient stock for '{product.Name}'. Available: {stockQuantity}, requested: {lineInput.Quantity}.");
+                        $"Insufficient stock for '{product.Name}'. Available: {product.StockQuantity}, requested: {lineInput.Quantity}.");
                 }
 
                 var lineTotal = lineInput.Quantity * lineInput.UnitPrice;
@@ -235,7 +196,7 @@ namespace SmartPos.Sales
                     LineTotal = lineTotal
                 });
 
-                await _branchStockManager.DecreaseAsync(input.BranchId, lineInput.ProductId, lineInput.Quantity, product.Name);
+                product.StockQuantity -= lineInput.Quantity;
             }
 
             sale.SubTotal = Math.Round(subTotal, 2);
@@ -296,7 +257,7 @@ namespace SmartPos.Sales
             foreach (var line in sale.Lines.ToList())
             {
                 var product = await _productRepository.GetAsync(line.ProductId);
-                await _branchStockManager.IncreaseAsync(sale.BranchId, line.ProductId, line.Quantity, product.Name);
+                product.StockQuantity += line.Quantity;
                 await _lineRepository.DeleteAsync(line);
             }
 
@@ -312,7 +273,7 @@ namespace SmartPos.Sales
 
         protected override IQueryable<Sale> CreateFilteredQuery(PagedSaleResultRequestDto input)
         {
-            return Repository.GetAllIncluding(x => x.Customer, x => x.Branch, x => x.Lines)
+            return Repository.GetAllIncluding(x => x.Customer, x => x.Lines)
                 .WhereIf(input.CustomerId.HasValue, x => x.CustomerId == input.CustomerId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))
@@ -323,7 +284,7 @@ namespace SmartPos.Sales
         protected override async Task<Sale> GetEntityByIdAsync(int id)
         {
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.Customer, x => x.Branch, x => x.Lines)
+                Repository.GetAllIncluding(x => x.Customer, x => x.Lines)
                     .Where(x => x.Id == id));
         }
 
@@ -332,8 +293,6 @@ namespace SmartPos.Sales
             var dto = new SaleDto
             {
                 Id = entity.Id,
-                BranchId = entity.BranchId,
-                BranchName = entity.Branch?.Name,
                 CustomerId = entity.CustomerId,
                 CustomerName = entity.Customer?.Name,
                 SaleDate = entity.SaleDate,
@@ -375,7 +334,7 @@ namespace SmartPos.Sales
         public override async Task<SaleDto> GetAsync(EntityDto<int> input)
         {
             var entity = await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.Customer, x => x.Branch, x => x.Lines)
+                Repository.GetAllIncluding(x => x.Customer, x => x.Lines)
                     .Where(x => x.Id == input.Id));
 
             if (entity == null)
@@ -423,25 +382,6 @@ namespace SmartPos.Sales
                     item.HasReturns = true;
                 }
             }
-        }
-
-        private int RequireBranchContext()
-        {
-            var branchId = _branchContext.BranchId;
-            if (!branchId.HasValue || branchId.Value <= 0)
-            {
-                throw new UserFriendlyException("Select a branch.");
-            }
-
-            return branchId.Value;
-        }
-
-        private async Task<ProductDto> MapPosProductAsync(Product product, int branchId)
-        {
-            var dto = ObjectMapper.Map<ProductDto>(product);
-            dto.StockQuantity = await _branchStockManager.GetQuantityAsync(branchId, product.Id);
-            dto.StockProfit = ProductPricing.StockProfit(dto.Price, dto.CostPrice, dto.StockQuantity);
-            return dto;
         }
 
         private static void ApplyPaymentSplit(Sale sale, CreateSaleDto input)

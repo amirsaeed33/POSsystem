@@ -72,7 +72,6 @@ export class SaleReturnService {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 saleId: input.saleId,
-                branchId: input.branchId,
                 returnDate: this.toApiDate(input.returnDate),
                 notes: input.notes,
                 lines: (input.lines || []).map((line) => ({
@@ -132,8 +131,6 @@ export class SaleReturnService {
             saleId: item.saleId ?? item.SaleId,
             saleInvoiceNo: item.saleInvoiceNo ?? item.SaleInvoiceNo,
             customerName: item.customerName ?? item.CustomerName,
-            branchId: item.branchId ?? item.BranchId,
-            branchName: item.branchName ?? item.BranchName,
             returnDate: item.returnDate ?? item.ReturnDate,
             totalAmount: item.totalAmount ?? item.TotalAmount ?? 0,
             notes: item.notes ?? item.Notes,

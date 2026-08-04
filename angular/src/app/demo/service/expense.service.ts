@@ -59,7 +59,6 @@ export class ExpenseService {
     async create(input: CreateExpenseDto): Promise<ExpenseDto> {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
-                branchId: input.branchId,
                 expenseDate: this.toApiDate(input.expenseDate),
                 amount: input.amount,
                 referenceNo: input.referenceNo,
@@ -127,8 +126,6 @@ export class ExpenseService {
     private mapExpense(item: any): ExpenseDto {
         return {
             id: item.id ?? item.Id,
-            branchId: item.branchId ?? item.BranchId,
-            branchName: item.branchName ?? item.BranchName,
             expenseDate: item.expenseDate ?? item.ExpenseDate,
             amount: item.amount ?? item.Amount ?? 0,
             referenceNo: item.referenceNo ?? item.ReferenceNo,

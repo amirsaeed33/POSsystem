@@ -10,7 +10,6 @@ import { Router } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { BranchContextService } from './branch-context.service';
 import { TenantContextService } from './tenant-context.service';
 import { LocalizationService } from './localization.service';
 import { environment } from '../../../environments/environment';
@@ -19,7 +18,6 @@ import { environment } from '../../../environments/environment';
 export class AuthInterceptor implements HttpInterceptor {
     constructor(
         private authService: AuthService,
-        private branchContext: BranchContextService,
         private tenantContext: TenantContextService,
         private localizationService: LocalizationService,
         private router: Router
@@ -45,11 +43,6 @@ export class AuthInterceptor implements HttpInterceptor {
             const tenantId = this.tenantContext.getTenantId();
             if (tenantId != null) {
                 headers['Abp.TenantId'] = String(tenantId);
-            }
-
-            const branchId = this.branchContext.getBranchId();
-            if (branchId != null) {
-                headers['SmartPos.BranchId'] = String(branchId);
             }
 
             request = req.clone({ setHeaders: headers });

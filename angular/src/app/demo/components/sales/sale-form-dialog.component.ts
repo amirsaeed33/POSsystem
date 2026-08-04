@@ -16,7 +16,6 @@ import {
 import { ProductDto } from 'src/app/demo/api/product';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { SaleService } from 'src/app/demo/service/sale.service';
-import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 
 @Component({
     selector: 'app-sale-form-dialog',
@@ -46,7 +45,6 @@ export class SaleFormDialogComponent implements OnChanges {
 
     constructor(
         private saleService: SaleService,
-        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -235,23 +233,10 @@ export class SaleFormDialogComponent implements OnChanges {
             }
         }
 
-        let branchId: number;
-        try {
-            branchId = this.branchContext.requireBranchId();
-        } catch (e: any) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Validation',
-                detail: e?.message || 'Please select a branch from the top navigation.',
-            });
-            return;
-        }
-
         this.saving = true;
         this.saleService
             .create({
                 customerId: this.sale.customerId,
-                branchId,
                 saleDate: this.sale.saleDate,
                 notes: this.sale.notes?.trim() || undefined,
                 discountAmount: this.sale.discountAmount || 0,
@@ -381,7 +366,6 @@ export class SaleFormDialogComponent implements OnChanges {
     private emptySale(): CreateSaleDto {
         return {
             customerId: null as any,
-            branchId: 0,
             saleDate: this.toDateInputValue(),
             notes: '',
             discountAmount: 0,

@@ -1,17 +1,15 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { Subscription } from 'rxjs';
 import { ProductDto } from 'src/app/demo/api/product';
 import { ProductService } from 'src/app/demo/service/product.service';
-import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 
 @Component({
     templateUrl: './product-list.component.html',
     styleUrls: ['./product-list.component.scss'],
     providers: [MessageService, ConfirmationService],
 })
-export class ProductListComponent implements OnInit, OnDestroy {
+export class ProductListComponent implements OnInit {
     products: ProductDto[] = [];
     loading = false;
     totalRecords = 0;
@@ -24,24 +22,14 @@ export class ProductListComponent implements OnInit, OnDestroy {
     selectedImageUrl = '';
     selectedImageName = '';
 
-    private branchChangeSub?: Subscription;
-
     constructor(
         private productService: ProductService,
-        private branchContext: BranchContextService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
-        this.branchChangeSub = this.branchContext.changed$.subscribe(() => {
-            this.loadProducts();
-        });
         this.loadProducts();
-    }
-
-    ngOnDestroy(): void {
-        this.branchChangeSub?.unsubscribe();
     }
 
     loadProducts(): void {

@@ -10,7 +10,6 @@ import { MessageService } from 'primeng/api';
 import { SaleDto } from 'src/app/demo/api/sale';
 import { SaleReturnableDto } from 'src/app/demo/api/sale-return';
 import { SaleReturnService } from 'src/app/demo/service/sale-return.service';
-import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
 
 export interface SaleReturnLineRow {
@@ -48,7 +47,6 @@ export class SaleReturnFormDialogComponent implements OnChanges {
     constructor(
         private saleReturnService: SaleReturnService,
         private saleService: SaleService,
-        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -138,23 +136,10 @@ export class SaleReturnFormDialogComponent implements OnChanges {
             return;
         }
 
-        let branchId: number;
-        try {
-            branchId = this.branchContext.requireBranchId();
-        } catch (e: any) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Validation',
-                detail: e?.message || 'Please select a branch from the top navigation.',
-            });
-            return;
-        }
-
         this.saving = true;
         this.saleReturnService
             .create({
                 saleId,
-                branchId,
                 returnDate: this.returnDate,
                 notes: this.notes?.trim() || undefined,
                 lines: payloadLines,

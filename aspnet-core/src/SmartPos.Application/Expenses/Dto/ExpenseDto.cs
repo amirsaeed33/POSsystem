@@ -10,10 +10,6 @@ namespace SmartPos.Expenses.Dto
     [AutoMapTo(typeof(Expense))]
     public class ExpenseDto : EntityDto
     {
-        public int BranchId { get; set; }
-
-        public string BranchName { get; set; }
-
         public DateTime ExpenseDate { get; set; }
 
         [Range(0.01, double.MaxValue)]

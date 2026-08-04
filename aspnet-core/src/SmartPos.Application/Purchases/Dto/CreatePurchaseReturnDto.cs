@@ -8,9 +8,6 @@ namespace SmartPos.Purchases.Dto
     public class CreatePurchaseReturnDto
     {
         [Required]
-        public int BranchId { get; set; }
-
-        [Required]
         public int PurchaseId { get; set; }
 
         public DateTime ReturnDate { get; set; }

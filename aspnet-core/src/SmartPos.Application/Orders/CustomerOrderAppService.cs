@@ -9,7 +9,6 @@ using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Abp.UI;
 using SmartPos.Authorization;
-using SmartPos.Branches;
 using SmartPos.Customers;
 using SmartPos.Orders.Dto;
 using SmartPos.Products;
@@ -27,29 +26,24 @@ namespace SmartPos.Orders
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Customer> _customerRepository;
         private readonly ISaleAppService _saleAppService;
-        private readonly IBranchAccessChecker _branchAccessChecker;
 
         public CustomerOrderAppService(
             IRepository<CustomerOrder> repository,
             IRepository<CustomerOrderLine> lineRepository,
             IRepository<Product> productRepository,
             IRepository<Customer> customerRepository,
-            ISaleAppService saleAppService,
-            IBranchAccessChecker branchAccessChecker)
+            ISaleAppService saleAppService)
             : base(repository)
         {
             _lineRepository = lineRepository;
             _productRepository = productRepository;
             _customerRepository = customerRepository;
             _saleAppService = saleAppService;
-            _branchAccessChecker = branchAccessChecker;
         }
 
         public override async Task<CustomerOrderDto> CreateAsync(CreateCustomerOrderDto input)
         {
             CheckCreatePermission();
-
-            await _branchAccessChecker.EnsureCanAccessAsync(input.BranchId);
 
             if (input.Lines == null || !input.Lines.Any())
             {
@@ -65,7 +59,6 @@ namespace SmartPos.Orders
 
             var order = new CustomerOrder
             {
-                BranchId = input.BranchId,
                 CustomerId = input.CustomerId,
                 OrderDate = input.OrderDate,
                 Notes = input.Notes,
@@ -153,7 +146,6 @@ namespace SmartPos.Orders
 
             var sale = await _saleAppService.CreateAsync(new CreateSaleDto
             {
-                BranchId = order.BranchId,
                 CustomerId = order.CustomerId,
                 SaleDate = Abp.Timing.Clock.Now,
                 PaymentType = PaymentTypes.Credit,
@@ -194,7 +186,7 @@ namespace SmartPos.Orders
 
         protected override IQueryable<CustomerOrder> CreateFilteredQuery(PagedCustomerOrderResultRequestDto input)
         {
-            return Repository.GetAllIncluding(x => x.Customer, x => x.Branch, x => x.Sale, x => x.Lines)
+            return Repository.GetAllIncluding(x => x.Customer, x => x.Sale, x => x.Lines)
                 .WhereIf(input.Status.HasValue, x => x.Status == input.Status.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.OrderNo != null && x.OrderNo.Contains(input.Keyword))
@@ -206,7 +198,7 @@ namespace SmartPos.Orders
         protected override async Task<CustomerOrder> GetEntityByIdAsync(int id)
         {
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.Customer, x => x.Branch, x => x.Sale, x => x.Lines)
+                Repository.GetAllIncluding(x => x.Customer, x => x.Sale, x => x.Lines)
                     .Where(x => x.Id == id));
         }
 
@@ -231,8 +223,6 @@ namespace SmartPos.Orders
             var dto = new CustomerOrderDto
             {
                 Id = entity.Id,
-                BranchId = entity.BranchId,
-                BranchName = entity.Branch?.Name,
                 CustomerId = entity.CustomerId,
                 CustomerName = entity.Customer?.Name,
                 OrderDate = entity.OrderDate,

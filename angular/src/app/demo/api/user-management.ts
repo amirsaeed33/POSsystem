@@ -9,7 +9,6 @@ export interface UserDto {
     lastLoginTime?: string;
     creationTime: string;
     roleNames?: string[];
-    branchIds?: number[];
     profilePictureUrl?: string;
 }
 
@@ -20,7 +19,6 @@ export interface CreateUserDto {
     emailAddress: string;
     isActive: boolean;
     roleNames?: string[];
-    branchIds?: number[];
     password: string;
     profilePictureUrl?: string;
 }

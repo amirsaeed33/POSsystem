@@ -162,22 +162,6 @@
                     ></p-multiSelect>
                 </div>
 
-                <div class="field mb-3 col-12 md:col-6">
-                    <label for="dlgBranches" class="font-medium text-900">Branches</label>
-                    <p-multiSelect
-                        inputId="dlgBranches"
-                        [options]="branches"
-                        optionLabel="name"
-                        optionValue="id"
-                        [(ngModel)]="selectedBranchIds"
-                        [ngModelOptions]="{ standalone: true }"
-                        placeholder="Select Branches"
-                        [filter]="true"
-                        [showClear]="true"
-                        [disabled]="saving"
-                    ></p-multiSelect>
-                </div>
-
                 <div class="field mb-3 col-12">
                     <p-checkbox
                         formControlName="isActive"

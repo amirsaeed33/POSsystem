@@ -47,6 +47,8 @@ namespace SmartPos.Products
         /// </summary>
         public virtual decimal CostPrice { get; set; }
 
+        public virtual decimal StockQuantity { get; set; }
+
         /// <summary>
         /// Stock is considered low when quantity is greater than 0 and less than or equal to this limit.
         /// </summary>

@@ -12,7 +12,6 @@ using Abp.Runtime.Security;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
-using SmartPos.Branches;
 using SmartPos.Editions;
 using SmartPos.MultiTenancy.Dto;
 using Microsoft.AspNetCore.Identity;
@@ -27,8 +26,6 @@ namespace SmartPos.MultiTenancy
         private readonly UserManager _userManager;
         private readonly RoleManager _roleManager;
         private readonly IAbpZeroDbMigrator _abpZeroDbMigrator;
-        private readonly IRepository<Branch> _branchRepository;
-        private readonly IRepository<UserBranch> _userBranchRepository;
 
         public TenantAppService(
             IRepository<Tenant, int> repository,
@@ -36,9 +33,7 @@ namespace SmartPos.MultiTenancy
             EditionManager editionManager,
             UserManager userManager,
             RoleManager roleManager,
-            IAbpZeroDbMigrator abpZeroDbMigrator,
-            IRepository<Branch> branchRepository,
-            IRepository<UserBranch> userBranchRepository)
+            IAbpZeroDbMigrator abpZeroDbMigrator)
             : base(repository)
         {
             _tenantManager = tenantManager;
@@ -46,8 +41,6 @@ namespace SmartPos.MultiTenancy
             _userManager = userManager;
             _roleManager = roleManager;
             _abpZeroDbMigrator = abpZeroDbMigrator;
-            _branchRepository = branchRepository;
-            _userBranchRepository = userBranchRepository;
         }
 
         public override async Task<TenantDto> CreateAsync(CreateTenantDto input)
@@ -92,25 +85,6 @@ namespace SmartPos.MultiTenancy
 
                 // Assign admin user to role!
                 CheckErrors(await _userManager.AddToRoleAsync(adminUser, adminRole.Name));
-                await CurrentUnitOfWork.SaveChangesAsync();
-
-                var defaultBranch = new Branch
-                {
-                    TenantId = tenant.Id,
-                    Code = Branch.DefaultBranchCode,
-                    Name = Branch.DefaultBranchName,
-                    IsDefault = true,
-                    IsActive = true
-                };
-                await _branchRepository.InsertAsync(defaultBranch);
-                await CurrentUnitOfWork.SaveChangesAsync();
-
-                await _userBranchRepository.InsertAsync(new UserBranch
-                {
-                    TenantId = tenant.Id,
-                    UserId = adminUser.Id,
-                    BranchId = defaultBranch.Id
-                });
                 await CurrentUnitOfWork.SaveChangesAsync();
             }
 

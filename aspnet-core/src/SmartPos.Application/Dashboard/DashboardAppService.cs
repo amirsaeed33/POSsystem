@@ -30,7 +30,6 @@ namespace SmartPos.Dashboard
         private readonly IRepository<CustomerOrder> _customerOrderRepository;
         private readonly IRepository<StockAdjustment> _stockAdjustmentRepository;
         private readonly IRepository<CompanyProfile> _companyProfileRepository;
-        private readonly IBranchStockManager _branchStockManager;
 
         public DashboardAppService(
             IRepository<Product> productRepository,
@@ -39,8 +38,7 @@ namespace SmartPos.Dashboard
             IRepository<Expense> expenseRepository,
             IRepository<CustomerOrder> customerOrderRepository,
             IRepository<StockAdjustment> stockAdjustmentRepository,
-            IRepository<CompanyProfile> companyProfileRepository,
-            IBranchStockManager branchStockManager)
+            IRepository<CompanyProfile> companyProfileRepository)
         {
             _productRepository = productRepository;
             _saleRepository = saleRepository;
@@ -49,7 +47,6 @@ namespace SmartPos.Dashboard
             _customerOrderRepository = customerOrderRepository;
             _stockAdjustmentRepository = stockAdjustmentRepository;
             _companyProfileRepository = companyProfileRepository;
-            _branchStockManager = branchStockManager;
         }
 
         public async Task<DashboardDto> GetAsync()
@@ -58,11 +55,9 @@ namespace SmartPos.Dashboard
                 .AsNoTracking()
                 .ToListAsync();
 
-            var stockByProductId = await _branchStockManager.GetAggregatedQuantitiesAsync(products.Select(p => p.Id));
-
-            var inStock = products.Where(p => IsInStock(p, stockByProductId)).ToList();
-            var lowStock = products.Where(p => IsLowStock(p, stockByProductId)).ToList();
-            var outOfStock = products.Where(p => GetStockQuantity(p, stockByProductId) <= 0).ToList();
+            var inStock = products.Where(IsInStock).ToList();
+            var lowStock = products.Where(IsLowStock).ToList();
+            var outOfStock = products.Where(p => p.StockQuantity <= 0).ToList();
 
             var now = Clock.Now;
             var todayStart = now.Date;
@@ -166,11 +161,11 @@ namespace SmartPos.Dashboard
                     Sku = "PR-" + p.Id.ToString("D3"),
                     CategoryName = p.Category?.Name,
                     BrandName = p.Brand?.Name,
-                    Units = GetStockQuantity(p, stockByProductId),
+                    Units = p.StockQuantity,
                     Price = p.Price,
                     CostPrice = p.CostPrice,
                     ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
-                    Status = StatusOf(p, stockByProductId),
+                    Status = StatusOf(p),
                     ImagePath = p.ImagePath
                 })
                 .ToList();
@@ -192,8 +187,8 @@ namespace SmartPos.Dashboard
                 InStockCount = inStock.Count,
                 LowStockCount = lowStock.Count,
                 OutOfStockCount = outOfStock.Count,
-                InStockUnits = inStock.Sum(p => GetStockQuantity(p, stockByProductId)),
-                LowStockUnits = lowStock.Sum(p => GetStockQuantity(p, stockByProductId)),
+                InStockUnits = inStock.Sum(p => p.StockQuantity),
+                LowStockUnits = lowStock.Sum(p => p.StockQuantity),
                 LowStockThreshold = (int)DefaultAlertQuantityLimit,
                 TodaySales = todaySales,
                 TodayPurchases = todayPurchases,
@@ -511,27 +506,18 @@ namespace SmartPos.Dashboard
                 : DefaultAlertQuantityLimit;
         }
 
-        private static decimal GetStockQuantity(Product product, IReadOnlyDictionary<int, decimal> stockByProductId)
+        private static bool IsOutOfStock(Product product) => product.StockQuantity <= 0;
+
+        private static bool IsLowStock(Product product) =>
+            product.StockQuantity > 0 && product.StockQuantity <= EffectiveAlertLimit(product);
+
+        private static bool IsInStock(Product product) =>
+            product.StockQuantity > EffectiveAlertLimit(product);
+
+        private static string StatusOf(Product product)
         {
-            return stockByProductId.TryGetValue(product.Id, out var qty) ? qty : 0;
-        }
-
-        private static bool IsOutOfStock(Product product, IReadOnlyDictionary<int, decimal> stockByProductId) =>
-            GetStockQuantity(product, stockByProductId) <= 0;
-
-        private static bool IsLowStock(Product product, IReadOnlyDictionary<int, decimal> stockByProductId)
-        {
-            var stockQuantity = GetStockQuantity(product, stockByProductId);
-            return stockQuantity > 0 && stockQuantity <= EffectiveAlertLimit(product);
-        }
-
-        private static bool IsInStock(Product product, IReadOnlyDictionary<int, decimal> stockByProductId) =>
-            GetStockQuantity(product, stockByProductId) > EffectiveAlertLimit(product);
-
-        private static string StatusOf(Product product, IReadOnlyDictionary<int, decimal> stockByProductId)
-        {
-            if (IsOutOfStock(product, stockByProductId)) return "OutOfStock";
-            if (IsLowStock(product, stockByProductId)) return "LowStock";
+            if (IsOutOfStock(product)) return "OutOfStock";
+            if (IsLowStock(product)) return "LowStock";
             return "InStock";
         }
     }

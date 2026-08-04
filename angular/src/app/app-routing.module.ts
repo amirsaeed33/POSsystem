@@ -47,7 +47,6 @@ const routes: Routes = [
             { path: 'company-profiles', data: { breadcrumb: 'Company Profiles', permission: PermissionNames.CompanyProfiles }, loadChildren: () => import('./demo/components/company-profiles/company-profiles.module').then(m => m.CompanyProfilesModule) },
             { path: 'email-templates', data: { breadcrumb: 'Email Templates', permission: PermissionNames.EmailTemplates }, loadChildren: () => import('./demo/components/email-templates/email-templates.module').then(m => m.EmailTemplatesModule) },
             { path: 'tenants', data: { breadcrumb: 'Tenants', permission: PermissionNames.Tenants }, loadChildren: () => import('./demo/components/tenants/tenants.module').then(m => m.TenantsModule) },
-            { path: 'branches', data: { breadcrumb: 'Branches', permission: PermissionNames.Branches }, loadChildren: () => import('./demo/components/branches/branches.module').then(m => m.BranchesModule) },
             { path: 'reports', data: { breadcrumb: 'Reports', permission: PermissionNames.Reports }, loadChildren: () => import('./demo/components/reports/reports.module').then(m => m.ReportsModule) },
             { path: 'profile', data: { breadcrumb: 'User Management' }, loadChildren: () => import('./demo/components/profile/profile.module').then(m => m.ProfileModule) },
         ]

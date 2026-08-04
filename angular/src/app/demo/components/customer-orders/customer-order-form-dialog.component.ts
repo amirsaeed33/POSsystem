@@ -14,7 +14,6 @@ import {
 import { ProductDto } from 'src/app/demo/api/product';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
-import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { ProductService } from 'src/app/demo/service/product.service';
 import { CustomerService } from 'src/app/demo/service/customer.service';
 
@@ -50,7 +49,6 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
         private customerOrderService: CustomerOrderService,
         private productService: ProductService,
         private customerService: CustomerService,
-        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -239,23 +237,10 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
             }
         }
 
-        let branchId: number;
-        try {
-            branchId = this.branchContext.requireBranchId();
-        } catch (e: any) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Validation',
-                detail: e?.message || 'Please select a branch from the top navigation.',
-            });
-            return;
-        }
-
         this.saving = true;
         this.customerOrderService
             .create({
                 customerId: this.order.customerId,
-                branchId,
                 orderDate: this.order.orderDate,
                 notes: this.order.notes?.trim() || undefined,
                 lines,
@@ -295,7 +280,6 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
     private emptyOrder(): CreateCustomerOrderDto {
         return {
             customerId: null as any,
-            branchId: 0,
             orderDate: this.toDateInputValue(),
             notes: '',
             lines: [],

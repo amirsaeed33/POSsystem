@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Dashboard;
 using SmartPos.Expenses;
-using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Purchases;
 using SmartPos.Reports.Dto;
@@ -25,20 +24,17 @@ namespace SmartPos.Reports
         private readonly IRepository<Purchase> _purchaseRepository;
         private readonly IRepository<Expense> _expenseRepository;
         private readonly IRepository<Product> _productRepository;
-        private readonly IBranchStockManager _branchStockManager;
 
         public ReportAppService(
             IRepository<Sale> saleRepository,
             IRepository<Purchase> purchaseRepository,
             IRepository<Expense> expenseRepository,
-            IRepository<Product> productRepository,
-            IBranchStockManager branchStockManager)
+            IRepository<Product> productRepository)
         {
             _saleRepository = saleRepository;
             _purchaseRepository = purchaseRepository;
             _expenseRepository = expenseRepository;
             _productRepository = productRepository;
-            _branchStockManager = branchStockManager;
         }
 
         public async Task<SaleReportDto> GetSaleReportAsync(ReportDateRangeInput input)
@@ -157,39 +153,32 @@ namespace SmartPos.Reports
                 .OrderBy(x => x.Name)
                 .ToListAsync();
 
-            var stockByProductId = await _branchStockManager.GetAggregatedQuantitiesAsync(products.Select(p => p.Id));
-
             string StatusOf(Product p)
             {
-                var stockQuantity = stockByProductId.TryGetValue(p.Id, out var qty) ? qty : 0;
                 var limit = p.AlertQuantityLimit > 0
                     ? p.AlertQuantityLimit
                     : DashboardAppService.DefaultAlertQuantityLimit;
-                if (stockQuantity <= 0) return "OutOfStock";
-                if (stockQuantity <= limit) return "LowStock";
+                if (p.StockQuantity <= 0) return "OutOfStock";
+                if (p.StockQuantity <= limit) return "LowStock";
                 return "InStock";
             }
 
-            var items = products.Select(p =>
+            var items = products.Select(p => new StockReportRowDto
             {
-                var stockQuantity = stockByProductId.TryGetValue(p.Id, out var qty) ? qty : 0;
-                return new StockReportRowDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Barcode = p.Barcode,
-                    CategoryName = p.Category?.Name,
-                    BrandName = p.Brand?.Name,
-                    UnitName = p.Unit?.Name,
-                    Price = p.Price,
-                    CostPrice = p.CostPrice,
-                    ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
-                    ProfitMarginPercent = ProductPricing.ProfitMarginPercent(p.Price, p.CostPrice),
-                    StockProfit = ProductPricing.StockProfit(p.Price, p.CostPrice, stockQuantity),
-                    StockQuantity = stockQuantity,
-                    AlertQuantityLimit = p.AlertQuantityLimit,
-                    Status = StatusOf(p)
-                };
+                Id = p.Id,
+                Name = p.Name,
+                Barcode = p.Barcode,
+                CategoryName = p.Category?.Name,
+                BrandName = p.Brand?.Name,
+                UnitName = p.Unit?.Name,
+                Price = p.Price,
+                CostPrice = p.CostPrice,
+                ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
+                ProfitMarginPercent = ProductPricing.ProfitMarginPercent(p.Price, p.CostPrice),
+                StockProfit = ProductPricing.StockProfit(p.Price, p.CostPrice, p.StockQuantity),
+                StockQuantity = p.StockQuantity,
+                AlertQuantityLimit = p.AlertQuantityLimit,
+                Status = StatusOf(p)
             }).ToList();
 
             return new StockReportDto

@@ -37,8 +37,6 @@ namespace SmartPos.Users.Dto
 
         public string[] RoleNames { get; set; }
 
-        public int[] BranchIds { get; set; }
-
         [StringLength(User.MaxUserImageUrlLength)]
         public string UserImageUrl { get; set; }
 

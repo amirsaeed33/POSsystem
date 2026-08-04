@@ -9,7 +9,6 @@ using Abp.Linq.Extensions;
 using Abp.UI;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
-using SmartPos.Branches;
 using SmartPos.Expenses.Dto;
 
 namespace SmartPos.Expenses
@@ -20,27 +19,22 @@ namespace SmartPos.Expenses
         private readonly IRepository<BusinessAccount> _accountRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
         private readonly SystemAccountManager _systemAccountManager;
-        private readonly IBranchAccessChecker _branchAccessChecker;
 
         public ExpenseAppService(
             IRepository<Expense> repository,
             IRepository<BusinessAccount> accountRepository,
             IRepository<LedgerEntry> ledgerRepository,
-            SystemAccountManager systemAccountManager,
-            IBranchAccessChecker branchAccessChecker)
+            SystemAccountManager systemAccountManager)
             : base(repository)
         {
             _accountRepository = accountRepository;
             _ledgerRepository = ledgerRepository;
             _systemAccountManager = systemAccountManager;
-            _branchAccessChecker = branchAccessChecker;
         }
 
         public override async Task<ExpenseDto> CreateAsync(CreateExpenseDto input)
         {
             CheckCreatePermission();
-
-            await _branchAccessChecker.EnsureCanAccessAsync(input.BranchId);
 
             if (input.Amount <= 0)
             {
@@ -57,7 +51,6 @@ namespace SmartPos.Expenses
 
             var expense = new Expense
             {
-                BranchId = input.BranchId,
                 ExpenseDate = input.ExpenseDate,
                 Amount = input.Amount,
                 ReferenceNo = input.ReferenceNo,
@@ -119,7 +112,7 @@ namespace SmartPos.Expenses
 
         protected override IQueryable<Expense> CreateFilteredQuery(PagedExpenseResultRequestDto input)
         {
-            return Repository.GetAllIncluding(x => x.PaymentAccount, x => x.ExpenseAccount, x => x.Branch)
+            return Repository.GetAllIncluding(x => x.PaymentAccount, x => x.ExpenseAccount)
                 .WhereIf(input.PaymentAccountId.HasValue, x => x.PaymentAccountId == input.PaymentAccountId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.Description != null && x.Description.Contains(input.Keyword))
@@ -130,14 +123,13 @@ namespace SmartPos.Expenses
         protected override async Task<Expense> GetEntityByIdAsync(int id)
         {
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.PaymentAccount, x => x.ExpenseAccount, x => x.Branch)
+                Repository.GetAllIncluding(x => x.PaymentAccount, x => x.ExpenseAccount)
                     .Where(x => x.Id == id));
         }
 
         protected override ExpenseDto MapToEntityDto(Expense entity)
         {
             var dto = base.MapToEntityDto(entity);
-            dto.BranchName = entity.Branch?.Name;
             dto.PaymentAccountName = entity.PaymentAccount?.Name;
             dto.ExpenseAccountName = entity.ExpenseAccount?.Name;
             return dto;

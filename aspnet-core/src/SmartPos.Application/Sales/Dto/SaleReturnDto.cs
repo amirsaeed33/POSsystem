@@ -6,10 +6,6 @@ namespace SmartPos.Sales.Dto
 {
     public class SaleReturnDto : EntityDto
     {
-        public int BranchId { get; set; }
-
-        public string BranchName { get; set; }
-
         public int SaleId { get; set; }
 
         public string SaleInvoiceNo { get; set; }

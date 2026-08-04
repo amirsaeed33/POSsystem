@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
-using SmartPos.Branches;
 using SmartPos.Suppliers;
 
 namespace SmartPos.Purchases
@@ -16,12 +15,6 @@ namespace SmartPos.Purchases
         public const int MaxNotesLength = 512;
 
         public virtual int? TenantId { get; set; }
-
-        [Required]
-        public virtual int BranchId { get; set; }
-
-        [ForeignKey(nameof(BranchId))]
-        public virtual Branch Branch { get; set; }
 
         [Required]
         public virtual int SupplierId { get; set; }

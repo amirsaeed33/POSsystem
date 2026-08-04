@@ -6,10 +6,6 @@ namespace SmartPos.Purchases.Dto
 {
     public class PurchaseReturnDto : EntityDto
     {
-        public int BranchId { get; set; }
-
-        public string BranchName { get; set; }
-
         public int PurchaseId { get; set; }
 
         public string PurchaseInvoiceNo { get; set; }

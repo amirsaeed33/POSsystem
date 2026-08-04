@@ -14,10 +14,6 @@ import { RoleDto } from 'src/app/demo/api/role-management';
 import { PermissionDto } from 'src/app/demo/api/role-management';
 import { RoleService } from 'src/app/demo/service/role.service';
 import { UserService } from 'src/app/demo/service/user.service';
-import { BranchService } from 'src/app/demo/service/branch.service';
-import { PermissionService } from 'src/app/demo/service/permission.service';
-import { BranchDto } from 'src/app/demo/api/branch';
-import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -33,8 +29,6 @@ export class UserFormDialogComponent implements OnChanges {
     userForm: FormGroup;
     roles: RoleDto[] = [];
     selectedRoles: string[] = [];
-    branches: BranchDto[] = [];
-    selectedBranchIds: number[] = [];
     permissions: PermissionDto[] = [];
     permissionGroups: { [key: string]: PermissionDto[] } = {};
     selectedUserPermissions: string[] = [];
@@ -50,8 +44,6 @@ export class UserFormDialogComponent implements OnChanges {
         private fb: FormBuilder,
         private userService: UserService,
         private roleService: RoleService,
-        private branchService: BranchService,
-        private permissionService: PermissionService,
         private messageService: MessageService
     ) {
         this.userForm = this.fb.group({
@@ -78,7 +70,6 @@ export class UserFormDialogComponent implements OnChanges {
         if (changes['visible'] && this.visible) {
             this.resetForm();
             this.loadRoles();
-            this.loadBranches();
             this.loadAllPermissions();
             if (this.userId) {
                 this.loadUser(this.userId);
@@ -120,7 +111,6 @@ export class UserFormDialogComponent implements OnChanges {
         this.saving = true;
         const formValue: any = { ...this.userForm.value };
         formValue.roleNames = this.selectedRoles;
-        formValue.branchIds = this.selectedBranchIds;
         delete formValue.profilePictureUrl;
 
         if (
@@ -268,7 +258,6 @@ export class UserFormDialogComponent implements OnChanges {
         this.userForm.get('password')?.clearValidators();
         this.userForm.get('password')?.updateValueAndValidity();
         this.selectedRoles = [];
-        this.selectedBranchIds = [];
         this.selectedUserPermissions = [];
         this.profilePictureUrl = null;
         this.profilePictureChanged = false;
@@ -278,34 +267,6 @@ export class UserFormDialogComponent implements OnChanges {
         if (this.fileInput) {
             this.fileInput.nativeElement.value = '';
         }
-    }
-
-    private loadBranches(): void {
-        const loadAll = this.permissionService.isGranted(PermissionNames.Branches);
-        const request = loadAll
-            ? this.branchService
-                  .getAll({ maxResultCount: 1000, isActive: true })
-                  .then((result) => result.items || [])
-            : this.branchService.getLookup();
-
-        request
-            .then((branches) => {
-                this.branches = branches || [];
-            })
-            .catch(() =>
-                this.branchService
-                    .getLookup()
-                    .then((branches) => {
-                        this.branches = branches || [];
-                    })
-                    .catch(() => {
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: 'Error',
-                            detail: 'Failed to load branches',
-                        });
-                    })
-            );
     }
 
     private loadRoles(): void {
@@ -437,8 +398,6 @@ export class UserFormDialogComponent implements OnChanges {
                 } else {
                     this.selectedRoles = [];
                 }
-
-                this.selectedBranchIds = user.branchIds || [];
 
                 return this.userService.getUserPermissions(id);
             })

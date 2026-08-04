@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
-using SmartPos.Branches;
 
 namespace SmartPos.Inventory
 {
@@ -15,12 +14,6 @@ namespace SmartPos.Inventory
         public const int MaxReferenceNoLength = 64;
 
         public virtual int? TenantId { get; set; }
-
-        [Required]
-        public virtual int BranchId { get; set; }
-
-        [ForeignKey(nameof(BranchId))]
-        public virtual Branch Branch { get; set; }
 
         public virtual DateTime AdjustmentDate { get; set; }
 

@@ -8,9 +8,6 @@ namespace SmartPos.Sales.Dto
     public class CreateSaleDto
     {
         [Required]
-        public int BranchId { get; set; }
-
-        [Required]
         public int CustomerId { get; set; }
 
         public DateTime SaleDate { get; set; }

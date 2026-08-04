@@ -1,25 +1,22 @@
 import {
     Component,
     ElementRef,
-    OnDestroy,
     OnInit,
     ViewChild,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
-import { Subscription } from 'rxjs';
 import { PosCartLine } from 'src/app/demo/api/pos';
 import { CreateSaleDto, PaymentType } from 'src/app/demo/api/sale';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { ProductDto } from 'src/app/demo/api/product';
 import { SaleService } from 'src/app/demo/service/sale.service';
-import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 
 @Component({
     templateUrl: './pos.component.html',
     styleUrls: ['./pos.component.scss'],
     providers: [MessageService],
 })
-export class PosComponent implements OnInit, OnDestroy {
+export class PosComponent implements OnInit {
     @ViewChild('barcodeInput') barcodeInput?: ElementRef<HTMLInputElement>;
 
     saving = false;
@@ -46,11 +43,9 @@ export class PosComponent implements OnInit, OnDestroy {
     ];
 
     private searchTimer: ReturnType<typeof setTimeout> | null = null;
-    private branchChangeSub?: Subscription;
 
     constructor(
         private saleService: SaleService,
-        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -123,15 +118,6 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.branchChangeSub = this.branchContext.changed$.subscribe(() => {
-            this.suggestions = [];
-            this.clearCart();
-            const q = (this.searchText || '').trim();
-            if (q) {
-                this.loadSuggestions(q);
-            }
-        });
-
         this.saleService
             .getPosCustomers()
             .then((customers) => {
@@ -153,10 +139,6 @@ export class PosComponent implements OnInit, OnDestroy {
                     detail: error?.message || 'Failed to load customers',
                 });
             });
-    }
-
-    ngOnDestroy(): void {
-        this.branchChangeSub?.unsubscribe();
     }
 
     focusSearch(): void {
@@ -355,10 +337,9 @@ export class PosComponent implements OnInit, OnDestroy {
         return !!this.customerId && this.cart.length > 0 && !this.saving;
     }
 
-    buildSaleDto(branchId: number): CreateSaleDto {
+    buildSaleDto(): CreateSaleDto {
         return {
             customerId: this.customerId as number,
-            branchId,
             saleDate: this.toDateInputValue(),
             notes: this.notes?.trim() || undefined,
             discountAmount: this.discountAmount || 0,
@@ -410,21 +391,9 @@ export class PosComponent implements OnInit, OnDestroy {
             }
         }
 
-        let branchId: number;
-        try {
-            branchId = this.branchContext.requireBranchId();
-        } catch (e: any) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Validation',
-                detail: e?.message || 'Please select a branch from the top navigation.',
-            });
-            return;
-        }
-
         this.saving = true;
         this.saleService
-            .create(this.buildSaleDto(branchId))
+            .create(this.buildSaleDto())
             .then(() => {
                 this.messageService.add({
                     severity: 'success',

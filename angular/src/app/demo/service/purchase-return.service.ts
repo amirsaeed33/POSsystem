@@ -76,7 +76,6 @@ export class PurchaseReturnService {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 purchaseId: input.purchaseId,
-                branchId: input.branchId,
                 returnDate: this.toApiDate(input.returnDate),
                 notes: input.notes,
                 lines: (input.lines || []).map((line) => ({
@@ -139,8 +138,6 @@ export class PurchaseReturnService {
             purchaseInvoiceNo:
                 item.purchaseInvoiceNo ?? item.PurchaseInvoiceNo,
             supplierName: item.supplierName ?? item.SupplierName,
-            branchId: item.branchId ?? item.BranchId,
-            branchName: item.branchName ?? item.BranchName,
             returnDate: item.returnDate ?? item.ReturnDate,
             totalAmount: item.totalAmount ?? item.TotalAmount ?? 0,
             notes: item.notes ?? item.Notes,
