@@ -10,6 +10,7 @@ namespace SmartPos.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Separate Sql() calls so SQL Server recompiles after ALTER TABLE ADD Column.
             migrationBuilder.Sql(@"
 IF NOT EXISTS (SELECT 1 FROM AppBranches WHERE TenantId IS NULL AND Code = N'MAIN' AND IsDeleted = 0)
     INSERT INTO AppBranches (TenantId, Name, Code, IsActive, IsDefault, CreationTime, IsDeleted)
@@ -28,7 +29,9 @@ WHERE p.IsDeleted = 0
       SELECT 1 FROM AppBranches b
       WHERE b.TenantId = p.TenantId AND b.Code = N'MAIN' AND b.IsDeleted = 0
   );
+");
 
+            migrationBuilder.Sql(@"
 IF COL_LENGTH('AppSales', 'BranchId') IS NULL
     ALTER TABLE AppSales ADD BranchId int NULL;
 IF COL_LENGTH('AppPurchases', 'BranchId') IS NULL
@@ -43,7 +46,9 @@ IF COL_LENGTH('AppCustomerOrders', 'BranchId') IS NULL
     ALTER TABLE AppCustomerOrders ADD BranchId int NULL;
 IF COL_LENGTH('AppExpenses', 'BranchId') IS NULL
     ALTER TABLE AppExpenses ADD BranchId int NULL;
+");
 
+            migrationBuilder.Sql(@"
 UPDATE s SET s.BranchId = b.Id
 FROM AppSales s
 INNER JOIN AppBranches b ON ((b.TenantId = s.TenantId) OR (b.TenantId IS NULL AND s.TenantId IS NULL))
@@ -117,8 +122,9 @@ IF EXISTS (SELECT 1 FROM AppCustomerOrders WHERE BranchId IS NULL)
     THROW 50001, 'AppCustomerOrders.BranchId backfill failed', 1;
 IF EXISTS (SELECT 1 FROM AppExpenses WHERE BranchId IS NULL)
     THROW 50001, 'AppExpenses.BranchId backfill failed', 1;
+");
 
--- Drop indexes/FKs temporarily so nullable columns can become NOT NULL
+            migrationBuilder.Sql(@"
 IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_AppSales_AppBranches_BranchId')
     ALTER TABLE AppSales DROP CONSTRAINT FK_AppSales_AppBranches_BranchId;
 IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_AppPurchases_AppBranches_BranchId')
@@ -177,14 +183,23 @@ IF EXISTS (
     SELECT 1 FROM sys.columns
     WHERE object_id = OBJECT_ID(N'AppExpenses') AND name = 'BranchId' AND is_nullable = 1)
     ALTER TABLE AppExpenses ALTER COLUMN BranchId int NOT NULL;
+");
 
-CREATE INDEX IX_AppSales_BranchId ON AppSales (BranchId);
-CREATE INDEX IX_AppPurchases_BranchId ON AppPurchases (BranchId);
-CREATE INDEX IX_AppSaleReturns_BranchId ON AppSaleReturns (BranchId);
-CREATE INDEX IX_AppPurchaseReturns_BranchId ON AppPurchaseReturns (BranchId);
-CREATE INDEX IX_AppStockAdjustments_BranchId ON AppStockAdjustments (BranchId);
-CREATE INDEX IX_AppCustomerOrders_BranchId ON AppCustomerOrders (BranchId);
-CREATE INDEX IX_AppExpenses_BranchId ON AppExpenses (BranchId);
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AppSales_BranchId' AND object_id = OBJECT_ID(N'AppSales'))
+    CREATE INDEX IX_AppSales_BranchId ON AppSales (BranchId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AppPurchases_BranchId' AND object_id = OBJECT_ID(N'AppPurchases'))
+    CREATE INDEX IX_AppPurchases_BranchId ON AppPurchases (BranchId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AppSaleReturns_BranchId' AND object_id = OBJECT_ID(N'AppSaleReturns'))
+    CREATE INDEX IX_AppSaleReturns_BranchId ON AppSaleReturns (BranchId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AppPurchaseReturns_BranchId' AND object_id = OBJECT_ID(N'AppPurchaseReturns'))
+    CREATE INDEX IX_AppPurchaseReturns_BranchId ON AppPurchaseReturns (BranchId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AppStockAdjustments_BranchId' AND object_id = OBJECT_ID(N'AppStockAdjustments'))
+    CREATE INDEX IX_AppStockAdjustments_BranchId ON AppStockAdjustments (BranchId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AppCustomerOrders_BranchId' AND object_id = OBJECT_ID(N'AppCustomerOrders'))
+    CREATE INDEX IX_AppCustomerOrders_BranchId ON AppCustomerOrders (BranchId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AppExpenses_BranchId' AND object_id = OBJECT_ID(N'AppExpenses'))
+    CREATE INDEX IX_AppExpenses_BranchId ON AppExpenses (BranchId);
 
 IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_AppSales_AppBranches_BranchId')
     ALTER TABLE AppSales ADD CONSTRAINT FK_AppSales_AppBranches_BranchId
@@ -243,7 +258,9 @@ IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AppCustomerOrders_BranchI
     DROP INDEX IX_AppCustomerOrders_BranchId ON AppCustomerOrders;
 IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_AppExpenses_BranchId' AND object_id = OBJECT_ID(N'AppExpenses'))
     DROP INDEX IX_AppExpenses_BranchId ON AppExpenses;
+");
 
+            migrationBuilder.Sql(@"
 IF COL_LENGTH('AppSales', 'BranchId') IS NOT NULL ALTER TABLE AppSales DROP COLUMN BranchId;
 IF COL_LENGTH('AppPurchases', 'BranchId') IS NOT NULL ALTER TABLE AppPurchases DROP COLUMN BranchId;
 IF COL_LENGTH('AppSaleReturns', 'BranchId') IS NOT NULL ALTER TABLE AppSaleReturns DROP COLUMN BranchId;
