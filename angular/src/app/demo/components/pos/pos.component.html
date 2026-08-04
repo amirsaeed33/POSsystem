@@ -220,22 +220,18 @@
                 </div>
 
                 <div class="field">
-                    <label>Payment Type</label>
-                    <div class="pos-payment-grid">
-                        <button
-                            *ngFor="let pt of paymentTypes"
-                            pButton
-                            pRipple
-                            type="button"
-                            [label]="pt.label"
-                            [class]="
-                                paymentType === pt.value
-                                    ? 'p-button'
-                                    : 'p-button-outlined p-button-secondary'
-                            "
-                            (click)="setPaymentType(pt.value)"
-                        ></button>
-                    </div>
+                    <label for="paymentType">Payment Type</label>
+                    <p-dropdown
+                        inputId="paymentType"
+                        [options]="paymentTypes"
+                        [(ngModel)]="paymentType"
+                        (ngModelChange)="onPaymentTypeChange()"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Select payment type"
+                        styleClass="w-full"
+                        appendTo="body"
+                    ></p-dropdown>
                 </div>
 
                 <div *ngIf="isMixedPayment" class="grid formgrid p-fluid">
@@ -294,20 +290,19 @@
                             styleClass="w-full"
                         ></p-inputNumber>
                     </div>
-                </div>
-
-                <div class="field">
-                    <label for="taxPercent">Tax %</label>
-                    <p-inputNumber
-                        inputId="taxPercent"
-                        [(ngModel)]="taxPercent"
-                        [min]="0"
-                        [max]="100"
-                        [minFractionDigits]="0"
-                        [maxFractionDigits]="2"
-                        [showButtons]="false"
-                        styleClass="w-full"
-                    ></p-inputNumber>
+                    <div class="field col-6">
+                        <label for="taxPercent">Tax %</label>
+                        <p-inputNumber
+                            inputId="taxPercent"
+                            [(ngModel)]="taxPercent"
+                            [min]="0"
+                            [max]="100"
+                            [minFractionDigits]="0"
+                            [maxFractionDigits]="2"
+                            [showButtons]="false"
+                            styleClass="w-full"
+                        ></p-inputNumber>
+                    </div>
                 </div>
 
                 <div class="field">

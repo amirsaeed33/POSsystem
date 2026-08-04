@@ -171,11 +171,6 @@ export class PosComponent implements OnInit {
         }
     }
 
-    setPaymentType(type: number): void {
-        this.paymentType = type;
-        this.onPaymentTypeChange();
-    }
-
     onSearchEnter(): void {
         const code = (this.searchText || '').trim();
         if (!code || this.scanning || this.saving) {

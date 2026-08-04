@@ -62,18 +62,6 @@
     font-size: 0.85rem;
 }
 
-.pos-payment-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-
-    .p-button {
-        min-height: 2.75rem;
-        white-space: normal;
-        line-height: 1.2;
-    }
-}
-
 .pos-totals {
     background: var(--surface-100);
     border-radius: var(--border-radius);
