@@ -10,6 +10,7 @@ export const PermissionNames = {
     Units: 'Pages.Units',
     Products: 'Pages.Products',
     Customers: 'Pages.Customers',
+    Staff: 'Pages.Staff',
     Suppliers: 'Pages.Suppliers',
     Accounts: 'Pages.Accounts',
     LedgerEntries: 'Pages.LedgerEntries',

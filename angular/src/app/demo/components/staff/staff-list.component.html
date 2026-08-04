@@ -1,0 +1,137 @@
+<div class="card">
+    <p-table
+        #dt
+        [value]="staffList"
+        [paginator]="true"
+        [rows]="10"
+        [showCurrentPageReport]="true"
+        responsiveLayout="scroll"
+        [loading]="loading"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['name', 'employeeCode', 'phone', 'email', 'designation', 'branchName']"
+    >
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-20rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search staff"
+                            [(ngModel)]="keyword"
+                            (keyup.enter)="onSearch()"
+                            (input)="onGlobalFilter(dt, $event)"
+                        />
+                    </span>
+                    <p-dropdown
+                        [options]="statusOptions"
+                        [(ngModel)]="statusFilter"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Status"
+                        styleClass="w-10rem"
+                        (onChange)="onSearch()"
+                    ></p-dropdown>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="onSearch()"
+                    ></button>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-plus"
+                    label="Create"
+                    class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
+                    (click)="openCreateDialog()"
+                ></button>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+                <th pSortableColumn="employeeCode">Code <p-sortIcon field="employeeCode"></p-sortIcon></th>
+                <th pSortableColumn="phone">Phone <p-sortIcon field="phone"></p-sortIcon></th>
+                <th pSortableColumn="email">Email <p-sortIcon field="email"></p-sortIcon></th>
+                <th pSortableColumn="designation">Designation <p-sortIcon field="designation"></p-sortIcon></th>
+                <th pSortableColumn="joiningDate">Joining Date <p-sortIcon field="joiningDate"></p-sortIcon></th>
+                <th pSortableColumn="basicSalary">Salary <p-sortIcon field="basicSalary"></p-sortIcon></th>
+                <th pSortableColumn="branchName">Branch <p-sortIcon field="branchName"></p-sortIcon></th>
+                <th pSortableColumn="isActive">Status <p-sortIcon field="isActive"></p-sortIcon></th>
+                <th style="width: 8rem">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-staff>
+            <tr>
+                <td>{{ staff.name }}</td>
+                <td>{{ staff.employeeCode || '—' }}</td>
+                <td>{{ staff.phone || '—' }}</td>
+                <td>{{ staff.email || '—' }}</td>
+                <td>{{ staff.designation || '—' }}</td>
+                <td>{{ formatDate(staff.joiningDate) }}</td>
+                <td>{{ staff.basicSalary != null ? staff.basicSalary : '—' }}</td>
+                <td>{{ staff.branchName || '—' }}</td>
+                <td>
+                    <span
+                        class="p-tag"
+                        [ngClass]="staff.isActive ? 'p-tag-success' : 'p-tag-secondary'"
+                    >
+                        {{ staff.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                </td>
+                <td>
+                    <div class="flex gap-2">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-pencil"
+                            class="p-button-text p-button-sm"
+                            pTooltip="Edit"
+                            tooltipPosition="top"
+                            (click)="openEditDialog(staff)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-trash"
+                            class="p-button-text p-button-danger p-button-sm"
+                            pTooltip="Delete"
+                            tooltipPosition="top"
+                            (click)="onDelete(staff)"
+                        ></button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="10" class="text-center p-4">
+                    <div class="text-500">No staff found</div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <app-staff-form-dialog
+        [(visible)]="dialogVisible"
+        [staffId]="editingStaffId"
+        (saved)="onDialogSaved()"
+    ></app-staff-form-dialog>
+
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+</div>

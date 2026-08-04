@@ -166,6 +166,10 @@
     <text name="CreateNewCustomer" value="Create new customer" />
     <text name="EditCustomer" value="Edit customer" />
     <text name="CustomerDeleteWarningMessage" value="Customer {0} will be deleted." />
+    <text name="Staff" value="Staff" />
+    <text name="CreateNewStaff" value="Create new staff" />
+    <text name="EditStaff" value="Edit staff" />
+    <text name="StaffDeleteWarningMessage" value="Staff {0} will be deleted." />
     <text name="Suppliers" value="Suppliers" />
     <text name="CreateNewSupplier" value="Create new supplier" />
     <text name="EditSupplier" value="Edit supplier" />

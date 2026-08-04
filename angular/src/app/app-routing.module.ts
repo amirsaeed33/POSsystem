@@ -33,6 +33,7 @@ const routes: Routes = [
                     ),
             },
             { path: 'customers', data: { breadcrumb: 'Customers', permission: PermissionNames.Customers }, loadChildren: () => import('./demo/components/customers/customers.module').then(m => m.CustomersModule) },
+            { path: 'staff', data: { breadcrumb: 'Staff', permission: PermissionNames.Staff }, loadChildren: () => import('./demo/components/staff/staff.module').then(m => m.StaffModule) },
             { path: 'suppliers', data: { breadcrumb: 'Suppliers', permission: PermissionNames.Suppliers }, loadChildren: () => import('./demo/components/suppliers/suppliers.module').then(m => m.SuppliersModule) },
             { path: 'products', data: { breadcrumb: 'Products', permission: PermissionNames.Products }, loadChildren: () => import('./demo/components/products/products.module').then(m => m.ProductsModule) },
             { path: 'customer-orders', data: { breadcrumb: 'Customer Orders', permission: PermissionNames.CustomerOrders }, loadChildren: () => import('./demo/components/customer-orders/customer-orders.module').then(m => m.CustomerOrdersModule) },

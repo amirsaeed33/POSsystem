@@ -90,6 +90,7 @@ export class AppMenuComponent implements OnInit {
                 icon: 'pi pi-cog',
                 items: [
                     { label: 'Users', icon: 'pi pi-user', routerLink: ['/profile/list'], permission: PermissionNames.Users },
+                    { label: 'Staff', icon: 'pi pi-id-card', routerLink: ['/staff'], permission: PermissionNames.Staff },
                     { label: 'Roles', icon: 'pi pi-lock', routerLink: ['/profile/role'], permission: PermissionNames.Roles },
                     { label: 'Branches', icon: 'pi pi-sitemap', routerLink: ['/branches'], permission: PermissionNames.Branches },
                     { label: 'Email Templates', icon: 'pi pi-envelope', routerLink: ['/email-templates'], permission: PermissionNames.EmailTemplates },

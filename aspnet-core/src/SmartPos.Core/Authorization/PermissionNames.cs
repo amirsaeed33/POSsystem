@@ -23,6 +23,8 @@
 
         public const string Pages_Customers = "Pages.Customers";
 
+        public const string Pages_Staff = "Pages.Staff";
+
         public const string Pages_Suppliers = "Pages.Suppliers";
 
         public const string Pages_Accounts = "Pages.Accounts";

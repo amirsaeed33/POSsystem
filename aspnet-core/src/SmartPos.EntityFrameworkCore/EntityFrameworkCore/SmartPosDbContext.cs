@@ -16,6 +16,7 @@ using SmartPos.Orders;
 using SmartPos.Products;
 using SmartPos.Purchases;
 using SmartPos.Sales;
+using SmartPos.Staffs;
 using SmartPos.Suppliers;
 using SmartPos.Units;
 
@@ -40,6 +41,8 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<Product> Products { get; set; }
 
         public virtual DbSet<Customer> Customers { get; set; }
+
+        public virtual DbSet<Staff> Staff { get; set; }
 
         public virtual DbSet<Supplier> Suppliers { get; set; }
 
@@ -157,6 +160,16 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasOne(x => x.Account)
                     .WithMany()
                     .HasForeignKey(x => x.AccountId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Staff>(b =>
+            {
+                b.Property(x => x.BasicSalary).HasPrecision(18, 2);
+                b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
