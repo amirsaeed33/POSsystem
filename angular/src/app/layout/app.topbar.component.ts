@@ -6,7 +6,9 @@ import { AuthService } from 'src/app/demo/service/auth.service';
 import { SessionService } from 'src/app/demo/service/session.service';
 import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
 import { LocalizationService } from 'src/app/demo/service/localization.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { LanguageInfo } from 'src/app/demo/api/localization';
+import { BranchDto } from 'src/app/demo/api/branch';
 import { UserLoginInfoDto } from 'src/app/demo/api/session';
 import { environment } from 'src/environments/environment';
 
@@ -32,12 +34,17 @@ export class AppTopBarComponent implements OnInit {
     currentLanguage: LanguageInfo | null = null;
     changingLanguage = false;
 
+    branches: BranchDto[] = [];
+    currentBranch: BranchDto | null = null;
+    changingBranch = false;
+
     constructor(
         public layoutService: LayoutService,
         private authService: AuthService,
         private sessionService: SessionService,
         private tenantContext: TenantContextService,
         private localizationService: LocalizationService,
+        private branchContext: BranchContextService,
         private messageService: MessageService,
         private router: Router
     ) {}
@@ -104,12 +111,43 @@ export class AppTopBarComponent implements OnInit {
                         this.setUserInfo(sessionInfo.user);
                     }
                 }
+
+                return this.branchContext.ensureLoaded(
+                    sessionInfo?.user?.branchId ?? null
+                );
+            })
+            .then((branches) => {
+                this.branches = branches || this.branchContext.getAllowedBranches();
+                this.currentBranch = this.branchContext.getCurrentBranch();
             })
             .catch(() => {
                 if (!this.userInfo && cachedUserInfo) {
                     this.setUserInfo(cachedUserInfo);
                 }
             });
+    }
+
+    onChangeBranch(branch: BranchDto): void {
+        if (
+            !branch?.id ||
+            branch.id === this.currentBranch?.id ||
+            this.changingBranch
+        ) {
+            return;
+        }
+
+        this.changingBranch = true;
+        this.branchContext.setCurrentBranch(branch);
+        this.currentBranch = branch;
+        this.changingBranch = false;
+
+        // Remount the current routed screen so branch-scoped data reloads.
+        // Always bounce through a different route: same-URL navigations are
+        // ignored by the router (including when already on '/').
+        const url = this.router.url;
+        this.router
+            .navigateByUrl('/notfound', { skipLocationChange: true })
+            .then(() => this.router.navigateByUrl(url));
     }
 
     setUserInfo(user: UserLoginInfoDto): void {
@@ -222,6 +260,7 @@ export class AppTopBarComponent implements OnInit {
     }
 
     onSignOut(): void {
+        this.branchContext.clear();
         this.authService.logout();
         this.router.navigate(['/auth/login']);
     }

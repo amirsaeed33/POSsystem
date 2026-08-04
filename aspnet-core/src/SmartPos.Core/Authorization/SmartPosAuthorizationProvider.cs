@@ -14,6 +14,7 @@ namespace SmartPos.Authorization
             context.CreatePermission(PermissionNames.Pages_Categories, L("Categories"));
             context.CreatePermission(PermissionNames.Pages_Brands, L("Brands"));
             context.CreatePermission(PermissionNames.Pages_CompanyProfiles, L("CompanyProfiles"));
+            context.CreatePermission(PermissionNames.Pages_Branches, L("Branches"));
             context.CreatePermission(PermissionNames.Pages_Units, L("Units"));
             context.CreatePermission(PermissionNames.Pages_Products, L("Products"));
             context.CreatePermission(PermissionNames.Pages_Customers, L("Customers"));

@@ -12,6 +12,7 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { TenantContextService } from './tenant-context.service';
 import { LocalizationService } from './localization.service';
+import { BranchContextService } from './branch-context.service';
 import { environment } from '../../../environments/environment';
 
 @Injectable()
@@ -20,6 +21,7 @@ export class AuthInterceptor implements HttpInterceptor {
         private authService: AuthService,
         private tenantContext: TenantContextService,
         private localizationService: LocalizationService,
+        private branchContext: BranchContextService,
         private router: Router
     ) {}
 
@@ -43,6 +45,11 @@ export class AuthInterceptor implements HttpInterceptor {
             const tenantId = this.tenantContext.getTenantId();
             if (tenantId != null) {
                 headers['Abp.TenantId'] = String(tenantId);
+            }
+
+            const branchId = this.branchContext.getBranchId();
+            if (branchId != null) {
+                headers['SmartPos.BranchId'] = String(branchId);
             }
 
             request = req.clone({ setHeaders: headers });

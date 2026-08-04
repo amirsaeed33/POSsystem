@@ -12,8 +12,10 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { RoleDto } from 'src/app/demo/api/role-management';
 import { PermissionDto } from 'src/app/demo/api/role-management';
+import { BranchDto } from 'src/app/demo/api/branch';
 import { RoleService } from 'src/app/demo/service/role.service';
 import { UserService } from 'src/app/demo/service/user.service';
+import { BranchService } from 'src/app/demo/service/branch.service';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -28,6 +30,7 @@ export class UserFormDialogComponent implements OnChanges {
 
     userForm: FormGroup;
     roles: RoleDto[] = [];
+    branches: BranchDto[] = [];
     selectedRoles: string[] = [];
     permissions: PermissionDto[] = [];
     permissionGroups: { [key: string]: PermissionDto[] } = {};
@@ -44,6 +47,7 @@ export class UserFormDialogComponent implements OnChanges {
         private fb: FormBuilder,
         private userService: UserService,
         private roleService: RoleService,
+        private branchService: BranchService,
         private messageService: MessageService
     ) {
         this.userForm = this.fb.group({
@@ -53,6 +57,7 @@ export class UserFormDialogComponent implements OnChanges {
             emailAddress: ['', [Validators.required, Validators.email]],
             password: [''],
             isActive: [true],
+            branchId: [null],
             roleNames: [[]],
             profilePictureUrl: [''],
         });
@@ -70,6 +75,7 @@ export class UserFormDialogComponent implements OnChanges {
         if (changes['visible'] && this.visible) {
             this.resetForm();
             this.loadRoles();
+            this.loadBranches();
             this.loadAllPermissions();
             if (this.userId) {
                 this.loadUser(this.userId);
@@ -252,6 +258,7 @@ export class UserFormDialogComponent implements OnChanges {
             emailAddress: '',
             password: '',
             isActive: true,
+            branchId: null,
             roleNames: [],
             profilePictureUrl: '',
         });
@@ -281,6 +288,24 @@ export class UserFormDialogComponent implements OnChanges {
                     summary: 'Error',
                     detail: 'Failed to load roles',
                 });
+            });
+    }
+
+    private loadBranches(): void {
+        this.branchService
+            .getAll({ maxResultCount: 1000 })
+            .then((result) => {
+                this.branches = (result.items || []).filter((b) => b.isActive);
+            })
+            .catch(() => {
+                this.branchService
+                    .getLookup()
+                    .then((items) => {
+                        this.branches = items || [];
+                    })
+                    .catch(() => {
+                        this.branches = [];
+                    });
             });
     }
 
@@ -351,6 +376,7 @@ export class UserFormDialogComponent implements OnChanges {
                     surname: user.surname,
                     emailAddress: user.emailAddress,
                     isActive: user.isActive,
+                    branchId: user.branchId ?? null,
                     roleNames: user.roleNames || [],
                     profilePictureUrl: user.profilePictureUrl || '',
                     password: '',

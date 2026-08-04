@@ -377,7 +377,12 @@ export class UserService {
                 item.ProfilePictureUrl ||
                 item.userImageUrl ||
                 item.UserImageUrl ||
-                null
+                null,
+            branchId:
+                item.branchId != null || item.BranchId != null
+                    ? Number(item.branchId ?? item.BranchId)
+                    : null,
+            branchName: item.branchName || item.BranchName,
         };
     }
 
@@ -390,6 +395,10 @@ export class UserService {
             emailAddress: input.emailAddress,
             isActive: input.isActive !== false,
             roleNames: Array.isArray(input.roleNames) ? input.roleNames : [],
+            branchId:
+                input.branchId != null && input.branchId !== ''
+                    ? Number(input.branchId)
+                    : null,
         };
 
         if (input.id != null) {

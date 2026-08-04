@@ -146,6 +146,21 @@
                 </div>
 
                 <div class="field mb-3 col-12 md:col-6">
+                    <label for="dlgBranch" class="font-medium text-900">Branch</label>
+                    <p-dropdown
+                        inputId="dlgBranch"
+                        [options]="branches"
+                        optionLabel="name"
+                        optionValue="id"
+                        formControlName="branchId"
+                        placeholder="Select Branch"
+                        [showClear]="true"
+                        [filter]="true"
+                        [disabled]="saving"
+                    ></p-dropdown>
+                </div>
+
+                <div class="field mb-3 col-12 md:col-6">
                     <label for="dlgRoles" class="font-medium text-900">Roles</label>
                     <p-multiSelect
                         inputId="dlgRoles"

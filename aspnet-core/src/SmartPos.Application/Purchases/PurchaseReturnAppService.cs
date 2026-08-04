@@ -11,6 +11,9 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Users;
+using SmartPos.Branches;
+using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Purchases.Dto;
 
@@ -24,6 +27,10 @@ namespace SmartPos.Purchases
         private readonly IRepository<PurchaseReturnLine> _returnLineRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
+        private readonly IRepository<User, long> _userRepository;
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchContext _branchContext;
+        private readonly IBranchStockManager _branchStockManager;
         private readonly SystemAccountManager _systemAccountManager;
 
         public PurchaseReturnAppService(
@@ -32,6 +39,10 @@ namespace SmartPos.Purchases
             IRepository<PurchaseReturnLine> returnLineRepository,
             IRepository<Product> productRepository,
             IRepository<LedgerEntry> ledgerRepository,
+            IRepository<User, long> userRepository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchContext branchContext,
+            IBranchStockManager branchStockManager,
             SystemAccountManager systemAccountManager)
         {
             _purchaseRepository = purchaseRepository;
@@ -39,6 +50,10 @@ namespace SmartPos.Purchases
             _returnLineRepository = returnLineRepository;
             _productRepository = productRepository;
             _ledgerRepository = ledgerRepository;
+            _userRepository = userRepository;
+            _branchAccessChecker = branchAccessChecker;
+            _branchContext = branchContext;
+            _branchStockManager = branchStockManager;
             _systemAccountManager = systemAccountManager;
         }
 
@@ -51,6 +66,8 @@ namespace SmartPos.Purchases
             {
                 throw new UserFriendlyException("Purchase not found.");
             }
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(purchase.BranchId);
 
             var returnedByLine = await GetReturnedQuantitiesByPurchaseLineAsync(purchase.Id);
             var lines = new List<PurchaseReturnableLineDto>();
@@ -104,6 +121,8 @@ namespace SmartPos.Purchases
                 throw new UserFriendlyException("Purchase not found.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(purchase.BranchId);
+
             if (!purchase.Supplier.AccountId.HasValue)
             {
                 throw new UserFriendlyException("Supplier has no linked account.");
@@ -117,6 +136,8 @@ namespace SmartPos.Purchases
             var returnedByLine = await GetReturnedQuantitiesByPurchaseLineAsync(purchase.Id);
             var purchaseReturn = new PurchaseReturn
             {
+                TenantId = AbpSession.TenantId,
+                BranchId = purchase.BranchId,
                 PurchaseId = purchase.Id,
                 ReturnDate = input.ReturnDate,
                 Notes = input.Notes,
@@ -142,11 +163,11 @@ namespace SmartPos.Purchases
                 }
 
                 var productEntity = await _productRepository.GetAsync(purchaseLine.ProductId);
-                if (productEntity.StockQuantity < lineInput.Quantity)
-                {
-                    throw new UserFriendlyException(
-                        $"Insufficient stock to return '{productEntity.Name}'. Available: {productEntity.StockQuantity}.");
-                }
+                await _branchStockManager.DecreaseAsync(
+                    purchase.BranchId,
+                    purchaseLine.ProductId,
+                    lineInput.Quantity,
+                    productEntity.Name);
 
                 var lineTotal = lineInput.Quantity * purchaseLine.UnitCost;
                 total += lineTotal;
@@ -160,7 +181,6 @@ namespace SmartPos.Purchases
                     LineTotal = lineTotal
                 });
 
-                productEntity.StockQuantity -= lineInput.Quantity;
                 returnedByLine[purchaseLine.Id] = alreadyReturned + lineInput.Quantity;
             }
 
@@ -176,7 +196,6 @@ namespace SmartPos.Purchases
             var purchaseAccount = await _systemAccountManager.GetPurchaseAccountAsync();
             var description = "Purchase return for " + (purchase.InvoiceNo.IsNullOrWhiteSpace() ? "#" + purchase.Id : purchase.InvoiceNo);
 
-            // Reverse of purchase: Debit Supplier, Credit Purchase account
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
                 AccountId = purchase.Supplier.AccountId.Value,
@@ -212,10 +231,11 @@ namespace SmartPos.Purchases
                 throw new UserFriendlyException("Purchase return not found.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(purchaseReturn.BranchId);
+
             foreach (var line in purchaseReturn.Lines.ToList())
             {
-                var product = await _productRepository.GetAsync(line.ProductId);
-                product.StockQuantity += line.Quantity;
+                await _branchStockManager.IncreaseAsync(purchaseReturn.BranchId, line.ProductId, line.Quantity);
                 await _returnLineRepository.DeleteAsync(line);
             }
 
@@ -231,8 +251,11 @@ namespace SmartPos.Purchases
 
         public async Task<PagedResultDto<PurchaseReturnDto>> GetAllAsync(PagedPurchaseReturnResultRequestDto input)
         {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
             var query = _returnRepository.GetAllIncluding(x => x.Purchase, x => x.Lines)
                 .Include(x => x.Purchase.Supplier)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(input.PurchaseId.HasValue, x => x.PurchaseId == input.PurchaseId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.Notes != null && x.Notes.Contains(input.Keyword))

@@ -12,6 +12,7 @@ using Abp.Runtime.Security;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
+using SmartPos.Branches;
 using SmartPos.Editions;
 using SmartPos.MultiTenancy.Dto;
 using Microsoft.AspNetCore.Identity;
@@ -25,6 +26,7 @@ namespace SmartPos.MultiTenancy
         private readonly EditionManager _editionManager;
         private readonly UserManager _userManager;
         private readonly RoleManager _roleManager;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly IAbpZeroDbMigrator _abpZeroDbMigrator;
 
         public TenantAppService(
@@ -33,6 +35,7 @@ namespace SmartPos.MultiTenancy
             EditionManager editionManager,
             UserManager userManager,
             RoleManager roleManager,
+            IRepository<Branch> branchRepository,
             IAbpZeroDbMigrator abpZeroDbMigrator)
             : base(repository)
         {
@@ -40,6 +43,7 @@ namespace SmartPos.MultiTenancy
             _editionManager = editionManager;
             _userManager = userManager;
             _roleManager = roleManager;
+            _branchRepository = branchRepository;
             _abpZeroDbMigrator = abpZeroDbMigrator;
         }
 
@@ -77,8 +81,20 @@ namespace SmartPos.MultiTenancy
                 var adminRole = _roleManager.Roles.Single(r => r.Name == StaticRoleNames.Tenants.Admin);
                 await _roleManager.GrantAllPermissionsAsync(adminRole);
 
+                var mainBranch = new Branch
+                {
+                    TenantId = tenant.Id,
+                    Name = BranchConsts.DefaultBranchName,
+                    Code = BranchConsts.DefaultBranchCode,
+                    IsActive = true,
+                    IsDefault = true
+                };
+                await _branchRepository.InsertAsync(mainBranch);
+                await CurrentUnitOfWork.SaveChangesAsync();
+
                 // Create admin user for the tenant
                 var adminUser = User.CreateTenantAdminUser(tenant.Id, input.AdminEmailAddress);
+                adminUser.BranchId = mainBranch.Id;
                 await _userManager.InitializeOptionsAsync(tenant.Id);
                 CheckErrors(await _userManager.CreateAsync(adminUser, User.DefaultPassword));
                 await CurrentUnitOfWork.SaveChangesAsync(); // To get admin user's id

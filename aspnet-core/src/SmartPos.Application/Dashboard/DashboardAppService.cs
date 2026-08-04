@@ -5,8 +5,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
+using Abp.Linq.Extensions;
 using Abp.Timing;
 using Microsoft.EntityFrameworkCore;
+using SmartPos.Branches;
 using SmartPos.CompanyProfiles;
 using SmartPos.Dashboard.Dto;
 using SmartPos.Expenses;
@@ -30,6 +32,8 @@ namespace SmartPos.Dashboard
         private readonly IRepository<CustomerOrder> _customerOrderRepository;
         private readonly IRepository<StockAdjustment> _stockAdjustmentRepository;
         private readonly IRepository<CompanyProfile> _companyProfileRepository;
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchStockManager _branchStockManager;
 
         public DashboardAppService(
             IRepository<Product> productRepository,
@@ -38,7 +42,9 @@ namespace SmartPos.Dashboard
             IRepository<Expense> expenseRepository,
             IRepository<CustomerOrder> customerOrderRepository,
             IRepository<StockAdjustment> stockAdjustmentRepository,
-            IRepository<CompanyProfile> companyProfileRepository)
+            IRepository<CompanyProfile> companyProfileRepository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchStockManager branchStockManager)
         {
             _productRepository = productRepository;
             _saleRepository = saleRepository;
@@ -47,17 +53,23 @@ namespace SmartPos.Dashboard
             _customerOrderRepository = customerOrderRepository;
             _stockAdjustmentRepository = stockAdjustmentRepository;
             _companyProfileRepository = companyProfileRepository;
+            _branchAccessChecker = branchAccessChecker;
+            _branchStockManager = branchStockManager;
         }
 
         public async Task<DashboardDto> GetAsync()
         {
+            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+
             var products = await _productRepository.GetAllIncluding(x => x.Category, x => x.Brand)
                 .AsNoTracking()
                 .ToListAsync();
 
-            var inStock = products.Where(IsInStock).ToList();
-            var lowStock = products.Where(IsLowStock).ToList();
-            var outOfStock = products.Where(p => p.StockQuantity <= 0).ToList();
+            var stockByProductId = await ResolveBranchStockAsync(branchId, products.Select(p => p.Id));
+
+            var inStock = products.Where(p => IsInStock(p, stockByProductId)).ToList();
+            var lowStock = products.Where(p => IsLowStock(p, stockByProductId)).ToList();
+            var outOfStock = products.Where(p => GetStock(p, stockByProductId) <= 0).ToList();
 
             var now = Clock.Now;
             var todayStart = now.Date;
@@ -72,18 +84,21 @@ namespace SmartPos.Dashboard
             var sales = await _saleRepository.GetAll()
                 .AsNoTracking()
                 .Where(x => x.SaleDate >= startMonth)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .Select(x => new { x.SaleDate, x.TotalAmount })
                 .ToListAsync();
 
             var purchases = await _purchaseRepository.GetAll()
                 .AsNoTracking()
                 .Where(x => x.PurchaseDate >= startMonth)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .Select(x => new { x.PurchaseDate, x.TotalAmount })
                 .ToListAsync();
 
             var expenses = await _expenseRepository.GetAll()
                 .AsNoTracking()
                 .Where(x => x.ExpenseDate >= startMonth)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .Select(x => new { x.ExpenseDate, x.Amount })
                 .ToListAsync();
 
@@ -101,11 +116,10 @@ namespace SmartPos.Dashboard
 
             var costByProductId = products.ToDictionary(p => p.Id, p => p.CostPrice);
 
-            // Today's profit = sales revenue − COGS of items sold − today's expenses.
-            // Purchases are inventory investment, not deducted here (they raise stock cost).
             var todaySaleLines = await _saleRepository.GetAllIncluding(x => x.Lines)
                 .AsNoTracking()
                 .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .ToListAsync();
             var todayCogs = CalculateCostOfGoodsSold(todaySaleLines, costByProductId);
             var todayProfit = Math.Round(todaySales - todayCogs - todayExpenses, 2);
@@ -113,6 +127,7 @@ namespace SmartPos.Dashboard
             var marginSales = await _saleRepository.GetAllIncluding(x => x.Lines)
                 .AsNoTracking()
                 .Where(x => x.SaleDate >= previousPeriodStart && x.SaleDate < currentPeriodEnd)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .ToListAsync();
 
             var currentMarginSales = marginSales
@@ -154,19 +169,23 @@ namespace SmartPos.Dashboard
             var productRows = products
                 .OrderByDescending(p => p.Id)
                 .Take(8)
-                .Select(p => new DashboardProductRowDto
+                .Select(p =>
                 {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Sku = "PR-" + p.Id.ToString("D3"),
-                    CategoryName = p.Category?.Name,
-                    BrandName = p.Brand?.Name,
-                    Units = p.StockQuantity,
-                    Price = p.Price,
-                    CostPrice = p.CostPrice,
-                    ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
-                    Status = StatusOf(p),
-                    ImagePath = p.ImagePath
+                    var units = GetStock(p, stockByProductId);
+                    return new DashboardProductRowDto
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Sku = "PR-" + p.Id.ToString("D3"),
+                        CategoryName = p.Category?.Name,
+                        BrandName = p.Brand?.Name,
+                        Units = units,
+                        Price = p.Price,
+                        CostPrice = p.CostPrice,
+                        ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
+                        Status = StatusOf(p, stockByProductId),
+                        ImagePath = p.ImagePath
+                    };
                 })
                 .ToList();
 
@@ -177,7 +196,7 @@ namespace SmartPos.Dashboard
                 userName = user.UserName;
             }
 
-            var widgetData = await LoadWidgetDataAsync(todayStart, tomorrow, lowStock.Count);
+            var widgetData = await LoadWidgetDataAsync(todayStart, tomorrow, lowStock.Count, branchId);
 
             return new DashboardDto
             {
@@ -187,8 +206,8 @@ namespace SmartPos.Dashboard
                 InStockCount = inStock.Count,
                 LowStockCount = lowStock.Count,
                 OutOfStockCount = outOfStock.Count,
-                InStockUnits = inStock.Sum(p => p.StockQuantity),
-                LowStockUnits = lowStock.Sum(p => p.StockQuantity),
+                InStockUnits = inStock.Sum(p => GetStock(p, stockByProductId)),
+                LowStockUnits = lowStock.Sum(p => GetStock(p, stockByProductId)),
                 LowStockThreshold = (int)DefaultAlertQuantityLimit,
                 TodaySales = todaySales,
                 TodayPurchases = todayPurchases,
@@ -207,6 +226,18 @@ namespace SmartPos.Dashboard
             };
         }
 
+        private async Task<Dictionary<int, decimal>> ResolveBranchStockAsync(
+            int? branchId,
+            IEnumerable<int> productIds)
+        {
+            if (!branchId.HasValue)
+            {
+                return new Dictionary<int, decimal>();
+            }
+
+            return await _branchStockManager.GetQuantitiesAsync(branchId.Value, productIds);
+        }
+
         private async Task<(
             DashboardQuickActionCountsDto QuickActions,
             string LatestListTitle,
@@ -214,18 +245,24 @@ namespace SmartPos.Dashboard
             List<DashboardTimelineEventDto> Timeline)> LoadWidgetDataAsync(
             DateTime todayStart,
             DateTime tomorrow,
-            int lowStockCount)
+            int lowStockCount,
+            int? branchId)
         {
-            var pendingOrdersCount = await _customerOrderRepository.CountAsync(
-                x => x.Status == CustomerOrderStatus.Pending);
+            var pendingOrdersQuery = _customerOrderRepository.GetAll()
+                .Where(x => x.Status == CustomerOrderStatus.Pending)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value);
+            var pendingOrdersCount = await pendingOrdersQuery.CountAsync();
 
             var companyProfileCount = await _companyProfileRepository.CountAsync();
 
-            var todaySalesCount = await _saleRepository.CountAsync(
-                x => x.SaleDate >= todayStart && x.SaleDate < tomorrow);
+            var todaySalesCount = await _saleRepository.GetAll()
+                .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .CountAsync();
 
             var recentSales = await _saleRepository.GetAllIncluding(x => x.Customer)
                 .AsNoTracking()
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .OrderByDescending(x => x.SaleDate)
                 .Take(50)
                 .Select(x => new
@@ -241,6 +278,7 @@ namespace SmartPos.Dashboard
 
             var recentPurchases = await _purchaseRepository.GetAll()
                 .AsNoTracking()
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .OrderByDescending(x => x.PurchaseDate)
                 .Take(10)
                 .Select(x => new { x.Id, x.InvoiceNo, x.PurchaseDate, x.TotalAmount })
@@ -248,6 +286,7 @@ namespace SmartPos.Dashboard
 
             var recentExpenses = await _expenseRepository.GetAll()
                 .AsNoTracking()
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .OrderByDescending(x => x.ExpenseDate)
                 .Take(10)
                 .Select(x => new { x.Id, x.ReferenceNo, x.ExpenseDate, x.Amount })
@@ -255,6 +294,7 @@ namespace SmartPos.Dashboard
 
             var recentAdjustments = await _stockAdjustmentRepository.GetAllIncluding(x => x.Lines)
                 .AsNoTracking()
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .OrderByDescending(x => x.AdjustmentDate)
                 .Take(10)
                 .ToListAsync();
@@ -405,10 +445,6 @@ namespace SmartPos.Dashboard
             return (parts[0][0].ToString() + parts[1][0]).ToUpperInvariant();
         }
 
-        /// <summary>
-        /// Previous equivalent period end (exclusive): same MTD day count in the previous month,
-        /// clamped to the start of the current month.
-        /// </summary>
         private static DateTime EquivalentPreviousPeriodEnd(
             DateTime now,
             DateTime currentPeriodStart,
@@ -506,18 +542,32 @@ namespace SmartPos.Dashboard
                 : DefaultAlertQuantityLimit;
         }
 
-        private static bool IsOutOfStock(Product product) => product.StockQuantity <= 0;
-
-        private static bool IsLowStock(Product product) =>
-            product.StockQuantity > 0 && product.StockQuantity <= EffectiveAlertLimit(product);
-
-        private static bool IsInStock(Product product) =>
-            product.StockQuantity > EffectiveAlertLimit(product);
-
-        private static string StatusOf(Product product)
+        private static decimal GetStock(Product product, IReadOnlyDictionary<int, decimal> stockByProductId)
         {
-            if (IsOutOfStock(product)) return "OutOfStock";
-            if (IsLowStock(product)) return "LowStock";
+            if (stockByProductId != null && stockByProductId.Count > 0)
+            {
+                return stockByProductId.TryGetValue(product.Id, out var qty) ? qty : 0;
+            }
+
+            return product.StockQuantity;
+        }
+
+        private static bool IsOutOfStock(Product product, IReadOnlyDictionary<int, decimal> stockByProductId) =>
+            GetStock(product, stockByProductId) <= 0;
+
+        private static bool IsLowStock(Product product, IReadOnlyDictionary<int, decimal> stockByProductId)
+        {
+            var qty = GetStock(product, stockByProductId);
+            return qty > 0 && qty <= EffectiveAlertLimit(product);
+        }
+
+        private static bool IsInStock(Product product, IReadOnlyDictionary<int, decimal> stockByProductId) =>
+            GetStock(product, stockByProductId) > EffectiveAlertLimit(product);
+
+        private static string StatusOf(Product product, IReadOnlyDictionary<int, decimal> stockByProductId)
+        {
+            if (IsOutOfStock(product, stockByProductId)) return "OutOfStock";
+            if (IsLowStock(product, stockByProductId)) return "LowStock";
             return "InStock";
         }
     }

@@ -167,6 +167,7 @@ export class AuthService {
         localStorage.removeItem(USER_ID_KEY);
         localStorage.removeItem(EXPIRE_KEY);
         localStorage.removeItem(USER_INFO_KEY);
+        localStorage.removeItem('SmartPos.BranchId');
         this.permissionService.clear();
     }
 

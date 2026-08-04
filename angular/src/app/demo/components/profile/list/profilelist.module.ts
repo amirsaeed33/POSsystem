@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
 import { MultiSelectModule } from 'primeng/multiselect';
+import { DropdownModule } from 'primeng/dropdown';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ProfileListComponent } from './profilelist.component';
 import { ResetPasswordDialogComponent } from './reset-password-dialog.component';
@@ -35,6 +36,7 @@ import { ProfileListRoutingModule } from './profilelist-routing.module';
 		ConfirmDialogModule,
 		DialogModule,
 		MultiSelectModule,
+		DropdownModule,
 		CheckboxModule
 	],
 	declarations: [

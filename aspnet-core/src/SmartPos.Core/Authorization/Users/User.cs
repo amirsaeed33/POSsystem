@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Authorization.Users;
 using Abp.Extensions;
+using SmartPos.Branches;
 
 namespace SmartPos.Authorization.Users
 {
@@ -14,6 +16,11 @@ namespace SmartPos.Authorization.Users
 
         [StringLength(MaxUserImageUrlLength)]
         public virtual string UserImageUrl { get; set; }
+
+        public virtual int? BranchId { get; set; }
+
+        [ForeignKey(nameof(BranchId))]
+        public virtual Branch Branch { get; set; }
 
         public static string CreateRandomPassword()
         {

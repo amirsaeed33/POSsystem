@@ -1,12 +1,21 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Abp.Auditing;
+using Abp.Domain.Repositories;
+using SmartPos.Branches;
 using SmartPos.Sessions.Dto;
 
 namespace SmartPos.Sessions
 {
     public class SessionAppService : SmartPosAppServiceBase, ISessionAppService
     {
+        private readonly IRepository<Branch> _branchRepository;
+
+        public SessionAppService(IRepository<Branch> branchRepository)
+        {
+            _branchRepository = branchRepository;
+        }
+
         [DisableAuditing]
         public async Task<GetCurrentLoginInformationsOutput> GetCurrentLoginInformations()
         {
@@ -27,7 +36,14 @@ namespace SmartPos.Sessions
 
             if (AbpSession.UserId.HasValue)
             {
-                output.User = ObjectMapper.Map<UserLoginInfoDto>(await GetCurrentUserAsync());
+                var user = await GetCurrentUserAsync();
+                output.User = ObjectMapper.Map<UserLoginInfoDto>(user);
+
+                if (user.BranchId.HasValue)
+                {
+                    var branch = await _branchRepository.FirstOrDefaultAsync(user.BranchId.Value);
+                    output.User.BranchName = branch?.Name;
+                }
             }
 
             return output;

@@ -9,6 +9,8 @@ using Abp.Linq.Extensions;
 using Abp.UI;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Users;
+using SmartPos.Branches;
 using SmartPos.Expenses.Dto;
 
 namespace SmartPos.Expenses
@@ -18,17 +20,26 @@ namespace SmartPos.Expenses
     {
         private readonly IRepository<BusinessAccount> _accountRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
+        private readonly IRepository<User, long> _userRepository;
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchContext _branchContext;
         private readonly SystemAccountManager _systemAccountManager;
 
         public ExpenseAppService(
             IRepository<Expense> repository,
             IRepository<BusinessAccount> accountRepository,
             IRepository<LedgerEntry> ledgerRepository,
+            IRepository<User, long> userRepository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchContext branchContext,
             SystemAccountManager systemAccountManager)
             : base(repository)
         {
             _accountRepository = accountRepository;
             _ledgerRepository = ledgerRepository;
+            _userRepository = userRepository;
+            _branchAccessChecker = branchAccessChecker;
+            _branchContext = branchContext;
             _systemAccountManager = systemAccountManager;
         }
 
@@ -49,8 +60,12 @@ namespace SmartPos.Expenses
                 input.ExpenseDate = Abp.Timing.Clock.Now;
             }
 
+            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+
             var expense = new Expense
             {
+                TenantId = AbpSession.TenantId,
+                BranchId = branchId,
                 ExpenseDate = input.ExpenseDate,
                 Amount = input.Amount,
                 ReferenceNo = input.ReferenceNo,
@@ -99,6 +114,7 @@ namespace SmartPos.Expenses
             CheckDeletePermission();
 
             var expense = await Repository.GetAsync(input.Id);
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(expense.BranchId);
 
             var ledgerEntries = await _ledgerRepository.GetAllListAsync(
                 x => x.VoucherType == VoucherTypes.Expense && x.VoucherId == expense.Id);
@@ -112,7 +128,10 @@ namespace SmartPos.Expenses
 
         protected override IQueryable<Expense> CreateFilteredQuery(PagedExpenseResultRequestDto input)
         {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
             return Repository.GetAllIncluding(x => x.PaymentAccount, x => x.ExpenseAccount)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(input.PaymentAccountId.HasValue, x => x.PaymentAccountId == input.PaymentAccountId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.Description != null && x.Description.Contains(input.Keyword))

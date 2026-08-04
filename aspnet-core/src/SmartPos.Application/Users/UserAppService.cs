@@ -18,6 +18,7 @@ using SmartPos.Authorization;
 using SmartPos.Authorization.Accounts;
 using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
+using SmartPos.Branches;
 using SmartPos.Roles.Dto;
 using SmartPos.Users.Dto;
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +32,7 @@ namespace SmartPos.Users
         private readonly UserManager _userManager;
         private readonly RoleManager _roleManager;
         private readonly IRepository<Role> _roleRepository;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly IAbpSession _abpSession;
         private readonly LogInManager _logInManager;
@@ -40,6 +42,7 @@ namespace SmartPos.Users
             UserManager userManager,
             RoleManager roleManager,
             IRepository<Role> roleRepository,
+            IRepository<Branch> branchRepository,
             IPasswordHasher<User> passwordHasher,
             IAbpSession abpSession,
             LogInManager logInManager)
@@ -48,6 +51,7 @@ namespace SmartPos.Users
             _userManager = userManager;
             _roleManager = roleManager;
             _roleRepository = roleRepository;
+            _branchRepository = branchRepository;
             _passwordHasher = passwordHasher;
             _abpSession = abpSession;
             _logInManager = logInManager;
@@ -56,6 +60,8 @@ namespace SmartPos.Users
         public override async Task<UserDto> CreateAsync(CreateUserDto input)
         {
             CheckCreatePermission();
+
+            await EnsureBranchIsValidAsync(input.BranchId);
 
             var user = ObjectMapper.Map<User>(input);
 
@@ -80,6 +86,8 @@ namespace SmartPos.Users
         public override async Task<UserDto> UpdateAsync(UserDto input)
         {
             CheckUpdatePermission();
+
+            await EnsureBranchIsValidAsync(input.BranchId);
 
             var user = await _userManager.GetUserByIdAsync(input.Id);
 
@@ -198,20 +206,21 @@ namespace SmartPos.Users
 
             var userDto = base.MapToEntityDto(user);
             userDto.RoleNames = roles.ToArray();
+            userDto.BranchName = user.Branch?.Name;
 
             return userDto;
         }
 
         protected override IQueryable<User> CreateFilteredQuery(PagedUserResultRequestDto input)
         {
-            return Repository.GetAllIncluding(x => x.Roles)
+            return Repository.GetAllIncluding(x => x.Roles, x => x.Branch)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(), x => x.UserName.Contains(input.Keyword) || x.Name.Contains(input.Keyword) || x.EmailAddress.Contains(input.Keyword))
                 .WhereIf(input.IsActive.HasValue, x => x.IsActive == input.IsActive);
         }
 
         protected override async Task<User> GetEntityByIdAsync(long id)
         {
-            var user = await Repository.GetAllIncluding(x => x.Roles).FirstOrDefaultAsync(x => x.Id == id);
+            var user = await Repository.GetAllIncluding(x => x.Roles, x => x.Branch).FirstOrDefaultAsync(x => x.Id == id);
 
             if (user == null)
             {
@@ -219,6 +228,20 @@ namespace SmartPos.Users
             }
 
             return user;
+        }
+
+        private async Task EnsureBranchIsValidAsync(int? branchId)
+        {
+            if (!branchId.HasValue)
+            {
+                return;
+            }
+
+            var branch = await _branchRepository.FirstOrDefaultAsync(branchId.Value);
+            if (branch == null || !branch.IsActive)
+            {
+                throw new UserFriendlyException("Selected branch is invalid or inactive.");
+            }
         }
 
         protected override IQueryable<User> ApplySorting(IQueryable<User> query, PagedUserResultRequestDto input)

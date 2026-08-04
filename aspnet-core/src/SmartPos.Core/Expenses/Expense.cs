@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
 using SmartPos.Accounts;
+using SmartPos.Branches;
 
 namespace SmartPos.Expenses
 {
@@ -14,6 +15,11 @@ namespace SmartPos.Expenses
         public const int MaxDescriptionLength = 512;
 
         public virtual int? TenantId { get; set; }
+
+        public virtual int BranchId { get; set; }
+
+        [ForeignKey(nameof(BranchId))]
+        public virtual Branch Branch { get; set; }
 
         public virtual DateTime ExpenseDate { get; set; }
 

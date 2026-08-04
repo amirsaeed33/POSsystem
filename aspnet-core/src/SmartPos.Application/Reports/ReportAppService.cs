@@ -8,8 +8,11 @@ using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Users;
+using SmartPos.Branches;
 using SmartPos.Dashboard;
 using SmartPos.Expenses;
+using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Purchases;
 using SmartPos.Reports.Dto;
@@ -24,27 +27,41 @@ namespace SmartPos.Reports
         private readonly IRepository<Purchase> _purchaseRepository;
         private readonly IRepository<Expense> _expenseRepository;
         private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<User, long> _userRepository;
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchContext _branchContext;
+        private readonly IBranchStockManager _branchStockManager;
 
         public ReportAppService(
             IRepository<Sale> saleRepository,
             IRepository<Purchase> purchaseRepository,
             IRepository<Expense> expenseRepository,
-            IRepository<Product> productRepository)
+            IRepository<Product> productRepository,
+            IRepository<User, long> userRepository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchContext branchContext,
+            IBranchStockManager branchStockManager)
         {
             _saleRepository = saleRepository;
             _purchaseRepository = purchaseRepository;
             _expenseRepository = expenseRepository;
             _productRepository = productRepository;
+            _userRepository = userRepository;
+            _branchAccessChecker = branchAccessChecker;
+            _branchContext = branchContext;
+            _branchStockManager = branchStockManager;
         }
 
         public async Task<SaleReportDto> GetSaleReportAsync(ReportDateRangeInput input)
         {
             input ??= new ReportDateRangeInput();
             var (from, to) = NormalizeRange(input);
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
 
             var query = _saleRepository.GetAllIncluding(x => x.Customer)
                 .AsNoTracking()
                 .Where(x => x.SaleDate >= from && x.SaleDate < to)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))
                          || (x.Customer != null && x.Customer.Name.Contains(input.Keyword))
@@ -75,10 +92,12 @@ namespace SmartPos.Reports
         {
             input ??= new ReportDateRangeInput();
             var (from, to) = NormalizeRange(input);
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
 
             var query = _purchaseRepository.GetAllIncluding(x => x.Supplier)
                 .AsNoTracking()
                 .Where(x => x.PurchaseDate >= from && x.PurchaseDate < to)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))
                          || (x.Supplier != null && x.Supplier.Name.Contains(input.Keyword))
@@ -109,10 +128,12 @@ namespace SmartPos.Reports
         {
             input ??= new ReportDateRangeInput();
             var (from, to) = NormalizeRange(input);
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
 
             var query = _expenseRepository.GetAllIncluding(x => x.PaymentAccount)
                 .AsNoTracking()
                 .Where(x => x.ExpenseDate >= from && x.ExpenseDate < to)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.ReferenceNo != null && x.ReferenceNo.Contains(input.Keyword))
                          || (x.Description != null && x.Description.Contains(input.Keyword))
@@ -153,32 +174,41 @@ namespace SmartPos.Reports
                 .OrderBy(x => x.Name)
                 .ToListAsync();
 
-            string StatusOf(Product p)
+            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            var stockByProductId = branchId.HasValue
+                ? await _branchStockManager.GetQuantitiesAsync(branchId.Value, products.Select(p => p.Id))
+                : products.ToDictionary(p => p.Id, p => p.StockQuantity);
+
+            string StatusOf(Product p, decimal qty)
             {
                 var limit = p.AlertQuantityLimit > 0
                     ? p.AlertQuantityLimit
                     : DashboardAppService.DefaultAlertQuantityLimit;
-                if (p.StockQuantity <= 0) return "OutOfStock";
-                if (p.StockQuantity <= limit) return "LowStock";
+                if (qty <= 0) return "OutOfStock";
+                if (qty <= limit) return "LowStock";
                 return "InStock";
             }
 
-            var items = products.Select(p => new StockReportRowDto
+            var items = products.Select(p =>
             {
-                Id = p.Id,
-                Name = p.Name,
-                Barcode = p.Barcode,
-                CategoryName = p.Category?.Name,
-                BrandName = p.Brand?.Name,
-                UnitName = p.Unit?.Name,
-                Price = p.Price,
-                CostPrice = p.CostPrice,
-                ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
-                ProfitMarginPercent = ProductPricing.ProfitMarginPercent(p.Price, p.CostPrice),
-                StockProfit = ProductPricing.StockProfit(p.Price, p.CostPrice, p.StockQuantity),
-                StockQuantity = p.StockQuantity,
-                AlertQuantityLimit = p.AlertQuantityLimit,
-                Status = StatusOf(p)
+                var qty = stockByProductId.TryGetValue(p.Id, out var stockQty) ? stockQty : 0;
+                return new StockReportRowDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Barcode = p.Barcode,
+                    CategoryName = p.Category?.Name,
+                    BrandName = p.Brand?.Name,
+                    UnitName = p.Unit?.Name,
+                    Price = p.Price,
+                    CostPrice = p.CostPrice,
+                    ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
+                    ProfitMarginPercent = ProductPricing.ProfitMarginPercent(p.Price, p.CostPrice),
+                    StockProfit = ProductPricing.StockProfit(p.Price, p.CostPrice, qty),
+                    StockQuantity = qty,
+                    AlertQuantityLimit = p.AlertQuantityLimit,
+                    Status = StatusOf(p, qty)
+                };
             }).ToList();
 
             return new StockReportDto

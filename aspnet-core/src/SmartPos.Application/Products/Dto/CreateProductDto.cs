@@ -33,6 +33,9 @@ namespace SmartPos.Products.Dto
         [Range(0, double.MaxValue, ErrorMessage = "Alert quantity limit is required.")]
         public decimal AlertQuantityLimit { get; set; } = 10;
 
+        [Range(0, double.MaxValue)]
+        public decimal StockQuantity { get; set; }
+
         [Required(ErrorMessage = "Category is required.")]
         public int CategoryId { get; set; }
 

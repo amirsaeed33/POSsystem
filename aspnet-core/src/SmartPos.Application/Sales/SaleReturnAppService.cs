@@ -11,6 +11,9 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Users;
+using SmartPos.Branches;
+using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Sales.Dto;
 
@@ -24,6 +27,10 @@ namespace SmartPos.Sales
         private readonly IRepository<SaleReturnLine> _returnLineRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
+        private readonly IRepository<User, long> _userRepository;
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchContext _branchContext;
+        private readonly IBranchStockManager _branchStockManager;
         private readonly SystemAccountManager _systemAccountManager;
 
         public SaleReturnAppService(
@@ -32,6 +39,10 @@ namespace SmartPos.Sales
             IRepository<SaleReturnLine> returnLineRepository,
             IRepository<Product> productRepository,
             IRepository<LedgerEntry> ledgerRepository,
+            IRepository<User, long> userRepository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchContext branchContext,
+            IBranchStockManager branchStockManager,
             SystemAccountManager systemAccountManager)
         {
             _saleRepository = saleRepository;
@@ -39,6 +50,10 @@ namespace SmartPos.Sales
             _returnLineRepository = returnLineRepository;
             _productRepository = productRepository;
             _ledgerRepository = ledgerRepository;
+            _userRepository = userRepository;
+            _branchAccessChecker = branchAccessChecker;
+            _branchContext = branchContext;
+            _branchStockManager = branchStockManager;
             _systemAccountManager = systemAccountManager;
         }
 
@@ -51,6 +66,8 @@ namespace SmartPos.Sales
             {
                 throw new UserFriendlyException("Sale not found.");
             }
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(sale.BranchId);
 
             var returnedByLine = await GetReturnedQuantitiesBySaleLineAsync(sale.Id);
             var lines = new List<SaleReturnableLineDto>();
@@ -104,6 +121,8 @@ namespace SmartPos.Sales
                 throw new UserFriendlyException("Sale not found.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(sale.BranchId);
+
             if (!sale.Customer.AccountId.HasValue)
             {
                 throw new UserFriendlyException("Customer has no linked account.");
@@ -117,6 +136,8 @@ namespace SmartPos.Sales
             var returnedByLine = await GetReturnedQuantitiesBySaleLineAsync(sale.Id);
             var saleReturn = new SaleReturn
             {
+                TenantId = AbpSession.TenantId,
+                BranchId = sale.BranchId,
                 SaleId = sale.Id,
                 ReturnDate = input.ReturnDate,
                 Notes = input.Notes,
@@ -153,8 +174,7 @@ namespace SmartPos.Sales
                     LineTotal = lineTotal
                 });
 
-                var productEntity = await _productRepository.GetAsync(saleLine.ProductId);
-                productEntity.StockQuantity += lineInput.Quantity;
+                await _branchStockManager.IncreaseAsync(sale.BranchId, saleLine.ProductId, lineInput.Quantity);
                 returnedByLine[saleLine.Id] = alreadyReturned + lineInput.Quantity;
             }
 
@@ -170,7 +190,6 @@ namespace SmartPos.Sales
             var saleAccount = await _systemAccountManager.GetSaleAccountAsync();
             var description = "Sale return for " + (sale.InvoiceNo.IsNullOrWhiteSpace() ? "#" + sale.Id : sale.InvoiceNo);
 
-            // Reverse of sale: Debit Sale account, Credit Customer
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
                 AccountId = saleAccount.Id,
@@ -206,15 +225,16 @@ namespace SmartPos.Sales
                 throw new UserFriendlyException("Sale return not found.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(saleReturn.BranchId);
+
             foreach (var line in saleReturn.Lines.ToList())
             {
                 var product = await _productRepository.GetAsync(line.ProductId);
-                product.StockQuantity -= line.Quantity;
-                if (product.StockQuantity < 0)
-                {
-                    product.StockQuantity = 0;
-                }
-
+                await _branchStockManager.DecreaseAsync(
+                    saleReturn.BranchId,
+                    line.ProductId,
+                    line.Quantity,
+                    product.Name);
                 await _returnLineRepository.DeleteAsync(line);
             }
 
@@ -230,8 +250,11 @@ namespace SmartPos.Sales
 
         public async Task<PagedResultDto<SaleReturnDto>> GetAllAsync(PagedSaleReturnResultRequestDto input)
         {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
             var query = _returnRepository.GetAllIncluding(x => x.Sale, x => x.Lines)
                 .Include(x => x.Sale.Customer)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(input.SaleId.HasValue, x => x.SaleId == input.SaleId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.Notes != null && x.Notes.Contains(input.Keyword))

@@ -41,5 +41,9 @@ namespace SmartPos.Users.Dto
         public string UserImageUrl { get; set; }
 
         public string ImageBase64 { get; set; }
+
+        public int? BranchId { get; set; }
+
+        public string BranchName { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -10,6 +11,8 @@ using Abp.Linq.Extensions;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
+using SmartPos.Branches;
+using SmartPos.Inventory;
 using SmartPos.Products.Dto;
 
 namespace SmartPos.Products
@@ -20,9 +23,17 @@ namespace SmartPos.Products
         private const string DuplicateBarcodeMessage =
             "Barcode already exists. Please enter a unique barcode.";
 
-        public ProductAppService(IRepository<Product> repository)
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchStockManager _branchStockManager;
+
+        public ProductAppService(
+            IRepository<Product> repository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchStockManager branchStockManager)
             : base(repository)
         {
+            _branchAccessChecker = branchAccessChecker;
+            _branchStockManager = branchStockManager;
         }
 
         public override async Task<ProductDto> CreateAsync(CreateProductDto input)
@@ -44,9 +55,11 @@ namespace SmartPos.Products
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: null);
 
+            var initialStock = input.StockQuantity;
             var product = ObjectMapper.Map<Product>(input);
             product.TenantId = AbpSession.TenantId;
             product.Barcode = barcode;
+            product.StockQuantity = 0;
             product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
 
             try
@@ -57,6 +70,12 @@ namespace SmartPos.Products
             catch (DbUpdateException ex) when (IsDuplicateBarcodeViolation(ex))
             {
                 throw new UserFriendlyException(DuplicateBarcodeMessage);
+            }
+
+            if (initialStock > 0)
+            {
+                var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+                await _branchStockManager.IncreaseAsync(branchId, product.Id, initialStock);
             }
 
             return await GetAsync(new EntityDto<int>(product.Id));
@@ -122,6 +141,20 @@ namespace SmartPos.Products
             await Repository.DeleteAsync(product);
         }
 
+        public override async Task<ProductDto> GetAsync(EntityDto<int> input)
+        {
+            var dto = await base.GetAsync(input);
+            await OverlayBranchStockAsync(new[] { dto });
+            return dto;
+        }
+
+        public override async Task<PagedResultDto<ProductDto>> GetAllAsync(PagedProductResultRequestDto input)
+        {
+            var result = await base.GetAllAsync(input);
+            await OverlayBranchStockAsync(result.Items);
+            return result;
+        }
+
         protected override IQueryable<Product> CreateFilteredQuery(PagedProductResultRequestDto input)
         {
             return Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
@@ -140,6 +173,38 @@ namespace SmartPos.Products
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
                 Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
                     .Where(x => x.Id == id));
+        }
+
+        private async Task OverlayBranchStockAsync(IReadOnlyList<ProductDto> items)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return;
+            }
+
+            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            if (!branchId.HasValue)
+            {
+                return;
+            }
+
+            var quantities = await _branchStockManager.GetQuantitiesAsync(
+                branchId.Value,
+                items.Select(x => x.Id));
+
+            foreach (var item in items)
+            {
+                if (quantities.TryGetValue(item.Id, out var qty))
+                {
+                    item.StockQuantity = qty;
+                }
+                else
+                {
+                    item.StockQuantity = 0;
+                }
+
+                item.StockProfit = ProductPricing.StockProfit(item.Price, item.CostPrice, item.StockQuantity);
+            }
         }
 
         private static void EnsureRequiredFields(
@@ -221,7 +286,6 @@ namespace SmartPos.Products
                 return;
             }
 
-            // Match current tenant (including host null) and ignore soft-deleted rows via ABP filters.
             var query = Repository.GetAll().Where(x => x.Barcode == barcode);
             if (excludeProductId.HasValue)
             {

@@ -6,6 +6,8 @@ export interface UserLoginInfoDto {
     emailAddress: string;
     roleNames?: string[];
     profilePictureUrl?: string;
+    branchId?: number | null;
+    branchName?: string;
 }
 
 export interface TenantLoginInfoDto {

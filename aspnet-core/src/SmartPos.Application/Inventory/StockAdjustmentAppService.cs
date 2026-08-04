@@ -10,6 +10,8 @@ using Abp.Linq.Extensions;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Users;
+using SmartPos.Branches;
 using SmartPos.Inventory.Dto;
 using SmartPos.Products;
 
@@ -21,15 +23,27 @@ namespace SmartPos.Inventory
         private readonly IRepository<StockAdjustment> _adjustmentRepository;
         private readonly IRepository<StockAdjustmentLine> _lineRepository;
         private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<User, long> _userRepository;
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchContext _branchContext;
+        private readonly IBranchStockManager _branchStockManager;
 
         public StockAdjustmentAppService(
             IRepository<StockAdjustment> adjustmentRepository,
             IRepository<StockAdjustmentLine> lineRepository,
-            IRepository<Product> productRepository)
+            IRepository<Product> productRepository,
+            IRepository<User, long> userRepository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchContext branchContext,
+            IBranchStockManager branchStockManager)
         {
             _adjustmentRepository = adjustmentRepository;
             _lineRepository = lineRepository;
             _productRepository = productRepository;
+            _userRepository = userRepository;
+            _branchAccessChecker = branchAccessChecker;
+            _branchContext = branchContext;
+            _branchStockManager = branchStockManager;
         }
 
         public async Task<StockAdjustmentDto> CreateAsync(CreateStockAdjustmentDto input)
@@ -44,8 +58,12 @@ namespace SmartPos.Inventory
                 input.AdjustmentDate = Abp.Timing.Clock.Now;
             }
 
+            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+
             var adjustment = new StockAdjustment
             {
+                TenantId = AbpSession.TenantId,
+                BranchId = branchId,
                 AdjustmentDate = input.AdjustmentDate,
                 Reason = input.Reason,
                 Notes = input.Notes,
@@ -60,14 +78,15 @@ namespace SmartPos.Inventory
                 }
 
                 var product = await _productRepository.GetAsync(lineInput.ProductId);
-                var newQty = product.StockQuantity + lineInput.QuantityChange;
+                var currentQty = await _branchStockManager.GetQuantityAsync(branchId, lineInput.ProductId);
+                var newQty = currentQty + lineInput.QuantityChange;
                 if (newQty < 0)
                 {
                     throw new UserFriendlyException(
-                        $"Adjustment would make stock negative for '{product.Name}'. Available: {product.StockQuantity}.");
+                        $"Adjustment would make stock negative for '{product.Name}'. Available: {currentQty}.");
                 }
 
-                product.StockQuantity = newQty;
+                await _branchStockManager.SetAsync(branchId, lineInput.ProductId, newQty);
                 adjustment.Lines.Add(new StockAdjustmentLine
                 {
                     ProductId = lineInput.ProductId,
@@ -78,8 +97,9 @@ namespace SmartPos.Inventory
             await _adjustmentRepository.InsertAsync(adjustment);
             await CurrentUnitOfWork.SaveChangesAsync();
             adjustment.ReferenceNo = "ADJ-" + adjustment.Id.ToString("D6");
+            await CurrentUnitOfWork.SaveChangesAsync();
 
-            return await GetAsync(new EntityDto<int>(adjustment.Id));
+            return await MapAsync(adjustment);
         }
 
         public async Task<StockAdjustmentDto> GetAsync(EntityDto<int> input)
@@ -96,7 +116,10 @@ namespace SmartPos.Inventory
 
         public async Task<PagedResultDto<StockAdjustmentDto>> GetAllAsync(PagedStockAdjustmentResultRequestDto input)
         {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
             var query = _adjustmentRepository.GetAllIncluding(x => x.Lines)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.ReferenceNo != null && x.ReferenceNo.Contains(input.Keyword))
                          || (x.Notes != null && x.Notes.Contains(input.Keyword)));
@@ -124,17 +147,20 @@ namespace SmartPos.Inventory
                 throw new UserFriendlyException("Stock adjustment not found.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(entity.BranchId);
+
             foreach (var line in entity.Lines.ToList())
             {
                 var product = await _productRepository.GetAsync(line.ProductId);
-                var reversed = product.StockQuantity - line.QuantityChange;
+                var currentQty = await _branchStockManager.GetQuantityAsync(entity.BranchId, line.ProductId);
+                var reversed = currentQty - line.QuantityChange;
                 if (reversed < 0)
                 {
                     throw new UserFriendlyException(
                         $"Cannot delete adjustment; reversing would make stock negative for '{product.Name}'.");
                 }
 
-                product.StockQuantity = reversed;
+                await _branchStockManager.SetAsync(entity.BranchId, line.ProductId, reversed);
                 await _lineRepository.DeleteAsync(line);
             }
 

@@ -10,6 +10,9 @@ using Abp.Linq.Extensions;
 using Abp.UI;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Users;
+using SmartPos.Branches;
+using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Purchases.Dto;
 using SmartPos.Suppliers;
@@ -24,6 +27,10 @@ namespace SmartPos.Purchases
         private readonly IRepository<Supplier> _supplierRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
         private readonly IRepository<PurchaseReturn> _purchaseReturnRepository;
+        private readonly IRepository<User, long> _userRepository;
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchContext _branchContext;
+        private readonly IBranchStockManager _branchStockManager;
         private readonly SystemAccountManager _systemAccountManager;
 
         public PurchaseAppService(
@@ -33,6 +40,10 @@ namespace SmartPos.Purchases
             IRepository<Supplier> supplierRepository,
             IRepository<LedgerEntry> ledgerRepository,
             IRepository<PurchaseReturn> purchaseReturnRepository,
+            IRepository<User, long> userRepository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchContext branchContext,
+            IBranchStockManager branchStockManager,
             SystemAccountManager systemAccountManager)
             : base(repository)
         {
@@ -41,6 +52,10 @@ namespace SmartPos.Purchases
             _supplierRepository = supplierRepository;
             _ledgerRepository = ledgerRepository;
             _purchaseReturnRepository = purchaseReturnRepository;
+            _userRepository = userRepository;
+            _branchAccessChecker = branchAccessChecker;
+            _branchContext = branchContext;
+            _branchStockManager = branchStockManager;
             _systemAccountManager = systemAccountManager;
         }
 
@@ -64,8 +79,12 @@ namespace SmartPos.Purchases
                 input.PurchaseDate = Abp.Timing.Clock.Now;
             }
 
+            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+
             var purchase = new Purchase
             {
+                TenantId = AbpSession.TenantId,
+                BranchId = branchId,
                 SupplierId = input.SupplierId,
                 PurchaseDate = input.PurchaseDate,
                 Notes = input.Notes,
@@ -93,7 +112,7 @@ namespace SmartPos.Purchases
                 });
 
                 ProductPricing.ApplyPurchaseCost(product, lineInput.Quantity, lineInput.UnitCost);
-                product.StockQuantity += lineInput.Quantity;
+                await _branchStockManager.IncreaseAsync(branchId, lineInput.ProductId, lineInput.Quantity);
             }
 
             purchase.TotalAmount = total;
@@ -152,15 +171,12 @@ namespace SmartPos.Purchases
                 throw new UserFriendlyException("Cannot delete this purchase because it has product returns. Delete the returns first.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(purchase.BranchId);
+
             foreach (var line in purchase.Lines.ToList())
             {
                 var product = await _productRepository.GetAsync(line.ProductId);
-                product.StockQuantity -= line.Quantity;
-                if (product.StockQuantity < 0)
-                {
-                    product.StockQuantity = 0;
-                }
-
+                await _branchStockManager.DecreaseAsync(purchase.BranchId, line.ProductId, line.Quantity, product.Name);
                 await _lineRepository.DeleteAsync(line);
             }
 
@@ -176,7 +192,10 @@ namespace SmartPos.Purchases
 
         protected override IQueryable<Purchase> CreateFilteredQuery(PagedPurchaseResultRequestDto input)
         {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
             return Repository.GetAllIncluding(x => x.Supplier, x => x.Lines)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(input.SupplierId.HasValue, x => x.SupplierId == input.SupplierId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))
@@ -236,7 +255,6 @@ namespace SmartPos.Purchases
                 throw new UserFriendlyException("Purchase not found.");
             }
 
-            // Load product names for lines
             foreach (var line in entity.Lines)
             {
                 line.Product = await _productRepository.FirstOrDefaultAsync(line.ProductId);

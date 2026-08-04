@@ -80,6 +80,7 @@ export class SessionService {
             return null;
         }
 
+        const branchId = rawUser.branchId ?? rawUser.BranchId;
         return {
             id: rawUser.id ?? rawUser.Id,
             name: rawUser.name ?? rawUser.Name,
@@ -88,6 +89,8 @@ export class SessionService {
             emailAddress: rawUser.emailAddress ?? rawUser.EmailAddress,
             roleNames: rawUser.roleNames || rawUser.RoleNames || [],
             profilePictureUrl: this.resolveProfilePictureUrl(rawUser) || undefined,
+            branchId: branchId != null ? Number(branchId) : null,
+            branchName: rawUser.branchName ?? rawUser.BranchName,
         };
     }
 

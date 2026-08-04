@@ -38,6 +38,8 @@ namespace SmartPos.Users.Dto
 
         public string ImageBase64 { get; set; }
 
+        public int? BranchId { get; set; }
+
         public void Normalize()
         {
             if (RoleNames == null)

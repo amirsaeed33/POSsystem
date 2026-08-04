@@ -9,6 +9,8 @@ using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Abp.UI;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Users;
+using SmartPos.Branches;
 using SmartPos.Customers;
 using SmartPos.Orders.Dto;
 using SmartPos.Products;
@@ -25,6 +27,9 @@ namespace SmartPos.Orders
         private readonly IRepository<CustomerOrderLine> _lineRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Customer> _customerRepository;
+        private readonly IRepository<User, long> _userRepository;
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchContext _branchContext;
         private readonly ISaleAppService _saleAppService;
 
         public CustomerOrderAppService(
@@ -32,12 +37,18 @@ namespace SmartPos.Orders
             IRepository<CustomerOrderLine> lineRepository,
             IRepository<Product> productRepository,
             IRepository<Customer> customerRepository,
+            IRepository<User, long> userRepository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchContext branchContext,
             ISaleAppService saleAppService)
             : base(repository)
         {
             _lineRepository = lineRepository;
             _productRepository = productRepository;
             _customerRepository = customerRepository;
+            _userRepository = userRepository;
+            _branchAccessChecker = branchAccessChecker;
+            _branchContext = branchContext;
             _saleAppService = saleAppService;
         }
 
@@ -57,8 +68,12 @@ namespace SmartPos.Orders
                 input.OrderDate = Abp.Timing.Clock.Now;
             }
 
+            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+
             var order = new CustomerOrder
             {
+                TenantId = AbpSession.TenantId,
+                BranchId = branchId,
                 CustomerId = input.CustomerId,
                 OrderDate = input.OrderDate,
                 Notes = input.Notes,
@@ -118,6 +133,8 @@ namespace SmartPos.Orders
                 throw new UserFriendlyException("Only pending orders can be deleted.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
             foreach (var line in order.Lines.ToList())
             {
                 await _lineRepository.DeleteAsync(line);
@@ -143,6 +160,8 @@ namespace SmartPos.Orders
             {
                 throw new UserFriendlyException("Order has no product lines.");
             }
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
 
             var sale = await _saleAppService.CreateAsync(new CreateSaleDto
             {
@@ -180,13 +199,18 @@ namespace SmartPos.Orders
                 throw new UserFriendlyException("Only pending orders can be rejected.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
             order.Status = CustomerOrderStatus.Rejected;
             await CurrentUnitOfWork.SaveChangesAsync();
         }
 
         protected override IQueryable<CustomerOrder> CreateFilteredQuery(PagedCustomerOrderResultRequestDto input)
         {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
             return Repository.GetAllIncluding(x => x.Customer, x => x.Sale, x => x.Lines)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(input.Status.HasValue, x => x.Status == input.Status.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.OrderNo != null && x.OrderNo.Contains(input.Keyword))

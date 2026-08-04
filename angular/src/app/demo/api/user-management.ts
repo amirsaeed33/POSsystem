@@ -10,6 +10,8 @@ export interface UserDto {
     creationTime: string;
     roleNames?: string[];
     profilePictureUrl?: string;
+    branchId?: number | null;
+    branchName?: string;
 }
 
 export interface CreateUserDto {
@@ -21,6 +23,7 @@ export interface CreateUserDto {
     roleNames?: string[];
     password: string;
     profilePictureUrl?: string;
+    branchId?: number | null;
 }
 
 export interface PagedUserResultRequestDto {

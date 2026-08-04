@@ -12,8 +12,11 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Users;
+using SmartPos.Branches;
 using SmartPos.Customers;
 using SmartPos.Customers.Dto;
+using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Products.Dto;
 using SmartPos.Sales.Dto;
@@ -28,6 +31,10 @@ namespace SmartPos.Sales
         private readonly IRepository<Customer> _customerRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
         private readonly IRepository<SaleReturn> _saleReturnRepository;
+        private readonly IRepository<User, long> _userRepository;
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchContext _branchContext;
+        private readonly IBranchStockManager _branchStockManager;
         private readonly SystemAccountManager _systemAccountManager;
 
         public SaleAppService(
@@ -37,6 +44,10 @@ namespace SmartPos.Sales
             IRepository<Customer> customerRepository,
             IRepository<LedgerEntry> ledgerRepository,
             IRepository<SaleReturn> saleReturnRepository,
+            IRepository<User, long> userRepository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchContext branchContext,
+            IBranchStockManager branchStockManager,
             SystemAccountManager systemAccountManager)
             : base(repository)
         {
@@ -45,6 +56,10 @@ namespace SmartPos.Sales
             _customerRepository = customerRepository;
             _ledgerRepository = ledgerRepository;
             _saleReturnRepository = saleReturnRepository;
+            _userRepository = userRepository;
+            _branchAccessChecker = branchAccessChecker;
+            _branchContext = branchContext;
+            _branchStockManager = branchStockManager;
             _systemAccountManager = systemAccountManager;
         }
 
@@ -66,7 +81,7 @@ namespace SmartPos.Sales
             var byBarcode = await query.FirstOrDefaultAsync(x => x.Barcode == normalized);
             if (byBarcode != null)
             {
-                return ObjectMapper.Map<ProductDto>(byBarcode);
+                return await MapProductWithBranchStockAsync(byBarcode);
             }
 
             var lower = normalized.ToLowerInvariant();
@@ -85,12 +100,12 @@ namespace SmartPos.Sales
                 string.Equals(x.Name, normalized, StringComparison.OrdinalIgnoreCase));
             if (exactName != null)
             {
-                return ObjectMapper.Map<ProductDto>(exactName);
+                return await MapProductWithBranchStockAsync(exactName);
             }
 
             if (nameMatches.Count == 1)
             {
-                return ObjectMapper.Map<ProductDto>(nameMatches[0]);
+                return await MapProductWithBranchStockAsync(nameMatches[0]);
             }
 
             throw new UserFriendlyException(
@@ -116,7 +131,7 @@ namespace SmartPos.Sales
                 .Take(50)
                 .ToListAsync();
 
-            return new ListResultDto<ProductDto>(ObjectMapper.Map<List<ProductDto>>(items));
+            return new ListResultDto<ProductDto>(await MapProductsWithBranchStockAsync(items));
         }
 
         public async Task<ListResultDto<CustomerDto>> GetPosCustomersAsync()
@@ -136,7 +151,7 @@ namespace SmartPos.Sales
                 .Take(1000)
                 .ToListAsync();
 
-            return new ListResultDto<ProductDto>(ObjectMapper.Map<List<ProductDto>>(products));
+            return new ListResultDto<ProductDto>(await MapProductsWithBranchStockAsync(products));
         }
 
         public override async Task<SaleDto> CreateAsync(CreateSaleDto input)
@@ -159,8 +174,12 @@ namespace SmartPos.Sales
                 input.SaleDate = Abp.Timing.Clock.Now;
             }
 
+            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+
             var sale = new Sale
             {
+                TenantId = AbpSession.TenantId,
+                BranchId = branchId,
                 CustomerId = input.CustomerId,
                 SaleDate = input.SaleDate,
                 Notes = input.Notes,
@@ -179,11 +198,7 @@ namespace SmartPos.Sales
                 }
 
                 var product = await _productRepository.GetAsync(lineInput.ProductId);
-                if (product.StockQuantity < lineInput.Quantity)
-                {
-                    throw new UserFriendlyException(
-                        $"Insufficient stock for '{product.Name}'. Available: {product.StockQuantity}, requested: {lineInput.Quantity}.");
-                }
+                await _branchStockManager.DecreaseAsync(branchId, lineInput.ProductId, lineInput.Quantity, product.Name);
 
                 var lineTotal = lineInput.Quantity * lineInput.UnitPrice;
                 subTotal += lineTotal;
@@ -195,8 +210,6 @@ namespace SmartPos.Sales
                     UnitPrice = lineInput.UnitPrice,
                     LineTotal = lineTotal
                 });
-
-                product.StockQuantity -= lineInput.Quantity;
             }
 
             sale.SubTotal = Math.Round(subTotal, 2);
@@ -229,8 +242,17 @@ namespace SmartPos.Sales
 
             sale.InvoiceNo = "SAL-" + sale.Id.ToString("D6");
             await PostSaleLedgerAsync(sale, customer.AccountId.Value);
+            await CurrentUnitOfWork.SaveChangesAsync();
 
-            return await GetAsync(new EntityDto<int>(sale.Id));
+            sale.Customer = customer;
+            foreach (var line in sale.Lines)
+            {
+                line.Product = await _productRepository.FirstOrDefaultAsync(line.ProductId);
+            }
+
+            var dto = MapToEntityDto(sale);
+            await PopulateReturnFlagsAsync(new[] { dto });
+            return dto;
         }
 
         public override async Task<SaleDto> UpdateAsync(SaleDto input)
@@ -254,10 +276,11 @@ namespace SmartPos.Sales
                 throw new UserFriendlyException("Cannot delete this sale because it has product returns. Delete the returns first.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(sale.BranchId);
+
             foreach (var line in sale.Lines.ToList())
             {
-                var product = await _productRepository.GetAsync(line.ProductId);
-                product.StockQuantity += line.Quantity;
+                await _branchStockManager.IncreaseAsync(sale.BranchId, line.ProductId, line.Quantity);
                 await _lineRepository.DeleteAsync(line);
             }
 
@@ -273,12 +296,47 @@ namespace SmartPos.Sales
 
         protected override IQueryable<Sale> CreateFilteredQuery(PagedSaleResultRequestDto input)
         {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
             return Repository.GetAllIncluding(x => x.Customer, x => x.Lines)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(input.CustomerId.HasValue, x => x.CustomerId == input.CustomerId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))
                          || (x.Notes != null && x.Notes.Contains(input.Keyword))
                          || (x.Customer != null && x.Customer.Name.Contains(input.Keyword)));
+        }
+
+        private async Task<ProductDto> MapProductWithBranchStockAsync(Product product)
+        {
+            var dtos = await MapProductsWithBranchStockAsync(new[] { product });
+            return dtos[0];
+        }
+
+        private async Task<List<ProductDto>> MapProductsWithBranchStockAsync(IList<Product> products)
+        {
+            var dtos = ObjectMapper.Map<List<ProductDto>>(products);
+            if (dtos.Count == 0)
+            {
+                return dtos;
+            }
+
+            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            if (!branchId.HasValue)
+            {
+                return dtos;
+            }
+
+            var quantities = await _branchStockManager.GetQuantitiesAsync(
+                branchId.Value,
+                products.Select(x => x.Id));
+
+            foreach (var dto in dtos)
+            {
+                dto.StockQuantity = quantities.TryGetValue(dto.Id, out var qty) ? qty : 0;
+            }
+
+            return dtos;
         }
 
         protected override async Task<Sale> GetEntityByIdAsync(int id)
