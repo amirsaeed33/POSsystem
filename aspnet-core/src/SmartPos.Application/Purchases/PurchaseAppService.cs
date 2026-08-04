@@ -111,8 +111,24 @@ namespace SmartPos.Purchases
                     LineTotal = lineTotal
                 });
 
+                var branchInfo = await _branchStockManager.GetBranchProductInfoAsync(
+                    branchId,
+                    new[] { lineInput.ProductId });
+                var current = branchInfo[lineInput.ProductId];
+                var newBranchCost = ProductPricing.CalculateAverageCost(
+                    current.Quantity,
+                    current.CostPrice,
+                    lineInput.Quantity,
+                    lineInput.UnitCost);
+
                 ProductPricing.ApplyPurchaseCost(product, lineInput.Quantity, lineInput.UnitCost);
                 await _branchStockManager.IncreaseAsync(branchId, lineInput.ProductId, lineInput.Quantity);
+                await _branchStockManager.SetPricesAsync(
+                    branchId,
+                    lineInput.ProductId,
+                    current.Price,
+                    current.WholesalePrice,
+                    newBranchCost);
             }
 
             purchase.TotalAmount = total;

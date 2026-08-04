@@ -72,11 +72,14 @@ namespace SmartPos.Products
                 throw new UserFriendlyException(DuplicateBarcodeMessage);
             }
 
-            if (initialStock > 0)
-            {
-                var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
-                await _branchStockManager.IncreaseAsync(branchId, product.Id, initialStock);
-            }
+            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+            await _branchStockManager.UpsertStockAndPricesAsync(
+                branchId,
+                product.Id,
+                initialStock > 0 ? initialStock : 0,
+                product.Price,
+                product.WholesalePrice,
+                product.CostPrice);
 
             return await GetAsync(new EntityDto<int>(product.Id));
         }
@@ -128,6 +131,14 @@ namespace SmartPos.Products
             {
                 throw new UserFriendlyException(DuplicateBarcodeMessage);
             }
+
+            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+            await _branchStockManager.SetPricesAsync(
+                branchId,
+                product.Id,
+                input.Price,
+                input.WholesalePrice,
+                input.CostPrice);
 
             return await GetAsync(new EntityDto<int>(product.Id));
         }
@@ -188,15 +199,18 @@ namespace SmartPos.Products
                 return;
             }
 
-            var quantities = await _branchStockManager.GetQuantitiesAsync(
+            var infoMap = await _branchStockManager.GetBranchProductInfoAsync(
                 branchId.Value,
                 items.Select(x => x.Id));
 
             foreach (var item in items)
             {
-                if (quantities.TryGetValue(item.Id, out var qty))
+                if (infoMap.TryGetValue(item.Id, out var info))
                 {
-                    item.StockQuantity = qty;
+                    item.StockQuantity = info.Quantity;
+                    item.Price = info.Price;
+                    item.WholesalePrice = info.WholesalePrice;
+                    item.CostPrice = info.CostPrice;
                 }
                 else
                 {

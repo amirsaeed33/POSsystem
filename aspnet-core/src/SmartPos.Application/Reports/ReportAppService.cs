@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -175,9 +176,18 @@ namespace SmartPos.Reports
                 .ToListAsync();
 
             var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
-            var stockByProductId = branchId.HasValue
-                ? await _branchStockManager.GetQuantitiesAsync(branchId.Value, products.Select(p => p.Id))
-                : products.ToDictionary(p => p.Id, p => p.StockQuantity);
+            var branchInfo = branchId.HasValue
+                ? await _branchStockManager.GetBranchProductInfoAsync(branchId.Value, products.Select(p => p.Id))
+                : products.ToDictionary(
+                    p => p.Id,
+                    p => new BranchProductInfo
+                    {
+                        ProductId = p.Id,
+                        Quantity = p.StockQuantity,
+                        Price = p.Price,
+                        WholesalePrice = p.WholesalePrice,
+                        CostPrice = p.CostPrice
+                    });
 
             string StatusOf(Product p, decimal qty)
             {
@@ -191,7 +201,19 @@ namespace SmartPos.Reports
 
             var items = products.Select(p =>
             {
-                var qty = stockByProductId.TryGetValue(p.Id, out var stockQty) ? stockQty : 0;
+                var info = branchInfo.TryGetValue(p.Id, out var row)
+                    ? row
+                    : new BranchProductInfo
+                    {
+                        ProductId = p.Id,
+                        Quantity = 0,
+                        Price = p.Price,
+                        WholesalePrice = p.WholesalePrice,
+                        CostPrice = p.CostPrice
+                    };
+                var price = info.Price;
+                var cost = info.CostPrice;
+                var qty = info.Quantity;
                 return new StockReportRowDto
                 {
                     Id = p.Id,
@@ -200,11 +222,11 @@ namespace SmartPos.Reports
                     CategoryName = p.Category?.Name,
                     BrandName = p.Brand?.Name,
                     UnitName = p.Unit?.Name,
-                    Price = p.Price,
-                    CostPrice = p.CostPrice,
-                    ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
-                    ProfitMarginPercent = ProductPricing.ProfitMarginPercent(p.Price, p.CostPrice),
-                    StockProfit = ProductPricing.StockProfit(p.Price, p.CostPrice, qty),
+                    Price = price,
+                    CostPrice = cost,
+                    ProfitPerUnit = ProductPricing.ProfitPerUnit(price, cost),
+                    ProfitMarginPercent = ProductPricing.ProfitMarginPercent(price, cost),
+                    StockProfit = ProductPricing.StockProfit(price, cost, qty),
                     StockQuantity = qty,
                     AlertQuantityLimit = p.AlertQuantityLimit,
                     Status = StatusOf(p, qty)

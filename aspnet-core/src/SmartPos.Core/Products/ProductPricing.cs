@@ -44,7 +44,33 @@ namespace SmartPos.Products
         }
 
         /// <summary>
-        /// Updates average cost from a purchase. Call before increasing <see cref="Product.StockQuantity"/>.
+        /// Calculates weighted-average cost after a purchase against existing stock.
+        /// Call with quantity/cost before the purchase quantity is applied.
+        /// </summary>
+        public static decimal CalculateAverageCost(
+            decimal existingQuantity,
+            decimal existingCostPrice,
+            decimal purchaseQuantity,
+            decimal unitCost)
+        {
+            if (purchaseQuantity <= 0)
+            {
+                return existingCostPrice;
+            }
+
+            if (existingQuantity <= 0)
+            {
+                return unitCost;
+            }
+
+            var totalCost = (existingQuantity * existingCostPrice) + (purchaseQuantity * unitCost);
+            var newQty = existingQuantity + purchaseQuantity;
+            return Math.Round(totalCost / newQty, 4);
+        }
+
+        /// <summary>
+        /// Updates average cost on the product catalog default. Prefer branch-aware
+        /// <see cref="CalculateAverageCost"/> for multi-branch stock.
         /// </summary>
         public static void ApplyPurchaseCost(Product product, decimal purchaseQuantity, decimal unitCost)
         {
@@ -53,16 +79,11 @@ namespace SmartPos.Products
                 return;
             }
 
-            var oldQty = product.StockQuantity;
-            if (oldQty <= 0)
-            {
-                product.CostPrice = unitCost;
-                return;
-            }
-
-            var totalCost = (oldQty * product.CostPrice) + (purchaseQuantity * unitCost);
-            var newQty = oldQty + purchaseQuantity;
-            product.CostPrice = Math.Round(totalCost / newQty, 4);
+            product.CostPrice = CalculateAverageCost(
+                product.StockQuantity,
+                product.CostPrice,
+                purchaseQuantity,
+                unitCost);
         }
     }
 }

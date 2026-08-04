@@ -327,13 +327,25 @@ namespace SmartPos.Sales
                 return dtos;
             }
 
-            var quantities = await _branchStockManager.GetQuantitiesAsync(
+            var infoMap = await _branchStockManager.GetBranchProductInfoAsync(
                 branchId.Value,
                 products.Select(x => x.Id));
 
             foreach (var dto in dtos)
             {
-                dto.StockQuantity = quantities.TryGetValue(dto.Id, out var qty) ? qty : 0;
+                if (infoMap.TryGetValue(dto.Id, out var info))
+                {
+                    dto.StockQuantity = info.Quantity;
+                    dto.Price = info.Price;
+                    dto.WholesalePrice = info.WholesalePrice;
+                    dto.CostPrice = info.CostPrice;
+                }
+                else
+                {
+                    dto.StockQuantity = 0;
+                }
+
+                dto.StockProfit = ProductPricing.StockProfit(dto.Price, dto.CostPrice, dto.StockQuantity);
             }
 
             return dtos;

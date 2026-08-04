@@ -34,21 +34,68 @@ namespace SmartPos.Inventory
 
         public async Task<Dictionary<int, decimal>> GetQuantitiesAsync(int branchId, IEnumerable<int> productIds)
         {
+            var info = await GetBranchProductInfoAsync(branchId, productIds);
+            return info.ToDictionary(x => x.Key, x => x.Value.Quantity);
+        }
+
+        public async Task<Dictionary<int, BranchProductInfo>> GetBranchProductInfoAsync(
+            int branchId,
+            IEnumerable<int> productIds)
+        {
             var ids = productIds?.Distinct().ToList() ?? new List<int>();
             if (!ids.Any())
             {
-                return new Dictionary<int, decimal>();
+                return new Dictionary<int, BranchProductInfo>();
             }
 
             var rows = await _branchStockRepository.GetAll()
                 .Where(x => x.BranchId == branchId && ids.Contains(x.ProductId))
-                .Select(x => new { x.ProductId, x.Quantity })
+                .Select(x => new
+                {
+                    x.ProductId,
+                    x.Quantity,
+                    x.Price,
+                    x.WholesalePrice,
+                    x.CostPrice
+                })
                 .ToListAsync();
 
-            var map = ids.ToDictionary(id => id, _ => 0m);
+            var products = await _productRepository.GetAll()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Price,
+                    x.WholesalePrice,
+                    x.CostPrice
+                })
+                .ToListAsync();
+            var productMap = products.ToDictionary(x => x.Id);
+
+            var map = new Dictionary<int, BranchProductInfo>();
+            foreach (var id in ids)
+            {
+                productMap.TryGetValue(id, out var product);
+                map[id] = new BranchProductInfo
+                {
+                    ProductId = id,
+                    Quantity = 0,
+                    Price = product?.Price ?? 0,
+                    WholesalePrice = product?.WholesalePrice ?? 0,
+                    CostPrice = product?.CostPrice ?? 0
+                };
+            }
+
             foreach (var row in rows)
             {
-                map[row.ProductId] = row.Quantity;
+                map[row.ProductId] = new BranchProductInfo
+                {
+                    ProductId = row.ProductId,
+                    Quantity = row.Quantity,
+                    Price = row.Price,
+                    WholesalePrice = row.WholesalePrice,
+                    CostPrice = row.CostPrice
+                };
             }
 
             return map;
@@ -107,6 +154,42 @@ namespace SmartPos.Inventory
             }
         }
 
+        public async Task SetPricesAsync(
+            int branchId,
+            int productId,
+            decimal price,
+            decimal wholesalePrice,
+            decimal costPrice)
+        {
+            var stock = await GetOrCreateAsync(branchId, productId);
+            stock.Price = price;
+            stock.WholesalePrice = wholesalePrice;
+            stock.CostPrice = costPrice;
+        }
+
+        public async Task UpsertStockAndPricesAsync(
+            int branchId,
+            int productId,
+            decimal quantity,
+            decimal price,
+            decimal wholesalePrice,
+            decimal costPrice)
+        {
+            var stock = await GetOrCreateAsync(branchId, productId);
+            var delta = quantity - stock.Quantity;
+            stock.Quantity = quantity;
+            stock.Price = price;
+            stock.WholesalePrice = wholesalePrice;
+            stock.CostPrice = costPrice;
+
+            var product = await _productRepository.GetAsync(productId);
+            product.StockQuantity += delta;
+            if (product.StockQuantity < 0)
+            {
+                product.StockQuantity = 0;
+            }
+        }
+
         private async Task<BranchStock> GetOrNullAsync(int branchId, int productId)
         {
             return await _branchStockRepository.FirstOrDefaultAsync(
@@ -121,12 +204,16 @@ namespace SmartPos.Inventory
                 return stock;
             }
 
+            var product = await _productRepository.GetAsync(productId);
             stock = new BranchStock
             {
                 TenantId = _abpSession.TenantId,
                 BranchId = branchId,
                 ProductId = productId,
-                Quantity = 0
+                Quantity = 0,
+                Price = product.Price,
+                WholesalePrice = product.WholesalePrice,
+                CostPrice = product.CostPrice
             };
             await _branchStockRepository.InsertAsync(stock);
             await CurrentUnitOfWork.SaveChangesAsync();

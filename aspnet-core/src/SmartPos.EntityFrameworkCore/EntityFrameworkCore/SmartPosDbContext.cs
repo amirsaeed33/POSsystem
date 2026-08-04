@@ -104,6 +104,9 @@ namespace SmartPos.EntityFrameworkCore
             modelBuilder.Entity<BranchStock>(b =>
             {
                 b.Property(x => x.Quantity).HasPrecision(18, 2);
+                b.Property(x => x.Price).HasPrecision(18, 2);
+                b.Property(x => x.WholesalePrice).HasPrecision(18, 2);
+                b.Property(x => x.CostPrice).HasPrecision(18, 2);
                 b.HasIndex(x => new { x.TenantId, x.BranchId, x.ProductId })
                     .IsUnique()
                     .HasFilter("[IsDeleted] = 0");

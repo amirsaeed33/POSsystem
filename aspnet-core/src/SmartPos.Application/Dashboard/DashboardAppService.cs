@@ -65,7 +65,8 @@ namespace SmartPos.Dashboard
                 .AsNoTracking()
                 .ToListAsync();
 
-            var stockByProductId = await ResolveBranchStockAsync(branchId, products.Select(p => p.Id));
+            var branchInfoByProductId = await ResolveBranchProductInfoAsync(branchId, products.Select(p => p.Id));
+            var stockByProductId = branchInfoByProductId.ToDictionary(x => x.Key, x => x.Value.Quantity);
 
             var inStock = products.Where(p => IsInStock(p, stockByProductId)).ToList();
             var lowStock = products.Where(p => IsLowStock(p, stockByProductId)).ToList();
@@ -114,7 +115,9 @@ namespace SmartPos.Dashboard
                 .Where(x => x.ExpenseDate >= todayStart && x.ExpenseDate < tomorrow)
                 .Sum(x => x.Amount);
 
-            var costByProductId = products.ToDictionary(p => p.Id, p => p.CostPrice);
+            var costByProductId = products.ToDictionary(
+                p => p.Id,
+                p => branchInfoByProductId.TryGetValue(p.Id, out var info) ? info.CostPrice : p.CostPrice);
 
             var todaySaleLines = await _saleRepository.GetAllIncluding(x => x.Lines)
                 .AsNoTracking()
@@ -172,6 +175,8 @@ namespace SmartPos.Dashboard
                 .Select(p =>
                 {
                     var units = GetStock(p, stockByProductId);
+                    var price = branchInfoByProductId.TryGetValue(p.Id, out var info) ? info.Price : p.Price;
+                    var cost = branchInfoByProductId.TryGetValue(p.Id, out info) ? info.CostPrice : p.CostPrice;
                     return new DashboardProductRowDto
                     {
                         Id = p.Id,
@@ -180,9 +185,9 @@ namespace SmartPos.Dashboard
                         CategoryName = p.Category?.Name,
                         BrandName = p.Brand?.Name,
                         Units = units,
-                        Price = p.Price,
-                        CostPrice = p.CostPrice,
-                        ProfitPerUnit = ProductPricing.ProfitPerUnit(p.Price, p.CostPrice),
+                        Price = price,
+                        CostPrice = cost,
+                        ProfitPerUnit = ProductPricing.ProfitPerUnit(price, cost),
                         Status = StatusOf(p, stockByProductId),
                         ImagePath = p.ImagePath
                     };
@@ -226,16 +231,16 @@ namespace SmartPos.Dashboard
             };
         }
 
-        private async Task<Dictionary<int, decimal>> ResolveBranchStockAsync(
+        private async Task<Dictionary<int, BranchProductInfo>> ResolveBranchProductInfoAsync(
             int? branchId,
             IEnumerable<int> productIds)
         {
             if (!branchId.HasValue)
             {
-                return new Dictionary<int, decimal>();
+                return new Dictionary<int, BranchProductInfo>();
             }
 
-            return await _branchStockManager.GetQuantitiesAsync(branchId.Value, productIds);
+            return await _branchStockManager.GetBranchProductInfoAsync(branchId.Value, productIds);
         }
 
         private async Task<(

@@ -99,7 +99,7 @@ export class PurchaseFormDialogComponent implements OnChanges {
         }
         const product = this.products.find((p) => p.id === line.productId);
         if (product) {
-            line.unitCost = product.price || 0;
+            line.unitCost = (product.costPrice ?? product.price) || 0;
         }
         this.mergeDuplicateProductLine(line);
     }
@@ -228,7 +228,7 @@ export class PurchaseFormDialogComponent implements OnChanges {
         );
         const product = this.products.find((p) => p.id === existing.productId);
         if (product) {
-            existing.unitCost = product.price || 0;
+            existing.unitCost = (product.costPrice ?? product.price) || 0;
         }
 
         const index = lines.indexOf(line);

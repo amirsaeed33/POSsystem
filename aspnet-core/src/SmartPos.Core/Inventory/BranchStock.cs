@@ -22,5 +22,20 @@ namespace SmartPos.Inventory
         public virtual Product Product { get; set; }
 
         public virtual decimal Quantity { get; set; }
+
+        /// <summary>
+        /// Branch retail / direct-customer selling price per unit.
+        /// </summary>
+        public virtual decimal Price { get; set; }
+
+        /// <summary>
+        /// Branch wholesale selling price per unit.
+        /// </summary>
+        public virtual decimal WholesalePrice { get; set; }
+
+        /// <summary>
+        /// Branch average purchase / cost price per unit.
+        /// </summary>
+        public virtual decimal CostPrice { get; set; }
     }
 }

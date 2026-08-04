@@ -15,6 +15,7 @@ import { ProductService } from 'src/app/demo/service/product.service';
 import { CategoryService } from 'src/app/demo/service/category.service';
 import { BrandService } from 'src/app/demo/service/brand.service';
 import { UnitService } from 'src/app/demo/service/unit.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 
 @Component({
     selector: 'app-product-form-dialog',
@@ -33,12 +34,14 @@ export class ProductFormDialogComponent implements OnChanges {
     imagePreview = '';
     saving = false;
     loading = false;
+    currentBranchName = '';
 
     constructor(
         private productService: ProductService,
         private categoryService: CategoryService,
         private brandService: BrandService,
         private unitService: UnitService,
+        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -63,6 +66,8 @@ export class ProductFormDialogComponent implements OnChanges {
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
+            this.currentBranchName =
+                this.branchContext.getCurrentBranch()?.name || '';
             this.resetForm();
             this.loadLookups().then(() => {
                 if (this.productId) {
