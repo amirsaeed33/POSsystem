@@ -1,0 +1,200 @@
+<p-dialog
+    [header]="dialogTitle"
+    [visible]="visible"
+    [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
+    [style]="{ width: '42rem' }"
+    [breakpoints]="{ '960px': '75vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (visibleChange)="onVisibleChange($event)"
+>
+    <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
+        <div class="flex flex-column gap-2">
+            <label class="font-medium">Staff <span class="p-error">*</span></label>
+            <p-dropdown
+                [options]="staffOptions"
+                [(ngModel)]="record.staffId"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Select staff"
+                [filter]="true"
+                styleClass="w-full"
+                [disabled]="saving"
+                (onChange)="onStaffChange()"
+            ></p-dropdown>
+        </div>
+
+        <div class="grid">
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Month <span class="p-error">*</span></label>
+                <p-dropdown
+                    [options]="monthOptions"
+                    [(ngModel)]="record.month"
+                    optionLabel="label"
+                    optionValue="value"
+                    styleClass="w-full"
+                    [disabled]="saving"
+                ></p-dropdown>
+            </div>
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Year <span class="p-error">*</span></label>
+                <p-inputNumber
+                    [(ngModel)]="record.year"
+                    [useGrouping]="false"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Basic Salary</label>
+                <p-inputNumber
+                    [(ngModel)]="record.basicSalary"
+                    mode="decimal"
+                    [min]="0"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Allowance</label>
+                <p-inputNumber
+                    [(ngModel)]="record.allowance"
+                    mode="decimal"
+                    [min]="0"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Bonus</label>
+                <p-inputNumber
+                    [(ngModel)]="record.bonus"
+                    mode="decimal"
+                    [min]="0"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Overtime</label>
+                <p-inputNumber
+                    [(ngModel)]="record.overtimeAmount"
+                    mode="decimal"
+                    [min]="0"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Deduction</label>
+                <p-inputNumber
+                    [(ngModel)]="record.deduction"
+                    mode="decimal"
+                    [min]="0"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Net Salary</label>
+                <input
+                    pInputText
+                    class="w-full"
+                    [value]="netSalaryPreview"
+                    [disabled]="true"
+                />
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Payment Status</label>
+                <p-dropdown
+                    [options]="paymentStatusOptions"
+                    [(ngModel)]="record.paymentStatus"
+                    optionLabel="label"
+                    optionValue="value"
+                    styleClass="w-full"
+                    [disabled]="saving"
+                ></p-dropdown>
+            </div>
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Payment Date</label>
+                <input
+                    type="date"
+                    pInputText
+                    class="w-full"
+                    [(ngModel)]="record.paymentDate"
+                    [disabled]="saving"
+                />
+            </div>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label class="font-medium">Remarks</label>
+            <textarea
+                pInputTextarea
+                rows="2"
+                class="w-full"
+                maxlength="512"
+                [(ngModel)]="record.remarks"
+                [disabled]="saving"
+            ></textarea>
+        </div>
+    </div>
+
+    <ng-template #loadingTpl>
+        <div class="flex align-items-center justify-content-center p-4">
+            <i class="pi pi-spin pi-spinner text-2xl"></i>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="onHide()"
+            [disabled]="saving"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            (click)="save()"
+            [disabled]="saving || loading || !record.staffId || !record.month || !record.year"
+            [loading]="saving"
+        ></button>
+    </ng-template>
+</p-dialog>

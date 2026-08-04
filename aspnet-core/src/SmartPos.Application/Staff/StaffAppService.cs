@@ -16,9 +16,14 @@ namespace SmartPos.Staffs
     [AbpAuthorize(PermissionNames.Pages_Staff)]
     public class StaffAppService : AsyncCrudAppService<Staff, StaffDto, int, PagedStaffResultRequestDto, CreateStaffDto, StaffDto>, IStaffAppService
     {
-        public StaffAppService(IRepository<Staff> repository)
+        private readonly StaffHistoryWriter _staffHistoryWriter;
+
+        public StaffAppService(
+            IRepository<Staff> repository,
+            StaffHistoryWriter staffHistoryWriter)
             : base(repository)
         {
+            _staffHistoryWriter = staffHistoryWriter;
         }
 
         public override async Task<StaffDto> CreateAsync(CreateStaffDto input)
@@ -34,7 +39,68 @@ namespace SmartPos.Staffs
             await Repository.InsertAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
 
+            await _staffHistoryWriter.WriteAsync(
+                entity.Id,
+                entity.BranchId,
+                StaffHistoryAction.Created,
+                $"Staff '{entity.Name}' created.");
+
             return await GetAsync(new EntityDto<int>(entity.Id));
+        }
+
+        public override async Task<StaffDto> UpdateAsync(StaffDto input)
+        {
+            CheckUpdatePermission();
+
+            var entity = await GetEntityByIdAsync(input.Id);
+            var previousDesignation = entity.Designation;
+            var previousSalary = entity.BasicSalary;
+            var previousName = entity.Name;
+
+            MapToEntity(input, entity);
+            await Repository.UpdateAsync(entity);
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            await _staffHistoryWriter.WriteAsync(
+                entity.Id,
+                entity.BranchId,
+                StaffHistoryAction.Updated,
+                $"Staff '{previousName}' updated.");
+
+            if (!string.Equals(previousDesignation ?? string.Empty, entity.Designation ?? string.Empty))
+            {
+                await _staffHistoryWriter.WriteAsync(
+                    entity.Id,
+                    entity.BranchId,
+                    StaffHistoryAction.DesignationChanged,
+                    $"Designation '{previousDesignation}' → '{entity.Designation}'.");
+            }
+
+            if (previousSalary != entity.BasicSalary)
+            {
+                await _staffHistoryWriter.WriteAsync(
+                    entity.Id,
+                    entity.BranchId,
+                    StaffHistoryAction.SalaryChanged,
+                    $"BasicSalary {previousSalary} → {entity.BasicSalary}.");
+            }
+
+            return await GetAsync(new EntityDto<int>(entity.Id));
+        }
+
+        public override async Task DeleteAsync(EntityDto<int> input)
+        {
+            CheckDeletePermission();
+
+            var entity = await Repository.GetAsync(input.Id);
+
+            await _staffHistoryWriter.WriteAsync(
+                entity.Id,
+                entity.BranchId,
+                StaffHistoryAction.Deleted,
+                $"Staff '{entity.Name}' deleted.");
+
+            await Repository.DeleteAsync(entity);
         }
 
         protected override IQueryable<Staff> CreateFilteredQuery(PagedStaffResultRequestDto input)

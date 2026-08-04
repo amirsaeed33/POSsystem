@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
@@ -48,5 +49,9 @@ namespace SmartPos.Staffs
         public virtual decimal? BasicSalary { get; set; }
 
         public virtual bool IsActive { get; set; } = true;
+
+        public virtual ICollection<StaffAttendance> Attendances { get; set; }
+
+        public virtual ICollection<StaffPayroll> Payrolls { get; set; }
     }
 }

@@ -1,0 +1,116 @@
+<p-dialog
+    [header]="dialogTitle"
+    [visible]="visible"
+    [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
+    [style]="{ width: '40rem' }"
+    [breakpoints]="{ '960px': '75vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (visibleChange)="onVisibleChange($event)"
+>
+    <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
+        <div class="flex flex-column gap-2">
+            <label class="font-medium">Staff <span class="p-error">*</span></label>
+            <p-dropdown
+                [options]="staffOptions"
+                [(ngModel)]="record.staffId"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Select staff"
+                [filter]="true"
+                styleClass="w-full"
+                [disabled]="saving"
+            ></p-dropdown>
+        </div>
+
+        <div class="grid">
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Date <span class="p-error">*</span></label>
+                <input
+                    type="date"
+                    pInputText
+                    class="w-full"
+                    [(ngModel)]="record.attendanceDate"
+                    [disabled]="saving"
+                />
+            </div>
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Status <span class="p-error">*</span></label>
+                <p-dropdown
+                    [options]="statusOptions"
+                    [(ngModel)]="record.status"
+                    optionLabel="label"
+                    optionValue="value"
+                    styleClass="w-full"
+                    [disabled]="saving"
+                    (onChange)="onStatusChange()"
+                ></p-dropdown>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Check In</label>
+                <input
+                    type="time"
+                    pInputText
+                    class="w-full"
+                    [(ngModel)]="record.checkInTime"
+                    [disabled]="timesDisabled"
+                />
+            </div>
+            <div class="col-12 md:col-6 flex flex-column gap-2">
+                <label class="font-medium">Check Out</label>
+                <input
+                    type="time"
+                    pInputText
+                    class="w-full"
+                    [(ngModel)]="record.checkOutTime"
+                    [disabled]="timesDisabled"
+                />
+            </div>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label class="font-medium">Remarks</label>
+            <textarea
+                pInputTextarea
+                rows="2"
+                class="w-full"
+                maxlength="512"
+                [(ngModel)]="record.remarks"
+                [disabled]="saving"
+            ></textarea>
+        </div>
+    </div>
+
+    <ng-template #loadingTpl>
+        <div class="flex align-items-center justify-content-center p-4">
+            <i class="pi pi-spin pi-spinner text-2xl"></i>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="onHide()"
+            [disabled]="saving"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            (click)="save()"
+            [disabled]="saving || loading || !record.staffId || !record.attendanceDate"
+            [loading]="saving"
+        ></button>
+    </ng-template>
+</p-dialog>

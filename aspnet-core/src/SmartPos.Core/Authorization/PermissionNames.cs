@@ -25,6 +25,16 @@
 
         public const string Pages_Staff = "Pages.Staff";
 
+        public const string Pages_StaffAttendance = "Pages.StaffAttendance";
+        public const string Pages_StaffAttendance_Create = "Pages.StaffAttendance.Create";
+        public const string Pages_StaffAttendance_Edit = "Pages.StaffAttendance.Edit";
+        public const string Pages_StaffAttendance_Delete = "Pages.StaffAttendance.Delete";
+
+        public const string Pages_StaffPayroll = "Pages.StaffPayroll";
+        public const string Pages_StaffPayroll_Create = "Pages.StaffPayroll.Create";
+        public const string Pages_StaffPayroll_Edit = "Pages.StaffPayroll.Edit";
+        public const string Pages_StaffPayroll_Delete = "Pages.StaffPayroll.Delete";
+
         public const string Pages_Suppliers = "Pages.Suppliers";
 
         public const string Pages_Accounts = "Pages.Accounts";

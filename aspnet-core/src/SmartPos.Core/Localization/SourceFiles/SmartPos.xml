@@ -170,6 +170,16 @@
     <text name="CreateNewStaff" value="Create new staff" />
     <text name="EditStaff" value="Edit staff" />
     <text name="StaffDeleteWarningMessage" value="Staff {0} will be deleted." />
+    <text name="StaffAttendance" value="Staff Attendance" />
+    <text name="CreateStaffAttendance" value="Create staff attendance" />
+    <text name="EditStaffAttendance" value="Edit staff attendance" />
+    <text name="DeleteStaffAttendance" value="Delete staff attendance" />
+    <text name="StaffAttendanceDeleteWarningMessage" value="Attendance record will be deleted." />
+    <text name="StaffPayroll" value="Staff Payroll" />
+    <text name="CreateStaffPayroll" value="Create staff payroll" />
+    <text name="EditStaffPayroll" value="Edit staff payroll" />
+    <text name="DeleteStaffPayroll" value="Delete staff payroll" />
+    <text name="StaffPayrollDeleteWarningMessage" value="Payroll record will be deleted." />
     <text name="Suppliers" value="Suppliers" />
     <text name="CreateNewSupplier" value="Create new supplier" />
     <text name="EditSupplier" value="Edit supplier" />

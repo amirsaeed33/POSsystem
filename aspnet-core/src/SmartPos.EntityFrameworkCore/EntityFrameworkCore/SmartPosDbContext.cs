@@ -44,6 +44,12 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<Staff> Staff { get; set; }
 
+        public virtual DbSet<StaffAttendance> StaffAttendances { get; set; }
+
+        public virtual DbSet<StaffPayroll> StaffPayrolls { get; set; }
+
+        public virtual DbSet<StaffHistory> StaffHistories { get; set; }
+
         public virtual DbSet<Supplier> Suppliers { get; set; }
 
         public virtual DbSet<BusinessAccount> Accounts { get; set; }
@@ -167,6 +173,57 @@ namespace SmartPos.EntityFrameworkCore
             {
                 b.Property(x => x.BasicSalary).HasPrecision(18, 2);
                 b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<StaffAttendance>(b =>
+            {
+                b.Property(x => x.WorkingHours).HasPrecision(18, 2);
+                b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => new { x.StaffId, x.AttendanceDate });
+                b.HasOne(x => x.Staff)
+                    .WithMany(x => x.Attendances)
+                    .HasForeignKey(x => x.StaffId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<StaffPayroll>(b =>
+            {
+                b.Property(x => x.BasicSalary).HasPrecision(18, 2);
+                b.Property(x => x.Allowance).HasPrecision(18, 2);
+                b.Property(x => x.Bonus).HasPrecision(18, 2);
+                b.Property(x => x.Deduction).HasPrecision(18, 2);
+                b.Property(x => x.OvertimeAmount).HasPrecision(18, 2);
+                b.Property(x => x.NetSalary).HasPrecision(18, 2);
+                b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => new { x.StaffId, x.Year, x.Month, x.BranchId })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasOne(x => x.Staff)
+                    .WithMany(x => x.Payrolls)
+                    .HasForeignKey(x => x.StaffId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<StaffHistory>(b =>
+            {
+                b.HasIndex(x => x.StaffId);
+                b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Staff)
+                    .WithMany()
+                    .HasForeignKey(x => x.StaffId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 b.HasOne(x => x.Branch)
                     .WithMany()
                     .HasForeignKey(x => x.BranchId)

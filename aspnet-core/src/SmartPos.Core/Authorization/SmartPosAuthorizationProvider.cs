@@ -19,6 +19,17 @@ namespace SmartPos.Authorization
             context.CreatePermission(PermissionNames.Pages_Products, L("Products"));
             context.CreatePermission(PermissionNames.Pages_Customers, L("Customers"));
             context.CreatePermission(PermissionNames.Pages_Staff, L("Staff"));
+
+            var staffAttendance = context.CreatePermission(PermissionNames.Pages_StaffAttendance, L("StaffAttendance"));
+            staffAttendance.CreateChildPermission(PermissionNames.Pages_StaffAttendance_Create, L("CreateStaffAttendance"));
+            staffAttendance.CreateChildPermission(PermissionNames.Pages_StaffAttendance_Edit, L("EditStaffAttendance"));
+            staffAttendance.CreateChildPermission(PermissionNames.Pages_StaffAttendance_Delete, L("DeleteStaffAttendance"));
+
+            var staffPayroll = context.CreatePermission(PermissionNames.Pages_StaffPayroll, L("StaffPayroll"));
+            staffPayroll.CreateChildPermission(PermissionNames.Pages_StaffPayroll_Create, L("CreateStaffPayroll"));
+            staffPayroll.CreateChildPermission(PermissionNames.Pages_StaffPayroll_Edit, L("EditStaffPayroll"));
+            staffPayroll.CreateChildPermission(PermissionNames.Pages_StaffPayroll_Delete, L("DeleteStaffPayroll"));
+
             context.CreatePermission(PermissionNames.Pages_Suppliers, L("Suppliers"));
             context.CreatePermission(PermissionNames.Pages_Accounts, L("Accounts"));
             context.CreatePermission(PermissionNames.Pages_LedgerEntries, L("LedgerEntries"));
