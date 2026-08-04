@@ -188,6 +188,16 @@ export class AppMenuitemComponent implements OnInit, OnDestroy {
             if (this.root && this.active && (this.isSlim || this.isSlimPlus)) {
                 this.layoutService.onOverlaySubmenuOpen();
             }
+
+            const defaultChild = this.item.items.find(
+                (child: any) => child.routerLink && child.visible !== false
+            );
+            if (defaultChild?.routerLink) {
+                this.router.navigate(defaultChild.routerLink);
+                if (this.layoutService.isMobile()) {
+                    this.layoutService.state.staticMenuMobileActive = false;
+                }
+            }
         }
         else {
             if (this.layoutService.isMobile()) {
