@@ -4,6 +4,7 @@ import { AppLayoutComponent } from './layout/app.layout.component';
 import { AuthGuard } from './demo/service/auth.guard';
 import { PermissionGuard } from './demo/service/permission.guard';
 import { PermissionNames } from './demo/api/permission-names';
+import { StaffTabRedirectComponent } from './demo/components/staff-hub/staff-tab-redirect.component';
 
 const routes: Routes = [
     {
@@ -33,9 +34,32 @@ const routes: Routes = [
                     ),
             },
             { path: 'customers', data: { breadcrumb: 'Customers', permission: PermissionNames.Customers }, loadChildren: () => import('./demo/components/customers/customers.module').then(m => m.CustomersModule) },
-            { path: 'staff', data: { breadcrumb: 'Staff', permission: PermissionNames.Staff }, loadChildren: () => import('./demo/components/staff/staff.module').then(m => m.StaffModule) },
-            { path: 'staff-attendance', data: { breadcrumb: 'Attendance', permission: PermissionNames.StaffAttendance }, loadChildren: () => import('./demo/components/staff-attendance/staff-attendance.module').then(m => m.StaffAttendanceModule) },
-            { path: 'staff-payroll', data: { breadcrumb: 'Payroll', permission: PermissionNames.StaffPayroll }, loadChildren: () => import('./demo/components/staff-payroll/staff-payroll.module').then(m => m.StaffPayrollModule) },
+            {
+                path: 'staff',
+                data: {
+                    breadcrumb: 'Staff',
+                    anyPermission: [
+                        PermissionNames.Staff,
+                        PermissionNames.StaffAttendance,
+                        PermissionNames.StaffPayroll,
+                    ],
+                },
+                loadChildren: () =>
+                    import('./demo/components/staff-hub/staff-hub.module').then(
+                        (m) => m.StaffHubModule
+                    ),
+            },
+            {
+                path: 'staff-attendance',
+                component: StaffTabRedirectComponent,
+                data: { tab: 'attendance' },
+            },
+            {
+                path: 'staff-payroll',
+                component: StaffTabRedirectComponent,
+                data: { tab: 'payroll' },
+            },
+
             { path: 'suppliers', data: { breadcrumb: 'Suppliers', permission: PermissionNames.Suppliers }, loadChildren: () => import('./demo/components/suppliers/suppliers.module').then(m => m.SuppliersModule) },
             { path: 'products', data: { breadcrumb: 'Products', permission: PermissionNames.Products }, loadChildren: () => import('./demo/components/products/products.module').then(m => m.ProductsModule) },
             { path: 'customer-orders', data: { breadcrumb: 'Customer Orders', permission: PermissionNames.CustomerOrders }, loadChildren: () => import('./demo/components/customer-orders/customer-orders.module').then(m => m.CustomerOrdersModule) },

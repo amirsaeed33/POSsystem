@@ -1,0 +1,30 @@
+<div class="card">
+    <div class="flex align-items-center justify-content-between mb-3">
+        <div>
+            <h5 class="m-0">Staff</h5>
+            <div class="text-500 mt-1">Manage staff, attendance, and payroll</div>
+        </div>
+    </div>
+
+    <p-tabView
+        *ngIf="tabOrderHasTabs"
+        [activeIndex]="activeIndex"
+        (activeIndexChange)="onTabChange($event)"
+    >
+        <p-tabPanel *ngIf="canStaff" header="Staff">
+            <app-staff-list [embedded]="true"></app-staff-list>
+        </p-tabPanel>
+
+        <p-tabPanel *ngIf="canAttendance" header="Attendance">
+            <app-staff-attendance-list [embedded]="true"></app-staff-attendance-list>
+        </p-tabPanel>
+
+        <p-tabPanel *ngIf="canPayroll" header="Payroll">
+            <app-staff-payroll-list [embedded]="true"></app-staff-payroll-list>
+        </p-tabPanel>
+    </p-tabView>
+
+    <div *ngIf="!tabOrderHasTabs" class="text-500 p-4 text-center">
+        You do not have permission to manage staff, attendance, or payroll.
+    </div>
+</div>

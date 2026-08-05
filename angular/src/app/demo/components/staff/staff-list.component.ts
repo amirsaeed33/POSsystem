@@ -1,14 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { StaffDto } from 'src/app/demo/api/staff';
 import { StaffService } from 'src/app/demo/service/staff.service';
 
 @Component({
+    selector: 'app-staff-list',
     templateUrl: './staff-list.component.html',
     providers: [MessageService, ConfirmationService],
 })
 export class StaffListComponent implements OnInit {
+    /** When true, omit outer card wrapper (used inside Staff hub tabs). */
+    @Input() embedded = false;
+
     staffList: StaffDto[] = [];
     loading = false;
     totalRecords = 0;

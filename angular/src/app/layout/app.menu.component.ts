@@ -89,9 +89,16 @@ export class AppMenuComponent implements OnInit {
                 icon: 'pi pi-cog',
                 items: [
                     { label: 'Users', icon: 'pi pi-user', routerLink: ['/profile/list'], permission: PermissionNames.Users },
-                    { label: 'Staff', icon: 'pi pi-id-card', routerLink: ['/staff'], permission: PermissionNames.Staff },
-                    { label: 'Attendance', icon: 'pi pi-calendar', routerLink: ['/staff-attendance'], permission: PermissionNames.StaffAttendance },
-                    { label: 'Payroll', icon: 'pi pi-wallet', routerLink: ['/staff-payroll'], permission: PermissionNames.StaffPayroll },
+                    {
+                        label: 'Staff',
+                        icon: 'pi pi-id-card',
+                        routerLink: ['/staff'],
+                        anyPermission: [
+                            PermissionNames.Staff,
+                            PermissionNames.StaffAttendance,
+                            PermissionNames.StaffPayroll,
+                        ],
+                    },
                     { label: 'Roles', icon: 'pi pi-lock', routerLink: ['/profile/role'], permission: PermissionNames.Roles },
                     { label: 'Branches', icon: 'pi pi-sitemap', routerLink: ['/branches'], permission: PermissionNames.Branches },
                     { label: 'Lookups', icon: 'pi pi-list', routerLink: ['/lookups'], permission: PermissionNames.LookUps },

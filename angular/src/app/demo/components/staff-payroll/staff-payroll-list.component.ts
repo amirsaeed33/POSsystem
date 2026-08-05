@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Table } from 'primeng/table';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
@@ -12,10 +12,14 @@ import { StaffPayrollService } from 'src/app/demo/service/staff-payroll.service'
 import { StaffService } from 'src/app/demo/service/staff.service';
 
 @Component({
+    selector: 'app-staff-payroll-list',
     templateUrl: './staff-payroll-list.component.html',
     providers: [MessageService, ConfirmationService],
 })
 export class StaffPayrollListComponent implements OnInit {
+    /** When true, omit outer card wrapper (used inside Staff hub tabs). */
+    @Input() embedded = false;
+
     records: StaffPayrollDto[] = [];
     staffOptions: StaffDto[] = [];
     loading = false;
