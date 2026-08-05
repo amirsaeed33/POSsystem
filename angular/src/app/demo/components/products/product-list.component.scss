@@ -13,6 +13,6 @@
     font-size: 0.8rem;
     letter-spacing: 0.03em;
     color: var(--primary-color);
-    background: color-mix(in srgb, var(--primary-color) 12%, var(--surface-ground));
+    background: var(--surface-ground);
     user-select: none;
 }

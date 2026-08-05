@@ -21,6 +21,11 @@ namespace SmartPos.Web.Host.Startup
                     options.DefaultChallengeScheme = "JwtBearer";
                 }).AddJwtBearer("JwtBearer", options =>
                 {
+                    // Keep ABP claim types as issued in the JWT (tenantId, nameidentifier, etc.).
+                    // Without this, .NET remaps claims and AbpSession.TenantId / UserId become null,
+                    // so IMayHaveTenant entities are saved with TenantId/CreatorUserId = NULL.
+                    options.MapInboundClaims = false;
+
                     options.Audience = configuration["Authentication:JwtBearer:Audience"];
 
                     options.TokenValidationParameters = new TokenValidationParameters

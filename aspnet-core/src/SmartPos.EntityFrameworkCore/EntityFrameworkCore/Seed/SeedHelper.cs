@@ -20,30 +20,37 @@ namespace SmartPos.EntityFrameworkCore.Seed
 
         public static void SeedHostDb(SmartPosDbContext context)
         {
+            // Must reset — a stuck true flag skips TenantId/CreatorUserId on later inserts.
             context.SuppressAutoSetTenantId = true;
-
-            // Host seed
-            new InitialHostDbBuilder(context).Create();
-
-            // Default tenant seed (in host database).
-            new DefaultTenantBuilder(context).Create();
-            var tenantIds = context.Tenants.IgnoreQueryFilters().Select(t => t.Id).ToList();
-            foreach (var tenantId in tenantIds)
+            try
             {
-                new TenantRoleAndUserBuilder(context, tenantId).Create();
+                // Host seed
+                new InitialHostDbBuilder(context).Create();
+
+                // Default tenant seed (in host database).
+                new DefaultTenantBuilder(context).Create();
+                var tenantIds = context.Tenants.IgnoreQueryFilters().Select(t => t.Id).ToList();
+                foreach (var tenantId in tenantIds)
+                {
+                    new TenantRoleAndUserBuilder(context, tenantId).Create();
+                }
+                new DefaultBranchCreator(context, null).Create();
+                new DefaultBranchCreator(context, 1).Create();
+                new DefaultSystemAccountsCreator(context, 1).Create();
+                new DefaultEmailTemplatesCreator(context, null).Create();
+                new DefaultEmailTemplatesCreator(context, 1).Create();
+                new DefaultLookupsCreator(context, null).Create();
+                foreach (var tenantId in tenantIds)
+                {
+                    new DefaultLookupsCreator(context, tenantId).Create();
+                }
+                new Host.BakeryGeneralStoreDemoDataCreator(context, null).Create();
+                new Host.BakeryGeneralStoreDemoDataCreator(context, 1).Create();
             }
-            new DefaultBranchCreator(context, null).Create();
-            new DefaultBranchCreator(context, 1).Create();
-            new DefaultSystemAccountsCreator(context, 1).Create();
-            new DefaultEmailTemplatesCreator(context, null).Create();
-            new DefaultEmailTemplatesCreator(context, 1).Create();
-            new DefaultLookupsCreator(context, null).Create();
-            foreach (var tenantId in tenantIds)
+            finally
             {
-                new DefaultLookupsCreator(context, tenantId).Create();
+                context.SuppressAutoSetTenantId = false;
             }
-            new Host.BakeryGeneralStoreDemoDataCreator(context, null).Create();
-            new Host.BakeryGeneralStoreDemoDataCreator(context, 1).Create();
         }
 
         private static void WithDbContext<TDbContext>(IIocResolver iocResolver, Action<TDbContext> contextAction)

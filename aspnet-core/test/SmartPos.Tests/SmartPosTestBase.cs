@@ -25,7 +25,6 @@ namespace SmartPos.Tests
             {
                 context.EntityChangeEventHelper = NullEntityChangeEventHelper.Instance;
                 context.EventBus = NullEventBus.Instance;
-                context.SuppressAutoSetTenantId = true;
             }
 
             // Seed initial data for host
@@ -33,8 +32,16 @@ namespace SmartPos.Tests
             UsingDbContext(context =>
             {
                 NormalizeDbContext(context);
-                new InitialHostDbBuilder(context).Create();
-                new DefaultTenantBuilder(context).Create();
+                context.SuppressAutoSetTenantId = true;
+                try
+                {
+                    new InitialHostDbBuilder(context).Create();
+                    new DefaultTenantBuilder(context).Create();
+                }
+                finally
+                {
+                    context.SuppressAutoSetTenantId = false;
+                }
             });
 
             // Seed initial data for default tenant
@@ -42,7 +49,15 @@ namespace SmartPos.Tests
             UsingDbContext(context =>
             {
                 NormalizeDbContext(context);
-                new TenantRoleAndUserBuilder(context, 1).Create();
+                context.SuppressAutoSetTenantId = true;
+                try
+                {
+                    new TenantRoleAndUserBuilder(context, 1).Create();
+                }
+                finally
+                {
+                    context.SuppressAutoSetTenantId = false;
+                }
             });
 
             LoginAsDefaultTenantAdmin();

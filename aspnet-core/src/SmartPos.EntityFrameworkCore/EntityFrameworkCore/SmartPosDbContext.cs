@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Abp.Domain.Entities;
 using Abp.Zero.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization.Roles;
@@ -85,6 +86,35 @@ namespace SmartPos.EntityFrameworkCore
         public SmartPosDbContext(DbContextOptions<SmartPosDbContext> options)
             : base(options)
         {
+        }
+
+        /// <summary>
+        /// ABP only auto-sets <see cref="IMayHaveTenant.TenantId"/> for single-tenant apps,
+        /// and skips entirely when <see cref="AbpDbContext.SuppressAutoSetTenantId"/> is true
+        /// (can stay stuck on pooled contexts after seed). Always fill from UoW/session when missing.
+        /// </summary>
+        protected override void CheckAndSetMayHaveTenantIdProperty(object entityAsObj)
+        {
+            if (!(entityAsObj is IMayHaveTenant entity) || entity.TenantId != null)
+            {
+                return;
+            }
+
+            // Host seed / host requests: both null → leave null. Tenant requests: set from UoW or session.
+            var tenantId = GetCurrentTenantIdOrNull() ?? AbpSession.TenantId;
+            if (tenantId != null)
+            {
+                entity.TenantId = tenantId;
+            }
+        }
+
+        /// <summary>
+        /// Base requires UoW tenant == session tenant; that fails when the JWT tenant claim is missing
+        /// but <c>Abp.TenantId</c> header still set the unit of work tenant — leaving CreatorUserId null.
+        /// </summary>
+        protected override long? GetAuditUserId()
+        {
+            return AbpSession.UserId ?? base.GetAuditUserId();
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
