@@ -14,6 +14,7 @@ using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Editions;
+using SmartPos.Lookups;
 using SmartPos.MultiTenancy.Dto;
 using Microsoft.AspNetCore.Identity;
 
@@ -27,6 +28,7 @@ namespace SmartPos.MultiTenancy
         private readonly UserManager _userManager;
         private readonly RoleManager _roleManager;
         private readonly IRepository<Branch> _branchRepository;
+        private readonly IRepository<LookUp> _lookUpRepository;
         private readonly IAbpZeroDbMigrator _abpZeroDbMigrator;
 
         public TenantAppService(
@@ -36,6 +38,7 @@ namespace SmartPos.MultiTenancy
             UserManager userManager,
             RoleManager roleManager,
             IRepository<Branch> branchRepository,
+            IRepository<LookUp> lookUpRepository,
             IAbpZeroDbMigrator abpZeroDbMigrator)
             : base(repository)
         {
@@ -44,6 +47,7 @@ namespace SmartPos.MultiTenancy
             _userManager = userManager;
             _roleManager = roleManager;
             _branchRepository = branchRepository;
+            _lookUpRepository = lookUpRepository;
             _abpZeroDbMigrator = abpZeroDbMigrator;
         }
 
@@ -102,9 +106,29 @@ namespace SmartPos.MultiTenancy
                 // Assign admin user to role!
                 CheckErrors(await _userManager.AddToRoleAsync(adminUser, adminRole.Name));
                 await CurrentUnitOfWork.SaveChangesAsync();
+
+                await SeedDefaultLookUpsAsync(tenant.Id);
             }
 
             return MapToEntityDto(tenant);
+        }
+
+        private async Task SeedDefaultLookUpsAsync(int tenantId)
+        {
+            foreach (var item in LookUpSeedData.Items)
+            {
+                await _lookUpRepository.InsertAsync(new LookUp
+                {
+                    TenantId = tenantId,
+                    Type = item.Type,
+                    Name = item.Name,
+                    DisplayName = item.DisplayName,
+                    SortOrder = item.SortOrder,
+                    IsActive = true
+                });
+            }
+
+            await CurrentUnitOfWork.SaveChangesAsync();
         }
 
         protected override IQueryable<Tenant> CreateFilteredQuery(PagedTenantResultRequestDto input)

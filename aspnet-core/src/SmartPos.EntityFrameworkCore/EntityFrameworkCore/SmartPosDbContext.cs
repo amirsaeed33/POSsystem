@@ -10,6 +10,7 @@ using SmartPos.Customers;
 using SmartPos.Emailing;
 using SmartPos.Expenses;
 using SmartPos.Inventory;
+using SmartPos.Lookups;
 using SmartPos.MultiTenancy;
 using SmartPos.Orders;
 using SmartPos.Products;
@@ -32,6 +33,8 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<Brand> Brands { get; set; }
 
         public virtual DbSet<EmailTemplate> EmailTemplates { get; set; }
+
+        public virtual DbSet<LookUp> LookUps { get; set; }
 
         public virtual DbSet<Unit> Units { get; set; }
 
@@ -87,6 +90,13 @@ namespace SmartPos.EntityFrameworkCore
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<LookUp>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.Type, x.Name })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+            });
 
             modelBuilder.Entity<Product>(b =>
             {

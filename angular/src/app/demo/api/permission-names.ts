@@ -28,4 +28,5 @@ export const PermissionNames = {
     Reports: 'Pages.Reports',
     CustomerOrders: 'Pages.CustomerOrders',
     EmailTemplates: 'Pages.EmailTemplates',
+    LookUps: 'Pages.LookUps',
 } as const;

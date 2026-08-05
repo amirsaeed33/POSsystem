@@ -52,5 +52,7 @@
         public const string Pages_CustomerOrders = "Pages.CustomerOrders";
 
         public const string Pages_EmailTemplates = "Pages.EmailTemplates";
+
+        public const string Pages_LookUps = "Pages.LookUps";
     }
 }

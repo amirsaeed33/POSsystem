@@ -1,0 +1,69 @@
+<div class="card">
+    <div class="flex flex-wrap gap-3 align-items-end mb-3">
+        <div class="flex flex-column gap-2">
+            <label class="font-medium">Type</label>
+            <p-dropdown [options]="typeOptions" [(ngModel)]="filterType" optionLabel="label" optionValue="value"
+                placeholder="All types" [showClear]="true" [filter]="true" filterBy="label"
+                (onChange)="onTypeFilterChange()" [style]="{ minWidth: '14rem' }"></p-dropdown>
+        </div>
+    </div>
+
+    <p-table #dt [value]="items" [paginator]="true" [rows]="10" [showCurrentPageReport]="true"
+        responsiveLayout="scroll" [loading]="loading"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [rowsPerPageOptions]="[10, 25, 50]" [globalFilterFields]="['type', 'name', 'displayName']">
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-20rem">
+                        <i class="pi pi-search"></i>
+                        <input pInputText type="text" class="w-full" placeholder="Search lookups"
+                            [(ngModel)]="keyword" (keyup.enter)="onSearch()" (input)="onGlobalFilter(dt, $event)" />
+                    </span>
+                    <button pButton pRipple type="button" icon="pi pi-search" class="p-button-outlined"
+                        label="Search" (click)="onSearch()"></button>
+                </div>
+                <button pButton pRipple type="button" icon="pi pi-plus" label="Create"
+                    class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
+                    (click)="openCreateDialog()"></button>
+            </div>
+        </ng-template>
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Type</th>
+                <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+                <th pSortableColumn="displayName">Display Name <p-sortIcon field="displayName"></p-sortIcon></th>
+                <th>Sort</th>
+                <th>Active</th>
+                <th style="width: 8rem">Actions</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-item>
+            <tr>
+                <td>{{ typeLabel(item.type) }}</td>
+                <td><code>{{ item.name }}</code></td>
+                <td>{{ item.displayName }}</td>
+                <td>{{ item.sortOrder }}</td>
+                <td>
+                    <span class="status-pill" [class.status-pill-on]="item.isActive" [class.status-pill-off]="!item.isActive">
+                        {{ item.isActive ? 'Yes' : 'No' }}
+                    </span>
+                </td>
+                <td>
+                    <div class="flex gap-1">
+                        <button pButton pRipple type="button" icon="pi pi-pencil" class="p-button-text p-button-sm"
+                            pTooltip="Edit" tooltipPosition="top" (click)="openEditDialog(item)"></button>
+                        <button pButton pRipple type="button" icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm"
+                            pTooltip="Delete" tooltipPosition="top" (click)="onDelete(item)"></button>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr><td colspan="6" class="text-center p-4"><div class="text-500">No lookups found</div></td></tr>
+        </ng-template>
+    </p-table>
+    <app-lookup-form-dialog [(visible)]="dialogVisible" [id]="editingId" [defaultType]="filterType" (saved)="onDialogSaved()"></app-lookup-form-dialog>
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+</div>

@@ -158,7 +158,56 @@ export class TenantContextService {
         return { changed: false, state: result.state };
     }
 
+    /**
+     * Clears a stale Abp.TenantId (e.g. after DB recreate) so API calls stop 500-ing.
+     */
+    async clearInvalidTenant(): Promise<void> {
+        const info = this.getTenantInfo();
+        const tenantId = this.getTenantId();
+        if (!tenantId && !info?.tenancyName) {
+            return;
+        }
+
+        if (info?.tenancyName) {
+            try {
+                const result = await this.isTenantAvailable({
+                    tenancyName: info.tenancyName,
+                });
+                if (
+                    result.state === TenantAvailabilityState.Available &&
+                    result.tenantId != null
+                ) {
+                    if (result.tenantId !== tenantId) {
+                        this.setTenantId(result.tenantId);
+                        this.setTenantInfo({
+                            id: result.tenantId,
+                            tenancyName: info.tenancyName,
+                            name: info.name,
+                        });
+                    }
+                    return;
+                }
+            } catch {
+                // Fall through and clear.
+            }
+        }
+
+        this.setTenantId(undefined);
+        this.setTenantInfo(null);
+    }
+
     private async fetchUserConfiguration(): Promise<void> {
+        try {
+            await this.loadUserConfigurationOnce();
+        } catch {
+            // Invalid/stale tenant cookie often breaks GetAll with 500.
+            this.setTenantId(undefined);
+            this.setTenantInfo(null);
+            await this.loadUserConfigurationOnce();
+        }
+    }
+
+    private async loadUserConfigurationOnce(): Promise<void> {
         const res: any = await firstValueFrom(
             this.http.get<any>(this.userConfigurationUrl)
         );

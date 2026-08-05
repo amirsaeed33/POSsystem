@@ -63,6 +63,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 		this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
 
 		try {
+			await this.tenantContext.clearInvalidTenant();
 			await this.tenantContext.ensureMultiTenancyLoaded();
 			await this.resolveTenancyFromQueryString();
 			await this.refreshTenantDisplay();

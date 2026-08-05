@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Abp.Dependency;
@@ -26,12 +27,21 @@ namespace SmartPos.EntityFrameworkCore.Seed
 
             // Default tenant seed (in host database).
             new DefaultTenantBuilder(context).Create();
-            new TenantRoleAndUserBuilder(context, 1).Create();
+            var tenantIds = context.Tenants.IgnoreQueryFilters().Select(t => t.Id).ToList();
+            foreach (var tenantId in tenantIds)
+            {
+                new TenantRoleAndUserBuilder(context, tenantId).Create();
+            }
             new DefaultBranchCreator(context, null).Create();
             new DefaultBranchCreator(context, 1).Create();
             new DefaultSystemAccountsCreator(context, 1).Create();
             new DefaultEmailTemplatesCreator(context, null).Create();
             new DefaultEmailTemplatesCreator(context, 1).Create();
+            new DefaultLookupsCreator(context, null).Create();
+            foreach (var tenantId in tenantIds)
+            {
+                new DefaultLookupsCreator(context, tenantId).Create();
+            }
             new Host.BakeryGeneralStoreDemoDataCreator(context, null).Create();
             new Host.BakeryGeneralStoreDemoDataCreator(context, 1).Create();
         }
