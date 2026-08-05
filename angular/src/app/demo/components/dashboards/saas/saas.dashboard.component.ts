@@ -101,7 +101,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     lowStockCount = 0;
     pendingOrdersCount = 0;
     todaySalesCount = 0;
-    companyProfileCount = 0;
+    branchCount = 0;
 
     private readonly avatarStyles: Record<string, string>[] = [
         {'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'},
@@ -180,7 +180,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                 quick?.lowStockCount ?? data.lowStockCount ?? 0;
             this.pendingOrdersCount = quick?.pendingOrdersCount ?? 0;
             this.todaySalesCount = quick?.todaySalesCount ?? 0;
-            this.companyProfileCount = quick?.companyProfileCount ?? 0;
+            this.branchCount = quick?.branchCount ?? 0;
 
             this.latestListTitle = data.latestListTitle || 'Latest Sales';
             this.latestListItems = (data.latestListItems || []).map(
@@ -213,7 +213,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.lowStockCount = 0;
             this.pendingOrdersCount = 0;
             this.todaySalesCount = 0;
-            this.companyProfileCount = 0;
+            this.branchCount = 0;
             this.latestListTitle = 'Latest Sales';
             this.latestListItems = [];
             this.timelineEvents = [];

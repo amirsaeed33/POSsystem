@@ -116,11 +116,8 @@
     <text name="EditBrand" value="Edit brand" />
     <text name="BrandName" value="Brand name" />
     <text name="BrandDeleteWarningMessage" value="Brand {0} will be deleted." />
-    <text name="CompanyProfiles" value="Company profiles" />
-    <text name="CreateNewCompanyProfile" value="Create new company profile" />
     <text name="Branches" value="Branches" />
     <text name="CreateNewBranch" value="Create new branch" />
-    <text name="EditCompanyProfile" value="Edit company profile" />
     <text name="SoftwareName" value="Software name" />
     <text name="CompanyImage" value="Company image" />
     <text name="InvoiceAddress" value="Invoice address" />
@@ -129,7 +126,6 @@
     <text name="TaxNumber" value="Tax number" />
     <text name="Website" value="Website" />
     <text name="InvoiceFooter" value="Invoice footer" />
-    <text name="CompanyProfileDeleteWarningMessage" value="Company profile {0} will be deleted." />
     <text name="Units" value="Units" />
     <text name="CreateNewUnit" value="Create new unit" />
     <text name="EditUnit" value="Edit unit" />

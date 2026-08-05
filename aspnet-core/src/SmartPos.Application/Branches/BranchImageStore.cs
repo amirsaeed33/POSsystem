@@ -6,7 +6,7 @@ namespace SmartPos.Branches
 {
     public static class BranchImageStore
     {
-        private const string FolderName = "CompanyImages";
+        private const string FolderName = "BranchImages";
 
         public static bool IsNewImagePayload(string imageBase64)
         {

@@ -5,7 +5,6 @@ export const PermissionNames = {
     Roles: 'Pages.Roles',
     Categories: 'Pages.Categories',
     Brands: 'Pages.Brands',
-    CompanyProfiles: 'Pages.CompanyProfiles',
     Branches: 'Pages.Branches',
     Units: 'Pages.Units',
     Products: 'Pages.Products',

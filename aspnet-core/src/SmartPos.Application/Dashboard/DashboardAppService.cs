@@ -9,7 +9,6 @@ using Abp.Linq.Extensions;
 using Abp.Timing;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Branches;
-using SmartPos.CompanyProfiles;
 using SmartPos.Dashboard.Dto;
 using SmartPos.Expenses;
 using SmartPos.Inventory;
@@ -31,7 +30,7 @@ namespace SmartPos.Dashboard
         private readonly IRepository<Expense> _expenseRepository;
         private readonly IRepository<CustomerOrder> _customerOrderRepository;
         private readonly IRepository<StockAdjustment> _stockAdjustmentRepository;
-        private readonly IRepository<CompanyProfile> _companyProfileRepository;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchStockManager _branchStockManager;
 
@@ -42,7 +41,7 @@ namespace SmartPos.Dashboard
             IRepository<Expense> expenseRepository,
             IRepository<CustomerOrder> customerOrderRepository,
             IRepository<StockAdjustment> stockAdjustmentRepository,
-            IRepository<CompanyProfile> companyProfileRepository,
+            IRepository<Branch> branchRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchStockManager branchStockManager)
         {
@@ -52,7 +51,7 @@ namespace SmartPos.Dashboard
             _expenseRepository = expenseRepository;
             _customerOrderRepository = customerOrderRepository;
             _stockAdjustmentRepository = stockAdjustmentRepository;
-            _companyProfileRepository = companyProfileRepository;
+            _branchRepository = branchRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchStockManager = branchStockManager;
         }
@@ -258,7 +257,7 @@ namespace SmartPos.Dashboard
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value);
             var pendingOrdersCount = await pendingOrdersQuery.CountAsync();
 
-            var companyProfileCount = await _companyProfileRepository.CountAsync();
+            var branchCount = await _branchRepository.CountAsync(x => x.IsActive);
 
             var todaySalesCount = await _saleRepository.GetAll()
                 .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
@@ -364,7 +363,7 @@ namespace SmartPos.Dashboard
                     LowStockCount = lowStockCount,
                     PendingOrdersCount = pendingOrdersCount,
                     TodaySalesCount = todaySalesCount,
-                    CompanyProfileCount = companyProfileCount
+                    BranchCount = branchCount
                 },
                 latestTitle,
                 latestItems,

@@ -66,7 +66,7 @@ namespace SmartPos.Dashboard.Dto
 
         public int TodaySalesCount { get; set; }
 
-        public int CompanyProfileCount { get; set; }
+        public int BranchCount { get; set; }
     }
 
     public class DashboardLatestListItemDto

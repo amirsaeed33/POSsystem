@@ -6,7 +6,6 @@ using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Brands;
 using SmartPos.Categories;
-using SmartPos.CompanyProfiles;
 using SmartPos.Customers;
 using SmartPos.Emailing;
 using SmartPos.Expenses;
@@ -33,8 +32,6 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<Brand> Brands { get; set; }
 
         public virtual DbSet<EmailTemplate> EmailTemplates { get; set; }
-
-        public virtual DbSet<CompanyProfile> CompanyProfiles { get; set; }
 
         public virtual DbSet<Unit> Units { get; set; }
 

@@ -8,10 +8,10 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { BranchDto } from 'src/app/demo/api/branch';
 import { SaleDto } from 'src/app/demo/api/sale';
-import { CompanyProfileDto } from 'src/app/demo/api/company-profile';
+import { BranchService } from 'src/app/demo/service/branch.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
-import { CompanyProfileService } from 'src/app/demo/service/company-profile.service';
 
 @Component({
     selector: 'app-print-sale-invoice-dialog',
@@ -25,19 +25,19 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
     @Output() visibleChange = new EventEmitter<boolean>();
 
     sale: SaleDto | null = null;
-    company: CompanyProfileDto | null = null;
+    company: BranchDto | null = null;
     loading = false;
     today = new Date().toLocaleString();
 
     constructor(
         private saleService: SaleService,
-        private companyProfileService: CompanyProfileService,
+        private branchService: BranchService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef
     ) {}
 
     get companyLogoUrl(): string {
-        return this.companyProfileService.getImageUrl(this.company?.imagePath);
+        return this.branchService.getImageUrl(this.company?.imagePath);
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -82,7 +82,7 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
 
         Promise.all([
             this.saleService.get(id),
-            this.companyProfileService.getCurrent(),
+            this.branchService.getInvoiceInfo(),
         ])
             .then(([sale, company]) => {
                 this.sale = sale;

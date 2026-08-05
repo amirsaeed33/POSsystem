@@ -135,8 +135,8 @@ export class DashboardService {
                 data.pendingOrdersCount ?? data.PendingOrdersCount ?? 0,
             todaySalesCount:
                 data.todaySalesCount ?? data.TodaySalesCount ?? 0,
-            companyProfileCount:
-                data.companyProfileCount ?? data.CompanyProfileCount ?? 0,
+            branchCount:
+                data.branchCount ?? data.BranchCount ?? 0,
         };
     }
 }

@@ -150,19 +150,19 @@
 
                 <li class="mb-4 flex align-items-center justify-content-between gap-2">
                     <div class="flex align-items-center min-w-0">
-                        <p-avatar icon="pi pi-id-card" size="large" shape="circle" styleClass="text-base font-bold"
+                        <p-avatar icon="pi pi-building" size="large" shape="circle" styleClass="text-base font-bold"
                                   [style]="{'background-color':'rgba(167, 139, 250, 0.12)', 'color': '#7C3AED', 'border': '1px solid #C4B5FD'}"></p-avatar>
                         <div class="ml-3 min-w-0">
-                            <span class="block">Company Profile</span>
-                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/company-profiles">Open Profile</a>
+                            <span class="block">Branches</span>
+                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/branches">Open Branches</a>
                         </div>
                     </div>
                     <span
                         class="quick-action-badge"
-                        [class.quick-action-badge-purple]="companyProfileCount > 0"
-                        [class.quick-action-badge-muted]="companyProfileCount === 0"
-                        [attr.title]="companyProfileCount + ' company profiles'">
-                        {{ formatQuickActionCount(companyProfileCount) }}
+                        [class.quick-action-badge-purple]="branchCount > 0"
+                        [class.quick-action-badge-muted]="branchCount === 0"
+                        [attr.title]="branchCount + ' branches'">
+                        {{ formatQuickActionCount(branchCount) }}
                     </span>
                 </li>
             </ul>

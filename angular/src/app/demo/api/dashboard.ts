@@ -28,7 +28,7 @@ export interface DashboardQuickActionCountsDto {
     lowStockCount: number;
     pendingOrdersCount: number;
     todaySalesCount: number;
-    companyProfileCount: number;
+    branchCount: number;
 }
 
 export interface DashboardLatestListItemDto {

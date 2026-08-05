@@ -8,10 +8,10 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { BranchDto } from 'src/app/demo/api/branch';
 import { ExpenseDto } from 'src/app/demo/api/expense';
-import { CompanyProfileDto } from 'src/app/demo/api/company-profile';
+import { BranchService } from 'src/app/demo/service/branch.service';
 import { ExpenseService } from 'src/app/demo/service/expense.service';
-import { CompanyProfileService } from 'src/app/demo/service/company-profile.service';
 
 @Component({
     selector: 'app-print-expense-invoice-dialog',
@@ -24,19 +24,19 @@ export class PrintExpenseInvoiceDialogComponent implements OnChanges {
     @Output() visibleChange = new EventEmitter<boolean>();
 
     expense: ExpenseDto | null = null;
-    company: CompanyProfileDto | null = null;
+    company: BranchDto | null = null;
     loading = false;
     today = new Date().toLocaleString();
 
     constructor(
         private expenseService: ExpenseService,
-        private companyProfileService: CompanyProfileService,
+        private branchService: BranchService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef
     ) {}
 
     get companyLogoUrl(): string {
-        return this.companyProfileService.getImageUrl(this.company?.imagePath);
+        return this.branchService.getImageUrl(this.company?.imagePath);
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -81,7 +81,7 @@ export class PrintExpenseInvoiceDialogComponent implements OnChanges {
 
         Promise.all([
             this.expenseService.get(id),
-            this.companyProfileService.getCurrent(),
+            this.branchService.getInvoiceInfo(),
         ])
             .then(([expense, company]) => {
                 this.expense = expense;
@@ -97,5 +97,6 @@ export class PrintExpenseInvoiceDialogComponent implements OnChanges {
                     detail: error?.message || 'Failed to load expense invoice',
                 });
                 this.onHide();
-            });    }
+            });
+    }
 }

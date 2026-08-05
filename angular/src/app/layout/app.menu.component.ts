@@ -71,7 +71,6 @@ export class AppMenuComponent implements OnInit {
                     { label: 'Accounts', icon: 'pi pi-building', routerLink: ['/accounts'], permission: PermissionNames.Accounts },
                     { label: 'Ledger', icon: 'pi pi-book', routerLink: ['/ledger-entries'], permission: PermissionNames.LedgerEntries },
                     { label: 'Expenses', icon: 'pi pi-wallet', routerLink: ['/expenses'], permission: PermissionNames.Expenses },
-                    { label: 'Company Profiles', icon: 'pi pi-id-card', routerLink: ['/company-profiles'], permission: PermissionNames.CompanyProfiles },
                 ]
             },
             {
