@@ -16,7 +16,6 @@ namespace SmartPos.Migrations
 
             migrationBuilder.Sql(@"
 DELETE FROM AbpPermissions WHERE Name = N'Pages.CompanyProfiles';
-DELETE FROM AbpPermissionSettings WHERE Name = N'Pages.CompanyProfiles';
 ");
         }
 
