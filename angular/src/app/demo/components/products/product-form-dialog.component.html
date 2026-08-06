@@ -36,39 +36,46 @@
                 [(ngModel)]="product.barcode" [disabled]="saving" />
         </div>
 
-        <ng-container *ngIf="canManageBranches">
-            <div class="flex align-items-center gap-2">
-                <p-checkbox
-                    inputId="productShared"
-                    [(ngModel)]="isShared"
-                    [binary]="true"
-                    [disabled]="saving"
-                    (onChange)="onSharedChange()"
-                ></p-checkbox>
-                <label for="productShared" class="font-medium mb-0">Shared across all branches</label>
-            </div>
-            <small class="text-color-secondary" *ngIf="isShared">
-                Base product details are shared. Each branch keeps its own price and stock.
-            </small>
-
-            <div class="flex flex-column gap-2" *ngIf="!isShared">
-                <label for="productBranches" class="font-medium">
-                    Assign to branches <span class="p-error">*</span>
-                </label>
-                <p-multiSelect
-                    inputId="productBranches"
-                    [options]="branches"
-                    optionLabel="name"
-                    optionValue="id"
-                    [(ngModel)]="selectedBranchIds"
-                    placeholder="Select branches"
-                    [filter]="true"
-                    [showClear]="true"
-                    [disabled]="saving"
-                    styleClass="w-full"
-                ></p-multiSelect>
-            </div>
-        </ng-container>
+        <div class="flex flex-column gap-2" *ngIf="canManageBranches">
+            <label for="productBranches" class="font-medium">
+                Assign to branches <span class="p-error">*</span>
+            </label>
+            <p-multiSelect
+                inputId="productBranches"
+                [options]="branches"
+                optionLabel="name"
+                optionValue="id"
+                [(ngModel)]="selectedBranchIds"
+                placeholder="Select branches"
+                [showToggleAll]="false"
+                [filter]="true"
+                [showClear]="true"
+                [disabled]="saving"
+                styleClass="w-full"
+                appendTo="body"
+            >
+                <ng-template pTemplate="header">
+                    <div
+                        class="flex align-items-center gap-2 w-full px-3 py-2 border-bottom-1 surface-border"
+                    >
+                        <p-checkbox
+                            inputId="productBranchesSelectAll"
+                            [binary]="true"
+                            [ngModel]="isAllBranchesSelected"
+                            [ngModelOptions]="{ standalone: true }"
+                            (onChange)="onSelectAllBranches($event)"
+                            [disabled]="saving || !branches.length"
+                        ></p-checkbox>
+                        <label
+                            for="productBranchesSelectAll"
+                            class="cursor-pointer mb-0 font-medium"
+                        >
+                            Select All
+                        </label>
+                    </div>
+                </ng-template>
+            </p-multiSelect>
+        </div>
 
         <small class="text-color-secondary" *ngIf="currentBranchName">
             Prices for branch: <strong>{{ currentBranchName }}</strong>

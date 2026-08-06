@@ -37,7 +37,6 @@ export class ProductFormDialogComponent implements OnChanges {
     units: UnitDto[] = [];
     branches: BranchDto[] = [];
     selectedBranchIds: number[] = [];
-    isShared = false;
     imagePreview = '';
     saving = false;
     loading = false;
@@ -70,8 +69,32 @@ export class ProductFormDialogComponent implements OnChanges {
         return (this.profitPerUnit / this.product.price) * 100;
     }
 
+    get allBranchIds(): number[] {
+        return (this.branches || []).map((b) => b.id);
+    }
+
+    get isAllBranchesSelected(): boolean {
+        const allIds = this.allBranchIds;
+        if (!allIds.length) {
+            return false;
+        }
+        if (this.selectedBranchIds.length !== allIds.length) {
+            return false;
+        }
+        const selected = new Set(this.selectedBranchIds);
+        return allIds.every((id) => selected.has(id));
+    }
+
     get isFormValid(): boolean {
         return !this.getValidationMessage();
+    }
+
+    onSelectAllBranches(event: { checked?: boolean }): void {
+        if (event?.checked) {
+            this.selectAllBranches();
+        } else {
+            this.selectedBranchIds = [];
+        }
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -85,6 +108,8 @@ export class ProductFormDialogComponent implements OnChanges {
             this.loadLookups().then(() => {
                 if (this.productId) {
                     this.loadProduct(this.productId);
+                } else if (this.canManageBranches) {
+                    this.selectAllBranches();
                 }
             });
         }
@@ -97,12 +122,6 @@ export class ProductFormDialogComponent implements OnChanges {
 
     onHide(): void {
         this.onVisibleChange(false);
-    }
-
-    onSharedChange(): void {
-        if (this.isShared) {
-            this.selectedBranchIds = [];
-        }
     }
 
     onFileSelected(event: Event): void {
@@ -164,10 +183,11 @@ export class ProductFormDialogComponent implements OnChanges {
                 ? this.product.imageBase64
                 : undefined;
 
+        const isShared = this.isAllBranchesSelected;
         const assignment = this.canManageBranches
             ? {
-                  isShared: this.isShared,
-                  branchIds: this.isShared ? [] : [...this.selectedBranchIds],
+                  isShared,
+                  branchIds: isShared ? [] : [...this.selectedBranchIds],
               }
             : {};
 
@@ -257,10 +277,9 @@ export class ProductFormDialogComponent implements OnChanges {
         }
         if (
             this.canManageBranches &&
-            !this.isShared &&
             (!this.selectedBranchIds || this.selectedBranchIds.length === 0)
         ) {
-            return 'Select at least one branch, or mark the product as Shared.';
+            return 'Select at least one branch.';
         }
         return null;
     }
@@ -291,11 +310,14 @@ export class ProductFormDialogComponent implements OnChanges {
 
     private resetForm(): void {
         this.product = this.emptyProduct();
-        this.isShared = false;
         this.selectedBranchIds = [];
         this.imagePreview = '';
         this.saving = false;
         this.loading = false;
+    }
+
+    private selectAllBranches(): void {
+        this.selectedBranchIds = [...this.allBranchIds];
     }
 
     private async loadLookups(): Promise<void> {
@@ -334,8 +356,13 @@ export class ProductFormDialogComponent implements OnChanges {
             .get(id)
             .then((product) => {
                 this.product = { ...product, imageBase64: undefined };
-                this.isShared = !!product.isShared;
-                this.selectedBranchIds = product.branchIds ? [...product.branchIds] : [];
+                if (product.isShared) {
+                    this.selectAllBranches();
+                } else {
+                    this.selectedBranchIds = product.branchIds
+                        ? [...product.branchIds]
+                        : [];
+                }
                 this.imagePreview = this.productService.getImageUrl(product.imagePath);
             })
             .catch((error) => {
