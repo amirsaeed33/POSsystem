@@ -17,7 +17,7 @@ export class BrandService {
 
     constructor(private http: HttpClient) {}
 
-    async getAll(
+        async getAll(
         input?: PagedBrandResultRequestDto
     ): Promise<PagedResultDto<BrandDto>> {
         const params: any = {};
@@ -44,6 +44,17 @@ export class BrandService {
             ),
             totalCount,
         };
+    }
+
+    async getLookup(): Promise<BrandDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetLookup`)
+        );
+        const result = this.unwrap(res, 'Failed to load brands');
+        const items = result.items || result.Items || result || [];
+        return (Array.isArray(items) ? items : []).map((item: any) =>
+            this.mapBrand(item)
+        );
     }
 
     async get(id: number): Promise<BrandDto> {

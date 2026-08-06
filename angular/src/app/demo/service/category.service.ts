@@ -17,7 +17,7 @@ export class CategoryService {
 
     constructor(private http: HttpClient) {}
 
-    async getAll(
+        async getAll(
         input?: PagedCategoryResultRequestDto
     ): Promise<PagedResultDto<CategoryDto>> {
         const params: any = {};
@@ -44,6 +44,17 @@ export class CategoryService {
             ),
             totalCount,
         };
+    }
+
+    async getLookup(): Promise<CategoryDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetLookup`)
+        );
+        const result = this.unwrap(res, 'Failed to load categories');
+        const items = result.items || result.Items || result || [];
+        return (Array.isArray(items) ? items : []).map((item: any) =>
+            this.mapCategory(item)
+        );
     }
 
     async get(id: number): Promise<CategoryDto> {

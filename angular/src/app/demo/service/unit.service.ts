@@ -17,7 +17,7 @@ export class UnitService {
 
     constructor(private http: HttpClient) {}
 
-    async getAll(
+        async getAll(
         input?: PagedUnitResultRequestDto
     ): Promise<PagedResultDto<UnitDto>> {
         const params: any = {};
@@ -44,6 +44,17 @@ export class UnitService {
             ),
             totalCount,
         };
+    }
+
+    async getLookup(): Promise<UnitDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetLookup`)
+        );
+        const result = this.unwrap(res, 'Failed to load units');
+        const items = result.items || result.Items || result || [];
+        return (Array.isArray(items) ? items : []).map((item: any) =>
+            this.mapUnit(item)
+        );
     }
 
     async get(id: number): Promise<UnitDto> {

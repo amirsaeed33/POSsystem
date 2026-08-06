@@ -302,18 +302,18 @@ export class ProductFormDialogComponent implements OnChanges {
         this.loading = true;
         try {
             const requests: Promise<any>[] = [
-                this.categoryService.getAll({ skipCount: 0, maxResultCount: 1000 }),
-                this.brandService.getAll({ skipCount: 0, maxResultCount: 1000 }),
-                this.unitService.getAll({ skipCount: 0, maxResultCount: 1000 }),
+                this.categoryService.getLookup(),
+                this.brandService.getLookup(),
+                this.unitService.getLookup(),
             ];
             if (this.canManageBranches) {
                 requests.push(this.branchService.getLookup());
             }
 
             const results = await Promise.all(requests);
-            this.categories = results[0].items;
-            this.brands = results[1].items;
-            this.units = results[2].items;
+            this.categories = results[0] || [];
+            this.brands = results[1] || [];
+            this.units = results[2] || [];
             this.branches = this.canManageBranches ? results[3] || [] : [];
         } catch (error: any) {
             this.messageService.add({
