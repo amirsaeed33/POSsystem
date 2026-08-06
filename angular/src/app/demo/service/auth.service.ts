@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthenticateModel, AuthenticateResultModel } from '../api/auth';
 import { environment } from '../../../environments/environment';
 import { PermissionService } from './permission.service';
+import { TenantContextService } from './tenant-context.service';
 
 const TOKEN_KEY = 'accessToken';
 const ENCRYPTED_TOKEN_KEY = 'encryptedAccessToken';
@@ -34,7 +35,8 @@ export class AuthService {
 
     constructor(
         private http: HttpClient,
-        private permissionService: PermissionService
+        private permissionService: PermissionService,
+        private tenantContext: TenantContextService
     ) {}
 
     async authenticate(model: AuthenticateModel): Promise<AuthenticateResultModel> {
@@ -168,6 +170,7 @@ export class AuthService {
         localStorage.removeItem(EXPIRE_KEY);
         localStorage.removeItem(USER_INFO_KEY);
         localStorage.removeItem('SmartPos.BranchId');
+        this.tenantContext.setTenantId(undefined);
         this.permissionService.clear();
     }
 
@@ -198,6 +201,8 @@ export class AuthService {
         const userId = result.userId ?? result.UserId ?? 0;
         const expireInSeconds =
             result.expireInSeconds ?? result.ExpireInSeconds ?? 0;
+        const tenantId = result.tenantId ?? result.TenantId ?? null;
+        const tenancyName = result.tenancyName ?? result.TenancyName ?? null;
 
         if (!accessToken) {
             throw new Error(
@@ -218,11 +223,27 @@ export class AuthService {
             localStorage.setItem(EXPIRE_KEY, String(expireInSeconds));
         }
 
+        // Store tenant from backend (user.TenantId) — no client tenancy picker.
+        if (tenantId != null && tenantId !== undefined) {
+            this.tenantContext.setTenantId(Number(tenantId));
+            if (tenancyName) {
+                this.tenantContext.setTenantInfo({
+                    id: Number(tenantId),
+                    tenancyName: String(tenancyName),
+                    name: String(tenancyName),
+                });
+            }
+        } else {
+            this.tenantContext.setTenantId(undefined);
+        }
+
         return {
             accessToken,
             encryptedAccessToken,
             expireInSeconds,
             userId,
+            tenantId,
+            tenancyName,
         };
     }
 

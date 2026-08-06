@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Abp.Authorization;
 using Abp.Authorization.Users;
+using Abp.Domain.Uow;
 using Abp.IdentityFramework;
 using Abp.MultiTenancy;
 using Abp.Runtime.Security;
@@ -74,10 +75,12 @@ namespace SmartPos.Controllers
         [HttpPost]
         public async Task<AuthenticateResultModel> Authenticate([FromBody] AuthenticateModel model)
         {
+            // Resolve tenant from the user account — do not require the client to select tenancy.
+            var tenancyName = await ResolveTenancyNameForLoginAsync(model.UserNameOrEmailAddress);
             var loginResult = await GetLoginResultAsync(
                 model.UserNameOrEmailAddress,
                 model.Password,
-                GetTenancyNameOrNull()
+                tenancyName
             );
 
             var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
@@ -87,7 +90,9 @@ namespace SmartPos.Controllers
                 AccessToken = accessToken,
                 EncryptedAccessToken = GetEncryptedAccessToken(accessToken),
                 ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
-                UserId = loginResult.User.Id
+                UserId = loginResult.User.Id,
+                TenantId = loginResult.User.TenantId,
+                TenancyName = tenancyName ?? loginResult.Tenant?.TenancyName
             };
         }
 
@@ -103,14 +108,14 @@ namespace SmartPos.Controllers
                 throw new UserFriendlyException("Email address is required.");
             }
 
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null || !user.IsActive)
+            var user = await FindUniqueActiveUserByLoginAsync(email);
+            if (user == null)
             {
                 throw new UserFriendlyException(
                     "No active account was found for that email address.");
             }
 
-            var code = _emailLoginCodeStore.CreateCode(AbpSession.TenantId, email);
+            var code = _emailLoginCodeStore.CreateCode(user.TenantId, email);
             var expirationMinutes = _emailLoginCodeStore.ExpirationMinutes;
 
             var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -166,30 +171,38 @@ namespace SmartPos.Controllers
                 throw new UserFriendlyException("Email address and code are required.");
             }
 
-            _emailLoginCodeStore.VerifyAndConsume(AbpSession.TenantId, email, code);
-
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null || !user.IsActive)
+            var user = await FindUniqueActiveUserByLoginAsync(email);
+            if (user == null)
             {
                 throw new UserFriendlyException(
                     "No active account was found for that email address.");
             }
 
-            var principal = await _claimsPrincipalFactory.CreateAsync(user);
-            var identity = principal.Identity as ClaimsIdentity;
+            _emailLoginCodeStore.VerifyAndConsume(user.TenantId, email, code);
+
+            ClaimsIdentity identity;
+            using (CurrentUnitOfWork.SetTenantId(user.TenantId))
+            {
+                var principal = await _claimsPrincipalFactory.CreateAsync(user);
+                identity = principal.Identity as ClaimsIdentity;
+            }
+
             if (identity == null)
             {
                 throw new UserFriendlyException("Could not create login identity.");
             }
 
             var accessToken = CreateAccessToken(CreateJwtClaims(identity));
+            var tenancyName = GetTenancyNameByTenantId(user.TenantId);
 
             return new AuthenticateResultModel
             {
                 AccessToken = accessToken,
                 EncryptedAccessToken = GetEncryptedAccessToken(accessToken),
                 ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
-                UserId = user.Id
+                UserId = user.Id,
+                TenantId = user.TenantId,
+                TenancyName = tenancyName
             };
         }
 
@@ -210,10 +223,11 @@ namespace SmartPos.Controllers
             [FromBody] ExternalAuthenticateModel model)
         {
             var externalUser = await GetExternalUserInfo(model);
+            var tenancyName = await ResolveTenancyNameForLoginAsync(externalUser.EmailAddress);
 
             var loginResult = await _logInManager.LoginAsync(
                 new UserLoginInfo(model.AuthProvider, externalUser.ProviderKey, model.AuthProvider),
-                GetTenancyNameOrNull()
+                tenancyName
             );
 
             switch (loginResult.Result)
@@ -226,48 +240,19 @@ namespace SmartPos.Controllers
                         AccessToken = accessToken,
                         EncryptedAccessToken = GetEncryptedAccessToken(accessToken),
                         ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
-                        UserId = loginResult.User.Id
+                        UserId = loginResult.User.Id,
+                        TenantId = loginResult.User.TenantId,
+                        TenancyName = tenancyName ?? loginResult.Tenant?.TenancyName
                     };
                 }
                 case AbpLoginResultType.UnknownExternalLogin:
-                {
-                    var newUser = await RegisterExternalUserAsync(externalUser);
-                    if (!newUser.IsActive)
-                    {
-                        return new ExternalAuthenticateResultModel
-                        {
-                            WaitingForActivation = true
-                        };
-                    }
-
-                    loginResult = await _logInManager.LoginAsync(
-                        new UserLoginInfo(model.AuthProvider, externalUser.ProviderKey, model.AuthProvider),
-                        GetTenancyNameOrNull()
-                    );
-
-                    if (loginResult.Result != AbpLoginResultType.Success)
-                    {
-                        throw _abpLoginResultTypeHelper.CreateExceptionForFailedLoginAttempt(
-                            loginResult.Result,
-                            externalUser.ProviderKey,
-                            GetTenancyNameOrNull()
-                        );
-                    }
-
-                    var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
-                    return new ExternalAuthenticateResultModel
-                    {
-                        AccessToken = accessToken,
-                        EncryptedAccessToken = GetEncryptedAccessToken(accessToken),
-                        ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
-                        UserId = loginResult.User.Id
-                    };
-                }
+                    throw new UserFriendlyException(
+                        "No account is linked to this external login. Contact your administrator.");
                 default:
                     throw _abpLoginResultTypeHelper.CreateExceptionForFailedLoginAttempt(
                         loginResult.Result,
                         externalUser.ProviderKey,
-                        GetTenancyNameOrNull()
+                        tenancyName
                     );
             }
         }
@@ -355,14 +340,55 @@ namespace SmartPos.Controllers
             return userInfo;
         }
 
-        private string GetTenancyNameOrNull()
+        private string GetTenancyNameByTenantId(int? tenantId)
         {
-            if (!AbpSession.TenantId.HasValue)
+            if (!tenantId.HasValue)
             {
                 return null;
             }
 
-            return _tenantCache.GetOrNull(AbpSession.TenantId.Value)?.TenancyName;
+            return _tenantCache.GetOrNull(tenantId.Value)?.TenancyName;
+        }
+
+        private async Task<string> ResolveTenancyNameForLoginAsync(string userNameOrEmailAddress)
+        {
+            var user = await FindUniqueActiveUserByLoginAsync(userNameOrEmailAddress);
+            return GetTenancyNameByTenantId(user?.TenantId);
+        }
+
+        private async Task<User> FindUniqueActiveUserByLoginAsync(string userNameOrEmailAddress)
+        {
+            var input = (userNameOrEmailAddress ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return null;
+            }
+
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                var normalizedUserName = _userManager.NormalizeName(input);
+                var normalizedEmail = _userManager.NormalizeEmail(input);
+
+                var users = await _userManager.Users
+                    .Where(u =>
+                        u.NormalizedUserName == normalizedUserName ||
+                        u.NormalizedEmailAddress == normalizedEmail)
+                    .ToListAsync();
+
+                var activeUsers = users.Where(u => u.IsActive).ToList();
+                if (activeUsers.Count == 0)
+                {
+                    return null;
+                }
+
+                if (activeUsers.Count > 1)
+                {
+                    throw new UserFriendlyException(
+                        "Multiple accounts found for this login. Contact your administrator.");
+                }
+
+                return activeUsers[0];
+            }
         }
 
         private async Task<AbpLoginResult<Tenant, User>> GetLoginResultAsync(

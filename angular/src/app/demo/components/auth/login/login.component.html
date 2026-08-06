@@ -7,12 +7,6 @@
             <ng-container *ngIf="loginMode === 'emailCode' && emailCodeSent">Enter the 6-digit code we emailed you. It expires in {{ emailCodeExpirationMinutes }} minutes.</ng-container>
         </p>
 
-        <app-tenant-change
-            *ngIf="tenantReady && isMultiTenancyEnabled"
-            [tenancyName]="tenancyName"
-            [name]="tenantDisplayName"
-        ></app-tenant-change>
-
         <form *ngIf="loginMode === 'password'" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
             <div class="mb-4">
                 <span class="p-input-icon-left w-full">

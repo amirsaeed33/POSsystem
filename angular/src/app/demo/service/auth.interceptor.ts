@@ -42,8 +42,12 @@ export class AuthInterceptor implements HttpInterceptor {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
+            // Do not send a pre-selected tenant on login endpoints — backend resolves it from the user.
+            const isLoginRequest = /\/api\/TokenAuth\/(Authenticate|AuthenticateWithEmailCode|SendEmailLoginCode|ExternalAuthenticate)/i.test(
+                req.url
+            );
             const tenantId = this.tenantContext.getTenantId();
-            if (tenantId != null) {
+            if (!isLoginRequest && tenantId != null) {
                 headers['Abp.TenantId'] = String(tenantId);
             }
 

@@ -9,5 +9,7 @@ export interface AuthenticateResultModel {
     encryptedAccessToken: string;
     expireInSeconds: number;
     userId: number;
+    tenantId?: number | null;
+    tenancyName?: string | null;
 }
 
