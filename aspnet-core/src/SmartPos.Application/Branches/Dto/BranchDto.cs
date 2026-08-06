@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using Abp.Application.Services.Dto;
 using SmartPos.Branches;
@@ -6,6 +7,8 @@ namespace SmartPos.Branches.Dto
 {
     public class BranchDto : EntityDto
     {
+        public DateTime CreationTime { get; set; }
+
         [Required]
         [StringLength(Branch.MaxNameLength)]
         public string Name { get; set; }
@@ -13,6 +16,19 @@ namespace SmartPos.Branches.Dto
         [Required]
         [StringLength(Branch.MaxCodeLength)]
         public string Code { get; set; }
+
+        /// <summary>FK to LookUp (BranchStatus).</summary>
+        public int StatusId { get; set; }
+
+        /// <summary>LookUp.Name (Pending / Approved / Rejected).</summary>
+        public string Status { get; set; }
+
+        /// <summary>LookUp.DisplayName.</summary>
+        public string StatusDisplayName { get; set; }
+
+        public int? TenantId { get; set; }
+
+        public string TenancyName { get; set; }
 
         public bool IsActive { get; set; }
 

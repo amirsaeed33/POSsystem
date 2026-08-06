@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Abp.Application.Services;
 using Abp.Application.Services.Dto;
@@ -11,5 +10,11 @@ namespace SmartPos.Branches
         Task<ListResultDto<BranchDto>> GetLookupAsync();
 
         Task<BranchDto> GetInvoiceInfoAsync();
+
+        /// <summary>Host-only: pending tenant branches awaiting approval.</summary>
+        Task<ListResultDto<BranchDto>> GetPendingApprovalsAsync();
+
+        /// <summary>Host-only: set status to Approved / Rejected (LookUp Name).</summary>
+        Task<BranchDto> ChangeStatusAsync(ChangeBranchStatusDto input);
     }
 }

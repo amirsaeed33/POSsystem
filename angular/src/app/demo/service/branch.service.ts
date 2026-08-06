@@ -20,6 +20,7 @@ export class BranchService {
     ): Promise<PagedResultDto<BranchDto>> {
         const params: any = {};
         if (input?.keyword) params.Keyword = input.keyword;
+        if (input?.statusId != null) params.StatusId = input.statusId;
         if (input?.skipCount !== undefined) params.SkipCount = input.skipCount;
         if (input?.maxResultCount !== undefined)
             params.MaxResultCount = input.maxResultCount;
@@ -73,7 +74,12 @@ export class BranchService {
         return this.map(this.unwrap(res, 'Failed to create branch'));
     }
 
-    async update(input: BranchDto): Promise<BranchDto> {
+    async update(
+        input: CreateBranchDto & {
+            id: number;
+            imagePath?: string;
+        }
+    ): Promise<BranchDto> {
         const res: any = await firstValueFrom(
             this.http.put<any>(`${this.apiUrl}/Update`, {
                 id: input.id,
@@ -92,6 +98,25 @@ export class BranchService {
             })
         );
         return this.map(this.unwrap(res, 'Failed to update branch'));
+    }
+
+    async getPendingApprovals(): Promise<BranchDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetPendingApprovals`)
+        );
+        const result = this.unwrap(res, 'Failed to load pending branches');
+        const items = result.items || result.Items || [];
+        return (Array.isArray(items) ? items : []).map((i) => this.map(i));
+    }
+
+    async changeStatus(id: number, statusId: number): Promise<BranchDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/ChangeStatus`, {
+                id,
+                statusId,
+            })
+        );
+        return this.map(this.unwrap(res, 'Failed to update branch status'));
     }
 
     async delete(id: number): Promise<void> {
@@ -128,6 +153,13 @@ export class BranchService {
             id: item.id ?? item.Id,
             name: item.name ?? item.Name,
             code: item.code ?? item.Code,
+            statusId: item.statusId ?? item.StatusId ?? 0,
+            status: item.status ?? item.Status ?? 'Pending',
+            statusDisplayName:
+                item.statusDisplayName ?? item.StatusDisplayName,
+            creationTime: item.creationTime ?? item.CreationTime,
+            tenantId: item.tenantId ?? item.TenantId ?? null,
+            tenancyName: item.tenancyName ?? item.TenancyName,
             isActive: item.isActive ?? item.IsActive ?? true,
             isDefault: item.isDefault ?? item.IsDefault ?? false,
             imagePath: item.imagePath ?? item.ImagePath,

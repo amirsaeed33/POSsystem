@@ -8,7 +8,7 @@ import { TenantContextService } from 'src/app/demo/service/tenant-context.servic
 import { LocalizationService } from 'src/app/demo/service/localization.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { LanguageInfo } from 'src/app/demo/api/localization';
-import { BranchDto } from 'src/app/demo/api/branch';
+import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
 import { UserLoginInfoDto } from 'src/app/demo/api/session';
 import { environment } from 'src/environments/environment';
 
@@ -37,6 +37,7 @@ export class AppTopBarComponent implements OnInit {
     branches: BranchDto[] = [];
     currentBranch: BranchDto | null = null;
     changingBranch = false;
+    readonly BranchStatuses = BranchStatuses;
 
     constructor(
         public layoutService: LayoutService,

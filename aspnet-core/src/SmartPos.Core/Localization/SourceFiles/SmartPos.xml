@@ -118,6 +118,7 @@
     <text name="BrandName" value="Brand name" />
     <text name="BrandDeleteWarningMessage" value="Brand {0} will be deleted." />
     <text name="Branches" value="Branches" />
+    <text name="ApproveBranches" value="Approve branches" />
     <text name="CreateNewBranch" value="Create new branch" />
     <text name="SoftwareName" value="Software name" />
     <text name="CompanyImage" value="Company image" />

@@ -27,6 +27,12 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
 
         private void Ensure(LookUpSeedItem item)
         {
+            // BranchStatus is host-scoped so Branch.StatusId can share stable FKs across tenants.
+            if (item.Type == LookUpTypes.BranchStatus && _tenantId != null)
+            {
+                return;
+            }
+
             var exists = _context.LookUps
                 .IgnoreQueryFilters()
                 .Any(x =>

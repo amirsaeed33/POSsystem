@@ -4,6 +4,7 @@ export const LookUpTypes = {
     DiscountType: 'DiscountType',
     StockAdjustmentReason: 'StockAdjustmentReason',
     Gender: 'Gender',
+    BranchStatus: 'BranchStatus',
 } as const;
 
 export type LookUpType = (typeof LookUpTypes)[keyof typeof LookUpTypes];

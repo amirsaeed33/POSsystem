@@ -29,6 +29,7 @@ namespace SmartPos.MultiTenancy
         private readonly RoleManager _roleManager;
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<LookUp> _lookUpRepository;
+        private readonly BranchStatusLookup _branchStatusLookup;
         private readonly IAbpZeroDbMigrator _abpZeroDbMigrator;
 
         public TenantAppService(
@@ -39,6 +40,7 @@ namespace SmartPos.MultiTenancy
             RoleManager roleManager,
             IRepository<Branch> branchRepository,
             IRepository<LookUp> lookUpRepository,
+            BranchStatusLookup branchStatusLookup,
             IAbpZeroDbMigrator abpZeroDbMigrator)
             : base(repository)
         {
@@ -48,6 +50,7 @@ namespace SmartPos.MultiTenancy
             _roleManager = roleManager;
             _branchRepository = branchRepository;
             _lookUpRepository = lookUpRepository;
+            _branchStatusLookup = branchStatusLookup;
             _abpZeroDbMigrator = abpZeroDbMigrator;
         }
 
@@ -73,6 +76,8 @@ namespace SmartPos.MultiTenancy
             // Create tenant database
             _abpZeroDbMigrator.CreateOrMigrateForTenant(tenant);
 
+            var pendingStatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
+
             // We are working entities of new tenant, so changing tenant filter
             using (CurrentUnitOfWork.SetTenantId(tenant.Id))
             {
@@ -90,6 +95,7 @@ namespace SmartPos.MultiTenancy
                     TenantId = tenant.Id,
                     Name = BranchConsts.DefaultBranchName,
                     Code = BranchConsts.DefaultBranchCode,
+                    StatusId = pendingStatusId,
                     IsActive = true,
                     IsDefault = true
                 };
@@ -117,6 +123,12 @@ namespace SmartPos.MultiTenancy
         {
             foreach (var item in LookUpSeedData.Items)
             {
+                // BranchStatus is host-scoped (Branch.StatusId FK).
+                if (item.Type == LookUpTypes.BranchStatus)
+                {
+                    continue;
+                }
+
                 await _lookUpRepository.InsertAsync(new LookUp
                 {
                     TenantId = tenantId,

@@ -2,6 +2,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
+using SmartPos.Lookups;
 
 namespace SmartPos.EntityFrameworkCore.Seed.Tenants
 {
@@ -30,6 +31,7 @@ namespace SmartPos.EntityFrameworkCore.Seed.Tenants
                     TenantId = _tenantId,
                     Name = BranchConsts.DefaultBranchName,
                     Code = BranchConsts.DefaultBranchCode,
+                    StatusId = ResolveStatusId(BranchStatuses.Pending),
                     IsActive = true,
                     IsDefault = true
                 };
@@ -39,6 +41,26 @@ namespace SmartPos.EntityFrameworkCore.Seed.Tenants
 
             AssignAdminUsers(branch.Id);
             return branch;
+        }
+
+        private int ResolveStatusId(string statusName)
+        {
+            var id = _context.LookUps.IgnoreQueryFilters()
+                .Where(x =>
+                    x.TenantId == null
+                    && x.Type == LookUpTypes.BranchStatus
+                    && x.Name == statusName
+                    && !x.IsDeleted)
+                .Select(x => x.Id)
+                .FirstOrDefault();
+
+            if (id == 0)
+            {
+                throw new System.InvalidOperationException(
+                    $"Host BranchStatus lookup \"{statusName}\" is missing. Seed lookups before branches.");
+            }
+
+            return id;
         }
 
         private void AssignAdminUsers(int branchId)

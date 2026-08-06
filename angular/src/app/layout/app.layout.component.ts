@@ -1,6 +1,9 @@
-import { Component, OnDestroy, Renderer2, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, Renderer2, ViewChild } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
+import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
 import { TabCloseEvent } from './api/tabcloseevent';
 import { MenuService } from './app.menu.service';
 import { AppSidebarComponent } from './app.sidebar.component';
@@ -11,7 +14,7 @@ import { LayoutService } from './service/app.layout.service';
     selector: 'app-layout',
     templateUrl: './app.layout.component.html'
 })
-export class AppLayoutComponent implements OnDestroy {
+export class AppLayoutComponent implements OnInit, OnDestroy {
 
     overlayMenuOpenSubscription: Subscription;
 
@@ -19,15 +22,32 @@ export class AppLayoutComponent implements OnDestroy {
 
     tabCloseSubscription: Subscription;
 
+    branchSubscription: Subscription | null = null;
+
     menuOutsideClickListener: any;
 
     menuScrollListener: any;
+
+    /** Tenant sessions with a non-Approved branch are locked from ops UI. */
+    branchOpsLocked = false;
+    /** True when locked and not on an allowed page (e.g. Branches). */
+    showBranchLockOverlay = false;
+    lockedBranch: BranchDto | null = null;
+    readonly BranchStatuses = BranchStatuses;
+    private readonly unlockedRoutes = ['/branches'];
 
     @ViewChild(AppSidebarComponent) appSidebar!: AppSidebarComponent;
 
     @ViewChild(AppTopBarComponent) appTopbar!: AppTopBarComponent;
 
-    constructor(private menuService: MenuService, public layoutService: LayoutService, public renderer: Renderer2, public router: Router) {
+    constructor(
+        private menuService: MenuService,
+        public layoutService: LayoutService,
+        public renderer: Renderer2,
+        public router: Router,
+        private branchContext: BranchContextService,
+        private tenantContext: TenantContextService
+    ) {
         this.overlayMenuOpenSubscription = this.layoutService.overlayOpen$.subscribe(() => {
             if (!this.menuOutsideClickListener) {
                 this.menuOutsideClickListener = this.renderer.listen('document', 'click', event => {
@@ -55,6 +75,7 @@ export class AppLayoutComponent implements OnDestroy {
         this.router.events.pipe(filter(event => event instanceof NavigationEnd))
             .subscribe(() => {
                 this.hideMenu();
+                this.updateLockOverlay();
             });
 
         this.tabOpenSubscription = this.layoutService.tabOpen$.subscribe(tab => {
@@ -79,6 +100,41 @@ export class AppLayoutComponent implements OnDestroy {
 
             this.layoutService.closeTab(event.index);
         });
+    }
+
+    ngOnInit(): void {
+        this.refreshBranchLock(this.branchContext.getCurrentBranch());
+        this.branchSubscription = this.branchContext.currentBranch$.subscribe((branch) => {
+            this.refreshBranchLock(branch);
+        });
+    }
+
+    private refreshBranchLock(branch: BranchDto | null): void {
+        const isTenant = this.tenantContext.getTenantId() != null;
+        this.lockedBranch = branch;
+        this.branchOpsLocked =
+            isTenant &&
+            !!branch &&
+            (branch.status || BranchStatuses.Pending).toLowerCase() !==
+                BranchStatuses.Approved.toLowerCase();
+        this.updateLockOverlay();
+    }
+
+    private updateLockOverlay(): void {
+        if (!this.branchOpsLocked) {
+            this.showBranchLockOverlay = false;
+            return;
+        }
+        const url = (this.router.url || '').split('?')[0];
+        const onAllowed = this.unlockedRoutes.some(
+            (route) => url === route || url.startsWith(route + '/')
+        );
+        this.showBranchLockOverlay = !onAllowed;
+    }
+
+    get lockedStatusLabel(): string {
+        const status = this.lockedBranch?.status || BranchStatuses.Pending;
+        return status;
     }
 
     blockBodyScroll(): void {
@@ -150,6 +206,10 @@ export class AppLayoutComponent implements OnDestroy {
 
         if (this.tabCloseSubscription) {
             this.tabCloseSubscription.unsubscribe();
+        }
+
+        if (this.branchSubscription) {
+            this.branchSubscription.unsubscribe();
         }
     }
 

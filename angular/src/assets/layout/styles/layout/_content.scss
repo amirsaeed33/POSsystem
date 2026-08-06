@@ -11,6 +11,51 @@
         border-top-left-radius: 30px;
         box-shadow: inset 0px 3px 4px rgb(0 0 0 / 10%);
 
+        .branch-lock-banner {
+            background: rgba(254, 243, 199, 0.95);
+            border: 1px solid rgba(252, 211, 77, 0.65);
+            color: #92400e;
+
+            &--rejected {
+                background: rgba(254, 226, 226, 0.95);
+                border-color: rgba(252, 165, 165, 0.65);
+                color: #991b1b;
+            }
+
+            a.p-button {
+                text-decoration: none;
+            }
+        }
+
+        .branch-lock-content {
+            position: relative;
+
+            &--locked {
+                min-height: 16rem;
+            }
+        }
+
+        .branch-lock-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 3rem 1rem;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(2px);
+
+            &__card {
+                max-width: 26rem;
+                width: 100%;
+            }
+
+            a.p-button {
+                text-decoration: none;
+            }
+        }
+
         .layout-content-inner {
             display: flex;
             flex-direction: column;

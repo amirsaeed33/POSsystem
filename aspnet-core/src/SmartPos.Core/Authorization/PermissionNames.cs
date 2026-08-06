@@ -15,6 +15,9 @@
 
         public const string Pages_Branches = "Pages.Branches";
 
+        /// <summary>Host-only: approve or reject tenant branch requests.</summary>
+        public const string Pages_Branches_Approve = "Pages.Branches.Approve";
+
         public const string Pages_Units = "Pages.Units";
 
         public const string Pages_Products = "Pages.Products";

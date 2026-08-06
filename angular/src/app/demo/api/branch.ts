@@ -1,7 +1,22 @@
+export const BranchStatuses = {
+    Pending: 'Pending',
+    Approved: 'Approved',
+    Rejected: 'Rejected',
+} as const;
+
+export type BranchStatus = (typeof BranchStatuses)[keyof typeof BranchStatuses];
+
 export interface BranchDto {
     id: number;
     name: string;
     code: string;
+    statusId: number;
+    /** LookUp.Name */
+    status: string;
+    statusDisplayName?: string;
+    creationTime?: string;
+    tenantId?: number | null;
+    tenancyName?: string;
     isActive: boolean;
     isDefault: boolean;
     imagePath?: string;
@@ -30,6 +45,7 @@ export interface CreateBranchDto {
 
 export interface PagedBranchResultRequestDto {
     keyword?: string;
+    statusId?: number;
     skipCount?: number;
     maxResultCount?: number;
 }

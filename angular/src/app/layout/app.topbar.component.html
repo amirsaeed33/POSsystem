@@ -72,6 +72,14 @@
                 <span class="hidden md:inline font-medium white-space-nowrap">
                     {{ currentBranch?.name || 'Branch' }}
                 </span>
+                <span
+                    *ngIf="currentBranch?.status && currentBranch?.status !== BranchStatuses.Approved"
+                    class="text-xs px-2 py-1 border-round font-medium"
+                    [ngClass]="{
+                        'bg-orange-100 text-orange-700': currentBranch?.status === BranchStatuses.Pending,
+                        'bg-red-100 text-red-700': currentBranch?.status === BranchStatuses.Rejected
+                    }"
+                >{{ currentBranch?.status }}</span>
                 <i class="pi pi-angle-down" *ngIf="branches.length > 1"></i>
             </button>
             <ul
@@ -82,11 +90,12 @@
                 <li *ngFor="let branch of branches">
                     <a
                         pRipple
-                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer gap-2"
                         [class.surface-hover]="branch.id === currentBranch?.id"
                         (click)="onChangeBranch(branch)"
                     >
                         <span class="flex-1">{{ branch.name }}</span>
+                        <span class="text-xs text-500" *ngIf="branch.status">{{ branch.status }}</span>
                         <i
                             class="pi pi-check text-primary"
                             *ngIf="branch.id === currentBranch?.id"

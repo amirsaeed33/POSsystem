@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
+using SmartPos.Lookups;
 
 namespace SmartPos.Branches
 {
@@ -27,6 +28,14 @@ namespace SmartPos.Branches
         [Required]
         [StringLength(MaxCodeLength)]
         public virtual string Code { get; set; }
+
+        /// <summary>
+        /// FK to <see cref="LookUp"/> where Type = BranchStatus (host-scoped).
+        /// </summary>
+        public virtual int StatusId { get; set; }
+
+        [ForeignKey(nameof(StatusId))]
+        public virtual LookUp StatusLookUp { get; set; }
 
         public virtual bool IsActive { get; set; } = true;
 

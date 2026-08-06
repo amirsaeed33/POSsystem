@@ -4,12 +4,50 @@
     <div class="layout-content-wrapper">
         <div class="layout-content">
             <div class="layout-content-inner">
+                <div
+                    *ngIf="branchOpsLocked"
+                    class="branch-lock-banner mb-3 p-3 border-round flex align-items-start gap-3"
+                    [class.branch-lock-banner--pending]="lockedStatusLabel === BranchStatuses.Pending"
+                    [class.branch-lock-banner--rejected]="lockedStatusLabel === BranchStatuses.Rejected"
+                >
+                    <i class="pi pi-lock text-xl mt-1"></i>
+                    <div class="flex-1">
+                        <div class="font-semibold mb-1">
+                            Branch "{{ lockedBranch?.name }}" is {{ lockedStatusLabel }}
+                        </div>
+                        <div class="text-sm line-height-3">
+                            <ng-container *ngIf="lockedStatusLabel === BranchStatuses.Rejected; else pendingMsg">
+                                This branch was rejected by the host administrator. You cannot use POS operations until a new branch is approved.
+                            </ng-container>
+                            <ng-template #pendingMsg>
+                                This branch is waiting for host administrator approval. Sales, inventory, and other operations are disabled until then.
+                            </ng-template>
+                        </div>
+                    </div>
+                    <a
+                        routerLink="/branches"
+                        class="p-button p-button-sm p-button-outlined white-space-nowrap"
+                    >View branches</a>
+                </div>
+
                 <app-breadcrumb></app-breadcrumb>
-                <router-outlet></router-outlet>
-                <app-footer></app-footer>
+
+                <div class="branch-lock-content" [class.branch-lock-content--locked]="showBranchLockOverlay">
+                    <div *ngIf="showBranchLockOverlay" class="branch-lock-overlay">
+                        <div class="branch-lock-overlay__card surface-card border-round-xl p-4 text-center shadow-2">
+                            <i class="pi pi-hourglass text-4xl text-orange-500 mb-3"></i>
+                            <h3 class="mt-0 mb-2">Awaiting approval</h3>
+                            <p class="text-600 m-0 mb-3">
+                                Host admin must approve this branch before you can continue.
+                            </p>
+                            <a routerLink="/branches" class="p-button p-button-sm">Go to Branches</a>
+                        </div>
+                    </div>
+                    <router-outlet></router-outlet>
+                    <app-footer></app-footer>
+                </div>
             </div>
         </div>
     </div>
     <app-config></app-config>
 </div>
-

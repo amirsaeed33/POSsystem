@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartPos.EntityFrameworkCore;
 
@@ -11,9 +12,11 @@ using SmartPos.EntityFrameworkCore;
 namespace SmartPos.Migrations
 {
     [DbContext(typeof(SmartPosDbContext))]
-    partial class SmartPosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260806191925_Added_Branch_Status")]
+    partial class Added_Branch_Status
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1770,8 +1773,10 @@ namespace SmartPos.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<int>("StatusId")
-                        .HasColumnType("int");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("TaxNumber")
                         .HasMaxLength(128)
@@ -1785,8 +1790,6 @@ namespace SmartPos.Migrations
                         .HasColumnType("nvarchar(512)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("StatusId");
 
                     b.HasIndex("TenantId", "Code")
                         .IsUnique()
@@ -3756,17 +3759,6 @@ namespace SmartPos.Migrations
                     b.Navigation("DeleterUser");
 
                     b.Navigation("LastModifierUser");
-                });
-
-            modelBuilder.Entity("SmartPos.Branches.Branch", b =>
-                {
-                    b.HasOne("SmartPos.Lookups.LookUp", "StatusLookUp")
-                        .WithMany()
-                        .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("StatusLookUp");
                 });
 
             modelBuilder.Entity("SmartPos.Customers.Customer", b =>

@@ -7,7 +7,11 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
-import { BranchDto, CreateBranchDto } from 'src/app/demo/api/branch';
+import {
+    BranchDto,
+    BranchStatuses,
+    CreateBranchDto,
+} from 'src/app/demo/api/branch';
 import { BranchService } from 'src/app/demo/service/branch.service';
 
 @Component({
@@ -143,6 +147,9 @@ export class BranchFormDialogComponent implements OnChanges {
             id: 0,
             name: '',
             code: '',
+            statusId: 0,
+            status: BranchStatuses.Pending,
+            creationTime: undefined,
             isActive: true,
             isDefault: false,
             imagePath: undefined,

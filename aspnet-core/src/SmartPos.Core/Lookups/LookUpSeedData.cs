@@ -1,3 +1,5 @@
+using SmartPos.Branches;
+
 namespace SmartPos.Lookups
 {
     public static class LookUpSeedData
@@ -10,6 +12,7 @@ namespace SmartPos.Lookups
             new(LookUpTypes.LookUpType, LookUpTypes.DiscountType, "Discount Type", 20),
             new(LookUpTypes.LookUpType, LookUpTypes.StockAdjustmentReason, "Stock Adjustment Reason", 30),
             new(LookUpTypes.LookUpType, LookUpTypes.Gender, "Gender", 40),
+            new(LookUpTypes.LookUpType, LookUpTypes.BranchStatus, "Branch Status", 50),
 
             new(LookUpTypes.PaymentMethod, "Cash", "Cash", 10),
             new(LookUpTypes.PaymentMethod, "Card", "Card", 20),
@@ -32,6 +35,10 @@ namespace SmartPos.Lookups
             new(LookUpTypes.Gender, "Male", "Male", 10),
             new(LookUpTypes.Gender, "Female", "Female", 20),
             new(LookUpTypes.Gender, "Other", "Other", 30),
+
+            new(LookUpTypes.BranchStatus, BranchStatuses.Pending, "Pending", 10),
+            new(LookUpTypes.BranchStatus, BranchStatuses.Approved, "Approved", 20),
+            new(LookUpTypes.BranchStatus, BranchStatuses.Rejected, "Rejected", 30),
         };
     }
 

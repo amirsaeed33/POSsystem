@@ -5,6 +5,7 @@ using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
+using Abp.Domain.Uow;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Abp.UI;
@@ -50,6 +51,25 @@ namespace SmartPos.Lookups
             }
 
             var normalizedType = type.Trim();
+
+            // BranchStatus is host-scoped so Branch.StatusId FKs stay stable across tenants.
+            if (string.Equals(normalizedType, LookUpTypes.BranchStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                {
+                    var hostItems = await Repository.GetAll()
+                        .Where(x =>
+                            x.TenantId == null
+                            && x.Type == LookUpTypes.BranchStatus
+                            && x.IsActive)
+                        .OrderBy(x => x.SortOrder)
+                        .ThenBy(x => x.DisplayName)
+                        .ToListAsync();
+
+                    return new ListResultDto<LookUpDto>(hostItems.Select(MapToEntityDto).ToList());
+                }
+            }
+
             var items = await Repository.GetAll()
                 .Where(x => x.Type == normalizedType && x.IsActive)
                 .OrderBy(x => x.SortOrder)

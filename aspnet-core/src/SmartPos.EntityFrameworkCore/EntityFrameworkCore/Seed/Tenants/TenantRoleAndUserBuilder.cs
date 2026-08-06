@@ -23,12 +23,16 @@ namespace SmartPos.EntityFrameworkCore.Seed.Tenants
             _tenantId = tenantId;
         }
 
-        public void Create()
+        /// <param name="createAdminUser">
+        /// When true (tests), creates admin@defaulttenant.com if missing.
+        /// Production seed should pass false — tenant admins come from signup/host create-tenant.
+        /// </param>
+        public void Create(bool createAdminUser = true)
         {
-            CreateRolesAndUsers();
+            CreateRolesAndUsers(createAdminUser);
         }
 
-        private void CreateRolesAndUsers()
+        private void CreateRolesAndUsers(bool createAdminUser)
         {
             // Admin role
 
@@ -67,7 +71,12 @@ namespace SmartPos.EntityFrameworkCore.Seed.Tenants
                 _context.SaveChanges();
             }
 
-            // Admin user
+            if (!createAdminUser)
+            {
+                return;
+            }
+
+            // Admin user (tests / explicit seed only — not used by production host seed)
 
             var adminUser = _context.Users.IgnoreQueryFilters().FirstOrDefault(u => u.TenantId == _tenantId && u.UserName == AbpUserBase.AdminUserName);
             if (adminUser == null)

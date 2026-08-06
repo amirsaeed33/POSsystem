@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { BranchDto } from '../api/branch';
+import { BranchDto, BranchStatuses } from '../api/branch';
 import { BranchService } from './branch.service';
 
 const BRANCH_STORAGE_KEY = 'SmartPos.BranchId';
@@ -28,6 +28,24 @@ export class BranchContextService {
 
     getAllowedBranches(): BranchDto[] {
         return this.allowedBranches;
+    }
+
+    /** True when the selected branch is Approved (or none selected). */
+    isCurrentBranchApproved(): boolean {
+        const branch = this.currentBranchSubject.value;
+        if (!branch) {
+            return true;
+        }
+        return (branch.status || '').toLowerCase() === BranchStatuses.Approved.toLowerCase();
+    }
+
+    isCurrentBranchPendingApproval(): boolean {
+        const branch = this.currentBranchSubject.value;
+        if (!branch) {
+            return false;
+        }
+        const status = (branch.status || BranchStatuses.Pending).toLowerCase();
+        return status !== BranchStatuses.Approved.toLowerCase();
     }
 
     setCurrentBranch(branch: BranchDto | null): void {

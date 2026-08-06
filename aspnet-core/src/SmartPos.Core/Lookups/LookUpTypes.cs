@@ -13,5 +13,6 @@ namespace SmartPos.Lookups
         public const string DiscountType = "DiscountType";
         public const string StockAdjustmentReason = "StockAdjustmentReason";
         public const string Gender = "Gender";
+        public const string BranchStatus = "BranchStatus";
     }
 }

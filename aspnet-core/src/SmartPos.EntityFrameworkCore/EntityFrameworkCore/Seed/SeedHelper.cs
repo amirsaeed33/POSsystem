@@ -24,28 +24,22 @@ namespace SmartPos.EntityFrameworkCore.Seed
             context.SuppressAutoSetTenantId = true;
             try
             {
-                // Host seed
+                // Host seed only — do not auto-create a Default tenant or admin@defaulttenant.com.
                 new InitialHostDbBuilder(context).Create();
+                // Lookups (incl. host BranchStatus) before branches that FK StatusId.
+                new DefaultLookupsCreator(context, null).Create();
+                new DefaultBranchCreator(context, null).Create();
+                new DefaultEmailTemplatesCreator(context, null).Create();
+                new BakeryGeneralStoreDemoDataCreator(context, null).Create();
 
-                // Default tenant seed (in host database).
-                new DefaultTenantBuilder(context).Create();
+                // Keep tenant admin roles/permissions in sync for tenants created via signup/host UI.
+                // Do not create default admin users here.
                 var tenantIds = context.Tenants.IgnoreQueryFilters().Select(t => t.Id).ToList();
                 foreach (var tenantId in tenantIds)
                 {
-                    new TenantRoleAndUserBuilder(context, tenantId).Create();
-                }
-                new DefaultBranchCreator(context, null).Create();
-                new DefaultBranchCreator(context, 1).Create();
-                new DefaultSystemAccountsCreator(context, 1).Create();
-                new DefaultEmailTemplatesCreator(context, null).Create();
-                new DefaultEmailTemplatesCreator(context, 1).Create();
-                new DefaultLookupsCreator(context, null).Create();
-                foreach (var tenantId in tenantIds)
-                {
+                    new TenantRoleAndUserBuilder(context, tenantId).Create(createAdminUser: false);
                     new DefaultLookupsCreator(context, tenantId).Create();
                 }
-                new Host.BakeryGeneralStoreDemoDataCreator(context, null).Create();
-                new Host.BakeryGeneralStoreDemoDataCreator(context, 1).Create();
             }
             finally
             {

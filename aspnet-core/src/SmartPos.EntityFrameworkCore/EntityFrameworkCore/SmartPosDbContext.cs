@@ -145,6 +145,11 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasIndex(x => new { x.TenantId, x.Code })
                     .IsUnique()
                     .HasFilter("[IsDeleted] = 0");
+                b.HasIndex(x => x.StatusId);
+                b.HasOne(x => x.StatusLookUp)
+                    .WithMany()
+                    .HasForeignKey(x => x.StatusId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<BranchStock>(b =>

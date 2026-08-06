@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Abp.Authorization;
 using Abp.Dependency;
@@ -17,19 +18,22 @@ namespace SmartPos.Branches
         private readonly UserManager _userManager;
         private readonly IPermissionChecker _permissionChecker;
         private readonly IAbpSession _abpSession;
+        private readonly BranchStatusLookup _branchStatusLookup;
 
         public BranchAccessChecker(
             IBranchContext branchContext,
             IRepository<Branch> branchRepository,
             UserManager userManager,
             IPermissionChecker permissionChecker,
-            IAbpSession abpSession)
+            IAbpSession abpSession,
+            BranchStatusLookup branchStatusLookup)
         {
             _branchContext = branchContext;
             _branchRepository = branchRepository;
             _userManager = userManager;
             _permissionChecker = permissionChecker;
             _abpSession = abpSession;
+            _branchStatusLookup = branchStatusLookup;
         }
 
         public async Task<bool> CanAccessBranchAsync(int branchId)
@@ -47,6 +51,11 @@ namespace SmartPos.Branches
                 return false;
             }
 
+            if (_abpSession.TenantId.HasValue && !await IsApprovedAsync(branch.StatusId))
+            {
+                return false;
+            }
+
             if (await _permissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches))
             {
                 return true;
@@ -58,7 +67,32 @@ namespace SmartPos.Branches
 
         public async Task EnsureCanAccessBranchAsync(int branchId)
         {
-            if (!await CanAccessBranchAsync(branchId))
+            if (!_abpSession.UserId.HasValue)
+            {
+                throw new UserFriendlyException("You do not have access to this branch.");
+            }
+
+            var branch = await _branchRepository.GetAll()
+                .FirstOrDefaultAsync(x => x.Id == branchId && x.IsActive);
+
+            if (branch == null)
+            {
+                throw new UserFriendlyException("You do not have access to this branch.");
+            }
+
+            if (_abpSession.TenantId.HasValue && !await IsApprovedAsync(branch.StatusId))
+            {
+                throw new UserFriendlyException(
+                    "This branch is not approved yet. Please wait for host administrator approval before using the system.");
+            }
+
+            if (await _permissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches))
+            {
+                return;
+            }
+
+            var user = await _userManager.GetUserByIdAsync(_abpSession.UserId.Value);
+            if (user.BranchId != branchId)
             {
                 throw new UserFriendlyException("You do not have access to this branch.");
             }
@@ -74,15 +108,16 @@ namespace SmartPos.Branches
             var headerBranchId = _branchContext.BranchId;
             if (headerBranchId.HasValue)
             {
-                if (await CanAccessBranchAsync(headerBranchId.Value))
-                {
-                    return headerBranchId.Value;
-                }
-
-                throw new UserFriendlyException("You do not have access to this branch.");
+                await EnsureCanAccessBranchAsync(headerBranchId.Value);
+                return headerBranchId.Value;
             }
 
             var user = await _userManager.GetUserByIdAsync(_abpSession.UserId.Value);
+            if (user.BranchId.HasValue)
+            {
+                await EnsureCanAccessBranchAsync(user.BranchId.Value);
+            }
+
             return user.BranchId;
         }
 
@@ -96,6 +131,12 @@ namespace SmartPos.Branches
 
             await EnsureCanAccessBranchAsync(branchId.Value);
             return branchId.Value;
+        }
+
+        private async Task<bool> IsApprovedAsync(int statusId)
+        {
+            var approvedId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Approved);
+            return statusId == approvedId;
         }
     }
 }

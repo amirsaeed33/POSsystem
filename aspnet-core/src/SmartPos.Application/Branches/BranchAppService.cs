@@ -5,13 +5,17 @@ using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
+using Abp.Domain.Uow;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches.Dto;
 using SmartPos.Inventory;
+using SmartPos.Lookups;
+using SmartPos.MultiTenancy;
 using SmartPos.Products;
 
 namespace SmartPos.Branches
@@ -23,15 +27,24 @@ namespace SmartPos.Branches
 
         private readonly IRepository<Product> _productRepository;
         private readonly IBranchStockManager _branchStockManager;
+        private readonly IRepository<Tenant> _tenantRepository;
+        private readonly IRepository<LookUp> _lookUpRepository;
+        private readonly BranchStatusLookup _branchStatusLookup;
 
         public BranchAppService(
             IRepository<Branch> repository,
             IRepository<Product> productRepository,
-            IBranchStockManager branchStockManager)
+            IBranchStockManager branchStockManager,
+            IRepository<Tenant> tenantRepository,
+            IRepository<LookUp> lookUpRepository,
+            BranchStatusLookup branchStatusLookup)
             : base(repository)
         {
             _productRepository = productRepository;
             _branchStockManager = branchStockManager;
+            _tenantRepository = tenantRepository;
+            _lookUpRepository = lookUpRepository;
+            _branchStatusLookup = branchStatusLookup;
             CreatePermissionName = PermissionNames.Pages_Branches;
             UpdatePermissionName = PermissionNames.Pages_Branches;
             DeletePermissionName = PermissionNames.Pages_Branches;
@@ -46,6 +59,8 @@ namespace SmartPos.Branches
 
             var branch = ObjectMapper.Map<Branch>(input);
             branch.TenantId = AbpSession.TenantId;
+            // New branches always start as Pending until host admin approves.
+            branch.StatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
             branch.ImagePath = BranchImageStore.SaveBase64Image(input.ImageBase64);
 
             await Repository.InsertAsync(branch);
@@ -73,6 +88,7 @@ namespace SmartPos.Branches
             branch.TaxNumber = input.TaxNumber;
             branch.Website = input.Website;
             branch.InvoiceFooter = input.InvoiceFooter;
+            // StatusId is host-only via ChangeStatusAsync.
 
             if (BranchImageStore.IsNewImagePayload(input.ImageBase64))
             {
@@ -95,9 +111,40 @@ namespace SmartPos.Branches
             await Repository.DeleteAsync(branch);
         }
 
+        [AbpAuthorize(PermissionNames.Pages_Branches)]
+        public override async Task<BranchDto> GetAsync(EntityDto<int> input)
+        {
+            var dto = await base.GetAsync(input);
+            await FillStatusNamesAsync(new[] { dto });
+            return dto;
+        }
+
         /// <summary>
-        /// Allowed branches for the current user: assigned branch only, or all active if Pages.Branches.
+        /// Host admin sees every branch across tenants; tenant users see only their own.
         /// </summary>
+        [AbpAuthorize(PermissionNames.Pages_Branches)]
+        public override async Task<PagedResultDto<BranchDto>> GetAllAsync(PagedBranchResultRequestDto input)
+        {
+            CheckGetAllPermission();
+
+            PagedResultDto<BranchDto> result;
+            if (AbpSession.TenantId.HasValue)
+            {
+                result = await base.GetAllAsync(input);
+            }
+            else
+            {
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                {
+                    result = await base.GetAllAsync(input);
+                    await FillTenancyNamesAsync(result.Items);
+                }
+            }
+
+            await FillStatusNamesAsync(result.Items);
+            return result;
+        }
+
         public async Task<ListResultDto<BranchDto>> GetLookupAsync()
         {
             IQueryable<Branch> query = Repository.GetAll().Where(x => x.IsActive);
@@ -119,7 +166,9 @@ namespace SmartPos.Branches
             }
 
             var branches = await query.OrderBy(x => x.Name).ToListAsync();
-            return new ListResultDto<BranchDto>(ObjectMapper.Map<List<BranchDto>>(branches));
+            var dtos = ObjectMapper.Map<List<BranchDto>>(branches);
+            await FillStatusNamesAsync(dtos);
+            return new ListResultDto<BranchDto>(dtos);
         }
 
         public async Task<BranchDto> GetInvoiceInfoAsync()
@@ -143,7 +192,66 @@ namespace SmartPos.Branches
                     .FirstOrDefaultAsync();
             }
 
-            return branch == null ? null : ObjectMapper.Map<BranchDto>(branch);
+            if (branch == null)
+            {
+                return null;
+            }
+
+            var dto = ObjectMapper.Map<BranchDto>(branch);
+            await FillStatusNamesAsync(new[] { dto });
+            return dto;
+        }
+
+        [AbpAuthorize(PermissionNames.Pages_Branches_Approve)]
+        public async Task<ListResultDto<BranchDto>> GetPendingApprovalsAsync()
+        {
+            var pendingStatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
+
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                var branches = await Repository.GetAll()
+                    .Where(x => x.TenantId != null && x.StatusId == pendingStatusId)
+                    .OrderByDescending(x => x.CreationTime)
+                    .ToListAsync();
+
+                var dtos = ObjectMapper.Map<List<BranchDto>>(branches);
+                await FillTenancyNamesAsync(dtos);
+                await FillStatusNamesAsync(dtos);
+                return new ListResultDto<BranchDto>(dtos);
+            }
+        }
+
+        [AbpAuthorize(PermissionNames.Pages_Branches_Approve)]
+        public async Task<BranchDto> ChangeStatusAsync(ChangeBranchStatusDto input)
+        {
+            // Host may set Pending / Approved / Rejected at any time (including after a prior approval).
+            var status = await _branchStatusLookup.GetAsync(input.StatusId);
+
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                var branch = await Repository.GetAll()
+                    .FirstOrDefaultAsync(x => x.Id == input.Id);
+
+                if (branch == null)
+                {
+                    throw new UserFriendlyException("Branch not found.");
+                }
+
+                if (!branch.TenantId.HasValue)
+                {
+                    throw new UserFriendlyException("Host branches do not require approval.");
+                }
+
+                branch.StatusId = status.Id;
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                var dto = ObjectMapper.Map<BranchDto>(branch);
+                var tenant = await _tenantRepository.FirstOrDefaultAsync(branch.TenantId.Value);
+                dto.TenancyName = tenant?.TenancyName;
+                dto.Status = status.Name;
+                dto.StatusDisplayName = status.DisplayName;
+                return dto;
+            }
         }
 
         protected override IQueryable<Branch> CreateFilteredQuery(PagedBranchResultRequestDto input)
@@ -155,7 +263,78 @@ namespace SmartPos.Branches
                          || (x.InvoiceAddress != null && x.InvoiceAddress.Contains(input.Keyword))
                          || (x.InvoiceContactEmail != null && x.InvoiceContactEmail.Contains(input.Keyword))
                          || (x.InvoiceContactPhone != null && x.InvoiceContactPhone.Contains(input.Keyword))
-                         || (x.TaxNumber != null && x.TaxNumber.Contains(input.Keyword)));
+                         || (x.TaxNumber != null && x.TaxNumber.Contains(input.Keyword)))
+                .WhereIf(input.StatusId.HasValue, x => x.StatusId == input.StatusId.Value);
+        }
+
+        protected override BranchDto MapToEntityDto(Branch entity)
+        {
+            var dto = base.MapToEntityDto(entity);
+            dto.TenantId = entity.TenantId;
+            dto.StatusId = entity.StatusId;
+            return dto;
+        }
+
+        private async Task FillTenancyNamesAsync(IReadOnlyList<BranchDto> branches)
+        {
+            if (branches == null || branches.Count == 0)
+            {
+                return;
+            }
+
+            var tenantIds = branches
+                .Where(x => x.TenantId.HasValue)
+                .Select(x => x.TenantId.Value)
+                .Distinct()
+                .ToList();
+
+            if (tenantIds.Count == 0)
+            {
+                return;
+            }
+
+            var tenants = await _tenantRepository.GetAll()
+                .Where(t => tenantIds.Contains(t.Id))
+                .ToDictionaryAsync(t => t.Id, t => t.TenancyName);
+
+            foreach (var dto in branches)
+            {
+                if (dto.TenantId.HasValue && tenants.TryGetValue(dto.TenantId.Value, out var tenancyName))
+                {
+                    dto.TenancyName = tenancyName;
+                }
+            }
+        }
+
+        private async Task FillStatusNamesAsync(IReadOnlyList<BranchDto> branches)
+        {
+            if (branches == null || branches.Count == 0)
+            {
+                return;
+            }
+
+            var statusIds = branches.Select(x => x.StatusId).Where(x => x > 0).Distinct().ToList();
+            if (statusIds.Count == 0)
+            {
+                return;
+            }
+
+            Dictionary<int, LookUp> statuses;
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                statuses = await _lookUpRepository.GetAll()
+                    .Where(x => statusIds.Contains(x.Id))
+                    .ToDictionaryAsync(x => x.Id);
+            }
+
+            foreach (var dto in branches)
+            {
+                if (statuses.TryGetValue(dto.StatusId, out var lookUp))
+                {
+                    dto.Status = lookUp.Name;
+                    dto.StatusDisplayName = lookUp.DisplayName;
+                }
+            }
         }
 
         private async Task SeedSharedProductsAsync(int branchId)

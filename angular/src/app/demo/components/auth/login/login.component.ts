@@ -1,3 +1,4 @@
+import { animate, style, transition, trigger } from '@angular/animations';
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -14,7 +15,18 @@ type LoginMode = 'password' | 'emailCode';
 
 @Component({
 	templateUrl: './login.component.html',
-	providers: [MessageService]
+	providers: [MessageService],
+	animations: [
+		trigger('slideIn', [
+			transition(':enter', [
+				style({ transform: 'translateX(-48px)', opacity: 0 }),
+				animate(
+					'420ms cubic-bezier(0.22, 1, 0.36, 1)',
+					style({ transform: 'translateX(0)', opacity: 1 })
+				),
+			]),
+		]),
+	],
 })
 export class LoginComponent implements OnInit, OnDestroy {
 

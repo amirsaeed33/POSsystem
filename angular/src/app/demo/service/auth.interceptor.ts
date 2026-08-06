@@ -42,12 +42,14 @@ export class AuthInterceptor implements HttpInterceptor {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            // Do not send a pre-selected tenant on login endpoints — backend resolves it from the user.
-            const isLoginRequest = /\/api\/TokenAuth\/(Authenticate|AuthenticateWithEmailCode|SendEmailLoginCode|ExternalAuthenticate)/i.test(
-                req.url
-            );
+            // Sign-up / tenancy lookup must run on host (no Abp.TenantId).
+            // Password / OTP login need the selected tenant cookie when present.
+            const skipTenantHeader =
+                /\/api\/services\/app\/Account\/(SignUpTenant|IsTenantAvailable)/i.test(
+                    req.url
+                );
             const tenantId = this.tenantContext.getTenantId();
-            if (!isLoginRequest && tenantId != null) {
+            if (!skipTenantHeader && tenantId != null) {
                 headers['Abp.TenantId'] = String(tenantId);
             }
 
