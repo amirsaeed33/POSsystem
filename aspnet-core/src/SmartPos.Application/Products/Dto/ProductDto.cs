@@ -63,10 +63,14 @@ namespace SmartPos.Products.Dto
 
         public string ImageBase64 { get; set; }
 
+        /// <summary>
+        /// True when the product is tenant-level (available at every location).
+        /// Computed from BranchStock assignments (empty or all active branches).
+        /// </summary>
         public bool IsShared { get; set; }
 
         /// <summary>
-        /// Assigned branch ids (from BranchStock rows). Empty when IsShared.
+        /// Assigned branch ids (from BranchStock rows). Empty when tenant-level (all locations).
         /// </summary>
         public List<int> BranchIds { get; set; }
     }

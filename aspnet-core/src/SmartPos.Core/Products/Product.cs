@@ -19,12 +19,6 @@ namespace SmartPos.Products
 
         public virtual int? TenantId { get; set; }
 
-        /// <summary>
-        /// When true, the product is available to all branches under the tenant.
-        /// When false, visibility is limited to branches that have an AppBranchStocks row.
-        /// </summary>
-        public virtual bool IsShared { get; set; }
-
         [Required]
         [StringLength(MaxNameLength)]
         public virtual string Name { get; set; }

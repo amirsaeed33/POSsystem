@@ -3,6 +3,21 @@
 </button>
 
 <p-sidebar [(visible)]="visible" position="right" [transitionOptions]="'.3s cubic-bezier(0, 0, 0.2, 1)'" styleClass="layout-config-sidebar w-18rem">
+    <ng-container *ngIf="languages?.length">
+        <h5>Language</h5>
+        <p-dropdown
+            [options]="languages"
+            [(ngModel)]="selectedLanguage"
+            optionLabel="displayName"
+            optionValue="name"
+            placeholder="Select language"
+            styleClass="w-full"
+            [disabled]="changingLanguage"
+            (onChange)="onChangeLanguage($event.value)"
+        ></p-dropdown>
+        <hr class="surface-border"/>
+    </ng-container>
+
     <ng-container *ngIf="!minimal">
         <h5>Menu Type</h5>
         <div class="flex flex-wrap row-gap-3">
@@ -85,3 +100,5 @@
     <h5>Ripple Effect</h5>
     <p-inputSwitch [(ngModel)]="ripple"></p-inputSwitch>
 </p-sidebar>
+
+<p-toast></p-toast>

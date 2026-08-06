@@ -66,18 +66,20 @@ namespace SmartPos.Products
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: null);
 
             var canManageBranches = await CanManageBranchesAsync();
-            var isShared = canManageBranches && input.IsShared;
+            var selectedBranchIds = (input.BranchIds ?? new List<int>())
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+            // Empty branch selection = tenant-level (no BranchStock rows → visible everywhere).
             var targetBranchIds = await ResolveTargetBranchIdsForCreateAsync(
                 canManageBranches,
-                isShared,
-                input.BranchIds);
+                selectedBranchIds);
 
             var initialStock = input.StockQuantity > 0 ? input.StockQuantity : 0;
             var product = ObjectMapper.Map<Product>(input);
             product.TenantId = AbpSession.TenantId;
             product.Barcode = barcode;
             product.StockQuantity = 0;
-            product.IsShared = isShared;
             product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
 
             try
@@ -148,7 +150,7 @@ namespace SmartPos.Products
             var canManageBranches = await CanManageBranchesAsync();
             if (canManageBranches)
             {
-                await SyncAssignmentsOnUpdateAsync(product, input.IsShared, input.BranchIds);
+                await SyncAssignmentsOnUpdateAsync(product, input.BranchIds);
             }
 
             try
@@ -161,7 +163,8 @@ namespace SmartPos.Products
             }
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
-            if (product.IsShared || await _branchStockManager.HasAssignmentAsync(branchId, product.Id))
+            var assignedBranchIds = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
+            if (!assignedBranchIds.Any() || assignedBranchIds.Contains(branchId))
             {
                 await _branchStockManager.SetPricesAsync(
                     branchId,
@@ -269,15 +272,13 @@ namespace SmartPos.Products
                 throw new UserFriendlyException("No branch is assigned. Please contact your administrator.");
             }
 
-            if (product.IsShared)
+            var assignedBranchIds = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
+            if (!assignedBranchIds.Any() || assignedBranchIds.Contains(branchId.Value))
             {
                 return;
             }
 
-            if (!await _branchStockManager.HasAssignmentAsync(branchId.Value, product.Id))
-            {
-                throw new UserFriendlyException("Product is not available for this branch.");
-            }
+            throw new UserFriendlyException("Product is not available for this branch.");
         }
 
         private async Task<bool> CanManageBranchesAsync()
@@ -287,7 +288,6 @@ namespace SmartPos.Products
 
         private async Task<List<int>> ResolveTargetBranchIdsForCreateAsync(
             bool canManageBranches,
-            bool isShared,
             List<int> branchIds)
         {
             if (!canManageBranches)
@@ -296,15 +296,11 @@ namespace SmartPos.Products
                 return new List<int> { ownBranchId };
             }
 
-            if (isShared)
-            {
-                return await GetActiveBranchIdsAsync();
-            }
-
             var selected = (branchIds ?? new List<int>()).Where(x => x > 0).Distinct().ToList();
             if (!selected.Any())
             {
-                throw new UserFriendlyException("Select at least one branch, or mark the product as Shared.");
+                // Tenant-level: no BranchStock rows (visible in every location).
+                return new List<int>();
             }
 
             await EnsureBranchesExistAndAccessibleAsync(selected);
@@ -313,15 +309,16 @@ namespace SmartPos.Products
 
         private async Task SyncAssignmentsOnUpdateAsync(
             Product product,
-            bool isShared,
             List<int> branchIds)
         {
-            if (isShared)
+            var selected = (branchIds ?? new List<int>()).Where(x => x > 0).Distinct().ToList();
+            var current = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
+
+            // Empty selection = tenant-level: ensure stock rows exist for every active branch.
+            if (!selected.Any())
             {
-                product.IsShared = true;
                 var allBranchIds = await GetActiveBranchIdsAsync();
-                var existing = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
-                foreach (var branchId in allBranchIds.Except(existing))
+                foreach (var branchId in allBranchIds.Except(current))
                 {
                     await _branchStockManager.UpsertStockAndPricesAsync(
                         branchId,
@@ -335,16 +332,8 @@ namespace SmartPos.Products
                 return;
             }
 
-            product.IsShared = false;
-            var selected = (branchIds ?? new List<int>()).Where(x => x > 0).Distinct().ToList();
-            if (!selected.Any())
-            {
-                throw new UserFriendlyException("Select at least one branch, or mark the product as Shared.");
-            }
-
             await EnsureBranchesExistAndAccessibleAsync(selected);
 
-            var current = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
             var toAdd = selected.Except(current).ToList();
             var toRemove = current.Except(selected).ToList();
 
@@ -394,18 +383,8 @@ namespace SmartPos.Products
                 return;
             }
 
-            foreach (var item in items.Where(x => x.IsShared))
-            {
-                item.BranchIds = new List<int>();
-            }
-
-            var nonShared = items.Where(x => !x.IsShared).ToList();
-            if (!nonShared.Any())
-            {
-                return;
-            }
-
-            var productIds = nonShared.Select(x => x.Id).ToList();
+            var activeBranchIds = await GetActiveBranchIdsAsync();
+            var productIds = items.Select(x => x.Id).ToList();
             var assignments = await _branchStockRepository.GetAll()
                 .Where(x => productIds.Contains(x.ProductId))
                 .Select(x => new { x.ProductId, x.BranchId })
@@ -415,11 +394,19 @@ namespace SmartPos.Products
                 .GroupBy(x => x.ProductId)
                 .ToDictionary(g => g.Key, g => g.Select(x => x.BranchId).Distinct().ToList());
 
-            foreach (var item in nonShared)
+            foreach (var item in items)
             {
-                item.BranchIds = map.TryGetValue(item.Id, out var branchIds)
+                var assigned = map.TryGetValue(item.Id, out var branchIds)
                     ? branchIds
                     : new List<int>();
+
+                // No rows, or rows for every active branch ⇒ tenant-level (all locations).
+                var isTenantLevel = !assigned.Any()
+                    || (activeBranchIds.Count > 0
+                        && activeBranchIds.All(id => assigned.Contains(id)));
+
+                item.IsShared = isTenantLevel;
+                item.BranchIds = isTenantLevel ? new List<int>() : assigned;
             }
         }
 

@@ -5,9 +5,7 @@ import { LayoutService } from './service/app.layout.service';
 import { AuthService } from 'src/app/demo/service/auth.service';
 import { SessionService } from 'src/app/demo/service/session.service';
 import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
-import { LocalizationService } from 'src/app/demo/service/localization.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
-import { LanguageInfo } from 'src/app/demo/api/localization';
 import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
 import { UserLoginInfoDto } from 'src/app/demo/api/session';
 import { environment } from 'src/environments/environment';
@@ -19,9 +17,6 @@ import { environment } from 'src/environments/environment';
 })
 export class AppTopBarComponent implements OnInit {
     @ViewChild('menubutton') menuButton!: ElementRef;
-    @ViewChild('searchinput') searchInput!: ElementRef;
-
-    searchActive = false;
 
     userInfo: UserLoginInfoDto | null = null;
     userDisplayName = 'User';
@@ -29,10 +24,6 @@ export class AppTopBarComponent implements OnInit {
     userRole = '';
     userImage: string | null = null;
     hasUserImage = false;
-
-    languages: LanguageInfo[] = [];
-    currentLanguage: LanguageInfo | null = null;
-    changingLanguage = false;
 
     branches: BranchDto[] = [];
     currentBranch: BranchDto | null = null;
@@ -44,41 +35,16 @@ export class AppTopBarComponent implements OnInit {
         private authService: AuthService,
         private sessionService: SessionService,
         private tenantContext: TenantContextService,
-        private localizationService: LocalizationService,
         private branchContext: BranchContextService,
         private messageService: MessageService,
         private router: Router
     ) {}
 
     ngOnInit(): void {
-        Promise.all([
-            this.tenantContext.ensureMultiTenancyLoaded().catch(() => undefined),
-            this.localizationService.ensureLoaded().catch(() => undefined),
-        ]).finally(() => {
-            this.languages = this.localizationService.getLanguages();
-            this.currentLanguage = this.localizationService.getCurrentLanguage();
-            this.loadUserInfo();
-        });
-    }
-
-    onChangeLanguage(language: LanguageInfo): void {
-        if (
-            !language?.name ||
-            language.name === this.currentLanguage?.name ||
-            this.changingLanguage
-        ) {
-            return;
-        }
-
-        this.changingLanguage = true;
-        this.localizationService.changeLanguage(language.name).catch((error) => {
-            this.changingLanguage = false;
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: error?.message || 'Failed to change language',
-            });
-        });
+        this.tenantContext
+            .ensureMultiTenancyLoaded()
+            .catch(() => undefined)
+            .finally(() => this.loadUserInfo());
     }
 
     loadUserInfo(): void {
@@ -218,17 +184,6 @@ export class AppTopBarComponent implements OnInit {
 
     onMenuButtonClick(): void {
         this.layoutService.onMenuToggle();
-    }
-
-    activateSearch(): void {
-        this.searchActive = true;
-        setTimeout(() => {
-            this.searchInput?.nativeElement?.focus();
-        }, 100);
-    }
-
-    deactivateSearch(): void {
-        this.searchActive = false;
     }
 
     removeTab(event: MouseEvent, item: MenuItem, index: number): void {

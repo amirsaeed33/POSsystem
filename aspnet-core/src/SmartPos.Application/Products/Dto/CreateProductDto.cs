@@ -49,12 +49,8 @@ namespace SmartPos.Products.Dto
         public string ImageBase64 { get; set; }
 
         /// <summary>
-        /// Tenant-admin only. When true, product is available to all branches.
-        /// </summary>
-        public bool IsShared { get; set; }
-
-        /// <summary>
-        /// Tenant-admin only. Branch ids to assign when IsShared is false.
+        /// Tenant-admin only. Optional. Empty = tenant-level (all locations);
+        /// otherwise product is limited to these branches.
         /// </summary>
         public List<int> BranchIds { get; set; }
     }

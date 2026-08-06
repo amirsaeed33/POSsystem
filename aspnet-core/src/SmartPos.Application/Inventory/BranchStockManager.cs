@@ -119,16 +119,16 @@ namespace SmartPos.Inventory
         public async Task EnsureCanUseProductAtBranchAsync(int branchId, int productId)
         {
             var product = await _productRepository.GetAsync(productId);
-            if (product.IsShared)
+            var assignedBranchIds = await GetAssignedBranchIdsAsync(productId);
+
+            // No assignments = tenant-level (available at every location).
+            if (!assignedBranchIds.Any() || assignedBranchIds.Contains(branchId))
             {
                 return;
             }
 
-            if (!await HasAssignmentAsync(branchId, productId))
-            {
-                throw new UserFriendlyException(
-                    $"Product '{product.Name}' is not assigned to this branch.");
-            }
+            throw new UserFriendlyException(
+                $"Product '{product.Name}' is not assigned to this branch.");
         }
 
         public async Task IncreaseAsync(int branchId, int productId, decimal quantity)
@@ -255,10 +255,16 @@ namespace SmartPos.Inventory
             }
 
             var product = await _productRepository.GetAsync(productId);
-            if (!product.IsShared && !allowCreateAssignment)
+            if (!allowCreateAssignment)
             {
-                throw new UserFriendlyException(
-                    $"Product '{product.Name}' is not assigned to this branch.");
+                var assignedBranchIds = await GetAssignedBranchIdsAsync(productId);
+                // Tenant-level (no rows) may lazily create stock on first use.
+                // Location-level products may only be used where already assigned.
+                if (assignedBranchIds.Any() && !assignedBranchIds.Contains(branchId))
+                {
+                    throw new UserFriendlyException(
+                        $"Product '{product.Name}' is not assigned to this branch.");
+                }
             }
 
             stock = new BranchStock

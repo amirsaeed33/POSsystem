@@ -37,16 +37,14 @@
         </div>
 
         <div class="flex flex-column gap-2" *ngIf="canManageBranches">
-            <label for="productBranches" class="font-medium">
-                Assign to branches <span class="p-error">*</span>
-            </label>
+            <label for="productBranches" class="font-medium">Assign to branches</label>
             <p-multiSelect
                 inputId="productBranches"
                 [options]="branches"
                 optionLabel="name"
                 optionValue="id"
                 [(ngModel)]="selectedBranchIds"
-                placeholder="Select branches"
+                placeholder="All locations (optional)"
                 [showToggleAll]="false"
                 [filter]="true"
                 [showClear]="true"
@@ -75,6 +73,9 @@
                     </div>
                 </ng-template>
             </p-multiSelect>
+            <small class="text-color-secondary">
+                Leave empty to show in every location. Select branches to limit to those locations only.
+            </small>
         </div>
 
         <div class="formgrid grid">

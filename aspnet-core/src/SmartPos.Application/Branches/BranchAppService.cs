@@ -374,8 +374,19 @@ namespace SmartPos.Branches
 
         private async Task SeedSharedProductsAsync(int branchId)
         {
-            var sharedProducts = await _productRepository.GetAll()
-                .Where(x => x.IsShared)
+            // Tenant-level products with no BranchStock rows are already visible everywhere.
+            // Seed products that were assigned to every other active branch (legacy "all locations").
+            var otherBranchIds = await Repository.GetAll()
+                .Where(x => x.IsActive && x.Id != branchId)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            if (!otherBranchIds.Any())
+            {
+                return;
+            }
+
+            var products = await _productRepository.GetAll()
                 .Select(x => new
                 {
                     x.Id,
@@ -385,8 +396,19 @@ namespace SmartPos.Branches
                 })
                 .ToListAsync();
 
-            foreach (var product in sharedProducts)
+            foreach (var product in products)
             {
+                var assigned = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
+                if (!assigned.Any())
+                {
+                    continue;
+                }
+
+                if (!otherBranchIds.All(id => assigned.Contains(id)))
+                {
+                    continue;
+                }
+
                 await _branchStockManager.UpsertStockAndPricesAsync(
                     branchId,
                     product.Id,

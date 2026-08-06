@@ -110,7 +110,6 @@ export class ProductService {
                     unitId: input.unitId,
                     imagePath: input.imagePath,
                     imageBase64: input.imageBase64,
-                    isShared: input.isShared,
                     branchIds: input.branchIds,
                 })
             );

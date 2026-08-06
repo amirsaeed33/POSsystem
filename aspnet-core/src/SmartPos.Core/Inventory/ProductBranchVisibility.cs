@@ -6,7 +6,9 @@ namespace SmartPos.Inventory
     public static class ProductBranchVisibility
     {
         /// <summary>
-        /// Products visible to a branch: shared, or assigned via BranchStock.
+        /// Products visible to a branch:
+        /// - tenant-level (no BranchStock rows yet), or
+        /// - assigned via a BranchStock row for that branch.
         /// </summary>
         public static IQueryable<Product> WhereVisibleToBranch(
             this IQueryable<Product> products,
@@ -14,7 +16,7 @@ namespace SmartPos.Inventory
             int branchId)
         {
             return products.Where(p =>
-                p.IsShared
+                !branchStocks.Any(bs => bs.ProductId == p.Id)
                 || branchStocks.Any(bs => bs.BranchId == branchId && bs.ProductId == p.Id));
         }
     }

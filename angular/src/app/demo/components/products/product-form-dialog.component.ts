@@ -103,9 +103,8 @@ export class ProductFormDialogComponent implements OnChanges {
             this.loadLookups().then(() => {
                 if (this.productId) {
                     this.loadProduct(this.productId);
-                } else if (this.canManageBranches) {
-                    this.selectAllBranches();
                 }
+                // Create: leave branches empty = tenant-level (all locations).
             });
         }
     }
@@ -178,11 +177,12 @@ export class ProductFormDialogComponent implements OnChanges {
                 ? this.product.imageBase64
                 : undefined;
 
-        const isShared = this.isAllBranchesSelected;
+        // Empty or all branches = tenant-level (visible in every location).
+        const isTenantLevel =
+            !this.selectedBranchIds?.length || this.isAllBranchesSelected;
         const assignment = this.canManageBranches
             ? {
-                  isShared,
-                  branchIds: isShared ? [] : [...this.selectedBranchIds],
+                  branchIds: isTenantLevel ? [] : [...this.selectedBranchIds],
               }
             : {};
 
@@ -270,12 +270,6 @@ export class ProductFormDialogComponent implements OnChanges {
         if (!this.product.unitId) {
             return 'Unit is required.';
         }
-        if (
-            this.canManageBranches &&
-            (!this.selectedBranchIds || this.selectedBranchIds.length === 0)
-        ) {
-            return 'Select at least one branch.';
-        }
         return null;
     }
 
@@ -298,7 +292,6 @@ export class ProductFormDialogComponent implements OnChanges {
             unitId: null as any,
             imagePath: undefined,
             imageBase64: undefined,
-            isShared: false,
             branchIds: [],
         };
     }
@@ -351,13 +344,11 @@ export class ProductFormDialogComponent implements OnChanges {
             .get(id)
             .then((product) => {
                 this.product = { ...product, imageBase64: undefined };
-                if (product.isShared) {
-                    this.selectAllBranches();
-                } else {
-                    this.selectedBranchIds = product.branchIds
-                        ? [...product.branchIds]
-                        : [];
-                }
+                // Tenant-level (all locations) keeps assignment empty.
+                this.selectedBranchIds =
+                    product.isShared || !product.branchIds?.length
+                        ? []
+                        : [...product.branchIds];
                 this.imagePreview = this.productService.getImageUrl(product.imagePath);
             })
             .catch((error) => {

@@ -1,4 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { MessageService } from 'primeng/api';
+import { LanguageInfo } from 'src/app/demo/api/localization';
+import { LocalizationService } from 'src/app/demo/service/localization.service';
 import {
     ColorScheme,
     LayoutService,
@@ -9,6 +12,7 @@ import { MenuService } from '../app.menu.service';
 @Component({
     selector: 'app-config',
     templateUrl: './app.config.component.html',
+    providers: [MessageService],
 })
 export class AppConfigComponent implements OnInit {
     @Input() minimal: boolean = false;
@@ -16,6 +20,10 @@ export class AppConfigComponent implements OnInit {
     componentThemes: any[] = [];
 
     scales: number[] = [12, 13, 14, 15, 16];
+
+    languages: LanguageInfo[] = [];
+    selectedLanguage = '';
+    changingLanguage = false;
 
     get currentTheme(): string {
         return this.layoutService.config().theme;
@@ -109,7 +117,9 @@ export class AppConfigComponent implements OnInit {
 
     constructor(
         public layoutService: LayoutService,
-        public menuService: MenuService
+        public menuService: MenuService,
+        private localizationService: LocalizationService,
+        private messageService: MessageService
     ) {}
 
     ngOnInit() {
@@ -125,6 +135,37 @@ export class AppConfigComponent implements OnInit {
             { name: 'purple', lightColor: '#BA6FF4', darkColor: '#D1A0F8' },
             { name: 'lime', lightColor: '#84BD20', darkColor: '#A3D44E' },
         ];
+
+        this.localizationService
+            .ensureLoaded()
+            .catch(() => undefined)
+            .finally(() => {
+                this.languages = this.localizationService.getLanguages();
+                this.selectedLanguage =
+                    this.localizationService.getCurrentLanguage()?.name || '';
+            });
+    }
+
+    onChangeLanguage(languageName: string): void {
+        if (
+            !languageName ||
+            languageName === this.localizationService.getCurrentLanguage()?.name ||
+            this.changingLanguage
+        ) {
+            return;
+        }
+
+        this.changingLanguage = true;
+        this.localizationService.changeLanguage(languageName).catch((error) => {
+            this.changingLanguage = false;
+            this.selectedLanguage =
+                this.localizationService.getCurrentLanguage()?.name || '';
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Failed to change language',
+            });
+        });
     }
 
     changeTheme(theme: string) {
