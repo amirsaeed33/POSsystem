@@ -25,15 +25,25 @@ namespace SmartPos.Products
 
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchStockManager _branchStockManager;
+        private readonly IRepository<BranchStock> _branchStockRepository;
+        private readonly IRepository<Branch> _branchRepository;
+        private readonly IPermissionChecker _permissionChecker;
+        private int? _effectiveBranchIdForQuery;
 
         public ProductAppService(
             IRepository<Product> repository,
             IBranchAccessChecker branchAccessChecker,
-            IBranchStockManager branchStockManager)
+            IBranchStockManager branchStockManager,
+            IRepository<BranchStock> branchStockRepository,
+            IRepository<Branch> branchRepository,
+            IPermissionChecker permissionChecker)
             : base(repository)
         {
             _branchAccessChecker = branchAccessChecker;
             _branchStockManager = branchStockManager;
+            _branchStockRepository = branchStockRepository;
+            _branchRepository = branchRepository;
+            _permissionChecker = permissionChecker;
         }
 
         public override async Task<ProductDto> CreateAsync(CreateProductDto input)
@@ -55,11 +65,19 @@ namespace SmartPos.Products
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: null);
 
-            var initialStock = input.StockQuantity;
+            var canManageBranches = await CanManageBranchesAsync();
+            var isShared = canManageBranches && input.IsShared;
+            var targetBranchIds = await ResolveTargetBranchIdsForCreateAsync(
+                canManageBranches,
+                isShared,
+                input.BranchIds);
+
+            var initialStock = input.StockQuantity > 0 ? input.StockQuantity : 0;
             var product = ObjectMapper.Map<Product>(input);
             product.TenantId = AbpSession.TenantId;
             product.Barcode = barcode;
             product.StockQuantity = 0;
+            product.IsShared = isShared;
             product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
 
             try
@@ -72,16 +90,19 @@ namespace SmartPos.Products
                 throw new UserFriendlyException(DuplicateBarcodeMessage);
             }
 
-            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
-            await _branchStockManager.UpsertStockAndPricesAsync(
-                branchId,
-                product.Id,
-                initialStock > 0 ? initialStock : 0,
-                product.Price,
-                product.WholesalePrice,
-                product.CostPrice);
+            foreach (var branchId in targetBranchIds)
+            {
+                await _branchStockManager.UpsertStockAndPricesAsync(
+                    branchId,
+                    product.Id,
+                    initialStock,
+                    product.Price,
+                    product.WholesalePrice,
+                    product.CostPrice);
+            }
 
-            return await GetAsync(new EntityDto<int>(product.Id));
+            // Skip visibility check: product may be assigned to branches other than the current topbar branch.
+            return await MapProductDtoByIdAsync(product.Id);
         }
 
         public override async Task<ProductDto> UpdateAsync(ProductDto input)
@@ -89,6 +110,7 @@ namespace SmartPos.Products
             CheckUpdatePermission();
 
             var product = await GetEntityByIdAsync(input.Id);
+            await EnsureProductVisibleAsync(product);
 
             EnsureRequiredFields(
                 input.Name,
@@ -123,6 +145,12 @@ namespace SmartPos.Products
                 product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
             }
 
+            var canManageBranches = await CanManageBranchesAsync();
+            if (canManageBranches)
+            {
+                await SyncAssignmentsOnUpdateAsync(product, input.IsShared, input.BranchIds);
+            }
+
             try
             {
                 await CurrentUnitOfWork.SaveChangesAsync();
@@ -133,14 +161,18 @@ namespace SmartPos.Products
             }
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
-            await _branchStockManager.SetPricesAsync(
-                branchId,
-                product.Id,
-                input.Price,
-                input.WholesalePrice,
-                input.CostPrice);
+            if (product.IsShared || await _branchStockManager.HasAssignmentAsync(branchId, product.Id))
+            {
+                await _branchStockManager.SetPricesAsync(
+                    branchId,
+                    product.Id,
+                    input.Price,
+                    input.WholesalePrice,
+                    input.CostPrice);
+            }
 
-            return await GetAsync(new EntityDto<int>(product.Id));
+            // Skip visibility check: assignment may exclude the current topbar branch.
+            return await MapProductDtoByIdAsync(product.Id);
         }
 
         public override async Task DeleteAsync(EntityDto<int> input)
@@ -148,27 +180,61 @@ namespace SmartPos.Products
             CheckDeletePermission();
 
             var product = await Repository.GetAsync(input.Id);
+            await EnsureProductVisibleAsync(product);
             ProductImageStore.DeleteIfExists(product.ImagePath);
             await Repository.DeleteAsync(product);
         }
 
         public override async Task<ProductDto> GetAsync(EntityDto<int> input)
         {
-            var dto = await base.GetAsync(input);
+            var product = await GetEntityByIdAsync(input.Id);
+            if (product == null)
+            {
+                throw new UserFriendlyException("Product not found.");
+            }
+
+            await EnsureProductVisibleAsync(product);
+            return await MapProductDtoAsync(product);
+        }
+
+        private async Task<ProductDto> MapProductDtoByIdAsync(int id)
+        {
+            var product = await GetEntityByIdAsync(id);
+            if (product == null)
+            {
+                throw new UserFriendlyException("Product not found.");
+            }
+
+            return await MapProductDtoAsync(product);
+        }
+
+        private async Task<ProductDto> MapProductDtoAsync(Product product)
+        {
+            var dto = MapToEntityDto(product);
             await OverlayBranchStockAsync(new[] { dto });
+            await PopulateBranchIdsAsync(new[] { dto });
             return dto;
         }
 
         public override async Task<PagedResultDto<ProductDto>> GetAllAsync(PagedProductResultRequestDto input)
         {
-            var result = await base.GetAllAsync(input);
-            await OverlayBranchStockAsync(result.Items);
-            return result;
+            _effectiveBranchIdForQuery = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            try
+            {
+                var result = await base.GetAllAsync(input);
+                await OverlayBranchStockAsync(result.Items);
+                await PopulateBranchIdsAsync(result.Items);
+                return result;
+            }
+            finally
+            {
+                _effectiveBranchIdForQuery = null;
+            }
         }
 
         protected override IQueryable<Product> CreateFilteredQuery(PagedProductResultRequestDto input)
         {
-            return Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
+            var query = Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Description != null && x.Description.Contains(input.Keyword))
@@ -177,6 +243,15 @@ namespace SmartPos.Products
                 .WhereIf(input.CategoryId.HasValue, x => x.CategoryId == input.CategoryId.Value)
                 .WhereIf(input.BrandId.HasValue, x => x.BrandId == input.BrandId.Value)
                 .WhereIf(input.UnitId.HasValue, x => x.UnitId == input.UnitId.Value);
+
+            if (!_effectiveBranchIdForQuery.HasValue)
+            {
+                return query.Where(x => false);
+            }
+
+            return query.WhereVisibleToBranch(
+                _branchStockRepository.GetAll(),
+                _effectiveBranchIdForQuery.Value);
         }
 
         protected override async Task<Product> GetEntityByIdAsync(int id)
@@ -184,6 +259,168 @@ namespace SmartPos.Products
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
                 Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
                     .Where(x => x.Id == id));
+        }
+
+        private async Task EnsureProductVisibleAsync(Product product)
+        {
+            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            if (!branchId.HasValue)
+            {
+                throw new UserFriendlyException("No branch is assigned. Please contact your administrator.");
+            }
+
+            if (product.IsShared)
+            {
+                return;
+            }
+
+            if (!await _branchStockManager.HasAssignmentAsync(branchId.Value, product.Id))
+            {
+                throw new UserFriendlyException("Product is not available for this branch.");
+            }
+        }
+
+        private async Task<bool> CanManageBranchesAsync()
+        {
+            return await _permissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches);
+        }
+
+        private async Task<List<int>> ResolveTargetBranchIdsForCreateAsync(
+            bool canManageBranches,
+            bool isShared,
+            List<int> branchIds)
+        {
+            if (!canManageBranches)
+            {
+                var ownBranchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+                return new List<int> { ownBranchId };
+            }
+
+            if (isShared)
+            {
+                return await GetActiveBranchIdsAsync();
+            }
+
+            var selected = (branchIds ?? new List<int>()).Where(x => x > 0).Distinct().ToList();
+            if (!selected.Any())
+            {
+                throw new UserFriendlyException("Select at least one branch, or mark the product as Shared.");
+            }
+
+            await EnsureBranchesExistAndAccessibleAsync(selected);
+            return selected;
+        }
+
+        private async Task SyncAssignmentsOnUpdateAsync(
+            Product product,
+            bool isShared,
+            List<int> branchIds)
+        {
+            if (isShared)
+            {
+                product.IsShared = true;
+                var allBranchIds = await GetActiveBranchIdsAsync();
+                var existing = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
+                foreach (var branchId in allBranchIds.Except(existing))
+                {
+                    await _branchStockManager.UpsertStockAndPricesAsync(
+                        branchId,
+                        product.Id,
+                        0,
+                        product.Price,
+                        product.WholesalePrice,
+                        product.CostPrice);
+                }
+
+                return;
+            }
+
+            product.IsShared = false;
+            var selected = (branchIds ?? new List<int>()).Where(x => x > 0).Distinct().ToList();
+            if (!selected.Any())
+            {
+                throw new UserFriendlyException("Select at least one branch, or mark the product as Shared.");
+            }
+
+            await EnsureBranchesExistAndAccessibleAsync(selected);
+
+            var current = await _branchStockManager.GetAssignedBranchIdsAsync(product.Id);
+            var toAdd = selected.Except(current).ToList();
+            var toRemove = current.Except(selected).ToList();
+
+            foreach (var branchId in toAdd)
+            {
+                await _branchStockManager.UpsertStockAndPricesAsync(
+                    branchId,
+                    product.Id,
+                    0,
+                    product.Price,
+                    product.WholesalePrice,
+                    product.CostPrice);
+            }
+
+            foreach (var branchId in toRemove)
+            {
+                await _branchStockManager.RemoveAssignmentAsync(branchId, product.Id);
+            }
+        }
+
+        private async Task<List<int>> GetActiveBranchIdsAsync()
+        {
+            return await _branchRepository.GetAll()
+                .Where(x => x.IsActive)
+                .Select(x => x.Id)
+                .ToListAsync();
+        }
+
+        private async Task EnsureBranchesExistAndAccessibleAsync(IReadOnlyList<int> branchIds)
+        {
+            var activeIds = await GetActiveBranchIdsAsync();
+            foreach (var branchId in branchIds)
+            {
+                if (!activeIds.Contains(branchId))
+                {
+                    throw new UserFriendlyException($"Branch id {branchId} was not found or is inactive.");
+                }
+
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(branchId);
+            }
+        }
+
+        private async Task PopulateBranchIdsAsync(IReadOnlyList<ProductDto> items)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var item in items.Where(x => x.IsShared))
+            {
+                item.BranchIds = new List<int>();
+            }
+
+            var nonShared = items.Where(x => !x.IsShared).ToList();
+            if (!nonShared.Any())
+            {
+                return;
+            }
+
+            var productIds = nonShared.Select(x => x.Id).ToList();
+            var assignments = await _branchStockRepository.GetAll()
+                .Where(x => productIds.Contains(x.ProductId))
+                .Select(x => new { x.ProductId, x.BranchId })
+                .ToListAsync();
+
+            var map = assignments
+                .GroupBy(x => x.ProductId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.BranchId).Distinct().ToList());
+
+            foreach (var item in nonShared)
+            {
+                item.BranchIds = map.TryGetValue(item.Id, out var branchIds)
+                    ? branchIds
+                    : new List<int>();
+            }
         }
 
         private async Task OverlayBranchStockAsync(IReadOnlyList<ProductDto> items)

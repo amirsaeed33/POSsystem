@@ -110,6 +110,8 @@ export class ProductService {
                     unitId: input.unitId,
                     imagePath: input.imagePath,
                     imageBase64: input.imageBase64,
+                    isShared: input.isShared,
+                    branchIds: input.branchIds,
                 })
             );
             return this.mapProduct(this.unwrap(res, 'Failed to update product'));
@@ -197,6 +199,8 @@ export class ProductService {
             unitName: item.unitName ?? item.UnitName,
             imagePath: item.imagePath ?? item.ImagePath,
             imageBase64: item.imageBase64 ?? item.ImageBase64,
+            isShared: !!(item.isShared ?? item.IsShared),
+            branchIds: item.branchIds ?? item.BranchIds ?? [],
         };
     }
 }

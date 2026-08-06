@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Abp.Application.Services.Dto;
 using SmartPos.Products;
@@ -61,5 +62,12 @@ namespace SmartPos.Products.Dto
         public string ImagePath { get; set; }
 
         public string ImageBase64 { get; set; }
+
+        public bool IsShared { get; set; }
+
+        /// <summary>
+        /// Assigned branch ids (from BranchStock rows). Empty when IsShared.
+        /// </summary>
+        public List<int> BranchIds { get; set; }
     }
 }

@@ -29,6 +29,7 @@ namespace SmartPos.Reports
         private readonly IRepository<Expense> _expenseRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<User, long> _userRepository;
+        private readonly IRepository<BranchStock> _branchStockRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
         private readonly IBranchStockManager _branchStockManager;
@@ -39,6 +40,7 @@ namespace SmartPos.Reports
             IRepository<Expense> expenseRepository,
             IRepository<Product> productRepository,
             IRepository<User, long> userRepository,
+            IRepository<BranchStock> branchStockRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
             IBranchStockManager branchStockManager)
@@ -48,6 +50,7 @@ namespace SmartPos.Reports
             _expenseRepository = expenseRepository;
             _productRepository = productRepository;
             _userRepository = userRepository;
+            _branchStockRepository = branchStockRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _branchStockManager = branchStockManager;
@@ -165,17 +168,27 @@ namespace SmartPos.Reports
         {
             input ??= new ReportDateRangeInput();
 
-            var products = await _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
+            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+
+            var productQuery = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
                 .AsNoTracking()
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Barcode != null && x.Barcode.Contains(input.Keyword))
                          || (x.Category != null && x.Category.Name.Contains(input.Keyword))
-                         || (x.Brand != null && x.Brand.Name.Contains(input.Keyword)))
+                         || (x.Brand != null && x.Brand.Name.Contains(input.Keyword)));
+
+            if (branchId.HasValue)
+            {
+                productQuery = productQuery.WhereVisibleToBranch(
+                    _branchStockRepository.GetAll(),
+                    branchId.Value);
+            }
+
+            var products = await productQuery
                 .OrderBy(x => x.Name)
                 .ToListAsync();
 
-            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
             var branchInfo = branchId.HasValue
                 ? await _branchStockManager.GetBranchProductInfoAsync(branchId.Value, products.Select(p => p.Id))
                 : products.ToDictionary(

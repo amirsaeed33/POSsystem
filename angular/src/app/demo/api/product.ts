@@ -40,6 +40,8 @@ export interface ProductDto {
     unitName?: string;
     imagePath?: string;
     imageBase64?: string;
+    isShared?: boolean;
+    branchIds?: number[];
 }
 
 export interface CreateProductDto {
@@ -51,10 +53,13 @@ export interface CreateProductDto {
     wholesalePrice: number;
     costPrice: number;
     alertQuantityLimit: number;
+    stockQuantity?: number;
     categoryId: number;
     brandId: number;
     unitId: number;
     imageBase64?: string;
+    isShared?: boolean;
+    branchIds?: number[];
 }
 
 export interface PagedProductResultRequestDto {

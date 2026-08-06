@@ -31,6 +31,7 @@ namespace SmartPos.Dashboard
         private readonly IRepository<CustomerOrder> _customerOrderRepository;
         private readonly IRepository<StockAdjustment> _stockAdjustmentRepository;
         private readonly IRepository<Branch> _branchRepository;
+        private readonly IRepository<BranchStock> _branchStockRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchStockManager _branchStockManager;
 
@@ -42,6 +43,7 @@ namespace SmartPos.Dashboard
             IRepository<CustomerOrder> customerOrderRepository,
             IRepository<StockAdjustment> stockAdjustmentRepository,
             IRepository<Branch> branchRepository,
+            IRepository<BranchStock> branchStockRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchStockManager branchStockManager)
         {
@@ -52,6 +54,7 @@ namespace SmartPos.Dashboard
             _customerOrderRepository = customerOrderRepository;
             _stockAdjustmentRepository = stockAdjustmentRepository;
             _branchRepository = branchRepository;
+            _branchStockRepository = branchStockRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchStockManager = branchStockManager;
         }
@@ -60,9 +63,16 @@ namespace SmartPos.Dashboard
         {
             var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
 
-            var products = await _productRepository.GetAllIncluding(x => x.Category, x => x.Brand)
-                .AsNoTracking()
-                .ToListAsync();
+            var productQuery = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand)
+                .AsNoTracking();
+            if (branchId.HasValue)
+            {
+                productQuery = productQuery.WhereVisibleToBranch(
+                    _branchStockRepository.GetAll(),
+                    branchId.Value);
+            }
+
+            var products = await productQuery.ToListAsync();
 
             var branchInfoByProductId = await ResolveBranchProductInfoAsync(branchId, products.Select(p => p.Id));
             var stockByProductId = branchInfoByProductId.ToDictionary(x => x.Key, x => x.Value.Quantity);

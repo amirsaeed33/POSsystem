@@ -11,11 +11,15 @@ import { CreateProductDto, ProductDto } from 'src/app/demo/api/product';
 import { CategoryDto } from 'src/app/demo/api/category';
 import { BrandDto } from 'src/app/demo/api/brand';
 import { UnitDto } from 'src/app/demo/api/unit';
+import { BranchDto } from 'src/app/demo/api/branch';
 import { ProductService } from 'src/app/demo/service/product.service';
 import { CategoryService } from 'src/app/demo/service/category.service';
 import { BrandService } from 'src/app/demo/service/brand.service';
 import { UnitService } from 'src/app/demo/service/unit.service';
+import { BranchService } from 'src/app/demo/service/branch.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { PermissionService } from 'src/app/demo/service/permission.service';
+import { PermissionNames } from 'src/app/demo/api/permission-names';
 
 @Component({
     selector: 'app-product-form-dialog',
@@ -31,17 +35,23 @@ export class ProductFormDialogComponent implements OnChanges {
     categories: CategoryDto[] = [];
     brands: BrandDto[] = [];
     units: UnitDto[] = [];
+    branches: BranchDto[] = [];
+    selectedBranchIds: number[] = [];
+    isShared = false;
     imagePreview = '';
     saving = false;
     loading = false;
     currentBranchName = '';
+    canManageBranches = false;
 
     constructor(
         private productService: ProductService,
         private categoryService: CategoryService,
         private brandService: BrandService,
         private unitService: UnitService,
+        private branchService: BranchService,
         private branchContext: BranchContextService,
+        private permissionService: PermissionService,
         private messageService: MessageService
     ) {}
 
@@ -66,6 +76,9 @@ export class ProductFormDialogComponent implements OnChanges {
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
+            this.canManageBranches = this.permissionService.isGranted(
+                PermissionNames.Branches
+            );
             this.currentBranchName =
                 this.branchContext.getCurrentBranch()?.name || '';
             this.resetForm();
@@ -84,6 +97,12 @@ export class ProductFormDialogComponent implements OnChanges {
 
     onHide(): void {
         this.onVisibleChange(false);
+    }
+
+    onSharedChange(): void {
+        if (this.isShared) {
+            this.selectedBranchIds = [];
+        }
     }
 
     onFileSelected(event: Event): void {
@@ -145,6 +164,13 @@ export class ProductFormDialogComponent implements OnChanges {
                 ? this.product.imageBase64
                 : undefined;
 
+        const assignment = this.canManageBranches
+            ? {
+                  isShared: this.isShared,
+                  branchIds: this.isShared ? [] : [...this.selectedBranchIds],
+              }
+            : {};
+
         const request = this.productId
             ? this.productService.update({
                   ...this.product,
@@ -158,6 +184,7 @@ export class ProductFormDialogComponent implements OnChanges {
                   costPrice,
                   alertQuantityLimit: Number(this.product.alertQuantityLimit),
                   imageBase64,
+                  ...assignment,
               })
             : this.productService.create({
                   name,
@@ -168,10 +195,12 @@ export class ProductFormDialogComponent implements OnChanges {
                   wholesalePrice,
                   costPrice,
                   alertQuantityLimit: Number(this.product.alertQuantityLimit),
+                  stockQuantity: Number(this.product.stockQuantity) || 0,
                   categoryId: this.product.categoryId,
                   brandId: this.product.brandId,
                   unitId: this.product.unitId,
                   imageBase64,
+                  ...assignment,
               } as CreateProductDto);
 
         request
@@ -226,6 +255,13 @@ export class ProductFormDialogComponent implements OnChanges {
         if (!this.product.unitId) {
             return 'Unit is required.';
         }
+        if (
+            this.canManageBranches &&
+            !this.isShared &&
+            (!this.selectedBranchIds || this.selectedBranchIds.length === 0)
+        ) {
+            return 'Select at least one branch, or mark the product as Shared.';
+        }
         return null;
     }
 
@@ -248,11 +284,15 @@ export class ProductFormDialogComponent implements OnChanges {
             unitId: null as any,
             imagePath: undefined,
             imageBase64: undefined,
+            isShared: false,
+            branchIds: [],
         };
     }
 
     private resetForm(): void {
         this.product = this.emptyProduct();
+        this.isShared = false;
+        this.selectedBranchIds = [];
         this.imagePreview = '';
         this.saving = false;
         this.loading = false;
@@ -261,14 +301,20 @@ export class ProductFormDialogComponent implements OnChanges {
     private async loadLookups(): Promise<void> {
         this.loading = true;
         try {
-            const [categories, brands, units] = await Promise.all([
+            const requests: Promise<any>[] = [
                 this.categoryService.getAll({ skipCount: 0, maxResultCount: 1000 }),
                 this.brandService.getAll({ skipCount: 0, maxResultCount: 1000 }),
                 this.unitService.getAll({ skipCount: 0, maxResultCount: 1000 }),
-            ]);
-            this.categories = categories.items;
-            this.brands = brands.items;
-            this.units = units.items;
+            ];
+            if (this.canManageBranches) {
+                requests.push(this.branchService.getLookup());
+            }
+
+            const results = await Promise.all(requests);
+            this.categories = results[0].items;
+            this.brands = results[1].items;
+            this.units = results[2].items;
+            this.branches = this.canManageBranches ? results[3] || [] : [];
         } catch (error: any) {
             this.messageService.add({
                 severity: 'error',
@@ -288,6 +334,8 @@ export class ProductFormDialogComponent implements OnChanges {
             .get(id)
             .then((product) => {
                 this.product = { ...product, imageBase64: undefined };
+                this.isShared = !!product.isShared;
+                this.selectedBranchIds = product.branchIds ? [...product.branchIds] : [];
                 this.imagePreview = this.productService.getImageUrl(product.imagePath);
             })
             .catch((error) => {

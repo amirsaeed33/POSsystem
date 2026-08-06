@@ -101,6 +101,36 @@ namespace SmartPos.Inventory
             return map;
         }
 
+        public async Task<List<int>> GetAssignedBranchIdsAsync(int productId)
+        {
+            return await _branchStockRepository.GetAll()
+                .Where(x => x.ProductId == productId)
+                .Select(x => x.BranchId)
+                .Distinct()
+                .ToListAsync();
+        }
+
+        public async Task<bool> HasAssignmentAsync(int branchId, int productId)
+        {
+            return await _branchStockRepository.GetAll()
+                .AnyAsync(x => x.BranchId == branchId && x.ProductId == productId);
+        }
+
+        public async Task EnsureCanUseProductAtBranchAsync(int branchId, int productId)
+        {
+            var product = await _productRepository.GetAsync(productId);
+            if (product.IsShared)
+            {
+                return;
+            }
+
+            if (!await HasAssignmentAsync(branchId, productId))
+            {
+                throw new UserFriendlyException(
+                    $"Product '{product.Name}' is not assigned to this branch.");
+            }
+        }
+
         public async Task IncreaseAsync(int branchId, int productId, decimal quantity)
         {
             if (quantity <= 0)
@@ -108,7 +138,7 @@ namespace SmartPos.Inventory
                 return;
             }
 
-            var stock = await GetOrCreateAsync(branchId, productId);
+            var stock = await GetOrCreateAsync(branchId, productId, allowCreateAssignment: false);
             stock.Quantity += quantity;
 
             var product = await _productRepository.GetAsync(productId);
@@ -122,7 +152,7 @@ namespace SmartPos.Inventory
                 return;
             }
 
-            var stock = await GetOrCreateAsync(branchId, productId);
+            var stock = await GetOrCreateAsync(branchId, productId, allowCreateAssignment: false);
             if (stock.Quantity < quantity)
             {
                 var name = productName ?? (await _productRepository.GetAsync(productId)).Name;
@@ -142,7 +172,7 @@ namespace SmartPos.Inventory
 
         public async Task SetAsync(int branchId, int productId, decimal quantity)
         {
-            var stock = await GetOrCreateAsync(branchId, productId);
+            var stock = await GetOrCreateAsync(branchId, productId, allowCreateAssignment: false);
             var delta = quantity - stock.Quantity;
             stock.Quantity = quantity;
 
@@ -161,7 +191,7 @@ namespace SmartPos.Inventory
             decimal wholesalePrice,
             decimal costPrice)
         {
-            var stock = await GetOrCreateAsync(branchId, productId);
+            var stock = await GetOrCreateAsync(branchId, productId, allowCreateAssignment: true);
             stock.Price = price;
             stock.WholesalePrice = wholesalePrice;
             stock.CostPrice = costPrice;
@@ -175,7 +205,7 @@ namespace SmartPos.Inventory
             decimal wholesalePrice,
             decimal costPrice)
         {
-            var stock = await GetOrCreateAsync(branchId, productId);
+            var stock = await GetOrCreateAsync(branchId, productId, allowCreateAssignment: true);
             var delta = quantity - stock.Quantity;
             stock.Quantity = quantity;
             stock.Price = price;
@@ -190,13 +220,33 @@ namespace SmartPos.Inventory
             }
         }
 
+        public async Task RemoveAssignmentAsync(int branchId, int productId)
+        {
+            var stock = await GetOrNullAsync(branchId, productId);
+            if (stock == null)
+            {
+                return;
+            }
+
+            if (stock.Quantity > 0)
+            {
+                throw new UserFriendlyException(
+                    "Cannot remove branch assignment while stock quantity is greater than zero.");
+            }
+
+            await _branchStockRepository.DeleteAsync(stock);
+        }
+
         private async Task<BranchStock> GetOrNullAsync(int branchId, int productId)
         {
             return await _branchStockRepository.FirstOrDefaultAsync(
                 x => x.BranchId == branchId && x.ProductId == productId);
         }
 
-        private async Task<BranchStock> GetOrCreateAsync(int branchId, int productId)
+        private async Task<BranchStock> GetOrCreateAsync(
+            int branchId,
+            int productId,
+            bool allowCreateAssignment)
         {
             var stock = await GetOrNullAsync(branchId, productId);
             if (stock != null)
@@ -205,6 +255,12 @@ namespace SmartPos.Inventory
             }
 
             var product = await _productRepository.GetAsync(productId);
+            if (!product.IsShared && !allowCreateAssignment)
+            {
+                throw new UserFriendlyException(
+                    $"Product '{product.Name}' is not assigned to this branch.");
+            }
+
             stock = new BranchStock
             {
                 TenantId = _abpSession.TenantId,

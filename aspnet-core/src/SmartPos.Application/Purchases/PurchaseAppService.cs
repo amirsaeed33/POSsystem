@@ -100,6 +100,7 @@ namespace SmartPos.Purchases
                 }
 
                 var product = await _productRepository.GetAsync(lineInput.ProductId);
+                await _branchStockManager.EnsureCanUseProductAtBranchAsync(branchId, lineInput.ProductId);
                 var lineTotal = lineInput.Quantity * lineInput.UnitCost;
                 total += lineTotal;
 

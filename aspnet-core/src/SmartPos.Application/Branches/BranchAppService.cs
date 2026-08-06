@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches.Dto;
+using SmartPos.Inventory;
+using SmartPos.Products;
 
 namespace SmartPos.Branches
 {
@@ -19,9 +21,17 @@ namespace SmartPos.Branches
     {
         public UserManager UserManager { get; set; }
 
-        public BranchAppService(IRepository<Branch> repository)
+        private readonly IRepository<Product> _productRepository;
+        private readonly IBranchStockManager _branchStockManager;
+
+        public BranchAppService(
+            IRepository<Branch> repository,
+            IRepository<Product> productRepository,
+            IBranchStockManager branchStockManager)
             : base(repository)
         {
+            _productRepository = productRepository;
+            _branchStockManager = branchStockManager;
             CreatePermissionName = PermissionNames.Pages_Branches;
             UpdatePermissionName = PermissionNames.Pages_Branches;
             DeletePermissionName = PermissionNames.Pages_Branches;
@@ -40,6 +50,8 @@ namespace SmartPos.Branches
 
             await Repository.InsertAsync(branch);
             await CurrentUnitOfWork.SaveChangesAsync();
+
+            await SeedSharedProductsAsync(branch.Id);
 
             return await GetAsync(new EntityDto<int>(branch.Id));
         }
@@ -144,6 +156,31 @@ namespace SmartPos.Branches
                          || (x.InvoiceContactEmail != null && x.InvoiceContactEmail.Contains(input.Keyword))
                          || (x.InvoiceContactPhone != null && x.InvoiceContactPhone.Contains(input.Keyword))
                          || (x.TaxNumber != null && x.TaxNumber.Contains(input.Keyword)));
+        }
+
+        private async Task SeedSharedProductsAsync(int branchId)
+        {
+            var sharedProducts = await _productRepository.GetAll()
+                .Where(x => x.IsShared)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Price,
+                    x.WholesalePrice,
+                    x.CostPrice
+                })
+                .ToListAsync();
+
+            foreach (var product in sharedProducts)
+            {
+                await _branchStockManager.UpsertStockAndPricesAsync(
+                    branchId,
+                    product.Id,
+                    0,
+                    product.Price,
+                    product.WholesalePrice,
+                    product.CostPrice);
+            }
         }
     }
 }

@@ -12,6 +12,8 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { CheckboxModule } from 'primeng/checkbox';
 import { ProductsRoutingModule } from './products-routing.module';
 import { ProductListComponent } from './product-list.component';
 import { ProductFormDialogComponent } from './product-form-dialog.component';
@@ -32,6 +34,8 @@ import { ProductFormDialogComponent } from './product-form-dialog.component';
         TooltipModule,
         ConfirmDialogModule,
         DropdownModule,
+        MultiSelectModule,
+        CheckboxModule,
     ],
     declarations: [ProductListComponent, ProductFormDialogComponent],
 })

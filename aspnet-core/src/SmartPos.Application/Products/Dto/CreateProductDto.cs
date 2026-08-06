@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Abp.AutoMapper;
 using SmartPos.Products;
@@ -46,5 +47,15 @@ namespace SmartPos.Products.Dto
         public int UnitId { get; set; }
 
         public string ImageBase64 { get; set; }
+
+        /// <summary>
+        /// Tenant-admin only. When true, product is available to all branches.
+        /// </summary>
+        public bool IsShared { get; set; }
+
+        /// <summary>
+        /// Tenant-admin only. Branch ids to assign when IsShared is false.
+        /// </summary>
+        public List<int> BranchIds { get; set; }
     }
 }

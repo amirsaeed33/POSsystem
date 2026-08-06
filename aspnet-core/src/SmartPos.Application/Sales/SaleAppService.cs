@@ -35,6 +35,7 @@ namespace SmartPos.Sales
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
         private readonly IBranchStockManager _branchStockManager;
+        private readonly IRepository<BranchStock> _branchStockRepository;
         private readonly SystemAccountManager _systemAccountManager;
 
         public SaleAppService(
@@ -48,6 +49,7 @@ namespace SmartPos.Sales
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
             IBranchStockManager branchStockManager,
+            IRepository<BranchStock> branchStockRepository,
             SystemAccountManager systemAccountManager)
             : base(repository)
         {
@@ -60,6 +62,7 @@ namespace SmartPos.Sales
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _branchStockManager = branchStockManager;
+            _branchStockRepository = branchStockRepository;
             _systemAccountManager = systemAccountManager;
         }
 
@@ -76,7 +79,7 @@ namespace SmartPos.Sales
                 throw new UserFriendlyException("Enter a barcode or product name.");
             }
 
-            var query = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit);
+            var query = await GetVisibleProductsQueryAsync();
 
             var byBarcode = await query.FirstOrDefaultAsync(x => x.Barcode == normalized);
             if (byBarcode != null)
@@ -115,7 +118,7 @@ namespace SmartPos.Sales
         public async Task<ListResultDto<ProductDto>> GetPosProductSuggestionsAsync(string keyword)
         {
             var normalized = keyword.IsNullOrWhiteSpace() ? null : keyword.Trim();
-            var query = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit);
+            var query = await GetVisibleProductsQueryAsync();
 
             if (!normalized.IsNullOrWhiteSpace())
             {
@@ -146,7 +149,7 @@ namespace SmartPos.Sales
 
         public async Task<ListResultDto<ProductDto>> GetPosProductsAsync()
         {
-            var products = await _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
+            var products = await (await GetVisibleProductsQueryAsync())
                 .OrderBy(x => x.Name)
                 .Take(1000)
                 .ToListAsync();
@@ -198,6 +201,7 @@ namespace SmartPos.Sales
                 }
 
                 var product = await _productRepository.GetAsync(lineInput.ProductId);
+                await _branchStockManager.EnsureCanUseProductAtBranchAsync(branchId, lineInput.ProductId);
                 await _branchStockManager.DecreaseAsync(branchId, lineInput.ProductId, lineInput.Quantity, product.Name);
 
                 var lineTotal = lineInput.Quantity * lineInput.UnitPrice;
@@ -305,6 +309,13 @@ namespace SmartPos.Sales
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))
                          || (x.Notes != null && x.Notes.Contains(input.Keyword))
                          || (x.Customer != null && x.Customer.Name.Contains(input.Keyword)));
+        }
+
+        private async Task<IQueryable<Product>> GetVisibleProductsQueryAsync()
+        {
+            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+            return _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
+                .WhereVisibleToBranch(_branchStockRepository.GetAll(), branchId);
         }
 
         private async Task<ProductDto> MapProductWithBranchStockAsync(Product product)

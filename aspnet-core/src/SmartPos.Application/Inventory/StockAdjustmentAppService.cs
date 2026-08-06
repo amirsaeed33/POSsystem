@@ -78,6 +78,7 @@ namespace SmartPos.Inventory
                 }
 
                 var product = await _productRepository.GetAsync(lineInput.ProductId);
+                await _branchStockManager.EnsureCanUseProductAtBranchAsync(branchId, lineInput.ProductId);
                 var currentQty = await _branchStockManager.GetQuantityAsync(branchId, lineInput.ProductId);
                 var newQty = currentQty + lineInput.QuantityChange;
                 if (newQty < 0)

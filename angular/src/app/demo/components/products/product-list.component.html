@@ -86,7 +86,10 @@
                         </div>
                     </ng-template>
                 </td>
-                <td>{{ product.name }}</td>
+                <td>
+                    {{ product.name }}
+                    <span *ngIf="product.isShared" class="ml-2 text-xs text-primary font-medium">Shared</span>
+                </td>
                 <td>{{ product.barcode || '—' }}</td>
                 <td>{{ product.categoryName || '—' }}</td>
                 <td>{{ product.brandName || '—' }}</td>
