@@ -63,6 +63,22 @@
             </div>
         </div>
 
+        <div class="flex flex-column gap-2" *ngIf="canEditStatus">
+            <label for="branchStatus" class="font-medium">
+                Status <span class="p-error">*</span>
+            </label>
+            <p-dropdown
+                inputId="branchStatus"
+                [options]="statusOptions"
+                [(ngModel)]="branch.statusId"
+                optionLabel="displayName"
+                optionValue="id"
+                placeholder="Select status"
+                styleClass="w-full"
+                [disabled]="saving"
+            ></p-dropdown>
+        </div>
+
         <div class="flex flex-column gap-2">
             <label for="invoiceAddress" class="font-medium">Invoice Address</label>
             <textarea

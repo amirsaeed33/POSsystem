@@ -10,7 +10,8 @@ import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { MenuModule } from 'primeng/menu';
+import { StyleClassModule } from 'primeng/styleclass';
+import { DropdownModule } from 'primeng/dropdown';
 import { BranchListComponent } from './branch-list.component';
 import { BranchFormDialogComponent } from './branch-form-dialog.component';
 
@@ -27,7 +28,8 @@ import { BranchFormDialogComponent } from './branch-form-dialog.component';
         ToastModule,
         TooltipModule,
         ConfirmDialogModule,
-        MenuModule,
+        StyleClassModule,
+        DropdownModule,
     ],
     declarations: [BranchListComponent, BranchFormDialogComponent],
     exports: [BranchListComponent, BranchFormDialogComponent],

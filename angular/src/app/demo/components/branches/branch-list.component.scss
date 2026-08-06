@@ -1,7 +1,7 @@
 .branch-card {
     --branch-radius: 1rem;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     border-radius: var(--branch-radius);
     background: var(--surface-card);
     border: 1px solid var(--surface-border);
@@ -55,26 +55,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
-}
-
-.branch-card__menu-btn {
-    z-index: 3;
-
-    &--overlay {
-        position: absolute;
-        top: 0.55rem;
-        right: 0.55rem;
-        width: 2.25rem;
-        height: 2.25rem;
-        color: #0f172a !important;
-        background: rgba(255, 255, 255, 0.92) !important;
-        border: 1px solid rgba(15, 23, 42, 0.08) !important;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
-
-        &:hover {
-            background: #fff !important;
-        }
-    }
 }
 
 .branch-card__media {

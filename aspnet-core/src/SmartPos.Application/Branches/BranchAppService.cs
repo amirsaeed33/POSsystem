@@ -88,7 +88,16 @@ namespace SmartPos.Branches
             branch.TaxNumber = input.TaxNumber;
             branch.Website = input.Website;
             branch.InvoiceFooter = input.InvoiceFooter;
-            // StatusId is host-only via ChangeStatusAsync.
+
+            // Only host admin with approve permission may change StatusId.
+            if (AbpSession.TenantId == null
+                && input.StatusId > 0
+                && input.StatusId != branch.StatusId
+                && await PermissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches_Approve))
+            {
+                await _branchStatusLookup.EnsureValidStatusIdAsync(input.StatusId);
+                branch.StatusId = input.StatusId;
+            }
 
             if (BranchImageStore.IsNewImagePayload(input.ImageBase64))
             {
@@ -106,7 +115,7 @@ namespace SmartPos.Branches
         {
             CheckDeletePermission();
 
-            var branch = await Repository.GetAsync(input.Id);
+            var branch = await GetEntityByIdAsync(input.Id);
             BranchImageStore.DeleteIfExists(branch.ImagePath);
             await Repository.DeleteAsync(branch);
         }
@@ -114,9 +123,35 @@ namespace SmartPos.Branches
         [AbpAuthorize(PermissionNames.Pages_Branches)]
         public override async Task<BranchDto> GetAsync(EntityDto<int> input)
         {
-            var dto = await base.GetAsync(input);
+            BranchDto dto;
+            if (AbpSession.TenantId == null)
+            {
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                {
+                    var entity = await Repository.GetAsync(input.Id);
+                    dto = MapToEntityDto(entity);
+                }
+            }
+            else
+            {
+                dto = await base.GetAsync(input);
+            }
+
             await FillStatusNamesAsync(new[] { dto });
             return dto;
+        }
+
+        protected override async Task<Branch> GetEntityByIdAsync(int id)
+        {
+            if (AbpSession.TenantId == null)
+            {
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                {
+                    return await Repository.GetAsync(id);
+                }
+            }
+
+            return await base.GetEntityByIdAsync(id);
         }
 
         /// <summary>

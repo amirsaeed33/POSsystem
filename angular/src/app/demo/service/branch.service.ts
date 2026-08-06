@@ -78,6 +78,7 @@ export class BranchService {
         input: CreateBranchDto & {
             id: number;
             imagePath?: string;
+            statusId?: number;
         }
     ): Promise<BranchDto> {
         const res: any = await firstValueFrom(
@@ -85,6 +86,7 @@ export class BranchService {
                 id: input.id,
                 name: input.name,
                 code: input.code,
+                statusId: input.statusId,
                 isActive: input.isActive,
                 isDefault: input.isDefault,
                 imagePath: input.imagePath,

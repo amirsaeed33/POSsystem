@@ -12,7 +12,11 @@ import {
     BranchStatuses,
     CreateBranchDto,
 } from 'src/app/demo/api/branch';
+import { LookUpDto, LookUpTypes } from 'src/app/demo/api/lookup';
+import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { BranchService } from 'src/app/demo/service/branch.service';
+import { LookUpService } from 'src/app/demo/service/lookup.service';
+import { PermissionService } from 'src/app/demo/service/permission.service';
 
 @Component({
     selector: 'app-branch-form-dialog',
@@ -25,12 +29,15 @@ export class BranchFormDialogComponent implements OnChanges {
     @Output() saved = new EventEmitter<void>();
 
     branch: BranchDto = this.emptyBranch();
+    statusOptions: LookUpDto[] = [];
     imagePreview = '';
     saving = false;
     loading = false;
 
     constructor(
         private branchService: BranchService,
+        private lookupService: LookUpService,
+        private permissionService: PermissionService,
         private messageService: MessageService
     ) {}
 
@@ -38,9 +45,20 @@ export class BranchFormDialogComponent implements OnChanges {
         return this.branchId ? 'Edit Branch' : 'Create Branch';
     }
 
+    /** Host admin with approve permission — Status dropdown on edit. */
+    get canEditStatus(): boolean {
+        return (
+            !!this.branchId &&
+            this.permissionService.isGranted(PermissionNames.BranchesApprove)
+        );
+    }
+
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.resetForm();
+            if (this.canEditStatus) {
+                this.loadStatusOptions();
+            }
             if (this.branchId) {
                 this.loadBranch(this.branchId);
             }
@@ -87,6 +105,15 @@ export class BranchFormDialogComponent implements OnChanges {
             return;
         }
 
+        if (this.canEditStatus && !this.branch.statusId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Status is required',
+            });
+            return;
+        }
+
         this.saving = true;
         const imageBase64 = this.branch.imageBase64?.startsWith('data:image')
             ? this.branch.imageBase64
@@ -112,6 +139,9 @@ export class BranchFormDialogComponent implements OnChanges {
             ? this.branchService.update({
                   id: this.branchId,
                   ...createPayload,
+                  statusId: this.canEditStatus
+                      ? this.branch.statusId
+                      : undefined,
                   isActive: createPayload.isActive ?? true,
                   isDefault: createPayload.isDefault ?? false,
                   imagePath: this.branch.imagePath,
@@ -168,6 +198,17 @@ export class BranchFormDialogComponent implements OnChanges {
         this.imagePreview = '';
         this.saving = false;
         this.loading = false;
+    }
+
+    private loadStatusOptions(): void {
+        this.lookupService
+            .getByType(LookUpTypes.BranchStatus)
+            .then((items) => {
+                this.statusOptions = items || [];
+            })
+            .catch(() => {
+                this.statusOptions = [];
+            });
     }
 
     private loadBranch(id: number): void {
