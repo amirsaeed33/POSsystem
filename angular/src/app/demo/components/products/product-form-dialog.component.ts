@@ -17,7 +17,6 @@ import { CategoryService } from 'src/app/demo/service/category.service';
 import { BrandService } from 'src/app/demo/service/brand.service';
 import { UnitService } from 'src/app/demo/service/unit.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
-import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 
@@ -40,7 +39,6 @@ export class ProductFormDialogComponent implements OnChanges {
     imagePreview = '';
     saving = false;
     loading = false;
-    currentBranchName = '';
     canManageBranches = false;
 
     constructor(
@@ -49,7 +47,6 @@ export class ProductFormDialogComponent implements OnChanges {
         private brandService: BrandService,
         private unitService: UnitService,
         private branchService: BranchService,
-        private branchContext: BranchContextService,
         private permissionService: PermissionService,
         private messageService: MessageService
     ) {}
@@ -102,8 +99,6 @@ export class ProductFormDialogComponent implements OnChanges {
             this.canManageBranches = this.permissionService.isGranted(
                 PermissionNames.Branches
             );
-            this.currentBranchName =
-                this.branchContext.getCurrentBranch()?.name || '';
             this.resetForm();
             this.loadLookups().then(() => {
                 if (this.productId) {
