@@ -13,5 +13,7 @@ namespace SmartPos.Reports
         Task<ExpenseReportDto> GetExpenseReportAsync(ReportDateRangeInput input);
 
         Task<StockReportDto> GetStockReportAsync(ReportDateRangeInput input);
+
+        Task<ProductProfitReportDto> GetProductProfitReportAsync(ReportDateRangeInput input);
     }
 }

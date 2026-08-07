@@ -4,6 +4,7 @@ import { SaleReportComponent } from './sale-report.component';
 import { PurchaseReportComponent } from './purchase-report.component';
 import { ExpenseReportComponent } from './expense-report.component';
 import { StockReportComponent } from './stock-report.component';
+import { ProductProfitReportComponent } from './product-profit-report.component';
 
 @NgModule({
     imports: [
@@ -28,6 +29,11 @@ import { StockReportComponent } from './stock-report.component';
                 path: 'stock',
                 component: StockReportComponent,
                 data: { breadcrumb: 'Stock Report' },
+            },
+            {
+                path: 'product-profit',
+                component: ProductProfitReportComponent,
+                data: { breadcrumb: 'Product Profit Report' },
             },
         ]),
     ],

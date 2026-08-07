@@ -260,6 +260,133 @@ namespace SmartPos.Reports
             };
         }
 
+        public async Task<ProductProfitReportDto> GetProductProfitReportAsync(ReportDateRangeInput input)
+        {
+            input ??= new ReportDateRangeInput();
+            var (from, to) = NormalizeRange(input);
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
+            // Get all sales within date range for this branch
+            var salesQuery = _saleRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => x.SaleDate >= from && x.SaleDate < to)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value);
+
+            // Get sale IDs to filter sale lines
+            var saleIds = await salesQuery.Select(x => x.Id).ToListAsync();
+
+            if (saleIds.Count == 0)
+            {
+                return new ProductProfitReportDto
+                {
+                    Items = new List<ProductProfitReportRowDto>(),
+                    TotalProductsSold = 0,
+                    TotalQuantitySold = 0,
+                    TotalCost = 0,
+                    TotalRevenue = 0,
+                    TotalProfit = 0,
+                    AverageProfitMarginPercent = 0
+                };
+            }
+
+            // Get all sale lines for those sales, grouped and aggregated by product
+            var saleLines = await _saleRepository.GetAll()
+                .Where(x => saleIds.Contains(x.Id))
+                .SelectMany(x => x.Lines)
+                .GroupBy(x => x.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    QuantitySold = g.Sum(x => x.Quantity),
+                    TotalRevenue = g.Sum(x => x.LineTotal),
+                    AverageUnitPrice = g.Average(x => x.UnitPrice)
+                })
+                .ToListAsync();
+
+            if (saleLines.Count == 0)
+            {
+                return new ProductProfitReportDto
+                {
+                    Items = new List<ProductProfitReportRowDto>(),
+                    TotalProductsSold = 0,
+                    TotalQuantitySold = 0,
+                    TotalCost = 0,
+                    TotalRevenue = 0,
+                    TotalProfit = 0,
+                    AverageProfitMarginPercent = 0
+                };
+            }
+
+            // Get products for those sale lines
+            var productIds = saleLines.Select(x => x.ProductId).ToList();
+            var products = await _productRepository.GetAllIncluding(x => x.Category, x => x.Unit)
+                .AsNoTracking()
+                .Where(x => productIds.Contains(x.Id))
+                .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
+                    x => x.Name.Contains(input.Keyword) || (x.Barcode != null && x.Barcode.Contains(input.Keyword)))
+                .ToListAsync();
+
+            // Build the report
+            var items = new List<ProductProfitReportRowDto>();
+
+            foreach (var product in products)
+            {
+                var saleData = saleLines.FirstOrDefault(x => x.ProductId == product.Id);
+                if (saleData == null) continue;
+
+                var quantitySold = saleData.QuantitySold;
+                var totalRevenue = saleData.TotalRevenue;
+                var unitPrice = saleData.AverageUnitPrice;
+                var costPrice = product.CostPrice;
+
+                var totalCost = quantitySold * costPrice;
+                var totalProfit = totalRevenue - totalCost;
+                var profitPerUnit = unitPrice - costPrice;
+                var profitMarginPercent = unitPrice > 0 ? (profitPerUnit / unitPrice) * 100 : 0;
+
+                items.Add(new ProductProfitReportRowDto
+                {
+                    Id = product.Id,
+                    Name = product.Name,
+                    Barcode = product.Barcode,
+                    CategoryName = product.Category?.Name,
+                    UnitName = product.Unit?.Name,
+                    QuantitySold = quantitySold,
+                    CostPrice = costPrice,
+                    SellingPrice = unitPrice,
+                    ProfitPerUnit = profitPerUnit,
+                    TotalCost = totalCost,
+                    TotalRevenue = totalRevenue,
+                    TotalProfit = totalProfit,
+                    ProfitMarginPercent = profitMarginPercent
+                });
+            }
+
+            items = items
+                .OrderByDescending(x => x.TotalProfit)
+                .ThenByDescending(x => x.QuantitySold)
+                .ToList();
+
+            var totalQuantitySold = items.Sum(x => x.QuantitySold);
+            var totalCostAll = items.Sum(x => x.TotalCost);
+            var totalRevenueAll = items.Sum(x => x.TotalRevenue);
+            var totalProfitAll = items.Sum(x => x.TotalProfit);
+            var averageMarginPercent = totalRevenueAll > 0 
+                ? ((totalRevenueAll - totalCostAll) / totalRevenueAll) * 100 
+                : 0;
+
+            return new ProductProfitReportDto
+            {
+                Items = items,
+                TotalProductsSold = items.Count,
+                TotalQuantitySold = totalQuantitySold,
+                TotalCost = totalCostAll,
+                TotalRevenue = totalRevenueAll,
+                TotalProfit = totalProfitAll,
+                AverageProfitMarginPercent = averageMarginPercent
+            };
+        }
+
         private static (DateTime from, DateTime toExclusive) NormalizeRange(ReportDateRangeInput input)
         {
             var now = Abp.Timing.Clock.Now;

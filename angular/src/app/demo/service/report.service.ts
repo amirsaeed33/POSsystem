@@ -11,6 +11,8 @@ import {
     SaleReportRowDto,
     StockReportDto,
     StockReportRowDto,
+    ProductProfitReportDto,
+    ProductProfitReportRowDto,
 } from '../api/report';
 import { environment } from '../../../environments/environment';
 
@@ -69,6 +71,19 @@ export class ReportService {
         );
         return this.mapStockReport(
             this.unwrap(res, 'Failed to load stock report')
+        );
+    }
+
+    async getProductProfitReport(
+        input?: ReportDateRangeInput
+    ): Promise<ProductProfitReportDto> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetProductProfitReport`, {
+                params: this.toParams(input),
+            })
+        );
+        return this.mapProductProfitReport(
+            this.unwrap(res, 'Failed to load product profit report')
         );
     }
 
@@ -200,6 +215,40 @@ export class ReportService {
                     alertQuantityLimit:
                         item.alertQuantityLimit ?? item.AlertQuantityLimit ?? 0,
                     status: item.status ?? item.Status,
+                })
+            ),
+        };
+    }
+
+    private mapProductProfitReport(data: any): ProductProfitReportDto {
+        const items = data.items || data.Items || [];
+        return {
+            totalProductsSold:
+                data.totalProductsSold ?? data.TotalProductsSold ?? 0,
+            totalQuantitySold:
+                data.totalQuantitySold ?? data.TotalQuantitySold ?? 0,
+            totalCost: data.totalCost ?? data.TotalCost ?? 0,
+            totalRevenue: data.totalRevenue ?? data.TotalRevenue ?? 0,
+            totalProfit: data.totalProfit ?? data.TotalProfit ?? 0,
+            averageProfitMarginPercent:
+                data.averageProfitMarginPercent ??
+                data.AverageProfitMarginPercent,
+            items: (Array.isArray(items) ? items : []).map(
+                (item: any): ProductProfitReportRowDto => ({
+                    id: item.id ?? item.Id,
+                    name: item.name ?? item.Name,
+                    barcode: item.barcode ?? item.Barcode,
+                    categoryName: item.categoryName ?? item.CategoryName,
+                    unitName: item.unitName ?? item.UnitName,
+                    quantitySold: item.quantitySold ?? item.QuantitySold ?? 0,
+                    costPrice: item.costPrice ?? item.CostPrice ?? 0,
+                    sellingPrice: item.sellingPrice ?? item.SellingPrice ?? 0,
+                    profitPerUnit: item.profitPerUnit ?? item.ProfitPerUnit ?? 0,
+                    totalCost: item.totalCost ?? item.TotalCost ?? 0,
+                    totalRevenue: item.totalRevenue ?? item.TotalRevenue ?? 0,
+                    totalProfit: item.totalProfit ?? item.TotalProfit ?? 0,
+                    profitMarginPercent:
+                        item.profitMarginPercent ?? item.ProfitMarginPercent,
                 })
             ),
         };

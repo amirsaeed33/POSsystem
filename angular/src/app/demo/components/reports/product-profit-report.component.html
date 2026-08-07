@@ -1,0 +1,224 @@
+<div class="card report-page product-profit-report-page">
+    <!-- Verona screen UI -->
+    <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3 no-print">
+        <h5 class="m-0">Product Profit Report</h5>
+        <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-print"
+            label="Print Report"
+            class="p-button-outlined"
+            (click)="printReport()"
+        ></button>
+    </div>
+
+    <div class="grid mb-3 no-print">
+        <div class="col-12 md:col-3">
+            <div class="surface-100 border-round p-3 report-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="report-stat-icon bg-blue-100 text-blue-600">
+                        <i class="pi pi-box"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">Total Products Sold</div>
+                        <div class="text-xl font-bold">{{ report.totalProductsSold | number }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 md:col-3">
+            <div class="surface-100 border-round p-3 report-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="report-stat-icon bg-green-100 text-green-600">
+                        <i class="pi pi-chart-line"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">Total Quantity Sold</div>
+                        <div class="text-xl font-bold text-green-600">{{ report.totalQuantitySold | number }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 md:col-3">
+            <div class="surface-100 border-round p-3 report-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="report-stat-icon bg-orange-100 text-orange-500">
+                        <i class="pi pi-wallet"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">Total Revenue</div>
+                        <div class="text-xl font-bold text-orange-500">{{ report.totalRevenue | number: '1.2-2' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 md:col-3">
+            <div class="surface-100 border-round p-3 report-stat-card">
+                <div class="flex align-items-center gap-3">
+                    <span class="report-stat-icon bg-teal-100 text-teal-600">
+                        <i class="pi pi-bolt"></i>
+                    </span>
+                    <div>
+                        <div class="text-500 mb-1">Total Profit</div>
+                        <div class="text-xl font-bold text-teal-600">{{ report.totalProfit | number: '1.2-2' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid formgrid p-fluid no-print mb-3">
+        <div class="field col-12 md:col-6">
+            <label for="fromDate">From Date</label>
+            <input
+                pInputText
+                type="date"
+                id="fromDate"
+                [(ngModel)]="fromDate"
+                (change)="generate()"
+            />
+        </div>
+        <div class="field col-12 md:col-6">
+            <label for="toDate">To Date</label>
+            <input
+                pInputText
+                type="date"
+                id="toDate"
+                [(ngModel)]="toDate"
+                (change)="generate()"
+            />
+        </div>
+        <div class="field col-12 md:col-8">
+            <label for="keyword">Search by Product Name or Barcode</label>
+            <input
+                pInputText
+                id="keyword"
+                type="text"
+                placeholder="Search..."
+                [(ngModel)]="keyword"
+                (keyup.enter)="generate()"
+            />
+        </div>
+        <div class="field col-12 md:col-4 flex align-items-end">
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-sync"
+                label="Generate Report"
+                class="w-full"
+                [loading]="loading"
+                (click)="generate()"
+            ></button>
+        </div>
+    </div>
+
+    <p-table
+        class="no-print"
+        [value]="report.items"
+        [loading]="loading"
+        [paginator]="true"
+        [rows]="25"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        responsiveLayout="scroll"
+        styleClass="report-data-table"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Product Name</th>
+                <th>Barcode</th>
+                <th>Category</th>
+                <th>Unit</th>
+                <th pSortableColumn="quantitySold">Qty Sold <p-sortIcon field="quantitySold"></p-sortIcon></th>
+                <th pSortableColumn="costPrice">Cost Price <p-sortIcon field="costPrice"></p-sortIcon></th>
+                <th pSortableColumn="sellingPrice">Selling Price <p-sortIcon field="sellingPrice"></p-sortIcon></th>
+                <th pSortableColumn="profitPerUnit">Profit/Unit <p-sortIcon field="profitPerUnit"></p-sortIcon></th>
+                <th pSortableColumn="totalCost">Total Cost <p-sortIcon field="totalCost"></p-sortIcon></th>
+                <th pSortableColumn="totalRevenue">Total Revenue <p-sortIcon field="totalRevenue"></p-sortIcon></th>
+                <th pSortableColumn="totalProfit">Total Profit <p-sortIcon field="totalProfit"></p-sortIcon></th>
+                <th pSortableColumn="profitMarginPercent">Profit Margin % <p-sortIcon field="profitMarginPercent"></p-sortIcon></th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-item>
+            <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.barcode }}</td>
+                <td>{{ item.categoryName }}</td>
+                <td>{{ item.unitName }}</td>
+                <td class="text-right">{{ item.quantitySold | number }}</td>
+                <td class="text-right">{{ item.costPrice | number: '1.2-2' }}</td>
+                <td class="text-right">{{ item.sellingPrice | number: '1.2-2' }}</td>
+                <td class="text-right font-bold">{{ item.profitPerUnit | number: '1.2-2' }}</td>
+                <td class="text-right">{{ item.totalCost | number: '1.2-2' }}</td>
+                <td class="text-right">{{ item.totalRevenue | number: '1.2-2' }}</td>
+                <td class="text-right font-bold text-green-600">{{ item.totalProfit | number: '1.2-2' }}</td>
+                <td class="text-right">
+                    <span [class]="item.profitMarginPercent >= 20 ? 'text-green-600' : 'text-orange-500'">
+                        {{ item.profitMarginPercent | number: '1.2-2' }}%
+                    </span>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <ng-template #printTemplate>
+        <div class="print-report-header mb-3">
+            <h2>Product Profit Report</h2>
+            <div class="text-sm text-color-secondary">
+                From: {{ fromDate }} To: {{ toDate }}
+            </div>
+        </div>
+
+        <div class="grid mb-3">
+            <div class="col-6">
+                <div class="text-sm">Total Products Sold: {{ report.totalProductsSold }}</div>
+                <div class="text-sm">Total Quantity Sold: {{ report.totalQuantitySold }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-sm">Total Revenue: {{ report.totalRevenue | number: '1.2-2' }}</div>
+                <div class="text-sm">Total Profit: {{ report.totalProfit | number: '1.2-2' }}</div>
+            </div>
+        </div>
+
+        <table class="print-table w-full text-sm border-collapse">
+            <thead>
+                <tr class="border-b-2 border-color">
+                    <th class="text-left p-2">Product Name</th>
+                    <th class="text-right p-2">Qty Sold</th>
+                    <th class="text-right p-2">Cost Price</th>
+                    <th class="text-right p-2">Selling Price</th>
+                    <th class="text-right p-2">Profit/Unit</th>
+                    <th class="text-right p-2">Total Cost</th>
+                    <th class="text-right p-2">Total Revenue</th>
+                    <th class="text-right p-2">Total Profit</th>
+                    <th class="text-right p-2">Margin %</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let item of report.items" class="border-b border-color-lighter">
+                    <td class="p-2">{{ item.name }}</td>
+                    <td class="text-right p-2">{{ item.quantitySold | number }}</td>
+                    <td class="text-right p-2">{{ item.costPrice | number: '1.2-2' }}</td>
+                    <td class="text-right p-2">{{ item.sellingPrice | number: '1.2-2' }}</td>
+                    <td class="text-right p-2">{{ item.profitPerUnit | number: '1.2-2' }}</td>
+                    <td class="text-right p-2">{{ item.totalCost | number: '1.2-2' }}</td>
+                    <td class="text-right p-2">{{ item.totalRevenue | number: '1.2-2' }}</td>
+                    <td class="text-right p-2">{{ item.totalProfit | number: '1.2-2' }}</td>
+                    <td class="text-right p-2">{{ item.profitMarginPercent | number: '1.2-2' }}%</td>
+                </tr>
+                <tr class="border-t-2 border-color font-bold bg-surface-50">
+                    <td class="p-2" colspan="2">Totals:</td>
+                    <td class="text-right p-2" colspan="2">{{ report.totalQuantitySold | number }}</td>
+                    <td class="text-right p-2"></td>
+                    <td class="text-right p-2">{{ report.totalCost | number: '1.2-2' }}</td>
+                    <td class="text-right p-2">{{ report.totalRevenue | number: '1.2-2' }}</td>
+                    <td class="text-right p-2">{{ report.totalProfit | number: '1.2-2' }}</td>
+                    <td class="text-right p-2">{{ report.averageProfitMarginPercent | number: '1.2-2' }}%</td>
+                </tr>
+            </tbody>
+        </table>
+    </ng-template>
+</div>

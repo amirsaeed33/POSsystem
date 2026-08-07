@@ -129,4 +129,50 @@ namespace SmartPos.Reports.Dto
 
         public string Status { get; set; }
     }
+
+    public class ProductProfitReportDto
+    {
+        public int TotalProductsSold { get; set; }
+
+        public decimal TotalQuantitySold { get; set; }
+
+        public decimal TotalCost { get; set; }
+
+        public decimal TotalRevenue { get; set; }
+
+        public decimal TotalProfit { get; set; }
+
+        public decimal? AverageProfitMarginPercent { get; set; }
+
+        public List<ProductProfitReportRowDto> Items { get; set; }
+    }
+
+    public class ProductProfitReportRowDto
+    {
+        public int Id { get; set; }
+
+        public string Name { get; set; }
+
+        public string Barcode { get; set; }
+
+        public string CategoryName { get; set; }
+
+        public string UnitName { get; set; }
+
+        public decimal QuantitySold { get; set; }
+
+        public decimal CostPrice { get; set; }
+
+        public decimal SellingPrice { get; set; }
+
+        public decimal ProfitPerUnit { get; set; }
+
+        public decimal TotalCost { get; set; }
+
+        public decimal TotalRevenue { get; set; }
+
+        public decimal TotalProfit { get; set; }
+
+        public decimal? ProfitMarginPercent { get; set; }
+    }
 }

@@ -13,6 +13,7 @@ import { SaleReportComponent } from './sale-report.component';
 import { PurchaseReportComponent } from './purchase-report.component';
 import { ExpenseReportComponent } from './expense-report.component';
 import { StockReportComponent } from './stock-report.component';
+import { ProductProfitReportComponent } from './product-profit-report.component';
 import { InvoicePrintModule } from '../invoices/invoice-print.module';
 
 @NgModule({
@@ -34,6 +35,7 @@ import { InvoicePrintModule } from '../invoices/invoice-print.module';
         PurchaseReportComponent,
         ExpenseReportComponent,
         StockReportComponent,
+        ProductProfitReportComponent,
     ],
 })
 export class ReportsModule {}

@@ -74,3 +74,29 @@ export interface StockReportDto {
     totalStockProfit: number;
     items: StockReportRowDto[];
 }
+
+export interface ProductProfitReportRowDto {
+    id: number;
+    name?: string;
+    barcode?: string;
+    categoryName?: string;
+    unitName?: string;
+    quantitySold: number;
+    costPrice: number;
+    sellingPrice: number;
+    profitPerUnit: number;
+    totalCost: number;
+    totalRevenue: number;
+    totalProfit: number;
+    profitMarginPercent?: number | null;
+}
+
+export interface ProductProfitReportDto {
+    totalProductsSold: number;
+    totalQuantitySold: number;
+    totalCost: number;
+    totalRevenue: number;
+    totalProfit: number;
+    averageProfitMarginPercent?: number | null;
+    items: ProductProfitReportRowDto[];
+}

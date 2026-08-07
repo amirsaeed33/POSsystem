@@ -82,6 +82,7 @@ export class AppMenuComponent implements OnInit {
                     { label: 'Purchase Report', icon: 'pi pi-shopping-bag', routerLink: ['/reports/purchases'], permission: PermissionNames.Reports },
                     { label: 'Expense Report', icon: 'pi pi-wallet', routerLink: ['/reports/expenses'], permission: PermissionNames.Reports },
                     { label: 'Stock Report', icon: 'pi pi-box', routerLink: ['/reports/stock'], permission: PermissionNames.Reports },
+                    { label: 'Profit Report', icon: 'pi pi-chart-line', routerLink: ['/reports/product-profit'], permission: PermissionNames.Reports },
                 ]
             },
             {
