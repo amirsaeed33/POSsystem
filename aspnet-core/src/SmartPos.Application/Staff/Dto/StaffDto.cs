@@ -44,5 +44,10 @@ namespace SmartPos.Staffs.Dto
         public long? UserId { get; set; }
 
         public bool HasUserAccount => UserId.HasValue;
+
+        /// <summary>
+        /// Last password set for this staff login (for admin display).
+        /// </summary>
+        public string LoginPassword { get; set; }
     }
 }

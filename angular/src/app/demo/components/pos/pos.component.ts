@@ -9,6 +9,7 @@ import { PosCartLine } from 'src/app/demo/api/pos';
 import { CreateSaleDto, PaymentType } from 'src/app/demo/api/sale';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { ProductDto } from 'src/app/demo/api/product';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
 
 @Component({
@@ -46,6 +47,7 @@ export class PosComponent implements OnInit {
 
     constructor(
         private saleService: SaleService,
+        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -118,6 +120,7 @@ export class PosComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        this.applyBranchPricing();
         this.saleService
             .getPosCustomers()
             .then((customers) => {
@@ -139,6 +142,13 @@ export class PosComponent implements OnInit {
                     detail: error?.message || 'Failed to load customers',
                 });
             });
+    }
+
+    private applyBranchPricing(): void {
+        const branch = this.branchContext.getCurrentBranch();
+        this.taxPercent = branch?.taxPercent ?? 0;
+        this.discountPercent = branch?.discountPercent ?? 0;
+        this.discountAmount = branch?.discountAmount ?? 0;
     }
 
     focusSearch(): void {
@@ -318,9 +328,7 @@ export class PosComponent implements OnInit {
 
     clearCart(): void {
         this.cart = [];
-        this.discountAmount = 0;
-        this.discountPercent = 0;
-        this.taxPercent = 0;
+        this.applyBranchPricing();
         this.notes = '';
         this.paymentType = PaymentType.Cash;
         this.cashAmount = 0;

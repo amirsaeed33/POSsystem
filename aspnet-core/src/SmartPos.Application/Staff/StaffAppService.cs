@@ -67,9 +67,11 @@ namespace SmartPos.Staffs
             var previousSalary = entity.BasicSalary;
             var previousName = entity.Name;
             var userId = entity.UserId;
+            var loginPassword = entity.LoginPassword;
 
             MapToEntity(input, entity);
             entity.UserId = userId;
+            entity.LoginPassword = loginPassword;
 
             await Repository.UpdateAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -172,6 +174,7 @@ namespace SmartPos.Staffs
 
             staff.UserId = user.Id;
             staff.Email = email;
+            staff.LoginPassword = password;
             await CurrentUnitOfWork.SaveChangesAsync();
 
             await _staffHistoryWriter.WriteAsync(
@@ -201,6 +204,7 @@ namespace SmartPos.Staffs
 
             var user = await _userManager.GetUserByIdAsync(staff.UserId.Value);
             user.Password = _passwordHasher.HashPassword(user, password);
+            staff.LoginPassword = password;
             await CurrentUnitOfWork.SaveChangesAsync();
 
             await _staffHistoryWriter.WriteAsync(

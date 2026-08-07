@@ -97,6 +97,9 @@ export class BranchService {
                 taxNumber: input.taxNumber,
                 website: input.website,
                 invoiceFooter: input.invoiceFooter,
+                taxPercent: input.taxPercent ?? 0,
+                discountPercent: input.discountPercent ?? 0,
+                discountAmount: input.discountAmount ?? 0,
             })
         );
         return this.map(this.unwrap(res, 'Failed to update branch'));
@@ -174,6 +177,9 @@ export class BranchService {
             taxNumber: item.taxNumber ?? item.TaxNumber,
             website: item.website ?? item.Website,
             invoiceFooter: item.invoiceFooter ?? item.InvoiceFooter,
+            taxPercent: item.taxPercent ?? item.TaxPercent ?? 0,
+            discountPercent: item.discountPercent ?? item.DiscountPercent ?? 0,
+            discountAmount: item.discountAmount ?? item.DiscountAmount ?? 0,
         };
     }
 }

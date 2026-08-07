@@ -4,13 +4,15 @@
     [modal]="true"
     appendTo="body"
     [blockScroll]="true"
-    [style]="{ width: '40rem' }"
-    [breakpoints]="{ '960px': '75vw', '640px': '95vw' }"
+    [style]="dialogStyle"
+    [contentStyle]="dialogContentStyle"
+    [breakpoints]="isEditMode ? undefined : { '960px': '75vw', '640px': '95vw' }"
+    [styleClass]="isEditMode ? 'branch-edit-fullscreen' : ''"
     [draggable]="false"
     [resizable]="false"
     (visibleChange)="onVisibleChange($event)"
 >
-    <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
+    <div class="flex flex-column gap-3" [class.p-fluid]="isEditMode" *ngIf="!loading; else loadingTpl">
         <div class="flex gap-3">
             <div class="flex flex-column gap-2 flex-1">
                 <label for="branchName" class="font-medium">
@@ -130,6 +132,54 @@
                 [disabled]="saving"
             />
         </div>
+
+        <div class="formgrid grid">
+            <div class="field col-12 md:col-4 flex flex-column gap-2 mb-0">
+                <label for="branchTaxPercent" class="font-medium">Tax %</label>
+                <p-inputNumber
+                    inputId="branchTaxPercent"
+                    [(ngModel)]="branch.taxPercent"
+                    [min]="0"
+                    [max]="100"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    [showButtons]="false"
+                    styleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+            <div class="field col-12 md:col-4 flex flex-column gap-2 mb-0">
+                <label for="branchDiscountPercent" class="font-medium">Discount %</label>
+                <p-inputNumber
+                    inputId="branchDiscountPercent"
+                    [(ngModel)]="branch.discountPercent"
+                    [min]="0"
+                    [max]="100"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    [showButtons]="false"
+                    styleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+            <div class="field col-12 md:col-4 flex flex-column gap-2 mb-0">
+                <label for="branchDiscountAmount" class="font-medium">Discount Amount</label>
+                <p-inputNumber
+                    inputId="branchDiscountAmount"
+                    [(ngModel)]="branch.discountAmount"
+                    [min]="0"
+                    mode="decimal"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    [showButtons]="false"
+                    styleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+        </div>
+        <small class="text-color-secondary -mt-2">
+            These values apply automatically on sales and cannot be changed on the sale screen.
+        </small>
 
         <div class="flex flex-column gap-2">
             <label for="website" class="font-medium">Website</label>

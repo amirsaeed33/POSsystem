@@ -14,6 +14,7 @@ import {
 } from 'src/app/demo/api/branch';
 import { LookUpDto, LookUpTypes } from 'src/app/demo/api/lookup';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { LookUpService } from 'src/app/demo/service/lookup.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
@@ -21,6 +22,7 @@ import { PermissionService } from 'src/app/demo/service/permission.service';
 @Component({
     selector: 'app-branch-form-dialog',
     templateUrl: './branch-form-dialog.component.html',
+    styleUrls: ['./branch-form-dialog.component.scss'],
 })
 export class BranchFormDialogComponent implements OnChanges {
     @Input() visible = false;
@@ -36,6 +38,7 @@ export class BranchFormDialogComponent implements OnChanges {
 
     constructor(
         private branchService: BranchService,
+        private branchContext: BranchContextService,
         private lookupService: LookUpService,
         private permissionService: PermissionService,
         private messageService: MessageService
@@ -43,6 +46,27 @@ export class BranchFormDialogComponent implements OnChanges {
 
     get dialogTitle(): string {
         return this.branchId ? 'Edit Branch' : 'Create Branch';
+    }
+
+    get isEditMode(): boolean {
+        return !!this.branchId;
+    }
+
+    get dialogStyle(): Record<string, string> {
+        return this.isEditMode
+            ? {
+                  width: '100vw',
+                  height: '100vh',
+                  maxHeight: '100vh',
+                  margin: '0',
+              }
+            : { width: '40rem' };
+    }
+
+    get dialogContentStyle(): Record<string, string> | null {
+        return this.isEditMode
+            ? { height: 'calc(100vh - 9rem)', overflow: 'auto' }
+            : null;
     }
 
     /** Host admin with approve permission — Status dropdown on edit. */
@@ -133,6 +157,9 @@ export class BranchFormDialogComponent implements OnChanges {
             taxNumber: this.branch.taxNumber?.trim() || undefined,
             website: this.branch.website?.trim() || undefined,
             invoiceFooter: this.branch.invoiceFooter?.trim() || undefined,
+            taxPercent: this.branch.taxPercent ?? 0,
+            discountPercent: this.branch.discountPercent ?? 0,
+            discountAmount: this.branch.discountAmount ?? 0,
         };
 
         const request = this.branchId
@@ -149,7 +176,7 @@ export class BranchFormDialogComponent implements OnChanges {
             : this.branchService.create(createPayload);
 
         request
-            .then(() => {
+            .then(async (saved) => {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',
@@ -157,6 +184,12 @@ export class BranchFormDialogComponent implements OnChanges {
                         ? 'Branch updated successfully'
                         : 'Branch created successfully',
                 });
+                if (
+                    saved?.id &&
+                    this.branchContext.getBranchId() === saved.id
+                ) {
+                    this.branchContext.setCurrentBranch(saved);
+                }
                 this.saved.emit();
                 this.onHide();
             })
@@ -190,6 +223,9 @@ export class BranchFormDialogComponent implements OnChanges {
             taxNumber: '',
             website: '',
             invoiceFooter: '',
+            taxPercent: 0,
+            discountPercent: 0,
+            discountAmount: 0,
         };
     }
 

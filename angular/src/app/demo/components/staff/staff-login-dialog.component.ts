@@ -22,6 +22,7 @@ export class StaffLoginDialogComponent implements OnChanges {
 
     email = '';
     password = '';
+    currentPassword = '';
     saving = false;
 
     constructor(
@@ -42,9 +43,26 @@ export class StaffLoginDialogComponent implements OnChanges {
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.email = this.staff?.email?.trim() || '';
+            this.currentPassword = this.staff?.loginPassword?.trim() || '';
             this.password = '';
             this.saving = false;
+            if (this.hasUserAccount && this.staff?.id) {
+                this.refreshLoginInfo(this.staff.id);
+            }
         }
+    }
+
+    private refreshLoginInfo(staffId: number): void {
+        this.staffService
+            .get(staffId)
+            .then((staff) => {
+                this.staff = staff;
+                this.email = staff.email?.trim() || this.email;
+                this.currentPassword = staff.loginPassword?.trim() || '';
+            })
+            .catch(() => {
+                /* keep list values */
+            });
     }
 
     onVisibleChange(visible: boolean): void {

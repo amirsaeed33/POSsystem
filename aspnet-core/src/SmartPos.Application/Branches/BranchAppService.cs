@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -94,6 +95,9 @@ namespace SmartPos.Branches
             branch.TaxNumber = input.TaxNumber;
             branch.Website = input.Website;
             branch.InvoiceFooter = input.InvoiceFooter;
+            branch.TaxPercent = Math.Max(0, input.TaxPercent);
+            branch.DiscountPercent = Math.Max(0, input.DiscountPercent);
+            branch.DiscountAmount = Math.Max(0, input.DiscountAmount);
 
             // Only host admin with approve permission may change StatusId.
             if (AbpSession.TenantId == null

@@ -1730,6 +1730,14 @@ namespace SmartPos.Migrations
                     b.Property<DateTime?>("DeletionTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("ImagePath")
                         .HasMaxLength(1024)
                         .HasColumnType("nvarchar(1024)");
@@ -1776,6 +1784,10 @@ namespace SmartPos.Migrations
                     b.Property<string>("TaxNumber")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
+
+                    b.Property<decimal>("TaxPercent")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("TenantId")
                         .HasColumnType("int");
@@ -3198,6 +3210,10 @@ namespace SmartPos.Migrations
 
                     b.Property<long?>("LastModifierUserId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("LoginPassword")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Name")
                         .IsRequired()

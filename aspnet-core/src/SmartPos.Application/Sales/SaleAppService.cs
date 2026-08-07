@@ -36,6 +36,7 @@ namespace SmartPos.Sales
         private readonly IBranchContext _branchContext;
         private readonly IBranchStockManager _branchStockManager;
         private readonly IRepository<BranchStock> _branchStockRepository;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly SystemAccountManager _systemAccountManager;
 
         public SaleAppService(
@@ -50,6 +51,7 @@ namespace SmartPos.Sales
             IBranchContext branchContext,
             IBranchStockManager branchStockManager,
             IRepository<BranchStock> branchStockRepository,
+            IRepository<Branch> branchRepository,
             SystemAccountManager systemAccountManager)
             : base(repository)
         {
@@ -63,6 +65,7 @@ namespace SmartPos.Sales
             _branchContext = branchContext;
             _branchStockManager = branchStockManager;
             _branchStockRepository = branchStockRepository;
+            _branchRepository = branchRepository;
             _systemAccountManager = systemAccountManager;
         }
 
@@ -190,6 +193,11 @@ namespace SmartPos.Sales
                 throw new UserFriendlyException("Customer does not belong to the current location.");
             }
 
+            var branch = await _branchRepository.GetAsync(branchId);
+            var taxPercent = Math.Max(0, branch.TaxPercent);
+            var discountPercent = Math.Max(0, branch.DiscountPercent);
+            var discountAmountInput = Math.Max(0, branch.DiscountAmount);
+
             var sale = new Sale
             {
                 TenantId = AbpSession.TenantId,
@@ -197,8 +205,8 @@ namespace SmartPos.Sales
                 CustomerId = input.CustomerId,
                 SaleDate = input.SaleDate,
                 Notes = input.Notes,
-                DiscountPercent = Math.Max(0, input.DiscountPercent),
-                TaxPercent = Math.Max(0, input.TaxPercent),
+                DiscountPercent = discountPercent,
+                TaxPercent = taxPercent,
                 PaymentType = input.PaymentType,
                 Lines = new List<SaleLine>()
             };
@@ -229,10 +237,10 @@ namespace SmartPos.Sales
 
             sale.SubTotal = Math.Round(subTotal, 2);
 
-            var discountAmount = input.DiscountAmount;
-            if (input.DiscountPercent > 0 && discountAmount <= 0)
+            var discountAmount = discountAmountInput;
+            if (discountPercent > 0 && discountAmount <= 0)
             {
-                discountAmount = Math.Round(sale.SubTotal * input.DiscountPercent / 100m, 2);
+                discountAmount = Math.Round(sale.SubTotal * discountPercent / 100m, 2);
             }
 
             if (discountAmount < 0)

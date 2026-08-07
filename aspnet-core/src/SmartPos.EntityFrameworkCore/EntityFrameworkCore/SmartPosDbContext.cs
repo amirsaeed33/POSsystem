@@ -142,6 +142,9 @@ namespace SmartPos.EntityFrameworkCore
 
             modelBuilder.Entity<Branch>(b =>
             {
+                b.Property(x => x.TaxPercent).HasPrecision(18, 2);
+                b.Property(x => x.DiscountPercent).HasPrecision(18, 2);
+                b.Property(x => x.DiscountAmount).HasPrecision(18, 2);
                 b.HasIndex(x => new { x.TenantId, x.Code })
                     .IsUnique()
                     .HasFilter("[IsDeleted] = 0");

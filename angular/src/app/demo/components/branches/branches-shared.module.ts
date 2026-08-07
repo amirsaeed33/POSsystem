@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { RippleModule } from 'primeng/ripple';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputTextareaModule } from 'primeng/inputtextarea';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
@@ -23,6 +24,7 @@ import { BranchFormDialogComponent } from './branch-form-dialog.component';
         RippleModule,
         InputTextModule,
         InputTextareaModule,
+        InputNumberModule,
         CheckboxModule,
         DialogModule,
         ToastModule,

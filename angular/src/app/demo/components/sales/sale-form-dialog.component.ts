@@ -15,6 +15,7 @@ import {
 } from 'src/app/demo/api/sale';
 import { ProductDto } from 'src/app/demo/api/product';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
 
 @Component({
@@ -45,6 +46,7 @@ export class SaleFormDialogComponent implements OnChanges {
 
     constructor(
         private saleService: SaleService,
+        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -364,13 +366,14 @@ export class SaleFormDialogComponent implements OnChanges {
     }
 
     private emptySale(): CreateSaleDto {
+        const branch = this.branchContext.getCurrentBranch();
         return {
             customerId: null as any,
             saleDate: this.toDateInputValue(),
             notes: '',
-            discountAmount: 0,
-            discountPercent: 0,
-            taxPercent: 0,
+            discountAmount: branch?.discountAmount ?? 0,
+            discountPercent: branch?.discountPercent ?? 0,
+            taxPercent: branch?.taxPercent ?? 0,
             paymentType: PaymentType.Credit,
             cashAmount: 0,
             cardAmount: 0,
@@ -380,8 +383,16 @@ export class SaleFormDialogComponent implements OnChanges {
 
     private resetForm(): void {
         this.sale = this.emptySale();
+        this.applyBranchPricing();
         this.saving = false;
         this.loading = false;
+    }
+
+    private applyBranchPricing(): void {
+        const branch = this.branchContext.getCurrentBranch();
+        this.sale.taxPercent = branch?.taxPercent ?? 0;
+        this.sale.discountPercent = branch?.discountPercent ?? 0;
+        this.sale.discountAmount = branch?.discountAmount ?? 0;
     }
 
     private toDateInputValue(date: Date = new Date()): string {

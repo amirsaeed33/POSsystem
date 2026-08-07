@@ -27,6 +27,9 @@ export interface BranchDto {
     taxNumber?: string;
     website?: string;
     invoiceFooter?: string;
+    taxPercent?: number;
+    discountPercent?: number;
+    discountAmount?: number;
 }
 
 export interface CreateBranchDto {
@@ -41,6 +44,9 @@ export interface CreateBranchDto {
     taxNumber?: string;
     website?: string;
     invoiceFooter?: string;
+    taxPercent?: number;
+    discountPercent?: number;
+    discountAmount?: number;
 }
 
 export interface PagedBranchResultRequestDto {

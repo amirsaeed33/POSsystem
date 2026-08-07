@@ -1,0 +1,11 @@
+:host ::ng-deep .branch-edit-fullscreen {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+
+    .p-dialog-content {
+        padding-bottom: 1rem;
+    }
+}

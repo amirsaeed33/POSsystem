@@ -13,6 +13,7 @@ export interface StaffDto {
     isActive: boolean;
     userId?: number | null;
     hasUserAccount?: boolean;
+    loginPassword?: string;
 }
 
 export interface CreateStaffLoginDto {

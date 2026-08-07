@@ -17,6 +17,7 @@ namespace SmartPos.Staffs
         public const int MaxAddressLength = 512;
         public const int MaxDesignationLength = 128;
         public const int MaxEmployeeCodeLength = 64;
+        public const int MaxLoginPasswordLength = 100;
 
         public virtual int? TenantId { get; set; }
 
@@ -54,6 +55,12 @@ namespace SmartPos.Staffs
         /// Linked AbpUsers login account (optional).
         /// </summary>
         public virtual long? UserId { get; set; }
+
+        /// <summary>
+        /// Last password set for the staff login (admin visibility). Auth still uses hashed AbpUsers.Password.
+        /// </summary>
+        [StringLength(MaxLoginPasswordLength)]
+        public virtual string LoginPassword { get; set; }
 
         public virtual ICollection<StaffAttendance> Attendances { get; set; }
 

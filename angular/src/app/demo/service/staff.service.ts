@@ -162,6 +162,7 @@ export class StaffService {
             isActive: item.isActive ?? item.IsActive ?? true,
             userId,
             hasUserAccount,
+            loginPassword: item.loginPassword ?? item.LoginPassword ?? undefined,
         };
     }
 }

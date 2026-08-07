@@ -61,5 +61,14 @@ namespace SmartPos.Branches
 
         [StringLength(MaxInvoiceFooterLength)]
         public virtual string InvoiceFooter { get; set; }
+
+        /// <summary>Default tax % applied on sales for this location.</summary>
+        public virtual decimal TaxPercent { get; set; }
+
+        /// <summary>Default discount % applied on sales for this location.</summary>
+        public virtual decimal DiscountPercent { get; set; }
+
+        /// <summary>Default discount amount applied on sales for this location.</summary>
+        public virtual decimal DiscountAmount { get; set; }
     }
 }
