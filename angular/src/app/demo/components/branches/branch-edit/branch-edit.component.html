@@ -16,94 +16,87 @@
 
     <div class="flex flex-column gap-3" [class.p-fluid]="true" *ngIf="!loading; else loadingTpl">
 
-        <div class="flex justify-left-center align-items-left mb-1">
-    <div
-        class="profile-picture-container"
-        (click)="fileInput.click()"
-        style="cursor: pointer; position: relative; display: inline-block;"
-    >
-        <img
-            [src]="imagePreview || 'assets/layout/images/avatar.png'"
-            alt="Branch Image"
-            class="border-circle profile-picture"
-            style="width: 150px; height: 150px; object-fit: cover; border: 3px solid var(--primary-color); box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block;"
-        />
+        <div class="flex flex-column md:flex-row align-items-start md:align-items-center gap-4 mb-2">
+            <div
+                class="profile-picture-container flex-shrink-0"
+                style="position: relative; display: inline-block;"
+            >
+                <div
+                    (click)="fileInput.click()"
+                    style="cursor: pointer; position: relative; display: inline-block;"
+                >
+                    <img
+                        [src]="imagePreview || 'assets/layout/images/avatar.png'"
+                        alt="Branch Image"
+                        class="border-circle profile-picture"
+                        style="width: 120px; height: 120px; object-fit: cover; border: 3px solid var(--primary-color); box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block;"
+                    />
 
-        <div
-            class="profile-picture-overlay"
-            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background-color: rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;"
-        >
-            <i class="pi pi-camera" style="font-size: 2rem; color: white;"></i>
-            <span style="color: white; font-weight: 500; margin-top: 0.5rem; font-size: 0.875rem;">
-                Change Photo
-            </span>
-        </div>
+                    <div
+                        class="profile-picture-overlay"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background-color: rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;"
+                    >
+                        <i class="pi pi-camera" style="font-size: 1.75rem; color: white;"></i>
+                        <span style="color: white; font-weight: 500; margin-top: 0.25rem; font-size: 0.75rem;">
+                            Change Photo
+                        </span>
+                    </div>
+                </div>
 
-        <input
-            #fileInput
-            type="file"
-            accept="image/*"
-            (change)="onFileSelected($event)"
-            [disabled]="saving"
-            style="display: none;"
-        />
-    </div>
-</div>
-
-
-
-        <div class="flex gap-3">
-            <div class="flex flex-column gap-2 flex-1">
-                <label for="branchName" class="font-medium">
-                    Name <span class="p-error">*</span>
-                </label>
+                <button
+                    *ngIf="hasImage"
+                    pButton
+                    type="button"
+                    icon="pi pi-trash"
+                    class="p-button-rounded p-button-danger p-button-sm"
+                    style="position: absolute; top: 0; right: 0; width: 1.75rem; height: 1.75rem; padding: 0; font-size: 0.75rem; z-index: 10;"
+                    pTooltip="Remove Image"
+                    tooltipPosition="top"
+                    (click)="clearImage(); $event.stopPropagation()"
+                ></button>
 
                 <input
-                    id="branchName"
-                    type="text"
-                    pInputText
-                    class="w-full"
-                    maxlength="256"
-                    [(ngModel)]="branch.name"
+                    #fileInput
+                    type="file"
+                    accept="image/*"
+                    (change)="onFileSelected($event)"
                     [disabled]="saving"
+                    style="display: none;"
                 />
             </div>
 
-            <div class="flex flex-column gap-2" style="width: 10rem">
-                <label for="branchCode" class="font-medium">
-                    Code <span class="p-error">*</span>
-                </label>
+            <div class="flex gap-3 flex-1 w-full">
+                <div class="flex flex-column gap-2 flex-1">
+                    <label for="branchName" class="font-medium">
+                        Name <span class="p-error">*</span>
+                    </label>
 
-                <input
-                    id="branchCode"
-                    type="text"
-                    pInputText
-                    class="w-full"
-                    maxlength="64"
-                    [(ngModel)]="branch.code"
-                    [disabled]="saving"
-                />
-            </div>
-        </div>
+                    <input
+                        id="branchName"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="256"
+                        [(ngModel)]="branch.name"
+                        [disabled]="saving"
+                    />
+                </div>
 
-         <div class="flex gap-4">
-            <div class="flex align-items-center gap-2">
-                <p-checkbox
-                    [binary]="true"
-                    [(ngModel)]="branch.isActive"
-                    inputId="branchIsActive"
-                    [disabled]="saving"
-                ></p-checkbox>
-                <label for="branchIsActive">Active</label>
-            </div>
-            <div class="flex align-items-center gap-2">
-                <p-checkbox
-                    [binary]="true"
-                    [(ngModel)]="branch.isDefault"
-                    inputId="branchIsDefault"
-                    [disabled]="saving"
-                ></p-checkbox>
-                <label for="branchIsDefault">Default branch</label>
+                <div class="flex flex-column gap-2 flex-1">
+                    <label for="branchCode" class="font-medium">
+                        Code <span class="p-error">*</span>
+                    </label>
+
+                    <input
+                        id="branchCode"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="64"
+                        [(ngModel)]="branch.code"
+                        [disabled]="saving"
+                    />
+                </div>
             </div>
         </div>
 
@@ -136,43 +129,45 @@
             ></textarea>
         </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="invoiceContactEmail" class="font-medium">Invoice Contact Email</label>
-            <input
-                id="invoiceContactEmail"
-                type="email"
-                pInputText
-                class="w-full"
-                maxlength="512"
-                [(ngModel)]="branch.invoiceContactEmail"
-                [disabled]="saving"
-            />
-        </div>
+        <div class="formgrid grid">
+            <div class="field col-12 md:col-4 flex flex-column gap-2 mb-0">
+                <label for="invoiceContactEmail" class="font-medium">Invoice Contact Email</label>
+                <input
+                    id="invoiceContactEmail"
+                    type="email"
+                    pInputText
+                    class="w-full"
+                    maxlength="512"
+                    [(ngModel)]="branch.invoiceContactEmail"
+                    [disabled]="saving"
+                />
+            </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="invoiceContactPhone" class="font-medium">Invoice Contact Phone</label>
-            <input
-                id="invoiceContactPhone"
-                type="text"
-                pInputText
-                class="w-full"
-                maxlength="64"
-                [(ngModel)]="branch.invoiceContactPhone"
-                [disabled]="saving"
-            />
-        </div>
+            <div class="field col-12 md:col-4 flex flex-column gap-2 mb-0">
+                <label for="invoiceContactPhone" class="font-medium">Invoice Contact Phone</label>
+                <input
+                    id="invoiceContactPhone"
+                    type="text"
+                    pInputText
+                    class="w-full"
+                    maxlength="64"
+                    [(ngModel)]="branch.invoiceContactPhone"
+                    [disabled]="saving"
+                />
+            </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="taxNumber" class="font-medium">Tax Number</label>
-            <input
-                id="taxNumber"
-                type="text"
-                pInputText
-                class="w-full"
-                maxlength="128"
-                [(ngModel)]="branch.taxNumber"
-                [disabled]="saving"
-            />
+            <div class="field col-12 md:col-4 flex flex-column gap-2 mb-0">
+                <label for="taxNumber" class="font-medium">Tax Number</label>
+                <input
+                    id="taxNumber"
+                    type="text"
+                    pInputText
+                    class="w-full"
+                    maxlength="128"
+                    [(ngModel)]="branch.taxNumber"
+                    [disabled]="saving"
+                />
+            </div>
         </div>
 
         <div class="formgrid grid">
@@ -247,6 +242,27 @@
                 [(ngModel)]="branch.invoiceFooter"
                 [disabled]="saving"
             ></textarea>
+        </div>
+
+        <div class="flex gap-4">
+            <div class="flex align-items-center gap-2">
+                <p-checkbox
+                    [binary]="true"
+                    [(ngModel)]="branch.isActive"
+                    inputId="branchIsActive"
+                    [disabled]="saving"
+                ></p-checkbox>
+                <label for="branchIsActive">Active</label>
+            </div>
+            <div class="flex align-items-center gap-2">
+                <p-checkbox
+                    [binary]="true"
+                    [(ngModel)]="branch.isDefault"
+                    inputId="branchIsDefault"
+                    [disabled]="saving"
+                ></p-checkbox>
+                <label for="branchIsDefault">Default branch</label>
+            </div>
         </div>
 
        

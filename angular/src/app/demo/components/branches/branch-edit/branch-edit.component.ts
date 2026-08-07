@@ -38,7 +38,7 @@ export class BranchEditComponent implements OnInit {
         private messageService: MessageService,
         private route: ActivatedRoute,
         private router: Router
-    ) {}
+    ) { }
 
     get canEditStatus(): boolean {
         return this.permissionService.isGranted(
@@ -68,8 +68,8 @@ export class BranchEditComponent implements OnInit {
 
     clearImage(): void {
         this.imagePreview = '';
-        this.branch.imageBase64 = undefined;
-        this.branch.imagePath = undefined;
+        this.branch.imageBase64 = '';
+        this.branch.imagePath = '';
     }
 
     save(): void {
@@ -99,11 +99,14 @@ export class BranchEditComponent implements OnInit {
 
         this.saving = true;
 
+        const hasImage = this.hasImage;
 
         const imageBase64 =
             this.branch.imageBase64?.startsWith('data:image')
                 ? this.branch.imageBase64
-                : undefined;
+                : (hasImage ? undefined : null);
+
+        const imagePath = hasImage ? (this.branch.imagePath ?? undefined) : null;
 
 
         const payload: CreateBranchDto = {
@@ -146,7 +149,7 @@ export class BranchEditComponent implements OnInit {
                     : undefined,
                 isActive: payload.isActive ?? true,
                 isDefault: payload.isDefault ?? false,
-                imagePath: this.branch.imagePath,
+                imagePath: imagePath,
             })
             .then((saved) => {
 
@@ -187,7 +190,7 @@ export class BranchEditComponent implements OnInit {
     onCancel(): void {
         this.router.navigate(['/branches']);
     }
-   onFileSelected(event: Event): void {
+    onFileSelected(event: Event): void {
         const input = event.target as HTMLInputElement;
         if (!input.files?.length) {
             return;
@@ -202,6 +205,7 @@ export class BranchEditComponent implements OnInit {
             }
             this.imagePreview = result;
             this.branch.imageBase64 = result;
+            input.value = '';
         };
         reader.readAsDataURL(file);
     }

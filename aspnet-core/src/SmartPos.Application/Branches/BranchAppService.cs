@@ -114,6 +114,11 @@ namespace SmartPos.Branches
                 BranchImageStore.DeleteIfExists(branch.ImagePath);
                 branch.ImagePath = BranchImageStore.SaveBase64Image(input.ImageBase64);
             }
+            else if (string.IsNullOrWhiteSpace(input.ImageBase64) && string.IsNullOrWhiteSpace(input.ImagePath))
+            {
+                BranchImageStore.DeleteIfExists(branch.ImagePath);
+                branch.ImagePath = null;
+            }
 
             await CurrentUnitOfWork.SaveChangesAsync();
 

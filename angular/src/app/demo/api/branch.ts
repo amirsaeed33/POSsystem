@@ -37,7 +37,7 @@ export interface CreateBranchDto {
     code: string;
     isActive?: boolean;
     isDefault?: boolean;
-    imageBase64?: string;
+    imageBase64?: string | null;
     invoiceAddress?: string;
     invoiceContactEmail?: string;
     invoiceContactPhone?: string;

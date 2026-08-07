@@ -77,7 +77,7 @@ export class BranchService {
     async update(
         input: CreateBranchDto & {
             id: number;
-            imagePath?: string;
+            imagePath?: string | null;
             statusId?: number;
         }
     ): Promise<BranchDto> {
