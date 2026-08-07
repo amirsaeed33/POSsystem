@@ -104,44 +104,45 @@
                             <span class="branch-card__initials">{{ branchInitials(branch) }}</span>
                         </div>
                     </ng-template>
-                    <div class="branch-card__badges">
-                        <span
-                            class="branch-badge"
-                            [class.branch-badge--ok]="branch.isActive"
-                            [class.branch-badge--muted]="!branch.isActive"
-                        >{{ branch.isActive ? 'Active' : 'Inactive' }}</span>
-                        <span
-                            class="branch-badge"
-                            [class.branch-badge--pending]="branch.status === BranchStatuses.Pending"
-                            [class.branch-badge--ok]="branch.status === BranchStatuses.Approved"
-                            [class.branch-badge--rejected]="branch.status === BranchStatuses.Rejected"
-                        >{{ statusLabel(branch) }}</span>
-                        <span class="branch-badge branch-badge--default" *ngIf="branch.isDefault">
-                            <i class="pi pi-star-fill"></i> Default
-                        </span>
-                    </div>
                 </div>
 
                 <div class="branch-card__body flex flex-column flex-1">
-                    <div class="flex align-items-start justify-content-between gap-2 mb-3">
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm text-500 mb-1" *ngIf="branch.tenancyName || branch.tenantId">
-                                Tenant:
-                                <strong>{{ branch.tenancyName || ('#' + branch.tenantId) }}</strong>
-                            </div>
-                            <h3 class="branch-card__title m-0">{{ branch.name }}</h3>
-                            <div class="branch-card__code">
-                                <i class="pi pi-hashtag text-xs"></i>
-                                {{ branch.code }}
-                            </div>
-                            <div class="branch-card__created text-sm text-500 mt-2" *ngIf="branch.creationTime">
-                                <i class="pi pi-calendar text-xs mr-1"></i>
-                                Created {{ branch.creationTime | date: 'MMM d, y' }}
-                            </div>
+                    <div class="flex align-items-center justify-content-between gap-2 mb-3">
+                        <div class="branch-card__badges-inline flex-1">
+                            <span
+                                class="branch-badge"
+                                [class.branch-badge--ok]="branch.isActive"
+                                [class.branch-badge--muted]="!branch.isActive"
+                            >{{ branch.isActive ? 'Active' : 'Inactive' }}</span>
+                            <span
+                                class="branch-badge"
+                                [class.branch-badge--pending]="branch.status === BranchStatuses.Pending"
+                                [class.branch-badge--ok]="branch.status === BranchStatuses.Approved"
+                                [class.branch-badge--rejected]="branch.status === BranchStatuses.Rejected"
+                            >{{ statusLabel(branch) }}</span>
+                            <span class="branch-badge branch-badge--default" *ngIf="branch.isDefault">
+                                <i class="pi pi-star-fill"></i> Default
+                            </span>
                         </div>
                         <ng-container
                             *ngTemplateOutlet="branchActionsMenu; context: { $implicit: branch }"
                         ></ng-container>
+                    </div>
+
+                    <div class="flex flex-column gap-1 mb-3">
+                        <div class="text-sm text-500 mb-1" *ngIf="branch.tenancyName || branch.tenantId">
+                            Tenant:
+                            <strong>{{ branch.tenancyName || ('#' + branch.tenantId) }}</strong>
+                        </div>
+                        <h3 class="branch-card__title m-0">{{ branch.name }}</h3>
+                        <div class="branch-card__code">
+                            <i class="pi pi-hashtag text-xs"></i>
+                            {{ branch.code }}
+                        </div>
+                        <div class="branch-card__created text-sm text-500 mt-2" *ngIf="branch.creationTime">
+                            <i class="pi pi-calendar text-xs mr-1"></i>
+                            Created {{ branch.creationTime | date: 'MMM d, y' }}
+                        </div>
                     </div>
 
                     <div class="branch-card__meta flex flex-column gap-2 flex-1">
@@ -201,6 +202,26 @@
                 <li>
                     <a
                         pRipple
+                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-amber-600"
+                        (click)="setDefaultBranch(branch)"
+                    >
+                        <i class="pi pi-star mr-2"></i>
+                        <span>Set as Default</span>
+                    </a>
+                </li>
+                <li>
+                    <a
+                        pRipple
+                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-primary"
+                        (click)="openPrintInvoiceModal(branch)"
+                    >
+                        <i class="pi pi-print mr-2"></i>
+                        <span>Print Invoice</span>
+                    </a>
+                </li>
+                <li>
+                    <a
+                        pRipple
                         class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-red-500"
                         (click)="onDelete(branch)"
                     >
@@ -211,6 +232,147 @@
             </ul>
         </div>
     </ng-template>
+
+    <p-dialog
+        header="Sale Invoice Preview"
+        [(visible)]="printInvoiceDialogVisible"
+        [modal]="true"
+        appendTo="body"
+        [blockScroll]="true"
+        [style]="{ width: '52rem' }"
+        [breakpoints]="{ '960px': '92vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        styleClass="sale-invoice-dialog"
+    >
+        <div *ngIf="selectedInvoiceBranch" class="print-area invoice-sheet p-3">
+            <div class="invoice-header flex justify-content-between align-items-start border-bottom-1 surface-border pb-3 mb-3">
+                <div class="company-block flex align-items-center gap-3">
+                    <img
+                        [src]="getImageUrl(selectedInvoiceBranch) || 'assets/layout/images/avatar.png'"
+                        alt="Branch Logo"
+                        class="company-logo border-circle"
+                        style="width: 75px; height: 75px; object-fit: cover; border: 3px solid var(--primary-color);"
+                    />
+                    <div>
+                        <h2 class="m-0 text-xl font-bold text-900">{{ selectedInvoiceBranch.name }}</h2>
+                        <div class="text-sm text-600 mt-1" *ngIf="selectedInvoiceBranch.code">
+                            Code: <strong>{{ selectedInvoiceBranch.code }}</strong>
+                        </div>
+                        <div class="text-sm text-600" *ngIf="selectedInvoiceBranch.invoiceAddress">
+                            <i class="pi pi-map-marker text-xs mr-1"></i>{{ selectedInvoiceBranch.invoiceAddress }}
+                        </div>
+                        <div class="text-sm text-600" *ngIf="selectedInvoiceBranch.invoiceContactPhone">
+                            <i class="pi pi-phone text-xs mr-1"></i>Phone: {{ selectedInvoiceBranch.invoiceContactPhone }}
+                        </div>
+                        <div class="text-sm text-600" *ngIf="selectedInvoiceBranch.invoiceContactEmail">
+                            <i class="pi pi-envelope text-xs mr-1"></i>Email: {{ selectedInvoiceBranch.invoiceContactEmail }}
+                        </div>
+                        <div class="text-sm text-600" *ngIf="selectedInvoiceBranch.taxNumber">
+                            <i class="pi pi-building text-xs mr-1"></i>Tax No: {{ selectedInvoiceBranch.taxNumber }}
+                        </div>
+                    </div>
+                </div>
+                <div class="invoice-meta text-right">
+                    <div class="doc-title text-2xl font-bold text-primary mb-1">SALE INVOICE</div>
+                    <div class="text-sm text-700"><strong>Invoice No:</strong> INV-2026-0089</div>
+                    <div class="text-sm text-700"><strong>Date:</strong> {{ dummyInvoiceDate | date: 'mediumDate' }}</div>
+                    <div class="text-sm text-700"><strong>Payment Method:</strong> Cash</div>
+                </div>
+            </div>
+
+            <div class="invoice-parties flex justify-content-between align-items-center bg-gray-50 border-round p-3 mb-3">
+                <div>
+                    <div class="text-xs text-500 uppercase font-bold">Billed To</div>
+                    <div class="text-base font-semibold text-900">John Doe (Walk-in Customer)</div>
+                    <div class="text-xs text-600">Customer ID: CUST-104</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-500 uppercase font-bold">Total Amount</div>
+                    <div class="text-2xl font-bold text-primary">${{ getDummyTotal(selectedInvoiceBranch) | number:'1.2-2' }}</div>
+                </div>
+            </div>
+
+            <table class="w-full border-collapse mb-3" style="font-size: 0.9rem;">
+                <thead>
+                    <tr class="bg-primary text-white">
+                        <th class="p-2 text-left">#</th>
+                        <th class="p-2 text-left">Item Description</th>
+                        <th class="p-2 text-right">Qty</th>
+                        <th class="p-2 text-right">Unit Price</th>
+                        <th class="p-2 text-right">Line Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-bottom-1 surface-border" *ngFor="let item of dummyItems; let i = index">
+                        <td class="p-2">{{ i + 1 }}</td>
+                        <td class="p-2 font-medium">{{ item.name }}</td>
+                        <td class="p-2 text-right">{{ item.qty }}</td>
+                        <td class="p-2 text-right">${{ item.price | number:'1.2-2' }}</td>
+                        <td class="p-2 text-right font-semibold">${{ (item.qty * item.price) | number:'1.2-2' }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="p-2 text-right font-medium">Sub Total</td>
+                        <td class="p-2 text-right font-medium">${{ getDummySubtotal() | number:'1.2-2' }}</td>
+                    </tr>
+                    <tr *ngIf="selectedInvoiceBranch.discountPercent || selectedInvoiceBranch.discountAmount">
+                        <td colspan="4" class="p-2 text-right font-medium text-green-600">
+                            Discount
+                            <span *ngIf="selectedInvoiceBranch.discountPercent">({{ selectedInvoiceBranch.discountPercent }}%)</span>
+                        </td>
+                        <td class="p-2 text-right font-medium text-green-600">
+                            -${{ getDummyDiscount(selectedInvoiceBranch) | number:'1.2-2' }}
+                        </td>
+                    </tr>
+                    <tr *ngIf="selectedInvoiceBranch.taxPercent">
+                        <td colspan="4" class="p-2 text-right font-medium">
+                            Tax ({{ selectedInvoiceBranch.taxPercent }}%)
+                        </td>
+                        <td class="p-2 text-right font-medium">
+                            +${{ getDummyTax(selectedInvoiceBranch) | number:'1.2-2' }}
+                        </td>
+                    </tr>
+                    <tr class="border-top-2 border-bottom-2 surface-border">
+                        <td colspan="4" class="p-2 text-right font-bold text-lg">Grand Total</td>
+                        <td class="p-2 text-right font-bold text-lg text-primary">${{ getDummyTotal(selectedInvoiceBranch) | number:'1.2-2' }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div class="invoice-footer border-top-1 surface-border pt-3 text-center text-600 text-sm mt-4">
+                <div *ngIf="selectedInvoiceBranch.invoiceFooter" class="font-medium text-900 mb-1">
+                    {{ selectedInvoiceBranch.invoiceFooter }}
+                </div>
+                <div *ngIf="!selectedInvoiceBranch.invoiceFooter" class="font-medium text-700 mb-1">
+                    Thank you for shopping with us! Please visit again.
+                </div>
+                <div class="text-xs text-500">Printed On: {{ printDate | date:'medium' }}</div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="no-print flex justify-content-end gap-2 w-full">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Close"
+                    class="p-button-text"
+                    (click)="printInvoiceDialogVisible = false"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Print Invoice"
+                    icon="pi pi-print"
+                    (click)="printInvoice()"
+                ></button>
+            </div>
+        </ng-template>
+    </p-dialog>
 
     <app-branch-form-dialog
         [(visible)]="dialogVisible"

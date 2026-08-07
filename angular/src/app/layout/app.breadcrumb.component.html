@@ -7,7 +7,14 @@
         </li>
         <li class="layout-breadcrumb-chevron"> / </li>
         <ng-template ngFor let-item let-last="last" [ngForOf]="breadcrumbs$ | async">
-            <li>{{item.label}}</li>
+            <li>
+                <a *ngIf="item.url && !last" [routerLink]="item.url">
+                    {{item.label}}
+                </a>
+                <span *ngIf="!item.url || last">
+                    {{item.label}}
+                </span>
+            </li>
             <li *ngIf="!last" class="layout-breadcrumb-chevron"> / </li>
         </ng-template>
     </ol>

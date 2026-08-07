@@ -1,68 +1,67 @@
 .branch-card {
-    --branch-radius: 1rem;
+    --branch-radius: 1.25rem;
     position: relative;
-    overflow: visible;
+    overflow: hidden;
     border-radius: var(--branch-radius);
     background: var(--surface-card);
-    border: 1px solid var(--surface-border);
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    border: 1px solid color-mix(in srgb, var(--surface-border) 80%, var(--primary-color));
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
     transition:
-        transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-        box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-        border-color 0.28s ease;
-    animation: branch-card-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.35s ease;
+    animation: branch-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 
     &::before {
         content: '';
         position: absolute;
         inset: 0 0 auto 0;
-        height: 3px;
+        height: 4px;
         background: linear-gradient(
             90deg,
             var(--primary-color),
-            color-mix(in srgb, var(--primary-color) 35%, transparent)
+            #818cf8,
+            #c084fc
         );
-        opacity: 0.9;
-        z-index: 2;
+        opacity: 0.95;
+        z-index: 3;
     }
 
     &:hover {
-        transform: translateY(-4px);
-        border-color: color-mix(in srgb, var(--primary-color) 35%, var(--surface-border));
+        transform: translateY(-6px);
+        border-color: var(--primary-color);
         box-shadow:
-            0 12px 28px rgba(15, 23, 42, 0.08),
-            0 2px 6px rgba(15, 23, 42, 0.04);
+            0 20px 40px -10px rgba(15, 23, 42, 0.12),
+            0 0 0 1px color-mix(in srgb, var(--primary-color) 40%, transparent);
     }
 
     &--inactive {
-        opacity: 0.78;
+        opacity: 0.82;
 
         .branch-card__media {
-            filter: grayscale(0.35);
+            filter: grayscale(0.4);
         }
     }
 
     &--pending::before {
-        background: linear-gradient(90deg, #d97706, #fbbf24);
+        background: linear-gradient(90deg, #f59e0b, #fbbf24, #fef08a);
     }
 
     &--rejected::before {
-        background: linear-gradient(90deg, #b91c1c, #f87171);
+        background: linear-gradient(90deg, #ef4444, #f87171, #fca5a5);
     }
 }
 
 .branch-card__badges-inline {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.45rem;
 }
 
 .branch-card__media {
     position: relative;
-    height: 8.5rem;
-    background:
-        radial-gradient(120% 80% at 10% 0%, color-mix(in srgb, var(--primary-color) 22%, transparent), transparent 55%),
-        linear-gradient(160deg, var(--surface-ground), var(--surface-100, var(--surface-ground)));
+    height: 9.5rem;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 10%, var(--surface-ground)), var(--surface-ground));
     overflow: hidden;
 }
 
@@ -70,12 +69,13 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     display: block;
-    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .branch-card:hover .branch-card__image {
-    transform: scale(1.04);
+    transform: scale(1.06);
 }
 
 .branch-card__cover {
@@ -84,21 +84,24 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 12%, var(--surface-ground)), var(--surface-ground));
 }
 
 .branch-card__initials {
-    width: 3.75rem;
-    height: 3.75rem;
-    border-radius: 1rem;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1.1rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 1.25rem;
-    letter-spacing: 0.02em;
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: 0.03em;
     color: var(--primary-color-text, #fff);
-    background: var(--primary-color);
-    box-shadow: 0 8px 20px color-mix(in srgb, var(--primary-color) 35%, transparent);
+    background: linear-gradient(135deg, var(--primary-color), color-mix(in srgb, var(--primary-color) 80%, #000));
+    box-shadow: 0 10px 25px -4px color-mix(in srgb, var(--primary-color) 45%, transparent);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    z-index: 2;
 }
 
 .branch-card__badges {
@@ -109,118 +112,142 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
-    z-index: 1;
+    z-index: 2;
 }
 
 .branch-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.55rem;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
     border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size: 0.725rem;
+    font-weight: 700;
     letter-spacing: 0.02em;
-    backdrop-filter: blur(8px);
-    background: rgba(255, 255, 255, 0.88);
-    color: var(--text-color);
-    border: 1px solid rgba(255, 255, 255, 0.65);
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.92);
+    color: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 
     &--ok {
-        color: #166534;
-        background: rgba(220, 252, 231, 0.92);
-        border-color: rgba(134, 239, 172, 0.55);
+        color: #15803d;
+        background: rgba(240, 253, 244, 0.92);
+        border-color: rgba(74, 222, 128, 0.6);
     }
 
     &--muted {
-        color: #475569;
-        background: rgba(241, 245, 249, 0.92);
+        color: #334155;
+        background: rgba(248, 250, 252, 0.92);
+        border-color: rgba(203, 213, 225, 0.6);
     }
 
     &--default {
-        color: #92400e;
+        color: #b45309;
         background: rgba(254, 243, 199, 0.95);
-        border-color: rgba(252, 211, 77, 0.55);
+        border-color: rgba(251, 191, 36, 0.7);
 
         .pi {
             font-size: 0.65rem;
+            color: #d97706;
         }
     }
 
     &--pending {
-        color: #92400e;
+        color: #b45309;
         background: rgba(254, 243, 199, 0.95);
-        border-color: rgba(252, 211, 77, 0.55);
+        border-color: rgba(251, 191, 36, 0.7);
     }
 
     &--rejected {
-        color: #991b1b;
+        color: #b91c1c;
         background: rgba(254, 226, 226, 0.95);
-        border-color: rgba(252, 165, 165, 0.55);
+        border-color: rgba(248, 113, 113, 0.7);
     }
 }
 
 .branch-card__body {
-    padding: 1rem 1.1rem 1.1rem;
+    padding: 1.2rem 1.25rem 1.25rem;
 }
 
 .branch-card__title {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 700;
     line-height: 1.3;
     color: var(--text-color);
+    letter-spacing: -0.01em;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    transition: color 0.2s ease;
+}
+
+.branch-card:hover .branch-card__title {
+    color: var(--primary-color);
 }
 
 .branch-card__code {
-    margin-top: 0.35rem;
+    margin-top: 0.4rem;
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    font-size: 0.8rem;
-    color: var(--text-color-secondary);
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 0.5rem;
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.branch-card__created {
+    font-size: 0.775rem;
+}
+
+.branch-card__meta {
+    margin-top: 0.8rem;
+    padding-top: 0.8rem;
+    border-top: 1px dashed var(--surface-border);
 }
 
 .branch-meta-row {
     display: flex;
-    align-items: flex-start;
-    gap: 0.55rem;
+    align-items: center;
+    gap: 0.6rem;
     font-size: 0.85rem;
     color: var(--text-color-secondary);
     line-height: 1.35;
 }
 
 .branch-meta-icon {
-    width: 1.6rem;
-    height: 1.6rem;
-    border-radius: 0.45rem;
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 0.55rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    background: var(--surface-ground);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 12%, var(--surface-ground)), var(--surface-ground));
     color: var(--primary-color);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
 }
 
 .branch-meta-text {
     min-width: 0;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
 }
 
 .branch-meta-empty {
-    font-size: 0.85rem;
+    font-size: 0.825rem;
     color: var(--text-color-secondary);
     font-style: italic;
-    opacity: 0.8;
+    opacity: 0.75;
 }
 
 .branch-card__actions {
@@ -238,7 +265,7 @@
 @keyframes branch-card-in {
     from {
         opacity: 0;
-        transform: translateY(12px);
+        transform: translateY(16px);
     }
     to {
         opacity: 1;

@@ -164,6 +164,101 @@ export class BranchListComponent implements OnInit {
         }
     }
 
+    printInvoiceDialogVisible = false;
+    selectedInvoiceBranch: BranchDto | null = null;
+    dummyInvoiceDate = new Date();
+    printDate = new Date();
+
+    dummyItems = [
+        { name: 'Wireless Ergonomic Mouse', qty: 2, price: 25.00 },
+        { name: 'Mechanical Gaming Keyboard', qty: 1, price: 75.00 },
+        { name: 'USB-C Fast Charger Hub', qty: 3, price: 15.00 }
+    ];
+
+    openPrintInvoiceModal(branch: BranchDto): void {
+        this.selectedInvoiceBranch = branch;
+        this.dummyInvoiceDate = new Date();
+        this.printDate = new Date();
+        this.printInvoiceDialogVisible = true;
+    }
+
+    getDummySubtotal(): number {
+        return this.dummyItems.reduce((acc, item) => acc + (item.qty * item.price), 0);
+    }
+
+    getDummyDiscount(branch: BranchDto): number {
+        const subtotal = this.getDummySubtotal();
+        if (branch.discountAmount && branch.discountAmount > 0) {
+            return branch.discountAmount;
+        }
+        if (branch.discountPercent && branch.discountPercent > 0) {
+            return (subtotal * branch.discountPercent) / 100;
+        }
+        return 0;
+    }
+
+    getDummyTax(branch: BranchDto): number {
+        const subtotal = this.getDummySubtotal();
+        const discount = this.getDummyDiscount(branch);
+        const taxable = Math.max(0, subtotal - discount);
+        const taxPercent = branch.taxPercent || 0;
+        return (taxable * taxPercent) / 100;
+    }
+
+    getDummyTotal(branch: BranchDto): number {
+        const subtotal = this.getDummySubtotal();
+        const discount = this.getDummyDiscount(branch);
+        const tax = this.getDummyTax(branch);
+        return Math.max(0, subtotal - discount + tax);
+    }
+
+    printInvoice(): void {
+        setTimeout(() => {
+            window.print();
+        }, 100);
+    }
+
+    setDefaultBranch(branch: BranchDto): void {
+        if (branch.isDefault) {
+            return;
+        }
+
+        this.branchService
+            .update({
+                id: branch.id,
+                name: branch.name,
+                code: branch.code,
+                isActive: branch.isActive,
+                isDefault: true,
+                invoiceAddress: branch.invoiceAddress,
+                invoiceContactEmail: branch.invoiceContactEmail,
+                invoiceContactPhone: branch.invoiceContactPhone,
+                taxNumber: branch.taxNumber,
+                website: branch.website,
+                invoiceFooter: branch.invoiceFooter,
+                taxPercent: branch.taxPercent,
+                discountPercent: branch.discountPercent,
+                discountAmount: branch.discountAmount,
+                statusId: branch.statusId,
+                imagePath: branch.imagePath,
+            })
+            .then(() => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: `"${branch.name}" set as default branch`,
+                });
+                this.loadBranches();
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.message || 'Failed to set default branch',
+                });
+            });
+    }
+
     onDelete(branch: BranchDto): void {
         this.confirmationService.confirm({
             message: `Are you sure you want to delete branch "${branch.name}"?`,

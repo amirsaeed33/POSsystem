@@ -85,6 +85,15 @@ namespace SmartPos.Branches
 
             var branch = await GetEntityByIdAsync(input.Id);
 
+            if (input.IsDefault)
+            {
+                var otherDefaultBranches = await Repository.GetAllListAsync(x => x.Id != branch.Id && x.IsDefault);
+                foreach (var other in otherDefaultBranches)
+                {
+                    other.IsDefault = false;
+                }
+            }
+
             branch.Name = input.Name;
             branch.Code = input.Code;
             branch.IsActive = input.IsActive;
