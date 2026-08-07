@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartPos.EntityFrameworkCore;
 
@@ -11,9 +12,11 @@ using SmartPos.EntityFrameworkCore;
 namespace SmartPos.Migrations
 {
     [DbContext(typeof(SmartPosDbContext))]
-    partial class SmartPosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260807084412_Added_Customer_Supplier_BranchId")]
+    partial class Added_Customer_Supplier_BranchId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3211,14 +3214,9 @@ namespace SmartPos.Migrations
                     b.Property<int?>("TenantId")
                         .HasColumnType("int");
 
-                    b.Property<long?>("UserId")
-                        .HasColumnType("bigint");
-
                     b.HasKey("Id");
 
                     b.HasIndex("BranchId");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("AppStaff");
                 });

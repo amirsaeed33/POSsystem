@@ -80,6 +80,10 @@ namespace SmartPos.Purchases
             }
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+            if (supplier.BranchId != branchId)
+            {
+                throw new UserFriendlyException("Supplier does not belong to the current location.");
+            }
 
             var purchase = new Purchase
             {

@@ -96,6 +96,16 @@
                             pButton
                             pRipple
                             type="button"
+                            icon="pi pi-key"
+                            class="p-button-text p-button-sm"
+                            [pTooltip]="staff.hasUserAccount ? 'Change password' : 'Create login'"
+                            tooltipPosition="top"
+                            (click)="openLoginDialog(staff)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
                             icon="pi pi-pencil"
                             class="p-button-text p-button-sm"
                             pTooltip="Edit"
@@ -131,6 +141,12 @@
         [staffId]="editingStaffId"
         (saved)="onDialogSaved()"
     ></app-staff-form-dialog>
+
+    <app-staff-login-dialog
+        [(visible)]="loginDialogVisible"
+        [staff]="loginStaff"
+        (saved)="onLoginSaved()"
+    ></app-staff-login-dialog>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>

@@ -61,7 +61,7 @@ namespace SmartPos.Orders
                 throw new UserFriendlyException("Add at least one product line.");
             }
 
-            await _customerRepository.GetAsync(input.CustomerId);
+            var customer = await _customerRepository.GetAsync(input.CustomerId);
 
             if (input.OrderDate == default)
             {
@@ -69,6 +69,10 @@ namespace SmartPos.Orders
             }
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+            if (customer.BranchId != branchId)
+            {
+                throw new UserFriendlyException("Customer does not belong to the current location.");
+            }
 
             var order = new CustomerOrder
             {

@@ -16,4 +16,23 @@
     &.p-toast-top-center {
         top: 7rem;
     }
+
+    .p-toast-message-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .p-toast-message-text {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .p-toast-icon-close {
+        flex: 0 0 auto;
+        margin-left: auto;
+        opacity: 1 !important;
+        cursor: pointer;
+        color: inherit !important;
+    }
 }

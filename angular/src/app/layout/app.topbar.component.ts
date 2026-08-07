@@ -5,8 +5,10 @@ import { LayoutService } from './service/app.layout.service';
 import { AuthService } from 'src/app/demo/service/auth.service';
 import { SessionService } from 'src/app/demo/service/session.service';
 import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
-import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { BranchContextService, HOST_ADMIN_STORAGE_KEY } from 'src/app/demo/service/branch-context.service';
+import { PermissionService } from 'src/app/demo/service/permission.service';
 import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
+import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { UserLoginInfoDto } from 'src/app/demo/api/session';
 import { environment } from 'src/environments/environment';
 
@@ -28,6 +30,7 @@ export class AppTopBarComponent implements OnInit {
     branches: BranchDto[] = [];
     currentBranch: BranchDto | null = null;
     changingBranch = false;
+
     readonly BranchStatuses = BranchStatuses;
 
     constructor(
@@ -36,9 +39,31 @@ export class AppTopBarComponent implements OnInit {
         private sessionService: SessionService,
         private tenantContext: TenantContextService,
         private branchContext: BranchContextService,
+        private permissionService: PermissionService,
         private messageService: MessageService,
         private router: Router
     ) {}
+
+    /** Host admin: sees every business location (flag survives location cookie). */
+    get isHostAdmin(): boolean {
+        return (
+            localStorage.getItem(HOST_ADMIN_STORAGE_KEY) === 'true' ||
+            this.permissionService.isGranted(PermissionNames.BranchesApprove) ||
+            this.permissionService.isGranted(PermissionNames.Tenants)
+        );
+    }
+
+    /** Tenant admin may switch among own locations; staff are locked. */
+    get canSwitchLocations(): boolean {
+        return (
+            this.isHostAdmin ||
+            this.permissionService.isGranted(PermissionNames.Branches)
+        );
+    }
+
+    get locationLabel(): string {
+        return this.currentBranch?.name || 'Select location';
+    }
 
     ngOnInit(): void {
         this.tenantContext
@@ -57,26 +82,27 @@ export class AppTopBarComponent implements OnInit {
             return;
         }
 
-        this.sessionService
-            .getCurrentLoginInformations()
+        this.permissionService
+            .ensureLoaded()
+            .catch(() => undefined)
+            .then(() => this.sessionService.getCurrentLoginInformations())
             .then((sessionInfo) => {
                 if (sessionInfo?.user) {
                     this.authService.setUserInfo(sessionInfo.user);
                     this.setUserInfo(sessionInfo.user);
                 }
+
+                if (this.isHostAdmin) {
+                    return this.branchContext.ensureLoaded(null);
+                }
+
                 if (sessionInfo?.tenant) {
                     this.tenantContext.setTenantInfo(sessionInfo.tenant);
                     if (sessionInfo.tenant.id) {
                         this.tenantContext.setTenantId(sessionInfo.tenant.id);
                     }
-                    if (sessionInfo.user) {
-                        this.setUserInfo(sessionInfo.user);
-                    }
                 } else {
                     this.tenantContext.setTenantInfo(null);
-                    if (sessionInfo?.user) {
-                        this.setUserInfo(sessionInfo.user);
-                    }
                 }
 
                 return this.branchContext.ensureLoaded(
@@ -84,8 +110,17 @@ export class AppTopBarComponent implements OnInit {
                 );
             })
             .then((branches) => {
+                if (branches == null) {
+                    return;
+                }
                 this.branches = branches || this.branchContext.getAllowedBranches();
                 this.currentBranch = this.branchContext.getCurrentBranch();
+
+                if (this.isHostAdmin && this.currentBranch) {
+                    if (this.syncLocationBusinessContext(this.currentBranch)) {
+                        location.reload();
+                    }
+                }
             })
             .catch(() => {
                 if (!this.userInfo && cachedUserInfo) {
@@ -98,7 +133,8 @@ export class AppTopBarComponent implements OnInit {
         if (
             !branch?.id ||
             branch.id === this.currentBranch?.id ||
-            this.changingBranch
+            this.changingBranch ||
+            !this.canSwitchLocations
         ) {
             return;
         }
@@ -106,11 +142,42 @@ export class AppTopBarComponent implements OnInit {
         this.changingBranch = true;
         this.branchContext.setCurrentBranch(branch);
         this.currentBranch = branch;
-        this.changingBranch = false;
 
-        // Remount the current routed screen so branch-scoped data reloads.
-        // Always bounce through a different route: same-URL navigations are
-        // ignored by the router (including when already on '/').
+        if (this.isHostAdmin && this.syncLocationBusinessContext(branch)) {
+            location.reload();
+            return;
+        }
+
+        this.changingBranch = false;
+        this.remountCurrentRoute();
+    }
+
+    /**
+     * Align Abp.TenantId with the selected location (internal plumbing for host).
+     * Returns true when the cookie changed (caller should reload).
+     */
+    private syncLocationBusinessContext(branch: BranchDto): boolean {
+        const nextTenantId = branch.tenantId ?? null;
+        const currentTenantId = this.tenantContext.getTenantId();
+        if (nextTenantId === currentTenantId) {
+            return false;
+        }
+
+        if (nextTenantId != null) {
+            this.tenantContext.setTenantId(nextTenantId);
+            this.tenantContext.setTenantInfo({
+                id: nextTenantId,
+                tenancyName: branch.tenancyName || '',
+                name: branch.tenancyName || '',
+            });
+        } else {
+            this.tenantContext.setTenantId(undefined);
+            this.tenantContext.setTenantInfo(null);
+        }
+        return true;
+    }
+
+    private remountCurrentRoute(): void {
         const url = this.router.url;
         this.router
             .navigateByUrl('/notfound', { skipLocationChange: true })

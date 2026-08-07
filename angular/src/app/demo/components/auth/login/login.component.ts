@@ -7,6 +7,7 @@ import { AuthService } from 'src/app/demo/service/auth.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { SessionService } from 'src/app/demo/service/session.service';
 import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { MessageService } from 'primeng/api';
 
 declare const google: any;
@@ -50,6 +51,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 		private sessionService: SessionService,
 		private permissionService: PermissionService,
 		private tenantContext: TenantContextService,
+		private branchContext: BranchContextService,
 		private router: Router,
 		private route: ActivatedRoute,
 		private messageService: MessageService,
@@ -296,8 +298,13 @@ export class LoginComponent implements OnInit, OnDestroy {
 			if (sessionInfo.tenant.id) {
 				this.tenantContext.setTenantId(sessionInfo.tenant.id);
 			}
+			BranchContextService.setHostAdminSession(false);
 		} else {
+			// Host admin: no host location — clear leftover context; topbar loads all locations.
 			this.tenantContext.setTenantInfo(null);
+			this.tenantContext.setTenantId(undefined);
+			this.branchContext.clear();
+			BranchContextService.setHostAdminSession(true);
 		}
 
 		await this.permissionService.load();

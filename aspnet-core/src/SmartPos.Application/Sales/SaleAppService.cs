@@ -139,7 +139,14 @@ namespace SmartPos.Sales
 
         public async Task<ListResultDto<CustomerDto>> GetPosCustomersAsync()
         {
-            var customers = await _customerRepository.GetAll()
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+            var query = _customerRepository.GetAll();
+            if (branchId.HasValue)
+            {
+                query = query.Where(x => x.BranchId == branchId.Value);
+            }
+
+            var customers = await query
                 .OrderBy(x => x.Name)
                 .Take(1000)
                 .ToListAsync();
@@ -178,6 +185,10 @@ namespace SmartPos.Sales
             }
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+            if (customer.BranchId != branchId)
+            {
+                throw new UserFriendlyException("Customer does not belong to the current location.");
+            }
 
             var sale = new Sale
             {

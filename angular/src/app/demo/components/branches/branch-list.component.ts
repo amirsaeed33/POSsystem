@@ -28,6 +28,11 @@ export class BranchListComponent implements OnInit {
     readonly canApprove = () =>
         this.permissionService.isGranted(PermissionNames.BranchesApprove);
 
+    /** Host admins approve locations; only tenants create them. */
+    get canCreateBranch(): boolean {
+        return !this.canApprove();
+    }
+
     constructor(
         private branchService: BranchService,
         private lookupService: LookUpService,

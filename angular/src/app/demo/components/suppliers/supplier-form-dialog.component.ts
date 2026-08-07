@@ -106,6 +106,7 @@ export class SupplierFormDialogComponent implements OnChanges {
     private emptySupplier(): SupplierDto {
         return {
             id: 0,
+            branchId: 0,
             name: '',
             phone: '',
             email: '',

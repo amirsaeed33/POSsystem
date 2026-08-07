@@ -232,6 +232,12 @@ namespace SmartPos.Users
 
         private async Task EnsureBranchIsValidAsync(int? branchId)
         {
+            // Tenant users must be assigned to a location in their business.
+            if (AbpSession.TenantId.HasValue && !branchId.HasValue)
+            {
+                throw new UserFriendlyException("Location is required for tenant users.");
+            }
+
             if (!branchId.HasValue)
             {
                 return;
@@ -240,7 +246,13 @@ namespace SmartPos.Users
             var branch = await _branchRepository.FirstOrDefaultAsync(branchId.Value);
             if (branch == null || !branch.IsActive)
             {
-                throw new UserFriendlyException("Selected branch is invalid or inactive.");
+                throw new UserFriendlyException("Selected location is invalid or inactive.");
+            }
+
+            if (AbpSession.TenantId.HasValue && branch.TenantId != AbpSession.TenantId)
+            {
+                throw new UserFriendlyException(
+                    "Selected location does not belong to your business.");
             }
         }
 

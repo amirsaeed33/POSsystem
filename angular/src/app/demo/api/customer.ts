@@ -5,6 +5,7 @@ export enum CustomerType {
 
 export interface CustomerDto {
     id: number;
+    branchId: number;
     name: string;
     customerType: number;
     phone?: string;

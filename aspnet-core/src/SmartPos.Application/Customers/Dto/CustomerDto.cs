@@ -9,6 +9,8 @@ namespace SmartPos.Customers.Dto
     [AutoMapTo(typeof(Customer))]
     public class CustomerDto : EntityDto
     {
+        public int BranchId { get; set; }
+
         [Required]
         [StringLength(Customer.MaxNameLength)]
         public string Name { get; set; }

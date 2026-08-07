@@ -7,7 +7,9 @@ using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Users;
 using SmartPos.Accounts;
+using SmartPos.Branches;
 using SmartPos.Customers.Dto;
 
 namespace SmartPos.Customers
@@ -16,21 +18,32 @@ namespace SmartPos.Customers
     public class CustomerAppService : AsyncCrudAppService<Customer, CustomerDto, int, PagedCustomerResultRequestDto, CreateCustomerDto, CustomerDto>, ICustomerAppService
     {
         private readonly IRepository<BusinessAccount> _accountRepository;
+        private readonly IRepository<User, long> _userRepository;
+        private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly IBranchContext _branchContext;
         private readonly AccountBalanceManager _accountBalanceManager;
 
         public CustomerAppService(
             IRepository<Customer> repository,
             IRepository<BusinessAccount> accountRepository,
+            IRepository<User, long> userRepository,
+            IBranchAccessChecker branchAccessChecker,
+            IBranchContext branchContext,
             AccountBalanceManager accountBalanceManager)
             : base(repository)
         {
             _accountRepository = accountRepository;
+            _userRepository = userRepository;
+            _branchAccessChecker = branchAccessChecker;
+            _branchContext = branchContext;
             _accountBalanceManager = accountBalanceManager;
         }
 
         public override async Task<CustomerDto> CreateAsync(CreateCustomerDto input)
         {
             CheckCreatePermission();
+
+            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
 
             var account = new BusinessAccount
             {
@@ -46,6 +59,7 @@ namespace SmartPos.Customers
             await CurrentUnitOfWork.SaveChangesAsync();
 
             var customer = ObjectMapper.Map<Customer>(input);
+            customer.BranchId = branchId;
             customer.AccountId = account.Id;
 
             await Repository.InsertAsync(customer);
@@ -56,14 +70,23 @@ namespace SmartPos.Customers
 
         public override async Task<CustomerDto> UpdateAsync(CustomerDto input)
         {
-            var dto = await base.UpdateAsync(input);
-            if (dto.AccountId.HasValue)
+            var customer = await Repository.GetAsync(input.Id);
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(customer.BranchId);
+
+            var branchId = customer.BranchId;
+            MapToEntity(input, customer);
+            customer.BranchId = branchId;
+
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            if (customer.AccountId.HasValue)
             {
-                var account = await _accountRepository.GetAsync(dto.AccountId.Value);
+                var account = await _accountRepository.GetAsync(customer.AccountId.Value);
                 account.Name = input.Name;
                 await CurrentUnitOfWork.SaveChangesAsync();
             }
-            await FillBalance(dto);
+
+            var dto = await GetAsync(new EntityDto<int>(customer.Id));
             return dto;
         }
 
@@ -71,6 +94,7 @@ namespace SmartPos.Customers
         {
             await EnsureLinkedAccountAsync(input.Id);
             var dto = await base.GetAsync(input);
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(dto.BranchId);
             await FillBalance(dto);
             return dto;
         }
@@ -91,6 +115,7 @@ namespace SmartPos.Customers
             CheckDeletePermission();
 
             var customer = await Repository.GetAsync(input.Id);
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(customer.BranchId);
             var accountId = customer.AccountId;
 
             await Repository.DeleteAsync(customer);
@@ -103,7 +128,10 @@ namespace SmartPos.Customers
 
         protected override IQueryable<Customer> CreateFilteredQuery(PagedCustomerResultRequestDto input)
         {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
             return Repository.GetAllIncluding(x => x.Account)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Phone != null && x.Phone.Contains(input.Keyword))
@@ -128,7 +156,9 @@ namespace SmartPos.Customers
 
         private async Task BackfillMissingAccountsAsync()
         {
-            var missing = await Repository.GetAllListAsync(x => x.AccountId == null);
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+            var missing = await Repository.GetAllListAsync(x =>
+                x.AccountId == null && (!branchId.HasValue || x.BranchId == branchId.Value));
             foreach (var customer in missing)
             {
                 await CreateLinkedAccountAsync(customer);

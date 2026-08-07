@@ -11,6 +11,19 @@ export interface StaffDto {
     joiningDate: string | Date;
     basicSalary?: number | null;
     isActive: boolean;
+    userId?: number | null;
+    hasUserAccount?: boolean;
+}
+
+export interface CreateStaffLoginDto {
+    staffId: number;
+    email: string;
+    password: string;
+}
+
+export interface ChangeStaffLoginPasswordDto {
+    staffId: number;
+    newPassword: string;
 }
 
 export interface CreateStaffDto {

@@ -107,6 +107,7 @@ export class SupplierService {
     private mapSupplier(item: any): SupplierDto {
         return {
             id: item.id ?? item.Id,
+            branchId: item.branchId ?? item.BranchId ?? 0,
             name: item.name ?? item.Name,
             phone: item.phone ?? item.Phone,
             email: item.email ?? item.Email,

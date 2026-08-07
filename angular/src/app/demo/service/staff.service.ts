@@ -2,7 +2,9 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+    ChangeStaffLoginPasswordDto,
     CreateStaffDto,
+    CreateStaffLoginDto,
     PagedResultDto,
     PagedStaffResultRequestDto,
     StaffDto,
@@ -88,6 +90,32 @@ export class StaffService {
         this.unwrap(res, 'Failed to delete staff');
     }
 
+    async createLogin(input: CreateStaffLoginDto): Promise<StaffDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/CreateLogin`, {
+                staffId: input.staffId,
+                email: input.email,
+                password: input.password,
+            })
+        );
+        return this.mapStaff(this.unwrap(res, 'Failed to create staff login'));
+    }
+
+    async changeLoginPassword(
+        input: ChangeStaffLoginPasswordDto
+    ): Promise<void> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/ChangeLoginPassword`, {
+                staffId: input.staffId,
+                newPassword: input.newPassword,
+            })
+        );
+        if (res == null) {
+            return;
+        }
+        this.unwrap(res, 'Failed to change staff password');
+    }
+
     private toPayload(input: CreateStaffDto | StaffDto): any {
         return {
             branchId: input.branchId ?? null,
@@ -116,6 +144,9 @@ export class StaffService {
     }
 
     private mapStaff(item: any): StaffDto {
+        const userId = item.userId ?? item.UserId ?? null;
+        const hasUserAccount =
+            item.hasUserAccount ?? item.HasUserAccount ?? !!userId;
         return {
             id: item.id ?? item.Id,
             branchId: item.branchId ?? item.BranchId ?? null,
@@ -129,6 +160,8 @@ export class StaffService {
             joiningDate: item.joiningDate ?? item.JoiningDate,
             basicSalary: item.basicSalary ?? item.BasicSalary ?? null,
             isActive: item.isActive ?? item.IsActive ?? true,
+            userId,
+            hasUserAccount,
         };
     }
 }

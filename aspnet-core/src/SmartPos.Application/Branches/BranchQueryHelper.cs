@@ -28,16 +28,37 @@ namespace SmartPos.Branches
                     .FirstOrDefault();
             }
 
-            if (!branchContext.BranchId.HasValue)
+            var isHostLocationAdmin = permissionChecker != null &&
+                (permissionChecker.IsGranted(PermissionNames.Pages_Branches_Approve)
+                 || permissionChecker.IsGranted(PermissionNames.Pages_Tenants));
+
+            // Host user (User.TenantId null) switching locations via cookie.
+            if (!isHostLocationAdmin && abpSession.UserId.HasValue)
+            {
+                var userTenantId = userRepository.GetAll()
+                    .Where(x => x.Id == abpSession.UserId.Value)
+                    .Select(x => x.TenantId)
+                    .FirstOrDefault();
+                isHostLocationAdmin = !userTenantId.HasValue;
+            }
+
+            var canSwitchLocations = isHostLocationAdmin ||
+                (permissionChecker != null &&
+                 permissionChecker.IsGranted(PermissionNames.Pages_Branches));
+
+            // Location staff: always own branch only.
+            if (!canSwitchLocations)
             {
                 return userBranchId;
             }
 
-            var headerBranchId = branchContext.BranchId.Value;
-            var canSwitchAll = permissionChecker != null &&
-                               permissionChecker.IsGranted(PermissionNames.Pages_Branches);
+            if (!branchContext.BranchId.HasValue)
+            {
+                return isHostLocationAdmin ? null : userBranchId;
+            }
 
-            if (canSwitchAll || userBranchId == headerBranchId)
+            var headerBranchId = branchContext.BranchId.Value;
+            if (canSwitchLocations || userBranchId == headerBranchId)
             {
                 return headerBranchId;
             }

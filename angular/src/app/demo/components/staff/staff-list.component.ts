@@ -28,6 +28,9 @@ export class StaffListComponent implements OnInit {
     dialogVisible = false;
     editingStaffId: number | null = null;
 
+    loginDialogVisible = false;
+    loginStaff: StaffDto | null = null;
+
     constructor(
         private staffService: StaffService,
         private messageService: MessageService,
@@ -82,6 +85,15 @@ export class StaffListComponent implements OnInit {
     }
 
     onDialogSaved(): void {
+        this.loadStaff();
+    }
+
+    openLoginDialog(staff: StaffDto): void {
+        this.loginStaff = staff;
+        this.loginDialogVisible = true;
+    }
+
+    onLoginSaved(): void {
         this.loadStaff();
     }
 

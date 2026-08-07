@@ -1,5 +1,6 @@
 export interface SupplierDto {
     id: number;
+    branchId: number;
     name: string;
     phone?: string;
     email?: string;

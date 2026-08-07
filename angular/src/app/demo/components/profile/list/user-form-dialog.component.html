@@ -146,18 +146,27 @@
                 </div>
 
                 <div class="field mb-3 col-12 md:col-6">
-                    <label for="dlgBranch" class="font-medium text-900">Branch</label>
+                    <label for="dlgBranch" class="font-medium text-900">
+                        Location
+                        <span class="p-error" *ngIf="requireLocation">*</span>
+                    </label>
                     <p-dropdown
                         inputId="dlgBranch"
                         [options]="branches"
                         optionLabel="name"
                         optionValue="id"
                         formControlName="branchId"
-                        placeholder="Select Branch"
-                        [showClear]="true"
+                        placeholder="Select location"
+                        [showClear]="!requireLocation"
                         [filter]="true"
                         [disabled]="saving"
                     ></p-dropdown>
+                    <small
+                        class="p-error"
+                        *ngIf="requireLocation && userForm.get('branchId')?.invalid && userForm.get('branchId')?.touched"
+                    >
+                        Location is required
+                    </small>
                 </div>
 
                 <div class="field mb-3 col-12 md:col-6">

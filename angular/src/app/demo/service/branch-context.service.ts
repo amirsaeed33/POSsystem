@@ -4,6 +4,7 @@ import { BranchDto, BranchStatuses } from '../api/branch';
 import { BranchService } from './branch.service';
 
 const BRANCH_STORAGE_KEY = 'SmartPos.BranchId';
+export const HOST_ADMIN_STORAGE_KEY = 'SmartPos.IsHostAdmin';
 
 @Injectable({ providedIn: 'root' })
 export class BranchContextService {
@@ -62,6 +63,18 @@ export class BranchContextService {
         localStorage.removeItem(BRANCH_STORAGE_KEY);
         this.currentBranchSubject.next(null);
         this.allowedBranches = [];
+    }
+
+    static setHostAdminSession(isHostAdmin: boolean): void {
+        if (isHostAdmin) {
+            localStorage.setItem(HOST_ADMIN_STORAGE_KEY, 'true');
+        } else {
+            localStorage.removeItem(HOST_ADMIN_STORAGE_KEY);
+        }
+    }
+
+    static isHostAdminSession(): boolean {
+        return localStorage.getItem(HOST_ADMIN_STORAGE_KEY) === 'true';
     }
 
     async ensureLoaded(preferredBranchId?: number | null): Promise<BranchDto[]> {

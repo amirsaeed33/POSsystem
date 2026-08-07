@@ -17,6 +17,7 @@ import { CategoryService } from 'src/app/demo/service/category.service';
 import { BrandService } from 'src/app/demo/service/brand.service';
 import { UnitService } from 'src/app/demo/service/unit.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 
@@ -47,6 +48,7 @@ export class ProductFormDialogComponent implements OnChanges {
         private brandService: BrandService,
         private unitService: UnitService,
         private branchService: BranchService,
+        private branchContext: BranchContextService,
         private permissionService: PermissionService,
         private messageService: MessageService
     ) {}
@@ -86,14 +88,6 @@ export class ProductFormDialogComponent implements OnChanges {
         return !this.getValidationMessage();
     }
 
-    onSelectAllBranches(event: { checked?: boolean }): void {
-        if (event?.checked) {
-            this.selectAllBranches();
-        } else {
-            this.selectedBranchIds = [];
-        }
-    }
-
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.canManageBranches = this.permissionService.isGranted(
@@ -103,8 +97,9 @@ export class ProductFormDialogComponent implements OnChanges {
             this.loadLookups().then(() => {
                 if (this.productId) {
                     this.loadProduct(this.productId);
+                } else {
+                    this.selectDefaultBranch();
                 }
-                // Create: leave branches empty = tenant-level (all locations).
             });
         }
     }
@@ -304,8 +299,21 @@ export class ProductFormDialogComponent implements OnChanges {
         this.loading = false;
     }
 
-    private selectAllBranches(): void {
-        this.selectedBranchIds = [...this.allBranchIds];
+    /** Pre-select current / default location when creating a product. */
+    private selectDefaultBranch(): void {
+        if (!this.canManageBranches || !this.branches?.length) {
+            return;
+        }
+
+        const currentId = this.branchContext.getBranchId();
+        const selected =
+            this.branches.find((b) => b.id === currentId) ||
+            this.branches.find((b) => b.isDefault) ||
+            this.branches[0];
+
+        if (selected?.id) {
+            this.selectedBranchIds = [selected.id];
+        }
     }
 
     private async loadLookups(): Promise<void> {

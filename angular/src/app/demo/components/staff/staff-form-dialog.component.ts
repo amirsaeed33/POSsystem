@@ -10,6 +10,7 @@ import { MessageService } from 'primeng/api';
 import { BranchDto } from 'src/app/demo/api/branch';
 import { StaffDto } from 'src/app/demo/api/staff';
 import { BranchService } from 'src/app/demo/service/branch.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { StaffService } from 'src/app/demo/service/staff.service';
 
 @Component({
@@ -30,6 +31,7 @@ export class StaffFormDialogComponent implements OnChanges {
     constructor(
         private staffService: StaffService,
         private branchService: BranchService,
+        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -149,10 +151,30 @@ export class StaffFormDialogComponent implements OnChanges {
             .getLookup()
             .then((branches) => {
                 this.branches = branches || [];
+                if (!this.staffId) {
+                    this.selectDefaultBranch();
+                }
             })
             .catch(() => {
                 this.branches = [];
             });
+    }
+
+    /** Pre-select current / default location when creating staff. */
+    private selectDefaultBranch(): void {
+        if (!this.branches?.length || this.staff.branchId) {
+            return;
+        }
+
+        const currentId = this.branchContext.getBranchId();
+        const selected =
+            this.branches.find((b) => b.id === currentId) ||
+            this.branches.find((b) => b.isDefault) ||
+            this.branches[0];
+
+        if (selected?.id) {
+            this.staff.branchId = selected.id;
+        }
     }
 
     private loadStaff(id: number): void {

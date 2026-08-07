@@ -46,35 +46,19 @@
                 [(ngModel)]="selectedBranchIds"
                 placeholder="All locations (optional)"
                 [showToggleAll]="false"
-                [filter]="true"
+                [filter]="false"
+                [showHeader]="false"
                 [showClear]="true"
-                [disabled]="saving"
+                [disabled]="saving || !!productId"
                 styleClass="w-full"
                 appendTo="body"
             >
-                <ng-template pTemplate="header">
-                    <div
-                        class="flex align-items-center gap-2 w-full px-3 py-2 border-bottom-1 surface-border"
-                    >
-                        <p-checkbox
-                            inputId="productBranchesSelectAll"
-                            [binary]="true"
-                            [ngModel]="isAllBranchesSelected"
-                            [ngModelOptions]="{ standalone: true }"
-                            (onChange)="onSelectAllBranches($event)"
-                            [disabled]="saving || !branches.length"
-                        ></p-checkbox>
-                        <label
-                            for="productBranchesSelectAll"
-                            class="cursor-pointer mb-0 font-medium"
-                        >
-                            Select All
-                        </label>
-                    </div>
-                </ng-template>
             </p-multiSelect>
-            <small class="text-color-secondary">
+            <small class="text-color-secondary" *ngIf="!productId">
                 Leave empty to show in every location. Select branches to limit to those locations only.
+            </small>
+            <small class="text-color-secondary" *ngIf="productId">
+                Branch assignment cannot be changed when editing a product.
             </small>
         </div>
 

@@ -16,6 +16,7 @@ import { BranchDto } from 'src/app/demo/api/branch';
 import { RoleService } from 'src/app/demo/service/role.service';
 import { UserService } from 'src/app/demo/service/user.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
+import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -48,6 +49,7 @@ export class UserFormDialogComponent implements OnChanges {
         private userService: UserService,
         private roleService: RoleService,
         private branchService: BranchService,
+        private tenantContext: TenantContextService,
         private messageService: MessageService
     ) {
         this.userForm = this.fb.group({
@@ -63,6 +65,11 @@ export class UserFormDialogComponent implements OnChanges {
         });
     }
 
+    /** Tenant sessions must assign a location to every user. */
+    get requireLocation(): boolean {
+        return this.tenantContext.getTenantId() != null;
+    }
+
     get dialogTitle(): string {
         return this.isEdit ? 'Edit User' : 'Create User';
     }
@@ -74,6 +81,7 @@ export class UserFormDialogComponent implements OnChanges {
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.resetForm();
+            this.applyLocationValidators();
             this.loadRoles();
             this.loadBranches();
             this.loadAllPermissions();
@@ -250,6 +258,19 @@ export class UserFormDialogComponent implements OnChanges {
         }
     }
 
+    private applyLocationValidators(): void {
+        const control = this.userForm.get('branchId');
+        if (!control) {
+            return;
+        }
+        if (this.requireLocation) {
+            control.setValidators([Validators.required]);
+        } else {
+            control.clearValidators();
+        }
+        control.updateValueAndValidity();
+    }
+
     private resetForm(): void {
         this.userForm.reset({
             userName: '',
@@ -293,19 +314,17 @@ export class UserFormDialogComponent implements OnChanges {
 
     private loadBranches(): void {
         this.branchService
-            .getAll({ maxResultCount: 1000 })
-            .then((result) => {
-                this.branches = (result.items || []).filter((b) => b.isActive);
+            .getLookup()
+            .then((items) => {
+                this.branches = (items || []).filter((b) => b.isActive !== false);
             })
             .catch(() => {
-                this.branchService
-                    .getLookup()
-                    .then((items) => {
-                        this.branches = items || [];
-                    })
-                    .catch(() => {
-                        this.branches = [];
-                    });
+                this.branches = [];
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to load locations',
+                });
             });
     }
 

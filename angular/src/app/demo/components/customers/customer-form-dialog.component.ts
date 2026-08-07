@@ -112,6 +112,7 @@ export class CustomerFormDialogComponent implements OnChanges {
     private emptyCustomer(): CustomerDto {
         return {
             id: 0,
+            branchId: 0,
             name: '',
             customerType: CustomerType.Direct,
             phone: '',

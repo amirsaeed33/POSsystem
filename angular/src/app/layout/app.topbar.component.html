@@ -48,11 +48,12 @@
                 leaveToClass="hidden"
                 leaveActiveClass="fadeout"
                 [hideOnOutsideClick]="true"
-                [disabled]="changingBranch || branches.length <= 1"
+                [disabled]="changingBranch || !canSwitchLocations || branches.length <= 1"
             >
-                <i class="pi pi-building text-xl"></i>
-                <span class="hidden md:inline font-medium white-space-nowrap">
-                    {{ currentBranch?.name || 'Branch' }}
+                <i class="pi pi-map-marker text-xl"></i>
+                <span class="hidden sm:inline text-sm text-500 white-space-nowrap">Branch location</span>
+                <span class="font-medium white-space-nowrap">
+                    {{ locationLabel }}
                 </span>
                 <span
                     *ngIf="currentBranch?.status && currentBranch?.status !== BranchStatuses.Approved"
@@ -62,12 +63,12 @@
                         'bg-red-100 text-red-700': currentBranch?.status === BranchStatuses.Rejected
                     }"
                 >{{ currentBranch?.status }}</span>
-                <i class="pi pi-angle-down" *ngIf="branches.length > 1"></i>
+                <i class="pi pi-angle-down" *ngIf="canSwitchLocations && branches.length > 1"></i>
             </button>
             <ul
                 class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-2 left-0 top-auto z-5"
-                style="min-width: 12rem; max-height: 20rem; overflow: auto"
-                *ngIf="branches.length > 1"
+                style="min-width: 16rem; max-height: 20rem; overflow: auto"
+                *ngIf="canSwitchLocations && branches.length > 1"
             >
                 <li *ngFor="let branch of branches">
                     <a
@@ -76,7 +77,14 @@
                         [class.surface-hover]="branch.id === currentBranch?.id"
                         (click)="onChangeBranch(branch)"
                     >
-                        <span class="flex-1">{{ branch.name }}</span>
+                        <span class="flex-1">
+                            <span class="block font-medium">{{ branch.name }}</span>
+                            <span class="text-xs text-500" *ngIf="branch.code">{{ branch.code }}</span>
+                            <span
+                                class="text-xs text-500 block"
+                                *ngIf="isHostAdmin && branch.tenancyName"
+                            >{{ branch.tenancyName }}</span>
+                        </span>
                         <span class="text-xs text-500" *ngIf="branch.status">{{ branch.status }}</span>
                         <i
                             class="pi pi-check text-primary"

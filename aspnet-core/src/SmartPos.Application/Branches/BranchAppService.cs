@@ -57,6 +57,12 @@ namespace SmartPos.Branches
         {
             CheckCreatePermission();
 
+            if (!AbpSession.TenantId.HasValue)
+            {
+                throw new UserFriendlyException(
+                    "Host administrators cannot create locations. Each business creates its own locations.");
+            }
+
             var branch = ObjectMapper.Map<Branch>(input);
             branch.TenantId = AbpSession.TenantId;
             // New branches always start as Pending until host admin approves.
@@ -155,7 +161,7 @@ namespace SmartPos.Branches
         }
 
         /// <summary>
-        /// Host admin sees every branch across tenants; tenant users see only their own.
+        /// Host admin sees every business location; tenant users see only their own.
         /// </summary>
         [AbpAuthorize(PermissionNames.Pages_Branches)]
         public override async Task<PagedResultDto<BranchDto>> GetAllAsync(PagedBranchResultRequestDto input)
@@ -163,7 +169,22 @@ namespace SmartPos.Branches
             CheckGetAllPermission();
 
             PagedResultDto<BranchDto> result;
-            if (AbpSession.TenantId.HasValue)
+            if (await CanBrowseAllLocationsAsync())
+            {
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                {
+                    var query = CreateFilteredQuery(input).Where(x => x.TenantId != null);
+                    var totalCount = await AsyncQueryableExecuter.CountAsync(query);
+                    query = ApplySorting(query, input);
+                    query = ApplyPaging(query, input);
+                    var entities = await AsyncQueryableExecuter.ToListAsync(query);
+                    result = new PagedResultDto<BranchDto>(
+                        totalCount,
+                        entities.Select(MapToEntityDto).ToList());
+                    await FillTenancyNamesAsync(result.Items);
+                }
+            }
+            else if (AbpSession.TenantId.HasValue)
             {
                 result = await base.GetAllAsync(input);
             }
@@ -182,6 +203,26 @@ namespace SmartPos.Branches
 
         public async Task<ListResultDto<BranchDto>> GetLookupAsync()
         {
+            // Host admin: every business location across tenants.
+            if (await CanBrowseAllLocationsAsync())
+            {
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                {
+                    var allLocations = await Repository.GetAll()
+                        .Where(x => x.IsActive && x.TenantId != null)
+                        .OrderBy(x => x.Name)
+                        .ToListAsync();
+                    var allDtos = ObjectMapper.Map<List<BranchDto>>(allLocations);
+                    for (var i = 0; i < allLocations.Count; i++)
+                    {
+                        allDtos[i].TenantId = allLocations[i].TenantId;
+                    }
+                    await FillTenancyNamesAsync(allDtos);
+                    await FillStatusNamesAsync(allDtos);
+                    return new ListResultDto<BranchDto>(allDtos);
+                }
+            }
+
             IQueryable<Branch> query = Repository.GetAll().Where(x => x.IsActive);
 
             if (!await PermissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches))
@@ -202,6 +243,10 @@ namespace SmartPos.Branches
 
             var branches = await query.OrderBy(x => x.Name).ToListAsync();
             var dtos = ObjectMapper.Map<List<BranchDto>>(branches);
+            for (var i = 0; i < branches.Count; i++)
+            {
+                dtos[i].TenantId = branches[i].TenantId;
+            }
             await FillStatusNamesAsync(dtos);
             return new ListResultDto<BranchDto>(dtos);
         }
@@ -308,6 +353,28 @@ namespace SmartPos.Branches
             dto.TenantId = entity.TenantId;
             dto.StatusId = entity.StatusId;
             return dto;
+        }
+
+        private async Task<bool> CanBrowseAllLocationsAsync()
+        {
+            if (await PermissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches_Approve)
+                || await PermissionChecker.IsGrantedAsync(PermissionNames.Pages_Tenants))
+            {
+                return true;
+            }
+
+            // Host user with a location cookie still needs the full location list.
+            // Host-only permissions may not apply once Abp.TenantId is set.
+            if (AbpSession.UserId.HasValue)
+            {
+                var user = await UserManager.GetUserByIdAsync(AbpSession.UserId.Value);
+                if (user != null && !user.TenantId.HasValue)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private async Task FillTenancyNamesAsync(IReadOnlyList<BranchDto> branches)

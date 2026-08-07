@@ -50,6 +50,11 @@ namespace SmartPos.Staffs
 
         public virtual bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Linked AbpUsers login account (optional).
+        /// </summary>
+        public virtual long? UserId { get; set; }
+
         public virtual ICollection<StaffAttendance> Attendances { get; set; }
 
         public virtual ICollection<StaffPayroll> Payrolls { get; set; }

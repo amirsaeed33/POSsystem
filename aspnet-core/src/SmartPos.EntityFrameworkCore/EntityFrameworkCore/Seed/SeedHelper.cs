@@ -26,9 +26,10 @@ namespace SmartPos.EntityFrameworkCore.Seed
             {
                 // Host seed only — do not auto-create a Default tenant or admin@defaulttenant.com.
                 new InitialHostDbBuilder(context).Create();
-                // Lookups (incl. host BranchStatus) before branches that FK StatusId.
+                // Lookups (incl. host BranchStatus) before tenant branches that FK StatusId.
                 new DefaultLookupsCreator(context, null).Create();
-                new DefaultBranchCreator(context, null).Create();
+                // Host admin has no own location — locations belong to businesses only.
+                ClearHostUserBranchAssignments(context);
                 new DefaultEmailTemplatesCreator(context, null).Create();
                 new BakeryGeneralStoreDemoDataCreator(context, null).Create();
 
@@ -45,6 +46,25 @@ namespace SmartPos.EntityFrameworkCore.Seed
             {
                 context.SuppressAutoSetTenantId = false;
             }
+        }
+
+        private static void ClearHostUserBranchAssignments(SmartPosDbContext context)
+        {
+            var hostUsers = context.Users.IgnoreQueryFilters()
+                .Where(x => x.TenantId == null && x.BranchId != null && !x.IsDeleted)
+                .ToList();
+
+            if (!hostUsers.Any())
+            {
+                return;
+            }
+
+            foreach (var user in hostUsers)
+            {
+                user.BranchId = null;
+            }
+
+            context.SaveChanges();
         }
 
         private static void WithDbContext<TDbContext>(IIocResolver iocResolver, Action<TDbContext> contextAction)

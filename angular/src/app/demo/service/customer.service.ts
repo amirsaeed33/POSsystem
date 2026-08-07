@@ -109,6 +109,7 @@ export class CustomerService {
     private mapCustomer(item: any): CustomerDto {
         return {
             id: item.id ?? item.Id,
+            branchId: item.branchId ?? item.BranchId ?? 0,
             name: item.name ?? item.Name,
             customerType: item.customerType ?? item.CustomerType ?? 0,
             phone: item.phone ?? item.Phone,

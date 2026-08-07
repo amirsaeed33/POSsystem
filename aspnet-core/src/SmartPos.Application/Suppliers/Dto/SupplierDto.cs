@@ -9,6 +9,8 @@ namespace SmartPos.Suppliers.Dto
     [AutoMapTo(typeof(Supplier))]
     public class SupplierDto : EntityDto
     {
+        public int BranchId { get; set; }
+
         [Required]
         [StringLength(Supplier.MaxNameLength)]
         public string Name { get; set; }

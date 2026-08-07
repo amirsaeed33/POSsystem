@@ -1,0 +1,94 @@
+<p-dialog
+    [header]="dialogTitle"
+    [(visible)]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
+    [style]="{ width: '32rem' }"
+    [breakpoints]="{ '960px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onHide()"
+>
+    <p class="text-color-secondary mt-0 mb-3" *ngIf="staff">
+        <ng-container *ngIf="hasUserAccount; else createHint">
+            Set a new password for <strong>{{ staff.name }}</strong>.
+        </ng-container>
+        <ng-template #createHint>
+            Create a login account for <strong>{{ staff.name }}</strong>.
+            Email will be used as the username.
+        </ng-template>
+    </p>
+
+    <div class="flex flex-column gap-3" *ngIf="!hasUserAccount">
+        <div class="flex flex-column gap-2">
+            <label for="staffLoginEmail" class="font-medium">
+                Email <span class="p-error">*</span>
+            </label>
+            <input
+                id="staffLoginEmail"
+                type="email"
+                pInputText
+                class="w-full"
+                [(ngModel)]="email"
+                [disabled]="saving"
+                autocomplete="off"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="staffLoginPassword" class="font-medium">
+                Password <span class="p-error">*</span>
+            </label>
+            <input
+                id="staffLoginPassword"
+                type="text"
+                pInputText
+                class="w-full"
+                [(ngModel)]="password"
+                [disabled]="saving"
+                autocomplete="new-password"
+            />
+            <small class="text-color-secondary">Minimum 6 characters.</small>
+        </div>
+    </div>
+
+    <div class="flex flex-column gap-2" *ngIf="hasUserAccount">
+        <label for="staffChangePassword" class="font-medium">
+            New Password <span class="p-error">*</span>
+        </label>
+        <input
+            id="staffChangePassword"
+            type="text"
+            pInputText
+            class="w-full"
+            [(ngModel)]="password"
+            [disabled]="saving"
+            autocomplete="new-password"
+        />
+        <small class="text-color-secondary">Minimum 6 characters.</small>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            [disabled]="saving"
+            (click)="onHide()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            [label]="hasUserAccount ? 'Change Password' : 'Create Login'"
+            icon="pi pi-check"
+            [loading]="saving"
+            [disabled]="!canSave"
+            (click)="save()"
+        ></button>
+    </ng-template>
+</p-dialog>

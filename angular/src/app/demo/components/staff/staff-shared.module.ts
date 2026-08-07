@@ -16,6 +16,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
 import { StaffListComponent } from './staff-list.component';
 import { StaffFormDialogComponent } from './staff-form-dialog.component';
+import { StaffLoginDialogComponent } from './staff-login-dialog.component';
 
 @NgModule({
     imports: [
@@ -35,7 +36,15 @@ import { StaffFormDialogComponent } from './staff-form-dialog.component';
         CheckboxModule,
         TagModule,
     ],
-    declarations: [StaffListComponent, StaffFormDialogComponent],
-    exports: [StaffListComponent, StaffFormDialogComponent],
+    declarations: [
+        StaffListComponent,
+        StaffFormDialogComponent,
+        StaffLoginDialogComponent,
+    ],
+    exports: [
+        StaffListComponent,
+        StaffFormDialogComponent,
+        StaffLoginDialogComponent,
+    ],
 })
 export class StaffSharedModule {}

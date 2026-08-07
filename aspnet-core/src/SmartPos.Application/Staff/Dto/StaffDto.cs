@@ -40,5 +40,9 @@ namespace SmartPos.Staffs.Dto
         public decimal? BasicSalary { get; set; }
 
         public bool IsActive { get; set; }
+
+        public long? UserId { get; set; }
+
+        public bool HasUserAccount => UserId.HasValue;
     }
 }

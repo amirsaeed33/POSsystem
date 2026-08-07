@@ -205,6 +205,11 @@ namespace SmartPos.EntityFrameworkCore
 
             modelBuilder.Entity<Customer>(b =>
             {
+                b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 b.HasOne(x => x.Account)
                     .WithMany()
                     .HasForeignKey(x => x.AccountId)
@@ -215,6 +220,7 @@ namespace SmartPos.EntityFrameworkCore
             {
                 b.Property(x => x.BasicSalary).HasPrecision(18, 2);
                 b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.UserId);
                 b.HasOne(x => x.Branch)
                     .WithMany()
                     .HasForeignKey(x => x.BranchId)
@@ -274,6 +280,11 @@ namespace SmartPos.EntityFrameworkCore
 
             modelBuilder.Entity<Supplier>(b =>
             {
+                b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 b.HasOne(x => x.Account)
                     .WithMany()
                     .HasForeignKey(x => x.AccountId)

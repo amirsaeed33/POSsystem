@@ -170,6 +170,7 @@ export class AuthService {
         localStorage.removeItem(EXPIRE_KEY);
         localStorage.removeItem(USER_INFO_KEY);
         localStorage.removeItem('SmartPos.BranchId');
+        localStorage.removeItem('SmartPos.IsHostAdmin');
         this.tenantContext.setTenantId(undefined);
         this.permissionService.clear();
     }
