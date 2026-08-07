@@ -36,29 +36,7 @@
 
     <!-- Host admin: pending tenant branch approvals -->
     <section class="mb-4" *ngIf="canApprove()">
-        <div class="flex align-items-center justify-content-between mb-3">
-            <h2 class="m-0 text-xl font-semibold">Pending approvals</h2>
-            <button
-                pButton
-                pRipple
-                type="button"
-                icon="pi pi-refresh"
-                class="p-button-text p-button-sm"
-                label="Refresh"
-                (click)="loadPendingApprovals()"
-            ></button>
-        </div>
-
-        <div *ngIf="pendingLoading" class="text-500 py-3">
-            <i class="pi pi-spin pi-spinner mr-2"></i> Loading…
-        </div>
-
-        <div
-            *ngIf="!pendingLoading && !pendingApprovals.length"
-            class="surface-card border-round-xl p-4 text-500 border-1 surface-border"
-        >
-            No branches waiting for approval.
-        </div>
+       
 
         <div *ngIf="!pendingLoading && pendingApprovals.length" class="grid">
             <div class="col-12 md:col-6 xl:col-4" *ngFor="let branch of pendingApprovals">
@@ -214,7 +192,7 @@
                     <a
                         pRipple
                         class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
-                        (click)="openEditDialog(branch)"
+                        (click)="openEditPage(branch)"
                     >
                         <i class="pi pi-pencil mr-2"></i>
                         <span>Edit</span>

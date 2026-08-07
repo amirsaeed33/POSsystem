@@ -13,8 +13,10 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { StyleClassModule } from 'primeng/styleclass';
 import { DropdownModule } from 'primeng/dropdown';
+import { MessageService } from 'primeng/api';
 import { BranchListComponent } from './branch-list.component';
 import { BranchFormDialogComponent } from './branch-form-dialog.component';
+import { BranchEditComponent } from './branch-edit/branch-edit.component';
 
 @NgModule({
     imports: [
@@ -33,7 +35,8 @@ import { BranchFormDialogComponent } from './branch-form-dialog.component';
         StyleClassModule,
         DropdownModule,
     ],
-    declarations: [BranchListComponent, BranchFormDialogComponent],
+    providers: [MessageService],
+    declarations: [BranchListComponent, BranchFormDialogComponent, BranchEditComponent],
     exports: [BranchListComponent, BranchFormDialogComponent],
 })
 export class BranchesSharedModule {}

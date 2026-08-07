@@ -125,7 +125,7 @@ namespace SmartPos.Staffs
             var staff = await Repository.GetAsync(input.StaffId);
             if (staff.UserId.HasValue)
             {
-                throw new UserFriendlyException("A login account already exists for this staff member.");
+                throw new UserFriendlyException($"A login account already exists for {input.Email} staff member.");
             }
 
             if (!staff.BranchId.HasValue)
@@ -149,7 +149,7 @@ namespace SmartPos.Staffs
                            ?? await _userManager.FindByEmailAsync(email);
             if (existing != null)
             {
-                throw new UserFriendlyException("A user with this email already exists.");
+                throw new UserFriendlyException($"A login account already exists for {input.Email} staff member.");
             }
 
             var nameParts = (staff.Name ?? string.Empty).Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);

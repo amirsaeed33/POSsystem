@@ -1,0 +1,289 @@
+<p>test</p>
+<div class="card">
+
+    <div class="flex justify-content-between align-items-center mb-3">
+        <h2>Edit Branch</h2>
+
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Back to list"
+            class="p-button-text"
+            (click)="onCancel()"
+            [disabled]="saving">
+        </button>
+    </div>
+
+    <div class="flex flex-column gap-3" [class.p-fluid]="true" *ngIf="!loading; else loadingTpl">
+
+        <div class="flex justify-left-center align-items-left mb-1">
+    <div
+        class="profile-picture-container"
+        (click)="fileInput.click()"
+        style="cursor: pointer; position: relative; display: inline-block;"
+    >
+        <img
+            [src]="imagePreview || 'assets/layout/images/avatar.png'"
+            alt="Branch Image"
+            class="border-circle profile-picture"
+            style="width: 150px; height: 150px; object-fit: cover; border: 3px solid var(--primary-color); box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: block;"
+        />
+
+        <div
+            class="profile-picture-overlay"
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background-color: rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;"
+        >
+            <i class="pi pi-camera" style="font-size: 2rem; color: white;"></i>
+            <span style="color: white; font-weight: 500; margin-top: 0.5rem; font-size: 0.875rem;">
+                Change Photo
+            </span>
+        </div>
+
+        <input
+            #fileInput
+            type="file"
+            accept="image/*"
+            (change)="onFileSelected($event)"
+            [disabled]="saving"
+            style="display: none;"
+        />
+    </div>
+</div>
+
+
+
+        <div class="flex gap-3">
+            <div class="flex flex-column gap-2 flex-1">
+                <label for="branchName" class="font-medium">
+                    Name <span class="p-error">*</span>
+                </label>
+
+                <input
+                    id="branchName"
+                    type="text"
+                    pInputText
+                    class="w-full"
+                    maxlength="256"
+                    [(ngModel)]="branch.name"
+                    [disabled]="saving"
+                />
+            </div>
+
+            <div class="flex flex-column gap-2" style="width: 10rem">
+                <label for="branchCode" class="font-medium">
+                    Code <span class="p-error">*</span>
+                </label>
+
+                <input
+                    id="branchCode"
+                    type="text"
+                    pInputText
+                    class="w-full"
+                    maxlength="64"
+                    [(ngModel)]="branch.code"
+                    [disabled]="saving"
+                />
+            </div>
+        </div>
+
+         <div class="flex gap-4">
+            <div class="flex align-items-center gap-2">
+                <p-checkbox
+                    [binary]="true"
+                    [(ngModel)]="branch.isActive"
+                    inputId="branchIsActive"
+                    [disabled]="saving"
+                ></p-checkbox>
+                <label for="branchIsActive">Active</label>
+            </div>
+            <div class="flex align-items-center gap-2">
+                <p-checkbox
+                    [binary]="true"
+                    [(ngModel)]="branch.isDefault"
+                    inputId="branchIsDefault"
+                    [disabled]="saving"
+                ></p-checkbox>
+                <label for="branchIsDefault">Default branch</label>
+            </div>
+        </div>
+
+        <div class="flex flex-column gap-2" *ngIf="canEditStatus">
+            <label for="branchStatus" class="font-medium">
+                Status <span class="p-error">*</span>
+            </label>
+            <p-dropdown
+                inputId="branchStatus"
+                [options]="statusOptions"
+                [(ngModel)]="branch.statusId"
+                optionLabel="displayName"
+                optionValue="id"
+                placeholder="Select status"
+                styleClass="w-full"
+                [disabled]="saving"
+            ></p-dropdown>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="invoiceAddress" class="font-medium">Invoice Address</label>
+            <textarea
+                id="invoiceAddress"
+                pInputTextarea
+                rows="2"
+                class="w-full"
+                maxlength="1024"
+                [(ngModel)]="branch.invoiceAddress"
+                [disabled]="saving"
+            ></textarea>
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="invoiceContactEmail" class="font-medium">Invoice Contact Email</label>
+            <input
+                id="invoiceContactEmail"
+                type="email"
+                pInputText
+                class="w-full"
+                maxlength="512"
+                [(ngModel)]="branch.invoiceContactEmail"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="invoiceContactPhone" class="font-medium">Invoice Contact Phone</label>
+            <input
+                id="invoiceContactPhone"
+                type="text"
+                pInputText
+                class="w-full"
+                maxlength="64"
+                [(ngModel)]="branch.invoiceContactPhone"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="taxNumber" class="font-medium">Tax Number</label>
+            <input
+                id="taxNumber"
+                type="text"
+                pInputText
+                class="w-full"
+                maxlength="128"
+                [(ngModel)]="branch.taxNumber"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="formgrid grid">
+            <div class="field col-12 md:col-4 flex flex-column gap-2 mb-0">
+                <label for="branchTaxPercent" class="font-medium">Tax %</label>
+                <p-inputNumber
+                    inputId="branchTaxPercent"
+                    [(ngModel)]="branch.taxPercent"
+                    [min]="0"
+                    [max]="100"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    [showButtons]="false"
+                    styleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+            <div class="field col-12 md:col-4 flex flex-column gap-2 mb-0">
+                <label for="branchDiscountPercent" class="font-medium">Discount %</label>
+                <p-inputNumber
+                    inputId="branchDiscountPercent"
+                    [(ngModel)]="branch.discountPercent"
+                    [min]="0"
+                    [max]="100"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    [showButtons]="false"
+                    styleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+            <div class="field col-12 md:col-4 flex flex-column gap-2 mb-0">
+                <label for="branchDiscountAmount" class="font-medium">Discount Amount</label>
+                <p-inputNumber
+                    inputId="branchDiscountAmount"
+                    [(ngModel)]="branch.discountAmount"
+                    [min]="0"
+                    mode="decimal"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    [showButtons]="false"
+                    styleClass="w-full"
+                    [disabled]="saving"
+                ></p-inputNumber>
+            </div>
+        </div>
+        <small class="text-color-secondary -mt-2">
+            These values apply automatically on sales and cannot be changed on the sale screen.
+        </small>
+
+        <div class="flex flex-column gap-2">
+            <label for="website" class="font-medium">Website</label>
+            <input
+                id="website"
+                type="text"
+                pInputText
+                class="w-full"
+                maxlength="512"
+                [(ngModel)]="branch.website"
+                [disabled]="saving"
+            />
+        </div>
+
+        <div class="flex flex-column gap-2">
+            <label for="invoiceFooter" class="font-medium">Invoice Footer</label>
+            <textarea
+                id="invoiceFooter"
+                pInputTextarea
+                rows="2"
+                class="w-full"
+                maxlength="1024"
+                [(ngModel)]="branch.invoiceFooter"
+                [disabled]="saving"
+            ></textarea>
+        </div>
+
+       
+
+    </div>
+
+    <ng-template #loadingTpl>
+        <div class="flex align-items-center justify-content-center p-4">
+            <i class="pi pi-spin pi-spinner text-2xl"></i>
+        </div>
+    </ng-template>
+
+
+    <div class="flex justify-content-end gap-2 mt-4">
+
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="onCancel()"
+            [disabled]="saving">
+        </button>
+
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Update"
+            icon="pi pi-check"
+            (click)="save()"
+            [disabled]="saving || loading || !(branch.name || '').trim() || !(branch.code || '').trim()"
+            [loading]="saving">
+        </button>
+
+    </div>
+
+</div>

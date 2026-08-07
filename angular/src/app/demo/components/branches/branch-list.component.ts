@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
 import { LookUpDto, LookUpTypes } from 'src/app/demo/api/lookup';
@@ -38,7 +39,8 @@ export class BranchListComponent implements OnInit {
         private lookupService: LookUpService,
         private permissionService: PermissionService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
+        private router: Router
     ) {}
 
     ngOnInit(): void {
@@ -149,6 +151,11 @@ export class BranchListComponent implements OnInit {
         this.editingBranchId = branch.id;
         this.dialogVisible = true;
     }
+
+ openEditPage(branch: BranchDto): void {
+    debugger;
+    this.router.navigate(['/branches/edit', branch.id]);
+}
 
     onDialogSaved(): void {
         this.loadBranches();

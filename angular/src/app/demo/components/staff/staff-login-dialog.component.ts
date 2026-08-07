@@ -121,7 +121,7 @@ export class StaffLoginDialogComponent implements OnChanges {
                     severity: 'error',
                     summary: 'Error',
                     detail:
-                        error?.message ||
+                    error?.error?.error?.message ||
                         (this.hasUserAccount
                             ? 'Failed to change password'
                             : 'Failed to create login'),
