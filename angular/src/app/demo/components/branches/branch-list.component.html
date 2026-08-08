@@ -61,8 +61,30 @@
                                 *ngTemplateOutlet="branchActionsMenu; context: { $implicit: branch }"
                             ></ng-container>
                         </div>
-                        <div class="branch-card__badges-inline">
+                        <div class="branch-card__badges-inline mb-3">
                             <span class="branch-badge branch-badge--pending">{{ statusLabel(branch) }}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-auto">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                icon="pi pi-send"
+                                label="Approve"
+                                class="p-button-sm p-button-success"
+                                [disabled]="actionBusyId === branch.id"
+                                (click)="approveBranch(branch)"
+                            ></button>
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                icon="pi pi-times"
+                                label="Reject"
+                                class="p-button-sm p-button-danger p-button-outlined"
+                                [disabled]="actionBusyId === branch.id"
+                                (click)="rejectBranch(branch)"
+                            ></button>
                         </div>
                     </div>
                 </article>

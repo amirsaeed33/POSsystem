@@ -35,6 +35,7 @@ export class BranchFormDialogComponent implements OnChanges {
     imagePreview = '';
     saving = false;
     loading = false;
+    private originalStatusId = 0;
 
     constructor(
         private branchService: BranchService,
@@ -162,6 +163,15 @@ export class BranchFormDialogComponent implements OnChanges {
             discountAmount: this.branch.discountAmount ?? 0,
         };
 
+        const selectedStatus = this.statusOptions.find(
+            (x) => x.id === this.branch.statusId
+        );
+        const requestingActivation =
+            this.canEditStatus &&
+            this.branch.statusId !== this.originalStatusId &&
+            (selectedStatus?.name || '').toLowerCase() ===
+                BranchStatuses.Approved.toLowerCase();
+
         const request = this.branchId
             ? this.branchService.update({
                   id: this.branchId,
@@ -179,10 +189,14 @@ export class BranchFormDialogComponent implements OnChanges {
             .then(async (saved) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: this.branchId
-                        ? 'Branch updated successfully'
-                        : 'Branch created successfully',
+                    summary: requestingActivation
+                        ? 'Activation email sent'
+                        : 'Success',
+                    detail: requestingActivation
+                        ? 'An activation link was emailed. The branch stays pending until the link is opened.'
+                        : this.branchId
+                          ? 'Branch updated successfully'
+                          : 'Branch created successfully',
                 });
                 if (
                     saved?.id &&
@@ -234,6 +248,7 @@ export class BranchFormDialogComponent implements OnChanges {
         this.imagePreview = '';
         this.saving = false;
         this.loading = false;
+        this.originalStatusId = 0;
     }
 
     private loadStatusOptions(): void {
@@ -253,6 +268,7 @@ export class BranchFormDialogComponent implements OnChanges {
             .get(id)
             .then((branch) => {
                 this.branch = { ...branch, imageBase64: undefined };
+                this.originalStatusId = branch.statusId || 0;
                 this.imagePreview = this.branchService.getImageUrl(
                     branch.imagePath
                 );

@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace SmartPos.Net.Emailing
+namespace SmartPos.Emailing
 {
     public interface ISmtpMailSender
     {

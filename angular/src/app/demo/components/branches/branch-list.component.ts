@@ -24,6 +24,7 @@ export class BranchListComponent implements OnInit {
 
     dialogVisible = false;
     editingBranchId: number | null = null;
+    actionBusyId: number | null = null;
 
     readonly BranchStatuses = BranchStatuses;
     readonly canApprove = () =>
@@ -162,6 +163,91 @@ export class BranchListComponent implements OnInit {
         if (this.canApprove()) {
             this.loadPendingApprovals();
         }
+    }
+
+    approveBranch(branch: BranchDto): void {
+        if (!branch?.id) {
+            return;
+        }
+
+        this.actionBusyId = branch.id;
+        this.branchService
+            .requestActivation(branch.id)
+            .then(() => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Activation email sent',
+                    detail: `An activation link was sent to ${
+                        branch.invoiceContactEmail || 'the branch email'
+                    }. The branch stays pending until the link is opened.`,
+                });
+                this.loadPendingApprovals();
+                this.loadBranches();
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail:
+                        error?.message ||
+                        'Failed to send branch activation email',
+                });
+            })
+            .finally(() => {
+                this.actionBusyId = null;
+            });
+    }
+
+    rejectBranch(branch: BranchDto): void {
+        if (!branch?.id) {
+            return;
+        }
+
+        const rejected = this.statusLookups.find(
+            (x) =>
+                (x.name || '').toLowerCase() ===
+                BranchStatuses.Rejected.toLowerCase()
+        );
+        if (!rejected?.id) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Rejected status is not configured.',
+            });
+            return;
+        }
+
+        this.confirmationService.confirm({
+            message: `Reject branch "${branch.name}"?`,
+            header: 'Reject Confirmation',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => {
+                this.actionBusyId = branch.id;
+                this.branchService
+                    .changeStatus(branch.id, rejected.id)
+                    .then(() => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: 'Rejected',
+                            detail: `"${branch.name}" was rejected.`,
+                        });
+                        this.loadPendingApprovals();
+                        this.loadBranches();
+                    })
+                    .catch((error) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail:
+                                error?.message || 'Failed to reject branch',
+                        });
+                    })
+                    .finally(() => {
+                        this.actionBusyId = null;
+                    });
+            },
+        });
     }
 
     printInvoiceDialogVisible = false;

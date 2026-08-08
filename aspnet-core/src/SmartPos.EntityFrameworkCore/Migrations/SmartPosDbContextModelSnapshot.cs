@@ -1781,6 +1781,13 @@ namespace SmartPos.Migrations
                     b.Property<int>("StatusId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ActivationTokenHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime?>("ActivationTokenExpiresAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("TaxNumber")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");

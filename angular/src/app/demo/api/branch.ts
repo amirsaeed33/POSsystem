@@ -60,3 +60,9 @@ export interface PagedResultDto<T> {
     items: T[];
     totalCount: number;
 }
+
+export interface ActivateBranchResultDto {
+    branchName?: string;
+    tenancyName?: string;
+    tenantName?: string;
+}

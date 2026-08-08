@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
@@ -18,6 +19,7 @@ namespace SmartPos.Branches
         public const int MaxTaxNumberLength = 128;
         public const int MaxWebsiteLength = 512;
         public const int MaxInvoiceFooterLength = 1024;
+        public const int MaxActivationTokenHashLength = 128;
 
         public virtual int? TenantId { get; set; }
 
@@ -70,5 +72,11 @@ namespace SmartPos.Branches
 
         /// <summary>Default discount amount applied on sales for this location.</summary>
         public virtual decimal DiscountAmount { get; set; }
+
+        /// <summary>SHA256 (Base64) of the one-time branch activation token emailed after host approval.</summary>
+        [StringLength(MaxActivationTokenHashLength)]
+        public virtual string ActivationTokenHash { get; set; }
+
+        public virtual DateTime? ActivationTokenExpiresAt { get; set; }
     }
 }

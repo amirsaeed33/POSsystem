@@ -14,7 +14,13 @@ namespace SmartPos.Branches
         /// <summary>Host-only: pending tenant branches awaiting approval.</summary>
         Task<ListResultDto<BranchDto>> GetPendingApprovalsAsync();
 
-        /// <summary>Host-only: set status to Approved / Rejected (LookUp Name).</summary>
+        /// <summary>Host-only: set status to Rejected / Pending, or request activation email when Approved is selected.</summary>
         Task<BranchDto> ChangeStatusAsync(ChangeBranchStatusDto input);
+
+        /// <summary>Host-only: email activation link; status stays Pending until the link is opened.</summary>
+        Task<BranchDto> RequestBranchActivationAsync(EntityDto<int> input);
+
+        /// <summary>Public: activate a branch via emailed one-time token.</summary>
+        Task<ActivateBranchResultDto> ActivateBranchAsync(ActivateBranchInput input);
     }
 }

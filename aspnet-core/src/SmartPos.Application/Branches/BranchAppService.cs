@@ -11,9 +11,11 @@ using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches.Dto;
+using SmartPos.Emailing;
 using SmartPos.Inventory;
 using SmartPos.Lookups;
 using SmartPos.MultiTenancy;
@@ -30,7 +32,10 @@ namespace SmartPos.Branches
         private readonly IBranchStockManager _branchStockManager;
         private readonly IRepository<Tenant> _tenantRepository;
         private readonly IRepository<LookUp> _lookUpRepository;
+        private readonly IRepository<EmailTemplate> _emailTemplateRepository;
         private readonly BranchStatusLookup _branchStatusLookup;
+        private readonly ISmtpMailSender _smtpMailSender;
+        private readonly IConfiguration _configuration;
 
         public BranchAppService(
             IRepository<Branch> repository,
@@ -38,14 +43,20 @@ namespace SmartPos.Branches
             IBranchStockManager branchStockManager,
             IRepository<Tenant> tenantRepository,
             IRepository<LookUp> lookUpRepository,
-            BranchStatusLookup branchStatusLookup)
+            IRepository<EmailTemplate> emailTemplateRepository,
+            BranchStatusLookup branchStatusLookup,
+            ISmtpMailSender smtpMailSender,
+            IConfiguration configuration)
             : base(repository)
         {
             _productRepository = productRepository;
             _branchStockManager = branchStockManager;
             _tenantRepository = tenantRepository;
             _lookUpRepository = lookUpRepository;
+            _emailTemplateRepository = emailTemplateRepository;
             _branchStatusLookup = branchStatusLookup;
+            _smtpMailSender = smtpMailSender;
+            _configuration = configuration;
             CreatePermissionName = PermissionNames.Pages_Branches;
             UpdatePermissionName = PermissionNames.Pages_Branches;
             DeletePermissionName = PermissionNames.Pages_Branches;
@@ -109,13 +120,27 @@ namespace SmartPos.Branches
             branch.DiscountAmount = Math.Max(0, input.DiscountAmount);
 
             // Only host admin with approve permission may change StatusId.
+            // Selecting Approved sends an activation email and keeps Pending.
+            var sendActivationEmail = false;
             if (AbpSession.TenantId == null
                 && input.StatusId > 0
                 && input.StatusId != branch.StatusId
                 && await PermissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches_Approve))
             {
-                await _branchStatusLookup.EnsureValidStatusIdAsync(input.StatusId);
-                branch.StatusId = input.StatusId;
+                var status = await _branchStatusLookup.GetAsync(input.StatusId);
+                if (BranchStatuses.IsApproved(status.Name))
+                {
+                    sendActivationEmail = true;
+                }
+                else
+                {
+                    branch.StatusId = status.Id;
+                    if (string.Equals(status.Name, BranchStatuses.Rejected, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(status.Name, BranchStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+                    {
+                        ClearActivationToken(branch);
+                    }
+                }
             }
 
             if (BranchImageStore.IsNewImagePayload(input.ImageBase64))
@@ -130,6 +155,11 @@ namespace SmartPos.Branches
             }
 
             await CurrentUnitOfWork.SaveChangesAsync();
+
+            if (sendActivationEmail)
+            {
+                await SendBranchActivationEmailAsync(branch);
+            }
 
             return await GetAsync(new EntityDto<int>(branch.Id));
         }
@@ -322,8 +352,13 @@ namespace SmartPos.Branches
         [AbpAuthorize(PermissionNames.Pages_Branches_Approve)]
         public async Task<BranchDto> ChangeStatusAsync(ChangeBranchStatusDto input)
         {
-            // Host may set Pending / Approved / Rejected at any time (including after a prior approval).
             var status = await _branchStatusLookup.GetAsync(input.StatusId);
+
+            // Approved means "send activation email"; status stays Pending until the link is opened.
+            if (BranchStatuses.IsApproved(status.Name))
+            {
+                return await RequestBranchActivationAsync(new EntityDto<int>(input.Id));
+            }
 
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
             {
@@ -341,6 +376,7 @@ namespace SmartPos.Branches
                 }
 
                 branch.StatusId = status.Id;
+                ClearActivationToken(branch);
                 await CurrentUnitOfWork.SaveChangesAsync();
 
                 var dto = ObjectMapper.Map<BranchDto>(branch);
@@ -349,6 +385,81 @@ namespace SmartPos.Branches
                 dto.Status = status.Name;
                 dto.StatusDisplayName = status.DisplayName;
                 return dto;
+            }
+        }
+
+        [AbpAuthorize(PermissionNames.Pages_Branches_Approve)]
+        public async Task<BranchDto> RequestBranchActivationAsync(EntityDto<int> input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                var branch = await Repository.GetAll()
+                    .FirstOrDefaultAsync(x => x.Id == input.Id);
+
+                if (branch == null)
+                {
+                    throw new UserFriendlyException("Branch not found.");
+                }
+
+                await SendBranchActivationEmailAsync(branch);
+                return await GetAsync(new EntityDto<int>(branch.Id));
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<ActivateBranchResultDto> ActivateBranchAsync(ActivateBranchInput input)
+        {
+            var token = (input?.Token ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new UserFriendlyException("Activation token is required.");
+            }
+
+            var tokenHash = BranchActivationToken.Hash(token);
+            var now = DateTime.UtcNow;
+
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                var branch = await Repository.GetAll()
+                    .FirstOrDefaultAsync(x =>
+                        x.ActivationTokenHash != null
+                        && x.ActivationTokenHash == tokenHash);
+
+                if (branch == null
+                    || string.IsNullOrEmpty(branch.ActivationTokenHash)
+                    || !BranchActivationToken.FixedTimeEquals(branch.ActivationTokenHash, tokenHash))
+                {
+                    throw new UserFriendlyException("Invalid or expired activation link.");
+                }
+
+                if (!branch.ActivationTokenExpiresAt.HasValue
+                    || branch.ActivationTokenExpiresAt.Value < now)
+                {
+                    ClearActivationToken(branch);
+                    await CurrentUnitOfWork.SaveChangesAsync();
+                    throw new UserFriendlyException("This activation link has expired. Ask the host admin to send a new one.");
+                }
+
+                if (!branch.TenantId.HasValue)
+                {
+                    throw new UserFriendlyException("Host branches do not require activation.");
+                }
+
+                var approvedStatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Approved);
+                branch.StatusId = approvedStatusId;
+                branch.IsActive = true;
+                ClearActivationToken(branch);
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                var tenant = await _tenantRepository.FirstOrDefaultAsync(branch.TenantId.Value);
+                return new ActivateBranchResultDto
+                {
+                    BranchName = branch.Name,
+                    TenancyName = tenant?.TenancyName,
+                    TenantName = !string.IsNullOrWhiteSpace(tenant?.Name)
+                        ? tenant.Name
+                        : tenant?.TenancyName
+                };
             }
         }
 
@@ -455,6 +566,119 @@ namespace SmartPos.Branches
                     dto.StatusDisplayName = lookUp.DisplayName;
                 }
             }
+        }
+
+        private async Task SendBranchActivationEmailAsync(Branch branch)
+        {
+            if (branch == null)
+            {
+                throw new UserFriendlyException("Branch not found.");
+            }
+
+            if (!branch.TenantId.HasValue)
+            {
+                throw new UserFriendlyException("Host branches do not require approval.");
+            }
+
+            if (string.IsNullOrWhiteSpace(branch.InvoiceContactEmail))
+            {
+                throw new UserFriendlyException(
+                    "Branch invoice contact email is required before sending the activation link.");
+            }
+
+            var pendingStatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
+            if (branch.StatusId != pendingStatusId)
+            {
+                throw new UserFriendlyException(
+                    "Only pending branches can receive an activation email.");
+            }
+
+            var tenant = await _tenantRepository.FirstOrDefaultAsync(branch.TenantId.Value);
+            if (tenant == null)
+            {
+                throw new UserFriendlyException("Tenant not found for this branch.");
+            }
+
+            var expirationHours = GetActivationExpirationHours();
+            var plainToken = BranchActivationToken.CreatePlainToken();
+            branch.ActivationTokenHash = BranchActivationToken.Hash(plainToken);
+            branch.ActivationTokenExpiresAt = DateTime.UtcNow.AddHours(expirationHours);
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            var tenantName = !string.IsNullOrWhiteSpace(tenant.Name)
+                ? tenant.Name
+                : tenant.TenancyName;
+            var activationLink = BuildActivationLink(plainToken);
+
+            var placeholders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["TenantName"] = tenantName ?? string.Empty,
+                ["BranchName"] = branch.Name ?? string.Empty,
+                ["ActivationLink"] = activationLink,
+                ["AppName"] = "SmartPos",
+                ["ExpirationHours"] = expirationHours.ToString()
+            };
+
+            var (subject, bodyHtml) = await ResolveBranchActivationTemplateAsync(placeholders);
+            await _smtpMailSender.SendAsync(
+                branch.InvoiceContactEmail.Trim(),
+                subject,
+                bodyHtml,
+                isBodyHtml: true);
+        }
+
+        private async Task<(string Subject, string BodyHtml)> ResolveBranchActivationTemplateAsync(
+            IReadOnlyDictionary<string, string> placeholders)
+        {
+            EmailTemplate template;
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                template = await _emailTemplateRepository.FirstOrDefaultAsync(
+                    x => x.Code == EmailTemplateCodes.BranchActivation && x.IsActive && x.TenantId == null);
+            }
+
+            var subjectTemplate = template?.Subject ?? "Activate {{BranchName}} for {{TenantName}}";
+            var bodyTemplate = !string.IsNullOrWhiteSpace(template?.BodyHtml)
+                ? template.BodyHtml
+                : EmailTemplateDefaults.BranchActivationBodyHtml();
+
+            return (
+                EmailTemplateRenderer.Render(subjectTemplate, placeholders),
+                EmailTemplateRenderer.Render(bodyTemplate, placeholders)
+            );
+        }
+
+        private string BuildActivationLink(string plainToken)
+        {
+            var clientRoot = (_configuration["App:ClientRootAddress"] ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(clientRoot))
+            {
+                throw new UserFriendlyException("Client root address is not configured.");
+            }
+
+            if (!clientRoot.EndsWith("/"))
+            {
+                clientRoot += "/";
+            }
+
+            return $"{clientRoot}auth/activate-branch?token={Uri.EscapeDataString(plainToken)}";
+        }
+
+        private int GetActivationExpirationHours()
+        {
+            if (int.TryParse(_configuration["App:BranchActivation:ExpirationHours"], out var hours)
+                && hours > 0)
+            {
+                return hours;
+            }
+
+            return 72;
+        }
+
+        private static void ClearActivationToken(Branch branch)
+        {
+            branch.ActivationTokenHash = null;
+            branch.ActivationTokenExpiresAt = null;
         }
 
         private async Task SeedSharedProductsAsync(int branchId)

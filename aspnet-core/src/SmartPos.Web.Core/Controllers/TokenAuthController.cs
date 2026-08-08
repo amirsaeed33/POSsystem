@@ -23,7 +23,6 @@ using SmartPos.Authorization.Users;
 using SmartPos.Emailing;
 using SmartPos.Models.TokenAuth;
 using SmartPos.MultiTenancy;
-using SmartPos.Net.Emailing;
 using Abp.Domain.Repositories;
 
 namespace SmartPos.Controllers

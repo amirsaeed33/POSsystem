@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+    ActivateBranchResultDto,
     BranchDto,
     CreateBranchDto,
     PagedBranchResultRequestDto,
@@ -122,6 +123,47 @@ export class BranchService {
             })
         );
         return this.map(this.unwrap(res, 'Failed to update branch status'));
+    }
+
+    async requestActivation(id: number): Promise<BranchDto> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.post<any>(`${this.apiUrl}/RequestBranchActivation`, {
+                    id,
+                })
+            );
+            return this.map(
+                this.unwrap(res, 'Failed to send branch activation email')
+            );
+        } catch (error: any) {
+            const message =
+                error?.error?.error?.message ||
+                error?.error?.message ||
+                error?.message ||
+                'Failed to send branch activation email';
+            throw new Error(message);
+        }
+    }
+
+    async activateBranch(token: string): Promise<ActivateBranchResultDto> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.post<any>(`${this.apiUrl}/ActivateBranch`, { token })
+            );
+            const result = this.unwrap(res, 'Failed to activate branch');
+            return {
+                branchName: result.branchName ?? result.BranchName,
+                tenancyName: result.tenancyName ?? result.TenancyName,
+                tenantName: result.tenantName ?? result.TenantName,
+            };
+        } catch (error: any) {
+            const message =
+                error?.error?.error?.message ||
+                error?.error?.message ||
+                error?.message ||
+                'Failed to activate branch';
+            throw new Error(message);
+        }
     }
 
     async delete(id: number): Promise<void> {

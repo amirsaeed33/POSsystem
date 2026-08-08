@@ -18,6 +18,7 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
         public void Create()
         {
             EnsureEmailLoginCodeTemplate();
+            EnsureBranchActivationTemplate();
             _context.SaveChanges();
         }
 
@@ -43,6 +44,31 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
                 Description = "Sent when a user requests a passwordless email login code. Placeholders: {{Code}}, {{ExpirationMinutes}}, {{UserName}}, {{Name}}, {{Email}}, {{AppName}}.",
                 IsActive = true,
                 BodyHtml = EmailTemplateDefaults.EmailLoginCodeBodyHtml()
+            });
+        }
+
+        private void EnsureBranchActivationTemplate()
+        {
+            var exists = _context.EmailTemplates
+                .IgnoreQueryFilters()
+                .Any(x => x.TenantId == _tenantId
+                          && x.Code == EmailTemplateCodes.BranchActivation
+                          && !x.IsDeleted);
+
+            if (exists)
+            {
+                return;
+            }
+
+            _context.EmailTemplates.Add(new EmailTemplate
+            {
+                TenantId = _tenantId,
+                Name = "Branch activation",
+                Code = EmailTemplateCodes.BranchActivation,
+                Subject = "Activate {{BranchName}} for {{TenantName}}",
+                Description = "Sent when a host admin approves a branch. Placeholders: {{TenantName}}, {{BranchName}}, {{ActivationLink}}, {{AppName}}, {{ExpirationHours}}.",
+                IsActive = true,
+                BodyHtml = EmailTemplateDefaults.BranchActivationBodyHtml()
             });
         }
 

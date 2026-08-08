@@ -29,6 +29,7 @@ export class BranchEditComponent implements OnInit {
     imagePreview = '';
     saving = false;
     loading = false;
+    private originalStatusId = 0;
 
     constructor(
         private branchService: BranchService,
@@ -140,6 +141,15 @@ export class BranchEditComponent implements OnInit {
         };
 
 
+        const selectedStatus = this.statusOptions.find(
+            (x) => x.id === this.branch.statusId
+        );
+        const requestingActivation =
+            this.canEditStatus &&
+            this.branch.statusId !== this.originalStatusId &&
+            (selectedStatus?.name || '').toLowerCase() ===
+                BranchStatuses.Approved.toLowerCase();
+
         this.branchService
             .update({
                 id: this.branchId,
@@ -155,8 +165,12 @@ export class BranchEditComponent implements OnInit {
 
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success',
-                    detail: 'Branch updated successfully',
+                    summary: requestingActivation
+                        ? 'Activation email sent'
+                        : 'Success',
+                    detail: requestingActivation
+                        ? 'An activation link was emailed. The branch stays pending until the link is opened.'
+                        : 'Branch updated successfully',
                 });
 
 
@@ -235,6 +249,7 @@ export class BranchEditComponent implements OnInit {
                     ...branch,
                     imageBase64: undefined
                 };
+                this.originalStatusId = branch.statusId || 0;
 
                 this.imagePreview =
                     this.branchService.getImageUrl(

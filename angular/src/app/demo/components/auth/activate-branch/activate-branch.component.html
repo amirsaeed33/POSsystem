@@ -1,0 +1,31 @@
+<div class="surface-ground h-screen w-screen flex align-items-center justify-content-center">
+    <div class="surface-card py-7 px-5 sm:px-7 shadow-2 flex flex-column w-11 sm:w-30rem" style="border-radius:14px">
+        <h1 class="font-bold text-2xl mt-0 mb-2">Branch activation</h1>
+
+        <div *ngIf="loading" class="flex align-items-center gap-2 text-color-secondary mb-4">
+            <i class="pi pi-spin pi-spinner"></i>
+            Activating your branch…
+        </div>
+
+        <ng-container *ngIf="!loading && success">
+            <p class="text-color-secondary mb-4">
+                <ng-container *ngIf="branchName; else genericSuccess">
+                    <strong>{{ branchName }}</strong>
+                    <ng-container *ngIf="tenantName"> for <strong>{{ tenantName }}</strong></ng-container>
+                    is now active. You can sign in to use the system.
+                </ng-container>
+                <ng-template #genericSuccess>
+                    Your branch is now active. You can sign in to use the system.
+                </ng-template>
+            </p>
+            <button pButton pRipple type="button" label="Go to Login" (click)="goToLogin()"></button>
+        </ng-container>
+
+        <ng-container *ngIf="!loading && !success">
+            <p class="text-color-secondary mb-4">{{ errorMessage }}</p>
+            <button pButton pRipple type="button" label="Go to Login" class="p-button-outlined" (click)="goToLogin()"></button>
+        </ng-container>
+    </div>
+</div>
+
+<app-config [minimal]="true"></app-config>

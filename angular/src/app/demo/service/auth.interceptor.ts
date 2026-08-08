@@ -47,7 +47,8 @@ export class AuthInterceptor implements HttpInterceptor {
             const skipTenantHeader =
                 /\/api\/services\/app\/Account\/(SignUpTenant|IsTenantAvailable)/i.test(
                     req.url
-                );
+                ) ||
+                /\/api\/services\/app\/Branch\/ActivateBranch/i.test(req.url);
             const tenantId = this.tenantContext.getTenantId();
             if (!skipTenantHeader && tenantId != null) {
                 headers['Abp.TenantId'] = String(tenantId);

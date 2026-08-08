@@ -104,6 +104,9 @@
             <label for="branchStatus" class="font-medium">
                 Status <span class="p-error">*</span>
             </label>
+            <small class="text-500">
+                Selecting Approved sends an activation email; the branch stays Pending until the link is opened.
+            </small>
             <p-dropdown
                 inputId="branchStatus"
                 [options]="statusOptions"

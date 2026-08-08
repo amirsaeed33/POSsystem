@@ -65,10 +65,13 @@
             </div>
         </div>
 
-        <div class="flex flex-column gap-2" *ngIf="canEditStatus">
+            <div class="flex flex-column gap-2" *ngIf="canEditStatus">
             <label for="branchStatus" class="font-medium">
                 Status <span class="p-error">*</span>
             </label>
+            <small class="text-500">
+                Selecting Approved sends an activation email; the branch stays Pending until the link is opened.
+            </small>
             <p-dropdown
                 inputId="branchStatus"
                 [options]="statusOptions"
