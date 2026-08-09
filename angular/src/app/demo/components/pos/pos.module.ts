@@ -8,6 +8,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { TableModule } from 'primeng/table';
 import { ToastModule } from 'primeng/toast';
 import { DropdownModule } from 'primeng/dropdown';
+import { DialogModule } from 'primeng/dialog';
 import { PosRoutingModule } from './pos-routing.module';
 import { PosComponent } from './pos.component';
 
@@ -23,6 +24,7 @@ import { PosComponent } from './pos.component';
         TableModule,
         ToastModule,
         DropdownModule,
+        DialogModule,
     ],
     declarations: [PosComponent],
 })

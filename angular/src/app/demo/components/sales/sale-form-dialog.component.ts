@@ -33,16 +33,14 @@ export class SaleFormDialogComponent implements OnChanges {
     saving = false;
     loading = false;
 
+    paymentDialogVisible = false;
+    paidAmount = 0;
+    private printAfterSave = false;
+    private pendingLines: CreateSaleLineDto[] = [];
+
     printDialogVisible = false;
     printingSaleId: number | null = null;
     printAutoPrint = false;
-
-    paymentTypes = [
-        { value: PaymentType.Cash, label: 'Cash' },
-        { value: PaymentType.Card, label: 'Card' },
-        { value: PaymentType.Credit, label: 'Credit' },
-        { value: PaymentType.Mixed, label: 'Mixed' },
-    ];
 
     constructor(
         private saleService: SaleService,
@@ -91,8 +89,14 @@ export class SaleFormDialogComponent implements OnChanges {
         );
     }
 
-    get isMixedPayment(): boolean {
-        return this.sale.paymentType === PaymentType.Mixed;
+    get changeToReturn(): number {
+        const paid = Number(this.paidAmount) || 0;
+        return Math.max(0, Math.round((paid - this.grandTotal) * 100) / 100);
+    }
+
+    get remainingDue(): number {
+        const paid = Number(this.paidAmount) || 0;
+        return Math.max(0, Math.round((this.grandTotal - paid) * 100) / 100);
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -105,10 +109,26 @@ export class SaleFormDialogComponent implements OnChanges {
     onVisibleChange(visible: boolean): void {
         this.visible = visible;
         this.visibleChange.emit(visible);
+        if (!visible) {
+            this.paymentDialogVisible = false;
+        }
     }
 
     onHide(): void {
         this.onVisibleChange(false);
+    }
+
+    onPaymentDialogHide(): void {
+        if (!this.saving) {
+            this.paymentDialogVisible = false;
+        }
+    }
+
+    onPaidAmountFocus(event: any): void {
+        const input = event?.originalEvent?.target as HTMLInputElement;
+        if (input?.select) {
+            setTimeout(() => input.select(), 0);
+        }
     }
 
     @HostListener('document:keydown', ['$event'])
@@ -156,13 +176,6 @@ export class SaleFormDialogComponent implements OnChanges {
         this.mergeDuplicateProductLine(line);
     }
 
-    onPaymentTypeChange(): void {
-        if (this.sale.paymentType !== PaymentType.Mixed) {
-            this.sale.cashAmount = 0;
-            this.sale.cardAmount = 0;
-        }
-    }
-
     lineTotal(line: CreateSaleLineDto): number {
         return (line.quantity || 0) * (line.unitPrice || 0);
     }
@@ -176,14 +189,89 @@ export class SaleFormDialogComponent implements OnChanges {
     }
 
     save(): void {
-        this.saveInternal(false);
+        this.openPaymentDialog(false);
     }
 
     saveAndPrint(): void {
-        this.saveInternal(true);
+        this.openPaymentDialog(true);
     }
 
-    private saveInternal(printAfter: boolean): void {
+    confirmPaymentAndSave(): void {
+        if (this.paidAmount == null || this.paidAmount < 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Enter the amount paid by the customer',
+            });
+            return;
+        }
+
+        const total = this.grandTotal;
+        const paid = Math.round((Number(this.paidAmount) || 0) * 100) / 100;
+        const change = Math.max(0, Math.round((paid - total) * 100) / 100);
+        const appliedCash = Math.min(paid, total);
+
+        // Fully paid (or overpaid with change) → cash sale for bill total.
+        // Underpaid → cash + credit split; ledger posts both automatically.
+        const paymentType =
+            paid >= total ? PaymentType.Cash : PaymentType.Mixed;
+        const cashAmount = paid >= total ? 0 : appliedCash;
+        const cardAmount = 0;
+
+        this.saving = true;
+        this.saleService
+            .create({
+                customerId: this.sale.customerId,
+                saleDate: this.sale.saleDate,
+                notes: this.sale.notes?.trim() || undefined,
+                discountAmount: this.sale.discountAmount || 0,
+                discountPercent: this.sale.discountPercent || 0,
+                taxPercent: this.sale.taxPercent || 0,
+                paymentType,
+                cashAmount,
+                cardAmount,
+                lines: this.pendingLines.map((line) => ({
+                    productId: line.productId,
+                    quantity: line.quantity,
+                    unitPrice: line.unitPrice || 0,
+                })),
+            })
+            .then((created) => {
+                const detail =
+                    change > 0
+                        ? `Sale saved. Return ${change.toFixed(2)} change to the customer.`
+                        : this.remainingDue > 0
+                          ? `Sale saved. Remaining ${this.remainingDue.toFixed(2)} posted on credit.`
+                          : 'Sale created successfully';
+
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail,
+                });
+                this.paymentDialogVisible = false;
+                this.saved.emit();
+                this.onHide();
+
+                if (this.printAfterSave && created?.id) {
+                    setTimeout(() => {
+                        this.openInvoicePrint(created.id, true);
+                    }, 0);
+                }
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.message || 'Failed to create sale',
+                });
+            })
+            .finally(() => {
+                this.saving = false;
+            });
+    }
+
+    private openPaymentDialog(printAfter: boolean): void {
         if (!this.sale.customerId) {
             this.messageService.add({
                 severity: 'warn',
@@ -235,50 +323,10 @@ export class SaleFormDialogComponent implements OnChanges {
             }
         }
 
-        this.saving = true;
-        this.saleService
-            .create({
-                customerId: this.sale.customerId,
-                saleDate: this.sale.saleDate,
-                notes: this.sale.notes?.trim() || undefined,
-                discountAmount: this.sale.discountAmount || 0,
-                discountPercent: this.sale.discountPercent || 0,
-                taxPercent: this.sale.taxPercent || 0,
-                paymentType: this.sale.paymentType,
-                cashAmount: this.sale.cashAmount || 0,
-                cardAmount: this.sale.cardAmount || 0,
-                lines: lines.map((line) => ({
-                    productId: line.productId,
-                    quantity: line.quantity,
-                    unitPrice: line.unitPrice || 0,
-                })),
-            })
-            .then((created) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: 'Sale created successfully',
-                });
-                this.saved.emit();
-                this.onHide();
-
-                // Match angular-old: close create dialog, then open invoice print dialog.
-                if (printAfter && created?.id) {
-                    setTimeout(() => {
-                        this.openInvoicePrint(created.id, true);
-                    }, 0);
-                }
-            })
-            .catch((error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error?.message || 'Failed to create sale',
-                });
-            })
-            .finally(() => {
-                this.saving = false;
-            });
+        this.pendingLines = lines;
+        this.printAfterSave = printAfter;
+        this.paidAmount = this.grandTotal;
+        this.paymentDialogVisible = true;
     }
 
     private openInvoicePrint(saleId: number, autoPrint: boolean): void {
@@ -374,7 +422,7 @@ export class SaleFormDialogComponent implements OnChanges {
             discountAmount: branch?.discountAmount ?? 0,
             discountPercent: branch?.discountPercent ?? 0,
             taxPercent: branch?.taxPercent ?? 0,
-            paymentType: PaymentType.Credit,
+            paymentType: PaymentType.Cash,
             cashAmount: 0,
             cardAmount: 0,
             lines: [this.emptyLine()],
@@ -386,6 +434,10 @@ export class SaleFormDialogComponent implements OnChanges {
         this.applyBranchPricing();
         this.saving = false;
         this.loading = false;
+        this.paymentDialogVisible = false;
+        this.paidAmount = 0;
+        this.printAfterSave = false;
+        this.pendingLines = [];
     }
 
     private applyBranchPricing(): void {

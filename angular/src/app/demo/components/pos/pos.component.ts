@@ -6,7 +6,7 @@ import {
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { PosCartLine } from 'src/app/demo/api/pos';
-import { CreateSaleDto, PaymentType } from 'src/app/demo/api/sale';
+import { PaymentType } from 'src/app/demo/api/sale';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { ProductDto } from 'src/app/demo/api/product';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
@@ -32,16 +32,9 @@ export class PosComponent implements OnInit {
     discountAmount = 0;
     discountPercent = 0;
     taxPercent = 0;
-    paymentType = PaymentType.Cash;
-    cashAmount = 0;
-    cardAmount = 0;
 
-    paymentTypes = [
-        { value: PaymentType.Cash, label: 'Cash' },
-        { value: PaymentType.Card, label: 'Card' },
-        { value: PaymentType.Credit, label: 'Credit' },
-        { value: PaymentType.Mixed, label: 'Mixed' },
-    ];
+    paymentDialogVisible = false;
+    paidAmount = 0;
 
     private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -90,33 +83,14 @@ export class PosComponent implements OnInit {
         );
     }
 
-    get creditAmount(): number {
-        if (this.paymentType === PaymentType.Credit) {
-            return this.grandTotal;
-        }
-        if (this.paymentType === PaymentType.Mixed) {
-            return Math.max(
-                0,
-                Math.round(
-                    (this.grandTotal -
-                        (this.cashAmount || 0) -
-                        (this.cardAmount || 0)) *
-                        100
-                ) / 100
-            );
-        }
-        return 0;
+    get changeToReturn(): number {
+        const paid = Number(this.paidAmount) || 0;
+        return Math.max(0, Math.round((paid - this.grandTotal) * 100) / 100);
     }
 
-    get isMixedPayment(): boolean {
-        return this.paymentType === PaymentType.Mixed;
-    }
-
-    get showCreditAmount(): boolean {
-        return (
-            this.paymentType === PaymentType.Credit ||
-            this.paymentType === PaymentType.Mixed
-        );
+    get remainingDue(): number {
+        const paid = Number(this.paidAmount) || 0;
+        return Math.max(0, Math.round((this.grandTotal - paid) * 100) / 100);
     }
 
     ngOnInit(): void {
@@ -165,20 +139,6 @@ export class PosComponent implements OnInit {
             return;
         }
         this.searchTimer = setTimeout(() => this.loadSuggestions(q), 250);
-    }
-
-    onPaymentTypeChange(): void {
-        if (
-            this.paymentType === PaymentType.Cash ||
-            this.paymentType === PaymentType.Card ||
-            this.paymentType === PaymentType.Credit
-        ) {
-            this.cashAmount = 0;
-            this.cardAmount = 0;
-        } else if (this.paymentType === PaymentType.Mixed) {
-            this.cashAmount = this.grandTotal;
-            this.cardAmount = 0;
-        }
     }
 
     onSearchEnter(): void {
@@ -275,7 +235,6 @@ export class PosComponent implements OnInit {
     }
 
     onCustomerSelected(): void {
-        // Re-apply locked catalog prices for the new customer type.
         for (const line of this.cart) {
             line.unitPrice = this.resolveUnitPrice(line.retailPrice, line.wholesalePrice);
         }
@@ -284,7 +243,6 @@ export class PosComponent implements OnInit {
 
     bumpQty(line: PosCartLine, delta: number): void {
         const next = Number(((line.quantity || 0) + delta).toFixed(2));
-        // Minus at qty 1 is an intentional remove; clearing the input is not.
         if (next <= 0) {
             this.removeLine(line);
             return;
@@ -293,14 +251,12 @@ export class PosComponent implements OnInit {
     }
 
     updateQty(line: PosCartLine, qty: number | null): void {
-        // Empty/cleared field while typing — keep the cart line.
         if (qty == null || Number.isNaN(Number(qty))) {
             return;
         }
 
         const value = Number(qty);
         if (value <= 0) {
-            // Typed 0 or negative: keep the line at a valid minimum.
             line.quantity = 1;
             return;
         }
@@ -330,9 +286,8 @@ export class PosComponent implements OnInit {
         this.cart = [];
         this.applyBranchPricing();
         this.notes = '';
-        this.paymentType = PaymentType.Cash;
-        this.cashAmount = 0;
-        this.cardAmount = 0;
+        this.paymentDialogVisible = false;
+        this.paidAmount = 0;
         this.focusSearch();
     }
 
@@ -340,29 +295,17 @@ export class PosComponent implements OnInit {
         return !!this.customerId && this.cart.length > 0 && !this.saving;
     }
 
-    buildSaleDto(): CreateSaleDto {
-        return {
-            customerId: this.customerId as number,
-            saleDate: this.toDateInputValue(),
-            notes: this.notes?.trim() || undefined,
-            discountAmount: this.discountAmount || 0,
-            discountPercent: this.discountPercent || 0,
-            taxPercent: this.taxPercent || 0,
-            paymentType: this.paymentType,
-            cashAmount:
-                this.paymentType === PaymentType.Mixed
-                    ? this.cashAmount || 0
-                    : 0,
-            cardAmount:
-                this.paymentType === PaymentType.Mixed
-                    ? this.cardAmount || 0
-                    : 0,
-            lines: this.cart.map((line) => ({
-                productId: line.productId,
-                quantity: line.quantity,
-                unitPrice: line.unitPrice,
-            })),
-        };
+    onPaidAmountFocus(event: any): void {
+        const input = event?.originalEvent?.target as HTMLInputElement;
+        if (input?.select) {
+            setTimeout(() => input.select(), 0);
+        }
+    }
+
+    onPaymentDialogHide(): void {
+        if (!this.saving) {
+            this.paymentDialogVisible = false;
+        }
     }
 
     completeSale(): void {
@@ -382,27 +325,67 @@ export class PosComponent implements OnInit {
             return;
         }
 
-        if (this.paymentType === PaymentType.Mixed) {
-            const paid = (this.cashAmount || 0) + (this.cardAmount || 0);
-            if (paid > this.grandTotal + 0.001) {
-                this.messageService.add({
-                    severity: 'warn',
-                    summary: 'Validation',
-                    detail: 'Cash + card cannot exceed total',
-                });
-                return;
-            }
+        this.paidAmount = this.grandTotal;
+        this.paymentDialogVisible = true;
+    }
+
+    confirmPaymentAndSave(): void {
+        if (!this.canSave()) {
+            return;
         }
+
+        if (this.paidAmount == null || this.paidAmount < 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Enter the amount paid by the customer',
+            });
+            return;
+        }
+
+        const total = this.grandTotal;
+        const paid = Math.round((Number(this.paidAmount) || 0) * 100) / 100;
+        const change = Math.max(0, Math.round((paid - total) * 100) / 100);
+        const appliedCash = Math.min(paid, total);
+        const remaining = Math.max(0, Math.round((total - paid) * 100) / 100);
+
+        const paymentType =
+            paid >= total ? PaymentType.Cash : PaymentType.Mixed;
+        const cashAmount = paid >= total ? 0 : appliedCash;
+        const cardAmount = 0;
 
         this.saving = true;
         this.saleService
-            .create(this.buildSaleDto())
+            .create({
+                customerId: this.customerId as number,
+                saleDate: this.toDateInputValue(),
+                notes: this.notes?.trim() || undefined,
+                discountAmount: this.discountAmount || 0,
+                discountPercent: this.discountPercent || 0,
+                taxPercent: this.taxPercent || 0,
+                paymentType,
+                cashAmount,
+                cardAmount,
+                lines: this.cart.map((line) => ({
+                    productId: line.productId,
+                    quantity: line.quantity,
+                    unitPrice: line.unitPrice,
+                })),
+            })
             .then(() => {
+                const detail =
+                    change > 0
+                        ? `Sale completed. Return ${change.toFixed(2)} change to the customer.`
+                        : remaining > 0
+                          ? `Sale completed. Remaining ${remaining.toFixed(2)} posted on credit.`
+                          : 'Sale completed successfully';
+
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',
-                    detail: 'Sale completed successfully',
+                    detail,
                 });
+                this.paymentDialogVisible = false;
                 this.clearCart();
             })
             .catch((error) => {

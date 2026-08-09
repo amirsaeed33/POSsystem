@@ -219,107 +219,6 @@
                     ></p-dropdown>
                 </div>
 
-                <div class="field">
-                    <label for="paymentType">Payment Type</label>
-                    <p-dropdown
-                        inputId="paymentType"
-                        [options]="paymentTypes"
-                        [(ngModel)]="paymentType"
-                        (ngModelChange)="onPaymentTypeChange()"
-                        optionLabel="label"
-                        optionValue="value"
-                        placeholder="Select payment type"
-                        styleClass="w-full"
-                        appendTo="body"
-                    ></p-dropdown>
-                </div>
-
-                <div *ngIf="isMixedPayment" class="grid formgrid p-fluid">
-                    <div class="field col-6">
-                        <label for="cashAmount">Cash Amount</label>
-                        <p-inputNumber
-                            inputId="cashAmount"
-                            [(ngModel)]="cashAmount"
-                            [min]="0"
-                            mode="decimal"
-                            [minFractionDigits]="0"
-                            [maxFractionDigits]="2"
-                            [showButtons]="false"
-                            styleClass="w-full"
-                        ></p-inputNumber>
-                    </div>
-                    <div class="field col-6">
-                        <label for="cardAmount">Card Amount</label>
-                        <p-inputNumber
-                            inputId="cardAmount"
-                            [(ngModel)]="cardAmount"
-                            [min]="0"
-                            mode="decimal"
-                            [minFractionDigits]="0"
-                            [maxFractionDigits]="2"
-                            [showButtons]="false"
-                            styleClass="w-full"
-                        ></p-inputNumber>
-                    </div>
-                </div>
-
-                <div class="grid formgrid p-fluid">
-                    <div class="field col-6">
-                        <label for="discountPercent">Discount %</label>
-                        <p-inputNumber
-                            inputId="discountPercent"
-                            [(ngModel)]="discountPercent"
-                            [min]="0"
-                            [max]="100"
-                            [minFractionDigits]="0"
-                            [maxFractionDigits]="2"
-                            [showButtons]="false"
-                            styleClass="w-full"
-                            [disabled]="true"
-                        ></p-inputNumber>
-                    </div>
-                    <div class="field col-6">
-                        <label for="discountAmount">Discount Amount</label>
-                        <p-inputNumber
-                            inputId="discountAmount"
-                            [(ngModel)]="discountAmount"
-                            [min]="0"
-                            mode="decimal"
-                            [minFractionDigits]="0"
-                            [maxFractionDigits]="2"
-                            [showButtons]="false"
-                            styleClass="w-full"
-                            [disabled]="true"
-                        ></p-inputNumber>
-                    </div>
-                    <div class="field col-6">
-                        <label for="taxPercent">Tax %</label>
-                        <p-inputNumber
-                            inputId="taxPercent"
-                            [(ngModel)]="taxPercent"
-                            [min]="0"
-                            [max]="100"
-                            [minFractionDigits]="0"
-                            [maxFractionDigits]="2"
-                            [showButtons]="false"
-                            styleClass="w-full"
-                            [disabled]="true"
-                        ></p-inputNumber>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label for="notes">Notes</label>
-                    <input
-                        pInputText
-                        id="notes"
-                        type="text"
-                        class="w-full"
-                        maxlength="512"
-                        [(ngModel)]="notes"
-                    />
-                </div>
-
                 <div class="pos-totals">
                     <div class="flex justify-content-between mb-2">
                         <span>Sub Total</span>
@@ -336,13 +235,6 @@
                     <div class="flex justify-content-between pos-grand">
                         <span>Total Amount</span>
                         <strong>{{ grandTotal | number: '1.2-2' }}</strong>
-                    </div>
-                    <div
-                        *ngIf="showCreditAmount"
-                        class="flex justify-content-between text-500 mt-2"
-                    >
-                        <span>Credit Amount</span>
-                        <span>{{ creditAmount | number: '1.2-2' }}</span>
                     </div>
                 </div>
 
@@ -377,6 +269,105 @@
             (click)="completeSale()"
         ></button>
     </div>
+
+    <p-dialog
+        header="Customer payment"
+        [(visible)]="paymentDialogVisible"
+        [modal]="true"
+        appendTo="body"
+        [blockScroll]="true"
+        [style]="{ width: '28rem' }"
+        [draggable]="false"
+        [resizable]="false"
+        [closable]="!saving"
+        (onHide)="onPaymentDialogHide()"
+    >
+        <div class="flex flex-column gap-3 p-fluid">
+            <div class="surface-ground border-round p-3">
+                <div class="text-500 text-sm mb-1">Total bill</div>
+                <div class="text-2xl font-bold">{{ grandTotal | number: '1.2-2' }}</div>
+            </div>
+
+            <div class="field mb-0">
+                <label for="posPaidAmount" class="font-medium">Amount paid by customer</label>
+                <p-inputNumber
+                    inputId="posPaidAmount"
+                    [(ngModel)]="paidAmount"
+                    [min]="0"
+                    mode="decimal"
+                    [minFractionDigits]="0"
+                    [maxFractionDigits]="2"
+                    [showButtons]="false"
+                    styleClass="w-full"
+                    [disabled]="saving"
+                    (onFocus)="onPaidAmountFocus($event)"
+                ></p-inputNumber>
+            </div>
+
+            <div class="field mb-0">
+                <label for="posSaleNotes" class="font-medium">Notes</label>
+                <input
+                    pInputText
+                    id="posSaleNotes"
+                    type="text"
+                    maxlength="512"
+                    [(ngModel)]="notes"
+                    [disabled]="saving"
+                    placeholder="Optional"
+                />
+            </div>
+
+            <div
+                class="border-round p-3"
+                *ngIf="changeToReturn > 0"
+                [ngStyle]="{ background: 'rgba(34, 197, 94, 0.12)' }"
+            >
+                <div class="text-sm mb-1">Change to return</div>
+                <div class="text-xl font-bold text-green-600">
+                    {{ changeToReturn | number: '1.2-2' }}
+                </div>
+                <small class="text-600">
+                    Customer paid {{ paidAmount | number: '1.2-2' }} for a bill of
+                    {{ grandTotal | number: '1.2-2' }}.
+                </small>
+            </div>
+
+            <div
+                class="border-round p-3"
+                *ngIf="remainingDue > 0"
+                [ngStyle]="{ background: 'rgba(249, 115, 22, 0.12)' }"
+            >
+                <div class="text-sm mb-1">Remaining on credit</div>
+                <div class="text-xl font-bold text-orange-600">
+                    {{ remainingDue | number: '1.2-2' }}
+                </div>
+                <small class="text-600">
+                    Paid amount is less than the bill. The balance will be posted to the customer ledger.
+                </small>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Back"
+                class="p-button-text"
+                [disabled]="saving"
+                (click)="paymentDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Confirm &amp; save"
+                icon="pi pi-check"
+                [loading]="saving"
+                (click)="confirmPaymentAndSave()"
+            ></button>
+        </ng-template>
+    </p-dialog>
 
     <p-toast></p-toast>
 </div>
