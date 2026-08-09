@@ -7,8 +7,11 @@ using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Users;
+using SmartPos.Branches;
 using SmartPos.Units.Dto;
 
 namespace SmartPos.Units
@@ -16,9 +19,17 @@ namespace SmartPos.Units
     [AbpAuthorize]
     public class UnitAppService : AsyncCrudAppService<Unit, UnitDto, int, PagedUnitResultRequestDto, CreateUnitDto, UnitDto>, IUnitAppService
     {
-        public UnitAppService(IRepository<Unit> repository)
+        private readonly IBranchContext _branchContext;
+        private readonly IRepository<User, long> _userRepository;
+
+        public UnitAppService(
+            IRepository<Unit> repository,
+            IBranchContext branchContext,
+            IRepository<User, long> userRepository)
             : base(repository)
         {
+            _branchContext = branchContext;
+            _userRepository = userRepository;
             CreatePermissionName = PermissionNames.Pages_Units;
             UpdatePermissionName = PermissionNames.Pages_Units;
             DeletePermissionName = PermissionNames.Pages_Units;
@@ -26,25 +37,63 @@ namespace SmartPos.Units
             GetAllPermissionName = PermissionNames.Pages_Units;
         }
 
-        /// <summary>
-        /// Dropdown lookup for product forms. Allowed for Units or Products permission.
-        /// </summary>
+        public override async Task<UnitDto> CreateAsync(CreateUnitDto input)
+        {
+            CheckCreatePermission();
+            var branchId = RequireCurrentBranchId();
+            var entity = ObjectMapper.Map<Unit>(input);
+            entity.TenantId = AbpSession.TenantId;
+            entity.BranchId = branchId;
+            entity.IsActive = input.IsActive;
+            entity.Symbol = input.Symbol?.Trim();
+            await Repository.InsertAsync(entity);
+            await CurrentUnitOfWork.SaveChangesAsync();
+            return MapToEntityDto(entity);
+        }
+
         [AbpAuthorize(PermissionNames.Pages_Units, PermissionNames.Pages_Products)]
         public async Task<ListResultDto<UnitDto>> GetLookupAsync()
         {
-            var items = await Repository.GetAll()
-                .OrderBy(x => x.Name)
-                .ToListAsync();
+            var branchId = ResolveBranchId();
+            var query = Repository.GetAll().Where(x => x.IsActive);
+            if (branchId.HasValue)
+            {
+                query = query.Where(x => x.BranchId == branchId.Value);
+            }
 
+            var items = await query.OrderBy(x => x.Name).ToListAsync();
             return new ListResultDto<UnitDto>(ObjectMapper.Map<List<UnitDto>>(items));
         }
 
         protected override IQueryable<Unit> CreateFilteredQuery(PagedUnitResultRequestDto input)
         {
+            var branchId = ResolveBranchId();
             return Repository.GetAll()
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
-                         || (x.Description != null && x.Description.Contains(input.Keyword)));
+                         || (x.Description != null && x.Description.Contains(input.Keyword))
+                         || (x.Symbol != null && x.Symbol.Contains(input.Keyword)));
+        }
+
+        private int? ResolveBranchId()
+        {
+            return BranchQueryHelper.ResolveBranchIdForFilter(
+                _branchContext,
+                _userRepository,
+                AbpSession,
+                PermissionChecker);
+        }
+
+        private int RequireCurrentBranchId()
+        {
+            var branchId = ResolveBranchId();
+            if (!branchId.HasValue)
+            {
+                throw new UserFriendlyException("Select a branch before managing units.");
+            }
+
+            return branchId.Value;
         }
     }
 }

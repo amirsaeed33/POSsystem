@@ -114,7 +114,6 @@ export class BranchEditComponent implements OnInit {
             name,
             code,
             isActive: this.branch.isActive,
-            isDefault: this.branch.isDefault,
             imageBase64,
 
             invoiceAddress:
@@ -158,7 +157,6 @@ export class BranchEditComponent implements OnInit {
                     ? this.branch.statusId
                     : undefined,
                 isActive: payload.isActive ?? true,
-                isDefault: payload.isDefault ?? false,
                 imagePath: imagePath,
             })
             .then((saved) => {
@@ -285,7 +283,6 @@ export class BranchEditComponent implements OnInit {
             status: BranchStatuses.Pending,
             creationTime: undefined,
             isActive: true,
-            isDefault: false,
             imagePath: undefined,
             imageBase64: undefined,
             invoiceAddress: '',

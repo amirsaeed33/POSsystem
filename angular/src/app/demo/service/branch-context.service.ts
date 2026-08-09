@@ -113,7 +113,6 @@ export class BranchContextService {
             branches.find((b) => b.id === currentId) ||
             branches.find((b) => b.id === storedId) ||
             branches.find((b) => b.id === preferred) ||
-            branches.find((b) => b.isDefault) ||
             branches[0];
 
         if (this.currentBranchSubject.value?.id !== selected.id) {

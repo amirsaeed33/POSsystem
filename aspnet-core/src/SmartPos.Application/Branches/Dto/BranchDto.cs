@@ -32,8 +32,6 @@ namespace SmartPos.Branches.Dto
 
         public bool IsActive { get; set; }
 
-        public bool IsDefault { get; set; }
-
         [StringLength(Branch.MaxImagePathLength)]
         public string ImagePath { get; set; }
 

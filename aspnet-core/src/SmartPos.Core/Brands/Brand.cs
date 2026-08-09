@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
+using SmartPos.Branches;
 
 namespace SmartPos.Brands
 {
@@ -13,11 +14,21 @@ namespace SmartPos.Brands
 
         public virtual int? TenantId { get; set; }
 
+        public virtual int BranchId { get; set; }
+
+        [ForeignKey(nameof(BranchId))]
+        public virtual Branch Branch { get; set; }
+
         [Required]
         [StringLength(MaxNameLength)]
         public virtual string Name { get; set; }
 
         [StringLength(MaxDescriptionLength)]
         public virtual string Description { get; set; }
+
+        public virtual bool IsActive { get; set; } = true;
+
+        /// <summary>Optional source row in AppHostCatalogItems after seed copy.</summary>
+        public virtual int? HostSourceId { get; set; }
     }
 }

@@ -31,6 +31,7 @@ namespace SmartPos.EntityFrameworkCore.Seed
                 // Host admin has no own location — locations belong to businesses only.
                 ClearHostUserBranchAssignments(context);
                 new DefaultEmailTemplatesCreator(context, null).Create();
+                new DefaultHostCatalogCreator(context).Create();
                 new BakeryGeneralStoreDemoDataCreator(context, null).Create();
 
                 // Keep tenant admin roles/permissions in sync for tenants created via signup/host UI.

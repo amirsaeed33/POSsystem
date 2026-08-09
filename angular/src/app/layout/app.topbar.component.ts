@@ -116,6 +116,16 @@ export class AppTopBarComponent implements OnInit {
                 this.branches = branches || this.branchContext.getAllowedBranches();
                 this.currentBranch = this.branchContext.getCurrentBranch();
 
+                if (
+                    !this.isHostAdmin &&
+                    this.tenantContext.getTenantId() != null &&
+                    !(this.branches?.length) &&
+                    !(this.router.url || '').startsWith('/branches/create')
+                ) {
+                    this.router.navigateByUrl('/branches/create');
+                    return;
+                }
+
                 if (this.isHostAdmin && this.currentBranch) {
                     if (this.syncLocationBusinessContext(this.currentBranch)) {
                         location.reload();

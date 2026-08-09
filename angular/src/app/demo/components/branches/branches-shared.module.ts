@@ -17,6 +17,7 @@ import { MessageService } from 'primeng/api';
 import { BranchListComponent } from './branch-list.component';
 import { BranchFormDialogComponent } from './branch-form-dialog.component';
 import { BranchEditComponent } from './branch-edit/branch-edit.component';
+import { BranchCreateComponent } from './branch-create/branch-create.component';
 
 @NgModule({
     imports: [
@@ -36,7 +37,12 @@ import { BranchEditComponent } from './branch-edit/branch-edit.component';
         DropdownModule,
     ],
     providers: [MessageService],
-    declarations: [BranchListComponent, BranchFormDialogComponent, BranchEditComponent],
+    declarations: [
+        BranchListComponent,
+        BranchFormDialogComponent,
+        BranchEditComponent,
+        BranchCreateComponent,
+    ],
     exports: [BranchListComponent, BranchFormDialogComponent],
 })
 export class BranchesSharedModule {}

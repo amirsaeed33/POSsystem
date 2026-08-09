@@ -13,5 +13,7 @@ namespace SmartPos.Brands.Dto
 
         [StringLength(Brand.MaxDescriptionLength)]
         public string Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 }

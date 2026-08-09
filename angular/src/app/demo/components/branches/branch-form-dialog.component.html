@@ -54,18 +54,88 @@
                 ></p-checkbox>
                 <label for="branchIsActive">Active</label>
             </div>
-            <div class="flex align-items-center gap-2">
-                <p-checkbox
-                    [binary]="true"
-                    [(ngModel)]="branch.isDefault"
-                    inputId="branchIsDefault"
-                    [disabled]="saving"
-                ></p-checkbox>
-                <label for="branchIsDefault">Default branch</label>
-            </div>
         </div>
 
-            <div class="flex flex-column gap-2" *ngIf="canEditStatus">
+            <div class="flex flex-column gap-3 surface-50 border-round p-3" *ngIf="isCreateMode">
+            <div class="flex flex-column gap-2">
+                <label for="companyType" class="font-medium">
+                    What is your company type? <span class="p-error">*</span>
+                </label>
+                <p-dropdown
+                    inputId="companyType"
+                    [options]="companyTypes"
+                    [(ngModel)]="selectedCompanyTypeId"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Select company type"
+                    styleClass="w-full"
+                    [disabled]="saving || seedLoading"
+                    (onChange)="onCompanyTypeChange()"
+                ></p-dropdown>
+            </div>
+
+            <div *ngIf="seedLoading" class="text-500 text-sm">
+                <i class="pi pi-spin pi-spinner mr-1"></i> Loading categories, units, and brands…
+            </div>
+
+            <ng-container *ngIf="seedCatalog && !seedLoading">
+                <div class="flex flex-column gap-2">
+                    <div class="font-medium">Categories</div>
+                    <div class="flex flex-column gap-2">
+                        <div class="flex align-items-center gap-2" *ngFor="let item of seedCatalog.categories">
+                            <p-checkbox
+                                [binary]="true"
+                                [ngModel]="isHostItemSelected(item.id)"
+                                (ngModelChange)="toggleHostItem(item.id, $event)"
+                                [inputId]="'seed-cat-' + item.id"
+                                [disabled]="saving"
+                            ></p-checkbox>
+                            <label [for]="'seed-cat-' + item.id">{{ item.name }}</label>
+                        </div>
+                        <small class="text-500" *ngIf="!seedCatalog.categories.length">No categories for this type.</small>
+                    </div>
+                </div>
+
+                <div class="flex flex-column gap-2">
+                    <div class="font-medium">Units</div>
+                    <div class="flex flex-column gap-2">
+                        <div class="flex align-items-center gap-2" *ngFor="let item of seedCatalog.units">
+                            <p-checkbox
+                                [binary]="true"
+                                [ngModel]="isHostItemSelected(item.id)"
+                                (ngModelChange)="toggleHostItem(item.id, $event)"
+                                [inputId]="'seed-unit-' + item.id"
+                                [disabled]="saving"
+                            ></p-checkbox>
+                            <label [for]="'seed-unit-' + item.id">
+                                {{ item.name }}
+                                <span class="text-500" *ngIf="item.symbol">({{ item.symbol }})</span>
+                            </label>
+                        </div>
+                        <small class="text-500" *ngIf="!seedCatalog.units.length">No units for this type.</small>
+                    </div>
+                </div>
+
+                <div class="flex flex-column gap-2">
+                    <div class="font-medium">Brands</div>
+                    <div class="flex flex-column gap-2">
+                        <div class="flex align-items-center gap-2" *ngFor="let item of seedCatalog.brands">
+                            <p-checkbox
+                                [binary]="true"
+                                [ngModel]="isHostItemSelected(item.id)"
+                                (ngModelChange)="toggleHostItem(item.id, $event)"
+                                [inputId]="'seed-brand-' + item.id"
+                                [disabled]="saving"
+                            ></p-checkbox>
+                            <label [for]="'seed-brand-' + item.id">{{ item.name }}</label>
+                        </div>
+                        <small class="text-500" *ngIf="!seedCatalog.brands.length">No brands for this type.</small>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+
+        <div class="flex flex-column gap-2" *ngIf="canEditStatus">
             <label for="branchStatus" class="font-medium">
                 Status <span class="p-error">*</span>
             </label>

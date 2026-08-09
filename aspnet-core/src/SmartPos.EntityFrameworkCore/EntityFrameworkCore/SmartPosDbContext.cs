@@ -10,6 +10,7 @@ using SmartPos.Categories;
 using SmartPos.Customers;
 using SmartPos.Emailing;
 using SmartPos.Expenses;
+using SmartPos.HostCatalog;
 using SmartPos.Inventory;
 using SmartPos.Lookups;
 using SmartPos.MultiTenancy;
@@ -36,6 +37,12 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<EmailTemplate> EmailTemplates { get; set; }
 
         public virtual DbSet<LookUp> LookUps { get; set; }
+
+        public virtual DbSet<HostCatalogItem> HostCatalogItems { get; set; }
+
+        public virtual DbSet<BranchSeedRequest> BranchSeedRequests { get; set; }
+
+        public virtual DbSet<BranchSeedRequestItem> BranchSeedRequestItems { get; set; }
 
         public virtual DbSet<Unit> Units { get; set; }
 
@@ -126,6 +133,81 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasIndex(x => new { x.TenantId, x.Type, x.Name })
                     .IsUnique()
                     .HasFilter("[IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<HostCatalogItem>(b =>
+            {
+                b.HasIndex(x => new { x.Type, x.CompanyTypeId, x.Name })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasIndex(x => new { x.Type, x.CompanyTypeId, x.IsActive });
+                b.HasOne(x => x.CompanyType)
+                    .WithMany()
+                    .HasForeignKey(x => x.CompanyTypeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<BranchSeedRequest>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.BranchId, x.Status });
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.CompanyType)
+                    .WithMany()
+                    .HasForeignKey(x => x.CompanyTypeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<BranchSeedRequestItem>(b =>
+            {
+                b.HasIndex(x => new { x.BranchSeedRequestId, x.HostItemId })
+                    .IsUnique();
+                b.HasOne(x => x.BranchSeedRequest)
+                    .WithMany(x => x.Items)
+                    .HasForeignKey(x => x.BranchSeedRequestId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.HostItem)
+                    .WithMany()
+                    .HasForeignKey(x => x.HostItemId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Category>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.BranchId, x.Name })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Brand>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.BranchId, x.Name })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Unit>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.BranchId, x.Name })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Product>(b =>

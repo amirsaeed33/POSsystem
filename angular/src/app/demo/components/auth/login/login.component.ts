@@ -308,6 +308,22 @@ export class LoginComponent implements OnInit, OnDestroy {
 		}
 
 		await this.permissionService.load();
+
+		if (sessionInfo?.tenant) {
+			const branches = await this.branchContext.ensureLoaded(
+				sessionInfo.user?.branchId ?? null
+			);
+			if (!branches?.length) {
+				this.messageService.add({
+					severity: 'success',
+					summary: 'Success',
+					detail: 'Login successful. Create your first branch to continue.',
+				});
+				this.router.navigateByUrl('/branches/create');
+				return;
+			}
+		}
+
 		this.messageService.add({
 			severity: 'success',
 			summary: 'Success',

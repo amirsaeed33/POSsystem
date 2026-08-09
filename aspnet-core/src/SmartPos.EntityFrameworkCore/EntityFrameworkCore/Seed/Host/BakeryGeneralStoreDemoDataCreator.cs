@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using SmartPos.Branches;
 using SmartPos.Brands;
 using SmartPos.Categories;
 using SmartPos.Products;
@@ -30,40 +31,42 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
         {
             SoftDeleteLegacyBikeProducts();
 
-            var unitPiece = EnsureUnit("Piece", "Single piece");
-            var unitPack = EnsureUnit("Pack", "Pack / multipack");
-            var unitLitre = EnsureUnit("Litre", "Liquid volume");
-            var unitKg = EnsureUnit("Kg", "Weight in kilograms");
-            var unitDozen = EnsureUnit("Dozen", "12 pieces");
-            var unitPacket = EnsureUnit("Packet", "Sealed packet");
+            var branchId = EnsureSeedBranchId();
 
-            var catBread = EnsureCategory("Bread & Buns", "Loaves, buns, and rolls");
-            var catCakes = EnsureCategory("Cakes & Pastries", "Cakes, muffins, and pastries");
-            var catCookies = EnsureCategory("Cookies & Biscuits", "Cookies, biscuits, and rusk");
-            var catDairy = EnsureCategory("Dairy", "Milk, yogurt, cheese, butter");
-            var catSweets = EnsureCategory("Sweets", "Traditional and bakery sweets");
-            var catBeverages = EnsureCategory("Beverages", "Tea, coffee, juices, soft drinks");
-            var catSnacks = EnsureCategory("Snacks", "Chips, namkeen, and savory snacks");
-            var catGrocery = EnsureCategory("Grocery Staples", "Flour, sugar, rice, oil, spices");
-            var catBreakfast = EnsureCategory("Breakfast", "Cereals, spreads, and breakfast items");
-            var catHousehold = EnsureCategory("Household", "Cleaning and everyday household");
-            var catPersonal = EnsureCategory("Personal Care", "Soap, shampoo, and hygiene");
+            var unitPiece = EnsureUnit(branchId, "Piece", "Single piece");
+            var unitPack = EnsureUnit(branchId, "Pack", "Pack / multipack");
+            var unitLitre = EnsureUnit(branchId, "Litre", "Liquid volume");
+            var unitKg = EnsureUnit(branchId, "Kg", "Weight in kilograms");
+            var unitDozen = EnsureUnit(branchId, "Dozen", "12 pieces");
+            var unitPacket = EnsureUnit(branchId, "Packet", "Sealed packet");
 
-            var brandDawn = EnsureBrand("Dawn", "Dawn bakery");
-            var brandBakeParlor = EnsureBrand("Bake Parlor", "Bake Parlor");
-            var brandBreadGarden = EnsureBrand("Bread Garden", "Fresh bakery brand");
-            var brandOlpers = EnsureBrand("Olper's", "Olper's dairy");
-            var brandNestle = EnsureBrand("Nestle", "Nestle");
-            var brandTapal = EnsureBrand("Tapal", "Tapal tea");
-            var brandLipton = EnsureBrand("Lipton", "Lipton");
-            var brandLux = EnsureBrand("Lux", "Lux personal care");
-            var brandSurf = EnsureBrand("Surf Excel", "Surf Excel detergents");
-            var brandNational = EnsureBrand("National", "National foods");
-            var brandShan = EnsureBrand("Shan", "Shan foods");
-            var brandLays = EnsureBrand("Lays", "Lays chips");
-            var brandKurkure = EnsureBrand("Kurkure", "Kurkure snacks");
-            var brandMitchells = EnsureBrand("Mitchell's", "Mitchell's jams & sauces");
-            var brandStore = EnsureBrand("Store Brand", "House / store brand");
+            var catBread = EnsureCategory(branchId, "Bread & Buns", "Loaves, buns, and rolls");
+            var catCakes = EnsureCategory(branchId, "Cakes & Pastries", "Cakes, muffins, and pastries");
+            var catCookies = EnsureCategory(branchId, "Cookies & Biscuits", "Cookies, biscuits, and rusk");
+            var catDairy = EnsureCategory(branchId, "Dairy", "Milk, yogurt, cheese, butter");
+            var catSweets = EnsureCategory(branchId, "Sweets", "Traditional and bakery sweets");
+            var catBeverages = EnsureCategory(branchId, "Beverages", "Tea, coffee, juices, soft drinks");
+            var catSnacks = EnsureCategory(branchId, "Snacks", "Chips, namkeen, and savory snacks");
+            var catGrocery = EnsureCategory(branchId, "Grocery Staples", "Flour, sugar, rice, oil, spices");
+            var catBreakfast = EnsureCategory(branchId, "Breakfast", "Cereals, spreads, and breakfast items");
+            var catHousehold = EnsureCategory(branchId, "Household", "Cleaning and everyday household");
+            var catPersonal = EnsureCategory(branchId, "Personal Care", "Soap, shampoo, and hygiene");
+
+            var brandDawn = EnsureBrand(branchId, "Dawn", "Dawn bakery");
+            var brandBakeParlor = EnsureBrand(branchId, "Bake Parlor", "Bake Parlor");
+            var brandBreadGarden = EnsureBrand(branchId, "Bread Garden", "Fresh bakery brand");
+            var brandOlpers = EnsureBrand(branchId, "Olper's", "Olper's dairy");
+            var brandNestle = EnsureBrand(branchId, "Nestle", "Nestle");
+            var brandTapal = EnsureBrand(branchId, "Tapal", "Tapal tea");
+            var brandLipton = EnsureBrand(branchId, "Lipton", "Lipton");
+            var brandLux = EnsureBrand(branchId, "Lux", "Lux personal care");
+            var brandSurf = EnsureBrand(branchId, "Surf Excel", "Surf Excel detergents");
+            var brandNational = EnsureBrand(branchId, "National", "National foods");
+            var brandShan = EnsureBrand(branchId, "Shan", "Shan foods");
+            var brandLays = EnsureBrand(branchId, "Lays", "Lays chips");
+            var brandKurkure = EnsureBrand(branchId, "Kurkure", "Kurkure snacks");
+            var brandMitchells = EnsureBrand(branchId, "Mitchell's", "Mitchell's jams & sauces");
+            var brandStore = EnsureBrand(branchId, "Store Brand", "House / store brand");
 
             _context.SaveChanges();
 
@@ -151,10 +154,43 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
             _context.SaveChanges();
         }
 
-        private Unit EnsureUnit(string name, string description)
+        private int EnsureSeedBranchId()
+        {
+            var existing = _context.Branches.IgnoreQueryFilters()
+                .Where(x => x.TenantId == _tenantId && !x.IsDeleted)
+                .OrderBy(x => x.Id)
+                .FirstOrDefault();
+            if (existing != null)
+            {
+                return existing.Id;
+            }
+
+            var pendingStatusId = _context.LookUps.IgnoreQueryFilters()
+                .Where(x => x.TenantId == null && x.Type == "BranchStatus" && x.Name == "Pending" && !x.IsDeleted)
+                .Select(x => x.Id)
+                .FirstOrDefault();
+
+            var branch = new Branch
+            {
+                TenantId = _tenantId,
+                Name = "MAIN",
+                Code = "MAIN",
+                IsActive = true,
+                StatusId = pendingStatusId > 0 ? pendingStatusId : 1
+            };
+            _context.Branches.Add(branch);
+            _context.SaveChanges();
+            return branch.Id;
+        }
+
+        private Unit EnsureUnit(int branchId, string name, string description)
         {
             var existing = _context.Units.IgnoreQueryFilters()
-                .FirstOrDefault(x => x.TenantId == _tenantId && !x.IsDeleted && x.Name == name);
+                .FirstOrDefault(x =>
+                    x.TenantId == _tenantId
+                    && x.BranchId == branchId
+                    && !x.IsDeleted
+                    && x.Name == name);
             if (existing != null)
             {
                 return existing;
@@ -163,18 +199,24 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
             var unit = new Unit
             {
                 TenantId = _tenantId,
+                BranchId = branchId,
                 Name = name,
-                Description = description
+                Description = description,
+                IsActive = true
             };
             _context.Units.Add(unit);
             _context.SaveChanges();
             return unit;
         }
 
-        private Category EnsureCategory(string name, string description)
+        private Category EnsureCategory(int branchId, string name, string description)
         {
             var existing = _context.Categories.IgnoreQueryFilters()
-                .FirstOrDefault(x => x.TenantId == _tenantId && !x.IsDeleted && x.Name == name);
+                .FirstOrDefault(x =>
+                    x.TenantId == _tenantId
+                    && x.BranchId == branchId
+                    && !x.IsDeleted
+                    && x.Name == name);
             if (existing != null)
             {
                 return existing;
@@ -183,18 +225,24 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
             var category = new Category
             {
                 TenantId = _tenantId,
+                BranchId = branchId,
                 Name = name,
-                Description = description
+                Description = description,
+                IsActive = true
             };
             _context.Categories.Add(category);
             _context.SaveChanges();
             return category;
         }
 
-        private Brand EnsureBrand(string name, string description)
+        private Brand EnsureBrand(int branchId, string name, string description)
         {
             var existing = _context.Brands.IgnoreQueryFilters()
-                .FirstOrDefault(x => x.TenantId == _tenantId && !x.IsDeleted && x.Name == name);
+                .FirstOrDefault(x =>
+                    x.TenantId == _tenantId
+                    && x.BranchId == branchId
+                    && !x.IsDeleted
+                    && x.Name == name);
             if (existing != null)
             {
                 return existing;
@@ -203,8 +251,10 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
             var brand = new Brand
             {
                 TenantId = _tenantId,
+                BranchId = branchId,
                 Name = name,
-                Description = description
+                Description = description,
+                IsActive = true
             };
             _context.Brands.Add(brand);
             _context.SaveChanges();

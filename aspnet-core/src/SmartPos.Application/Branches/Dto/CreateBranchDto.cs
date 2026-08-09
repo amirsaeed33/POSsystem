@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using SmartPos.Branches;
 
@@ -15,14 +16,11 @@ namespace SmartPos.Branches.Dto
 
         public bool IsActive { get; set; } = true;
 
-        public bool IsDefault { get; set; }
-
         public string ImageBase64 { get; set; }
 
         [StringLength(Branch.MaxAddressLength)]
         public string InvoiceAddress { get; set; }
 
-        [EmailAddress]
         [StringLength(Branch.MaxEmailLength)]
         public string InvoiceContactEmail { get; set; }
 
@@ -46,5 +44,12 @@ namespace SmartPos.Branches.Dto
 
         [Range(0, double.MaxValue)]
         public decimal DiscountAmount { get; set; }
+
+        /// <summary>Host catalog CompanyType id for initial seed selection.</summary>
+        [Range(1, int.MaxValue)]
+        public int CompanyTypeId { get; set; }
+
+        /// <summary>Selected host catalog Category/Unit/Brand ids to seed after approval.</summary>
+        public List<int> HostCatalogItemIds { get; set; } = new List<int>();
     }
 }

@@ -113,6 +113,7 @@
     <text name="Brands" value="Brands" />
     <text name="EmailTemplates" value="Email templates" />
     <text name="LookUps" value="Lookups" />
+    <text name="HostCatalog" value="Company types" />
     <text name="CreateNewBrand" value="Create new brand" />
     <text name="EditBrand" value="Edit brand" />
     <text name="BrandName" value="Brand name" />

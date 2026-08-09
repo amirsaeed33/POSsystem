@@ -299,7 +299,7 @@ export class ProductFormDialogComponent implements OnChanges {
         this.loading = false;
     }
 
-    /** Pre-select current / default location when creating a product. */
+    /** Pre-select current location when creating a product. */
     private selectDefaultBranch(): void {
         if (!this.canManageBranches || !this.branches?.length) {
             return;
@@ -307,9 +307,7 @@ export class ProductFormDialogComponent implements OnChanges {
 
         const currentId = this.branchContext.getBranchId();
         const selected =
-            this.branches.find((b) => b.id === currentId) ||
-            this.branches.find((b) => b.isDefault) ||
-            this.branches[0];
+            this.branches.find((b) => b.id === currentId) || this.branches[0];
 
         if (selected?.id) {
             this.selectedBranchIds = [selected.id];

@@ -1,0 +1,159 @@
+<div class="card">
+    <div class="flex flex-wrap gap-2 align-items-center justify-content-between mb-4">
+        <div>
+            <h5 class="m-0">Company types</h5>
+            <p class="text-500 m-0 mt-1 text-sm">
+                Host master catalog for branch seed templates
+            </p>
+        </div>
+        <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-plus"
+            label="Add company type"
+            (click)="openCreateCompanyType()"
+        ></button>
+    </div>
+
+    <div class="grid">
+        <div class="col-12 md:col-4">
+            <div *ngIf="loading" class="text-500 py-3">
+                <i class="pi pi-spin pi-spinner mr-2"></i>Loading…
+            </div>
+            <ul class="list-none p-0 m-0" *ngIf="!loading">
+                <li
+                    *ngFor="let item of companyTypes"
+                    class="p-3 border-round mb-2 cursor-pointer surface-border border-1"
+                    [class.surface-100]="selectedCompanyType?.id === item.id"
+                    (click)="selectCompanyType(item)"
+                >
+                    <div class="flex align-items-center justify-content-between gap-2">
+                        <div>
+                            <div class="font-medium">{{ item.name }}</div>
+                            <small class="text-500">{{ item.isActive ? 'Active' : 'Inactive' }}</small>
+                        </div>
+                        <div class="flex gap-1">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                icon="pi pi-pencil"
+                                class="p-button-text p-button-sm"
+                                (click)="openEdit(item); $event.stopPropagation()"
+                            ></button>
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                icon="pi pi-trash"
+                                class="p-button-text p-button-danger p-button-sm"
+                                (click)="onDelete(item); $event.stopPropagation()"
+                            ></button>
+                        </div>
+                    </div>
+                </li>
+                <li *ngIf="!companyTypes.length" class="text-500 p-3">No company types yet.</li>
+            </ul>
+        </div>
+
+        <div class="col-12 md:col-8" *ngIf="selectedCompanyType">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        *ngFor="let tab of childTabs"
+                        pButton
+                        pRipple
+                        type="button"
+                        [label]="tab.label"
+                        class="p-button-sm"
+                        [class.p-button-outlined]="activeChildType !== tab.value"
+                        (click)="onChildTabChange(tab.value)"
+                    ></button>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-plus"
+                    label="Add"
+                    class="p-button-sm"
+                    (click)="openCreateChild()"
+                ></button>
+            </div>
+
+            <p-table [value]="children" [loading]="childrenLoading" styleClass="p-datatable-sm">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Name</th>
+                        <th *ngIf="activeChildType === HostCatalogItemTypes.Unit">Symbol</th>
+                        <th>Active</th>
+                        <th style="width: 8rem"></th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-row>
+                    <tr>
+                        <td>{{ row.name }}</td>
+                        <td *ngIf="activeChildType === HostCatalogItemTypes.Unit">{{ row.symbol || '—' }}</td>
+                        <td>{{ row.isActive ? 'Yes' : 'No' }}</td>
+                        <td class="text-right">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                icon="pi pi-pencil"
+                                class="p-button-text p-button-sm"
+                                (click)="openEdit(row)"
+                            ></button>
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                icon="pi pi-trash"
+                                class="p-button-text p-button-danger p-button-sm"
+                                (click)="onDelete(row)"
+                            ></button>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td [attr.colspan]="activeChildType === HostCatalogItemTypes.Unit ? 4 : 3" class="text-500">
+                            No items for {{ selectedCompanyType.name }}.
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
+</div>
+
+<p-dialog
+    [(visible)]="dialogVisible"
+    [modal]="true"
+    [header]="editingId ? 'Edit item' : 'Create item'"
+    [style]="{ width: '28rem' }"
+    [draggable]="false"
+>
+    <div class="flex flex-column gap-3">
+        <div class="flex flex-column gap-2">
+            <label class="font-medium">Name <span class="p-error">*</span></label>
+            <input pInputText class="w-full" [(ngModel)]="formName" [disabled]="saving" maxlength="128" />
+        </div>
+        <div class="flex flex-column gap-2" *ngIf="formType === HostCatalogItemTypes.Unit">
+            <label class="font-medium">Symbol</label>
+            <input pInputText class="w-full" [(ngModel)]="formSymbol" [disabled]="saving" maxlength="32" />
+        </div>
+        <div class="flex align-items-center gap-2">
+            <p-checkbox [(ngModel)]="formIsActive" [binary]="true" inputId="hostCatActive" [disabled]="saving"></p-checkbox>
+            <label for="hostCatActive">Active</label>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button pButton pRipple type="button" label="Cancel" class="p-button-text" (click)="dialogVisible = false" [disabled]="saving"></button>
+        <button pButton pRipple type="button" label="Save" icon="pi pi-check" (click)="save()" [loading]="saving"></button>
+    </ng-template>
+</p-dialog>
+
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>

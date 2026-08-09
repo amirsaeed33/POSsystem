@@ -9,11 +9,20 @@ namespace SmartPos.Units.Dto
     [AutoMapTo(typeof(Unit))]
     public class UnitDto : EntityDto
     {
+        public int BranchId { get; set; }
+
         [Required]
         [StringLength(Unit.MaxNameLength)]
         public string Name { get; set; }
 
         [StringLength(Unit.MaxDescriptionLength)]
         public string Description { get; set; }
+
+        [StringLength(Unit.MaxSymbolLength)]
+        public string Symbol { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        public int? HostSourceId { get; set; }
     }
 }

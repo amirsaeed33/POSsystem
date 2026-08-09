@@ -13,5 +13,7 @@ namespace SmartPos.Categories.Dto
 
         [StringLength(Category.MaxDescriptionLength)]
         public string Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 }

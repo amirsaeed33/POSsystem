@@ -69,8 +69,29 @@ export class BranchService {
     }
 
     async create(input: CreateBranchDto): Promise<BranchDto> {
+        const body: any = {
+            name: input.name,
+            code: input.code,
+            isActive: input.isActive ?? true,
+            taxPercent: input.taxPercent ?? 0,
+            discountPercent: input.discountPercent ?? 0,
+            discountAmount: input.discountAmount ?? 0,
+            companyTypeId: input.companyTypeId,
+            hostCatalogItemIds: input.hostCatalogItemIds || [],
+        };
+
+        if (input.imageBase64) body.imageBase64 = input.imageBase64;
+        if (input.invoiceAddress) body.invoiceAddress = input.invoiceAddress;
+        if (input.invoiceContactEmail)
+            body.invoiceContactEmail = input.invoiceContactEmail;
+        if (input.invoiceContactPhone)
+            body.invoiceContactPhone = input.invoiceContactPhone;
+        if (input.taxNumber) body.taxNumber = input.taxNumber;
+        if (input.website) body.website = input.website;
+        if (input.invoiceFooter) body.invoiceFooter = input.invoiceFooter;
+
         const res: any = await firstValueFrom(
-            this.http.post<any>(`${this.apiUrl}/Create`, input)
+            this.http.post<any>(`${this.apiUrl}/Create`, body)
         );
         return this.map(this.unwrap(res, 'Failed to create branch'));
     }
@@ -89,7 +110,6 @@ export class BranchService {
                 code: input.code,
                 statusId: input.statusId,
                 isActive: input.isActive,
-                isDefault: input.isDefault,
                 imagePath: input.imagePath,
                 imageBase64: input.imageBase64,
                 invoiceAddress: input.invoiceAddress,
@@ -208,7 +228,6 @@ export class BranchService {
             tenantId: item.tenantId ?? item.TenantId ?? null,
             tenancyName: item.tenancyName ?? item.TenancyName,
             isActive: item.isActive ?? item.IsActive ?? true,
-            isDefault: item.isDefault ?? item.IsDefault ?? false,
             imagePath: item.imagePath ?? item.ImagePath,
             imageBase64: item.imageBase64 ?? item.ImageBase64,
             invoiceAddress: item.invoiceAddress ?? item.InvoiceAddress,

@@ -96,8 +96,7 @@ namespace SmartPos.MultiTenancy
                     Name = BranchConsts.DefaultBranchName,
                     Code = BranchConsts.DefaultBranchCode,
                     StatusId = pendingStatusId,
-                    IsActive = true,
-                    IsDefault = true
+                    IsActive = true
                 };
                 await _branchRepository.InsertAsync(mainBranch);
                 await CurrentUnitOfWork.SaveChangesAsync();

@@ -12,10 +12,15 @@ import {
     BranchStatuses,
     CreateBranchDto,
 } from 'src/app/demo/api/branch';
+import {
+    HostCatalogByCompanyTypeDto,
+    HostCatalogItemDto,
+} from 'src/app/demo/api/host-catalog';
 import { LookUpDto, LookUpTypes } from 'src/app/demo/api/lookup';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
+import { HostCatalogService } from 'src/app/demo/service/host-catalog.service';
 import { LookUpService } from 'src/app/demo/service/lookup.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 
@@ -37,10 +42,17 @@ export class BranchFormDialogComponent implements OnChanges {
     loading = false;
     private originalStatusId = 0;
 
+    companyTypes: HostCatalogItemDto[] = [];
+    selectedCompanyTypeId: number | null = null;
+    seedCatalog: HostCatalogByCompanyTypeDto | null = null;
+    selectedHostItemIds: number[] = [];
+    seedLoading = false;
+
     constructor(
         private branchService: BranchService,
         private branchContext: BranchContextService,
         private lookupService: LookUpService,
+        private hostCatalogService: HostCatalogService,
         private permissionService: PermissionService,
         private messageService: MessageService
     ) {}
@@ -53,6 +65,10 @@ export class BranchFormDialogComponent implements OnChanges {
         return !!this.branchId;
     }
 
+    get isCreateMode(): boolean {
+        return !this.branchId;
+    }
+
     get dialogStyle(): Record<string, string> {
         return this.isEditMode
             ? {
@@ -61,13 +77,13 @@ export class BranchFormDialogComponent implements OnChanges {
                   maxHeight: '100vh',
                   margin: '0',
               }
-            : { width: '40rem' };
+            : { width: '48rem' };
     }
 
     get dialogContentStyle(): Record<string, string> | null {
         return this.isEditMode
             ? { height: 'calc(100vh - 9rem)', overflow: 'auto' }
-            : null;
+            : { maxHeight: '70vh', overflow: 'auto' };
     }
 
     /** Host admin with approve permission — Status dropdown on edit. */
@@ -86,6 +102,8 @@ export class BranchFormDialogComponent implements OnChanges {
             }
             if (this.branchId) {
                 this.loadBranch(this.branchId);
+            } else {
+                this.loadCompanyTypes();
             }
         }
     }
@@ -118,6 +136,52 @@ export class BranchFormDialogComponent implements OnChanges {
         reader.readAsDataURL(file);
     }
 
+    onCompanyTypeChange(): void {
+        this.selectedHostItemIds = [];
+        this.seedCatalog = null;
+        if (!this.selectedCompanyTypeId) {
+            return;
+        }
+
+        this.seedLoading = true;
+        this.hostCatalogService
+            .getCatalogByCompanyType(this.selectedCompanyTypeId)
+            .then((catalog) => {
+                this.seedCatalog = catalog;
+                this.selectedHostItemIds = [
+                    ...catalog.categories.map((x) => x.id),
+                    ...catalog.units.map((x) => x.id),
+                    ...catalog.brands.map((x) => x.id),
+                ];
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.message || 'Failed to load seed catalog',
+                });
+            })
+            .finally(() => {
+                this.seedLoading = false;
+            });
+    }
+
+    isHostItemSelected(id: number): boolean {
+        return this.selectedHostItemIds.includes(id);
+    }
+
+    toggleHostItem(id: number, checked: boolean): void {
+        if (checked) {
+            if (!this.selectedHostItemIds.includes(id)) {
+                this.selectedHostItemIds = [...this.selectedHostItemIds, id];
+            }
+        } else {
+            this.selectedHostItemIds = this.selectedHostItemIds.filter(
+                (x) => x !== id
+            );
+        }
+    }
+
     save(): void {
         const name = (this.branch.name || '').trim();
         const code = (this.branch.code || '').trim();
@@ -139,6 +203,25 @@ export class BranchFormDialogComponent implements OnChanges {
             return;
         }
 
+        if (this.isCreateMode) {
+            if (!this.selectedCompanyTypeId) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Validation',
+                    detail: 'Select your company type',
+                });
+                return;
+            }
+            if (!this.selectedHostItemIds.length) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Validation',
+                    detail: 'Select at least one category, unit, or brand to seed',
+                });
+                return;
+            }
+        }
+
         this.saving = true;
         const imageBase64 = this.branch.imageBase64?.startsWith('data:image')
             ? this.branch.imageBase64
@@ -148,7 +231,6 @@ export class BranchFormDialogComponent implements OnChanges {
             name,
             code,
             isActive: this.branch.isActive,
-            isDefault: this.branch.isDefault,
             imageBase64,
             invoiceAddress: this.branch.invoiceAddress?.trim() || undefined,
             invoiceContactEmail:
@@ -161,6 +243,8 @@ export class BranchFormDialogComponent implements OnChanges {
             taxPercent: this.branch.taxPercent ?? 0,
             discountPercent: this.branch.discountPercent ?? 0,
             discountAmount: this.branch.discountAmount ?? 0,
+            companyTypeId: this.selectedCompanyTypeId || undefined,
+            hostCatalogItemIds: this.selectedHostItemIds,
         };
 
         const selectedStatus = this.statusOptions.find(
@@ -180,7 +264,6 @@ export class BranchFormDialogComponent implements OnChanges {
                       ? this.branch.statusId
                       : undefined,
                   isActive: createPayload.isActive ?? true,
-                  isDefault: createPayload.isDefault ?? false,
                   imagePath: this.branch.imagePath,
               })
             : this.branchService.create(createPayload);
@@ -193,10 +276,10 @@ export class BranchFormDialogComponent implements OnChanges {
                         ? 'Activation email sent'
                         : 'Success',
                     detail: requestingActivation
-                        ? 'An activation link was emailed. The branch stays pending until the link is opened.'
+                        ? 'Seed data copied and activation email sent. Branch stays pending until the link is opened.'
                         : this.branchId
                           ? 'Branch updated successfully'
-                          : 'Branch created successfully',
+                          : 'Branch created successfully. Awaiting host approval to seed catalog.',
                 });
                 if (
                     saved?.id &&
@@ -228,7 +311,6 @@ export class BranchFormDialogComponent implements OnChanges {
             status: BranchStatuses.Pending,
             creationTime: undefined,
             isActive: true,
-            isDefault: false,
             imagePath: undefined,
             imageBase64: undefined,
             invoiceAddress: '',
@@ -249,6 +331,26 @@ export class BranchFormDialogComponent implements OnChanges {
         this.saving = false;
         this.loading = false;
         this.originalStatusId = 0;
+        this.companyTypes = [];
+        this.selectedCompanyTypeId = null;
+        this.seedCatalog = null;
+        this.selectedHostItemIds = [];
+        this.seedLoading = false;
+    }
+
+    private loadCompanyTypes(): void {
+        this.hostCatalogService
+            .getCompanyTypesForSeed()
+            .then((items) => {
+                this.companyTypes = items || [];
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.message || 'Failed to load company types',
+                });
+            });
     }
 
     private loadStatusOptions(): void {

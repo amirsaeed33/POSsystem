@@ -1,0 +1,369 @@
+<div class="branch-create">
+    <div class="branch-create__shell">
+        <div class="branch-create__header">
+            <div>
+                <h1 class="branch-create__title">Create your branch</h1>
+                <p class="branch-create__subtitle">
+                    Set up your first location, then choose catalog items to request from the host.
+                </p>
+            </div>
+        </div>
+
+        <div class="branch-create__steps" role="tablist" aria-label="Create branch steps">
+            <button
+                type="button"
+                class="branch-create__step"
+                *ngFor="let step of steps; let i = index"
+                role="tab"
+                [attr.aria-selected]="activeStep === i"
+                [class.is-active]="activeStep === i"
+                [class.is-done]="activeStep > i"
+                [disabled]="saving"
+                (click)="goToStep(i)"
+            >
+                <span class="branch-create__step-index">{{ i + 1 }}</span>
+                <span class="branch-create__step-label">{{ step.label }}</span>
+            </button>
+        </div>
+
+        <div class="branch-create__body">
+            <!-- Step 1: Branch details -->
+            <div
+                *ngIf="activeStep === 0"
+                class="branch-create__panel"
+                [@panelSlide]="{ value: '', params: { fromX: slideFromX, delay: 40 } }"
+            >
+                <h2 class="branch-create__panel-title">Branch details</h2>
+                <p class="branch-create__panel-text">
+                    Start with the name and code for this location.
+                </p>
+
+                <div class="formgrid grid p-fluid">
+                    <div class="field col-12 md:col-8 flex flex-column gap-2 mb-3">
+                        <label for="branchName" class="font-medium">Name <span class="p-error">*</span></label>
+                        <input
+                            id="branchName"
+                            type="text"
+                            pInputText
+                            class="w-full"
+                            maxlength="256"
+                            [(ngModel)]="branch.name"
+                            [disabled]="saving"
+                        />
+                    </div>
+                    <div class="field col-12 md:col-4 flex flex-column gap-2 mb-3">
+                        <label for="branchCode" class="font-medium">Code <span class="p-error">*</span></label>
+                        <input
+                            id="branchCode"
+                            type="text"
+                            pInputText
+                            class="w-full"
+                            maxlength="64"
+                            [(ngModel)]="branch.code"
+                            [disabled]="saving"
+                        />
+                    </div>
+                </div>
+
+                <div class="branch-create__actions">
+                    <button
+                        type="button"
+                        pButton
+                        pRipple
+                        label="Continue"
+                        icon="pi pi-arrow-right"
+                        iconPos="right"
+                        (click)="goNextFromDetails()"
+                        [disabled]="saving"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- Step 2: Invoice information -->
+            <div
+                *ngIf="activeStep === 1"
+                class="branch-create__panel"
+                [@panelSlide]="{ value: '', params: { fromX: slideFromX, delay: 40 } }"
+            >
+                <h2 class="branch-create__panel-title">Invoice information</h2>
+                <p class="branch-create__panel-text">
+                    Optional contact and tax defaults used on invoices for this branch.
+                </p>
+
+                <div class="formgrid grid p-fluid">
+                    <div class="field col-12 md:col-6 flex flex-column gap-2 mb-3">
+                        <label for="invoiceContactEmail" class="font-medium">Invoice contact email</label>
+                        <input
+                            id="invoiceContactEmail"
+                            type="email"
+                            pInputText
+                            class="w-full"
+                            maxlength="512"
+                            [(ngModel)]="branch.invoiceContactEmail"
+                            [disabled]="saving"
+                        />
+                    </div>
+                    <div class="field col-12 md:col-6 flex flex-column gap-2 mb-3">
+                        <label for="invoiceContactPhone" class="font-medium">Invoice contact phone</label>
+                        <input
+                            id="invoiceContactPhone"
+                            type="text"
+                            pInputText
+                            class="w-full"
+                            maxlength="64"
+                            [(ngModel)]="branch.invoiceContactPhone"
+                            [disabled]="saving"
+                        />
+                    </div>
+                </div>
+
+                <div class="field flex flex-column gap-2 mb-3 p-fluid">
+                    <label for="invoiceAddress" class="font-medium">Invoice address</label>
+                    <textarea
+                        id="invoiceAddress"
+                        pInputTextarea
+                        rows="3"
+                        class="w-full"
+                        maxlength="1024"
+                        [(ngModel)]="branch.invoiceAddress"
+                        [disabled]="saving"
+                    ></textarea>
+                </div>
+
+                <div class="formgrid grid p-fluid">
+                    <div class="field col-12 md:col-4 flex flex-column gap-2 mb-3">
+                        <label for="taxPercent" class="font-medium">Tax %</label>
+                        <p-inputNumber
+                            inputId="taxPercent"
+                            [(ngModel)]="branch.taxPercent"
+                            [min]="0"
+                            [max]="100"
+                            [minFractionDigits]="0"
+                            [maxFractionDigits]="2"
+                            [showButtons]="false"
+                            styleClass="w-full"
+                            inputStyleClass="w-full"
+                            [disabled]="saving"
+                        ></p-inputNumber>
+                    </div>
+                    <div class="field col-12 md:col-4 flex flex-column gap-2 mb-3">
+                        <label for="discountPercent" class="font-medium">Discount %</label>
+                        <p-inputNumber
+                            inputId="discountPercent"
+                            [(ngModel)]="branch.discountPercent"
+                            [min]="0"
+                            [max]="100"
+                            [minFractionDigits]="0"
+                            [maxFractionDigits]="2"
+                            [showButtons]="false"
+                            styleClass="w-full"
+                            inputStyleClass="w-full"
+                            [disabled]="saving"
+                        ></p-inputNumber>
+                    </div>
+                    <div class="field col-12 md:col-4 flex flex-column gap-2 mb-3">
+                        <label for="taxNumber" class="font-medium">Tax number</label>
+                        <input
+                            id="taxNumber"
+                            type="text"
+                            pInputText
+                            class="w-full"
+                            maxlength="128"
+                            [(ngModel)]="branch.taxNumber"
+                            [disabled]="saving"
+                        />
+                    </div>
+                </div>
+
+                <div class="branch-create__actions branch-create__actions--split">
+                    <button
+                        type="button"
+                        pButton
+                        pRipple
+                        class="p-button-outlined"
+                        label="Back"
+                        icon="pi pi-arrow-left"
+                        (click)="goBack()"
+                        [disabled]="saving"
+                    ></button>
+                    <button
+                        type="button"
+                        pButton
+                        pRipple
+                        label="Continue"
+                        icon="pi pi-arrow-right"
+                        iconPos="right"
+                        (click)="goNextFromInvoice()"
+                        [disabled]="saving"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- Step 3: Company type -->
+            <div
+                *ngIf="activeStep === 2"
+                class="branch-create__panel"
+                [@panelSlide]="{ value: '', params: { fromX: slideFromX, delay: 40 } }"
+            >
+                <h2 class="branch-create__panel-title">What is your company type?</h2>
+                <p class="branch-create__panel-text">
+                    We’ll suggest categories, units, and brands for this location.
+                </p>
+
+                <div *ngIf="companyTypesLoading" class="text-color-secondary text-sm mb-3">
+                    <i class="pi pi-spin pi-spinner mr-1"></i> Loading company types…
+                </div>
+
+                <div class="branch-create__type-list" *ngIf="!companyTypesLoading">
+                    <button
+                        type="button"
+                        class="branch-create__type-option"
+                        *ngFor="let type of companyTypes; let i = index"
+                        [class.is-selected]="selectedCompanyTypeId === type.id"
+                        (click)="selectCompanyType(type.id)"
+                        [@fadeItem]="{ value: '', params: { delay: itemDelay(i) } }"
+                    >
+                        <span class="font-medium">{{ type.name }}</span>
+                        <i class="pi pi-check" *ngIf="selectedCompanyTypeId === type.id"></i>
+                    </button>
+                    <small class="text-color-secondary" *ngIf="!companyTypes.length">
+                        No company types are available yet. Ask the host to add catalog master data.
+                    </small>
+                </div>
+
+                <div class="branch-create__actions branch-create__actions--split">
+                    <button
+                        type="button"
+                        pButton
+                        pRipple
+                        class="p-button-outlined"
+                        label="Back"
+                        icon="pi pi-arrow-left"
+                        (click)="goBack()"
+                        [disabled]="saving"
+                    ></button>
+                    <button
+                        type="button"
+                        pButton
+                        pRipple
+                        label="Continue"
+                        icon="pi pi-arrow-right"
+                        iconPos="right"
+                        (click)="goNextFromCompanyType()"
+                        [disabled]="saving || !selectedCompanyTypeId || seedLoading"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- Step 4: Catalog -->
+            <div
+                *ngIf="activeStep === 3"
+                class="branch-create__panel"
+                [@panelSlide]="{ value: '', params: { fromX: slideFromX, delay: 40 } }"
+            >
+                <h2 class="branch-create__panel-title">Seed your catalog</h2>
+                <p class="branch-create__panel-text">
+                    Pick the items you need. Host approval will copy them into this branch.
+                </p>
+
+                <div *ngIf="seedLoading" class="text-color-secondary text-sm mb-3">
+                    <i class="pi pi-spin pi-spinner mr-1"></i> Loading categories, units, and brands…
+                </div>
+
+                <div class="branch-create__seed-grid" *ngIf="seedCatalog && !seedLoading">
+                    <div class="branch-create__seed-group">
+                        <div class="font-medium mb-2">Categories</div>
+                        <div class="flex flex-column gap-2">
+                            <div
+                                class="flex align-items-center gap-2"
+                                *ngFor="let item of seedCatalog.categories; let i = index"
+                                [@fadeItem]="{ value: '', params: { delay: itemDelay(i) } }"
+                            >
+                                <p-checkbox
+                                    [binary]="true"
+                                    [ngModel]="isHostItemSelected(item.id)"
+                                    (ngModelChange)="toggleHostItem(item.id, $event)"
+                                    [inputId]="'create-cat-' + item.id"
+                                    [disabled]="saving"
+                                ></p-checkbox>
+                                <label [for]="'create-cat-' + item.id">{{ item.name }}</label>
+                            </div>
+                            <small class="text-color-secondary" *ngIf="!seedCatalog.categories.length">
+                                No categories for this type.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="branch-create__seed-group">
+                        <div class="font-medium mb-2">Units</div>
+                        <div class="flex flex-column gap-2">
+                            <div
+                                class="flex align-items-center gap-2"
+                                *ngFor="let item of seedCatalog.units; let i = index"
+                                [@fadeItem]="{ value: '', params: { delay: itemDelay(i) } }"
+                            >
+                                <p-checkbox
+                                    [binary]="true"
+                                    [ngModel]="isHostItemSelected(item.id)"
+                                    (ngModelChange)="toggleHostItem(item.id, $event)"
+                                    [inputId]="'create-unit-' + item.id"
+                                    [disabled]="saving"
+                                ></p-checkbox>
+                                <label [for]="'create-unit-' + item.id">
+                                    {{ item.name }}
+                                    <span class="text-color-secondary" *ngIf="item.symbol">({{ item.symbol }})</span>
+                                </label>
+                            </div>
+                            <small class="text-color-secondary" *ngIf="!seedCatalog.units.length">
+                                No units for this type.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="branch-create__seed-group">
+                        <div class="font-medium mb-2">Brands</div>
+                        <div class="flex flex-column gap-2">
+                            <div
+                                class="flex align-items-center gap-2"
+                                *ngFor="let item of seedCatalog.brands; let i = index"
+                                [@fadeItem]="{ value: '', params: { delay: itemDelay(i) } }"
+                            >
+                                <p-checkbox
+                                    [binary]="true"
+                                    [ngModel]="isHostItemSelected(item.id)"
+                                    (ngModelChange)="toggleHostItem(item.id, $event)"
+                                    [inputId]="'create-brand-' + item.id"
+                                    [disabled]="saving"
+                                ></p-checkbox>
+                                <label [for]="'create-brand-' + item.id">{{ item.name }}</label>
+                            </div>
+                            <small class="text-color-secondary" *ngIf="!seedCatalog.brands.length">
+                                No brands for this type.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="branch-create__actions branch-create__actions--split">
+                    <button
+                        type="button"
+                        pButton
+                        pRipple
+                        class="p-button-outlined"
+                        label="Back"
+                        icon="pi pi-arrow-left"
+                        (click)="goBack()"
+                        [disabled]="saving"
+                    ></button>
+                    <button type="button" pButton pRipple (click)="submit()" [disabled]="saving || seedLoading">
+                        <i *ngIf="saving" class="pi pi-spin pi-spinner mr-2"></i>
+                        <span *ngIf="!saving">Create branch</span>
+                        <span *ngIf="saving">Creating...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p-toast></p-toast>
+</div>

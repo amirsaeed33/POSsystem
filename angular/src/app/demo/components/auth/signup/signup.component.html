@@ -2,7 +2,7 @@
     <div class="surface-card py-5 px-4 sm:px-5 shadow-2 flex flex-column w-11" style="border-radius:14px; max-width: 26rem; width: 100%;" [@slideIn]>
         <h1 class="font-bold text-2xl mt-0 mb-2">Create your SmartPos account</h1>
         <p class="text-color-secondary mb-4">
-            Sign up to create a new company (tenant) and your admin login for that company only.
+            Sign up to create a new company (tenant) and your admin login. You will set up your first branch next.
         </p>
 
         <form [formGroup]="signupForm" (ngSubmit)="onSubmit()">
@@ -100,7 +100,7 @@
 
             <button type="submit" pButton pRipple class="w-full mb-3" [disabled]="loading || signupForm.invalid">
                 <i *ngIf="loading" class="pi pi-spin pi-spinner mr-2"></i>
-                <span *ngIf="!loading">Create company &amp; sign in</span>
+                <span *ngIf="!loading">Create company &amp; continue</span>
                 <span *ngIf="loading">Creating...</span>
             </button>
         </form>

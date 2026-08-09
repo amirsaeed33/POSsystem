@@ -13,5 +13,10 @@ namespace SmartPos.Units.Dto
 
         [StringLength(Unit.MaxDescriptionLength)]
         public string Description { get; set; }
+
+        [StringLength(Unit.MaxSymbolLength)]
+        public string Symbol { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 }

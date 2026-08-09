@@ -41,8 +41,6 @@ namespace SmartPos.Branches
 
         public virtual bool IsActive { get; set; } = true;
 
-        public virtual bool IsDefault { get; set; }
-
         [StringLength(MaxImagePathLength)]
         public virtual string ImagePath { get; set; }
 

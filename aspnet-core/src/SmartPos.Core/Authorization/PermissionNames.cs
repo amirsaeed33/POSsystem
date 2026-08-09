@@ -57,5 +57,8 @@
         public const string Pages_EmailTemplates = "Pages.EmailTemplates";
 
         public const string Pages_LookUps = "Pages.LookUps";
+
+        /// <summary>Host-only: manage company-type master catalog (categories/units/brands templates).</summary>
+        public const string Pages_HostCatalog = "Pages.HostCatalog";
     }
 }

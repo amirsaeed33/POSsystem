@@ -73,6 +73,7 @@ const routes: Routes = [
             { path: 'ledger-entries', data: { breadcrumb: 'Ledger', permission: PermissionNames.LedgerEntries }, loadChildren: () => import('./demo/components/ledger-entries/ledger-entries.module').then(m => m.LedgerEntriesModule) },
             { path: 'branches', data: { breadcrumb: 'Branches', permission: PermissionNames.Branches }, loadChildren: () => import('./demo/components/branches/branches.module').then(m => m.BranchesModule) },
             { path: 'lookups', data: { breadcrumb: 'Lookups', permission: PermissionNames.LookUps }, loadChildren: () => import('./demo/components/lookups/lookups.module').then(m => m.LookUpsModule) },
+            { path: 'host-catalog', data: { breadcrumb: 'Company types', permission: PermissionNames.HostCatalog }, loadChildren: () => import('./demo/components/host-catalog/host-catalog.module').then(m => m.HostCatalogModule) },
             { path: 'email-templates', data: { breadcrumb: 'Email Templates', permission: PermissionNames.EmailTemplates }, loadChildren: () => import('./demo/components/email-templates/email-templates.module').then(m => m.EmailTemplatesModule) },
             { path: 'tenants', data: { breadcrumb: 'Tenants', permission: PermissionNames.Tenants }, loadChildren: () => import('./demo/components/tenants/tenants.module').then(m => m.TenantsModule) },
             { path: 'reports', data: { breadcrumb: 'Reports', permission: PermissionNames.Reports }, loadChildren: () => import('./demo/components/reports/reports.module').then(m => m.ReportsModule) },

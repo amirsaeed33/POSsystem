@@ -142,9 +142,6 @@
                                 [class.branch-badge--ok]="branch.status === BranchStatuses.Approved"
                                 [class.branch-badge--rejected]="branch.status === BranchStatuses.Rejected"
                             >{{ statusLabel(branch) }}</span>
-                            <span class="branch-badge branch-badge--default" *ngIf="branch.isDefault">
-                                <i class="pi pi-star-fill"></i> Default
-                            </span>
                         </div>
                         <ng-container
                             *ngTemplateOutlet="branchActionsMenu; context: { $implicit: branch }"
@@ -219,16 +216,6 @@
                     >
                         <i class="pi pi-pencil mr-2"></i>
                         <span>Edit</span>
-                    </a>
-                </li>
-                <li>
-                    <a
-                        pRipple
-                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-amber-600"
-                        (click)="setDefaultBranch(branch)"
-                    >
-                        <i class="pi pi-star mr-2"></i>
-                        <span>Set as Default</span>
                     </a>
                 </li>
                 <li>

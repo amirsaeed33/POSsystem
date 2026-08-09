@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
+using SmartPos.Branches;
 
 namespace SmartPos.Units
 {
@@ -10,8 +11,14 @@ namespace SmartPos.Units
     {
         public const int MaxNameLength = 128;
         public const int MaxDescriptionLength = 512;
+        public const int MaxSymbolLength = 32;
 
         public virtual int? TenantId { get; set; }
+
+        public virtual int BranchId { get; set; }
+
+        [ForeignKey(nameof(BranchId))]
+        public virtual Branch Branch { get; set; }
 
         [Required]
         [StringLength(MaxNameLength)]
@@ -19,5 +26,13 @@ namespace SmartPos.Units
 
         [StringLength(MaxDescriptionLength)]
         public virtual string Description { get; set; }
+
+        [StringLength(MaxSymbolLength)]
+        public virtual string Symbol { get; set; }
+
+        public virtual bool IsActive { get; set; } = true;
+
+        /// <summary>Optional source row in AppHostCatalogItems after seed copy.</summary>
+        public virtual int? HostSourceId { get; set; }
     }
 }

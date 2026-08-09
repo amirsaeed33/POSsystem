@@ -160,7 +160,7 @@ export class StaffFormDialogComponent implements OnChanges {
             });
     }
 
-    /** Pre-select current / default location when creating staff. */
+    /** Pre-select current location when creating staff. */
     private selectDefaultBranch(): void {
         if (!this.branches?.length || this.staff.branchId) {
             return;
@@ -168,9 +168,7 @@ export class StaffFormDialogComponent implements OnChanges {
 
         const currentId = this.branchContext.getBranchId();
         const selected =
-            this.branches.find((b) => b.id === currentId) ||
-            this.branches.find((b) => b.isDefault) ||
-            this.branches[0];
+            this.branches.find((b) => b.id === currentId) || this.branches[0];
 
         if (selected?.id) {
             this.staff.branchId = selected.id;

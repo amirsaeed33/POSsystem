@@ -18,7 +18,6 @@ export interface BranchDto {
     tenantId?: number | null;
     tenancyName?: string;
     isActive: boolean;
-    isDefault: boolean;
     imagePath?: string;
     imageBase64?: string;
     invoiceAddress?: string;
@@ -36,7 +35,6 @@ export interface CreateBranchDto {
     name: string;
     code: string;
     isActive?: boolean;
-    isDefault?: boolean;
     imageBase64?: string | null;
     invoiceAddress?: string;
     invoiceContactEmail?: string;
@@ -47,6 +45,8 @@ export interface CreateBranchDto {
     taxPercent?: number;
     discountPercent?: number;
     discountAmount?: number;
+    companyTypeId?: number;
+    hostCatalogItemIds?: number[];
 }
 
 export interface PagedBranchResultRequestDto {

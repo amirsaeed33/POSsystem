@@ -13,7 +13,6 @@ using Microsoft.AspNetCore.Identity;
 using SmartPos.Authorization.Accounts.Dto;
 using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
-using SmartPos.Branches;
 using SmartPos.Editions;
 using SmartPos.Lookups;
 using SmartPos.MultiTenancy;
@@ -30,9 +29,7 @@ namespace SmartPos.Authorization.Accounts
         private readonly EditionManager _editionManager;
         private readonly UserManager _userManager;
         private readonly RoleManager _roleManager;
-        private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<LookUp> _lookUpRepository;
-        private readonly BranchStatusLookup _branchStatusLookup;
         private readonly IAbpZeroDbMigrator _abpZeroDbMigrator;
 
         public AccountAppService(
@@ -41,9 +38,7 @@ namespace SmartPos.Authorization.Accounts
             EditionManager editionManager,
             UserManager userManager,
             RoleManager roleManager,
-            IRepository<Branch> branchRepository,
             IRepository<LookUp> lookUpRepository,
-            BranchStatusLookup branchStatusLookup,
             IAbpZeroDbMigrator abpZeroDbMigrator)
         {
             _userRegistrationManager = userRegistrationManager;
@@ -51,9 +46,7 @@ namespace SmartPos.Authorization.Accounts
             _editionManager = editionManager;
             _userManager = userManager;
             _roleManager = roleManager;
-            _branchRepository = branchRepository;
             _lookUpRepository = lookUpRepository;
-            _branchStatusLookup = branchStatusLookup;
             _abpZeroDbMigrator = abpZeroDbMigrator;
         }
 
@@ -92,6 +85,10 @@ namespace SmartPos.Authorization.Accounts
             };
         }
 
+        /// <summary>
+        /// Public self-service signup: creates tenant + admin user only.
+        /// The admin creates their first branch after login.
+        /// </summary>
         [AbpAllowAnonymous]
         public async Task<SignUpTenantOutput> SignUpTenant(SignUpTenantInput input)
         {
@@ -121,8 +118,6 @@ namespace SmartPos.Authorization.Accounts
 
             _abpZeroDbMigrator.CreateOrMigrateForTenant(tenant);
 
-            var pendingStatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
-
             using (CurrentUnitOfWork.SetTenantId(tenant.Id))
             {
                 CheckErrors(await _roleManager.CreateStaticRoles(tenant.Id));
@@ -130,18 +125,6 @@ namespace SmartPos.Authorization.Accounts
 
                 var adminRole = _roleManager.Roles.Single(r => r.Name == StaticRoleNames.Tenants.Admin);
                 await _roleManager.GrantAllPermissionsAsync(adminRole);
-
-                var mainBranch = new Branch
-                {
-                    TenantId = tenant.Id,
-                    Name = BranchConsts.DefaultBranchName,
-                    Code = BranchConsts.DefaultBranchCode,
-                    StatusId = pendingStatusId,
-                    IsActive = true,
-                    IsDefault = true
-                };
-                await _branchRepository.InsertAsync(mainBranch);
-                await CurrentUnitOfWork.SaveChangesAsync();
 
                 var adminUser = new User
                 {
@@ -152,7 +135,7 @@ namespace SmartPos.Authorization.Accounts
                     EmailAddress = input.AdminEmailAddress,
                     IsActive = true,
                     IsEmailConfirmed = true,
-                    BranchId = mainBranch.Id,
+                    BranchId = null,
                     Roles = new List<UserRole>()
                 };
                 adminUser.SetNormalizedNames();

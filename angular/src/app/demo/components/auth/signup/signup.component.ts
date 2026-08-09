@@ -1,12 +1,19 @@
 import { animate, style, transition, trigger } from '@angular/animations';
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import {
+    AbstractControl,
+    FormBuilder,
+    FormGroup,
+    ValidationErrors,
+    Validators,
+} from '@angular/forms';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { Subscription } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { AccountService } from 'src/app/demo/service/account.service';
 import { AuthService } from 'src/app/demo/service/auth.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { SessionService } from 'src/app/demo/service/session.service';
 import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
@@ -40,6 +47,7 @@ export class SignupComponent implements OnInit, OnDestroy {
         private sessionService: SessionService,
         private permissionService: PermissionService,
         private tenantContext: TenantContextService,
+        private branchContext: BranchContextService,
         private router: Router,
         private messageService: MessageService
     ) {
@@ -55,10 +63,22 @@ export class SignupComponent implements OnInit, OnDestroy {
                 ],
                 name: ['', [Validators.required, Validators.maxLength(128)]],
                 adminName: ['', [Validators.required, Validators.maxLength(64)]],
-                adminSurname: ['', [Validators.required, Validators.maxLength(64)]],
-                adminEmailAddress: ['', [Validators.required, Validators.email]],
-                adminUserName: ['admin', [Validators.required, Validators.maxLength(256)]],
-                adminPassword: ['', [Validators.required, Validators.minLength(6)]],
+                adminSurname: [
+                    '',
+                    [Validators.required, Validators.maxLength(64)],
+                ],
+                adminEmailAddress: [
+                    '',
+                    [Validators.required, Validators.email],
+                ],
+                adminUserName: [
+                    'admin',
+                    [Validators.required, Validators.maxLength(256)],
+                ],
+                adminPassword: [
+                    '',
+                    [Validators.required, Validators.minLength(6)],
+                ],
                 confirmPassword: ['', [Validators.required]],
             },
             { validators: this.passwordMatchValidator }
@@ -70,14 +90,18 @@ export class SignupComponent implements OnInit, OnDestroy {
         this.tenantContext.setTenantId(null);
         this.tenantContext.setTenantInfo(null);
 
-        this.nameSub = this.signupForm.get('name')?.valueChanges.subscribe((name) => {
-            if (this.tenancyManuallyEdited) {
-                return;
+        this.nameSub = this.signupForm.get('name')?.valueChanges.subscribe(
+            (name) => {
+                if (this.tenancyManuallyEdited) {
+                    return;
+                }
+                this.signupForm
+                    .get('tenancyName')
+                    ?.setValue(this.toTenancyName(name || ''), {
+                        emitEvent: false,
+                    });
             }
-            this.signupForm.get('tenancyName')?.setValue(this.toTenancyName(name || ''), {
-                emitEvent: false,
-            });
-        });
+        );
 
         if (this.authService.isAuthenticated()) {
             this.router.navigateByUrl('/');
@@ -97,7 +121,6 @@ export class SignupComponent implements OnInit, OnDestroy {
     }
 
     private toTenancyName(displayName: string): string {
-        // Keep letters/digits/_/- only; strip leading non-letters so it matches tenancy rules.
         const cleaned = (displayName || '')
             .trim()
             .replace(/[^a-zA-Z0-9_-]+/g, '')
@@ -138,7 +161,8 @@ export class SignupComponent implements OnInit, OnDestroy {
                     rememberClient: true,
                 });
 
-                const sessionInfo = await this.sessionService.getCurrentLoginInformations();
+                const sessionInfo =
+                    await this.sessionService.getCurrentLoginInformations();
                 if (sessionInfo?.user) {
                     this.authService.setUserInfo(sessionInfo.user);
                 }
@@ -150,12 +174,14 @@ export class SignupComponent implements OnInit, OnDestroy {
                 }
 
                 await this.permissionService.load();
+                this.branchContext.clear();
+
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Welcome',
-                    detail: `Tenant "${result.tenancyName}" created. You are signed in.`,
+                    detail: `Tenant "${result.tenancyName}" created. Set up your first branch.`,
                 });
-                this.router.navigateByUrl('/');
+                this.router.navigateByUrl('/branches/create');
             })
             .catch((error) => {
                 this.messageService.add({
@@ -169,7 +195,9 @@ export class SignupComponent implements OnInit, OnDestroy {
             });
     }
 
-    private passwordMatchValidator(group: AbstractControl): ValidationErrors | null {
+    private passwordMatchValidator(
+        group: AbstractControl
+    ): ValidationErrors | null {
         const password = group.get('adminPassword')?.value;
         const confirm = group.get('confirmPassword')?.value;
         if (!password || !confirm) {

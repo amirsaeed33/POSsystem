@@ -144,8 +144,7 @@ export class BranchListComponent implements OnInit {
     }
 
     openCreateDialog(): void {
-        this.editingBranchId = null;
-        this.dialogVisible = true;
+        this.router.navigate(['/branches/create']);
     }
 
     openEditDialog(branch: BranchDto): void {
@@ -302,47 +301,6 @@ export class BranchListComponent implements OnInit {
         setTimeout(() => {
             window.print();
         }, 100);
-    }
-
-    setDefaultBranch(branch: BranchDto): void {
-        if (branch.isDefault) {
-            return;
-        }
-
-        this.branchService
-            .update({
-                id: branch.id,
-                name: branch.name,
-                code: branch.code,
-                isActive: branch.isActive,
-                isDefault: true,
-                invoiceAddress: branch.invoiceAddress,
-                invoiceContactEmail: branch.invoiceContactEmail,
-                invoiceContactPhone: branch.invoiceContactPhone,
-                taxNumber: branch.taxNumber,
-                website: branch.website,
-                invoiceFooter: branch.invoiceFooter,
-                taxPercent: branch.taxPercent,
-                discountPercent: branch.discountPercent,
-                discountAmount: branch.discountAmount,
-                statusId: branch.statusId,
-                imagePath: branch.imagePath,
-            })
-            .then(() => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: `"${branch.name}" set as default branch`,
-                });
-                this.loadBranches();
-            })
-            .catch((error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error?.message || 'Failed to set default branch',
-                });
-            });
     }
 
     onDelete(branch: BranchDto): void {

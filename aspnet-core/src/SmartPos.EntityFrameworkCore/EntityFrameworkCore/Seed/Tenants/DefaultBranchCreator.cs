@@ -32,8 +32,7 @@ namespace SmartPos.EntityFrameworkCore.Seed.Tenants
                     Name = BranchConsts.DefaultBranchName,
                     Code = BranchConsts.DefaultBranchCode,
                     StatusId = ResolveStatusId(BranchStatuses.Pending),
-                    IsActive = true,
-                    IsDefault = true
+                    IsActive = true
                 };
                 _context.Branches.Add(branch);
                 _context.SaveChanges();

@@ -16,6 +16,7 @@ using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches.Dto;
 using SmartPos.Emailing;
+using SmartPos.HostCatalog;
 using SmartPos.Inventory;
 using SmartPos.Lookups;
 using SmartPos.MultiTenancy;
@@ -36,6 +37,7 @@ namespace SmartPos.Branches
         private readonly BranchStatusLookup _branchStatusLookup;
         private readonly ISmtpMailSender _smtpMailSender;
         private readonly IConfiguration _configuration;
+        private readonly BranchCatalogSeedService _branchCatalogSeedService;
 
         public BranchAppService(
             IRepository<Branch> repository,
@@ -46,7 +48,8 @@ namespace SmartPos.Branches
             IRepository<EmailTemplate> emailTemplateRepository,
             BranchStatusLookup branchStatusLookup,
             ISmtpMailSender smtpMailSender,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            BranchCatalogSeedService branchCatalogSeedService)
             : base(repository)
         {
             _productRepository = productRepository;
@@ -57,6 +60,7 @@ namespace SmartPos.Branches
             _branchStatusLookup = branchStatusLookup;
             _smtpMailSender = smtpMailSender;
             _configuration = configuration;
+            _branchCatalogSeedService = branchCatalogSeedService;
             CreatePermissionName = PermissionNames.Pages_Branches;
             UpdatePermissionName = PermissionNames.Pages_Branches;
             DeletePermissionName = PermissionNames.Pages_Branches;
@@ -75,6 +79,8 @@ namespace SmartPos.Branches
                     "Host administrators cannot create locations. Each business creates its own locations.");
             }
 
+            NormalizeCreateInput(input);
+
             var branch = ObjectMapper.Map<Branch>(input);
             branch.TenantId = AbpSession.TenantId;
             // New branches always start as Pending until host admin approves.
@@ -84,7 +90,26 @@ namespace SmartPos.Branches
             await Repository.InsertAsync(branch);
             await CurrentUnitOfWork.SaveChangesAsync();
 
+            if (!AbpSession.UserId.HasValue)
+            {
+                throw new UserFriendlyException("User session is required to create a branch seed request.");
+            }
+
+            await _branchCatalogSeedService.CreateRequestAsync(
+                branch,
+                input.CompanyTypeId,
+                input.HostCatalogItemIds,
+                AbpSession.UserId.Value);
+
             await SeedSharedProductsAsync(branch.Id);
+
+            // First branch after signup: bind the creating user so session/context have a location.
+            var currentUser = await UserManager.GetUserByIdAsync(AbpSession.UserId.Value);
+            if (currentUser.BranchId == null)
+            {
+                currentUser.BranchId = branch.Id;
+                await UserManager.UpdateAsync(currentUser);
+            }
 
             return await GetAsync(new EntityDto<int>(branch.Id));
         }
@@ -96,19 +121,9 @@ namespace SmartPos.Branches
 
             var branch = await GetEntityByIdAsync(input.Id);
 
-            if (input.IsDefault)
-            {
-                var otherDefaultBranches = await Repository.GetAllListAsync(x => x.Id != branch.Id && x.IsDefault);
-                foreach (var other in otherDefaultBranches)
-                {
-                    other.IsDefault = false;
-                }
-            }
-
             branch.Name = input.Name;
             branch.Code = input.Code;
             branch.IsActive = input.IsActive;
-            branch.IsDefault = input.IsDefault;
             branch.InvoiceAddress = input.InvoiceAddress;
             branch.InvoiceContactEmail = input.InvoiceContactEmail;
             branch.InvoiceContactPhone = input.InvoiceContactPhone;
@@ -158,7 +173,18 @@ namespace SmartPos.Branches
 
             if (sendActivationEmail)
             {
+                await _branchCatalogSeedService.ApproveAndCopyAsync(branch, AbpSession.UserId);
                 await SendBranchActivationEmailAsync(branch);
+            }
+            else if (AbpSession.TenantId == null
+                     && input.StatusId > 0
+                     && await PermissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches_Approve))
+            {
+                var status = await _branchStatusLookup.GetAsync(input.StatusId);
+                if (string.Equals(status.Name, BranchStatuses.Rejected, StringComparison.OrdinalIgnoreCase))
+                {
+                    await _branchCatalogSeedService.RejectAsync(branch.Id, AbpSession.UserId);
+                }
             }
 
             return await GetAsync(new EntityDto<int>(branch.Id));
@@ -315,8 +341,7 @@ namespace SmartPos.Branches
             if (branch == null)
             {
                 branch = await Repository.GetAll()
-                    .OrderByDescending(x => x.IsDefault)
-                    .ThenBy(x => x.Id)
+                    .OrderBy(x => x.Id)
                     .FirstOrDefaultAsync();
             }
 
@@ -379,6 +404,11 @@ namespace SmartPos.Branches
                 ClearActivationToken(branch);
                 await CurrentUnitOfWork.SaveChangesAsync();
 
+                if (string.Equals(status.Name, BranchStatuses.Rejected, StringComparison.OrdinalIgnoreCase))
+                {
+                    await _branchCatalogSeedService.RejectAsync(branch.Id, AbpSession.UserId);
+                }
+
                 var dto = ObjectMapper.Map<BranchDto>(branch);
                 var tenant = await _tenantRepository.FirstOrDefaultAsync(branch.TenantId.Value);
                 dto.TenancyName = tenant?.TenancyName;
@@ -401,6 +431,8 @@ namespace SmartPos.Branches
                     throw new UserFriendlyException("Branch not found.");
                 }
 
+                // Approve seed request and copy host catalog into branch-owned tables first.
+                await _branchCatalogSeedService.ApproveAndCopyAsync(branch, AbpSession.UserId);
                 await SendBranchActivationEmailAsync(branch);
                 return await GetAsync(new EntityDto<int>(branch.Id));
             }
@@ -679,6 +711,35 @@ namespace SmartPos.Branches
         {
             branch.ActivationTokenHash = null;
             branch.ActivationTokenExpiresAt = null;
+        }
+
+        private static void NormalizeCreateInput(CreateBranchDto input)
+        {
+            if (input == null)
+            {
+                return;
+            }
+
+            input.Name = input.Name?.Trim();
+            input.Code = input.Code?.Trim();
+            input.InvoiceAddress = NullIfWhiteSpace(input.InvoiceAddress);
+            input.InvoiceContactEmail = NullIfWhiteSpace(input.InvoiceContactEmail);
+            input.InvoiceContactPhone = NullIfWhiteSpace(input.InvoiceContactPhone);
+            input.TaxNumber = NullIfWhiteSpace(input.TaxNumber);
+            input.Website = NullIfWhiteSpace(input.Website);
+            input.InvoiceFooter = NullIfWhiteSpace(input.InvoiceFooter);
+            input.ImageBase64 = NullIfWhiteSpace(input.ImageBase64);
+
+            if (!string.IsNullOrWhiteSpace(input.InvoiceContactEmail)
+                && !input.InvoiceContactEmail.Contains('@'))
+            {
+                throw new UserFriendlyException("Invoice contact email is not valid.");
+            }
+        }
+
+        private static string NullIfWhiteSpace(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
         private async Task SeedSharedProductsAsync(int branchId)
