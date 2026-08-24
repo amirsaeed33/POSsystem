@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
+using Abp.Runtime.Caching;
 using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
@@ -19,17 +20,21 @@ namespace SmartPos.Brands
     [AbpAuthorize]
     public class BrandAppService : AsyncCrudAppService<Brand, BrandDto, int, PagedBrandResultRequestDto, CreateBrandDto, BrandDto>, IBrandAppService
     {
+        private const string CacheName = "BrandLookupCache";
         private readonly IBranchContext _branchContext;
         private readonly IRepository<User, long> _userRepository;
+        private readonly ICacheManager _cacheManager;
 
         public BrandAppService(
             IRepository<Brand> repository,
             IBranchContext branchContext,
-            IRepository<User, long> userRepository)
+            IRepository<User, long> userRepository,
+            ICacheManager cacheManager)
             : base(repository)
         {
             _branchContext = branchContext;
             _userRepository = userRepository;
+            _cacheManager = cacheManager;
             CreatePermissionName = PermissionNames.Pages_Brands;
             UpdatePermissionName = PermissionNames.Pages_Brands;
             DeletePermissionName = PermissionNames.Pages_Brands;
@@ -45,8 +50,13 @@ namespace SmartPos.Brands
             entity.TenantId = AbpSession.TenantId;
             entity.BranchId = branchId;
             entity.IsActive = input.IsActive;
+            if (string.IsNullOrWhiteSpace(entity.Description))
+            {
+                entity.Description = input.Name;
+            }
             await Repository.InsertAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
+            await ClearLookupCacheAsync();
             return MapToEntityDto(entity);
         }
 
@@ -65,21 +75,41 @@ namespace SmartPos.Brands
             }
             await Repository.UpdateAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
+            await ClearLookupCacheAsync();
             return MapToEntityDto(entity);
+        }
+
+        public override async Task DeleteAsync(EntityDto<int> input)
+        {
+            CheckDeletePermission();
+            await base.DeleteAsync(input);
+            await ClearLookupCacheAsync();
         }
 
         [AbpAuthorize(PermissionNames.Pages_Brands, PermissionNames.Pages_Products)]
         public async Task<ListResultDto<BrandDto>> GetLookupAsync()
         {
             var branchId = ResolveBranchId();
-            var query = Repository.GetAll().Where(x => x.IsActive);
-            if (branchId.HasValue)
-            {
-                query = query.Where(x => x.BranchId == branchId.Value);
-            }
+            var tenantId = AbpSession.TenantId ?? 0;
+            var cacheKey = $"Tenant_{tenantId}_Branch_{branchId?.ToString() ?? "All"}";
 
-            var items = await query.OrderBy(x => x.Name).ToListAsync();
-            return new ListResultDto<BrandDto>(ObjectMapper.Map<List<BrandDto>>(items));
+            var cache = _cacheManager.GetCache<string, ListResultDto<BrandDto>>(CacheName);
+            return await cache.GetAsync(cacheKey, async (key) =>
+            {
+                var query = Repository.GetAll().Where(x => x.IsActive);
+                if (branchId.HasValue)
+                {
+                    query = query.Where(x => x.BranchId == branchId.Value);
+                }
+
+                var items = await query.OrderBy(x => x.Name).ToListAsync();
+                return new ListResultDto<BrandDto>(ObjectMapper.Map<List<BrandDto>>(items));
+            });
+        }
+
+        private async Task ClearLookupCacheAsync()
+        {
+            await _cacheManager.GetCache(CacheName).ClearAsync();
         }
 
         protected override IQueryable<Brand> CreateFilteredQuery(PagedBrandResultRequestDto input)

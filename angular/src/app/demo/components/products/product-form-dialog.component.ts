@@ -194,18 +194,18 @@ export class ProductFormDialogComponent implements OnChanges {
               })
             : this.productService.create({
                   name,
-                  description: this.product.description?.trim() || undefined,
+                  description: (this.product.description?.trim() || name),
                   location: this.product.location?.trim() || undefined,
                   barcode,
                   price,
                   wholesalePrice,
                   costPrice,
-                  alertQuantityLimit: Number(this.product.alertQuantityLimit),
+                  alertQuantityLimit: this.product.alertQuantityLimit != null ? Number(this.product.alertQuantityLimit) : 10,
                   stockQuantity: Number(this.product.stockQuantity) || 0,
                   categoryId: this.product.categoryId,
                   brandId: this.product.brandId,
                   unitId: this.product.unitId,
-                  imageBase64,
+                  imageBase64: undefined,
                   ...assignment,
               } as CreateProductDto);
 
@@ -249,7 +249,7 @@ export class ProductFormDialogComponent implements OnChanges {
         if (this.product.costPrice == null || Number(this.product.costPrice) < 0) {
             return 'Cost price is required.';
         }
-        if (this.product.alertQuantityLimit == null || Number(this.product.alertQuantityLimit) < 0) {
+        if (this.productId && (this.product.alertQuantityLimit == null || Number(this.product.alertQuantityLimit) < 0)) {
             return 'Alert quantity limit is required.';
         }
         if (!this.product.categoryId) {

@@ -24,7 +24,7 @@
             </div>
         </div>
 
-        <div class="flex flex-column gap-2">
+        <div class="flex flex-column gap-2" *ngIf="productId">
             <label for="productDescription" class="font-medium">Description</label>
             <textarea id="productDescription" pInputTextarea rows="2" class="w-full" maxlength="1024"
                 [(ngModel)]="product.description" [disabled]="saving"></textarea>
@@ -66,7 +66,7 @@
             </span>
         </small>
 
-        <div class="flex flex-column gap-2">
+        <div class="flex flex-column gap-2" *ngIf="productId">
             <label for="alertLimit" class="font-medium">Alert Quantity Limit <span class="p-error">*</span></label>
             <p-inputNumber inputId="alertLimit" [(ngModel)]="product.alertQuantityLimit"
                 [min]="0" [useGrouping]="false" styleClass="w-full" inputStyleClass="w-full"
@@ -78,23 +78,23 @@
                 <label for="categoryId" class="font-medium">Category <span class="p-error">*</span></label>
                 <p-dropdown inputId="categoryId" [options]="categories" [(ngModel)]="product.categoryId"
                     optionLabel="name" optionValue="id" placeholder="Select category"
-                    [filter]="true" styleClass="w-full" [disabled]="saving"></p-dropdown>
+                    [filter]="true" styleClass="w-full" [disabled]="saving" appendTo="body"></p-dropdown>
             </div>
             <div class="field col-12 md:col-4 flex flex-column gap-2">
                 <label for="brandId" class="font-medium">Brand <span class="p-error">*</span></label>
                 <p-dropdown inputId="brandId" [options]="brands" [(ngModel)]="product.brandId"
                     optionLabel="name" optionValue="id" placeholder="Select brand"
-                    [filter]="true" styleClass="w-full" [disabled]="saving"></p-dropdown>
+                    [filter]="true" styleClass="w-full" [disabled]="saving" appendTo="body"></p-dropdown>
             </div>
             <div class="field col-12 md:col-4 flex flex-column gap-2">
                 <label for="unitId" class="font-medium">Unit <span class="p-error">*</span></label>
                 <p-dropdown inputId="unitId" [options]="units" [(ngModel)]="product.unitId"
                     optionLabel="name" optionValue="id" placeholder="Select unit"
-                    [filter]="true" styleClass="w-full" [disabled]="saving"></p-dropdown>
+                    [filter]="true" styleClass="w-full" [disabled]="saving" appendTo="body"></p-dropdown>
             </div>
         </div>
 
-        <div class="flex flex-column gap-2">
+        <div class="flex flex-column gap-2" *ngIf="productId">
             <label for="productImage" class="font-medium">Product Image</label>
             <input id="productImage" type="file" accept="image/*" (change)="onFileSelected($event)" [disabled]="saving" />
             <img *ngIf="imagePreview" [src]="imagePreview" alt="preview"

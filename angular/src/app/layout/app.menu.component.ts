@@ -34,20 +34,9 @@ export class AppMenuComponent implements OnInit {
                 ]
             },
             {
-                label: 'Sales',
-                icon: 'pi pi-shopping-cart',
-                items: [
-                    { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'], permission: PermissionNames.Sales },
-                    { label: 'Sale Returns', icon: 'pi pi-replay', routerLink: ['/sale-returns'], permission: PermissionNames.Sales },
-                    { label: 'Customer Orders', icon: 'pi pi-file', routerLink: ['/customer-orders'], permission: PermissionNames.CustomerOrders },
-                    { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'], permission: PermissionNames.Customers },
-                ]
-            },
-            {
                 label: 'Products',
                 icon: 'pi pi-box',
                 items: [
-                    { label: 'Products', icon: 'pi pi-box', routerLink: ['/products'], permission: PermissionNames.Products },
                     {
                         label: 'Settings',
                         icon: 'pi pi-cog',
@@ -58,16 +47,27 @@ export class AppMenuComponent implements OnInit {
                             PermissionNames.Categories,
                         ],
                     },
+                    { label: 'Products', icon: 'pi pi-box', routerLink: ['/products'], permission: PermissionNames.Products },
+                    { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'], permission: PermissionNames.Suppliers },
                     { label: 'Purchases', icon: 'pi pi-shopping-bag', routerLink: ['/purchases'], permission: PermissionNames.Purchases },
                     { label: 'Purchase Returns', icon: 'pi pi-replay', routerLink: ['/purchase-returns'], permission: PermissionNames.Purchases },
                     { label: 'Stock Adjustments', icon: 'pi pi-sync', routerLink: ['/stock-adjustments'], permission: PermissionNames.StockAdjustments },
                 ]
             },
             {
+                label: 'Sales',
+                icon: 'pi pi-shopping-cart',
+                items: [
+                    { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'], permission: PermissionNames.Sales },
+                    { label: 'Sale Returns', icon: 'pi pi-replay', routerLink: ['/sale-returns'], permission: PermissionNames.Sales },
+                    { label: 'Customer Orders', icon: 'pi pi-file', routerLink: ['/customer-orders'], permission: PermissionNames.CustomerOrders },
+                    { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'], permission: PermissionNames.Customers },
+                ]
+            },
+            {
                 label: 'Business',
                 icon: 'pi pi-briefcase',
                 items: [
-                    { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'], permission: PermissionNames.Suppliers },
                     { label: 'Accounts', icon: 'pi pi-building', routerLink: ['/accounts'], permission: PermissionNames.Accounts },
                     { label: 'Ledger', icon: 'pi pi-book', routerLink: ['/ledger-entries'], permission: PermissionNames.LedgerEntries },
                     { label: 'Expenses', icon: 'pi pi-wallet', routerLink: ['/expenses'], permission: PermissionNames.Expenses },

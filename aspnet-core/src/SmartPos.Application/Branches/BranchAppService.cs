@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
+using Abp.Runtime.Caching;
 using Abp.Domain.Repositories;
 using Abp.Domain.Uow;
 using Abp.Extensions;
@@ -27,6 +28,7 @@ namespace SmartPos.Branches
     [AbpAuthorize]
     public class BranchAppService : AsyncCrudAppService<Branch, BranchDto, int, PagedBranchResultRequestDto, CreateBranchDto, BranchDto>, IBranchAppService
     {
+        private const string CacheName = "BranchLookupCache";
         public UserManager UserManager { get; set; }
 
         private readonly IRepository<Product> _productRepository;
@@ -38,6 +40,7 @@ namespace SmartPos.Branches
         private readonly ISmtpMailSender _smtpMailSender;
         private readonly IConfiguration _configuration;
         private readonly BranchCatalogSeedService _branchCatalogSeedService;
+        private readonly ICacheManager _cacheManager;
 
         public BranchAppService(
             IRepository<Branch> repository,
@@ -49,7 +52,8 @@ namespace SmartPos.Branches
             BranchStatusLookup branchStatusLookup,
             ISmtpMailSender smtpMailSender,
             IConfiguration configuration,
-            BranchCatalogSeedService branchCatalogSeedService)
+            BranchCatalogSeedService branchCatalogSeedService,
+            ICacheManager cacheManager)
             : base(repository)
         {
             _productRepository = productRepository;
@@ -61,6 +65,7 @@ namespace SmartPos.Branches
             _smtpMailSender = smtpMailSender;
             _configuration = configuration;
             _branchCatalogSeedService = branchCatalogSeedService;
+            _cacheManager = cacheManager;
             CreatePermissionName = PermissionNames.Pages_Branches;
             UpdatePermissionName = PermissionNames.Pages_Branches;
             DeletePermissionName = PermissionNames.Pages_Branches;
@@ -111,6 +116,7 @@ namespace SmartPos.Branches
                 await UserManager.UpdateAsync(currentUser);
             }
 
+            await ClearLookupCacheAsync();
             return await GetAsync(new EntityDto<int>(branch.Id));
         }
 
@@ -187,6 +193,7 @@ namespace SmartPos.Branches
                 }
             }
 
+            await ClearLookupCacheAsync();
             return await GetAsync(new EntityDto<int>(branch.Id));
         }
 
@@ -198,6 +205,7 @@ namespace SmartPos.Branches
             var branch = await GetEntityByIdAsync(input.Id);
             BranchImageStore.DeleteIfExists(branch.ImagePath);
             await Repository.DeleteAsync(branch);
+            await ClearLookupCacheAsync();
         }
 
         [AbpAuthorize(PermissionNames.Pages_Branches)]
@@ -277,52 +285,66 @@ namespace SmartPos.Branches
 
         public async Task<ListResultDto<BranchDto>> GetLookupAsync()
         {
-            // Host admin: every business location across tenants.
-            if (await CanBrowseAllLocationsAsync())
+            var canBrowseAll = await CanBrowseAllLocationsAsync();
+            var tenantId = AbpSession.TenantId ?? 0;
+            var userId = AbpSession.UserId ?? 0;
+            var cacheKey = $"Tenant_{tenantId}_User_{userId}_BrowseAll_{canBrowseAll}";
+
+            var cache = _cacheManager.GetCache<string, ListResultDto<BranchDto>>(CacheName);
+            return await cache.GetAsync(cacheKey, async (key) =>
             {
-                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                // Host admin: every business location across tenants.
+                if (canBrowseAll)
                 {
-                    var allLocations = await Repository.GetAll()
-                        .Where(x => x.IsActive && x.TenantId != null)
-                        .OrderBy(x => x.Name)
-                        .ToListAsync();
-                    var allDtos = ObjectMapper.Map<List<BranchDto>>(allLocations);
-                    for (var i = 0; i < allLocations.Count; i++)
+                    using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
                     {
-                        allDtos[i].TenantId = allLocations[i].TenantId;
+                        var allLocations = await Repository.GetAll()
+                            .Where(x => x.IsActive && x.TenantId != null)
+                            .OrderBy(x => x.Name)
+                            .ToListAsync();
+                        var allDtos = ObjectMapper.Map<List<BranchDto>>(allLocations);
+                        for (var i = 0; i < allLocations.Count; i++)
+                        {
+                            allDtos[i].TenantId = allLocations[i].TenantId;
+                        }
+                        await FillTenancyNamesAsync(allDtos);
+                        await FillStatusNamesAsync(allDtos);
+                        return new ListResultDto<BranchDto>(allDtos);
                     }
-                    await FillTenancyNamesAsync(allDtos);
-                    await FillStatusNamesAsync(allDtos);
-                    return new ListResultDto<BranchDto>(allDtos);
                 }
-            }
 
-            IQueryable<Branch> query = Repository.GetAll().Where(x => x.IsActive);
+                IQueryable<Branch> query = Repository.GetAll().Where(x => x.IsActive);
 
-            if (!await PermissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches))
-            {
-                if (!AbpSession.UserId.HasValue)
+                if (!await PermissionChecker.IsGrantedAsync(PermissionNames.Pages_Branches))
                 {
-                    return new ListResultDto<BranchDto>(new List<BranchDto>());
+                    if (!AbpSession.UserId.HasValue)
+                    {
+                        return new ListResultDto<BranchDto>(new List<BranchDto>());
+                    }
+
+                    var currentUser = await UserManager.GetUserByIdAsync(AbpSession.UserId.Value);
+                    if (!currentUser.BranchId.HasValue)
+                    {
+                        return new ListResultDto<BranchDto>(new List<BranchDto>());
+                    }
+
+                    query = query.Where(x => x.Id == currentUser.BranchId.Value);
                 }
 
-                var currentUser = await UserManager.GetUserByIdAsync(AbpSession.UserId.Value);
-                if (!currentUser.BranchId.HasValue)
+                var branches = await query.OrderBy(x => x.Name).ToListAsync();
+                var dtos = ObjectMapper.Map<List<BranchDto>>(branches);
+                for (var i = 0; i < branches.Count; i++)
                 {
-                    return new ListResultDto<BranchDto>(new List<BranchDto>());
+                    dtos[i].TenantId = branches[i].TenantId;
                 }
+                await FillStatusNamesAsync(dtos);
+                return new ListResultDto<BranchDto>(dtos);
+            });
+        }
 
-                query = query.Where(x => x.Id == currentUser.BranchId.Value);
-            }
-
-            var branches = await query.OrderBy(x => x.Name).ToListAsync();
-            var dtos = ObjectMapper.Map<List<BranchDto>>(branches);
-            for (var i = 0; i < branches.Count; i++)
-            {
-                dtos[i].TenantId = branches[i].TenantId;
-            }
-            await FillStatusNamesAsync(dtos);
-            return new ListResultDto<BranchDto>(dtos);
+        private async Task ClearLookupCacheAsync()
+        {
+            await _cacheManager.GetCache(CacheName).ClearAsync();
         }
 
         public async Task<BranchDto> GetInvoiceInfoAsync()

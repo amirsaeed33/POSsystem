@@ -21,10 +21,11 @@
                 maxlength="128"
                 [(ngModel)]="category.name"
                 [disabled]="saving"
+                (keyup.enter)="save()"
             />
         </div>
 
-        <div class="flex flex-column gap-2">
+        <div class="flex flex-column gap-2" *ngIf="categoryId">
             <label for="categoryDescription" class="font-medium">Description</label>
             <textarea
                 id="categoryDescription"
@@ -34,6 +35,7 @@
                 maxlength="512"
                 [(ngModel)]="category.description"
                 [disabled]="saving"
+                (keydown.control.enter)="save()"
             ></textarea>
         </div>
     </div>

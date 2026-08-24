@@ -1,6 +1,7 @@
 import {
     Component,
     EventEmitter,
+    HostListener,
     Input,
     OnChanges,
     Output,
@@ -23,6 +24,20 @@ export class BrandFormDialogComponent implements OnChanges {
     brand: BrandDto = { id: 0, name: '', description: '' };
     saving = false;
     loading = false;
+
+    @HostListener('window:keydown', ['$event'])
+    handleKeyboardEvent(event: KeyboardEvent) {
+        if (!this.visible || this.saving || this.loading) {
+            return;
+        }
+
+        // Alt + S or Ctrl + S to save without browser conflict
+        if ((event.altKey && (event.key === 's' || event.key === 'S')) ||
+            (event.ctrlKey && (event.key === 's' || event.key === 'S'))) {
+            event.preventDefault();
+            this.save();
+        }
+    }
 
     constructor(
         private brandService: BrandService,

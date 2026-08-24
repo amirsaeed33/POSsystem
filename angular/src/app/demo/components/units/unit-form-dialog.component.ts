@@ -1,6 +1,7 @@
 import {
     Component,
     EventEmitter,
+    HostListener,
     Input,
     OnChanges,
     Output,
@@ -20,9 +21,23 @@ export class UnitFormDialogComponent implements OnChanges {
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
 
-    unit: UnitDto = { id: 0, name: '', description: '' };
+    unit: UnitDto = { id: 0, name: '', description: '', symbol: '' };
     saving = false;
     loading = false;
+
+    @HostListener('window:keydown', ['$event'])
+    handleKeyboardEvent(event: KeyboardEvent) {
+        if (!this.visible || this.saving || this.loading) {
+            return;
+        }
+
+        // Alt + S or Ctrl + S to save without browser conflict
+        if ((event.altKey && (event.key === 's' || event.key === 'S')) ||
+            (event.ctrlKey && (event.key === 's' || event.key === 'S'))) {
+            event.preventDefault();
+            this.save();
+        }
+    }
 
     constructor(
         private unitService: UnitService,
