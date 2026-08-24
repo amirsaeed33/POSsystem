@@ -1,5 +1,6 @@
 export interface CategoryDto {
     id: number;
+    branchId?: number;
     name: string;
     description?: string;
 }

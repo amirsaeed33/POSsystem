@@ -50,6 +50,24 @@ namespace SmartPos.Brands
             return MapToEntityDto(entity);
         }
 
+        public override async Task<BrandDto> UpdateAsync(BrandDto input)
+        {
+            CheckUpdatePermission();
+            var entity = await Repository.GetAsync(input.Id);
+            if (entity.BranchId <= 0)
+            {
+                entity.BranchId = RequireCurrentBranchId();
+            }
+            ObjectMapper.Map(input, entity);
+            if (entity.BranchId <= 0)
+            {
+                entity.BranchId = RequireCurrentBranchId();
+            }
+            await Repository.UpdateAsync(entity);
+            await CurrentUnitOfWork.SaveChangesAsync();
+            return MapToEntityDto(entity);
+        }
+
         [AbpAuthorize(PermissionNames.Pages_Brands, PermissionNames.Pages_Products)]
         public async Task<ListResultDto<BrandDto>> GetLookupAsync()
         {

@@ -19,7 +19,5 @@ namespace SmartPos.Categories.Dto
         public string Description { get; set; }
 
         public bool IsActive { get; set; } = true;
-
-        public int? HostSourceId { get; set; }
     }
 }

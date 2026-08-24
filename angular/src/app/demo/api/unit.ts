@@ -1,6 +1,8 @@
 export interface UnitDto {
     id: number;
+    branchId?: number;
     name: string;
+    symbol?: string;
     description?: string;
 }
 

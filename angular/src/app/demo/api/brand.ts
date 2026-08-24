@@ -1,5 +1,6 @@
 export interface BrandDto {
     id: number;
+    branchId?: number;
     name: string;
     description?: string;
 }

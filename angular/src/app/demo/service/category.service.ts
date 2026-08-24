@@ -78,6 +78,7 @@ export class CategoryService {
         const res: any = await firstValueFrom(
             this.http.put<any>(`${this.apiUrl}/Update`, {
                 id: input.id,
+                branchId: input.branchId,
                 name: input.name,
                 description: input.description,
             })
@@ -112,6 +113,7 @@ export class CategoryService {
     private mapCategory(item: any): CategoryDto {
         return {
             id: item.id ?? item.Id,
+            branchId: item.branchId ?? item.BranchId,
             name: item.name ?? item.Name,
             description: item.description ?? item.Description,
         };

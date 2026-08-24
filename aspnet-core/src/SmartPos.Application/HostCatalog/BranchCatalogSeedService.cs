@@ -194,7 +194,7 @@ namespace SmartPos.HostCatalog
                     .AnyAsync(x =>
                         x.TenantId == tenantId
                         && x.BranchId == branchId
-                        && x.HostSourceId == hostItem.Id);
+                        && x.Name == hostItem.Name);
                 if (exists)
                 {
                     return;
@@ -205,8 +205,7 @@ namespace SmartPos.HostCatalog
                     TenantId = tenantId,
                     BranchId = branchId,
                     Name = hostItem.Name,
-                    IsActive = true,
-                    HostSourceId = hostItem.Id
+                    IsActive = true
                 });
                 return;
             }
@@ -217,7 +216,7 @@ namespace SmartPos.HostCatalog
                     .AnyAsync(x =>
                         x.TenantId == tenantId
                         && x.BranchId == branchId
-                        && x.HostSourceId == hostItem.Id);
+                        && x.Name == hostItem.Name);
                 if (exists)
                 {
                     return;
@@ -228,8 +227,7 @@ namespace SmartPos.HostCatalog
                     TenantId = tenantId,
                     BranchId = branchId,
                     Name = hostItem.Name,
-                    IsActive = true,
-                    HostSourceId = hostItem.Id
+                    IsActive = true
                 });
                 return;
             }
@@ -240,7 +238,7 @@ namespace SmartPos.HostCatalog
                     .AnyAsync(x =>
                         x.TenantId == tenantId
                         && x.BranchId == branchId
-                        && x.HostSourceId == hostItem.Id);
+                        && x.Name == hostItem.Name);
                 if (exists)
                 {
                     return;
@@ -252,8 +250,7 @@ namespace SmartPos.HostCatalog
                     BranchId = branchId,
                     Name = hostItem.Name,
                     Symbol = hostItem.Symbol,
-                    IsActive = true,
-                    HostSourceId = hostItem.Id
+                    IsActive = true
                 });
             }
         }

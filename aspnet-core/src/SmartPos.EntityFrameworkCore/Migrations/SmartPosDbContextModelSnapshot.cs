@@ -63,7 +63,7 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AbpEditions");
+                    b.ToTable("AbpEditions", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Application.Features.FeatureSetting", b =>
@@ -100,7 +100,7 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AbpFeatures");
+                    b.ToTable("AbpFeatures", (string)null);
 
                     b.HasDiscriminator().HasValue("FeatureSetting");
 
@@ -180,7 +180,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "UserId");
 
-                    b.ToTable("AbpAuditLogs");
+                    b.ToTable("AbpAuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Authorization.PermissionSetting", b =>
@@ -217,7 +217,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "Name");
 
-                    b.ToTable("AbpPermissions");
+                    b.ToTable("AbpPermissions", (string)null);
 
                     b.HasDiscriminator().HasValue("PermissionSetting");
 
@@ -257,7 +257,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "ClaimType");
 
-                    b.ToTable("AbpRoleClaims");
+                    b.ToTable("AbpRoleClaims", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Authorization.Users.UserAccount", b =>
@@ -318,7 +318,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "UserName");
 
-                    b.ToTable("AbpUserAccounts");
+                    b.ToTable("AbpUserAccounts", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Authorization.Users.UserClaim", b =>
@@ -354,7 +354,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "ClaimType");
 
-                    b.ToTable("AbpUserClaims");
+                    b.ToTable("AbpUserClaims", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Authorization.Users.UserLogin", b =>
@@ -393,7 +393,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "LoginProvider", "ProviderKey");
 
-                    b.ToTable("AbpUserLogins");
+                    b.ToTable("AbpUserLogins", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Authorization.Users.UserLoginAttempt", b =>
@@ -446,7 +446,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenancyName", "UserNameOrEmailAddress", "Result");
 
-                    b.ToTable("AbpUserLoginAttempts");
+                    b.ToTable("AbpUserLoginAttempts", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Authorization.Users.UserOrganizationUnit", b =>
@@ -481,7 +481,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "UserId");
 
-                    b.ToTable("AbpUserOrganizationUnits");
+                    b.ToTable("AbpUserOrganizationUnits", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Authorization.Users.UserRole", b =>
@@ -515,7 +515,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "UserId");
 
-                    b.ToTable("AbpUserRoles");
+                    b.ToTable("AbpUserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Authorization.Users.UserToken", b =>
@@ -553,7 +553,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "UserId");
 
-                    b.ToTable("AbpUserTokens");
+                    b.ToTable("AbpUserTokens", (string)null);
                 });
 
             modelBuilder.Entity("Abp.BackgroundJobs.BackgroundJobInfo", b =>
@@ -599,7 +599,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("IsAbandoned", "NextTryTime");
 
-                    b.ToTable("AbpBackgroundJobs");
+                    b.ToTable("AbpBackgroundJobs", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Configuration.Setting", b =>
@@ -643,7 +643,7 @@ namespace SmartPos.Migrations
                     b.HasIndex("TenantId", "Name", "UserId")
                         .IsUnique();
 
-                    b.ToTable("AbpSettings");
+                    b.ToTable("AbpSettings", (string)null);
                 });
 
             modelBuilder.Entity("Abp.DynamicEntityProperties.DynamicEntityProperty", b =>
@@ -672,7 +672,7 @@ namespace SmartPos.Migrations
                         .IsUnique()
                         .HasFilter("[EntityFullName] IS NOT NULL AND [TenantId] IS NOT NULL");
 
-                    b.ToTable("AbpDynamicEntityProperties");
+                    b.ToTable("AbpDynamicEntityProperties", (string)null);
                 });
 
             modelBuilder.Entity("Abp.DynamicEntityProperties.DynamicEntityPropertyValue", b =>
@@ -700,7 +700,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("DynamicEntityPropertyId");
 
-                    b.ToTable("AbpDynamicEntityPropertyValues");
+                    b.ToTable("AbpDynamicEntityPropertyValues", (string)null);
                 });
 
             modelBuilder.Entity("Abp.DynamicEntityProperties.DynamicProperty", b =>
@@ -733,7 +733,7 @@ namespace SmartPos.Migrations
                         .IsUnique()
                         .HasFilter("[PropertyName] IS NOT NULL AND [TenantId] IS NOT NULL");
 
-                    b.ToTable("AbpDynamicProperties");
+                    b.ToTable("AbpDynamicProperties", (string)null);
                 });
 
             modelBuilder.Entity("Abp.DynamicEntityProperties.DynamicPropertyValue", b =>
@@ -758,7 +758,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("DynamicPropertyId");
 
-                    b.ToTable("AbpDynamicPropertyValues");
+                    b.ToTable("AbpDynamicPropertyValues", (string)null);
                 });
 
             modelBuilder.Entity("Abp.EntityHistory.EntityChange", b =>
@@ -795,7 +795,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("EntityTypeFullName", "EntityId");
 
-                    b.ToTable("AbpEntityChanges");
+                    b.ToTable("AbpEntityChanges", (string)null);
                 });
 
             modelBuilder.Entity("Abp.EntityHistory.EntityChangeSet", b =>
@@ -848,7 +848,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "UserId");
 
-                    b.ToTable("AbpEntityChangeSets");
+                    b.ToTable("AbpEntityChangeSets", (string)null);
                 });
 
             modelBuilder.Entity("Abp.EntityHistory.EntityPropertyChange", b =>
@@ -891,7 +891,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("EntityChangeId");
 
-                    b.ToTable("AbpEntityPropertyChanges");
+                    b.ToTable("AbpEntityPropertyChanges", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Localization.ApplicationLanguage", b =>
@@ -947,7 +947,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "Name");
 
-                    b.ToTable("AbpLanguages");
+                    b.ToTable("AbpLanguages", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Localization.ApplicationLanguageText", b =>
@@ -997,7 +997,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "Source", "LanguageName", "Key");
 
-                    b.ToTable("AbpLanguageTexts");
+                    b.ToTable("AbpLanguageTexts", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Notifications.NotificationInfo", b =>
@@ -1058,7 +1058,7 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AbpNotifications");
+                    b.ToTable("AbpNotifications", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Notifications.NotificationSubscriptionInfo", b =>
@@ -1105,7 +1105,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "NotificationName", "EntityTypeName", "EntityId", "UserId");
 
-                    b.ToTable("AbpNotificationSubscriptions");
+                    b.ToTable("AbpNotificationSubscriptions", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Notifications.TenantNotificationInfo", b =>
@@ -1155,7 +1155,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("AbpTenantNotifications");
+                    b.ToTable("AbpTenantNotifications", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Notifications.UserNotificationInfo", b =>
@@ -1187,7 +1187,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("UserId", "State", "CreationTime");
 
-                    b.ToTable("AbpUserNotifications");
+                    b.ToTable("AbpUserNotifications", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Organizations.OrganizationUnit", b =>
@@ -1241,7 +1241,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "Code");
 
-                    b.ToTable("AbpOrganizationUnits");
+                    b.ToTable("AbpOrganizationUnits", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Organizations.OrganizationUnitRole", b =>
@@ -1276,7 +1276,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "RoleId");
 
-                    b.ToTable("AbpOrganizationUnitRoles");
+                    b.ToTable("AbpOrganizationUnitRoles", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Webhooks.WebhookEvent", b =>
@@ -1306,7 +1306,7 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AbpWebhookEvents");
+                    b.ToTable("AbpWebhookEvents", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Webhooks.WebhookSendAttempt", b =>
@@ -1340,7 +1340,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("WebhookEventId");
 
-                    b.ToTable("AbpWebhookSendAttempts");
+                    b.ToTable("AbpWebhookSendAttempts", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Webhooks.WebhookSubscriptionInfo", b =>
@@ -1377,7 +1377,7 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AbpWebhookSubscriptions");
+                    b.ToTable("AbpWebhookSubscriptions", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Accounts.BusinessAccount", b =>
@@ -1438,7 +1438,7 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AppAccounts");
+                    b.ToTable("AppAccounts", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Accounts.LedgerEntry", b =>
@@ -1490,7 +1490,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TransactionDate");
 
-                    b.ToTable("AppLedgerEntries");
+                    b.ToTable("AppLedgerEntries", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Authorization.Roles.Role", b =>
@@ -1565,7 +1565,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "NormalizedName");
 
-                    b.ToTable("AbpRoles");
+                    b.ToTable("AbpRoles", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Authorization.Users.User", b =>
@@ -1702,7 +1702,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "NormalizedUserName");
 
-                    b.ToTable("AbpUsers");
+                    b.ToTable("AbpUsers", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Branches.Branch", b =>
@@ -1730,14 +1730,6 @@ namespace SmartPos.Migrations
                     b.Property<DateTime?>("DeletionTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("DiscountAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("DiscountPercent")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("ImagePath")
                         .HasMaxLength(1024)
                         .HasColumnType("nvarchar(1024)");
@@ -1761,6 +1753,9 @@ namespace SmartPos.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -1778,20 +1773,9 @@ namespace SmartPos.Migrations
                     b.Property<int>("StatusId")
                         .HasColumnType("int");
 
-                    b.Property<string>("ActivationTokenHash")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTime?>("ActivationTokenExpiresAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("TaxNumber")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
-
-                    b.Property<decimal>("TaxPercent")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("TenantId")
                         .HasColumnType("int");
@@ -1808,7 +1792,7 @@ namespace SmartPos.Migrations
                         .IsUnique()
                         .HasFilter("[IsDeleted] = 0");
 
-                    b.ToTable("AppBranches");
+                    b.ToTable("AppBranches", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Brands.Brand", b =>
@@ -1854,7 +1838,7 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AppBrands");
+                    b.ToTable("AppBrands", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Categories.Category", b =>
@@ -1900,7 +1884,7 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AppCategories");
+                    b.ToTable("AppCategories", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Customers.Customer", b =>
@@ -1971,7 +1955,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("AppCustomers");
+                    b.ToTable("AppCustomers", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Emailing.EmailTemplate", b =>
@@ -2038,7 +2022,7 @@ namespace SmartPos.Migrations
                         .IsUnique()
                         .HasFilter("[IsDeleted] = 0");
 
-                    b.ToTable("AppEmailTemplates");
+                    b.ToTable("AppEmailTemplates", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Expenses.Expense", b =>
@@ -2105,7 +2089,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("PaymentAccountId");
 
-                    b.ToTable("AppExpenses");
+                    b.ToTable("AppExpenses", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Inventory.BranchStock", b =>
@@ -2172,7 +2156,7 @@ namespace SmartPos.Migrations
                         .IsUnique()
                         .HasFilter("[IsDeleted] = 0");
 
-                    b.ToTable("AppBranchStocks");
+                    b.ToTable("AppBranchStocks", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Inventory.StockAdjustment", b =>
@@ -2230,7 +2214,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("ReferenceNo");
 
-                    b.ToTable("AppStockAdjustments");
+                    b.ToTable("AppStockAdjustments", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Inventory.StockAdjustmentLine", b =>
@@ -2281,7 +2265,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("StockAdjustmentId");
 
-                    b.ToTable("AppStockAdjustmentLines");
+                    b.ToTable("AppStockAdjustmentLines", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Lookups.LookUp", b =>
@@ -2343,7 +2327,7 @@ namespace SmartPos.Migrations
                         .IsUnique()
                         .HasFilter("[IsDeleted] = 0");
 
-                    b.ToTable("AppLookUps");
+                    b.ToTable("AppLookUps", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.MultiTenancy.Tenant", b =>
@@ -2407,7 +2391,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenancyName");
 
-                    b.ToTable("AbpTenants");
+                    b.ToTable("AbpTenants", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Orders.CustomerOrder", b =>
@@ -2477,7 +2461,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("SaleId");
 
-                    b.ToTable("AppCustomerOrders");
+                    b.ToTable("AppCustomerOrders", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Orders.CustomerOrderLine", b =>
@@ -2536,7 +2520,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("AppCustomerOrderLines");
+                    b.ToTable("AppCustomerOrderLines", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Products.Product", b =>
@@ -2633,7 +2617,7 @@ namespace SmartPos.Migrations
                         .IsUnique()
                         .HasFilter("[Barcode] IS NOT NULL AND [IsDeleted] = 0");
 
-                    b.ToTable("AppProducts");
+                    b.ToTable("AppProducts", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Purchases.Purchase", b =>
@@ -2695,7 +2679,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("AppPurchases");
+                    b.ToTable("AppPurchases", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Purchases.PurchaseLine", b =>
@@ -2754,7 +2738,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("PurchaseId");
 
-                    b.ToTable("AppPurchaseLines");
+                    b.ToTable("AppPurchaseLines", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Purchases.PurchaseReturn", b =>
@@ -2812,7 +2796,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("PurchaseId");
 
-                    b.ToTable("AppPurchaseReturns");
+                    b.ToTable("AppPurchaseReturns", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Purchases.PurchaseReturnLine", b =>
@@ -2876,7 +2860,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("PurchaseReturnId");
 
-                    b.ToTable("AppPurchaseReturnLines");
+                    b.ToTable("AppPurchaseReturnLines", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Sales.Sale", b =>
@@ -2973,7 +2957,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("AppSales");
+                    b.ToTable("AppSales", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Sales.SaleLine", b =>
@@ -3032,7 +3016,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("SaleId");
 
-                    b.ToTable("AppSaleLines");
+                    b.ToTable("AppSaleLines", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Sales.SaleReturn", b =>
@@ -3090,7 +3074,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("SaleId");
 
-                    b.ToTable("AppSaleReturns");
+                    b.ToTable("AppSaleReturns", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Sales.SaleReturnLine", b =>
@@ -3154,7 +3138,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("SaleReturnId");
 
-                    b.ToTable("AppSaleReturnLines");
+                    b.ToTable("AppSaleReturnLines", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Staffs.Staff", b =>
@@ -3215,10 +3199,6 @@ namespace SmartPos.Migrations
                     b.Property<long?>("LastModifierUserId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("LoginPassword")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -3231,16 +3211,11 @@ namespace SmartPos.Migrations
                     b.Property<int?>("TenantId")
                         .HasColumnType("int");
 
-                    b.Property<long?>("UserId")
-                        .HasColumnType("bigint");
-
                     b.HasKey("Id");
 
                     b.HasIndex("BranchId");
 
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AppStaff");
+                    b.ToTable("AppStaff", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Staffs.StaffAttendance", b =>
@@ -3307,7 +3282,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("StaffId", "AttendanceDate");
 
-                    b.ToTable("AppStaffAttendances");
+                    b.ToTable("AppStaffAttendances", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Staffs.StaffHistory", b =>
@@ -3348,7 +3323,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("StaffId");
 
-                    b.ToTable("AppStaffHistories");
+                    b.ToTable("AppStaffHistories", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Staffs.StaffPayroll", b =>
@@ -3437,7 +3412,7 @@ namespace SmartPos.Migrations
                         .IsUnique()
                         .HasFilter("[IsDeleted] = 0");
 
-                    b.ToTable("AppStaffPayrolls");
+                    b.ToTable("AppStaffPayrolls", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Suppliers.Supplier", b =>
@@ -3505,7 +3480,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("AppSuppliers");
+                    b.ToTable("AppSuppliers", (string)null);
                 });
 
             modelBuilder.Entity("SmartPos.Units.Unit", b =>
@@ -3551,7 +3526,7 @@ namespace SmartPos.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AppUnits");
+                    b.ToTable("AppUnits", (string)null);
                 });
 
             modelBuilder.Entity("Abp.Application.Features.EditionFeatureSetting", b =>
@@ -3563,7 +3538,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("EditionId", "Name");
 
-                    b.ToTable("AbpFeatures");
+                    b.ToTable("AbpFeatures", (string)null);
 
                     b.HasDiscriminator().HasValue("EditionFeatureSetting");
                 });
@@ -3574,7 +3549,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("TenantId", "Name");
 
-                    b.ToTable("AbpFeatures");
+                    b.ToTable("AbpFeatures", (string)null);
 
                     b.HasDiscriminator().HasValue("TenantFeatureSetting");
                 });
@@ -3588,7 +3563,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AbpPermissions");
+                    b.ToTable("AbpPermissions", (string)null);
 
                     b.HasDiscriminator().HasValue("RolePermissionSetting");
                 });
@@ -3602,7 +3577,7 @@ namespace SmartPos.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AbpPermissions");
+                    b.ToTable("AbpPermissions", (string)null);
 
                     b.HasDiscriminator().HasValue("UserPermissionSetting");
                 });

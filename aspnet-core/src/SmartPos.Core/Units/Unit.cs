@@ -31,8 +31,5 @@ namespace SmartPos.Units
         public virtual string Symbol { get; set; }
 
         public virtual bool IsActive { get; set; } = true;
-
-        /// <summary>Optional source row in AppHostCatalogItems after seed copy.</summary>
-        public virtual int? HostSourceId { get; set; }
     }
 }

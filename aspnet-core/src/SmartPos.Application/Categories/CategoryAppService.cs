@@ -50,6 +50,24 @@ namespace SmartPos.Categories
             return MapToEntityDto(entity);
         }
 
+        public override async Task<CategoryDto> UpdateAsync(CategoryDto input)
+        {
+            CheckUpdatePermission();
+            var entity = await Repository.GetAsync(input.Id);
+            if (entity.BranchId <= 0)
+            {
+                entity.BranchId = RequireCurrentBranchId();
+            }
+            ObjectMapper.Map(input, entity);
+            if (entity.BranchId <= 0)
+            {
+                entity.BranchId = RequireCurrentBranchId();
+            }
+            await Repository.UpdateAsync(entity);
+            await CurrentUnitOfWork.SaveChangesAsync();
+            return MapToEntityDto(entity);
+        }
+
         [AbpAuthorize(PermissionNames.Pages_Categories, PermissionNames.Pages_Products)]
         public async Task<ListResultDto<CategoryDto>> GetLookupAsync()
         {

@@ -51,6 +51,25 @@ namespace SmartPos.Units
             return MapToEntityDto(entity);
         }
 
+        public override async Task<UnitDto> UpdateAsync(UnitDto input)
+        {
+            CheckUpdatePermission();
+            var entity = await Repository.GetAsync(input.Id);
+            if (entity.BranchId <= 0)
+            {
+                entity.BranchId = RequireCurrentBranchId();
+            }
+            ObjectMapper.Map(input, entity);
+            if (entity.BranchId <= 0)
+            {
+                entity.BranchId = RequireCurrentBranchId();
+            }
+            entity.Symbol = input.Symbol?.Trim();
+            await Repository.UpdateAsync(entity);
+            await CurrentUnitOfWork.SaveChangesAsync();
+            return MapToEntityDto(entity);
+        }
+
         [AbpAuthorize(PermissionNames.Pages_Units, PermissionNames.Pages_Products)]
         public async Task<ListResultDto<UnitDto>> GetLookupAsync()
         {

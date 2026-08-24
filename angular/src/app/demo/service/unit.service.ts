@@ -78,7 +78,9 @@ export class UnitService {
         const res: any = await firstValueFrom(
             this.http.put<any>(`${this.apiUrl}/Update`, {
                 id: input.id,
+                branchId: input.branchId,
                 name: input.name,
+                symbol: input.symbol,
                 description: input.description,
             })
         );
@@ -112,7 +114,9 @@ export class UnitService {
     private mapUnit(item: any): UnitDto {
         return {
             id: item.id ?? item.Id,
+            branchId: item.branchId ?? item.BranchId,
             name: item.name ?? item.Name,
+            symbol: item.symbol ?? item.Symbol,
             description: item.description ?? item.Description,
         };
     }

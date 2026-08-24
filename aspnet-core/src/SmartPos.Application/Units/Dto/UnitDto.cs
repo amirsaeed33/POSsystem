@@ -22,7 +22,5 @@ namespace SmartPos.Units.Dto
         public string Symbol { get; set; }
 
         public bool IsActive { get; set; } = true;
-
-        public int? HostSourceId { get; set; }
     }
 }
