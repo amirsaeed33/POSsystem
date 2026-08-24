@@ -4,7 +4,7 @@
     [modal]="true"
     appendTo="body"
     [blockScroll]="true"
-    [style]="{ width: '44rem' }"
+    styleClass="dialog-md"
     [breakpoints]="{ '960px': '85vw', '640px': '95vw' }"
     [draggable]="false"
     [resizable]="false"
@@ -36,31 +36,7 @@
                 [(ngModel)]="product.barcode" [disabled]="saving" />
         </div>
 
-        <div class="flex flex-column gap-2" *ngIf="canManageBranches">
-            <label for="productBranches" class="font-medium">Assign to branches</label>
-            <p-multiSelect
-                inputId="productBranches"
-                [options]="branches"
-                optionLabel="name"
-                optionValue="id"
-                [(ngModel)]="selectedBranchIds"
-                placeholder="All locations (optional)"
-                [showToggleAll]="false"
-                [filter]="false"
-                [showHeader]="false"
-                [showClear]="true"
-                [disabled]="saving || !!productId"
-                styleClass="w-full"
-                appendTo="body"
-            >
-            </p-multiSelect>
-            <small class="text-color-secondary" *ngIf="!productId">
-                Leave empty to show in every location. Select branches to limit to those locations only.
-            </small>
-            <small class="text-color-secondary" *ngIf="productId">
-                Branch assignment cannot be changed when editing a product.
-            </small>
-        </div>
+
 
         <div class="formgrid grid">
             <div class="field col-12 md:col-4 flex flex-column gap-2">
@@ -135,7 +111,7 @@
     <ng-template pTemplate="footer">
         <button pButton pRipple type="button" label="Cancel" class="p-button-text"
             (click)="onHide()" [disabled]="saving"></button>
-        <button pButton pRipple type="button" label="Save" icon="pi pi-check"
+        <button pButton pRipple type="button" label="Save" icon="pi pi-check" class="p-button-primary"
             (click)="save()"
             [disabled]="saving || loading || !isFormValid"
             [loading]="saving"></button>

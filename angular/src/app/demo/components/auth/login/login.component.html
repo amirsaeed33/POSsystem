@@ -1,26 +1,28 @@
-<div class="surface-ground h-screen w-screen flex align-items-center justify-content-center overflow-hidden" [ngClass]="{'p-input-filled': filledInput}">
-    <div class="surface-card py-7 px-5 sm:px-7 shadow-2 flex flex-column w-11 sm:w-30rem" style="border-radius:14px" [@slideIn]>
+<div class="surface-ground h-screen w-screen flex align-items-center justify-content-center overflow-hidden"
+    [ngClass]="{'p-input-filled': filledInput}">
+    <div class="surface-card py-7 px-5 sm:px-7 shadow-2 flex flex-column w-11 sm:w-30rem" style="border-radius:14px"
+        [@slideIn]>
         <h1 class="font-bold text-2xl mt-0 mb-2">SmartPos</h1>
         <p class="text-color-secondary mb-4">
-            <ng-container *ngIf="loginMode === 'password'">Sign in with your POSsystem account to continue.</ng-container>
-            <ng-container *ngIf="loginMode === 'emailCode' && !emailCodeSent">Enter your email to receive a sign-in code.</ng-container>
-            <ng-container *ngIf="loginMode === 'emailCode' && emailCodeSent">Enter the 6-digit code we emailed you. It expires in {{ emailCodeExpirationMinutes }} minutes.</ng-container>
+            <ng-container *ngIf="loginMode === 'password'">Sign in with your POSsystem account to
+                continue.</ng-container>
+            <ng-container *ngIf="loginMode === 'emailCode' && !emailCodeSent">Enter your email to receive a sign-in
+                code.</ng-container>
+            <ng-container *ngIf="loginMode === 'emailCode' && emailCodeSent">Enter the 6-digit code we emailed you. It
+                expires in {{ emailCodeExpirationMinutes }} minutes.</ng-container>
         </p>
 
         <form *ngIf="loginMode === 'password'" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
             <div class="mb-4">
                 <span class="p-input-icon-left w-full">
                     <i class="pi pi-user"></i>
-                    <input
-                        type="text"
-                        pInputText
-                        placeholder="Email or Username"
-                        class="w-full"
+                    <input type="text" pInputText placeholder="Email or Username" class="w-full"
                         formControlName="userNameOrEmailAddress"
                         [class.ng-invalid]="loginForm.get('userNameOrEmailAddress')?.invalid && loginForm.get('userNameOrEmailAddress')?.touched"
                         style="padding-left: 2.5rem;">
                 </span>
-                <small class="p-error block mt-1" *ngIf="loginForm.get('userNameOrEmailAddress')?.invalid && loginForm.get('userNameOrEmailAddress')?.touched">
+                <small class="p-error block mt-1"
+                    *ngIf="loginForm.get('userNameOrEmailAddress')?.invalid && loginForm.get('userNameOrEmailAddress')?.touched">
                     Email or Username is required
                 </small>
             </div>
@@ -28,31 +30,22 @@
             <div class="mb-4">
                 <span class="p-input-icon-left w-full">
                     <i class="pi pi-key"></i>
-                    <input
-                        type="password"
-                        pInputText
-                        placeholder="Password"
-                        class="w-full"
-                        formControlName="password"
+                    <input type="password" pInputText placeholder="Password" class="w-full" formControlName="password"
                         [class.ng-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
                         style="padding-left: 2.5rem;">
                 </span>
-                <small class="p-error block mt-1" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+                <small class="p-error block mt-1"
+                    *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
                     Password is required
                 </small>
             </div>
 
             <div class="flex align-items-center mb-4">
                 <p-checkbox formControlName="rememberClient" [binary]="true" inputId="remember"></p-checkbox>
-                <label for="remember" class="ml-2 text-sm">Remember me</label>
+                <label for="remember" class="ml-2 text-sm">Always keep me signed in</label>
             </div>
 
-            <button
-                type="submit"
-                pButton
-                pRipple
-                class="mb-4 w-full"
-                [disabled]="loading || loginForm.invalid">
+            <button type="submit" pButton pRipple class="mb-4 w-full" [disabled]="loading || loginForm.invalid">
                 <i *ngIf="loading" class="pi pi-spin pi-spinner mr-2"></i>
                 <span *ngIf="!loading">Sign In</span>
                 <span *ngIf="loading">Signing In...</span>
@@ -63,15 +56,11 @@
             <div class="mb-4" *ngIf="!emailCodeSent">
                 <span class="p-input-icon-left w-full">
                     <i class="pi pi-envelope"></i>
-                    <input
-                        type="email"
-                        pInputText
-                        placeholder="Email"
-                        class="w-full"
-                        formControlName="emailAddress"
+                    <input type="email" pInputText placeholder="Email" class="w-full" formControlName="emailAddress"
                         style="padding-left: 2.5rem;">
                 </span>
-                <small class="p-error block mt-1" *ngIf="emailCodeForm.get('emailAddress')?.invalid && emailCodeForm.get('emailAddress')?.touched">
+                <small class="p-error block mt-1"
+                    *ngIf="emailCodeForm.get('emailAddress')?.invalid && emailCodeForm.get('emailAddress')?.touched">
                     A valid email is required
                 </small>
             </div>
@@ -82,27 +71,16 @@
                 </div>
                 <span class="p-input-icon-left w-full">
                     <i class="pi pi-shield"></i>
-                    <input
-                        type="text"
-                        pInputText
-                        placeholder="6-digit code"
-                        class="w-full"
-                        formControlName="code"
-                        maxlength="6"
-                        inputmode="numeric"
-                        autocomplete="one-time-code"
-                        style="padding-left: 2.5rem;">
+                    <input type="text" pInputText placeholder="6-digit code" class="w-full" formControlName="code"
+                        maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="padding-left: 2.5rem;">
                 </span>
-                <small class="p-error block mt-1" *ngIf="emailCodeForm.get('code')?.invalid && emailCodeForm.get('code')?.touched">
+                <small class="p-error block mt-1"
+                    *ngIf="emailCodeForm.get('code')?.invalid && emailCodeForm.get('code')?.touched">
                     Enter the 6-digit code
                 </small>
             </div>
 
-            <button
-                type="submit"
-                pButton
-                pRipple
-                class="mb-3 w-full"
+            <button type="submit" pButton pRipple class="mb-3 w-full"
                 [disabled]="loading || (emailCodeSent ? emailCodeForm.get('code')?.invalid : emailCodeForm.get('emailAddress')?.invalid)">
                 <i *ngIf="loading" class="pi pi-spin pi-spinner mr-2"></i>
                 <span *ngIf="!loading && !emailCodeSent">Send code</span>
@@ -112,35 +90,15 @@
             </button>
 
             <div class="flex align-items-center justify-content-between mb-4" *ngIf="emailCodeSent">
-                <button
-                    type="button"
-                    pButton
-                    pRipple
-                    class="p-button-text p-button-sm"
-                    label="Use a different email"
-                    [disabled]="loading"
-                    (click)="resetEmailCodeFlow()"
-                ></button>
-                <button
-                    type="button"
-                    pButton
-                    pRipple
-                    class="p-button-text p-button-sm"
+                <button type="button" pButton pRipple class="p-button-text p-button-sm" label="Use a different email"
+                    [disabled]="loading" (click)="resetEmailCodeFlow()"></button>
+                <button type="button" pButton pRipple class="p-button-text p-button-sm"
                     [label]="resendCooldownRemaining > 0 ? ('Resend in ' + resendCooldownRemaining + 's') : 'Resend code'"
-                    [disabled]="loading || resendCooldownRemaining > 0"
-                    (click)="resendEmailCode()"
-                ></button>
+                    [disabled]="loading || resendCooldownRemaining > 0" (click)="resendEmailCode()"></button>
             </div>
 
-            <button
-                type="button"
-                pButton
-                pRipple
-                class="p-button-text w-full mb-4"
-                label="Back to password sign in"
-                [disabled]="loading"
-                (click)="switchToPasswordLogin()"
-            ></button>
+            <button type="button" pButton pRipple class="p-button-text w-full mb-4" label="Back to password sign in"
+                [disabled]="loading" (click)="switchToPasswordLogin()"></button>
         </form>
 
         <p-toast></p-toast>
@@ -149,21 +107,14 @@
             <span class="text-color-secondary text-center mb-4">or sign in with below</span>
 
             <div class="flex gap-4 align-items-center justify-content-center">
-                <a
-                    href="#"
+                <a href="#"
                     class="inline-flex flex-shrink-0 w-3rem h-3rem justify-content-center align-items-center surface-ground border-circle social-login-btn"
-                    [class.opacity-60]="!googleEnabled"
-                    (click)="loginWithGoogle($event)"
-                    title="Sign in with Google"
-                >
+                    [class.opacity-60]="!googleEnabled" (click)="loginWithGoogle($event)" title="Sign in with Google">
                     <i class="pi pi-google text-2xl text-color"></i>
                 </a>
-                <a
-                    href="#"
+                <a href="#"
                     class="inline-flex flex-shrink-0 w-3rem h-3rem justify-content-center align-items-center surface-ground border-circle social-login-btn"
-                    (click)="switchToEmailCodeLogin($event)"
-                    title="Email sign-in code"
-                >
+                    (click)="switchToEmailCodeLogin($event)" title="Email sign-in code">
                     <i class="pi pi-envelope text-2xl text-color"></i>
                 </a>
             </div>

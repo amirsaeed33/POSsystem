@@ -24,6 +24,91 @@ $gutter: 1rem; //for primeflex grid system
   display: none;
 }
 
+/* ==========================================================================
+   Standardized UI/UX Styles across SmartPOS
+   ========================================================================== */
+
+/* 1. Standard Dialog Sizes */
+.dialog-sm {
+  width: 32rem !important;
+  max-width: 95vw !important;
+}
+.dialog-md {
+  width: 48rem !important;
+  max-width: 95vw !important;
+}
+.dialog-lg {
+  width: 72rem !important;
+  max-width: 98vw !important;
+}
+
+/* 2. Standardized Table Action Buttons */
+.tbl-action-btn {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background-color 0.15s ease, transform 0.1s ease !important;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  &.edit-btn {
+    color: var(--primary-color, #3b82f6) !important;
+    background-color: rgba(59, 130, 246, 0.08) !important;
+    border: none !important;
+
+    &:hover {
+      background-color: rgba(59, 130, 246, 0.2) !important;
+    }
+  }
+
+  &.view-btn {
+    color: #0ea5e9 !important;
+    background-color: rgba(14, 165, 233, 0.08) !important;
+    border: none !important;
+
+    &:hover {
+      background-color: rgba(14, 165, 233, 0.2) !important;
+    }
+  }
+
+  &.delete-btn {
+    color: #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.08) !important;
+    border: none !important;
+
+    &:hover {
+      background-color: rgba(239, 68, 68, 0.2) !important;
+    }
+  }
+
+  &.print-btn {
+    color: #8b5cf6 !important;
+    background-color: rgba(139, 92, 246, 0.08) !important;
+    border: none !important;
+
+    &:hover {
+      background-color: rgba(139, 92, 246, 0.2) !important;
+    }
+  }
+}
+
+/* 3. Mobile Table Horizontal Scroll Fix */
+@media screen and (max-width: 960px) {
+  .p-datatable-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .p-datatable table {
+    min-width: 650px;
+  }
+}
+
 /* Invoice + report print — match angular-old (core.less + reports-print.less) */
 @page {
   size: A4 portrait;

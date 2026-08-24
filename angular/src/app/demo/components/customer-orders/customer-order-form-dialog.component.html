@@ -5,12 +5,11 @@
     [modal]="true"
     appendTo="body"
     [blockScroll]="true"
-    [style]="{ width: '96rem', maxWidth: '98vw' }"
+    styleClass="dialog-lg customer-order-shop-dialog"
     [contentStyle]="{ overflow: 'auto', maxHeight: '85vh' }"
     [breakpoints]="{ '1400px': '96vw', '960px': '98vw' }"
     [draggable]="false"
     [resizable]="false"
-    styleClass="customer-order-shop-dialog"
     (onHide)="onHide()"
 >
     <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>

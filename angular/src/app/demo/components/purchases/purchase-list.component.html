@@ -42,7 +42,7 @@
                     type="button"
                     icon="pi pi-plus"
                     label="Create"
-                    class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
+                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
                     (click)="openCreateDialog()"
                 ></button>
             </div>
@@ -73,8 +73,8 @@
                             pRipple
                             type="button"
                             icon="pi pi-eye"
-                            class="p-button-text p-button-sm"
-                            pTooltip="View"
+                            class="tbl-action-btn view-btn"
+                            pTooltip="View Details"
                             tooltipPosition="top"
                             (click)="openViewDialog(purchase)"
                         ></button>
@@ -93,8 +93,8 @@
                             pRipple
                             type="button"
                             icon="pi pi-print"
-                            class="p-button-text p-button-sm"
-                            pTooltip="Print"
+                            class="tbl-action-btn print-btn"
+                            pTooltip="Print Invoice"
                             tooltipPosition="top"
                             (click)="openPrintDialog(purchase.id)"
                         ></button>
@@ -103,7 +103,7 @@
                             pRipple
                             type="button"
                             icon="pi pi-trash"
-                            class="p-button-text p-button-danger p-button-sm"
+                            class="tbl-action-btn delete-btn"
                             pTooltip="Delete"
                             tooltipPosition="top"
                             (click)="onDelete(purchase)"

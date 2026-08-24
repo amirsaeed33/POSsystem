@@ -172,14 +172,10 @@ export class ProductFormDialogComponent implements OnChanges {
                 ? this.product.imageBase64
                 : undefined;
 
-        // Empty or all branches = tenant-level (visible in every location).
-        const isTenantLevel =
-            !this.selectedBranchIds?.length || this.isAllBranchesSelected;
-        const assignment = this.canManageBranches
-            ? {
-                  branchIds: isTenantLevel ? [] : [...this.selectedBranchIds],
-              }
-            : {};
+        const currentBranchId = this.branchContext.getBranchId();
+        const assignment = {
+            branchIds: currentBranchId ? [currentBranchId] : [],
+        };
 
         const request = this.productId
             ? this.productService.update({

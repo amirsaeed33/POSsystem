@@ -42,7 +42,7 @@
                     type="button"
                     icon="pi pi-plus"
                     label="Create"
-                    class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
+                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
                     (click)="openCreateDialog()"
                 ></button>
             </div>
@@ -71,7 +71,7 @@
                             pRipple
                             type="button"
                             icon="pi pi-pencil"
-                            class="p-button-text p-button-sm"
+                            class="tbl-action-btn edit-btn"
                             pTooltip="Edit"
                             tooltipPosition="top"
                             (click)="openEditDialog(brand)"
@@ -81,7 +81,7 @@
                             pRipple
                             type="button"
                             icon="pi pi-trash"
-                            class="p-button-text p-button-danger p-button-sm"
+                            class="tbl-action-btn delete-btn"
                             pTooltip="Delete"
                             tooltipPosition="top"
                             (click)="onDelete(brand)"
