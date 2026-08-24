@@ -6,6 +6,7 @@ using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
+using Abp.Domain.Uow;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Abp.UI;
@@ -299,11 +300,18 @@ namespace SmartPos.Products
             var selected = (branchIds ?? new List<int>()).Where(x => x > 0).Distinct().ToList();
             if (!selected.Any())
             {
-                // Tenant-level: no BranchStock rows (visible in every location).
-                return new List<int>();
+                var currentBranchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+                if (currentBranchId.HasValue)
+                {
+                    selected.Add(currentBranchId.Value);
+                }
             }
 
-            await EnsureBranchesExistAndAccessibleAsync(selected);
+            if (selected.Any())
+            {
+                await EnsureBranchesExistAndAccessibleAsync(selected);
+            }
+
             return selected;
         }
 
@@ -356,10 +364,13 @@ namespace SmartPos.Products
 
         private async Task<List<int>> GetActiveBranchIdsAsync()
         {
-            return await _branchRepository.GetAll()
-                .Where(x => x.IsActive)
-                .Select(x => x.Id)
-                .ToListAsync();
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                return await _branchRepository.GetAll()
+                    .Where(x => x.IsActive && x.TenantId != null)
+                    .Select(x => x.Id)
+                    .ToListAsync();
+            }
         }
 
         private async Task EnsureBranchesExistAndAccessibleAsync(IReadOnlyList<int> branchIds)
