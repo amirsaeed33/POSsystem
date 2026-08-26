@@ -40,8 +40,8 @@
 
         <div class="formgrid grid">
             <div class="field col-12 md:col-4 flex flex-column gap-2">
-                <label for="productPrice" class="font-medium">Selling Price <span class="p-error">*</span></label>
-                <p-inputNumber inputId="productPrice" [(ngModel)]="product.price" mode="decimal"
+                <label for="productCost" class="font-medium">Cost Price <span class="p-error">*</span></label>
+                <p-inputNumber inputId="productCost" [(ngModel)]="product.costPrice" mode="decimal"
                     [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
                     [disabled]="saving"></p-inputNumber>
             </div>
@@ -52,8 +52,8 @@
                     [disabled]="saving"></p-inputNumber>
             </div>
             <div class="field col-12 md:col-4 flex flex-column gap-2">
-                <label for="productCost" class="font-medium">Cost Price <span class="p-error">*</span></label>
-                <p-inputNumber inputId="productCost" [(ngModel)]="product.costPrice" mode="decimal"
+                <label for="productPrice" class="font-medium">Selling Price <span class="p-error">*</span></label>
+                <p-inputNumber inputId="productPrice" [(ngModel)]="product.price" mode="decimal"
                     [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
                     [disabled]="saving"></p-inputNumber>
             </div>

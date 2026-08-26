@@ -6,6 +6,7 @@ import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import {
     MonthlyCashFlowDto,
+    DailyOverviewDto,
     DashboardProductRowDto,
     DashboardTimelineEventDto,
 } from 'src/app/demo/api/dashboard';
@@ -71,6 +72,25 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     revenueChartOptions: any;
 
+    trend15DaysChartData: any;
+
+    trend15DaysChartOptions: any;
+
+    trendMetricOptions = [
+        { label: 'Sales', value: 'sales' },
+        { label: 'Purchases', value: 'purchases' },
+        { label: 'Expenses', value: 'expenses' }
+    ];
+
+    selectedTrendMetric: 'sales' | 'purchases' | 'expenses' = 'sales';
+
+    trendChartTypes = [
+        { label: 'Line', value: 'line' },
+        { label: 'Bar', value: 'bar' }
+    ];
+
+    selectedTrendChartType = 'bar';
+
     subscription: Subscription;
 
     todaySales = 0;
@@ -79,6 +99,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     todayProfit = 0;
 
     cashFlow: MonthlyCashFlowDto[] = [];
+    last7Days: DailyOverviewDto[] = [];
+    last15Days: DailyOverviewDto[] = [];
 
     topProducts: TopProductItem[] = [];
     salesByCategory: SalesGroupRow[] = [];
@@ -130,11 +152,11 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     ngOnInit() {
         this.overviewWeeks = [
-            {name: 'This Week', code: 'this-week'},
-            {name: 'Last Week', code: 'last-week'},
-            {name: 'This Month', code: 'this-month'}
+            { name: 'Last 7 Days', code: 'last-7-days' },
+            { name: 'Today (Day Wise)', code: 'today' },
+            { name: 'This Month', code: 'this-month' }
         ];
-        this.selectedOverviewWeek = this.overviewWeeks[2];
+        this.selectedOverviewWeek = this.overviewWeeks[0];
 
         this.initCharts();
         this.loadDashboard();
@@ -167,6 +189,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                 data.previousAverageProfitMargin ?? 0;
             this.growthPercentage = data.growthPercentage ?? 0;
             this.isGrowthPositive = data.isGrowthPositive ?? true;
+            this.last7Days = data.last7Days ?? [];
+            this.last15Days = data.last15Days ?? [];
             this.cashFlow = data.cashFlow ?? [];
             const products = data.products ?? [];
             this.topProducts = this.buildTopProducts(products);
@@ -220,6 +244,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         }
         this.buildOverviewChart();
         this.buildRevenueChart();
+        this.build15DayTrendChart();
     }
 
     private mapTimelineEvents(
@@ -421,6 +446,18 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         );
     }
 
+    get total15DaysSales(): number {
+        return (this.last15Days || []).reduce((acc, x) => acc + (x.sales ?? 0), 0);
+    }
+
+    get total15DaysPurchases(): number {
+        return (this.last15Days || []).reduce((acc, x) => acc + (x.purchases ?? 0), 0);
+    }
+
+    get total15DaysExpenses(): number {
+        return (this.last15Days || []).reduce((acc, x) => acc + (x.expenses ?? 0), 0);
+    }
+
     kpiSubtitle(amount: number): string {
         return (amount ?? 0) === 0 ? 'No data today' : '';
     }
@@ -512,19 +549,20 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                 {
                     label: 'Sales',
                     data: labels.length ? sales : [0],
-                    borderColor: 'rgba(25, 146, 212, 0.5)',
-                    pointBorderColor: 'transparent',
-                    pointBackgroundColor: 'transparent',
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                    pointBorderColor: '#10b981',
+                    pointBackgroundColor: '#10b981',
                     fill: false,
                     tension: .4
                 },
                 {
                     label: 'Outgoing',
                     data: labels.length ? outgoing : [0],
-                    backgroundColor: 'rgba(25, 146, 212, 0.2)',
-                    borderColor: 'rgba(25, 146, 212, 0.5)',
-                    pointBorderColor: 'transparent',
-                    pointBackgroundColor: 'transparent',
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    pointBorderColor: '#ef4444',
+                    pointBackgroundColor: '#ef4444',
                     fill: true,
                     tension: .4
                 }
@@ -565,6 +603,195 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         };
     }
 
+    build15DayTrendChart() {
+        const documentStyle = getComputedStyle(document.documentElement);
+        const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
+        const borderColor = documentStyle.getPropertyValue('--surface-border');
+
+        const dataList: DailyOverviewDto[] = this.last15Days || [];
+        const labels = dataList.map((x: DailyOverviewDto) => x.dayLabel);
+
+        const salesValues = dataList.map((x: DailyOverviewDto) => x.sales ?? 0);
+        const purchasesValues = dataList.map((x: DailyOverviewDto) => x.purchases ?? 0);
+        const expensesValues = dataList.map((x: DailyOverviewDto) => x.expenses ?? 0);
+
+        // Create canvas gradients for a rich, modern look
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let salesGrad: any = 'rgba(59, 130, 246, 0.15)';
+        let purchasesGrad: any = 'rgba(245, 158, 11, 0.15)';
+        let expensesGrad: any = 'rgba(239, 68, 68, 0.15)';
+
+        if (ctx) {
+            salesGrad = ctx.createLinearGradient(0, 0, 0, 300);
+            salesGrad.addColorStop(0, 'rgba(59, 130, 246, 0.35)');
+            salesGrad.addColorStop(1, 'rgba(59, 130, 246, 0.01)');
+
+            purchasesGrad = ctx.createLinearGradient(0, 0, 0, 300);
+            purchasesGrad.addColorStop(0, 'rgba(245, 158, 11, 0.30)');
+            purchasesGrad.addColorStop(1, 'rgba(245, 158, 11, 0.01)');
+
+            expensesGrad = ctx.createLinearGradient(0, 0, 0, 300);
+            expensesGrad.addColorStop(0, 'rgba(239, 68, 68, 0.30)');
+            expensesGrad.addColorStop(1, 'rgba(239, 68, 68, 0.01)');
+        }
+
+        const isBar = this.selectedTrendChartType === 'bar';
+
+        this.trend15DaysChartData = {
+            labels: labels.length ? labels : ['—'],
+            datasets: [
+                {
+                    label: 'Sales',
+                    data: labels.length ? salesValues : [0],
+                    borderColor: '#2563eb',
+                    backgroundColor: isBar ? '#2563eb' : salesGrad,
+                    hoverBackgroundColor: isBar ? '#1d4ed8' : undefined,
+                    pointBorderColor: '#2563eb',
+                    pointBackgroundColor: '#ffffff',
+                    pointHoverBackgroundColor: '#2563eb',
+                    pointHoverBorderColor: '#ffffff',
+                    pointRadius: isBar ? 0 : 4,
+                    pointHoverRadius: isBar ? 0 : 7,
+                    borderWidth: isBar ? 0 : 3,
+                    borderRadius: isBar ? 6 : 0,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.7,
+                    fill: !isBar,
+                    tension: 0.4
+                },
+                {
+                    label: 'Purchases',
+                    data: labels.length ? purchasesValues : [0],
+                    borderColor: '#d97706',
+                    backgroundColor: isBar ? '#d97706' : purchasesGrad,
+                    hoverBackgroundColor: isBar ? '#b45309' : undefined,
+                    pointBorderColor: '#d97706',
+                    pointBackgroundColor: '#ffffff',
+                    pointHoverBackgroundColor: '#d97706',
+                    pointHoverBorderColor: '#ffffff',
+                    pointRadius: isBar ? 0 : 4,
+                    pointHoverRadius: isBar ? 0 : 7,
+                    borderWidth: isBar ? 0 : 3,
+                    borderRadius: isBar ? 6 : 0,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.7,
+                    fill: !isBar,
+                    tension: 0.4
+                },
+                {
+                    label: 'Expenses',
+                    data: labels.length ? expensesValues : [0],
+                    borderColor: '#dc2626',
+                    backgroundColor: isBar ? '#dc2626' : expensesGrad,
+                    hoverBackgroundColor: isBar ? '#b91c1c' : undefined,
+                    pointBorderColor: '#dc2626',
+                    pointBackgroundColor: '#ffffff',
+                    pointHoverBackgroundColor: '#dc2626',
+                    pointHoverBorderColor: '#ffffff',
+                    pointRadius: isBar ? 0 : 4,
+                    pointHoverRadius: isBar ? 0 : 7,
+                    borderWidth: isBar ? 0 : 3,
+                    borderRadius: isBar ? 6 : 0,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.7,
+                    fill: !isBar,
+                    tension: 0.4
+                }
+            ]
+        };
+
+        this.trend15DaysChartOptions = {
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        color: textColorSecondary,
+                        usePointStyle: true,
+                        pointStyleWidth: 8,
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            weight: '600',
+                            family: 'Inter, system-ui, -apple-system, sans-serif'
+                        },
+                        generateLabels: (chart: any) => {
+                            const datasets = chart.data.datasets || [];
+                            return datasets.map((ds: any, i: number) => {
+                                const total = (ds.data || []).reduce((a: number, b: number) => a + (b || 0), 0);
+                                const formattedTotal = 'PKR ' + Number(total).toLocaleString('en-PK');
+                                const isHidden = !chart.isDatasetVisible(i);
+                                return {
+                                    text: `${ds.label} (${formattedTotal})`,
+                                    fillStyle: ds.borderColor,
+                                    strokeStyle: ds.borderColor,
+                                    lineWidth: 0,
+                                    pointStyle: 'circle',
+                                    hidden: isHidden,
+                                    datasetIndex: i,
+                                    fontColor: isHidden ? 'rgba(156, 163, 175, 0.6)' : textColorSecondary
+                                };
+                            });
+                        }
+                    }
+                },
+                tooltip: {
+                    padding: 12,
+                    backgroundColor: 'rgba(15, 23, 42, 0.90)',
+                    titleFont: { size: 13, weight: '700' },
+                    bodyFont: { size: 13, weight: '500' },
+                    cornerRadius: 8,
+                    displayColors: true,
+                    boxWidth: 10,
+                    boxHeight: 10,
+                    usePointStyle: true,
+                    callbacks: {
+                        label: (context: any) => {
+                            const label = context.dataset.label || '';
+                            const val = context.parsed.y ?? 0;
+                            return `  ${label}: PKR ${val.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+                        }
+                    }
+                }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            hover: {
+                mode: 'index',
+                intersect: false
+            },
+            scales: {
+                y: {
+                    grid: {
+                        color: borderColor,
+                        borderDash: [4, 4],
+                        drawBorder: false
+                    },
+                    min: 0,
+                    ticks: {
+                        color: textColorSecondary,
+                        font: { size: 11, weight: '500' },
+                        callback: (value: any) => 'PKR ' + Number(value).toLocaleString('en-PK')
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: textColorSecondary,
+                        font: { size: 11, weight: '500' }
+                    }
+                }
+            }
+        };
+    }
+
     buildOverviewChart() {
         const documentStyle = getComputedStyle(document.documentElement);
         const primaryColor = documentStyle.getPropertyValue('--primary-color');
@@ -579,14 +806,22 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         let purchases: number[];
         let expenses: number[];
 
-        if (period === 'this-month' && this.cashFlow.length) {
-            // Cash flow is monthly: Income = sales, Expense = expenses (no purchases in API)
+        if (period === 'last-7-days' && this.last7Days.length) {
+            labels = this.last7Days.map((x) => x.dayLabel);
+            sales = this.last7Days.map((x) => x.sales ?? 0);
+            purchases = this.last7Days.map((x) => x.purchases ?? 0);
+            expenses = this.last7Days.map((x) => x.expenses ?? 0);
+        } else if (period === 'today') {
+            labels = ['Today'];
+            sales = [this.todaySales ?? 0];
+            purchases = [this.todayPurchases ?? 0];
+            expenses = [this.todayExpenses ?? 0];
+        } else if (period === 'this-month' && this.cashFlow.length) {
             labels = this.cashFlow.map((x) => x.monthLabel);
             sales = this.cashFlow.map((x) => x.income ?? 0);
             expenses = this.cashFlow.map((x) => x.expense ?? 0);
             purchases = this.cashFlow.map((x) => x.purchases ?? 0);
         } else {
-            // This Week / Last Week: API has no weekly cash-flow breakdown
             labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
             sales = [0, 0, 0, 0, 0, 0, 0];
             purchases = [0, 0, 0, 0, 0, 0, 0];

@@ -178,6 +178,58 @@ namespace SmartPos.Dashboard
                 });
             }
 
+            var last7Days = new List<DailyOverviewDto>();
+            var sevenDaysAgo = todayStart.AddDays(-6);
+            for (var i = 0; i < 7; i++)
+            {
+                var dayDate = sevenDaysAgo.AddDays(i);
+                var dayEnd = dayDate.AddDays(1);
+                var daySales = sales
+                    .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd)
+                    .Sum(x => x.TotalAmount);
+                var dayPurchases = purchases
+                    .Where(x => x.PurchaseDate >= dayDate && x.PurchaseDate < dayEnd)
+                    .Sum(x => x.TotalAmount);
+                var dayExpenses = expenses
+                    .Where(x => x.ExpenseDate >= dayDate && x.ExpenseDate < dayEnd)
+                    .Sum(x => x.Amount);
+
+                last7Days.Add(new DailyOverviewDto
+                {
+                    Date = dayDate,
+                    DayLabel = dayDate.ToString("ddd", CultureInfo.InvariantCulture), // e.g. Mon, Tue
+                    Sales = daySales,
+                    Purchases = dayPurchases,
+                    Expenses = dayExpenses
+                });
+            }
+
+            var last15Days = new List<DailyOverviewDto>();
+            var fifteenDaysAgo = todayStart.AddDays(-14);
+            for (var i = 0; i < 15; i++)
+            {
+                var dayDate = fifteenDaysAgo.AddDays(i);
+                var dayEnd = dayDate.AddDays(1);
+                var daySales = sales
+                    .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd)
+                    .Sum(x => x.TotalAmount);
+                var dayPurchases = purchases
+                    .Where(x => x.PurchaseDate >= dayDate && x.PurchaseDate < dayEnd)
+                    .Sum(x => x.TotalAmount);
+                var dayExpenses = expenses
+                    .Where(x => x.ExpenseDate >= dayDate && x.ExpenseDate < dayEnd)
+                    .Sum(x => x.Amount);
+
+                last15Days.Add(new DailyOverviewDto
+                {
+                    Date = dayDate,
+                    DayLabel = dayDate.ToString("MMM dd", CultureInfo.InvariantCulture), // e.g. Aug 12
+                    Sales = daySales,
+                    Purchases = dayPurchases,
+                    Expenses = dayExpenses
+                });
+            }
+
             var productRows = products
                 .OrderByDescending(p => p.Id)
                 .Take(8)
@@ -231,6 +283,8 @@ namespace SmartPos.Dashboard
                 PreviousAverageProfitMargin = previousAverageProfitMargin,
                 GrowthPercentage = growthPercentage,
                 IsGrowthPositive = isGrowthPositive,
+                Last7Days = last7Days,
+                Last15Days = last15Days,
                 CashFlow = cashFlow,
                 Products = productRows,
                 QuickActions = widgetData.QuickActions,

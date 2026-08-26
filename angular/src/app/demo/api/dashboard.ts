@@ -1,3 +1,11 @@
+export interface DailyOverviewDto {
+    date: string;
+    dayLabel: string;
+    sales: number;
+    purchases: number;
+    expenses: number;
+}
+
 export interface DashboardDto {
     userDisplayName: string;
     userImageUrl?: string;
@@ -16,6 +24,8 @@ export interface DashboardDto {
     previousAverageProfitMargin: number;
     growthPercentage: number;
     isGrowthPositive: boolean;
+    last7Days?: DailyOverviewDto[];
+    last15Days?: DailyOverviewDto[];
     cashFlow: MonthlyCashFlowDto[];
     products: DashboardProductRowDto[];
     quickActions: DashboardQuickActionCountsDto;

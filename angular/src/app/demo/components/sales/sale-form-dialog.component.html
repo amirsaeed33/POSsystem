@@ -2,13 +2,13 @@
     header="Create Sale"
     [visible]="visible"
     (visibleChange)="onVisibleChange($event)"
-    [modal]="true"
+    [modal]="false"
     appendTo="body"
-    [blockScroll]="true"
+    [blockScroll]="false"
     styleClass="dialog-lg"
     [breakpoints]="{ '960px': '90vw', '640px': '95vw' }"
-    [draggable]="false"
-    [resizable]="false"
+    [draggable]="true"
+    [resizable]="true"
     (onHide)="onHide()"
 >
     <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
@@ -57,7 +57,7 @@
                     type="button"
                     icon="pi pi-plus"
                     label="Add Line"
-                    class="p-button-outlined p-button-sm"
+                    class="p-button-outlined p-button-sm w-auto"
                     style="width: auto"
                     (click)="addLine()"
                 ></button>

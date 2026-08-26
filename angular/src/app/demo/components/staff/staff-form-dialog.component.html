@@ -4,8 +4,8 @@
     [modal]="true"
     appendTo="body"
     [blockScroll]="true"
-    styleClass="dialog-sm"
-    [breakpoints]="{ '960px': '75vw', '640px': '95vw' }"
+    styleClass="dialog-md"
+    [breakpoints]="{ '960px': '85vw', '640px': '95vw' }"
     [draggable]="false"
     [resizable]="false"
     (visibleChange)="onVisibleChange($event)"
@@ -120,20 +120,7 @@
             </div>
         </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="staffBranch" class="font-medium">Branch</label>
-            <p-dropdown
-                inputId="staffBranch"
-                [options]="branches"
-                [(ngModel)]="staff.branchId"
-                optionLabel="name"
-                optionValue="id"
-                placeholder="Select branch"
-                [showClear]="false"
-                styleClass="w-full"
-                [disabled]="true"
-            ></p-dropdown>
-        </div>
+
 
         <div class="flex align-items-center gap-2">
             <p-checkbox

@@ -76,6 +76,24 @@ export class DashboardService {
                 data.growthPercentage ?? data.GrowthPercentage ?? 0,
             isGrowthPositive:
                 data.isGrowthPositive ?? data.IsGrowthPositive ?? true,
+            last7Days: (Array.isArray(data.last7Days || data.Last7Days) ? (data.last7Days || data.Last7Days) : []).map(
+                (item: any) => ({
+                    date: item.date ?? item.Date ?? '',
+                    dayLabel: item.dayLabel ?? item.DayLabel ?? '',
+                    sales: item.sales ?? item.Sales ?? 0,
+                    purchases: item.purchases ?? item.Purchases ?? 0,
+                    expenses: item.expenses ?? item.Expenses ?? 0,
+                })
+            ),
+            last15Days: (Array.isArray(data.last15Days || data.Last15Days) ? (data.last15Days || data.Last15Days) : []).map(
+                (item: any) => ({
+                    date: item.date ?? item.Date ?? '',
+                    dayLabel: item.dayLabel ?? item.DayLabel ?? '',
+                    sales: item.sales ?? item.Sales ?? 0,
+                    purchases: item.purchases ?? item.Purchases ?? 0,
+                    expenses: item.expenses ?? item.Expenses ?? 0,
+                })
+            ),
             cashFlow: (Array.isArray(cashFlow) ? cashFlow : []).map(
                 (item: any): MonthlyCashFlowDto => ({
                     year: item.year ?? item.Year ?? 0,

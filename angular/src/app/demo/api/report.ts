@@ -38,6 +38,7 @@ export interface ExpenseReportRowDto {
     referenceNo?: string;
     description?: string;
     paymentAccountName?: string;
+    createdByName?: string;
     amount: number;
 }
 

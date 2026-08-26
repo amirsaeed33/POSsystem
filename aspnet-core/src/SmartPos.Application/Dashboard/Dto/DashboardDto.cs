@@ -42,6 +42,10 @@ namespace SmartPos.Dashboard.Dto
 
         public bool IsGrowthPositive { get; set; }
 
+        public List<DailyOverviewDto> Last7Days { get; set; }
+
+        public List<DailyOverviewDto> Last15Days { get; set; }
+
         public List<MonthlyCashFlowDto> CashFlow { get; set; }
 
         public List<DashboardProductRowDto> Products { get; set; }
@@ -91,6 +95,19 @@ namespace SmartPos.Dashboard.Dto
         public string QuantityLabel { get; set; }
 
         public DateTime OccurredAt { get; set; }
+    }
+
+    public class DailyOverviewDto
+    {
+        public DateTime Date { get; set; }
+
+        public string DayLabel { get; set; }
+
+        public decimal Sales { get; set; }
+
+        public decimal Purchases { get; set; }
+
+        public decimal Expenses { get; set; }
     }
 
     public class MonthlyCashFlowDto

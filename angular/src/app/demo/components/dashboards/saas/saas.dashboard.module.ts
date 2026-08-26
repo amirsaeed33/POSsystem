@@ -11,6 +11,7 @@ import { SaaSDashboardComponent } from './saas.dashboard.component';
 import { SaaSDashboardRoutingModule } from './saas.dashboard-routing.module';
 import { FormsModule } from '@angular/forms';
 import { DropdownModule } from 'primeng/dropdown';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { AvatarGroupModule } from 'primeng/avatargroup';
 import { AvatarModule } from 'primeng/avatar';
 import { ProgressBarModule } from 'primeng/progressbar';
@@ -31,6 +32,7 @@ import { TagModule } from 'primeng/tag';
         ChartModule,
         FormsModule,
         DropdownModule,
+        SelectButtonModule,
         AvatarGroupModule,
         AvatarModule,
         ProgressBarModule,

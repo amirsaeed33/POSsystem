@@ -76,6 +76,8 @@ namespace SmartPos.Reports.Dto
         public string PaymentAccountName { get; set; }
 
         public decimal Amount { get; set; }
+
+        public string CreatedByName { get; set; }
     }
 
     public class StockReportDto

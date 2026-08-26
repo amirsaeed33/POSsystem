@@ -130,7 +130,9 @@
     </p-table>
 
     <app-sale-form-dialog
-        [(visible)]="createDialogVisible"
+        *ngFor="let instanceId of createDialogInstances; trackBy: trackByFn"
+        [visible]="true"
+        (visibleChange)="onDialogVisibleChange(instanceId, $event)"
         (saved)="onDialogSaved()"
     ></app-sale-form-dialog>
 

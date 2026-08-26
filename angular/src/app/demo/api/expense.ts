@@ -8,6 +8,7 @@ export interface ExpenseDto {
     paymentAccountName?: string;
     expenseAccountId: number;
     expenseAccountName?: string;
+    createdByName?: string;
 }
 
 export interface CreateExpenseDto {

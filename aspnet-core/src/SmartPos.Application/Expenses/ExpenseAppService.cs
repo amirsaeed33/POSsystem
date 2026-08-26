@@ -151,6 +151,14 @@ namespace SmartPos.Expenses
             var dto = base.MapToEntityDto(entity);
             dto.PaymentAccountName = entity.PaymentAccount?.Name;
             dto.ExpenseAccountName = entity.ExpenseAccount?.Name;
+            if (entity.CreatorUserId.HasValue)
+            {
+                var user = _userRepository.FirstOrDefault(entity.CreatorUserId.Value);
+                if (user != null)
+                {
+                    dto.CreatedByName = (user.Name + " " + user.Surname).Trim();
+                }
+            }
             return dto;
         }
     }

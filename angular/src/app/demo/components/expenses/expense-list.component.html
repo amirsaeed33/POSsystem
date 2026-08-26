@@ -70,6 +70,9 @@
                 <th pSortableColumn="expenseAccountName">
                     Expense Account <p-sortIcon field="expenseAccountName"></p-sortIcon>
                 </th>
+                <th pSortableColumn="createdByName">
+                    Created By <p-sortIcon field="createdByName"></p-sortIcon>
+                </th>
                 <th pSortableColumn="amount">
                     Amount <p-sortIcon field="amount"></p-sortIcon>
                 </th>
@@ -84,6 +87,7 @@
                 <td>{{ expense.description || '—' }}</td>
                 <td>{{ expense.paymentAccountName || '—' }}</td>
                 <td>{{ expense.expenseAccountName || '—' }}</td>
+                <td>{{ expense.createdByName || '—' }}</td>
                 <td>{{ expense.amount | number: '1.2-2' }}</td>
                 <td>
                     <div class="flex gap-2">

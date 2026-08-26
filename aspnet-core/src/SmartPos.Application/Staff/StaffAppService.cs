@@ -12,6 +12,7 @@ using Abp.UI;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
+using SmartPos.Branches;
 using SmartPos.Authorization.Users;
 using SmartPos.Staffs.Dto;
 
@@ -23,17 +24,23 @@ namespace SmartPos.Staffs
         private readonly StaffHistoryWriter _staffHistoryWriter;
         private readonly UserManager _userManager;
         private readonly IPasswordHasher<User> _passwordHasher;
+        private readonly IBranchContext _branchContext;
+        private readonly IRepository<User, long> _userRepository;
 
         public StaffAppService(
             IRepository<Staff> repository,
             StaffHistoryWriter staffHistoryWriter,
             UserManager userManager,
-            IPasswordHasher<User> passwordHasher)
+            IPasswordHasher<User> passwordHasher,
+            IBranchContext branchContext,
+            IRepository<User, long> userRepository)
             : base(repository)
         {
             _staffHistoryWriter = staffHistoryWriter;
             _userManager = userManager;
             _passwordHasher = passwordHasher;
+            _branchContext = branchContext;
+            _userRepository = userRepository;
         }
 
         public override async Task<StaffDto> CreateAsync(CreateStaffDto input)
@@ -44,6 +51,12 @@ namespace SmartPos.Staffs
             if (!entity.TenantId.HasValue)
             {
                 entity.TenantId = AbpSession.TenantId;
+            }
+
+            var activeBranchId = ResolveBranchId();
+            if (activeBranchId.HasValue)
+            {
+                entity.BranchId = activeBranchId.Value;
             }
 
             await Repository.InsertAsync(entity);
@@ -252,6 +265,15 @@ namespace SmartPos.Staffs
         private void CheckErrors(IdentityResult identityResult)
         {
             identityResult.CheckErrors(LocalizationManager);
+        }
+
+        private int? ResolveBranchId()
+        {
+            return BranchQueryHelper.ResolveBranchIdForFilter(
+                _branchContext,
+                _userRepository,
+                AbpSession,
+                PermissionChecker);
         }
     }
 }

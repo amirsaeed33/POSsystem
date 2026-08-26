@@ -14,7 +14,7 @@ export class SaleListComponent implements OnInit {
     totalRecords = 0;
     keyword = '';
 
-    createDialogVisible = false;
+    createDialogInstances: number[] = [];
     viewDialogVisible = false;
     viewingSaleId: number | null = null;
     printDialogVisible = false;
@@ -66,7 +66,17 @@ export class SaleListComponent implements OnInit {
     }
 
     openCreateDialog(): void {
-        this.createDialogVisible = true;
+        this.createDialogInstances.push(Date.now());
+    }
+
+    onDialogVisibleChange(instanceId: number, visible: boolean): void {
+        if (!visible) {
+            this.createDialogInstances = this.createDialogInstances.filter(id => id !== instanceId);
+        }
+    }
+
+    trackByFn(index: number, item: number): number {
+        return item;
     }
 
     openViewDialog(sale: SaleDto): void {

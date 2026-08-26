@@ -143,19 +143,38 @@ namespace SmartPos.Reports
                          || (x.Description != null && x.Description.Contains(input.Keyword))
                          || (x.PaymentAccount != null && x.PaymentAccount.Name.Contains(input.Keyword)));
 
-            var items = await query
+            var rawItems = await query
                 .OrderByDescending(x => x.ExpenseDate)
                 .ThenByDescending(x => x.Id)
-                .Select(x => new ExpenseReportRowDto
+                .Select(x => new
                 {
-                    Id = x.Id,
-                    ExpenseDate = x.ExpenseDate,
-                    ReferenceNo = x.ReferenceNo,
-                    Description = x.Description,
+                    x.Id,
+                    x.ExpenseDate,
+                    x.ReferenceNo,
+                    x.Description,
                     PaymentAccountName = x.PaymentAccount != null ? x.PaymentAccount.Name : null,
-                    Amount = x.Amount
+                    x.Amount,
+                    x.CreatorUserId
                 })
                 .ToListAsync();
+
+            var creatorIds = rawItems.Where(x => x.CreatorUserId.HasValue).Select(x => x.CreatorUserId.Value).Distinct().ToList();
+            var creatorMap = await _userRepository.GetAll()
+                .AsNoTracking()
+                .Where(u => creatorIds.Contains(u.Id))
+                .Select(u => new { u.Id, FullName = (u.Name + " " + u.Surname).Trim() })
+                .ToDictionaryAsync(u => u.Id, u => u.FullName);
+
+            var items = rawItems.Select(x => new ExpenseReportRowDto
+            {
+                Id = x.Id,
+                ExpenseDate = x.ExpenseDate,
+                ReferenceNo = x.ReferenceNo,
+                Description = x.Description,
+                PaymentAccountName = x.PaymentAccountName,
+                Amount = x.Amount,
+                CreatedByName = x.CreatorUserId.HasValue && creatorMap.TryGetValue(x.CreatorUserId.Value, out var name) ? name : null
+            }).ToList();
 
             return new ExpenseReportDto
             {

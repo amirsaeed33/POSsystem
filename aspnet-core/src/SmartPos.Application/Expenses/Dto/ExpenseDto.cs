@@ -29,5 +29,7 @@ namespace SmartPos.Expenses.Dto
         public int ExpenseAccountId { get; set; }
 
         public string ExpenseAccountName { get; set; }
+
+        public string CreatedByName { get; set; }
     }
 }

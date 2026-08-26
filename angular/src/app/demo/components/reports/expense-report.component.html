@@ -70,6 +70,7 @@
                 <th>Reference No</th>
                 <th>Description</th>
                 <th>Payment Account</th>
+                <th>Created By</th>
                 <th class="text-right">Amount</th>
                 <th class="no-print" style="width: 5rem">Invoice</th>
             </tr>
@@ -80,6 +81,7 @@
                 <td>{{ row.referenceNo || ('#' + row.id) }}</td>
                 <td>{{ row.description || '—' }}</td>
                 <td>{{ row.paymentAccountName || '—' }}</td>
+                <td>{{ row.createdByName || '—' }}</td>
                 <td class="text-right">{{ row.amount | number: '1.2-2' }}</td>
                 <td class="no-print">
                     <button
@@ -97,7 +99,7 @@
         </ng-template>
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="6" class="text-center p-4 text-500">No data</td>
+                <td colspan="7" class="text-center p-4 text-500">No data</td>
             </tr>
         </ng-template>
         <ng-template pTemplate="footer">

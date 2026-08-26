@@ -136,6 +136,7 @@ export class ExpenseService {
             expenseAccountId: item.expenseAccountId ?? item.ExpenseAccountId,
             expenseAccountName:
                 item.expenseAccountName ?? item.ExpenseAccountName,
+            createdByName: item.createdByName ?? item.CreatedByName,
         };
     }
 }

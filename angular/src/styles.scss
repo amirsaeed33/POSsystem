@@ -28,7 +28,53 @@ $gutter: 1rem; //for primeflex grid system
    Standardized UI/UX Styles across SmartPOS
    ========================================================================== */
 
-/* 1. Standard Dialog Sizes */
+/* 1. Standard Dialog Sizes & Header Styling */
+.p-dialog {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+.p-dialog .p-dialog-header {
+  background-color: var(--primary-color, #4f46e5);
+  color: var(--primary-color-text, #ffffff);
+  border-bottom: none;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  padding: 0.85rem 1.25rem;
+
+  .p-dialog-title {
+    color: var(--primary-color-text, #ffffff);
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .p-dialog-header-icon {
+    color: var(--primary-color-text, #ffffff);
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--primary-color-text, #ffffff);
+    }
+  }
+}
+
+.p-dialog .p-dialog-content {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+}
+
+.p-dialog .p-dialog-footer {
+  border-top: 1px solid var(--surface-border, #e5e7eb);
+  padding: 0.85rem 1.25rem !important;
+  background-color: var(--surface-50, #f9fafb);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
 .dialog-sm {
   width: 32rem !important;
   max-width: 95vw !important;
