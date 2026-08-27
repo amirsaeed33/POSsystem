@@ -120,13 +120,10 @@
                         <img
                             [src]="getImageUrl(product)"
                             [alt]="product.name"
-                            class="product-list-thumb border-round cursor-pointer"
+                            class="product-list-thumb border-circle cursor-pointer"
                             (click)="viewImage(product)"
                             (error)="onProductImageError($event)"
                         />
-                        <div class="product-list-thumb product-initials" hidden>
-                            {{ getProductInitials(product.name) }}
-                        </div>
                     </ng-container>
                     <ng-template #productInitials>
                         <div class="product-list-thumb product-initials">

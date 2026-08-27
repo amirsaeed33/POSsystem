@@ -97,12 +97,13 @@ export class ProductListComponent implements OnInit {
 
     onProductImageError(event: Event): void {
         const img = event.target as HTMLImageElement | null;
-        if (img) {
-            img.style.display = 'none';
-            const fallback = img.nextElementSibling as HTMLElement | null;
-            if (fallback?.classList.contains('product-initials')) {
-                fallback.hidden = false;
-            }
+        if (img && img.parentElement) {
+            const parent = img.parentElement;
+            img.remove();
+            const fallback = document.createElement('div');
+            fallback.className = 'product-list-thumb product-initials';
+            fallback.innerText = this.getProductInitials(img.alt);
+            parent.appendChild(fallback);
         }
     }
 
