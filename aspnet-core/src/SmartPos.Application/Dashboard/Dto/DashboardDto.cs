@@ -108,6 +108,8 @@ namespace SmartPos.Dashboard.Dto
         public decimal Purchases { get; set; }
 
         public decimal Expenses { get; set; }
+
+        public decimal Profit { get; set; }
     }
 
     public class MonthlyCashFlowDto

@@ -458,6 +458,10 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         return (this.last15Days || []).reduce((acc, x) => acc + (x.expenses ?? 0), 0);
     }
 
+    get total15DaysProfit(): number {
+        return (this.last15Days || []).reduce((acc, x) => acc + (x.profit ?? ((x.sales ?? 0) - (x.purchases ?? 0) - (x.expenses ?? 0))), 0);
+    }
+
     kpiSubtitle(amount: number): string {
         return (amount ?? 0) === 0 ? 'No data today' : '';
     }
@@ -614,6 +618,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         const salesValues = dataList.map((x: DailyOverviewDto) => x.sales ?? 0);
         const purchasesValues = dataList.map((x: DailyOverviewDto) => x.purchases ?? 0);
         const expensesValues = dataList.map((x: DailyOverviewDto) => x.expenses ?? 0);
+        const profitValues = dataList.map((x: DailyOverviewDto) => x.profit ?? ((x.sales ?? 0) - (x.purchases ?? 0) - (x.expenses ?? 0)));
 
         // Create canvas gradients for a rich, modern look
         const canvas = document.createElement('canvas');
@@ -622,6 +627,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         let salesGrad: any = 'rgba(59, 130, 246, 0.15)';
         let purchasesGrad: any = 'rgba(245, 158, 11, 0.15)';
         let expensesGrad: any = 'rgba(239, 68, 68, 0.15)';
+        let profitGrad: any = 'rgba(168, 85, 247, 0.15)';
 
         if (ctx) {
             salesGrad = ctx.createLinearGradient(0, 0, 0, 300);
@@ -635,6 +641,10 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             expensesGrad = ctx.createLinearGradient(0, 0, 0, 300);
             expensesGrad.addColorStop(0, 'rgba(239, 68, 68, 0.30)');
             expensesGrad.addColorStop(1, 'rgba(239, 68, 68, 0.01)');
+
+            profitGrad = ctx.createLinearGradient(0, 0, 0, 300);
+            profitGrad.addColorStop(0, 'rgba(168, 85, 247, 0.35)');
+            profitGrad.addColorStop(1, 'rgba(168, 85, 247, 0.01)');
         }
 
         const isBar = this.selectedTrendChartType === 'bar';
@@ -689,6 +699,25 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     pointBorderColor: '#dc2626',
                     pointBackgroundColor: '#ffffff',
                     pointHoverBackgroundColor: '#dc2626',
+                    pointHoverBorderColor: '#ffffff',
+                    pointRadius: isBar ? 0 : 4,
+                    pointHoverRadius: isBar ? 0 : 7,
+                    borderWidth: isBar ? 0 : 3,
+                    borderRadius: isBar ? 6 : 0,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.7,
+                    fill: !isBar,
+                    tension: 0.4
+                },
+                {
+                    label: 'Profit',
+                    data: labels.length ? profitValues : [0],
+                    borderColor: '#9333ea',
+                    backgroundColor: isBar ? '#9333ea' : profitGrad,
+                    hoverBackgroundColor: isBar ? '#7e22ce' : undefined,
+                    pointBorderColor: '#9333ea',
+                    pointBackgroundColor: '#ffffff',
+                    pointHoverBackgroundColor: '#9333ea',
                     pointHoverBorderColor: '#ffffff',
                     pointRadius: isBar ? 0 : 4,
                     pointHoverRadius: isBar ? 0 : 7,

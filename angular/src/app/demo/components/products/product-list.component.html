@@ -48,6 +48,35 @@
                         tooltipPosition="top"
                         (click)="openBulkBarcodeDialog()"
                     ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-file-excel"
+                        class="p-button-outlined p-button-success font-semibold"
+                        label="Import Excel"
+                        pTooltip="Import products from Excel sheet"
+                        tooltipPosition="top"
+                        (click)="fileInput.click()"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-download"
+                        class="p-button-text p-button-secondary font-semibold"
+                        label="Template"
+                        pTooltip="Download Excel Sample Template"
+                        tooltipPosition="top"
+                        (click)="downloadExcelTemplate()"
+                    ></button>
+                    <input
+                        #fileInput
+                        type="file"
+                        accept=".xlsx, .xls"
+                        class="hidden"
+                        (change)="onExcelFileSelected($event)"
+                    />
                 </div>
                 <button
                     pButton

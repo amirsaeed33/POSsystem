@@ -4,6 +4,7 @@ export interface DailyOverviewDto {
     sales: number;
     purchases: number;
     expenses: number;
+    profit?: number;
 }
 
 export interface DashboardDto {

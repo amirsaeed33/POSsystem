@@ -202,4 +202,17 @@ export class ProductService {
             branchIds: item.branchIds ?? item.BranchIds ?? [],
         };
     }
+
+    async importProducts(rows: any[]): Promise<{ successCount: number; errorCount: number; errorMessages: string[] }> {
+        try {
+            const response = await firstValueFrom(
+                this.http.post<any>(`${this.apiUrl}/ImportProducts`, rows)
+            );
+            return this.unwrap(response, 'Failed to import products');
+        } catch (error) {
+            throw new Error(
+                this.extractErrorMessage(error, 'Failed to import products')
+            );
+        }
+    }
 }

@@ -200,7 +200,8 @@ namespace SmartPos.Dashboard
                     DayLabel = dayDate.ToString("ddd", CultureInfo.InvariantCulture), // e.g. Mon, Tue
                     Sales = daySales,
                     Purchases = dayPurchases,
-                    Expenses = dayExpenses
+                    Expenses = dayExpenses,
+                    Profit = Math.Round(daySales - dayPurchases - dayExpenses, 2)
                 });
             }
 
@@ -226,7 +227,8 @@ namespace SmartPos.Dashboard
                     DayLabel = dayDate.ToString("MMM dd", CultureInfo.InvariantCulture), // e.g. Aug 12
                     Sales = daySales,
                     Purchases = dayPurchases,
-                    Expenses = dayExpenses
+                    Expenses = dayExpenses,
+                    Profit = Math.Round(daySales - dayPurchases - dayExpenses, 2)
                 });
             }
 

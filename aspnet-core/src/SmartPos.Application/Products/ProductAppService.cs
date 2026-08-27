@@ -28,6 +28,9 @@ namespace SmartPos.Products
         private readonly IBranchStockManager _branchStockManager;
         private readonly IRepository<BranchStock> _branchStockRepository;
         private readonly IRepository<Branch> _branchRepository;
+        private readonly IRepository<SmartPos.Categories.Category> _categoryRepository;
+        private readonly IRepository<SmartPos.Brands.Brand> _brandRepository;
+        private readonly IRepository<SmartPos.Units.Unit> _unitRepository;
         private readonly IPermissionChecker _permissionChecker;
         private int? _effectiveBranchIdForQuery;
 
@@ -37,6 +40,9 @@ namespace SmartPos.Products
             IBranchStockManager branchStockManager,
             IRepository<BranchStock> branchStockRepository,
             IRepository<Branch> branchRepository,
+            IRepository<SmartPos.Categories.Category> categoryRepository,
+            IRepository<SmartPos.Brands.Brand> brandRepository,
+            IRepository<SmartPos.Units.Unit> unitRepository,
             IPermissionChecker permissionChecker)
             : base(repository)
         {
@@ -44,6 +50,9 @@ namespace SmartPos.Products
             _branchStockManager = branchStockManager;
             _branchStockRepository = branchStockRepository;
             _branchRepository = branchRepository;
+            _categoryRepository = categoryRepository;
+            _brandRepository = brandRepository;
+            _unitRepository = unitRepository;
             _permissionChecker = permissionChecker;
         }
 
@@ -557,6 +566,141 @@ namespace SmartPos.Products
         private static string NormalizeBarcode(string barcode)
         {
             return barcode.IsNullOrWhiteSpace() ? null : barcode.Trim();
+        }
+
+        public async Task<ProductImportResultDto> ImportProductsAsync(List<ImportProductRowDto> inputs)
+        {
+            CheckCreatePermission();
+
+            var result = new ProductImportResultDto();
+            if (inputs == null || inputs.Count == 0)
+            {
+                result.ErrorMessages.Add("No product rows found in the uploaded file.");
+                return result;
+            }
+
+            var activeBranchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+
+            // Cache or find Categories, Brands, Units
+            var categories = await _categoryRepository.GetAllListAsync();
+            var brands = await _brandRepository.GetAllListAsync();
+            var units = await _unitRepository.GetAllListAsync();
+
+            // Default fallback or matching category
+            var defaultCategory = categories.FirstOrDefault() ?? await _categoryRepository.InsertAsync(new SmartPos.Categories.Category { Name = "General", BranchId = activeBranchId });
+            var defaultBrand = brands.FirstOrDefault() ?? await _brandRepository.InsertAsync(new SmartPos.Brands.Brand { Name = "General", BranchId = activeBranchId });
+            var defaultUnit = units.FirstOrDefault() ?? await _unitRepository.InsertAsync(new SmartPos.Units.Unit { Name = "Pcs", Symbol = "pcs", BranchId = activeBranchId });
+
+            int rowIndex = 1;
+            foreach (var row in inputs)
+            {
+                rowIndex++;
+                try
+                {
+                    if (row.Name.IsNullOrWhiteSpace())
+                    {
+                        result.ErrorCount++;
+                        result.ErrorMessages.Add($"Row {rowIndex}: Product name is required.");
+                        continue;
+                    }
+
+                    if (row.Barcode.IsNullOrWhiteSpace())
+                    {
+                        result.ErrorCount++;
+                        result.ErrorMessages.Add($"Row {rowIndex}: Barcode is required for product '{row.Name}'.");
+                        continue;
+                    }
+
+                    var cleanBarcode = row.Barcode.Trim();
+                    var existingWithBarcode = await Repository.FirstOrDefaultAsync(x => x.Barcode == cleanBarcode);
+                    if (existingWithBarcode != null)
+                    {
+                        result.ErrorCount++;
+                        result.ErrorMessages.Add($"Row {rowIndex}: Barcode '{cleanBarcode}' already exists for product '{existingWithBarcode.Name}'.");
+                        continue;
+                    }
+
+                    // Resolve Category
+                    var categoryId = defaultCategory.Id;
+                    if (!row.CategoryName.IsNullOrWhiteSpace())
+                    {
+                        var cat = categories.FirstOrDefault(c => c.Name.Equals(row.CategoryName.Trim(), StringComparison.OrdinalIgnoreCase));
+                        if (cat != null)
+                        {
+                            categoryId = cat.Id;
+                        }
+                        else
+                        {
+                            var newCat = await _categoryRepository.InsertAsync(new SmartPos.Categories.Category { Name = row.CategoryName.Trim(), BranchId = activeBranchId });
+                            await CurrentUnitOfWork.SaveChangesAsync();
+                            categories.Add(newCat);
+                            categoryId = newCat.Id;
+                        }
+                    }
+
+                    // Resolve Brand
+                    var brandId = defaultBrand.Id;
+                    if (!row.BrandName.IsNullOrWhiteSpace())
+                    {
+                        var bnd = brands.FirstOrDefault(b => b.Name.Equals(row.BrandName.Trim(), StringComparison.OrdinalIgnoreCase));
+                        if (bnd != null)
+                        {
+                            brandId = bnd.Id;
+                        }
+                        else
+                        {
+                            var newBnd = await _brandRepository.InsertAsync(new SmartPos.Brands.Brand { Name = row.BrandName.Trim(), BranchId = activeBranchId });
+                            await CurrentUnitOfWork.SaveChangesAsync();
+                            brands.Add(newBnd);
+                            brandId = newBnd.Id;
+                        }
+                    }
+
+                    // Resolve Unit
+                    var unitId = defaultUnit.Id;
+                    if (!row.UnitName.IsNullOrWhiteSpace())
+                    {
+                        var u = units.FirstOrDefault(uItem => uItem.Name.Equals(row.UnitName.Trim(), StringComparison.OrdinalIgnoreCase));
+                        if (u != null)
+                        {
+                            unitId = u.Id;
+                        }
+                        else
+                        {
+                            var newU = await _unitRepository.InsertAsync(new SmartPos.Units.Unit { Name = row.UnitName.Trim(), Symbol = row.UnitName.Trim(), BranchId = activeBranchId });
+                            await CurrentUnitOfWork.SaveChangesAsync();
+                            units.Add(newU);
+                            unitId = newU.Id;
+                        }
+                    }
+
+                    var createDto = new CreateProductDto
+                    {
+                        Name = row.Name.Trim(),
+                        Barcode = cleanBarcode,
+                        Price = row.Price > 0 ? row.Price : 1,
+                        WholesalePrice = row.WholesalePrice >= 0 ? row.WholesalePrice : 0,
+                        CostPrice = row.CostPrice >= 0 ? row.CostPrice : 0,
+                        StockQuantity = row.StockQuantity >= 0 ? row.StockQuantity : 0,
+                        AlertQuantityLimit = row.AlertQuantityLimit >= 0 ? row.AlertQuantityLimit : 10,
+                        CategoryId = categoryId,
+                        BrandId = brandId,
+                        UnitId = unitId,
+                        Location = row.Location?.Trim(),
+                        Description = row.Description?.Trim()
+                    };
+
+                    await CreateAsync(createDto);
+                    result.SuccessCount++;
+                }
+                catch (Exception ex)
+                {
+                    result.ErrorCount++;
+                    result.ErrorMessages.Add($"Row {rowIndex} ({row.Name}): {ex.Message}");
+                }
+            }
+
+            return result;
         }
     }
 }
