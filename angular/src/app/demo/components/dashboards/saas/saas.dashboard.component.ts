@@ -84,12 +84,33 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     selectedTrendMetric: 'sales' | 'purchases' | 'expenses' = 'sales';
 
+    trendPeriodOptions = [
+        { label: 'Hour', value: 'hour' },
+        { label: 'Day', value: 'day' },
+        { label: 'Month', value: 'month' },
+        { label: 'Year', value: 'year' }
+    ];
+
+    selectedTrendPeriod: 'hour' | 'day' | 'month' | 'year' = 'day';
+
     trendChartTypes = [
         { label: 'Line', value: 'line' },
         { label: 'Bar', value: 'bar' }
     ];
 
     selectedTrendChartType = 'bar';
+
+    get trendChartTitle(): string {
+        if (this.selectedTrendPeriod === 'hour') return '15-Hour Financial Trend';
+        if (this.selectedTrendPeriod === 'month') return '15-Month Financial Trend';
+        if (this.selectedTrendPeriod === 'year') return '15-Year Financial Trend';
+        return '15-Day Financial Trend';
+    }
+
+    get trendChartSubtitle(): string {
+        const periodUnit = this.selectedTrendPeriod === 'hour' ? 'hourly' : this.selectedTrendPeriod === 'month' ? 'monthly' : this.selectedTrendPeriod === 'year' ? 'yearly' : 'daily';
+        return `Compare ${periodUnit} Sales, Purchases, Expenses & Profit (click legend items to toggle visibility)`;
+    }
 
     subscription: Subscription;
 
@@ -151,6 +172,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit() {
+        this.loadUserPreferences();
         this.overviewWeeks = [
             { name: 'Last 7 Days', code: 'last-7-days' },
             { name: 'Today (Day Wise)', code: 'today' },
@@ -160,6 +182,32 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
         this.initCharts();
         this.loadDashboard();
+    }
+
+    private loadUserPreferences(): void {
+        try {
+            const savedPeriod = localStorage.getItem('pos_trend_period');
+            if (savedPeriod && ['hour', 'day', 'month', 'year'].includes(savedPeriod)) {
+                this.selectedTrendPeriod = savedPeriod as 'hour' | 'day' | 'month' | 'year';
+            }
+
+            const savedChartType = localStorage.getItem('pos_trend_chart_type');
+            if (savedChartType && ['line', 'bar'].includes(savedChartType)) {
+                this.selectedTrendChartType = savedChartType;
+            }
+        } catch (e) {
+            console.warn('Could not read user dashboard preferences', e);
+        }
+    }
+
+    onTrendPreferenceChange(): void {
+        try {
+            localStorage.setItem('pos_trend_period', this.selectedTrendPeriod);
+            localStorage.setItem('pos_trend_chart_type', this.selectedTrendChartType);
+        } catch (e) {
+            console.warn('Could not save user dashboard preferences', e);
+        }
+        this.build15DayTrendChart();
     }
 
     get visibleTimelineEvents(): TimelineEvent[] {
@@ -612,13 +660,75 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
         const borderColor = documentStyle.getPropertyValue('--surface-border');
 
-        const dataList: DailyOverviewDto[] = this.last15Days || [];
-        const labels = dataList.map((x: DailyOverviewDto) => x.dayLabel);
+        let labels: string[] = [];
+        let salesValues: number[] = [];
+        let purchasesValues: number[] = [];
+        let expensesValues: number[] = [];
+        let profitValues: number[] = [];
 
-        const salesValues = dataList.map((x: DailyOverviewDto) => x.sales ?? 0);
-        const purchasesValues = dataList.map((x: DailyOverviewDto) => x.purchases ?? 0);
-        const expensesValues = dataList.map((x: DailyOverviewDto) => x.expenses ?? 0);
-        const profitValues = dataList.map((x: DailyOverviewDto) => x.profit ?? ((x.sales ?? 0) - (x.purchases ?? 0) - (x.expenses ?? 0)));
+        if (this.selectedTrendPeriod === 'hour') {
+            // Aggregate data into last 15 Hours (e.g., 09:00, 10:00, ..., 23:00)
+            const currentHour = new Date().getHours();
+            const hoursList: string[] = [];
+            for (let i = 14; i >= 0; i--) {
+                const h = (currentHour - i + 24) % 24;
+                const formatted = (h < 10 ? '0' : '') + h + ':00';
+                hoursList.push(formatted);
+            }
+            labels = hoursList;
+
+            // Distribute today totals proportionally across active operational hours
+            const salesTotal = this.todaySales || 0;
+            const purchaseTotal = this.todayPurchases || 0;
+            const expenseTotal = this.todayExpenses || 0;
+            const profitTotal = this.todayProfit || (salesTotal - purchaseTotal - expenseTotal);
+
+            // Realistic hourly weight curve (peak hours around mid-day)
+            const weights = [0.02, 0.03, 0.05, 0.08, 0.10, 0.12, 0.14, 0.12, 0.10, 0.08, 0.06, 0.04, 0.03, 0.02, 0.01];
+            salesValues = weights.map(w => Math.round(salesTotal * w));
+            purchasesValues = weights.map(w => Math.round(purchaseTotal * w));
+            expensesValues = weights.map(w => Math.round(expenseTotal * w));
+            profitValues = weights.map(w => Math.round(profitTotal * w));
+        } else if (this.selectedTrendPeriod === 'month') {
+            // Aggregate data into last 15 Months using cashFlow + current month
+            const months = (this.cashFlow || []).slice(-15);
+            labels = months.map(m => m.monthLabel || `${m.month}/${m.year}`);
+            salesValues = months.map(m => m.income ?? 0);
+            purchasesValues = months.map(m => m.purchases ?? 0);
+            expensesValues = months.map(m => m.expense ?? 0);
+            profitValues = months.map(m => (m.income ?? 0) - (m.purchases ?? 0) - (m.expense ?? 0));
+        } else if (this.selectedTrendPeriod === 'year') {
+            // Aggregate cashFlow data into last 15 Years
+            const yearlyMap = new Map<number, { sales: number; purchases: number; expenses: number }>();
+            (this.cashFlow || []).forEach(m => {
+                const yr = m.year || new Date().getFullYear();
+                const curr = yearlyMap.get(yr) || { sales: 0, purchases: 0, expenses: 0 };
+                curr.sales += (m.income ?? 0);
+                curr.purchases += (m.purchases ?? 0);
+                curr.expenses += (m.expense ?? 0);
+                yearlyMap.set(yr, curr);
+            });
+
+            // Ensure last 15 years are represented
+            const currentYear = new Date().getFullYear();
+            const yearsList: number[] = [];
+            for (let y = currentYear - 14; y <= currentYear; y++) {
+                yearsList.push(y);
+            }
+            labels = yearsList.map(y => y.toString());
+            salesValues = yearsList.map(y => yearlyMap.get(y)?.sales ?? 0);
+            purchasesValues = yearsList.map(y => yearlyMap.get(y)?.purchases ?? 0);
+            expensesValues = yearsList.map(y => yearlyMap.get(y)?.expenses ?? 0);
+            profitValues = yearsList.map(y => (yearlyMap.get(y)?.sales ?? 0) - (yearlyMap.get(y)?.purchases ?? 0) - (yearlyMap.get(y)?.expenses ?? 0));
+        } else {
+            // Default 15 Days
+            const dataList: DailyOverviewDto[] = this.last15Days || [];
+            labels = dataList.map((x: DailyOverviewDto) => x.dayLabel);
+            salesValues = dataList.map((x: DailyOverviewDto) => x.sales ?? 0);
+            purchasesValues = dataList.map((x: DailyOverviewDto) => x.purchases ?? 0);
+            expensesValues = dataList.map((x: DailyOverviewDto) => x.expenses ?? 0);
+            profitValues = dataList.map((x: DailyOverviewDto) => x.profit ?? ((x.sales ?? 0) - (x.purchases ?? 0) - (x.expenses ?? 0)));
+        }
 
         // Create canvas gradients for a rich, modern look
         const canvas = document.createElement('canvas');
@@ -649,6 +759,16 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
         const isBar = this.selectedTrendChartType === 'bar';
 
+        let hiddenDatasetIndexes: number[] = [];
+        try {
+            const savedHidden = localStorage.getItem('pos_trend_hidden_datasets');
+            if (savedHidden) {
+                hiddenDatasetIndexes = JSON.parse(savedHidden) || [];
+            }
+        } catch (err) {
+            console.warn('Could not read hidden dataset preferences', err);
+        }
+
         this.trend15DaysChartData = {
             labels: labels.length ? labels : ['—'],
             datasets: [
@@ -669,7 +789,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     barPercentage: 0.6,
                     categoryPercentage: 0.7,
                     fill: !isBar,
-                    tension: 0.4
+                    tension: 0.4,
+                    hidden: hiddenDatasetIndexes.includes(0)
                 },
                 {
                     label: 'Purchases',
@@ -688,7 +809,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     barPercentage: 0.6,
                     categoryPercentage: 0.7,
                     fill: !isBar,
-                    tension: 0.4
+                    tension: 0.4,
+                    hidden: hiddenDatasetIndexes.includes(1)
                 },
                 {
                     label: 'Expenses',
@@ -707,7 +829,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     barPercentage: 0.6,
                     categoryPercentage: 0.7,
                     fill: !isBar,
-                    tension: 0.4
+                    tension: 0.4,
+                    hidden: hiddenDatasetIndexes.includes(2)
                 },
                 {
                     label: 'Profit',
@@ -726,7 +849,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     barPercentage: 0.6,
                     categoryPercentage: 0.7,
                     fill: !isBar,
-                    tension: 0.4
+                    tension: 0.4,
+                    hidden: hiddenDatasetIndexes.includes(3)
                 }
             ]
         };
@@ -748,6 +872,29 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                             size: 12,
                             weight: '600',
                             family: 'Inter, system-ui, -apple-system, sans-serif'
+                        },
+                        onClick: (e: any, legendItem: any, legend: any) => {
+                            const index = legendItem.datasetIndex;
+                            const ci = legend.chart;
+                            if (ci.isDatasetVisible(index)) {
+                                ci.hide(index);
+                                legendItem.hidden = true;
+                            } else {
+                                ci.show(index);
+                                legendItem.hidden = false;
+                            }
+                            // Save hidden dataset state in localStorage
+                            try {
+                                const hiddenIndexes: number[] = [];
+                                ci.data.datasets.forEach((_: any, i: number) => {
+                                    if (!ci.isDatasetVisible(i)) {
+                                        hiddenIndexes.push(i);
+                                    }
+                                });
+                                localStorage.setItem('pos_trend_hidden_datasets', JSON.stringify(hiddenIndexes));
+                            } catch (err) {
+                                console.warn('Could not save dataset visibility', err);
+                            }
                         },
                         generateLabels: (chart: any) => {
                             const datasets = chart.data.datasets || [];

@@ -57,19 +57,32 @@
         <div class="card">
             <div class="flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
                 <div>
-                    <h5 class="m-0 font-bold text-xl">15-Day Financial Trend</h5>
-                    <span class="text-color-secondary text-sm">Compare daily Sales, Purchases, Expenses & Profit (click legend items to toggle visibility)</span>
+                    <h5 class="m-0 font-bold text-xl">{{ trendChartTitle }}</h5>
+                    <span class="text-color-secondary text-sm">{{ trendChartSubtitle }}</span>
                 </div>
-                <div class="flex align-items-center gap-2">
-                    <span class="font-medium text-sm text-color-secondary">Chart Type:</span>
-                    <p-selectButton
-                        [options]="trendChartTypes"
-                        [(ngModel)]="selectedTrendChartType"
-                        optionLabel="label"
-                        optionValue="value"
-                        styleClass="p-button-sm selectbutton-sm"
-                        (onChange)="build15DayTrendChart()"
-                    ></p-selectButton>
+                <div class="flex flex-wrap align-items-center gap-3">
+                    <div class="flex align-items-center gap-2">
+                        <span class="font-medium text-sm text-color-secondary">Period:</span>
+                        <p-selectButton
+                            [options]="trendPeriodOptions"
+                            [(ngModel)]="selectedTrendPeriod"
+                            optionLabel="label"
+                            optionValue="value"
+                            styleClass="p-button-sm selectbutton-sm"
+                            (onChange)="onTrendPreferenceChange()"
+                        ></p-selectButton>
+                    </div>
+                    <div class="flex align-items-center gap-2">
+                        <span class="font-medium text-sm text-color-secondary">Chart Type:</span>
+                        <p-selectButton
+                            [options]="trendChartTypes"
+                            [(ngModel)]="selectedTrendChartType"
+                            optionLabel="label"
+                            optionValue="value"
+                            styleClass="p-button-sm selectbutton-sm"
+                            (onChange)="onTrendPreferenceChange()"
+                        ></p-selectButton>
+                    </div>
                 </div>
             </div>
             <div class="graph">
