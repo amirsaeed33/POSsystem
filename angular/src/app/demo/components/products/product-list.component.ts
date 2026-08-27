@@ -22,11 +22,24 @@ export class ProductListComponent implements OnInit {
     selectedImageUrl = '';
     selectedImageName = '';
 
+    barcodeDialogVisible = false;
+    barcodeTargetProduct: ProductDto | null = null;
+    selectedProducts: ProductDto[] = [];
+
     constructor(
         private productService: ProductService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
+
+    openBarcodeDialog(product?: ProductDto): void {
+        if (product) {
+            this.barcodeTargetProduct = product;
+        } else {
+            this.barcodeTargetProduct = null;
+        }
+        this.barcodeDialogVisible = true;
+    }
 
     ngOnInit(): void {
         this.loadProducts();

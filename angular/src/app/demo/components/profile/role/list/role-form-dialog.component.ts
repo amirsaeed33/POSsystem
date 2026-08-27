@@ -14,6 +14,16 @@ import {
 } from 'src/app/demo/api/role-management';
 import { RoleService } from 'src/app/demo/service/role.service';
 
+export interface PermissionMatrixRow {
+    featureName: string;
+    viewPerm?: PermissionDto;
+    createPerm?: PermissionDto;
+    editPerm?: PermissionDto;
+    deletePerm?: PermissionDto;
+    approvePerm?: PermissionDto;
+    otherPerms: PermissionDto[];
+}
+
 @Component({
     selector: 'app-role-form-dialog',
     templateUrl: './role-form-dialog.component.html',
@@ -26,8 +36,8 @@ export class RoleFormDialogComponent implements OnChanges {
 
     roleForm: FormGroup;
     permissions: PermissionDto[] = [];
-    permissionGroups: { [key: string]: PermissionDto[] } = {};
     selectedPermissions: string[] = [];
+    permissionMatrixRows: PermissionMatrixRow[] = [];
     loading = false;
     loadingPermissions = false;
     saving = false;
@@ -73,8 +83,61 @@ export class RoleFormDialogComponent implements OnChanges {
         this.onVisibleChange(false);
     }
 
-    getPermissionGroups(): string[] {
-        return Object.keys(this.permissionGroups);
+    formatGroupName(rawName: string): string {
+        if (!rawName) return 'Other';
+        let name = rawName.replace(/^Pages\./, '');
+        name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
+        return name.trim();
+    }
+
+    isPermissionGranted(permName?: string): boolean {
+        if (!permName) return false;
+        return this.selectedPermissions.includes(permName);
+    }
+
+    togglePermission(permName?: string): void {
+        if (!permName || this.saving) return;
+        const index = this.selectedPermissions.indexOf(permName);
+        if (index > -1) {
+            this.selectedPermissions.splice(index, 1);
+        } else {
+            this.selectedPermissions.push(permName);
+        }
+    }
+
+    isRowAllChecked(row: PermissionMatrixRow): boolean {
+        const perms = this.getRowPermissions(row);
+        return perms.length > 0 && perms.every((p) => this.isPermissionGranted(p.name));
+    }
+
+    toggleRowAll(row: PermissionMatrixRow): void {
+        if (this.saving) return;
+        const perms = this.getRowPermissions(row);
+        const allChecked = this.isRowAllChecked(row);
+        perms.forEach((p) => {
+            if (!p.name) return;
+            const index = this.selectedPermissions.indexOf(p.name);
+            if (allChecked && index > -1) {
+                this.selectedPermissions.splice(index, 1);
+            } else if (!allChecked && index === -1) {
+                this.selectedPermissions.push(p.name);
+            }
+        });
+    }
+
+    isAllMatrixChecked(): boolean {
+        if (!this.permissions.length) return false;
+        return this.permissions.every((p) => this.isPermissionGranted(p.name));
+    }
+
+    toggleAllMatrix(): void {
+        if (this.saving) return;
+        const allChecked = this.isAllMatrixChecked();
+        if (allChecked) {
+            this.selectedPermissions = [];
+        } else {
+            this.selectedPermissions = this.permissions.map((p) => p.name).filter(Boolean);
+        }
     }
 
     onSubmit(): void {
@@ -129,7 +192,7 @@ export class RoleFormDialogComponent implements OnChanges {
         });
         this.selectedPermissions = [];
         this.permissions = [];
-        this.permissionGroups = {};
+        this.permissionMatrixRows = [];
         this.loading = false;
         this.saving = false;
         this.loadingPermissions = false;
@@ -137,11 +200,13 @@ export class RoleFormDialogComponent implements OnChanges {
 
     private loadPermissions(): void {
         this.loadingPermissions = true;
+        this.selectedPermissions = [];
         this.roleService
             .getAllPermissions()
             .then((permissions) => {
                 this.permissions = permissions || [];
-                this.groupPermissions();
+                this.selectedPermissions = [];
+                this.buildPermissionMatrix();
             })
             .catch((error) => {
                 this.messageService.add({
@@ -162,7 +227,7 @@ export class RoleFormDialogComponent implements OnChanges {
             .getRoleForEdit(id)
             .then((result: GetRoleForEditOutput) => {
                 this.permissions = result.permissions || [];
-                this.groupPermissions();
+                this.buildPermissionMatrix();
                 this.roleForm.patchValue({
                     name: result.role.name,
                     displayName: result.role.displayName,
@@ -185,28 +250,71 @@ export class RoleFormDialogComponent implements OnChanges {
             });
     }
 
-    private groupPermissions(): void {
-        this.permissionGroups = {};
-        if (!this.permissions?.length) {
-            return;
-        }
-        this.permissions.forEach((permission) => {
-            if (!permission?.name) {
-                return;
+    private getRowPermissions(row: PermissionMatrixRow): PermissionDto[] {
+        const list: PermissionDto[] = [];
+        if (row.viewPerm) list.push(row.viewPerm);
+        if (row.createPerm) list.push(row.createPerm);
+        if (row.editPerm) list.push(row.editPerm);
+        if (row.deletePerm) list.push(row.deletePerm);
+        if (row.approvePerm) list.push(row.approvePerm);
+        if (row.otherPerms?.length) list.push(...row.otherPerms);
+        return list;
+    }
+
+    private buildPermissionMatrix(): void {
+        this.permissionMatrixRows = [];
+        if (!this.permissions?.length) return;
+
+        const rowMap = new Map<string, PermissionMatrixRow>();
+
+        this.permissions.forEach((perm) => {
+            if (!perm?.name || perm.name === 'Pages') return;
+
+            // Determine the target feature group (e.g. Pages.Users.Create -> Pages.Users, Pages.Products -> Pages.Products)
+            let groupKey = perm.parentName || '';
+            if (!groupKey || groupKey === 'Pages') {
+                const parts = perm.name.split('.');
+                if (parts.length > 2) {
+                    groupKey = parts.slice(0, 2).join('.');
+                } else if (parts.length === 2 && parts[0] === 'Pages') {
+                    groupKey = perm.name;
+                } else {
+                    groupKey = parts.length > 1 ? parts.slice(0, -1).join('.') : perm.name;
+                }
             }
-            let groupName = permission.parentName;
-            if (!groupName && permission.name) {
-                const parts = permission.name.split('.');
-                groupName =
-                    parts.length > 1
-                        ? parts.slice(0, -1).join('.')
-                        : 'Other';
+
+            if (groupKey === 'Pages') return;
+
+            const cleanFeature = this.formatGroupName(groupKey);
+            if (cleanFeature.toLowerCase() === 'pages') return;
+
+            if (!rowMap.has(cleanFeature)) {
+                rowMap.set(cleanFeature, {
+                    featureName: cleanFeature,
+                    otherPerms: []
+                });
             }
-            groupName = groupName || 'Other';
-            if (!this.permissionGroups[groupName]) {
-                this.permissionGroups[groupName] = [];
+
+            const row = rowMap.get(cleanFeature)!;
+            const lastPart = perm.name.split('.').pop()?.toLowerCase() || '';
+
+            if (lastPart === 'create') {
+                row.createPerm = perm;
+            } else if (lastPart === 'edit') {
+                row.editPerm = perm;
+            } else if (lastPart === 'delete') {
+                row.deletePerm = perm;
+            } else if (lastPart === 'approve') {
+                row.approvePerm = perm;
+            } else if (perm.name === groupKey || lastPart === groupKey.split('.').pop()?.toLowerCase()) {
+                row.viewPerm = perm;
+            } else {
+                row.otherPerms.push(perm);
             }
-            this.permissionGroups[groupName].push(permission);
         });
+
+        this.permissionMatrixRows = Array.from(rowMap.values()).sort((a, b) =>
+            a.featureName.localeCompare(b.featureName)
+        );
     }
 }

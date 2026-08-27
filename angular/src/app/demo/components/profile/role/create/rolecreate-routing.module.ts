@@ -4,7 +4,8 @@ import { RoleCreateComponent } from './rolecreate.component';
 
 @NgModule({
     imports: [RouterModule.forChild([
-        { path: '', component: RoleCreateComponent }
+        { path: '', component: RoleCreateComponent },
+        { path: ':id', component: RoleCreateComponent }
     ])],
     exports: [RouterModule]
 })

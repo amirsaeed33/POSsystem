@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { RoleService } from 'src/app/demo/service/role.service';
 import { RoleDto, CreateRoleDto, PermissionDto, GetRoleForEditOutput } from 'src/app/demo/api/role-management';
+import { PermissionMatrixRow } from '../list/role-form-dialog.component';
 import { MessageService } from 'primeng/api';
 
 @Component({
@@ -38,17 +39,23 @@ export class RoleCreateComponent implements OnInit {
     ngOnInit() {
         this.loadPermissions();
         
-        // Check if we're in edit mode - get id from parent route params
-        const parentParams = this.route.snapshot.parent?.params;
-        if (parentParams && parentParams['id']) {
+        const currentId = this.route.snapshot.params['id'] || this.route.snapshot.parent?.params['id'];
+        if (currentId) {
             this.isEditMode = true;
-            this.roleId = +parentParams['id'];
+            this.roleId = +currentId;
             this.loadRole(this.roleId);
         }
         
-        // Also subscribe to parent route params in case of navigation
+        this.route.params.subscribe(params => {
+            if (params['id'] && (!this.isEditMode || this.roleId !== +params['id'])) {
+                this.isEditMode = true;
+                this.roleId = +params['id'];
+                this.loadRole(this.roleId);
+            }
+        });
+
         this.route.parent?.params.subscribe(params => {
-            if (params['id'] && !this.isEditMode) {
+            if (params['id'] && (!this.isEditMode || this.roleId !== +params['id'])) {
                 this.isEditMode = true;
                 this.roleId = +params['id'];
                 this.loadRole(this.roleId);
@@ -62,7 +69,7 @@ export class RoleCreateComponent implements OnInit {
         this.roleService.getRoleForEdit(id)
             .then((result: GetRoleForEditOutput) => {
                 this.permissions = result.permissions || [];
-                this.groupPermissions();
+                this.buildPermissionMatrix();
                 this.roleForm.patchValue({
                     name: result.role.name,
                     displayName: result.role.displayName,
@@ -88,10 +95,16 @@ export class RoleCreateComponent implements OnInit {
 
     loadPermissions() {
         this.loadingPermissions = true;
+        if (!this.isEditMode) {
+            this.selectedPermissions = [];
+        }
         this.roleService.getAllPermissions()
             .then((permissions) => {
                 this.permissions = permissions || [];
-                this.groupPermissions();
+                if (!this.isEditMode) {
+                    this.selectedPermissions = [];
+                }
+                this.buildPermissionMatrix();
                 this.loadingPermissions = false;
             })
             .catch((error) => {
@@ -105,36 +118,130 @@ export class RoleCreateComponent implements OnInit {
             });
     }
 
-    groupPermissions() {
-        this.permissionGroups = {};
-        if (!this.permissions || this.permissions.length === 0) {
-            return;
+    permissionMatrixRows: PermissionMatrixRow[] = [];
+
+    formatGroupName(rawName: string): string {
+        if (!rawName) return 'Other';
+        let name = rawName.replace(/^Pages\./, '');
+        name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
+        return name.trim();
+    }
+
+    isPermissionGranted(permName?: string): boolean {
+        if (!permName) return false;
+        return this.selectedPermissions.includes(permName);
+    }
+
+    togglePermission(permName?: string): void {
+        if (!permName || this.loading) return;
+        const index = this.selectedPermissions.indexOf(permName);
+        if (index > -1) {
+            this.selectedPermissions.splice(index, 1);
+        } else {
+            this.selectedPermissions.push(permName);
         }
-        this.permissions.forEach(permission => {
-            if (!permission || !permission.name) {
-                return;
+    }
+
+    isRowAllChecked(row: PermissionMatrixRow): boolean {
+        const perms = this.getRowPermissions(row);
+        return perms.length > 0 && perms.every((p) => this.isPermissionGranted(p.name));
+    }
+
+    toggleRowAll(row: PermissionMatrixRow): void {
+        if (this.loading) return;
+        const perms = this.getRowPermissions(row);
+        const allChecked = this.isRowAllChecked(row);
+        perms.forEach((p) => {
+            if (!p.name) return;
+            const index = this.selectedPermissions.indexOf(p.name);
+            if (allChecked && index > -1) {
+                this.selectedPermissions.splice(index, 1);
+            } else if (!allChecked && index === -1) {
+                this.selectedPermissions.push(p.name);
             }
-            // Use parentName if available, otherwise extract from name or use 'Other'
-            let groupName = permission.parentName;
-            if (!groupName && permission.name) {
-                const parts = permission.name.split('.');
-                if (parts.length > 1) {
-                    groupName = parts.slice(0, -1).join('.');
-                } else {
-                    groupName = 'Other';
-                }
-            }
-            groupName = groupName || 'Other';
-            
-            if (!this.permissionGroups[groupName]) {
-                this.permissionGroups[groupName] = [];
-            }
-            this.permissionGroups[groupName].push(permission);
         });
     }
 
-    getPermissionGroups(): string[] {
-        return Object.keys(this.permissionGroups);
+    isAllMatrixChecked(): boolean {
+        if (!this.permissions.length) return false;
+        return this.permissions.every((p) => this.isPermissionGranted(p.name));
+    }
+
+    toggleAllMatrix(): void {
+        if (this.loading) return;
+        const allChecked = this.isAllMatrixChecked();
+        if (allChecked) {
+            this.selectedPermissions = [];
+        } else {
+            this.selectedPermissions = this.permissions.map((p) => p.name).filter(Boolean);
+        }
+    }
+
+    private getRowPermissions(row: PermissionMatrixRow): PermissionDto[] {
+        const list: PermissionDto[] = [];
+        if (row.viewPerm) list.push(row.viewPerm);
+        if (row.createPerm) list.push(row.createPerm);
+        if (row.editPerm) list.push(row.editPerm);
+        if (row.deletePerm) list.push(row.deletePerm);
+        if (row.approvePerm) list.push(row.approvePerm);
+        if (row.otherPerms?.length) list.push(...row.otherPerms);
+        return list;
+    }
+
+    buildPermissionMatrix(): void {
+        this.permissionMatrixRows = [];
+        if (!this.permissions?.length) return;
+
+        const rowMap = new Map<string, PermissionMatrixRow>();
+
+        this.permissions.forEach((perm) => {
+            if (!perm?.name || perm.name === 'Pages') return;
+
+            let groupKey = perm.parentName || '';
+            if (!groupKey || groupKey === 'Pages') {
+                const parts = perm.name.split('.');
+                if (parts.length > 2) {
+                    groupKey = parts.slice(0, 2).join('.');
+                } else if (parts.length === 2 && parts[0] === 'Pages') {
+                    groupKey = perm.name;
+                } else {
+                    groupKey = parts.length > 1 ? parts.slice(0, -1).join('.') : perm.name;
+                }
+            }
+
+            if (groupKey === 'Pages') return;
+
+            const cleanFeature = this.formatGroupName(groupKey);
+            if (cleanFeature.toLowerCase() === 'pages') return;
+
+            if (!rowMap.has(cleanFeature)) {
+                rowMap.set(cleanFeature, {
+                    featureName: cleanFeature,
+                    otherPerms: []
+                });
+            }
+
+            const row = rowMap.get(cleanFeature)!;
+            const lastPart = perm.name.split('.').pop()?.toLowerCase() || '';
+
+            if (lastPart === 'create') {
+                row.createPerm = perm;
+            } else if (lastPart === 'edit') {
+                row.editPerm = perm;
+            } else if (lastPart === 'delete') {
+                row.deletePerm = perm;
+            } else if (lastPart === 'approve') {
+                row.approvePerm = perm;
+            } else if (perm.name === groupKey || lastPart === groupKey.split('.').pop()?.toLowerCase()) {
+                row.viewPerm = perm;
+            } else {
+                row.otherPerms.push(perm);
+            }
+        });
+
+        this.permissionMatrixRows = Array.from(rowMap.values()).sort((a, b) =>
+            a.featureName.localeCompare(b.featureName)
+        );
     }
 
     onSubmit() {

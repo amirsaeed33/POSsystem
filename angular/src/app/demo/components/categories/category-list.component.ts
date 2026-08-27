@@ -3,6 +3,8 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { CategoryDto } from 'src/app/demo/api/category';
 import { CategoryService } from 'src/app/demo/service/category.service';
+import { PermissionService } from 'src/app/demo/service/permission.service';
+import { PermissionNames } from 'src/app/demo/api/permission-names';
 
 @Component({
     selector: 'app-category-list',
@@ -21,13 +23,21 @@ export class CategoryListComponent implements OnInit {
     dialogVisible = false;
     editingCategoryId: number | null = null;
 
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+
     constructor(
         private categoryService: CategoryService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
+        private permissionService: PermissionService
     ) {}
 
     ngOnInit(): void {
+        this.canCreate = this.permissionService.isGranted(PermissionNames.CategoriesCreate);
+        this.canEdit = this.permissionService.isGranted(PermissionNames.CategoriesEdit);
+        this.canDelete = this.permissionService.isGranted(PermissionNames.CategoriesDelete);
         this.loadCategories();
     }
 

@@ -1,0 +1,132 @@
+<p-dialog
+    [(visible)]="visible"
+    [modal]="true"
+    [style]="{ width: '90vw', maxWidth: '850px' }"
+    header="Print Product Barcode Labels"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onClose()"
+>
+    <!-- Screen View: Customization Settings & List -->
+    <div class="print-dialog-body flex flex-column gap-3 no-print">
+        <!-- Settings Bar -->
+        <div class="surface-card p-3 border-round-xl border-1 surface-border shadow-1 flex flex-wrap gap-3 align-items-center justify-content-between">
+            <div class="flex flex-wrap gap-3 align-items-center">
+                <div class="flex align-items-center gap-2">
+                    <p-checkbox [(ngModel)]="showCompanyName" [binary]="true" id="chkCompany"></p-checkbox>
+                    <label for="chkCompany" class="text-sm font-medium cursor-pointer">Company Name</label>
+                </div>
+                <div class="flex align-items-center gap-2">
+                    <p-checkbox [(ngModel)]="showProductName" [binary]="true" id="chkName"></p-checkbox>
+                    <label for="chkName" class="text-sm font-medium cursor-pointer">Product Name</label>
+                </div>
+                <div class="flex align-items-center gap-2">
+                    <p-checkbox [(ngModel)]="showPrice" [binary]="true" id="chkPrice"></p-checkbox>
+                    <label for="chkPrice" class="text-sm font-medium cursor-pointer">Price (PKR)</label>
+                </div>
+                <div class="flex align-items-center gap-2">
+                    <p-checkbox [(ngModel)]="showCodeText" [binary]="true" (onChange)="generateBarcodes()" id="chkText"></p-checkbox>
+                    <label for="chkText" class="text-sm font-medium cursor-pointer">Barcode Number</label>
+                </div>
+            </div>
+
+            <div class="flex align-items-center gap-2">
+                <span class="text-sm font-medium text-700">Layout:</span>
+                <p-dropdown
+                    [options]="[
+                        { label: 'Thermal Sticker (50x25mm)', value: 'thermal-single' },
+                        { label: 'Small Thermal (38x25mm)', value: 'thermal-small' },
+                        { label: 'A4 Sheet (3 Columns)', value: 'a4-sheet' }
+                    ]"
+                    [(ngModel)]="paperSize"
+                    optionLabel="label"
+                    optionValue="value"
+                    styleClass="p-inputtext-sm"
+                ></p-dropdown>
+            </div>
+        </div>
+
+        <!-- Products to Print Table -->
+        <div class="overflow-x-auto border-1 surface-border border-round-xl">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="surface-100 border-bottom-1 surface-border text-800 font-bold text-xs uppercase tracking-wider">
+                        <th class="p-3">Product Name</th>
+                        <th class="p-3">Barcode</th>
+                        <th class="p-3">Price</th>
+                        <th class="p-3 style-width: 120px">No. of Labels</th>
+                        <th class="p-3 text-center">Preview Barcode</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                    <tr *ngFor="let item of printItems; let idx = index" class="border-bottom-1 surface-border">
+                        <td class="p-3 font-semibold text-900">{{ item.product.name }}</td>
+                        <td class="p-3 font-mono text-sm">{{ item.product.barcode || item.product.id }}</td>
+                        <td class="p-3 font-medium text-green-600">PKR {{ item.product.price | number:'1.2-2' }}</td>
+                        <td class="p-3">
+                            <p-inputNumber
+                                [(ngModel)]="item.quantity"
+                                [min]="1"
+                                [max]="500"
+                                [showButtons]="true"
+                                buttonLayout="horizontal"
+                                spinnerMode="horizontal"
+                                decrementButtonClass="p-button-secondary p-button-outlined"
+                                incrementButtonClass="p-button-secondary p-button-outlined"
+                                incrementButtonIcon="pi pi-plus"
+                                decrementButtonIcon="pi pi-minus"
+                                inputStyleClass="w-3rem text-center font-bold"
+                                (ngModelChange)="onQuantityChange()"
+                            ></p-inputNumber>
+                        </td>
+                        <td class="p-3 text-center surface-50">
+                            <div class="inline-block p-2 border-round bg-white border-1 surface-border">
+                                <div *ngIf="showCompanyName" class="text-xs font-bold text-700 text-center uppercase tracking-wider mb-1">{{ companyName }}</div>
+                                <div *ngIf="showProductName" class="text-xs font-semibold text-900 text-center">{{ item.product.name }}</div>
+                                <svg [id]="'barcode-svg-' + idx" class="mx-auto block"></svg>
+                                <div *ngIf="showPrice" class="text-xs font-bold text-green-700 text-center">PKR {{ item.product.price | number:'1.2-2' }}</div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Printable Label Container (Visible during Window Print) -->
+    <div [id]="'barcode-print-area'" [class]="'barcode-print-area ' + paperSize">
+        <div *ngFor="let st of stickers" class="barcode-sticker-label">
+            <div *ngIf="showCompanyName" class="sticker-company">{{ companyName }}</div>
+            <div *ngIf="showProductName" class="sticker-title">{{ st.product.name }}</div>
+            <div class="sticker-barcode">
+                <svg [id]="'barcode-print-svg-' + st.idx + '-' + st.i"></svg>
+            </div>
+            <div *ngIf="showPrice" class="sticker-price">Price: PKR {{ st.product.price | number:'1.2-2' }}</div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-content-between align-items-center w-full no-print">
+            <span class="text-sm font-semibold text-700">Total Labels: <mark class="px-2 py-1 bg-primary-100 text-primary-700 border-round font-bold">{{ totalLabelsCount }}</mark></span>
+            <div class="flex gap-2">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Cancel"
+                    class="p-button-outlined p-button-secondary"
+                    (click)="onClose()"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Print Barcodes"
+                    icon="pi pi-print"
+                    class="p-button-primary font-semibold"
+                    (click)="print()"
+                ></button>
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>

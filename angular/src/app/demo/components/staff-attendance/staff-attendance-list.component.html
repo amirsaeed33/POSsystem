@@ -70,67 +70,82 @@
                     ></button>
                 </div>
                 <button
-                    *ngIf="canCreate"
                     pButton
                     pRipple
                     type="button"
                     icon="pi pi-plus"
-                    label="Create"
-                    class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
+                    label="Mark Attendance"
+                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
                     (click)="openCreateDialog()"
+                    [disabled]="!canCreate"
+                    [pTooltip]="!canCreate ? 'You do not have permission to Mark Attendance' : ''"
+                    tooltipPosition="top"
                 ></button>
             </div>
         </ng-template>
 
         <ng-template pTemplate="header">
             <tr>
-                <th pSortableColumn="staffName">Staff <p-sortIcon field="staffName"></p-sortIcon></th>
-                <th pSortableColumn="attendanceDate">Date <p-sortIcon field="attendanceDate"></p-sortIcon></th>
-                <th>Check In</th>
-                <th>Check Out</th>
-                <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
-                <th pSortableColumn="workingHours">Hours <p-sortIcon field="workingHours"></p-sortIcon></th>
-                <th pSortableColumn="branchName">Branch <p-sortIcon field="branchName"></p-sortIcon></th>
-                <th>Remarks</th>
-                <th style="width: 8rem">Actions</th>
+                <th pSortableColumn="staffName" class="white-space-nowrap">
+                    Staff Name <p-sortIcon field="staffName"></p-sortIcon>
+                </th>
+                <th pSortableColumn="date" class="white-space-nowrap">
+                    Date <p-sortIcon field="date"></p-sortIcon>
+                </th>
+                <th pSortableColumn="status" class="white-space-nowrap">
+                    Status <p-sortIcon field="status"></p-sortIcon>
+                </th>
+                <th pSortableColumn="checkInTime" class="white-space-nowrap">
+                    Check In <p-sortIcon field="checkInTime"></p-sortIcon>
+                </th>
+                <th pSortableColumn="checkOutTime" class="white-space-nowrap">
+                    Check Out <p-sortIcon field="checkOutTime"></p-sortIcon>
+                </th>
+                <th class="white-space-nowrap" style="width: 8rem">Actions</th>
             </tr>
         </ng-template>
 
-        <ng-template pTemplate="body" let-row>
+        <ng-template pTemplate="body" let-att>
             <tr>
-                <td>{{ row.staffName || '—' }}</td>
-                <td>{{ formatDate(row.attendanceDate) }}</td>
-                <td>{{ formatTime(row.checkInTime) }}</td>
-                <td>{{ formatTime(row.checkOutTime) }}</td>
+                <td>{{ att.staffName || '—' }}</td>
+                <td>{{ att.date | date: 'mediumDate' }}</td>
                 <td>
-                    <p-tag [value]="statusLabel(row.status)" [severity]="statusSeverity(row.status)"></p-tag>
+                    <span
+                        class="px-2 py-1 border-round font-bold text-xs"
+                        [ngClass]="{
+                            'bg-green-100 text-green-700': att.status === 'Present',
+                            'bg-red-100 text-red-700': att.status === 'Absent',
+                            'bg-yellow-100 text-yellow-700': att.status === 'Leave' || att.status === 'Late'
+                        }"
+                    >
+                        {{ att.status }}
+                    </span>
                 </td>
-                <td>{{ row.workingHours != null ? row.workingHours : '—' }}</td>
-                <td>{{ row.branchName || '—' }}</td>
-                <td>{{ row.remarks || '—' }}</td>
+                <td>{{ att.checkInTime || '—' }}</td>
+                <td>{{ att.checkOutTime || '—' }}</td>
                 <td>
                     <div class="flex gap-2">
                         <button
-                            *ngIf="canEdit"
                             pButton
                             pRipple
                             type="button"
                             icon="pi pi-pencil"
-                            class="p-button-text p-button-sm"
-                            pTooltip="Edit"
+                            class="tbl-action-btn edit-btn"
+                            [pTooltip]="!canEdit ? 'You do not have permission to Edit' : 'Edit'"
                             tooltipPosition="top"
-                            (click)="openEditDialog(row)"
+                            (click)="openEditDialog(att)"
+                            [disabled]="!canEdit"
                         ></button>
                         <button
-                            *ngIf="canDelete"
                             pButton
                             pRipple
                             type="button"
                             icon="pi pi-trash"
-                            class="p-button-text p-button-danger p-button-sm"
-                            pTooltip="Delete"
+                            class="tbl-action-btn delete-btn"
+                            [pTooltip]="!canDelete ? 'You do not have permission to Delete' : 'Delete'"
                             tooltipPosition="top"
-                            (click)="onDelete(row)"
+                            (click)="onDelete(att)"
+                            [disabled]="!canDelete"
                         ></button>
                     </div>
                 </td>

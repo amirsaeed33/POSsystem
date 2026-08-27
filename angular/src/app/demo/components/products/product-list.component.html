@@ -105,6 +105,16 @@
                             pButton
                             pRipple
                             type="button"
+                            icon="pi pi-print"
+                            class="tbl-action-btn print-btn"
+                            pTooltip="Print Barcode"
+                            tooltipPosition="top"
+                            (click)="openBarcodeDialog(product)"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
                             icon="pi pi-pencil"
                             class="tbl-action-btn edit-btn"
                             pTooltip="Edit"
@@ -140,6 +150,12 @@
         [productId]="editingProductId"
         (saved)="onDialogSaved()"
     ></app-product-form-dialog>
+
+    <app-barcode-print-dialog
+        [(visible)]="barcodeDialogVisible"
+        [product]="barcodeTargetProduct"
+        [selectedProducts]="selectedProducts"
+    ></app-barcode-print-dialog>
 
     <p-dialog
         [header]="selectedImageName || 'Product Image'"

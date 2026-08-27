@@ -323,18 +323,18 @@ $gutter: 1rem; //for primeflex grid system
     color: #444;
   }
 
-  body:not(.printing-invoice) .layout-topbar,
-  body:not(.printing-invoice) .layout-sidebar,
-  body:not(.printing-invoice) .layout-mask,
-  body:not(.printing-invoice) .layout-config,
-  body:not(.printing-invoice) .layout-config-button,
-  body:not(.printing-invoice) .layout-footer {
+  body:not(.printing-invoice):not(.printing-barcode) .layout-topbar,
+  body:not(.printing-invoice):not(.printing-barcode) .layout-sidebar,
+  body:not(.printing-invoice):not(.printing-barcode) .layout-mask,
+  body:not(.printing-invoice):not(.printing-barcode) .layout-config,
+  body:not(.printing-invoice):not(.printing-barcode) .layout-config-button,
+  body:not(.printing-invoice):not(.printing-barcode) .layout-footer {
     display: none !important;
   }
 
-  body:not(.printing-invoice) .layout-main,
-  body:not(.printing-invoice) .layout-main-container,
-  body:not(.printing-invoice) .layout-content {
+  body:not(.printing-invoice):not(.printing-barcode) .layout-main,
+  body:not(.printing-invoice):not(.printing-barcode) .layout-main-container,
+  body:not(.printing-invoice):not(.printing-barcode) .layout-content {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
@@ -344,8 +344,33 @@ $gutter: 1rem; //for primeflex grid system
     color: #111111 !important;
   }
 
-  body:not(.printing-invoice) .layout-wrapper {
+  body:not(.printing-invoice):not(.printing-barcode) .layout-wrapper {
     background: #ffffff !important;
     background-color: #ffffff !important;
+  }
+
+  body.printing-barcode * {
+    visibility: hidden !important;
+  }
+
+  body.printing-barcode .barcode-print-area,
+  body.printing-barcode .barcode-print-area * {
+    visibility: visible !important;
+  }
+
+  body.printing-barcode .barcode-print-area {
+    display: flex !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    z-index: 999999 !important;
+  }
+
+  body.printing-barcode .barcode-sticker-label svg {
+    display: block !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
   }
 }

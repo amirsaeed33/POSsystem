@@ -22,7 +22,18 @@ export class PermissionService {
         if (!permissionName) {
             return true;
         }
-        return this.grantedPermissions.has(permissionName);
+        if (this.grantedPermissions.has(permissionName)) {
+            return true;
+        }
+        // If checking child permission (e.g. Pages.Categories.Create), fallback to parent (Pages.Categories)
+        const lastDotIndex = permissionName.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            const parentName = permissionName.substring(0, lastDotIndex);
+            if (this.grantedPermissions.has(parentName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     clear(): void {

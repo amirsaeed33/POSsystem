@@ -17,6 +17,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { ProductsRoutingModule } from './products-routing.module';
 import { ProductListComponent } from './product-list.component';
 import { ProductFormDialogComponent } from './product-form-dialog.component';
+import { BarcodePrintDialogComponent } from './barcode-print-dialog.component';
 
 @NgModule({
     imports: [
@@ -37,6 +38,6 @@ import { ProductFormDialogComponent } from './product-form-dialog.component';
         MultiSelectModule,
         CheckboxModule,
     ],
-    declarations: [ProductListComponent, ProductFormDialogComponent],
+    declarations: [ProductListComponent, ProductFormDialogComponent, BarcodePrintDialogComponent],
 })
 export class ProductsModule {}

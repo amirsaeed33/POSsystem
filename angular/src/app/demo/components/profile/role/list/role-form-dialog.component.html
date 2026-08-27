@@ -4,130 +4,294 @@
     [modal]="true"
     appendTo="body"
     [blockScroll]="true"
-    [style]="{ width: '52rem' }"
+    [style]="{ width: '64rem' }"
     [breakpoints]="{ '960px': '85vw', '640px': '95vw' }"
     [draggable]="false"
     [resizable]="false"
-    [contentStyle]="{ 'max-height': '70vh', overflow: 'auto' }"
+    [contentStyle]="{ 'max-height': '75vh', overflow: 'auto', padding: '1.5rem' }"
     (visibleChange)="onVisibleChange($event)"
 >
-    <div *ngIf="loading" class="flex align-items-center justify-content-center p-5">
-        <i class="pi pi-spin pi-spinner text-2xl"></i>
+    <div *ngIf="loading" class="flex flex-column align-items-center justify-content-center p-5 gap-3">
+        <i class="pi pi-spin pi-spinner text-4xl text-primary"></i>
+        <span class="text-color-secondary font-medium">Loading role details...</span>
     </div>
 
     <form *ngIf="!loading" [formGroup]="roleForm" (ngSubmit)="onSubmit()">
-        <div class="grid formgrid p-fluid">
-            <div class="field mb-3 col-12 md:col-6">
-                <label for="dlgRoleName" class="font-medium text-900">
-                    Name <span class="text-red-500">*</span>
-                </label>
-                <input
-                    id="dlgRoleName"
-                    type="text"
-                    pInputText
-                    formControlName="name"
-                    [disabled]="saving"
-                />
-                <small
-                    class="p-error"
-                    *ngIf="roleForm.get('name')?.invalid && roleForm.get('name')?.touched"
-                >
-                    Name is required
-                </small>
-            </div>
-
-            <div class="field mb-3 col-12 md:col-6">
-                <label for="dlgRoleDisplayName" class="font-medium text-900">
-                    Display Name <span class="text-red-500">*</span>
-                </label>
-                <input
-                    id="dlgRoleDisplayName"
-                    type="text"
-                    pInputText
-                    formControlName="displayName"
-                    [disabled]="saving"
-                />
-                <small
-                    class="p-error"
-                    *ngIf="roleForm.get('displayName')?.invalid && roleForm.get('displayName')?.touched"
-                >
-                    Display name is required
-                </small>
-            </div>
-
-            <div class="field mb-3 col-12">
-                <label for="dlgRoleDescription" class="font-medium text-900">Description</label>
-                <textarea
-                    id="dlgRoleDescription"
-                    pInputTextarea
-                    formControlName="description"
-                    rows="3"
-                    [disabled]="saving"
-                ></textarea>
-            </div>
-
-            <div class="field mb-2 col-12">
-                <label class="font-medium text-900 mb-2 block">Permissions</label>
-                <div *ngIf="loadingPermissions" class="flex align-items-center justify-content-center p-3">
-                    <i class="pi pi-spin pi-spinner mr-2"></i>
-                    <span>Loading permissions...</span>
+        <!-- Role Information Header Section -->
+        <div class="surface-card border-1 surface-border border-round-xl p-4 mb-4 shadow-1">
+            <h6 class="text-900 font-bold text-lg mb-3 mt-0 flex align-items-center gap-2">
+                <i class="pi pi-id-card text-primary text-xl"></i> Role Information
+            </h6>
+            <div class="grid formgrid p-fluid">
+                <div class="field mb-3 col-12 md:col-6">
+                    <label for="dlgRoleName" class="font-semibold text-700 text-sm">
+                        Role Name (Code) <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        id="dlgRoleName"
+                        type="text"
+                        pInputText
+                        formControlName="name"
+                        placeholder="e.g. Manager"
+                        [disabled]="saving"
+                        class="p-inputtext-sm"
+                    />
+                    <small
+                        class="p-error"
+                        *ngIf="roleForm.get('name')?.invalid && roleForm.get('name')?.touched"
+                    >
+                        Role name is required
+                    </small>
                 </div>
-                <div
-                    *ngIf="!loadingPermissions && getPermissionGroups().length === 0"
-                    class="p-3 text-center text-500"
-                >
-                    No permissions available
+
+                <div class="field mb-3 col-12 md:col-6">
+                    <label for="dlgRoleDisplayName" class="font-semibold text-700 text-sm">
+                        Display Name <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        id="dlgRoleDisplayName"
+                        type="text"
+                        pInputText
+                        formControlName="displayName"
+                        placeholder="e.g. Branch Manager"
+                        [disabled]="saving"
+                        class="p-inputtext-sm"
+                    />
+                    <small
+                        class="p-error"
+                        *ngIf="roleForm.get('displayName')?.invalid && roleForm.get('displayName')?.touched"
+                    >
+                        Display name is required
+                    </small>
                 </div>
-                <div *ngIf="!loadingPermissions && getPermissionGroups().length > 0" class="grid">
-                    <div class="col-12 md:col-6 lg:col-4" *ngFor="let groupName of getPermissionGroups()">
-                        <div class="surface-ground border-round p-3 mb-2">
-                            <h5 class="text-900 font-semibold mb-2 mt-0">{{ groupName }}</h5>
-                            <div class="flex flex-column gap-2">
-                                <div
-                                    *ngFor="let permission of permissionGroups[groupName]"
-                                    class="flex align-items-center"
-                                >
+
+                <div class="field mb-0 col-12">
+                    <label for="dlgRoleDescription" class="font-semibold text-700 text-sm">Description</label>
+                    <textarea
+                        id="dlgRoleDescription"
+                        pInputTextarea
+                        formControlName="description"
+                        rows="2"
+                        placeholder="Optional details describing duties and privileges of this role..."
+                        [disabled]="saving"
+                        class="p-inputtext-sm"
+                    ></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissions Management Matrix Section -->
+        <div class="surface-card border-1 surface-border border-round-xl p-4 shadow-1">
+            <div class="flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <div>
+                    <h6 class="text-900 font-bold text-lg m-0 flex align-items-center gap-2">
+                        <i class="pi pi-shield text-primary text-xl"></i> Role Permissions Matrix
+                    </h6>
+                    <span class="text-color-secondary text-xs">Control View, Add, Edit, Delete and Special rights per feature</span>
+                </div>
+                <div class="flex align-items-center gap-2" *ngIf="!loadingPermissions && permissionMatrixRows.length > 0">
+                    <span class="text-xs font-semibold text-primary bg-primary-100 px-3 py-1 border-round-pill">
+                        {{ selectedPermissions.length }} granted
+                    </span>
+                </div>
+            </div>
+
+            <div *ngIf="loadingPermissions" class="flex flex-column align-items-center justify-content-center p-5 gap-2">
+                <i class="pi pi-spin pi-spinner text-3xl text-primary"></i>
+                <span class="text-color-secondary text-sm">Loading permissions list...</span>
+            </div>
+
+            <div
+                *ngIf="!loadingPermissions && permissionMatrixRows.length === 0"
+                class="p-4 text-center surface-100 border-round text-500"
+            >
+                <i class="pi pi-exclamation-circle text-2xl mb-2 block"></i>
+                No permissions available
+            </div>
+
+            <div *ngIf="!loadingPermissions && permissionMatrixRows.length > 0" class="overflow-x-auto border-1 surface-border border-round-xl">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="surface-100 border-bottom-1 surface-border text-800 font-bold text-xs uppercase tracking-wider">
+                            <th class="p-3">
+                                <div class="flex align-items-center gap-2">
                                     <p-checkbox
-                                        [inputId]="'dlg-role-' + permission.name"
-                                        [value]="permission.name"
-                                        [(ngModel)]="selectedPermissions"
+                                        [binary]="true"
+                                        [ngModel]="isAllMatrixChecked()"
                                         [ngModelOptions]="{ standalone: true }"
+                                        (onChange)="toggleAllMatrix()"
                                         [disabled]="saving"
+                                        pTooltip="Select / Deselect All Permissions"
                                     ></p-checkbox>
-                                    <label
-                                        [for]="'dlg-role-' + permission.name"
-                                        class="ml-2 cursor-pointer"
-                                    >
-                                        {{ permission.displayName }}
-                                    </label>
+                                    <span>Page Name</span>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                            </th>
+                            <th class="p-3 text-center" style="width: 15%">View</th>
+                            <th class="p-3 text-center" style="width: 15%">Edit</th>
+                            <th class="p-3 text-center" style="width: 15%">Delete</th>
+                            <th class="p-3 text-center" style="width: 25%">Other Rights</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        <tr
+                            *ngFor="let row of permissionMatrixRows; let odd = odd"
+                            [class.surface-50]="odd"
+                            class="border-bottom-1 surface-border hover:surface-hover transition-colors transition-duration-150"
+                        >
+                            <!-- Feature Name + Row Select All -->
+                            <td class="p-3">
+                                <div class="flex align-items-center gap-2">
+                                    <p-checkbox
+                                        [binary]="true"
+                                        [ngModel]="isRowAllChecked(row)"
+                                        [ngModelOptions]="{ standalone: true }"
+                                        (onChange)="toggleRowAll(row)"
+                                        [disabled]="saving"
+                                        pTooltip="Select All for {{ row.featureName }}"
+                                    ></p-checkbox>
+                                    <span class="font-bold text-sm text-900">{{ row.featureName }}</span>
+                                </div>
+                            </td>
+
+                            <!-- View Permission (or View/Create) -->
+                            <td class="p-3 text-center">
+                                <div class="flex align-items-center justify-content-center gap-3">
+                                    <p-checkbox
+                                        *ngIf="row.viewPerm"
+                                        [binary]="true"
+                                        [ngModel]="isPermissionGranted(row.viewPerm.name)"
+                                        [ngModelOptions]="{ standalone: true }"
+                                        (onChange)="togglePermission(row.viewPerm.name)"
+                                        [disabled]="saving"
+                                        [pTooltip]="row.viewPerm.displayName"
+                                    ></p-checkbox>
+                                    <i *ngIf="row.viewPerm" class="pi pi-eye text-blue-500 text-base"></i>
+                                    <p-checkbox
+                                        *ngIf="row.createPerm && !row.viewPerm"
+                                        [binary]="true"
+                                        [ngModel]="isPermissionGranted(row.createPerm.name)"
+                                        [ngModelOptions]="{ standalone: true }"
+                                        (onChange)="togglePermission(row.createPerm.name)"
+                                        [disabled]="saving"
+                                        [pTooltip]="row.createPerm.displayName"
+                                    ></p-checkbox>
+                                    <i *ngIf="row.createPerm && !row.viewPerm" class="pi pi-plus-circle text-green-500 text-base"></i>
+                                    <span *ngIf="!row.viewPerm && !row.createPerm" class="text-400 font-bold">—</span>
+                                </div>
+                            </td>
+
+                            <!-- Edit Permission -->
+                            <td class="p-3 text-center">
+                                <div class="flex align-items-center justify-content-center gap-3">
+                                    <p-checkbox
+                                        *ngIf="row.editPerm"
+                                        [binary]="true"
+                                        [ngModel]="isPermissionGranted(row.editPerm.name)"
+                                        [ngModelOptions]="{ standalone: true }"
+                                        (onChange)="togglePermission(row.editPerm.name)"
+                                        [disabled]="saving"
+                                        [pTooltip]="row.editPerm.displayName"
+                                    ></p-checkbox>
+                                    <i *ngIf="row.editPerm" class="pi pi-pencil text-orange-500 text-base"></i>
+                                    <span *ngIf="!row.editPerm" class="text-400 font-bold">—</span>
+                                </div>
+                            </td>
+
+                            <!-- Delete Permission -->
+                            <td class="p-3 text-center">
+                                <div class="flex align-items-center justify-content-center gap-3">
+                                    <p-checkbox
+                                        *ngIf="row.deletePerm"
+                                        [binary]="true"
+                                        [ngModel]="isPermissionGranted(row.deletePerm.name)"
+                                        [ngModelOptions]="{ standalone: true }"
+                                        (onChange)="togglePermission(row.deletePerm.name)"
+                                        [disabled]="saving"
+                                        [pTooltip]="row.deletePerm.displayName"
+                                    ></p-checkbox>
+                                    <i *ngIf="row.deletePerm" class="pi pi-trash text-red-500 text-base"></i>
+                                    <span *ngIf="!row.deletePerm" class="text-400 font-bold">—</span>
+                                </div>
+                            </td>
+
+                            <!-- Other Rights (Create when View exists, Approve, etc) -->
+                            <td class="p-3">
+                                <div class="flex flex-wrap gap-2 align-items-center justify-content-center">
+                                    <div
+                                        *ngIf="row.createPerm && row.viewPerm"
+                                        class="flex align-items-center gap-1.5 surface-100 px-2 py-1 border-round border-1 surface-border"
+                                    >
+                                        <p-checkbox
+                                            [binary]="true"
+                                            [ngModel]="isPermissionGranted(row.createPerm.name)"
+                                            [ngModelOptions]="{ standalone: true }"
+                                            (onChange)="togglePermission(row.createPerm.name)"
+                                            [disabled]="saving"
+                                        ></p-checkbox>
+                                        <span class="text-xs font-medium text-800 flex align-items-center gap-1">
+                                            <i class="pi pi-plus-circle text-green-500"></i> Add / Create
+                                        </span>
+                                    </div>
+                                    <div
+                                        *ngIf="row.approvePerm"
+                                        class="flex align-items-center gap-1.5 surface-100 px-2 py-1 border-round border-1 surface-border"
+                                    >
+                                        <p-checkbox
+                                            [binary]="true"
+                                            [ngModel]="isPermissionGranted(row.approvePerm.name)"
+                                            [ngModelOptions]="{ standalone: true }"
+                                            (onChange)="togglePermission(row.approvePerm.name)"
+                                            [disabled]="saving"
+                                        ></p-checkbox>
+                                        <span class="text-xs font-medium text-800 flex align-items-center gap-1">
+                                            <i class="pi pi-check-circle text-purple-500"></i> Approve
+                                        </span>
+                                    </div>
+                                    <div
+                                        *ngFor="let other of row.otherPerms"
+                                        class="flex align-items-center gap-1.5 surface-100 px-2 py-1 border-round border-1 surface-border"
+                                    >
+                                        <p-checkbox
+                                            [binary]="true"
+                                            [ngModel]="isPermissionGranted(other.name)"
+                                            [ngModelOptions]="{ standalone: true }"
+                                            (onChange)="togglePermission(other.name)"
+                                            [disabled]="saving"
+                                        ></p-checkbox>
+                                        <span class="text-xs font-medium text-800">{{ other.displayName }}</span>
+                                    </div>
+                                    <span *ngIf="(!row.createPerm || !row.viewPerm) && !row.approvePerm && (!row.otherPerms || row.otherPerms.length === 0)" class="text-400 font-bold text-xs">—</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </form>
 
     <ng-template pTemplate="footer">
-        <button
-            pButton
-            pRipple
-            type="button"
-            label="Cancel"
-            class="p-button-text"
-            (click)="onHide()"
-            [disabled]="saving"
-        ></button>
-        <button
-            pButton
-            pRipple
-            type="button"
-            [label]="isEdit ? 'Update' : 'Save'"
-            icon="pi pi-check"
-            (click)="onSubmit()"
-            [disabled]="saving || loading || roleForm.invalid"
-            [loading]="saving"
-        ></button>
+        <div class="flex justify-content-end gap-2 w-full">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-outlined p-button-secondary w-auto"
+                (click)="onHide()"
+                [disabled]="saving"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                [label]="isEdit ? 'Update Role' : 'Save Role'"
+                icon="pi pi-check"
+                class="p-button-primary w-auto"
+                (click)="onSubmit()"
+                [disabled]="saving || loading || roleForm.invalid"
+                [loading]="saving"
+            ></button>
+        </div>
     </ng-template>
 </p-dialog>

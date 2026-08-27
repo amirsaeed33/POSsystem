@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputTextareaModule } from 'primeng/inputtextarea';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
 import { RoleCreateComponent } from './rolecreate.component';
 import { RoleCreateRoutingModule } from './rolecreate-routing.module';
 
@@ -21,7 +22,8 @@ import { RoleCreateRoutingModule } from './rolecreate-routing.module';
 		InputTextModule,
 		InputTextareaModule,
 		CheckboxModule,
-		ToastModule
+		ToastModule,
+		TooltipModule
 	],
 	declarations: [RoleCreateComponent]
 })

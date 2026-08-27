@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { Table } from 'primeng/table';
 import { RoleDto } from 'src/app/demo/api/role-management';
 import { RoleService } from 'src/app/demo/service/role.service';
@@ -20,7 +21,8 @@ export class RoleListComponent implements OnInit {
     constructor(
         private roleService: RoleService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
+        private router: Router
     ) { }
 
     ngOnInit() {

@@ -44,6 +44,9 @@
                     label="Create"
                     class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
                     (click)="openCreateDialog()"
+                    [disabled]="!canCreate"
+                    [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
+                    tooltipPosition="top"
                 ></button>
             </div>
         </ng-template>
@@ -72,9 +75,10 @@
                             type="button"
                             icon="pi pi-pencil"
                             class="tbl-action-btn edit-btn"
-                            pTooltip="Edit"
+                            [pTooltip]="!canEdit ? 'You do not have permission to Edit' : 'Edit'"
                             tooltipPosition="top"
                             (click)="openEditDialog(category)"
+                            [disabled]="!canEdit"
                         ></button>
                         <button
                             pButton
@@ -82,9 +86,10 @@
                             type="button"
                             icon="pi pi-trash"
                             class="tbl-action-btn delete-btn"
-                            pTooltip="Delete"
+                            [pTooltip]="!canDelete ? 'You do not have permission to Delete' : 'Delete'"
                             tooltipPosition="top"
                             (click)="onDelete(category)"
+                            [disabled]="!canDelete"
                         ></button>
                     </div>
                 </td>

@@ -73,7 +73,6 @@
                     ></button>
                 </div>
                 <button
-                    *ngIf="canCreate"
                     pButton
                     pRipple
                     type="button"
@@ -81,6 +80,7 @@
                     label="Create"
                     class="p-button-outlined w-full sm:w-auto flex-order-0 sm:flex-order-1"
                     (click)="openCreateDialog()"
+                    [disabled]="!canCreate"
                 ></button>
             </div>
         </ng-template>
@@ -115,7 +115,6 @@
                 <td>
                     <div class="flex gap-2">
                         <button
-                            *ngIf="canEdit"
                             pButton
                             pRipple
                             type="button"
@@ -124,9 +123,9 @@
                             pTooltip="Edit"
                             tooltipPosition="top"
                             (click)="openEditDialog(row)"
+                            [disabled]="!canEdit"
                         ></button>
                         <button
-                            *ngIf="canDelete"
                             pButton
                             pRipple
                             type="button"
@@ -135,6 +134,7 @@
                             pTooltip="Delete"
                             tooltipPosition="top"
                             (click)="onDelete(row)"
+                            [disabled]="!canDelete"
                         ></button>
                     </div>
                 </td>
