@@ -41,6 +41,15 @@ export class ProductListComponent implements OnInit {
         this.barcodeDialogVisible = true;
     }
 
+    openBulkBarcodeDialog(): void {
+        this.barcodeTargetProduct = null;
+        if (!this.selectedProducts?.length) {
+            // If no individual rows selected with checkbox, pass all loaded products
+            this.selectedProducts = [...this.products];
+        }
+        this.barcodeDialogVisible = true;
+    }
+
     ngOnInit(): void {
         this.loadProducts();
     }

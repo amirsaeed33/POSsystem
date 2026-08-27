@@ -2,6 +2,8 @@
     <p-table
         #dt
         [value]="products"
+        [(selection)]="selectedProducts"
+        dataKey="id"
         [paginator]="true"
         [rows]="10"
         [showCurrentPageReport]="true"
@@ -35,6 +37,17 @@
                         label="Search"
                         (click)="onSearch()"
                     ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-print"
+                        class="p-button-outlined p-button-secondary font-semibold"
+                        [label]="selectedProducts.length ? 'Print Barcodes (' + selectedProducts.length + ')' : 'Print All Barcodes'"
+                        pTooltip="Print barcodes for selected products or all products"
+                        tooltipPosition="top"
+                        (click)="openBulkBarcodeDialog()"
+                    ></button>
                 </div>
                 <button
                     pButton
@@ -50,6 +63,9 @@
 
         <ng-template pTemplate="header">
             <tr>
+                <th style="width: 3rem">
+                    <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+                </th>
                 <th style="width: 5rem">Image</th>
                 <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
                 <th pSortableColumn="barcode">Barcode <p-sortIcon field="barcode"></p-sortIcon></th>
@@ -67,6 +83,9 @@
 
         <ng-template pTemplate="body" let-product>
             <tr>
+                <td>
+                    <p-tableCheckbox [value]="product"></p-tableCheckbox>
+                </td>
                 <td>
                     <ng-container *ngIf="product.imagePath; else productInitials">
                         <img
