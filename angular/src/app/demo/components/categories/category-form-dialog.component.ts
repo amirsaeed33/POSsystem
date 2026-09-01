@@ -8,7 +8,9 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { CategoryDto } from 'src/app/demo/api/category';
+import { UnitDto } from 'src/app/demo/api/unit';
 import { CategoryService } from 'src/app/demo/service/category.service';
+import { UnitService } from 'src/app/demo/service/unit.service';
 import { MessageService } from 'primeng/api';
 
 @Component({
@@ -22,6 +24,7 @@ export class CategoryFormDialogComponent implements OnChanges {
     @Output() saved = new EventEmitter<void>();
 
     category: CategoryDto = { id: 0, name: '', description: '' };
+    units: UnitDto[] = [];
     saving = false;
     loading = false;
 
@@ -41,6 +44,7 @@ export class CategoryFormDialogComponent implements OnChanges {
 
     constructor(
         private categoryService: CategoryService,
+        private unitService: UnitService,
         private messageService: MessageService
     ) {}
 
@@ -51,6 +55,7 @@ export class CategoryFormDialogComponent implements OnChanges {
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.resetForm();
+            this.loadUnits();
             if (this.categoryId) {
                 this.loadCategory(this.categoryId);
             }
@@ -83,10 +88,12 @@ export class CategoryFormDialogComponent implements OnChanges {
                   id: this.categoryId,
                   name,
                   description: this.category.description?.trim() || undefined,
+                  defaultUnitId: this.category.defaultUnitId || undefined,
               })
             : this.categoryService.create({
                   name,
                   description: this.category.description?.trim() || undefined,
+                  defaultUnitId: this.category.defaultUnitId || undefined,
               });
 
         request
@@ -110,6 +117,17 @@ export class CategoryFormDialogComponent implements OnChanges {
             })
             .finally(() => {
                 this.saving = false;
+            });
+    }
+
+    private loadUnits(): void {
+        this.unitService
+            .getLookup()
+            .then((units) => {
+                this.units = units || [];
+            })
+            .catch(() => {
+                this.units = [];
             });
     }
 

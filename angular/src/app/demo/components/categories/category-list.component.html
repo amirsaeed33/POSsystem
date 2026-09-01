@@ -56,6 +56,7 @@
                 <th pSortableColumn="name" class="white-space-nowrap">
                     Name <p-sortIcon field="name"></p-sortIcon>
                 </th>
+                <th class="white-space-nowrap">Default Unit</th>
                 <th pSortableColumn="description" class="white-space-nowrap">
                     Description <p-sortIcon field="description"></p-sortIcon>
                 </th>
@@ -66,6 +67,10 @@
         <ng-template pTemplate="body" let-category>
             <tr>
                 <td>{{ category.name }}</td>
+                <td>
+                    <span *ngIf="category.defaultUnitName" class="p-tag p-tag-info">{{ category.defaultUnitName }}</span>
+                    <span *ngIf="!category.defaultUnitName" class="text-400">—</span>
+                </td>
                 <td>{{ category.description || '—' }}</td>
                 <td>
                     <div class="flex gap-2">

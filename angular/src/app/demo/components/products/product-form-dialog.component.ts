@@ -132,6 +132,14 @@ export class ProductFormDialogComponent implements OnChanges {
         reader.readAsDataURL(file);
     }
 
+    onCategoryChange(catId?: number): void {
+        if (!catId) return;
+        const cat = this.categories.find((c) => c.id === catId);
+        if (cat && cat.defaultUnitId) {
+            this.product.unitId = cat.defaultUnitId;
+        }
+    }
+
     save(): void {
         const validationMessage = this.getValidationMessage();
         if (validationMessage) {

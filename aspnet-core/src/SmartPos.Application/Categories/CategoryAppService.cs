@@ -50,6 +50,8 @@ namespace SmartPos.Categories
             entity.TenantId = AbpSession.TenantId;
             entity.BranchId = branchId;
             entity.IsActive = input.IsActive;
+            entity.DefaultUnitId = input.DefaultUnitId;
+
             if (string.IsNullOrWhiteSpace(entity.Description))
             {
                 entity.Description = input.Name;
@@ -73,6 +75,7 @@ namespace SmartPos.Categories
             {
                 entity.BranchId = RequireCurrentBranchId();
             }
+            entity.DefaultUnitId = input.DefaultUnitId;
             await Repository.UpdateAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
             await ClearLookupCacheAsync();
@@ -96,15 +99,25 @@ namespace SmartPos.Categories
             var cache = _cacheManager.GetCache<string, ListResultDto<CategoryDto>>(CacheName);
             return await cache.GetAsync(cacheKey, async (key) =>
             {
-                var query = Repository.GetAll().Where(x => x.IsActive);
+                var query = Repository.GetAllIncluding(x => x.DefaultUnit).Where(x => x.IsActive);
                 if (branchId.HasValue)
                 {
                     query = query.Where(x => x.BranchId == branchId.Value);
                 }
 
                 var items = await query.OrderBy(x => x.Name).ToListAsync();
-                return new ListResultDto<CategoryDto>(ObjectMapper.Map<List<CategoryDto>>(items));
+                return new ListResultDto<CategoryDto>(items.Select(MapToEntityDto).ToList());
             });
+        }
+
+        protected override CategoryDto MapToEntityDto(Category entity)
+        {
+            var dto = base.MapToEntityDto(entity);
+            if (entity.DefaultUnit != null)
+            {
+                dto.DefaultUnitName = entity.DefaultUnit.Name;
+            }
+            return dto;
         }
 
         private async Task ClearLookupCacheAsync()
@@ -115,7 +128,7 @@ namespace SmartPos.Categories
         protected override IQueryable<Category> CreateFilteredQuery(PagedCategoryResultRequestDto input)
         {
             var branchId = ResolveBranchId();
-            return Repository.GetAll()
+            return Repository.GetAllIncluding(x => x.DefaultUnit)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)

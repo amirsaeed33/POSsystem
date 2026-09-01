@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
 using SmartPos.Branches;
+using SmartPos.Units;
 
 namespace SmartPos.Categories
 {
@@ -27,5 +28,10 @@ namespace SmartPos.Categories
         public virtual string Description { get; set; }
 
         public virtual bool IsActive { get; set; } = true;
+
+        public virtual int? DefaultUnitId { get; set; }
+
+        [ForeignKey(nameof(DefaultUnitId))]
+        public virtual Unit DefaultUnit { get; set; }
     }
 }

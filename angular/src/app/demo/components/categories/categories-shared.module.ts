@@ -10,6 +10,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { DropdownModule } from 'primeng/dropdown';
 import { CategoryListComponent } from './category-list.component';
 import { CategoryFormDialogComponent } from './category-form-dialog.component';
 
@@ -26,6 +27,7 @@ import { CategoryFormDialogComponent } from './category-form-dialog.component';
         ToastModule,
         TooltipModule,
         ConfirmDialogModule,
+        DropdownModule,
     ],
     declarations: [CategoryListComponent, CategoryFormDialogComponent],
     exports: [CategoryListComponent, CategoryFormDialogComponent],

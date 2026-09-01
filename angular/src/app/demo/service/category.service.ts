@@ -69,6 +69,7 @@ export class CategoryService {
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 name: input.name,
                 description: input.description,
+                defaultUnitId: input.defaultUnitId,
             })
         );
         return this.mapCategory(this.unwrap(res, 'Failed to create category'));
@@ -81,6 +82,7 @@ export class CategoryService {
                 branchId: input.branchId,
                 name: input.name,
                 description: input.description,
+                defaultUnitId: input.defaultUnitId,
             })
         );
         return this.mapCategory(this.unwrap(res, 'Failed to update category'));
@@ -116,6 +118,8 @@ export class CategoryService {
             branchId: item.branchId ?? item.BranchId,
             name: item.name ?? item.Name,
             description: item.description ?? item.Description,
+            defaultUnitId: item.defaultUnitId ?? item.DefaultUnitId,
+            defaultUnitName: item.defaultUnitName ?? item.DefaultUnitName,
         };
     }
 }

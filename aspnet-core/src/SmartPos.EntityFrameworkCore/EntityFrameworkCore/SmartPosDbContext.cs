@@ -184,6 +184,11 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.BranchId)
                     .OnDelete(DeleteBehavior.Restrict);
+                b.HasIndex(x => x.DefaultUnitId);
+                b.HasOne(x => x.DefaultUnit)
+                    .WithMany()
+                    .HasForeignKey(x => x.DefaultUnitId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Brand>(b =>

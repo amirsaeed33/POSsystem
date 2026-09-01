@@ -3,11 +3,14 @@ export interface CategoryDto {
     branchId?: number;
     name: string;
     description?: string;
+    defaultUnitId?: number;
+    defaultUnitName?: string;
 }
 
 export interface CreateCategoryDto {
     name: string;
     description?: string;
+    defaultUnitId?: number;
 }
 
 export interface PagedCategoryResultRequestDto {
