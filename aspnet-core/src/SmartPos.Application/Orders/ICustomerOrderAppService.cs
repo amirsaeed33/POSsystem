@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Abp.Application.Services;
 using Abp.Application.Services.Dto;
@@ -16,5 +17,9 @@ namespace SmartPos.Orders
         Task<SaleDto> ApproveAsync(EntityDto<int> input);
 
         Task RejectAsync(EntityDto<int> input);
+
+        Task<CustomerOrderDto> CreateOnlineOrderAsync(CreateCustomerOrderDto input);
+
+        Task<List<OnlineProductDto>> GetOnlineCatalogAsync(int? branchId);
     }
 }

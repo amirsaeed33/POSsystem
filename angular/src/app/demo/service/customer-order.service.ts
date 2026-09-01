@@ -57,6 +57,31 @@ export class CustomerOrderService {
         return this.map(this.unwrap(res, 'Failed to create customer order'));
     }
 
+    async getOnlineCatalog(branchId?: number): Promise<any[]> {
+        const params: any = {};
+        if (branchId) params.branchId = branchId;
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetOnlineCatalog`, { params })
+        );
+        const result = this.unwrap(res, 'Failed to load catalog');
+        return Array.isArray(result) ? result : result?.items || [];
+    }
+
+    async createOnlineOrder(input: CreateCustomerOrderDto): Promise<CustomerOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/CreateOnlineOrder`, {
+                customerId: input.customerId || 0,
+                customerName: input.customerName,
+                customerMobile: input.customerMobile,
+                branchId: input.branchId,
+                orderDate: this.toApiDate(input.orderDate || new Date()),
+                notes: input.notes,
+                lines: input.lines,
+            })
+        );
+        return this.map(this.unwrap(res, 'Failed to place online order'));
+    }
+
     async delete(id: number): Promise<void> {
         const res: any = await firstValueFrom(
             this.http.delete<any>(`${this.apiUrl}/Delete`, {

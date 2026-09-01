@@ -377,10 +377,24 @@ namespace SmartPos.Branches
             return dto;
         }
 
-        [AbpAuthorize(PermissionNames.Pages_Branches_Approve)]
+        [AbpAuthorize(PermissionNames.Pages_Branches, PermissionNames.Pages_Branches_Approve)]
         public async Task<ListResultDto<BranchDto>> GetPendingApprovalsAsync()
         {
             var pendingStatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
+
+            if (AbpSession.TenantId.HasValue)
+            {
+                var tenantId = AbpSession.TenantId.Value;
+                var branches = await Repository.GetAll()
+                    .Where(x => x.TenantId == tenantId && x.StatusId == pendingStatusId)
+                    .OrderByDescending(x => x.CreationTime)
+                    .ToListAsync();
+
+                var dtos = ObjectMapper.Map<List<BranchDto>>(branches);
+                await FillTenancyNamesAsync(dtos);
+                await FillStatusNamesAsync(dtos);
+                return new ListResultDto<BranchDto>(dtos);
+            }
 
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
             {

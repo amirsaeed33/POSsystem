@@ -137,6 +137,24 @@ export class SaleService {
         }
     }
 
+    async getTopSellingProducts(maxCount = 5): Promise<ProductDto[]> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.get<any>(`${this.apiUrl}/GetTopSellingProducts`, {
+                    params: { maxCount },
+                })
+            );
+            const result = this.unwrap(res, 'Failed to load top selling products');
+            const items = result.items || result.Items || result || [];
+            return (Array.isArray(items) ? items : []).map((item: any) =>
+                this.mapProduct(item)
+            );
+        } catch (error) {
+            console.error('Failed to load top selling products:', error);
+            return [];
+        }
+    }
+
     async getPosCustomers(): Promise<
         { id: number; name: string; customerType: number }[]
     > {

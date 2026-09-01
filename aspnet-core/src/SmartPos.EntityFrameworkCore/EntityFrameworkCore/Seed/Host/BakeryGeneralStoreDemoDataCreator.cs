@@ -100,7 +100,6 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
                     Price = item.Price,
                     WholesalePrice = Math.Round(item.Price * 0.85m, 2),
                     CostPrice = Math.Round(item.Price * 0.7m, 2),
-                    StockQuantity = item.Stock,
                     AlertQuantityLimit = item.Alert,
                     CategoryId = item.CategoryId,
                     BrandId = item.BrandId,

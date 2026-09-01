@@ -28,5 +28,9 @@ namespace SmartPos.Sales
         /// Products for sale entry forms. Requires Pages.Sales only (not Pages.Products).
         /// </summary>
         Task<ListResultDto<ProductDto>> GetPosProductsAsync();
+
+        Task<ListResultDto<ProductDto>> GetTopSellingProductsAsync(int maxCount = 5);
+
+        Task<SaleDto> CreateSaleInternalAsync(CreateSaleDto input);
     }
 }

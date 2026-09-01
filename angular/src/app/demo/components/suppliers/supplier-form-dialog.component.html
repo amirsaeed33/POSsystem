@@ -17,29 +17,31 @@
                 [(ngModel)]="supplier.name" [disabled]="saving" />
         </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="supplierPhone" class="font-medium">Phone</label>
-            <input id="supplierPhone" type="text" pInputText class="w-full" maxlength="32"
-                [(ngModel)]="supplier.phone" [disabled]="saving" />
-        </div>
+        <ng-container *ngIf="supplierId">
+            <div class="flex flex-column gap-2">
+                <label for="supplierPhone" class="font-medium">Phone</label>
+                <input id="supplierPhone" type="text" pInputText class="w-full" maxlength="32"
+                    [(ngModel)]="supplier.phone" [disabled]="saving" />
+            </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="supplierEmail" class="font-medium">Email</label>
-            <input id="supplierEmail" type="email" pInputText class="w-full" maxlength="256"
-                [(ngModel)]="supplier.email" [disabled]="saving" />
-        </div>
+            <div class="flex flex-column gap-2">
+                <label for="supplierEmail" class="font-medium">Email</label>
+                <input id="supplierEmail" type="email" pInputText class="w-full" maxlength="256"
+                    [(ngModel)]="supplier.email" [disabled]="saving" />
+            </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="supplierAddress" class="font-medium">Address</label>
-            <textarea id="supplierAddress" pInputTextarea rows="2" class="w-full" maxlength="512"
-                [(ngModel)]="supplier.address" [disabled]="saving"></textarea>
-        </div>
+            <div class="flex flex-column gap-2">
+                <label for="supplierAddress" class="font-medium">Address</label>
+                <textarea id="supplierAddress" pInputTextarea rows="2" class="w-full" maxlength="512"
+                    [(ngModel)]="supplier.address" [disabled]="saving"></textarea>
+            </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="supplierDescription" class="font-medium">Description</label>
-            <textarea id="supplierDescription" pInputTextarea rows="2" class="w-full" maxlength="512"
-                [(ngModel)]="supplier.description" [disabled]="saving"></textarea>
-        </div>
+            <div class="flex flex-column gap-2">
+                <label for="supplierDescription" class="font-medium">Description</label>
+                <textarea id="supplierDescription" pInputTextarea rows="2" class="w-full" maxlength="512"
+                    [(ngModel)]="supplier.description" [disabled]="saving"></textarea>
+            </div>
+        </ng-container>
     </div>
 
     <ng-template #loadingTpl>

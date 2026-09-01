@@ -89,7 +89,6 @@ namespace SmartPos.Products
             var product = ObjectMapper.Map<Product>(input);
             product.TenantId = AbpSession.TenantId;
             product.Barcode = barcode;
-            product.StockQuantity = 0;
             product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
 
             try

@@ -37,6 +37,7 @@ namespace SmartPos.Sales
         private readonly IBranchStockManager _branchStockManager;
         private readonly IRepository<BranchStock> _branchStockRepository;
         private readonly IRepository<Branch> _branchRepository;
+        private readonly IRepository<BusinessAccount> _accountRepository;
         private readonly SystemAccountManager _systemAccountManager;
 
         public SaleAppService(
@@ -52,6 +53,7 @@ namespace SmartPos.Sales
             IBranchStockManager branchStockManager,
             IRepository<BranchStock> branchStockRepository,
             IRepository<Branch> branchRepository,
+            IRepository<BusinessAccount> accountRepository,
             SystemAccountManager systemAccountManager)
             : base(repository)
         {
@@ -66,6 +68,7 @@ namespace SmartPos.Sales
             _branchStockManager = branchStockManager;
             _branchStockRepository = branchStockRepository;
             _branchRepository = branchRepository;
+            _accountRepository = accountRepository;
             _systemAccountManager = systemAccountManager;
         }
 
@@ -167,10 +170,67 @@ namespace SmartPos.Sales
             return new ListResultDto<ProductDto>(await MapProductsWithBranchStockAsync(products));
         }
 
+        public async Task<ListResultDto<ProductDto>> GetTopSellingProductsAsync(int maxCount = 5)
+        {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+            
+            var salesQuery = Repository.GetAll();
+            if (branchId.HasValue)
+            {
+                salesQuery = salesQuery.Where(s => s.BranchId == branchId.Value);
+            }
+
+            var topProductIds = await _lineRepository.GetAll()
+                .Where(sl => salesQuery.Any(s => s.Id == sl.SaleId))
+                .GroupBy(sl => sl.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    TotalQuantity = g.Sum(x => x.Quantity)
+                })
+                .OrderByDescending(x => x.TotalQuantity)
+                .Take(maxCount)
+                .Select(x => x.ProductId)
+                .ToListAsync();
+
+            var visibleQuery = await GetVisibleProductsQueryAsync();
+            var topProducts = new List<Product>();
+
+            if (topProductIds.Count > 0)
+            {
+                var productsFromSales = await visibleQuery
+                    .Where(p => topProductIds.Contains(p.Id))
+                    .ToListAsync();
+
+                topProducts = topProductIds
+                    .Select(id => productsFromSales.FirstOrDefault(p => p.Id == id))
+                    .Where(p => p != null)
+                    .ToList();
+            }
+
+            if (topProducts.Count < maxCount)
+            {
+                var existingIds = topProducts.Select(p => p.Id).ToList();
+                var fillProducts = await visibleQuery
+                    .Where(p => !existingIds.Contains(p.Id))
+                    .OrderByDescending(p => p.CreationTime)
+                    .Take(maxCount - topProducts.Count)
+                    .ToListAsync();
+
+                topProducts.AddRange(fillProducts);
+            }
+
+            return new ListResultDto<ProductDto>(await MapProductsWithBranchStockAsync(topProducts));
+        }
+
         public override async Task<SaleDto> CreateAsync(CreateSaleDto input)
         {
             CheckCreatePermission();
+            return await CreateSaleInternalAsync(input);
+        }
 
+        public async Task<SaleDto> CreateSaleInternalAsync(CreateSaleDto input)
+        {
             if (input.Lines == null || !input.Lines.Any())
             {
                 throw new UserFriendlyException("Add at least one product line.");
@@ -179,7 +239,18 @@ namespace SmartPos.Sales
             var customer = await _customerRepository.GetAsync(input.CustomerId);
             if (!customer.AccountId.HasValue)
             {
-                throw new UserFriendlyException("Customer has no linked account. Open Customers once to create it.");
+                var account = new BusinessAccount
+                {
+                    TenantId = AbpSession.TenantId,
+                    Name = customer.Name,
+                    Code = "CUS-" + customer.Id,
+                    AccountType = AccountTypes.Customer,
+                    OpeningBalance = 0,
+                    Description = "Customer account: " + customer.Name,
+                    IsActive = true
+                };
+                customer.AccountId = await _accountRepository.InsertAndGetIdAsync(account);
+                await CurrentUnitOfWork.SaveChangesAsync();
             }
 
             if (input.SaleDate == default)
@@ -188,9 +259,10 @@ namespace SmartPos.Sales
             }
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
-            if (customer.BranchId != branchId)
+            if (customer.BranchId == 0 || customer.BranchId != branchId)
             {
-                throw new UserFriendlyException("Customer does not belong to the current location.");
+                customer.BranchId = branchId;
+                await CurrentUnitOfWork.SaveChangesAsync();
             }
 
             var branch = await _branchRepository.GetAsync(branchId);

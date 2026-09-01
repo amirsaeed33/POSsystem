@@ -141,8 +141,8 @@ namespace SmartPos.Inventory
             var stock = await GetOrCreateAsync(branchId, productId, allowCreateAssignment: false);
             stock.Quantity += quantity;
 
-            var product = await _productRepository.GetAsync(productId);
-            product.StockQuantity += quantity;
+            //var product = await _productRepository.GetAsync(productId);
+            //product.StockQuantity += quantity;
         }
 
         public async Task DecreaseAsync(int branchId, int productId, decimal quantity, string productName = null)
@@ -161,27 +161,12 @@ namespace SmartPos.Inventory
             }
 
             stock.Quantity -= quantity;
-
-            var product = await _productRepository.GetAsync(productId);
-            product.StockQuantity -= quantity;
-            if (product.StockQuantity < 0)
-            {
-                product.StockQuantity = 0;
-            }
         }
 
         public async Task SetAsync(int branchId, int productId, decimal quantity)
         {
             var stock = await GetOrCreateAsync(branchId, productId, allowCreateAssignment: false);
-            var delta = quantity - stock.Quantity;
             stock.Quantity = quantity;
-
-            var product = await _productRepository.GetAsync(productId);
-            product.StockQuantity += delta;
-            if (product.StockQuantity < 0)
-            {
-                product.StockQuantity = 0;
-            }
         }
 
         public async Task SetPricesAsync(
@@ -206,18 +191,10 @@ namespace SmartPos.Inventory
             decimal costPrice)
         {
             var stock = await GetOrCreateAsync(branchId, productId, allowCreateAssignment: true);
-            var delta = quantity - stock.Quantity;
             stock.Quantity = quantity;
             stock.Price = price;
             stock.WholesalePrice = wholesalePrice;
             stock.CostPrice = costPrice;
-
-            var product = await _productRepository.GetAsync(productId);
-            product.StockQuantity += delta;
-            if (product.StockQuantity < 0)
-            {
-                product.StockQuantity = 0;
-            }
         }
 
         public async Task RemoveAssignmentAsync(int branchId, int productId)
@@ -278,7 +255,6 @@ namespace SmartPos.Inventory
                 CostPrice = product.CostPrice
             };
             await _branchStockRepository.InsertAsync(stock);
-            await CurrentUnitOfWork.SaveChangesAsync();
             return stock;
         }
     }

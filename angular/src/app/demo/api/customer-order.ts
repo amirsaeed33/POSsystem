@@ -36,8 +36,11 @@ export interface CreateCustomerOrderLineDto {
 }
 
 export interface CreateCustomerOrderDto {
-    customerId: number;
-    orderDate: string | Date;
+    customerId?: number;
+    customerName?: string;
+    customerMobile?: string;
+    branchId?: number;
+    orderDate?: string | Date;
     notes?: string;
     lines: CreateCustomerOrderLineDto[];
 }

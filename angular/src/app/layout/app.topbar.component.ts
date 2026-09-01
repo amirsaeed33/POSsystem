@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MenuItem, MessageService } from 'primeng/api';
 import { Router } from '@angular/router';
 import { LayoutService } from './service/app.layout.service';
@@ -7,6 +7,8 @@ import { SessionService } from 'src/app/demo/service/session.service';
 import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
 import { BranchContextService, HOST_ADMIN_STORAGE_KEY } from 'src/app/demo/service/branch-context.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
+import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
+import { CustomerOrderDto, CustomerOrderStatus } from 'src/app/demo/api/customer-order';
 import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { UserLoginInfoDto } from 'src/app/demo/api/session';
@@ -17,7 +19,7 @@ import { environment } from 'src/environments/environment';
     templateUrl: './app.topbar.component.html',
     providers: [MessageService],
 })
-export class AppTopBarComponent implements OnInit {
+export class AppTopBarComponent implements OnInit, OnDestroy {
     @ViewChild('menubutton') menuButton!: ElementRef;
 
     userInfo: UserLoginInfoDto | null = null;
@@ -31,6 +33,11 @@ export class AppTopBarComponent implements OnInit {
     currentBranch: BranchDto | null = null;
     changingBranch = false;
 
+    todayPendingOrders: CustomerOrderDto[] = [];
+    pendingOrdersCount = 0;
+    loadingOrders = false;
+    private orderPollTimer: any;
+
     readonly BranchStatuses = BranchStatuses;
 
     constructor(
@@ -40,6 +47,7 @@ export class AppTopBarComponent implements OnInit {
         private tenantContext: TenantContextService,
         private branchContext: BranchContextService,
         private permissionService: PermissionService,
+        private customerOrderService: CustomerOrderService,
         private messageService: MessageService,
         private router: Router
     ) {}
@@ -70,6 +78,56 @@ export class AppTopBarComponent implements OnInit {
             .ensureMultiTenancyLoaded()
             .catch(() => undefined)
             .finally(() => this.loadUserInfo());
+
+        this.loadTodayOrders();
+        this.orderPollTimer = setInterval(() => this.loadTodayOrders(), 30000);
+    }
+
+    ngOnDestroy(): void {
+        if (this.orderPollTimer) {
+            clearInterval(this.orderPollTimer);
+        }
+    }
+
+    async loadTodayOrders(): Promise<void> {
+        try {
+            this.loadingOrders = true;
+            const res = await this.customerOrderService.getAll({ maxResultCount: 100 });
+            const allOrders = res.items || [];
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Filter today's pending/active orders (remove completed or rejected)
+            this.todayPendingOrders = allOrders.filter((order) => {
+                const isPending = order.status === CustomerOrderStatus.Pending || order.status === 0;
+                if (!isPending) {
+                    return false;
+                }
+                if (!order.orderDate) {
+                    return true;
+                }
+                const orderDate = new Date(order.orderDate);
+                orderDate.setHours(0, 0, 0, 0);
+                return orderDate.getTime() === today.getTime();
+            });
+
+            this.pendingOrdersCount = this.todayPendingOrders.length;
+        } catch (error) {
+            console.error('Failed to load online orders for topbar:', error);
+        } finally {
+            this.loadingOrders = false;
+        }
+    }
+
+    formatOrderTime(dateInput: any): string {
+        if (!dateInput) return '';
+        const d = new Date(dateInput);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    viewOrder(order: CustomerOrderDto): void {
+        this.router.navigate(['/customer-orders'], { queryParams: { id: order.id } });
     }
 
     loadUserInfo(): void {

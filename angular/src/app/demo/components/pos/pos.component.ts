@@ -93,8 +93,12 @@ export class PosComponent implements OnInit {
         return Math.max(0, Math.round((this.grandTotal - paid) * 100) / 100);
     }
 
+    topProducts: ProductDto[] = [];
+    loadingTopProducts = false;
+
     ngOnInit(): void {
         this.applyBranchPricing();
+        this.loadTopProducts();
         this.saleService
             .getPosCustomers()
             .then((customers) => {
@@ -115,6 +119,22 @@ export class PosComponent implements OnInit {
                     summary: 'Error',
                     detail: error?.message || 'Failed to load customers',
                 });
+            });
+    }
+
+    loadTopProducts(): void {
+        this.loadingTopProducts = true;
+        this.saleService
+            .getTopSellingProducts(5)
+            .then((products) => {
+                this.topProducts = products || [];
+            })
+            .catch((err) => {
+                console.error('Failed to load top products:', err);
+                this.topProducts = [];
+            })
+            .finally(() => {
+                this.loadingTopProducts = false;
             });
     }
 
@@ -387,6 +407,7 @@ export class PosComponent implements OnInit {
                 });
                 this.paymentDialogVisible = false;
                 this.clearCart();
+                this.loadTopProducts();
             })
             .catch((error) => {
                 this.messageService.add({

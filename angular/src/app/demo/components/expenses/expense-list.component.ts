@@ -74,8 +74,8 @@ export class ExpenseListComponent implements OnInit {
         this.dialogVisible = true;
     }
 
-    openPrintDialog(expense: ExpenseDto): void {
-        this.printingExpenseId = expense.id;
+    openPrintDialog(expense: ExpenseDto | number): void {
+        this.printingExpenseId = typeof expense === 'number' ? expense : expense.id;
         this.printDialogVisible = true;
     }
 

@@ -7,12 +7,18 @@ namespace SmartPos.EntityFrameworkCore
     {
         public static void Configure(DbContextOptionsBuilder<SmartPosDbContext> builder, string connectionString)
         {
-            builder.UseSqlServer(connectionString);
+            builder.UseSqlServer(connectionString, options =>
+            {
+                options.CommandTimeout(120);
+            });
         }
 
         public static void Configure(DbContextOptionsBuilder<SmartPosDbContext> builder, DbConnection connection)
         {
-            builder.UseSqlServer(connection);
+            builder.UseSqlServer(connection, options =>
+            {
+                options.CommandTimeout(120);
+            });
         }
     }
 }

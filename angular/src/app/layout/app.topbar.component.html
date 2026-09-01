@@ -96,7 +96,90 @@
         </div>
     </div>
 
-    <div class="topbar-end">
+    <div class="topbar-end flex align-items-center gap-2">
+        <!-- Online Orders Bell Notification -->
+        <div class="topbar-notifications relative">
+            <button
+                class="p-link flex align-items-center justify-content-center w-2rem h-2rem md:w-3rem md:h-3rem border-circle hover:surface-hover relative transition-colors"
+                type="button"
+                pStyleClass="@next"
+                enterClass="hidden"
+                enterActiveClass="scalein"
+                leaveToClass="hidden"
+                leaveActiveClass="fadeout"
+                [hideOnOutsideClick]="true"
+                title="Today's Online Orders"
+                (click)="loadTodayOrders()"
+            >
+                <i class="pi pi-bell text-xl text-700"></i>
+                <span
+                    *ngIf="pendingOrdersCount > 0"
+                    class="badge flex align-items-center justify-content-center bg-red-500 text-white border-circle font-bold absolute shadow-2"
+                    style="top: 2px; right: 2px; min-width: 1.2rem; height: 1.2rem; padding: 0 4px; font-size: 0.7rem; border: 2px solid var(--surface-card, #fff);"
+                >
+                    {{ pendingOrdersCount }}
+                </span>
+            </button>
+
+            <!-- Notifications Overlay Dropdown -->
+            <div
+                class="list-none p-3 m-0 border-round shadow-4 hidden absolute surface-overlay origin-top-right mt-2 right-0 top-auto z-5"
+                style="width: 22rem; max-height: 28rem; overflow-y: auto;"
+            >
+                <div class="flex align-items-center justify-content-between pb-2 mb-2 border-bottom-1 surface-border">
+                    <span class="font-bold text-900 text-base flex align-items-center gap-2">
+                        <i class="pi pi-shopping-bag text-primary"></i>
+                        Today's Online Orders
+                    </span>
+                    <span class="badge bg-primary-100 text-primary px-2 py-1 border-round text-xs font-bold">
+                        {{ todayPendingOrders.length }} Pending
+                    </span>
+                </div>
+
+                <div *ngIf="loadingOrders" class="p-3 text-center text-500">
+                    <i class="pi pi-spin pi-spinner text-xl mr-2"></i> Loading orders...
+                </div>
+
+                <div *ngIf="!loadingOrders && todayPendingOrders.length === 0" class="p-4 text-center">
+                    <i class="pi pi-check-circle text-green-500 text-3xl mb-2 block"></i>
+                    <span class="text-600 font-medium block">All orders completed!</span>
+                    <span class="text-500 text-xs">No pending online orders for today.</span>
+                </div>
+
+                <ul *ngIf="!loadingOrders && todayPendingOrders.length > 0" class="list-none p-0 m-0">
+                    <li
+                        *ngFor="let order of todayPendingOrders"
+                        class="p-2 mb-2 border-round surface-hover transition-colors cursor-pointer border-1 surface-border hover:border-primary"
+                        (click)="viewOrder(order)"
+                    >
+                        <div class="flex align-items-center justify-content-between mb-1">
+                            <span class="font-bold text-900 text-sm">#{{ order.orderNo || order.id }}</span>
+                            <span class="text-xs text-500">{{ formatOrderTime(order.orderDate) }}</span>
+                        </div>
+                        <div class="flex align-items-center justify-content-between text-xs text-700">
+                            <span class="font-medium text-800">
+                                <i class="pi pi-user mr-1 text-primary"></i>
+                                {{ order.customerName || 'Walk-in Customer' }}
+                            </span>
+                            <span class="font-bold text-primary text-sm">{{ order.totalAmount | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                        </div>
+                        <div class="flex align-items-center justify-content-between mt-2 pt-1 border-top-1 surface-border text-xs">
+                            <span class="badge bg-orange-100 text-orange-700 px-2 py-1 border-round font-medium">Pending</span>
+                            <span class="text-primary font-bold hover:underline flex align-items-center gap-1">
+                                View Order <i class="pi pi-arrow-right text-xs"></i>
+                            </span>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="pt-2 border-top-1 surface-border text-center">
+                    <a routerLink="/customer-orders" class="text-primary font-medium text-xs hover:underline flex align-items-center justify-content-center gap-1">
+                        View All Customer Orders <i class="pi pi-external-link text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <div class="topbar-profile">
             <button
                 class="topbar-profile-button p-link"

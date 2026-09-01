@@ -13,7 +13,7 @@ namespace SmartPos.Products
                 .ForMember(d => d.UnitName, opt => opt.MapFrom(s => s.Unit != null ? s.Unit.Name : null))
                 .ForMember(d => d.ProfitPerUnit, opt => opt.MapFrom(s => ProductPricing.ProfitPerUnit(s.Price, s.CostPrice)))
                 .ForMember(d => d.ProfitMarginPercent, opt => opt.MapFrom(s => ProductPricing.ProfitMarginPercent(s.Price, s.CostPrice)))
-                .ForMember(d => d.StockProfit, opt => opt.MapFrom(s => ProductPricing.StockProfit(s.Price, s.CostPrice, s.StockQuantity)))
+                .ForMember(d => d.StockProfit, opt => opt.Ignore())
                 .ForMember(d => d.ImageBase64, opt => opt.Ignore())
                 .ForMember(d => d.BranchIds, opt => opt.Ignore())
                 .ForMember(d => d.IsShared, opt => opt.Ignore());
@@ -22,15 +22,13 @@ namespace SmartPos.Products
                 .ForMember(d => d.Category, opt => opt.Ignore())
                 .ForMember(d => d.Brand, opt => opt.Ignore())
                 .ForMember(d => d.Unit, opt => opt.Ignore())
-                .ForMember(d => d.ImagePath, opt => opt.Ignore())
-                .ForMember(d => d.StockQuantity, opt => opt.Ignore());
+                .ForMember(d => d.ImagePath, opt => opt.Ignore());
 
             CreateMap<ProductDto, Product>()
                 .ForMember(d => d.Category, opt => opt.Ignore())
                 .ForMember(d => d.Brand, opt => opt.Ignore())
                 .ForMember(d => d.Unit, opt => opt.Ignore())
-                .ForMember(d => d.ImagePath, opt => opt.Ignore())
-                .ForMember(d => d.StockQuantity, opt => opt.Ignore());
+                .ForMember(d => d.ImagePath, opt => opt.Ignore());
         }
     }
 }

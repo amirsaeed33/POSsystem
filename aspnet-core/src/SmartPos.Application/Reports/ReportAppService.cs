@@ -208,18 +208,8 @@ namespace SmartPos.Reports
                 .OrderBy(x => x.Name)
                 .ToListAsync();
 
-            var branchInfo = branchId.HasValue
-                ? await _branchStockManager.GetBranchProductInfoAsync(branchId.Value, products.Select(p => p.Id))
-                : products.ToDictionary(
-                    p => p.Id,
-                    p => new BranchProductInfo
-                    {
-                        ProductId = p.Id,
-                        Quantity = p.StockQuantity,
-                        Price = p.Price,
-                        WholesalePrice = p.WholesalePrice,
-                        CostPrice = p.CostPrice
-                    });
+            var effectiveBranchId = branchId ?? (await _branchAccessChecker.RequireEffectiveBranchIdAsync());
+            var branchInfo = await _branchStockManager.GetBranchProductInfoAsync(effectiveBranchId, products.Select(p => p.Id));
 
             string StatusOf(Product p, decimal qty)
             {

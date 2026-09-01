@@ -2,15 +2,10 @@
     <div class="flex align-items-center justify-content-between mb-3">
         <div>
             <h5 class="m-0">Product Settings</h5>
-            <div class="text-500 mt-1">Manage brands, units, and categories</div>
         </div>
     </div>
 
-    <p-tabView
-        *ngIf="tabOrderHasTabs"
-        [activeIndex]="activeIndex"
-        (activeIndexChange)="onTabChange($event)"
-    >
+    <p-tabView *ngIf="tabOrderHasTabs" [activeIndex]="activeIndex" (activeIndexChange)="onTabChange($event)">
         <p-tabPanel *ngIf="canBrands" header="Brands">
             <app-brand-list [embedded]="true"></app-brand-list>
         </p-tabPanel>

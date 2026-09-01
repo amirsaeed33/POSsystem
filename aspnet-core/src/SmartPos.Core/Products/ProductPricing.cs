@@ -74,13 +74,18 @@ namespace SmartPos.Products
         /// </summary>
         public static void ApplyPurchaseCost(Product product, decimal purchaseQuantity, decimal unitCost)
         {
+            ApplyPurchaseCost(product, 0, purchaseQuantity, unitCost);
+        }
+
+        public static void ApplyPurchaseCost(Product product, decimal currentStockQuantity, decimal purchaseQuantity, decimal unitCost)
+        {
             if (product == null || purchaseQuantity <= 0)
             {
                 return;
             }
 
             product.CostPrice = CalculateAverageCost(
-                product.StockQuantity,
+                currentStockQuantity,
                 product.CostPrice,
                 purchaseQuantity,
                 unitCost);

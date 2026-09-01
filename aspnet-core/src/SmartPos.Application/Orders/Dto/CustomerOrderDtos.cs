@@ -8,8 +8,13 @@ namespace SmartPos.Orders.Dto
 {
     public class CreateCustomerOrderDto
     {
-        [Required]
         public int CustomerId { get; set; }
+
+        public string CustomerName { get; set; }
+
+        public string CustomerMobile { get; set; }
+
+        public int? BranchId { get; set; }
 
         public DateTime OrderDate { get; set; }
 
@@ -19,6 +24,17 @@ namespace SmartPos.Orders.Dto
         [Required]
         [MinLength(1)]
         public List<CreateCustomerOrderLineDto> Lines { get; set; }
+    }
+
+    public class OnlineProductDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string CategoryName { get; set; }
+        public string UnitName { get; set; }
+        public decimal Price { get; set; }
+        public string ImagePath { get; set; }
+        public bool InStock { get; set; }
     }
 
     public class CreateCustomerOrderLineDto

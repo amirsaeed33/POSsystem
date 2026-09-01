@@ -30,29 +30,31 @@
             ></p-dropdown>
         </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="customerPhone" class="font-medium">Phone</label>
-            <input id="customerPhone" type="text" pInputText class="w-full" maxlength="32"
-                [(ngModel)]="customer.phone" [disabled]="saving" />
-        </div>
+        <ng-container *ngIf="customerId">
+            <div class="flex flex-column gap-2">
+                <label for="customerPhone" class="font-medium">Phone</label>
+                <input id="customerPhone" type="text" pInputText class="w-full" maxlength="32"
+                    [(ngModel)]="customer.phone" [disabled]="saving" />
+            </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="customerEmail" class="font-medium">Email</label>
-            <input id="customerEmail" type="email" pInputText class="w-full" maxlength="256"
-                [(ngModel)]="customer.email" [disabled]="saving" />
-        </div>
+            <div class="flex flex-column gap-2">
+                <label for="customerEmail" class="font-medium">Email</label>
+                <input id="customerEmail" type="email" pInputText class="w-full" maxlength="256"
+                    [(ngModel)]="customer.email" [disabled]="saving" />
+            </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="customerAddress" class="font-medium">Address</label>
-            <textarea id="customerAddress" pInputTextarea rows="2" class="w-full" maxlength="512"
-                [(ngModel)]="customer.address" [disabled]="saving"></textarea>
-        </div>
+            <div class="flex flex-column gap-2">
+                <label for="customerAddress" class="font-medium">Address</label>
+                <textarea id="customerAddress" pInputTextarea rows="2" class="w-full" maxlength="512"
+                    [(ngModel)]="customer.address" [disabled]="saving"></textarea>
+            </div>
 
-        <div class="flex flex-column gap-2">
-            <label for="customerDescription" class="font-medium">Description</label>
-            <textarea id="customerDescription" pInputTextarea rows="2" class="w-full" maxlength="512"
-                [(ngModel)]="customer.description" [disabled]="saving"></textarea>
-        </div>
+            <div class="flex flex-column gap-2">
+                <label for="customerDescription" class="font-medium">Description</label>
+                <textarea id="customerDescription" pInputTextarea rows="2" class="w-full" maxlength="512"
+                    [(ngModel)]="customer.description" [disabled]="saving"></textarea>
+            </div>
+        </ng-container>
     </div>
 
     <ng-template #loadingTpl>

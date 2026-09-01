@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import {
@@ -31,11 +32,18 @@ export class CustomerOrderListComponent implements OnInit {
     constructor(
         private customerOrderService: CustomerOrderService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
+        private route: ActivatedRoute
     ) {}
 
     ngOnInit(): void {
         this.loadOrders();
+        this.route.queryParams.subscribe((params) => {
+            if (params['id']) {
+                this.viewingOrderId = Number(params['id']);
+                this.viewDialogVisible = true;
+            }
+        });
     }
 
     loadOrders(): void {

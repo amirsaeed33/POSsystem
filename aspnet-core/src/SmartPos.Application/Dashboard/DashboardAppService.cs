@@ -620,7 +620,7 @@ namespace SmartPos.Dashboard
                 return stockByProductId.TryGetValue(product.Id, out var qty) ? qty : 0;
             }
 
-            return product.StockQuantity;
+            return 0;
         }
 
         private static bool IsOutOfStock(Product product, IReadOnlyDictionary<int, decimal> stockByProductId) =>

@@ -61,6 +61,7 @@ export class AppMenuComponent implements OnInit {
                     { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'], permission: PermissionNames.Sales },
                     { label: 'Sale Returns', icon: 'pi pi-replay', routerLink: ['/sale-returns'], permission: PermissionNames.Sales },
                     { label: 'Customer Orders', icon: 'pi pi-file', routerLink: ['/customer-orders'], permission: PermissionNames.CustomerOrders },
+                    { label: 'Online Storefront', icon: 'pi pi-globe', routerLink: ['/online-order'], target: '_blank' },
                     { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'], permission: PermissionNames.Customers },
                 ]
             },

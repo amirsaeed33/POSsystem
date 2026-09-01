@@ -126,7 +126,7 @@ namespace SmartPos.Purchases
                     lineInput.Quantity,
                     lineInput.UnitCost);
 
-                ProductPricing.ApplyPurchaseCost(product, lineInput.Quantity, lineInput.UnitCost);
+                ProductPricing.ApplyPurchaseCost(product, current.Quantity, lineInput.Quantity, lineInput.UnitCost);
                 await _branchStockManager.IncreaseAsync(branchId, lineInput.ProductId, lineInput.Quantity);
                 await _branchStockManager.SetPricesAsync(
                     branchId,
@@ -148,6 +148,7 @@ namespace SmartPos.Purchases
 
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
+                TenantId = AbpSession.TenantId,
                 AccountId = purchaseAccount.Id,
                 TransactionDate = purchase.PurchaseDate,
                 VoucherType = VoucherTypes.Invoice,
@@ -159,6 +160,7 @@ namespace SmartPos.Purchases
 
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
+                TenantId = AbpSession.TenantId,
                 AccountId = supplier.AccountId.Value,
                 TransactionDate = purchase.PurchaseDate,
                 VoucherType = VoucherTypes.Invoice,
@@ -168,7 +170,15 @@ namespace SmartPos.Purchases
                 Description = description
             });
 
-            return await GetAsync(new EntityDto<int>(purchase.Id));
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            purchase.Supplier = supplier;
+            foreach (var line in purchase.Lines)
+            {
+                line.Product = await _productRepository.FirstOrDefaultAsync(line.ProductId);
+            }
+
+            return MapToEntityDto(purchase);
         }
 
         public override async Task<PurchaseDto> UpdateAsync(PurchaseDto input)
