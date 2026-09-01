@@ -2,6 +2,7 @@ import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { StockReportDto, StockReportRowDto } from 'src/app/demo/api/report';
 import { ReportService } from 'src/app/demo/service/report.service';
+import { NotificationEmailService } from 'src/app/demo/service/notification-email.service';
 
 @Component({
     templateUrl: './stock-report.component.html',
@@ -11,6 +12,7 @@ import { ReportService } from 'src/app/demo/service/report.service';
 })
 export class StockReportComponent implements OnInit {
     loading = false;
+    sendingEmail = false;
     keyword = '';
     report: StockReportDto = {
         totalProducts: 0,
@@ -26,6 +28,7 @@ export class StockReportComponent implements OnInit {
 
     constructor(
         private reportService: ReportService,
+        private notificationEmailService: NotificationEmailService,
         private messageService: MessageService
     ) {}
 
@@ -92,5 +95,28 @@ export class StockReportComponent implements OnInit {
 
     trackById(_: number, item: StockReportRowDto): number {
         return item.id;
+    }
+
+    sendEmailAlert(): void {
+        this.sendingEmail = true;
+        this.notificationEmailService.sendLowStockReport({})
+            .subscribe({
+                next: () => {
+                    this.sendingEmail = false;
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Email Dispatched',
+                        detail: 'Low stock alert report has been sent to your email.'
+                    });
+                },
+                error: (err) => {
+                    this.sendingEmail = false;
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Email Failed',
+                        detail: err?.error?.error?.message || err?.message || 'Failed to send email. Check SMTP settings.'
+                    });
+                }
+            });
     }
 }

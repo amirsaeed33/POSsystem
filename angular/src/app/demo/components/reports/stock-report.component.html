@@ -2,15 +2,27 @@
     <!-- Verona screen UI -->
     <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3 no-print">
         <h5 class="m-0">Stock Report</h5>
-        <button
-            pButton
-            pRipple
-            type="button"
-            icon="pi pi-print"
-            label="Print Report"
-            class="p-button-outlined"
-            (click)="printReport()"
-        ></button>
+        <div class="flex align-items-center gap-2">
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-envelope"
+                label="Email Low Stock Alert"
+                class="p-button-outlined p-button-warning"
+                (click)="sendEmailAlert()"
+                [loading]="sendingEmail"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-print"
+                label="Print Report"
+                class="p-button-outlined"
+                (click)="printReport()"
+            ></button>
+        </div>
     </div>
 
     <div class="grid mb-3 no-print">
@@ -153,7 +165,7 @@
                 <th>Brand</th>
                 <th>Unit</th>
                 <th class="text-right">Price</th>
-                <th class="text-right">Cost Price</th>
+                <th class="text-right">Purchase Price</th>
                 <th class="text-right">Profit Per Unit</th>
                 <th class="text-right">Profit Margin</th>
                 <th class="text-right">Stock Profit</th>
@@ -258,7 +270,7 @@
                     <th>Brand</th>
                     <th>Unit</th>
                     <th class="text-right">Price</th>
-                    <th class="text-right">Cost Price</th>
+                    <th class="text-right">Purchase Price</th>
                     <th class="text-right">Profit Per Unit</th>
                     <th class="text-right">Profit Margin</th>
                     <th class="text-right">Stock Profit</th>

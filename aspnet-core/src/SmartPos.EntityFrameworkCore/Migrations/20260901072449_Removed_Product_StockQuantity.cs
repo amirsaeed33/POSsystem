@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,319 +11,131 @@ namespace SmartPos.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "StockQuantity",
-                table: "AppProducts");
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppProducts]') AND name = N'StockQuantity')
+BEGIN
+    DECLARE @v1 sysname;
+    SELECT @v1 = [d].[name] FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[AppProducts]') AND [c].[name] = N'StockQuantity');
+    IF @v1 IS NOT NULL EXEC(N'ALTER TABLE [AppProducts] DROP CONSTRAINT [' + @v1 + '];');
+    ALTER TABLE [AppProducts] DROP COLUMN [StockQuantity];
+END");
 
-            migrationBuilder.DropColumn(
-                name: "IsDefault",
-                table: "AppBranches");
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppBranches]') AND name = N'IsDefault')
+BEGIN
+    DECLARE @v2 sysname;
+    SELECT @v2 = [d].[name] FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[AppBranches]') AND [c].[name] = N'IsDefault');
+    IF @v2 IS NOT NULL EXEC(N'ALTER TABLE [AppBranches] DROP CONSTRAINT [' + @v2 + '];');
+    ALTER TABLE [AppBranches] DROP COLUMN [IsDefault];
+END");
 
-            migrationBuilder.AddColumn<int>(
-                name: "BranchId",
-                table: "AppUnits",
-                type: "int",
-                nullable: false,
-                defaultValue: 0);
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppUnits]') AND name = N'BranchId')
+    ALTER TABLE [AppUnits] ADD [BranchId] int NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<bool>(
-                name: "IsActive",
-                table: "AppUnits",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppUnits]') AND name = N'IsActive')
+    ALTER TABLE [AppUnits] ADD [IsActive] bit NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<string>(
-                name: "Symbol",
-                table: "AppUnits",
-                type: "nvarchar(32)",
-                maxLength: 32,
-                nullable: true);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppUnits]') AND name = N'Symbol')
+    ALTER TABLE [AppUnits] ADD [Symbol] nvarchar(32) NULL;
 
-            migrationBuilder.AddColumn<string>(
-                name: "LoginPassword",
-                table: "AppStaff",
-                type: "nvarchar(100)",
-                maxLength: 100,
-                nullable: true);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppStaff]') AND name = N'LoginPassword')
+    ALTER TABLE [AppStaff] ADD [LoginPassword] nvarchar(100) NULL;
 
-            migrationBuilder.AddColumn<long>(
-                name: "UserId",
-                table: "AppStaff",
-                type: "bigint",
-                nullable: true);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppStaff]') AND name = N'UserId')
+    ALTER TABLE [AppStaff] ADD [UserId] bigint NULL;
 
-            migrationBuilder.AddColumn<int>(
-                name: "BranchId",
-                table: "AppCategories",
-                type: "int",
-                nullable: false,
-                defaultValue: 0);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppCategories]') AND name = N'BranchId')
+    ALTER TABLE [AppCategories] ADD [BranchId] int NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<bool>(
-                name: "IsActive",
-                table: "AppCategories",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppCategories]') AND name = N'IsActive')
+    ALTER TABLE [AppCategories] ADD [IsActive] bit NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<int>(
-                name: "BranchId",
-                table: "AppBrands",
-                type: "int",
-                nullable: false,
-                defaultValue: 0);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppBrands]') AND name = N'BranchId')
+    ALTER TABLE [AppBrands] ADD [BranchId] int NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<bool>(
-                name: "IsActive",
-                table: "AppBrands",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppBrands]') AND name = N'IsActive')
+    ALTER TABLE [AppBrands] ADD [IsActive] bit NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "ActivationTokenExpiresAt",
-                table: "AppBranches",
-                type: "datetime2",
-                nullable: true);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppBranches]') AND name = N'ActivationTokenExpiresAt')
+    ALTER TABLE [AppBranches] ADD [ActivationTokenExpiresAt] datetime2 NULL;
 
-            migrationBuilder.AddColumn<string>(
-                name: "ActivationTokenHash",
-                table: "AppBranches",
-                type: "nvarchar(128)",
-                maxLength: 128,
-                nullable: true);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppBranches]') AND name = N'ActivationTokenHash')
+    ALTER TABLE [AppBranches] ADD [ActivationTokenHash] nvarchar(128) NULL;
 
-            migrationBuilder.AddColumn<decimal>(
-                name: "DiscountAmount",
-                table: "AppBranches",
-                type: "decimal(18,2)",
-                precision: 18,
-                scale: 2,
-                nullable: false,
-                defaultValue: 0m);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppBranches]') AND name = N'DiscountAmount')
+    ALTER TABLE [AppBranches] ADD [DiscountAmount] decimal(18,2) NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<decimal>(
-                name: "DiscountPercent",
-                table: "AppBranches",
-                type: "decimal(18,2)",
-                precision: 18,
-                scale: 2,
-                nullable: false,
-                defaultValue: 0m);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppBranches]') AND name = N'DiscountPercent')
+    ALTER TABLE [AppBranches] ADD [DiscountPercent] decimal(18,2) NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<decimal>(
-                name: "TaxPercent",
-                table: "AppBranches",
-                type: "decimal(18,2)",
-                precision: 18,
-                scale: 2,
-                nullable: false,
-                defaultValue: 0m);
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppBranches]') AND name = N'TaxPercent')
+    ALTER TABLE [AppBranches] ADD [TaxPercent] decimal(18,2) NOT NULL DEFAULT 0;
+");
 
-            migrationBuilder.CreateTable(
-                name: "AppHostCatalogItems",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Type = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
-                    CompanyTypeId = table.Column<int>(type: "int", nullable: true),
-                    Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    Symbol = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatorUserId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    LastModifierUserId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeleterUserId = table.Column<long>(type: "bigint", nullable: true),
-                    DeletionTime = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AppHostCatalogItems", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AppHostCatalogItems_AppHostCatalogItems_CompanyTypeId",
-                        column: x => x.CompanyTypeId,
-                        principalTable: "AppHostCatalogItems",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = N'AppHostCatalogItems')
+BEGIN
+    CREATE TABLE [AppHostCatalogItems] (
+        [Id] int NOT NULL IDENTITY,
+        [Type] nvarchar(32) NOT NULL,
+        [CompanyTypeId] int NULL,
+        [Name] nvarchar(128) NOT NULL,
+        [Symbol] nvarchar(32) NULL,
+        [IsActive] bit NOT NULL,
+        [CreationTime] datetime2 NOT NULL,
+        [CreatorUserId] bigint NULL,
+        [LastModificationTime] datetime2 NULL,
+        [LastModifierUserId] bigint NULL,
+        [IsDeleted] bit NOT NULL,
+        [DeleterUserId] bigint NULL,
+        [DeletionTime] datetime2 NULL,
+        CONSTRAINT [PK_AppHostCatalogItems] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_AppHostCatalogItems_AppHostCatalogItems_CompanyTypeId] FOREIGN KEY ([CompanyTypeId]) REFERENCES [AppHostCatalogItems] ([Id]) ON DELETE NO ACTION
+    );
+END
 
-            migrationBuilder.CreateTable(
-                name: "AppBranchSeedRequests",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    BranchId = table.Column<int>(type: "int", nullable: false),
-                    RequestedByUserId = table.Column<long>(type: "bigint", nullable: false),
-                    CompanyTypeId = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
-                    ApprovedByUserId = table.Column<long>(type: "bigint", nullable: true),
-                    ApprovedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreationTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatorUserId = table.Column<long>(type: "bigint", nullable: true),
-                    LastModificationTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    LastModifierUserId = table.Column<long>(type: "bigint", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeleterUserId = table.Column<long>(type: "bigint", nullable: true),
-                    DeletionTime = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AppBranchSeedRequests", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AppBranchSeedRequests_AppBranches_BranchId",
-                        column: x => x.BranchId,
-                        principalTable: "AppBranches",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_AppBranchSeedRequests_AppHostCatalogItems_CompanyTypeId",
-                        column: x => x.CompanyTypeId,
-                        principalTable: "AppHostCatalogItems",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = N'AppBranchSeedRequests')
+BEGIN
+    CREATE TABLE [AppBranchSeedRequests] (
+        [Id] int NOT NULL IDENTITY,
+        [TenantId] int NOT NULL,
+        [BranchId] int NOT NULL,
+        [RequestedByUserId] bigint NOT NULL,
+        [CompanyTypeId] int NOT NULL,
+        [Status] nvarchar(32) NOT NULL,
+        [ApprovedByUserId] bigint NULL,
+        [ApprovedDate] datetime2 NULL,
+        [CreationTime] datetime2 NOT NULL,
+        [CreatorUserId] bigint NULL,
+        [LastModificationTime] datetime2 NULL,
+        [LastModifierUserId] bigint NULL,
+        [IsDeleted] bit NOT NULL,
+        [DeleterUserId] bigint NULL,
+        [DeletionTime] datetime2 NULL,
+        CONSTRAINT [PK_AppBranchSeedRequests] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_AppBranchSeedRequests_AppBranches_BranchId] FOREIGN KEY ([BranchId]) REFERENCES [AppBranches] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_AppBranchSeedRequests_AppHostCatalogItems_CompanyTypeId] FOREIGN KEY ([CompanyTypeId]) REFERENCES [AppHostCatalogItems] ([Id]) ON DELETE NO ACTION
+    );
+END
 
-            migrationBuilder.CreateTable(
-                name: "AppBranchSeedRequestItems",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    BranchSeedRequestId = table.Column<int>(type: "int", nullable: false),
-                    HostItemId = table.Column<int>(type: "int", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatorUserId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AppBranchSeedRequestItems", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AppBranchSeedRequestItems_AppBranchSeedRequests_BranchSeedRequestId",
-                        column: x => x.BranchSeedRequestId,
-                        principalTable: "AppBranchSeedRequests",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_AppBranchSeedRequestItems_AppHostCatalogItems_HostItemId",
-                        column: x => x.HostItemId,
-                        principalTable: "AppHostCatalogItems",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppUnits_BranchId",
-                table: "AppUnits",
-                column: "BranchId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppUnits_TenantId_BranchId_Name",
-                table: "AppUnits",
-                columns: new[] { "TenantId", "BranchId", "Name" },
-                unique: true,
-                filter: "[IsDeleted] = 0");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppStaff_UserId",
-                table: "AppStaff",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppCategories_BranchId",
-                table: "AppCategories",
-                column: "BranchId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppCategories_TenantId_BranchId_Name",
-                table: "AppCategories",
-                columns: new[] { "TenantId", "BranchId", "Name" },
-                unique: true,
-                filter: "[IsDeleted] = 0");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppBrands_BranchId",
-                table: "AppBrands",
-                column: "BranchId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppBrands_TenantId_BranchId_Name",
-                table: "AppBrands",
-                columns: new[] { "TenantId", "BranchId", "Name" },
-                unique: true,
-                filter: "[IsDeleted] = 0");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppBranchSeedRequestItems_BranchSeedRequestId_HostItemId",
-                table: "AppBranchSeedRequestItems",
-                columns: new[] { "BranchSeedRequestId", "HostItemId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppBranchSeedRequestItems_HostItemId",
-                table: "AppBranchSeedRequestItems",
-                column: "HostItemId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppBranchSeedRequests_BranchId",
-                table: "AppBranchSeedRequests",
-                column: "BranchId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppBranchSeedRequests_CompanyTypeId",
-                table: "AppBranchSeedRequests",
-                column: "CompanyTypeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppBranchSeedRequests_TenantId_BranchId_Status",
-                table: "AppBranchSeedRequests",
-                columns: new[] { "TenantId", "BranchId", "Status" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppHostCatalogItems_CompanyTypeId",
-                table: "AppHostCatalogItems",
-                column: "CompanyTypeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppHostCatalogItems_Type_CompanyTypeId_IsActive",
-                table: "AppHostCatalogItems",
-                columns: new[] { "Type", "CompanyTypeId", "IsActive" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppHostCatalogItems_Type_CompanyTypeId_Name",
-                table: "AppHostCatalogItems",
-                columns: new[] { "Type", "CompanyTypeId", "Name" },
-                unique: true,
-                filter: "[IsDeleted] = 0");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_AppBrands_AppBranches_BranchId",
-                table: "AppBrands",
-                column: "BranchId",
-                principalTable: "AppBranches",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_AppCategories_AppBranches_BranchId",
-                table: "AppCategories",
-                column: "BranchId",
-                principalTable: "AppBranches",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_AppUnits_AppBranches_BranchId",
-                table: "AppUnits",
-                column: "BranchId",
-                principalTable: "AppBranches",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = N'AppBranchSeedRequestItems')
+BEGIN
+    CREATE TABLE [AppBranchSeedRequestItems] (
+        [Id] int NOT NULL IDENTITY,
+        [BranchSeedRequestId] int NOT NULL,
+        [HostItemId] int NOT NULL,
+        [CreationTime] datetime2 NOT NULL,
+        [CreatorUserId] bigint NULL,
+        CONSTRAINT [PK_AppBranchSeedRequestItems] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_AppBranchSeedRequestItems_AppBranchSeedRequests_BranchSeedRequestId] FOREIGN KEY ([BranchSeedRequestId]) REFERENCES [AppBranchSeedRequests] ([Id]) ON DELETE CASCADE,
+        CONSTRAINT [FK_AppBranchSeedRequestItems_AppHostCatalogItems_HostItemId] FOREIGN KEY ([HostItemId]) REFERENCES [AppHostCatalogItems] ([Id]) ON DELETE NO ACTION
+    );
+END");
         }
 
         /// <inheritdoc />

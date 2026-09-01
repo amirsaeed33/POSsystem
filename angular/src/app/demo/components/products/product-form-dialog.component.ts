@@ -247,7 +247,7 @@ export class ProductFormDialogComponent implements OnChanges {
             return 'Wholesale price is required.';
         }
         if (this.product.costPrice == null || Number(this.product.costPrice) < 0) {
-            return 'Cost price is required.';
+            return 'Purchase price is required.';
         }
         if (this.productId && (this.product.alertQuantityLimit == null || Number(this.product.alertQuantityLimit) < 0)) {
             return 'Alert quantity limit is required.';

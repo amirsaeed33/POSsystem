@@ -3,6 +3,8 @@ import { MessageService } from 'primeng/api';
 import { SaleReportDto } from 'src/app/demo/api/report';
 import { ReportService } from 'src/app/demo/service/report.service';
 
+import { NotificationEmailService } from 'src/app/demo/service/notification-email.service';
+
 @Component({
     templateUrl: './sale-report.component.html',
     providers: [MessageService],
@@ -10,6 +12,7 @@ import { ReportService } from 'src/app/demo/service/report.service';
 export class SaleReportComponent implements OnInit {
     loading = false;
     printing = false;
+    sendingEmail = false;
     fromDate = '';
     toDate = '';
     keyword = '';
@@ -20,6 +23,7 @@ export class SaleReportComponent implements OnInit {
 
     constructor(
         private reportService: ReportService,
+        private notificationEmailService: NotificationEmailService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef
     ) {}
@@ -87,5 +91,28 @@ export class SaleReportComponent implements OnInit {
         const month = `${date.getMonth() + 1}`.padStart(2, '0');
         const day = `${date.getDate()}`.padStart(2, '0');
         return `${year}-${month}-${day}`;
+    }
+
+    sendDailySummaryEmail(): void {
+        this.sendingEmail = true;
+        this.notificationEmailService.sendDailyBusinessSummary({})
+            .subscribe({
+                next: () => {
+                    this.sendingEmail = false;
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Email Dispatched',
+                        detail: 'Daily business summary report has been sent to your email.'
+                    });
+                },
+                error: (err) => {
+                    this.sendingEmail = false;
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Email Failed',
+                        detail: err?.error?.error?.message || err?.message || 'Failed to send email. Check SMTP settings.'
+                    });
+                }
+            });
     }
 }

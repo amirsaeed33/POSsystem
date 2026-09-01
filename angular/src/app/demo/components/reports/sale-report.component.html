@@ -1,15 +1,27 @@
 <div class="card report-page">
     <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3 no-print">
         <h5 class="m-0">Sale Report</h5>
-        <button
-            pButton
-            pRipple
-            type="button"
-            icon="pi pi-print"
-            label="Print Report"
-            class="p-button-outlined"
-            (click)="printReport()"
-        ></button>
+        <div class="flex align-items-center gap-2">
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-envelope"
+                label="Email Daily Summary"
+                class="p-button-outlined p-button-info"
+                (click)="sendDailySummaryEmail()"
+                [loading]="sendingEmail"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-print"
+                label="Print Report"
+                class="p-button-outlined"
+                (click)="printReport()"
+            ></button>
+        </div>
     </div>
 
     <div class="d-print-block">

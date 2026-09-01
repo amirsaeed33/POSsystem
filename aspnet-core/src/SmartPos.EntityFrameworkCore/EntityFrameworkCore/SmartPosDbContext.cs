@@ -212,6 +212,7 @@ namespace SmartPos.EntityFrameworkCore
 
             modelBuilder.Entity<Product>(b =>
             {
+                b.ToTable("AppProducts");
                 b.Property(x => x.Price).HasPrecision(18, 2);
                 b.Property(x => x.WholesalePrice).HasPrecision(18, 2);
                 b.Property(x => x.CostPrice).HasPrecision(18, 2);
