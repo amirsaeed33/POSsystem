@@ -9,7 +9,8 @@
                     <span class="text-blue-500 block kpi-subtitle">{{ salesSubtitle }}</span>
                 </div>
             </div>
-            <img [src]="'assets/demo/images/dashboard/users' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full mt-auto" alt="users">
+            <img [src]="'assets/demo/images/dashboard/users' + (colorScheme === 'light' ? '' : '-dark') + '.svg'"
+                class="w-full mt-auto" alt="users">
         </div>
     </div>
     <div class="col-12 lg:col-6 xl:col-3">
@@ -22,7 +23,8 @@
                     <span class="text-orange-500 block kpi-subtitle">{{ purchasesSubtitle }}</span>
                 </div>
             </div>
-            <img [src]="'assets/demo/images/dashboard/locations' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full mt-auto" alt="locations">
+            <img [src]="'assets/demo/images/dashboard/locations' + (colorScheme === 'light' ? '' : '-dark') + '.svg'"
+                class="w-full mt-auto" alt="locations">
         </div>
     </div>
     <div class="col-12 lg:col-6 xl:col-3">
@@ -35,7 +37,8 @@
                     <span class="text-green-500 block kpi-subtitle">{{ expensesSubtitle }}</span>
                 </div>
             </div>
-            <img [src]="'assets/demo/images/dashboard/rate' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full mt-auto" alt="conversion">
+            <img [src]="'assets/demo/images/dashboard/rate' + (colorScheme === 'light' ? '' : '-dark') + '.svg'"
+                class="w-full mt-auto" alt="conversion">
         </div>
     </div>
     <div class="col-12 lg:col-6 xl:col-3">
@@ -48,7 +51,8 @@
                     <span class="text-purple-500 block kpi-subtitle">{{ profitSubtitle }}</span>
                 </div>
             </div>
-            <img [src]="'assets/demo/images/dashboard/interactions' + (colorScheme === 'light' ? '' : '-dark') + '.svg'" class="w-full mt-auto" alt="interactions">
+            <img [src]="'assets/demo/images/dashboard/interactions' + (colorScheme === 'light' ? '' : '-dark') + '.svg'"
+                class="w-full mt-auto" alt="interactions">
         </div>
     </div>
 
@@ -63,30 +67,21 @@
                 <div class="flex flex-wrap align-items-center gap-3">
                     <div class="flex align-items-center gap-2">
                         <span class="font-medium text-sm text-color-secondary">Period:</span>
-                        <p-selectButton
-                            [options]="trendPeriodOptions"
-                            [(ngModel)]="selectedTrendPeriod"
-                            optionLabel="label"
-                            optionValue="value"
-                            styleClass="p-button-sm selectbutton-sm"
-                            (onChange)="onTrendPreferenceChange()"
-                        ></p-selectButton>
+                        <p-selectButton [options]="trendPeriodOptions" [(ngModel)]="selectedTrendPeriod"
+                            optionLabel="label" optionValue="value" styleClass="p-button-sm selectbutton-sm"
+                            (onChange)="onTrendPreferenceChange()"></p-selectButton>
                     </div>
                     <div class="flex align-items-center gap-2">
                         <span class="font-medium text-sm text-color-secondary">Chart Type:</span>
-                        <p-selectButton
-                            [options]="trendChartTypes"
-                            [(ngModel)]="selectedTrendChartType"
-                            optionLabel="label"
-                            optionValue="value"
-                            styleClass="p-button-sm selectbutton-sm"
-                            (onChange)="onTrendPreferenceChange()"
-                        ></p-selectButton>
+                        <p-selectButton [options]="trendChartTypes" [(ngModel)]="selectedTrendChartType"
+                            optionLabel="label" optionValue="value" styleClass="p-button-sm selectbutton-sm"
+                            (onChange)="onTrendPreferenceChange()"></p-selectButton>
                     </div>
                 </div>
             </div>
             <div class="graph">
-                <p-chart #trend15chart [type]="selectedTrendChartType" [data]="trend15DaysChartData" [options]="trend15DaysChartOptions" height="340px"></p-chart>
+                <p-chart #trend15chart [type]="selectedTrendChartType" [data]="trend15DaysChartData"
+                    [options]="trend15DaysChartOptions" height="340px"></p-chart>
             </div>
         </div>
     </div>
@@ -95,10 +90,12 @@
         <div class="card h-full">
             <div class="flex justify-content-between align-items-center mb-3">
                 <h5>Sales Overview</h5>
-                <p-dropdown [options]="overviewWeeks" [(ngModel)]="selectedOverviewWeek" optionLabel="name" (onChange)="changeOverviewWeek()"></p-dropdown>
+                <p-dropdown [options]="overviewWeeks" [(ngModel)]="selectedOverviewWeek" optionLabel="name"
+                    (onChange)="changeOverviewWeek()"></p-dropdown>
             </div>
             <div class="graph">
-                <p-chart #overviewchart type="bar" [data]="overviewChartData" [options]="overviewChartOptions" height="400px"></p-chart>
+                <p-chart #overviewchart type="bar" [data]="overviewChartData" [options]="overviewChartOptions"
+                    height="400px"></p-chart>
             </div>
         </div>
     </div>
@@ -109,7 +106,7 @@
             <ul class="list-none p-0 m-0">
                 <li class="mb-4 flex align-items-center" *ngFor="let item of latestListItems">
                     <p-avatar [label]="item.initials" size="large" shape="circle" styleClass="text-base font-bold"
-                              [style]="item.avatarStyle"></p-avatar>
+                        [style]="item.avatarStyle"></p-avatar>
                     <div class="ml-3">
                         <span class="block">{{ item.title }}</span>
                         <span class="text-color-secondary block">{{ item.subtitle }}</span>
@@ -121,7 +118,8 @@
                     </div>
                 </li>
             </ul>
-            <button type="button" pButton pRipple class="w-full mt-3 " label="View All" icon="pi pi-arrow-right" iconPos="right" routerLink="/customers"></button>
+            <button type="button" pButton pRipple class="w-full mt-3 " label="View All" icon="pi pi-arrow-right"
+                iconPos="right" routerLink="/customers"></button>
         </div>
     </div>
 
@@ -129,22 +127,22 @@
         <div class="card">
             <h5>Quick Actions</h5>
             <div class="text-center mb-5">
-                <img [src]="'assets/demo/images/dashboard/completion-graph-' + (colorScheme === 'light' ? 'light' : 'dark') + '.svg'" alt="graph" class="w-full">
+                <img [src]="'assets/demo/images/dashboard/completion-graph-' + (colorScheme === 'light' ? 'light' : 'dark') + '.svg'"
+                    alt="graph" class="w-full">
             </div>
 
             <ul class="list-none p-0 m-0">
                 <li class="mb-4 flex align-items-center justify-content-between gap-2">
                     <div class="flex align-items-center min-w-0">
                         <p-avatar icon="pi pi-box" size="large" shape="circle" styleClass="text-base font-bold"
-                                  [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
+                            [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
                         <div class="ml-3 min-w-0">
                             <span class="block">Low Stock Products</span>
-                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/reports/stock">View Stock</a>
+                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold"
+                                routerLink="/reports/stock">View Stock</a>
                         </div>
                     </div>
-                    <span
-                        class="quick-action-badge"
-                        [class.quick-action-badge-warn]="lowStockCount > 0"
+                    <span class="quick-action-badge" [class.quick-action-badge-warn]="lowStockCount > 0"
                         [class.quick-action-badge-muted]="lowStockCount === 0"
                         [attr.title]="lowStockCount + ' low stock products'">
                         {{ formatQuickActionCount(lowStockCount) }}
@@ -154,15 +152,14 @@
                 <li class="mb-4 flex align-items-center justify-content-between gap-2">
                     <div class="flex align-items-center min-w-0">
                         <p-avatar icon="pi pi-file" size="large" shape="circle" styleClass="text-base font-bold"
-                                  [style]="{'background-color':'rgba(94, 208, 250, 0.1)', 'color': '#1992D4', 'border': '1px solid #5ED0FA'}"></p-avatar>
+                            [style]="{'background-color':'rgba(94, 208, 250, 0.1)', 'color': '#1992D4', 'border': '1px solid #5ED0FA'}"></p-avatar>
                         <div class="ml-3 min-w-0">
                             <span class="block">Pending Customer Orders</span>
-                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/customer-orders">View Orders</a>
+                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold"
+                                routerLink="/customer-orders">View Orders</a>
                         </div>
                     </div>
-                    <span
-                        class="quick-action-badge"
-                        [class.quick-action-badge-info]="pendingOrdersCount > 0"
+                    <span class="quick-action-badge" [class.quick-action-badge-info]="pendingOrdersCount > 0"
                         [class.quick-action-badge-muted]="pendingOrdersCount === 0"
                         [attr.title]="pendingOrdersCount + ' pending orders'">
                         {{ formatQuickActionCount(pendingOrdersCount) }}
@@ -172,15 +169,14 @@
                 <li class="mb-4 flex align-items-center justify-content-between gap-2" *ngIf="canOpenPos()">
                     <div class="flex align-items-center min-w-0">
                         <p-avatar icon="pi pi-desktop" size="large" shape="circle" styleClass="text-base font-bold"
-                                  [style]="{'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'}"></p-avatar>
+                            [style]="{'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'}"></p-avatar>
                         <div class="ml-3 min-w-0">
                             <span class="block">Open POS</span>
-                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/pos">Open POS</a>
+                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold"
+                                routerLink="/pos">Open POS</a>
                         </div>
                     </div>
-                    <span
-                        class="quick-action-badge"
-                        [class.quick-action-badge-success]="todaySalesCount > 0"
+                    <span class="quick-action-badge" [class.quick-action-badge-success]="todaySalesCount > 0"
                         [class.quick-action-badge-muted]="todaySalesCount === 0"
                         [attr.title]="todaySalesCount + ' sales today'">
                         {{ formatQuickActionCount(todaySalesCount) }}
@@ -190,17 +186,15 @@
                 <li class="mb-4 flex align-items-center justify-content-between gap-2">
                     <div class="flex align-items-center min-w-0">
                         <p-avatar icon="pi pi-building" size="large" shape="circle" styleClass="text-base font-bold"
-                                  [style]="{'background-color':'rgba(167, 139, 250, 0.12)', 'color': '#7C3AED', 'border': '1px solid #C4B5FD'}"></p-avatar>
+                            [style]="{'background-color':'rgba(167, 139, 250, 0.12)', 'color': '#7C3AED', 'border': '1px solid #C4B5FD'}"></p-avatar>
                         <div class="ml-3 min-w-0">
                             <span class="block">Branches</span>
-                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold" routerLink="/branches">Open Branches</a>
+                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold"
+                                routerLink="/branches">Open Branches</a>
                         </div>
                     </div>
-                    <span
-                        class="quick-action-badge"
-                        [class.quick-action-badge-purple]="branchCount > 0"
-                        [class.quick-action-badge-muted]="branchCount === 0"
-                        [attr.title]="branchCount + ' branches'">
+                    <span class="quick-action-badge" [class.quick-action-badge-purple]="branchCount > 0"
+                        [class.quick-action-badge-muted]="branchCount === 0" [attr.title]="branchCount + ' branches'">
                         {{ formatQuickActionCount(branchCount) }}
                     </span>
                 </li>
@@ -218,15 +212,17 @@
                 <span class="font-bold text-right" style="min-width:3.5rem">Rank</span>
             </div>
             <ul class="list-none p-0 m-0">
-                <li
-                    class="flex flex-wrap align-items-center justify-content-between py-2 gap-2"
+                <li class="flex flex-wrap align-items-center justify-content-between py-2 gap-2"
                     *ngFor="let product of topProducts">
-                    <span class="flex-1 white-space-nowrap overflow-hidden text-overflow-ellipsis">{{ product.name }}</span>
-                    <span class="flex-1 text-color-secondary white-space-nowrap overflow-hidden text-overflow-ellipsis">{{ product.categoryName }}</span>
-                    <span class="font-bold text-right" style="min-width:4.5rem">{{ product.unitsSold | number }}</span>
+                    <span class="flex-1 white-space-nowrap overflow-hidden text-overflow-ellipsis">{{ product.name
+                        }}</span>
+                    <span
+                        class="flex-1 text-color-secondary white-space-nowrap overflow-hidden text-overflow-ellipsis">{{
+                        product.categoryName }}</span>
+                    <span class="font-bold text-right" style="min-width:4.5rem">{{ product.unitsSold | number }} {{
+                        product.unitName || 'Pcs' }}</span>
                     <div class="text-right" style="min-width:3.5rem">
-                        <div
-                            class="inline-flex p-1 align-items-center justify-content-center p-1 border-round text-sm"
+                        <div class="inline-flex p-1 align-items-center justify-content-center p-1 border-round text-sm"
                             [ngClass]="product.rank === 1 ? 'surface-700 text-100' : 'surface-100 text-700'"
                             style="min-width:3.5rem">
                             <span class="font-bold">#{{ product.rank }}</span>
@@ -248,8 +244,7 @@
                     <span class="text-color-secondary white-space-nowrap">
                         Avg Margin {{ averageProfitMargin | number:'1.0-2' }}%
                     </span>
-                    <div
-                        class="inline-flex align-items-center justify-content-between px-2 py-1 border-round"
+                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 border-round"
                         [ngClass]="isGrowthPositive ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'"
                         style="min-width:3.5rem">
                         <i [class]="isGrowthPositive ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"></i>
@@ -265,8 +260,7 @@
                                 <td class="py-1">{{ row.name }}</td>
                                 <td><span class="font-bold">{{ formatPkr(row.salesAmount) }}</span></td>
                                 <td class="text-right">
-                                    <div
-                                        class="inline-flex align-items-center justify-content-between px-2 py-1 border-round"
+                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 border-round"
                                         [ngClass]="row.isGrowthPositive ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'"
                                         style="min-width:3.5rem">
                                         <i [class]="row.isGrowthPositive ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"></i>
@@ -287,8 +281,7 @@
                                 <td class="py-1">{{ row.name }}</td>
                                 <td><span class="font-bold">{{ formatPkr(row.salesAmount) }}</span></td>
                                 <td class="text-right">
-                                    <div
-                                        class="inline-flex align-items-center justify-content-between px-2 py-1 border-round"
+                                    <div class="inline-flex align-items-center justify-content-between px-2 py-1 border-round"
                                         [ngClass]="row.isGrowthPositive ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'"
                                         style="min-width:3.5rem">
                                         <i [class]="row.isGrowthPositive ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"></i>
@@ -305,31 +298,23 @@
             </p-tabView>
         </div>
     </div>
-    
+
     <div class="col-12 lg:col-6 xl:col-4">
         <div class="card h-full">
             <h5>Stock Highlights</h5>
             <ng-container *ngIf="currentStockHighlight as item; else noStockHighlight">
-                <div
-                    class="flex flex-column mb-3"
-                    [class.p-3]="item.isLowStock"
-                    [class.border-round]="item.isLowStock"
+                <div class="flex flex-column mb-3" [class.p-3]="item.isLowStock" [class.border-round]="item.isLowStock"
                     [style]="item.isLowStock ? {'background-color': colorScheme === 'dark' ? 'rgba(255, 155, 155, 0.12)' : 'rgba(255, 155, 155, 0.18)'} : null">
-                    <span
-                        class="text-lg mb-3"
-                        [class.text-red-500]="item.isLowStock"
+                    <span class="text-lg mb-3" [class.text-red-500]="item.isLowStock"
                         [class.font-bold]="item.isLowStock">{{ item.name }}</span>
-                    <p-tag
-                        [value]="item.categoryName"
-                        [severity]="item.isLowStock ? 'danger' : undefined"
+                    <p-tag [value]="item.categoryName" [severity]="item.isLowStock ? 'danger' : undefined"
                         styleClass="mb-3"></p-tag>
 
                     <span class="inline-flex align-items-center">
                         <i class="pi pi-box mr-1 text-color-secondary"></i>
                         <span class="text-color-secondary">{{ item.statusLabel }}</span>
-                        <span
-                            class="font-bold ml-2"
-                            [class.text-red-500]="item.isLowStock">{{ item.stockRemaining | number }} left</span>
+                        <span class="font-bold ml-2" [class.text-red-500]="item.isLowStock">{{ item.stockRemaining |
+                            number }} left</span>
                     </span>
                 </div>
                 <p class="line-height-3 mt-0 mb-5">
@@ -345,8 +330,12 @@
 
                 <div class="flex flex-wrap align-items-center justify-content-between">
                     <div class="flex align-items-center">
-                        <button pButton type="button" icon="pi pi-angle-left" class="p-button-outlined p-button-rounded p-button-plain p-button-sm mr-2 p-2 w-2rem h-2rem" (click)="prevStockHighlight()"></button>
-                        <button pButton type="button" icon="pi pi-angle-right" class="p-button-outlined p-button-rounded p-button-plain p-button-sm p-2 w-2rem h-2rem" (click)="nextStockHighlight()"></button>
+                        <button pButton type="button" icon="pi pi-angle-left"
+                            class="p-button-outlined p-button-rounded p-button-plain p-button-sm mr-2 p-2 w-2rem h-2rem"
+                            (click)="prevStockHighlight()"></button>
+                        <button pButton type="button" icon="pi pi-angle-right"
+                            class="p-button-outlined p-button-rounded p-button-plain p-button-sm p-2 w-2rem h-2rem"
+                            (click)="nextStockHighlight()"></button>
                         <span class="font-bold ml-3">{{ stockHighlightIndex + 1 }}</span>
                         <span>/{{ stockHighlights.length }}</span>
                     </div>
@@ -364,22 +353,18 @@
             </ng-template>
         </div>
     </div>
-    
+
     <div class="col-12 lg:col-6">
         <div class="card widget-timeline">
             <h5>Timeline</h5>
             <ul class="list-none p-0 m-0">
                 <li class="flex mb-3" *ngFor="let event of visibleTimelineEvents; let last = last">
                     <div class="flex flex-column align-items-center">
-                        <span
-                            class="flex align-items-center justify-content-center border-circle p-2 timeline-icon"
+                        <span class="flex align-items-center justify-content-center border-circle p-2 timeline-icon"
                             [ngClass]="event.iconClass">
                             <i [class]="event.icon"></i>
                         </span>
-                        <div
-                            *ngIf="!last || hasMoreTimelineEvents"
-                            class="h-full"
-                            [ngClass]="event.lineClass"
+                        <div *ngIf="!last || hasMoreTimelineEvents" class="h-full" [ngClass]="event.lineClass"
                             style="width: 2px; min-height: 4rem"></div>
                     </div>
 
@@ -390,14 +375,13 @@
                             </span>
                             <span class="font-bold text-color-secondary">{{ event.timeAgo }}</span>
                         </div>
-                        <div
-                            class="p-3 border-round"
+                        <div class="p-3 border-round"
                             [style]="{'background-color': colorScheme === 'dark' ? event.detailBgDark : event.detailBg}">
                             <div class="font-bold mb-2">{{ event.amountLabel }}</div>
                             <p class="text-color-secondary text-sm line-height-3 m-0" style="max-width: 28rem">
                                 {{ event.type === 'sale' ? 'Sale Created' :
-                                   event.type === 'purchase' ? 'Purchase Created' :
-                                   event.type === 'expense' ? 'Expense Added' : 'Stock Adjusted' }}
+                                event.type === 'purchase' ? 'Purchase Created' :
+                                event.type === 'expense' ? 'Expense Added' : 'Stock Adjusted' }}
                             </p>
                         </div>
                     </div>
@@ -408,7 +392,8 @@
                     </div>
                 </li>
                 <li class="text-center" *ngIf="hasMoreTimelineEvents">
-                    <p-button pRipple styleClass="p-button-text" icon="pi pi-chevron-down" label="View More" (onClick)="showMoreTimelineEvents()"></p-button>
+                    <p-button pRipple styleClass="p-button-text" icon="pi pi-chevron-down" label="View More"
+                        (onClick)="showMoreTimelineEvents()"></p-button>
                 </li>
             </ul>
         </div>
@@ -417,7 +402,8 @@
         <div class="card">
             <h5>Monthly Sales Growth</h5>
 
-            <p-chart type="line" [data]="revenueChartData" [options]="revenueChartOptions" id="nasdaq-chart" height="348"></p-chart>
+            <p-chart type="line" [data]="revenueChartData" [options]="revenueChartOptions" id="nasdaq-chart"
+                height="348"></p-chart>
         </div>
     </div>
 </div>

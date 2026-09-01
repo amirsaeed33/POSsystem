@@ -17,7 +17,7 @@ import { environment } from '../../../environments/environment';
 export class DashboardService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Dashboard`;
 
-    constructor(private http: HttpClient) {}
+    constructor(private http: HttpClient) { }
 
     async get(): Promise<DashboardDto> {
         const res: any = await firstValueFrom(
@@ -111,6 +111,7 @@ export class DashboardService {
                     sku: item.sku ?? item.Sku ?? '',
                     categoryName: item.categoryName ?? item.CategoryName,
                     brandName: item.brandName ?? item.BrandName,
+                    unitName: item.unitName ?? item.UnitName ?? 'Pcs',
                     units: item.units ?? item.Units ?? 0,
                     price: item.price ?? item.Price ?? 0,
                     costPrice: item.costPrice ?? item.CostPrice ?? 0,

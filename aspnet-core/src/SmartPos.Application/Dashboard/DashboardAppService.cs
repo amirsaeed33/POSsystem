@@ -63,7 +63,7 @@ namespace SmartPos.Dashboard
         {
             var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
 
-            var productQuery = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand)
+            var productQuery = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x=>x.Unit)
                 .AsNoTracking();
             if (branchId.HasValue)
             {
@@ -247,6 +247,7 @@ namespace SmartPos.Dashboard
                         Sku = "PR-" + p.Id.ToString("D3"),
                         CategoryName = p.Category?.Name,
                         BrandName = p.Brand?.Name,
+                        UnitName = p.Unit?.Name ?? "Pcs",
                         Units = units,
                         Price = price,
                         CostPrice = cost,
@@ -639,6 +640,78 @@ namespace SmartPos.Dashboard
             if (IsOutOfStock(product, stockByProductId)) return "OutOfStock";
             if (IsLowStock(product, stockByProductId)) return "LowStock";
             return "InStock";
+        }
+
+        public async Task<List<PinnedProductOverviewDto>> GetPinnedProductsOverviewAsync(GetPinnedProductsInput input)
+        {
+            var productIds = input?.ProductIds;
+            if (productIds == null || productIds.Count == 0)
+            {
+                return new List<PinnedProductOverviewDto>();
+            }
+
+            var distinctIds = productIds.Where(id => id > 0).Distinct().Take(10).ToList();
+            if (!distinctIds.Any())
+            {
+                return new List<PinnedProductOverviewDto>();
+            }
+
+            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+
+            var products = await _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
+                .AsNoTracking()
+                .Where(x => distinctIds.Contains(x.Id))
+                .ToListAsync();
+
+            var branchInfoByProductId = await ResolveBranchProductInfoAsync(branchId, products.Select(p => p.Id));
+
+            var now = Clock.Now;
+            var todayStart = now.Date;
+            var tomorrow = todayStart.AddDays(1);
+
+            var todaySalesList = await _saleRepository.GetAllIncluding(x => x.Lines)
+                .AsNoTracking()
+                .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .ToListAsync();
+
+            var result = new List<PinnedProductOverviewDto>();
+
+            foreach (var product in products)
+            {
+                var productLines = todaySalesList
+                    .SelectMany(s => s.Lines ?? new List<SaleLine>())
+                    .Where(l => l.ProductId == product.Id)
+                    .ToList();
+
+                decimal todayQty = productLines.Sum(l => l.Quantity);
+                decimal todayRev = productLines.Sum(l => LineRevenue(l));
+
+                branchInfoByProductId.TryGetValue(product.Id, out var branchInfo);
+                decimal costPrice = branchInfo != null ? branchInfo.CostPrice : product.CostPrice;
+                decimal todayCost = productLines.Sum(l => l.Quantity * costPrice);
+                decimal todayProfit = Math.Round(todayRev - todayCost, 2);
+
+                decimal stockQty = branchInfo != null ? branchInfo.Quantity : GetStock(product, new Dictionary<int, decimal>());
+
+                result.Add(new PinnedProductOverviewDto
+                {
+                    ProductId = product.Id,
+                    ProductName = product.Name,
+                    Barcode = product.Barcode,
+                    CategoryName = product.Category?.Name,
+                    BrandName = product.Brand?.Name,
+                    UnitName = product.Unit?.Name ?? "Pcs",
+                    ImagePath = product.ImagePath,
+                    TodayQuantitySold = todayQty,
+                    TodayRevenue = todayRev,
+                    TodayProfit = todayProfit,
+                    CurrentStock = stockQty,
+                    AlertQuantityLimit = product.AlertQuantityLimit
+                });
+            }
+
+            return result;
         }
     }
 }

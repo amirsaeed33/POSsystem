@@ -1,4 +1,4 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription, debounceTime } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { DashboardService } from 'src/app/demo/service/dashboard.service';
@@ -22,6 +22,7 @@ interface TopProductItem {
     name: string;
     categoryName: string;
     unitsSold: number;
+    unitName?: string;
     rank: number;
 }
 
@@ -66,7 +67,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     overviewWeeks: any;
 
-    selectedOverviewWeek: any ;
+    selectedOverviewWeek: any;
 
     revenueChartData: any;
 
@@ -147,12 +148,12 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     branchCount = 0;
 
     private readonly avatarStyles: Record<string, string>[] = [
-        {'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'},
-        {'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'},
-        {'background-color':'rgba(94, 208, 250, 0.1)', 'color': '#1992D4', 'border': '1px solid #5ED0FA'},
-        {'background-color':'rgba(43, 176, 237, 0.1)', 'color': '#127FBF', 'border': '1px solid #2BB0ED'},
-        {'background-color':'rgba(255, 155, 155, 0.1)', 'color': '#CF1124', 'border': '1px solid #FF9B9B'},
-        {'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'},
+        { 'background-color': 'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD' },
+        { 'background-color': 'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F' },
+        { 'background-color': 'rgba(94, 208, 250, 0.1)', 'color': '#1992D4', 'border': '1px solid #5ED0FA' },
+        { 'background-color': 'rgba(43, 176, 237, 0.1)', 'color': '#127FBF', 'border': '1px solid #2BB0ED' },
+        { 'background-color': 'rgba(255, 155, 155, 0.1)', 'color': '#CF1124', 'border': '1px solid #FF9B9B' },
+        { 'background-color': 'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F' },
     ];
 
     constructor(
@@ -161,10 +162,10 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         private permissionService: PermissionService
     ) {
         this.subscription = this.layoutService.configUpdate$
-        .pipe(debounceTime(25))
-        .subscribe((config) => {
-            this.initCharts();
-        });
+            .pipe(debounceTime(25))
+            .subscribe((config) => {
+                this.initCharts();
+            });
     }
 
     canOpenPos(): boolean {
@@ -433,8 +434,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     status === 'outofstock'
                         ? 'Out of Stock'
                         : status === 'lowstock'
-                          ? 'Low Stock'
-                          : 'In Stock',
+                            ? 'Low Stock'
+                            : 'In Stock',
             };
         });
 
@@ -454,6 +455,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                 name: product.name || '—',
                 categoryName: product.categoryName || '—',
                 unitsSold: product.units ?? 0,
+                unitName: product.unitName || 'Pcs',
                 rank: index + 1,
             }));
     }

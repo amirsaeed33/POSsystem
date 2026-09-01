@@ -140,6 +140,8 @@ namespace SmartPos.Dashboard.Dto
 
         public string BrandName { get; set; }
 
+        public string UnitName { get; set; }
+
         public decimal Units { get; set; }
 
         public decimal Price { get; set; }
@@ -151,5 +153,37 @@ namespace SmartPos.Dashboard.Dto
         public string Status { get; set; }
 
         public string ImagePath { get; set; }
+    }
+
+    public class GetPinnedProductsInput
+    {
+        public List<int> ProductIds { get; set; } = new List<int>();
+    }
+
+    public class PinnedProductOverviewDto
+    {
+        public int ProductId { get; set; }
+
+        public string ProductName { get; set; }
+
+        public string Barcode { get; set; }
+
+        public string CategoryName { get; set; }
+
+        public string BrandName { get; set; }
+
+        public string UnitName { get; set; }
+
+        public string ImagePath { get; set; }
+
+        public decimal TodayQuantitySold { get; set; }
+
+        public decimal TodayRevenue { get; set; }
+
+        public decimal TodayProfit { get; set; }
+
+        public decimal CurrentStock { get; set; }
+
+        public decimal AlertQuantityLimit { get; set; }
     }
 }

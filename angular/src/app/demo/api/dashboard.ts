@@ -71,6 +71,7 @@ export interface DashboardProductRowDto {
     sku: string;
     categoryName?: string;
     brandName?: string;
+    unitName?: string;
     units: number;
     price: number;
     costPrice: number;
