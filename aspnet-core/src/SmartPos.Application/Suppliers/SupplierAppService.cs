@@ -37,6 +37,11 @@ namespace SmartPos.Suppliers
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _accountBalanceManager = accountBalanceManager;
+            CreatePermissionName = PermissionNames.Pages_Suppliers_Create;
+            UpdatePermissionName = PermissionNames.Pages_Suppliers_Edit;
+            DeletePermissionName = PermissionNames.Pages_Suppliers_Delete;
+            GetPermissionName = PermissionNames.Pages_Suppliers;
+            GetAllPermissionName = PermissionNames.Pages_Suppliers;
         }
 
         public override async Task<SupplierDto> CreateAsync(CreateSupplierDto input)

@@ -4,6 +4,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ProductDto } from 'src/app/demo/api/product';
 import { ProductService } from 'src/app/demo/service/product.service';
 import * as XLSX from 'xlsx';
+import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { PermissionService } from 'src/app/demo/service/permission.service';
 
 @Component({
     templateUrl: './product-list.component.html',
@@ -27,8 +29,13 @@ export class ProductListComponent implements OnInit {
     barcodeTargetProduct: ProductDto | null = null;
     selectedProducts: ProductDto[] = [];
 
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+
     constructor(
         private productService: ProductService,
+        private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -52,6 +59,9 @@ export class ProductListComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        this.canCreate = this.permissionService.isGranted(PermissionNames.ProductsCreate);
+        this.canEdit = this.permissionService.isGranted(PermissionNames.ProductsEdit);
+        this.canDelete = this.permissionService.isGranted(PermissionNames.ProductsDelete);
         this.loadProducts();
     }
 

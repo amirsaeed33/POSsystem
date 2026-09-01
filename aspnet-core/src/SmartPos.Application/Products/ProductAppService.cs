@@ -54,6 +54,11 @@ namespace SmartPos.Products
             _brandRepository = brandRepository;
             _unitRepository = unitRepository;
             _permissionChecker = permissionChecker;
+            CreatePermissionName = PermissionNames.Pages_Products_Create;
+            UpdatePermissionName = PermissionNames.Pages_Products_Edit;
+            DeletePermissionName = PermissionNames.Pages_Products_Delete;
+            GetPermissionName = PermissionNames.Pages_Products;
+            GetAllPermissionName = PermissionNames.Pages_Products;
         }
 
         public override async Task<ProductDto> CreateAsync(CreateProductDto input)

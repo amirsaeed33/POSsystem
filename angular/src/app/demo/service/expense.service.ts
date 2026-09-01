@@ -116,9 +116,8 @@ export class ExpenseService {
             throw new Error('No response from server');
         }
         if (res.success === false || res.error) {
-            throw new Error(
-                res.error?.message || res.error?.details || fallbackMessage
-            );
+            const msg = res.error?.message || res.error?.error?.message || res.error?.details || fallbackMessage;
+            throw new Error(msg);
         }
         return res.result ?? res;
     }

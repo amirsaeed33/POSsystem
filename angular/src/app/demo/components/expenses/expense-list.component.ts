@@ -4,6 +4,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ExpenseDto } from 'src/app/demo/api/expense';
 import { ExpenseService } from 'src/app/demo/service/expense.service';
 
+import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { PermissionService } from 'src/app/demo/service/permission.service';
+
 @Component({
     templateUrl: './expense-list.component.html',
     providers: [MessageService, ConfirmationService],
@@ -19,13 +22,21 @@ export class ExpenseListComponent implements OnInit {
     printDialogVisible = false;
     printingExpenseId: number | null = null;
 
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+
     constructor(
         private expenseService: ExpenseService,
+        private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
+        this.canCreate = this.permissionService.isGranted(PermissionNames.ExpensesCreate);
+        this.canEdit = this.permissionService.isGranted(PermissionNames.ExpensesEdit);
+        this.canDelete = this.permissionService.isGranted(PermissionNames.ExpensesDelete);
         this.loadExpenses();
     }
 
@@ -102,11 +113,11 @@ export class ExpenseListComponent implements OnInit {
                         this.loadExpenses();
                     })
                     .catch((error) => {
+                        const detailMsg = error?.message || error?.error?.error?.message || error?.error?.message || 'Failed to delete expense';
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail:
-                                error?.message || 'Failed to delete expense',
+                            detail: detailMsg,
                         });
                     });
             },

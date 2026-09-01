@@ -208,7 +208,7 @@
                 class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-1 right-0 top-auto z-5"
                 style="min-width: 12rem"
             >
-                <li>
+                <li *ngIf="canEditBranch(branch)">
                     <a
                         pRipple
                         class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
@@ -228,7 +228,7 @@
                         <span>Print Invoice</span>
                     </a>
                 </li>
-                <li>
+                <li *ngIf="canDeleteBranch(branch)">
                     <a
                         pRipple
                         class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-red-500"

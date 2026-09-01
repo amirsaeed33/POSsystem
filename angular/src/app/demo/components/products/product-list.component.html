@@ -55,8 +55,9 @@
                         icon="pi pi-file-excel"
                         class="p-button-outlined p-button-success font-semibold"
                         label="Import Excel"
-                        pTooltip="Import products from Excel sheet"
+                        [pTooltip]="!canCreate ? 'You do not have permission to Import' : 'Import products from Excel sheet'"
                         tooltipPosition="top"
+                        [disabled]="!canCreate"
                         (click)="fileInput.click()"
                     ></button>
                     <button
@@ -86,6 +87,9 @@
                     label="Create"
                     class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
                     (click)="openCreateDialog()"
+                    [disabled]="!canCreate"
+                    [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
+                    tooltipPosition="top"
                 ></button>
             </div>
         </ng-template>

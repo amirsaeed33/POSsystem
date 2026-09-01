@@ -37,6 +37,11 @@ namespace SmartPos.Customers
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _accountBalanceManager = accountBalanceManager;
+            CreatePermissionName = PermissionNames.Pages_Customers_Create;
+            UpdatePermissionName = PermissionNames.Pages_Customers_Edit;
+            DeletePermissionName = PermissionNames.Pages_Customers_Delete;
+            GetPermissionName = PermissionNames.Pages_Customers;
+            GetAllPermissionName = PermissionNames.Pages_Customers;
         }
 
         public override async Task<CustomerDto> CreateAsync(CreateCustomerDto input)

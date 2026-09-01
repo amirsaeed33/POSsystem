@@ -66,9 +66,9 @@ namespace SmartPos.Branches
             _configuration = configuration;
             _branchCatalogSeedService = branchCatalogSeedService;
             _cacheManager = cacheManager;
-            CreatePermissionName = PermissionNames.Pages_Branches;
-            UpdatePermissionName = PermissionNames.Pages_Branches;
-            DeletePermissionName = PermissionNames.Pages_Branches;
+            CreatePermissionName = PermissionNames.Pages_Branches_Create;
+            UpdatePermissionName = PermissionNames.Pages_Branches_Edit;
+            DeletePermissionName = PermissionNames.Pages_Branches_Delete;
             GetPermissionName = PermissionNames.Pages_Branches;
             GetAllPermissionName = PermissionNames.Pages_Branches;
         }

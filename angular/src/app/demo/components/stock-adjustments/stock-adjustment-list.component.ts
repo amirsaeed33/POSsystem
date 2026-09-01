@@ -7,6 +7,9 @@ import {
 } from 'src/app/demo/api/stock-adjustment';
 import { StockAdjustmentService } from 'src/app/demo/service/stock-adjustment.service';
 
+import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { PermissionService } from 'src/app/demo/service/permission.service';
+
 @Component({
     templateUrl: './stock-adjustment-list.component.html',
     providers: [MessageService, ConfirmationService],
@@ -23,13 +26,21 @@ export class StockAdjustmentListComponent implements OnInit {
     viewDialogVisible = false;
     viewingAdjustmentId: number | null = null;
 
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+
     constructor(
         private stockAdjustmentService: StockAdjustmentService,
+        private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
+        this.canCreate = this.permissionService.isGranted(PermissionNames.StockAdjustmentsCreate);
+        this.canEdit = this.permissionService.isGranted(PermissionNames.StockAdjustmentsEdit);
+        this.canDelete = this.permissionService.isGranted(PermissionNames.StockAdjustmentsDelete);
         this.loadAdjustments();
     }
 

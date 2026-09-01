@@ -41,6 +41,11 @@ namespace SmartPos.Expenses
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _systemAccountManager = systemAccountManager;
+            CreatePermissionName = PermissionNames.Pages_Expenses_Create;
+            UpdatePermissionName = PermissionNames.Pages_Expenses_Edit;
+            DeletePermissionName = PermissionNames.Pages_Expenses_Delete;
+            GetPermissionName = PermissionNames.Pages_Expenses;
+            GetAllPermissionName = PermissionNames.Pages_Expenses;
         }
 
         public override async Task<ExpenseDto> CreateAsync(CreateExpenseDto input)

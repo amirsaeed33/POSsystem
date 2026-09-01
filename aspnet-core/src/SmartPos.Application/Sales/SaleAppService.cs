@@ -70,6 +70,11 @@ namespace SmartPos.Sales
             _branchRepository = branchRepository;
             _accountRepository = accountRepository;
             _systemAccountManager = systemAccountManager;
+            CreatePermissionName = PermissionNames.Pages_Sales_Create;
+            UpdatePermissionName = PermissionNames.Pages_Sales_Edit;
+            DeletePermissionName = PermissionNames.Pages_Sales_Delete;
+            GetPermissionName = PermissionNames.Pages_Sales;
+            GetAllPermissionName = PermissionNames.Pages_Sales;
         }
 
         public async Task<ProductDto> GetProductByBarcodeAsync(string barcode)

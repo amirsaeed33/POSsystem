@@ -4,6 +4,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { SupplierDto } from 'src/app/demo/api/supplier';
 import { SupplierService } from 'src/app/demo/service/supplier.service';
 
+import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { PermissionService } from 'src/app/demo/service/permission.service';
+
 @Component({
     templateUrl: './supplier-list.component.html',
     providers: [MessageService, ConfirmationService],
@@ -17,13 +20,21 @@ export class SupplierListComponent implements OnInit {
     dialogVisible = false;
     editingSupplierId: number | null = null;
 
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+
     constructor(
         private supplierService: SupplierService,
+        private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
+        this.canCreate = this.permissionService.isGranted(PermissionNames.SuppliersCreate);
+        this.canEdit = this.permissionService.isGranted(PermissionNames.SuppliersEdit);
+        this.canDelete = this.permissionService.isGranted(PermissionNames.SuppliersDelete);
         this.loadSuppliers();
     }
 

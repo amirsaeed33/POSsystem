@@ -4,6 +4,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { PurchaseDto } from 'src/app/demo/api/purchase';
 import { PurchaseService } from 'src/app/demo/service/purchase.service';
 
+import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { PermissionService } from 'src/app/demo/service/permission.service';
+
 @Component({
     templateUrl: './purchase-list.component.html',
     providers: [MessageService, ConfirmationService],
@@ -23,13 +26,21 @@ export class PurchaseListComponent implements OnInit {
     returnDialogVisible = false;
     returningPurchaseId: number | null = null;
 
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+
     constructor(
         private purchaseService: PurchaseService,
+        private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
+        this.canCreate = this.permissionService.isGranted(PermissionNames.PurchasesCreate);
+        this.canEdit = this.permissionService.isGranted(PermissionNames.PurchasesEdit);
+        this.canDelete = this.permissionService.isGranted(PermissionNames.PurchasesDelete);
         this.loadPurchases();
     }
 

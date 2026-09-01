@@ -4,6 +4,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { PaymentType, SaleDto } from 'src/app/demo/api/sale';
 import { SaleService } from 'src/app/demo/service/sale.service';
 
+import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { PermissionService } from 'src/app/demo/service/permission.service';
+
 @Component({
     templateUrl: './sale-list.component.html',
     providers: [MessageService, ConfirmationService],
@@ -23,13 +26,21 @@ export class SaleListComponent implements OnInit {
     returnDialogVisible = false;
     returningSaleId: number | null = null;
 
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+
     constructor(
         private saleService: SaleService,
+        private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
+        this.canCreate = this.permissionService.isGranted(PermissionNames.SalesCreate);
+        this.canEdit = this.permissionService.isGranted(PermissionNames.SalesEdit);
+        this.canDelete = this.permissionService.isGranted(PermissionNames.SalesDelete);
         this.loadSales();
     }
 

@@ -35,9 +35,9 @@ namespace SmartPos.Brands
             _branchContext = branchContext;
             _userRepository = userRepository;
             _cacheManager = cacheManager;
-            CreatePermissionName = PermissionNames.Pages_Brands;
-            UpdatePermissionName = PermissionNames.Pages_Brands;
-            DeletePermissionName = PermissionNames.Pages_Brands;
+            CreatePermissionName = PermissionNames.Pages_Brands_Create;
+            UpdatePermissionName = PermissionNames.Pages_Brands_Edit;
+            DeletePermissionName = PermissionNames.Pages_Brands_Delete;
             GetPermissionName = PermissionNames.Pages_Brands;
             GetAllPermissionName = PermissionNames.Pages_Brands;
         }

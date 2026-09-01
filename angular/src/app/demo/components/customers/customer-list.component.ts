@@ -3,6 +3,8 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { CustomerService } from 'src/app/demo/service/customer.service';
+import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { PermissionService } from 'src/app/demo/service/permission.service';
 
 @Component({
     templateUrl: './customer-list.component.html',
@@ -17,13 +19,21 @@ export class CustomerListComponent implements OnInit {
     dialogVisible = false;
     editingCustomerId: number | null = null;
 
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+
     constructor(
         private customerService: CustomerService,
+        private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
+        this.canCreate = this.permissionService.isGranted(PermissionNames.CustomersCreate);
+        this.canEdit = this.permissionService.isGranted(PermissionNames.CustomersEdit);
+        this.canDelete = this.permissionService.isGranted(PermissionNames.CustomersDelete);
         this.loadCustomers();
     }
 

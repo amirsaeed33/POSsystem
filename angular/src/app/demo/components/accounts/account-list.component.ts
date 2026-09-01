@@ -4,7 +4,11 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { BusinessAccountDto } from 'src/app/demo/api/business-account';
 import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
 
+import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { PermissionService } from 'src/app/demo/service/permission.service';
+
 @Component({
+    selector: 'app-account-list',
     templateUrl: './account-list.component.html',
     providers: [MessageService, ConfirmationService],
 })
@@ -17,13 +21,21 @@ export class AccountListComponent implements OnInit {
     dialogVisible = false;
     editingAccountId: number | null = null;
 
+    canCreate = false;
+    canEdit = false;
+    canDelete = false;
+
     constructor(
         private businessAccountService: BusinessAccountService,
+        private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
+        this.canCreate = this.permissionService.isGranted(PermissionNames.AccountsCreate);
+        this.canEdit = this.permissionService.isGranted(PermissionNames.AccountsEdit);
+        this.canDelete = this.permissionService.isGranted(PermissionNames.AccountsDelete);
         this.loadAccounts();
     }
 

@@ -35,9 +35,9 @@ namespace SmartPos.Units
             _branchContext = branchContext;
             _userRepository = userRepository;
             _cacheManager = cacheManager;
-            CreatePermissionName = PermissionNames.Pages_Units;
-            UpdatePermissionName = PermissionNames.Pages_Units;
-            DeletePermissionName = PermissionNames.Pages_Units;
+            CreatePermissionName = PermissionNames.Pages_Units_Create;
+            UpdatePermissionName = PermissionNames.Pages_Units_Edit;
+            DeletePermissionName = PermissionNames.Pages_Units_Delete;
             GetPermissionName = PermissionNames.Pages_Units;
             GetAllPermissionName = PermissionNames.Pages_Units;
         }

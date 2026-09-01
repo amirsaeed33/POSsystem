@@ -35,9 +35,9 @@ namespace SmartPos.Categories
             _branchContext = branchContext;
             _userRepository = userRepository;
             _cacheManager = cacheManager;
-            CreatePermissionName = PermissionNames.Pages_Categories;
-            UpdatePermissionName = PermissionNames.Pages_Categories;
-            DeletePermissionName = PermissionNames.Pages_Categories;
+            CreatePermissionName = PermissionNames.Pages_Categories_Create;
+            UpdatePermissionName = PermissionNames.Pages_Categories_Edit;
+            DeletePermissionName = PermissionNames.Pages_Categories_Delete;
             GetPermissionName = PermissionNames.Pages_Categories;
             GetAllPermissionName = PermissionNames.Pages_Categories;
         }

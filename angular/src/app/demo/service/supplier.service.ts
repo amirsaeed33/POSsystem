@@ -46,6 +46,29 @@ export class SupplierService {
         };
     }
 
+    private lookupCache: { data: SupplierDto[]; timestamp: number } | null = null;
+    private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
+    clearCache(): void {
+        this.lookupCache = null;
+    }
+
+    async getLookup(forceRefresh = false): Promise<SupplierDto[]> {
+        const now = Date.now();
+        if (
+            !forceRefresh &&
+            this.lookupCache &&
+            now - this.lookupCache.timestamp < this.CACHE_DURATION_MS
+        ) {
+            return this.lookupCache.data;
+        }
+
+        const res = await this.getAll({ skipCount: 0, maxResultCount: 1000 });
+        const items = res.items || [];
+        this.lookupCache = { data: items, timestamp: now };
+        return items;
+    }
+
     async get(id: number): Promise<SupplierDto> {
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/Get`, { params: { Id: id } })
@@ -54,6 +77,7 @@ export class SupplierService {
     }
 
     async create(input: CreateSupplierDto): Promise<SupplierDto> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 name: input.name,
@@ -67,6 +91,7 @@ export class SupplierService {
     }
 
     async update(input: SupplierDto): Promise<SupplierDto> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.put<any>(`${this.apiUrl}/Update`, {
                 id: input.id,
@@ -81,6 +106,7 @@ export class SupplierService {
     }
 
     async delete(id: number): Promise<void> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.delete<any>(`${this.apiUrl}/Delete`, {
                 params: { Id: id },

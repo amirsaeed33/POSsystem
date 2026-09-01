@@ -69,6 +69,33 @@ export class AuthInterceptor implements HttpInterceptor {
                     this.authService.logout();
                     this.router.navigate(['/auth/login']);
                 }
+
+                // Extract ABP backend error message if present
+                let abpMessage: string | null = null;
+                if (error.error) {
+                    if (typeof error.error === 'object') {
+                        abpMessage = error.error.error?.message || error.error.message || error.error.details;
+                    } else if (typeof error.error === 'string') {
+                        try {
+                            const parsed = JSON.parse(error.error);
+                            abpMessage = parsed.error?.message || parsed.message || parsed.details;
+                        } catch {}
+                    }
+                }
+
+                if (abpMessage) {
+                    try {
+                        Object.defineProperty(error, 'message', {
+                            value: abpMessage,
+                            writable: true,
+                            configurable: true,
+                            enumerable: true,
+                        });
+                    } catch {
+                        (error as any).message = abpMessage;
+                    }
+                }
+
                 return throwError(() => error);
             })
         );

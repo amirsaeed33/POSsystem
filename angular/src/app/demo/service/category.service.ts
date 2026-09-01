@@ -46,15 +46,33 @@ export class CategoryService {
         };
     }
 
-    async getLookup(): Promise<CategoryDto[]> {
+    private lookupCache: { data: CategoryDto[]; timestamp: number } | null = null;
+    private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
+    clearCache(): void {
+        this.lookupCache = null;
+    }
+
+    async getLookup(forceRefresh = false): Promise<CategoryDto[]> {
+        const now = Date.now();
+        if (
+            !forceRefresh &&
+            this.lookupCache &&
+            now - this.lookupCache.timestamp < this.CACHE_DURATION_MS
+        ) {
+            return this.lookupCache.data;
+        }
+
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetLookup`)
         );
         const result = this.unwrap(res, 'Failed to load categories');
         const items = result.items || result.Items || result || [];
-        return (Array.isArray(items) ? items : []).map((item: any) =>
+        const mapped = (Array.isArray(items) ? items : []).map((item: any) =>
             this.mapCategory(item)
         );
+        this.lookupCache = { data: mapped, timestamp: now };
+        return mapped;
     }
 
     async get(id: number): Promise<CategoryDto> {
@@ -65,6 +83,7 @@ export class CategoryService {
     }
 
     async create(input: CreateCategoryDto): Promise<CategoryDto> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 name: input.name,
@@ -76,6 +95,7 @@ export class CategoryService {
     }
 
     async update(input: CategoryDto): Promise<CategoryDto> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.put<any>(`${this.apiUrl}/Update`, {
                 id: input.id,
@@ -89,6 +109,7 @@ export class CategoryService {
     }
 
     async delete(id: number): Promise<void> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.delete<any>(`${this.apiUrl}/Delete`, {
                 params: { Id: id },

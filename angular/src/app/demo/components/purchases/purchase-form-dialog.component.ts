@@ -303,11 +303,11 @@ export class PurchaseFormDialogComponent implements OnChanges {
         this.loading = true;
         Promise.all([
             this.productService.getAll({ skipCount: 0, maxResultCount: 1000 }),
-            this.supplierService.getAll({ skipCount: 0, maxResultCount: 1000 }),
+            this.supplierService.getLookup(),
         ])
             .then(([products, suppliers]) => {
                 this.products = products.items;
-                this.suppliers = suppliers.items;
+                this.suppliers = suppliers;
             })
             .catch((error) => {
                 this.messageService.add({

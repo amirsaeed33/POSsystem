@@ -31,11 +31,15 @@ export class BranchListComponent implements OnInit {
         this.permissionService.isGranted(PermissionNames.BranchesApprove);
 
     get canCreateBranch(): boolean {
-        return (
-            this.permissionService.isGranted(PermissionNames.BranchesCreate) ||
-            this.permissionService.isGranted(PermissionNames.Branches) ||
-            this.permissionService.isGranted(PermissionNames.BranchesApprove)
-        );
+        return this.permissionService.isGranted(PermissionNames.BranchesCreate);
+    }
+
+    canEditBranch(branch: BranchDto): boolean {
+        return this.permissionService.isGranted(PermissionNames.BranchesEdit);
+    }
+
+    canDeleteBranch(branch: BranchDto): boolean {
+        return this.permissionService.isGranted(PermissionNames.BranchesDelete);
     }
 
     constructor(

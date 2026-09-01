@@ -25,6 +25,11 @@ namespace SmartPos.Accounts
         {
             _accountBalanceManager = accountBalanceManager;
             _systemAccountManager = systemAccountManager;
+            CreatePermissionName = PermissionNames.Pages_Accounts_Create;
+            UpdatePermissionName = PermissionNames.Pages_Accounts_Edit;
+            DeletePermissionName = PermissionNames.Pages_Accounts_Delete;
+            GetPermissionName = PermissionNames.Pages_Accounts;
+            GetAllPermissionName = PermissionNames.Pages_Accounts;
         }
 
         public override async Task<BusinessAccountDto> CreateAsync(CreateBusinessAccountDto input)

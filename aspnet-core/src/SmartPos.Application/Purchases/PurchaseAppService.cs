@@ -57,6 +57,11 @@ namespace SmartPos.Purchases
             _branchContext = branchContext;
             _branchStockManager = branchStockManager;
             _systemAccountManager = systemAccountManager;
+            CreatePermissionName = PermissionNames.Pages_Purchases_Create;
+            UpdatePermissionName = PermissionNames.Pages_Purchases_Edit;
+            DeletePermissionName = PermissionNames.Pages_Purchases_Delete;
+            GetPermissionName = PermissionNames.Pages_Purchases;
+            GetAllPermissionName = PermissionNames.Pages_Purchases;
         }
 
         public override async Task<PurchaseDto> CreateAsync(CreatePurchaseDto input)

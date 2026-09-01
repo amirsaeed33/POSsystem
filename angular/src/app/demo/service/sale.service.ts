@@ -155,19 +155,40 @@ export class SaleService {
         }
     }
 
-    async getPosCustomers(): Promise<
+    private posCustomersCache: {
+        data: { id: number; name: string; customerType: number }[];
+        timestamp: number;
+    } | null = null;
+    private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
+    clearPosCustomersCache(): void {
+        this.posCustomersCache = null;
+    }
+
+    async getPosCustomers(forceRefresh = false): Promise<
         { id: number; name: string; customerType: number }[]
     > {
+        const now = Date.now();
+        if (
+            !forceRefresh &&
+            this.posCustomersCache &&
+            now - this.posCustomersCache.timestamp < this.CACHE_DURATION_MS
+        ) {
+            return this.posCustomersCache.data;
+        }
+
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetPosCustomers`)
         );
         const result = this.unwrap(res, 'Failed to load customers');
         const items = result.items || result.Items || result || [];
-        return (Array.isArray(items) ? items : []).map((item: any) => ({
+        const mapped = (Array.isArray(items) ? items : []).map((item: any) => ({
             id: item.id ?? item.Id,
             name: item.name ?? item.Name,
             customerType: item.customerType ?? item.CustomerType ?? 0,
         }));
+        this.posCustomersCache = { data: mapped, timestamp: now };
+        return mapped;
     }
 
     async getPosProducts(): Promise<ProductDto[]> {

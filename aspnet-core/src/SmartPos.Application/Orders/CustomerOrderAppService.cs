@@ -59,6 +59,11 @@ namespace SmartPos.Orders
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _saleAppService = saleAppService;
+            CreatePermissionName = PermissionNames.Pages_CustomerOrders_Create;
+            UpdatePermissionName = PermissionNames.Pages_CustomerOrders_Edit;
+            DeletePermissionName = PermissionNames.Pages_CustomerOrders_Delete;
+            GetPermissionName = PermissionNames.Pages_CustomerOrders;
+            GetAllPermissionName = PermissionNames.Pages_CustomerOrders;
         }
 
         [AbpAllowAnonymous]
