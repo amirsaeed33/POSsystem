@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
 using SmartPos.Brands;
+using SmartPos.Branches;
 using SmartPos.Categories;
 using SmartPos.Units;
 
@@ -66,6 +67,11 @@ namespace SmartPos.Products
 
         [ForeignKey(nameof(UnitId))]
         public virtual Unit Unit { get; set; }
+
+        public virtual int BranchId { get; set; }
+
+        [ForeignKey(nameof(BranchId))]
+        public virtual Branch Branch { get; set; }
 
         [StringLength(MaxImagePathLength)]
         public virtual string ImagePath { get; set; }

@@ -26,6 +26,14 @@ namespace SmartPos.Orders.Dto
         public List<CreateCustomerOrderLineDto> Lines { get; set; }
     }
 
+    public class OnlineStoreHeaderDto
+    {
+        public int BranchId { get; set; }
+        public string BranchName { get; set; }
+        public string Address { get; set; }
+        public string Phone { get; set; }
+    }
+
     public class OnlineProductDto
     {
         public int Id { get; set; }

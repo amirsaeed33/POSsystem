@@ -5,6 +5,7 @@ using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
+using Abp.Domain.Uow;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Abp.UI;
@@ -63,127 +64,184 @@ namespace SmartPos.Orders
         [AbpAllowAnonymous]
         public async Task<List<OnlineProductDto>> GetOnlineCatalogAsync(int? branchId)
         {
-            var targetBranchId = branchId ?? (await _branchRepository.FirstOrDefaultAsync(b => b.IsActive))?.Id;
-            if (!targetBranchId.HasValue)
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
-                return new List<OnlineProductDto>();
-            }
-
-            var products = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit)
-                .AsNoTracking()
-                .ToListAsync();
-
-            var branchInfo = await _branchStockRepository.GetAll()
-                .Where(s => s.BranchId == targetBranchId.Value)
-                .ToDictionaryAsync(s => s.ProductId, s => new { s.Quantity, s.Price });
-
-            return products
-                .Select(p => new OnlineProductDto
+                Branch targetBranch = null;
+                if (branchId.HasValue && branchId.Value > 0)
                 {
-                    Id = p.Id,
-                    Name = p.Name,
-                    CategoryName = p.Category?.Name ?? "General",
-                    UnitName = p.Unit?.Name ?? "Pcs",
-                    Price = branchInfo.TryGetValue(p.Id, out var info) && info.Price > 0 ? info.Price : p.Price,
-                    ImagePath = p.ImagePath,
-                    InStock = branchInfo.TryGetValue(p.Id, out info) ? info.Quantity > 0 : true
-                })
-                .ToList();
+                    targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.Id == branchId.Value);
+                }
+
+                if (targetBranch == null)
+                {
+                    targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.IsActive);
+                }
+
+                if (targetBranch == null)
+                {
+                    return new List<OnlineProductDto>();
+                }
+
+                var targetBranchId = targetBranch.Id;
+
+                var products = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit)
+                    .AsNoTracking()
+                    .Where(s=>s.BranchId== targetBranchId)
+                    .ToListAsync();
+
+                var branchInfo = await _branchStockRepository.GetAll()
+                    .Where(s => s.BranchId == targetBranchId)
+                    .ToDictionaryAsync(s => s.ProductId, s => new { s.Quantity, s.Price });
+
+                return products
+                    .Select(p => new OnlineProductDto
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        CategoryName = p.Category?.Name ?? "General",
+                        UnitName = p.Unit?.Name ?? "Pcs",
+                        Price = branchInfo.TryGetValue(p.Id, out var info) && info.Price > 0 ? info.Price : p.Price,
+                        ImagePath = p.ImagePath,
+                        InStock = branchInfo.TryGetValue(p.Id, out info) ? info.Quantity > 0 : true
+                    })
+                    .ToList();
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<OnlineStoreHeaderDto> GetOnlineStoreHeaderAsync(int branchId)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var branch = await _branchRepository.FirstOrDefaultAsync(b => b.Id == branchId);
+                if (branch == null)
+                {
+                    return new OnlineStoreHeaderDto
+                    {
+                        BranchId = branchId,
+                        BranchName = $"Branch #{branchId}"
+                    };
+                }
+
+                return new OnlineStoreHeaderDto
+                {
+                    BranchId = branch.Id,
+                    BranchName = branch.Name,
+                    Address = branch.InvoiceAddress,
+                    Phone = branch.InvoiceContactPhone
+                };
+            }
         }
 
         [AbpAllowAnonymous]
         public async Task<CustomerOrderDto> CreateOnlineOrderAsync(CreateCustomerOrderDto input)
         {
-            if (input.Lines == null || !input.Lines.Any())
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
-                throw new UserFriendlyException("Add at least one product line.");
-            }
-
-            int branchId;
-            if (input.BranchId.HasValue && input.BranchId.Value > 0)
-            {
-                branchId = input.BranchId.Value;
-            }
-            else
-            {
-                var defaultBranch = await _branchRepository.FirstOrDefaultAsync(b => b.IsActive);
-                if (defaultBranch == null)
+                if (input.Lines == null || !input.Lines.Any())
                 {
-                    throw new UserFriendlyException("No active location available for online ordering.");
-                }
-                branchId = defaultBranch.Id;
-            }
-
-            int customerId = input.CustomerId;
-            if (customerId <= 0)
-            {
-                var name = string.IsNullOrWhiteSpace(input.CustomerName) ? "Online Customer" : input.CustomerName.Trim();
-                var mobile = string.IsNullOrWhiteSpace(input.CustomerMobile) ? "" : input.CustomerMobile.Trim();
-
-                Customer existingCustomer = null;
-                if (!string.IsNullOrEmpty(mobile))
-                {
-                    existingCustomer = await _customerRepository.FirstOrDefaultAsync(c => c.Phone == mobile && c.BranchId == branchId);
+                    throw new UserFriendlyException("Add at least one product line.");
                 }
 
-                if (existingCustomer != null)
+                int branchId;
+                Branch branch = null;
+                if (input.BranchId.HasValue && input.BranchId.Value > 0)
                 {
-                    customerId = existingCustomer.Id;
+                    branch = await _branchRepository.FirstOrDefaultAsync(b => b.Id == input.BranchId.Value);
                 }
-                else
+
+                if (branch == null)
                 {
-                    var newCust = new Customer
+                    branch = await _branchRepository.FirstOrDefaultAsync(b => b.IsActive);
+                    if (branch == null)
                     {
-                        BranchId = branchId,
-                        Name = name,
-                        Phone = mobile
-                    };
-                    customerId = await _customerRepository.InsertAndGetIdAsync(newCust);
+                        throw new UserFriendlyException("No active location available for online ordering.");
+                    }
                 }
-            }
+                branchId = branch.Id;
+                var tenantId = branch.TenantId ?? AbpSession.TenantId;
 
-            var order = new CustomerOrder
-            {
-                TenantId = AbpSession.TenantId,
-                BranchId = branchId,
-                CustomerId = customerId,
-                OrderDate = input.OrderDate == default ? Abp.Timing.Clock.Now : input.OrderDate,
-                Notes = input.Notes,
-                Status = CustomerOrderStatus.Pending,
-                Lines = new List<CustomerOrderLine>()
-            };
-
-            decimal total = 0;
-            foreach (var lineInput in input.Lines)
-            {
-                if (lineInput.Quantity <= 0)
+                int customerId = input.CustomerId;
+                if (customerId <= 0)
                 {
-                    throw new UserFriendlyException("Quantity must be greater than zero.");
+                    var name = string.IsNullOrWhiteSpace(input.CustomerName) ? "Online Customer" : input.CustomerName.Trim();
+                    var mobile = string.IsNullOrWhiteSpace(input.CustomerMobile) ? "" : input.CustomerMobile.Trim();
+
+                    Customer existingCustomer = null;
+                    if (!string.IsNullOrEmpty(mobile))
+                    {
+                        existingCustomer = await _customerRepository.FirstOrDefaultAsync(c => c.Phone == mobile && c.BranchId == branchId);
+                    }
+
+                    if (existingCustomer != null)
+                    {
+                        customerId = existingCustomer.Id;
+                    }
+                    else
+                    {
+                        var newCust = new Customer
+                        {
+                            TenantId = tenantId,
+                            BranchId = branchId,
+                            Name = name,
+                            Phone = mobile
+                        };
+                        customerId = await _customerRepository.InsertAndGetIdAsync(newCust);
+                    }
                 }
 
-                var product = await _productRepository.GetAsync(lineInput.ProductId);
-                var unitPrice = lineInput.UnitPrice > 0 ? lineInput.UnitPrice : product.Price;
-                var lineTotal = lineInput.Quantity * unitPrice;
-                total += lineTotal;
-
-                order.Lines.Add(new CustomerOrderLine
+                var order = new CustomerOrder
                 {
-                    TenantId = AbpSession.TenantId,
-                    ProductId = lineInput.ProductId,
-                    Quantity = lineInput.Quantity,
-                    UnitPrice = unitPrice,
-                    LineTotal = lineTotal
-                });
+                    TenantId = tenantId,
+                    BranchId = branchId,
+                    CustomerId = customerId,
+                    OrderDate = input.OrderDate == default ? Abp.Timing.Clock.Now : input.OrderDate,
+                    Notes = input.Notes,
+                    Status = CustomerOrderStatus.Pending,
+                    Lines = new List<CustomerOrderLine>()
+                };
+
+                decimal total = 0;
+                foreach (var lineInput in input.Lines)
+                {
+                    if (lineInput.Quantity <= 0)
+                    {
+                        throw new UserFriendlyException("Quantity must be greater than zero.");
+                    }
+
+                    var product = await _productRepository.GetAsync(lineInput.ProductId);
+                    var unitPrice = lineInput.UnitPrice > 0 ? lineInput.UnitPrice : product.Price;
+                    var lineTotal = lineInput.Quantity * unitPrice;
+                    total += lineTotal;
+
+                    order.Lines.Add(new CustomerOrderLine
+                    {
+                        TenantId = tenantId,
+                        ProductId = lineInput.ProductId,
+                        Quantity = lineInput.Quantity,
+                        UnitPrice = unitPrice,
+                        LineTotal = lineTotal
+                    });
+                }
+
+                order.TotalAmount = total;
+                var insertedId = await Repository.InsertAndGetIdAsync(order);
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                order.OrderNo = "ORD-" + insertedId.ToString("D5");
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                return new CustomerOrderDto
+                {
+                    Id = insertedId,
+                    OrderNo = order.OrderNo,
+                    CustomerName = input.CustomerName,
+                    OrderDate = order.OrderDate,
+                    Status = order.Status,
+                    TotalAmount = order.TotalAmount,
+                    Notes = order.Notes
+                };
             }
-
-            order.TotalAmount = total;
-            var insertedId = await Repository.InsertAndGetIdAsync(order);
-            await CurrentUnitOfWork.SaveChangesAsync();
-
-            order.OrderNo = "ORD-" + insertedId.ToString("D5");
-            await CurrentUnitOfWork.SaveChangesAsync();
-
-            return await GetAsync(new Abp.Application.Services.Dto.EntityDto<int>(insertedId));
         }
 
         public override async Task<CustomerOrderDto> CreateAsync(CreateCustomerOrderDto input)

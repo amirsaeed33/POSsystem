@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { BranchService } from 'src/app/demo/service/branch.service';
 import { MessageService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
 
@@ -19,6 +22,12 @@ export interface CartItem {
     providers: [MessageService],
 })
 export class OnlineOrderComponent implements OnInit {
+    branchId: number | null = null;
+    branchName = '';
+    branchMissingError = false;
+    availableBranches: any[] = [];
+    selectedBranchIdForModal: number | null = null;
+
     products: any[] = [];
     filteredProducts: any[] = [];
     categories: string[] = [];
@@ -44,17 +53,100 @@ export class OnlineOrderComponent implements OnInit {
 
     constructor(
         private customerOrderService: CustomerOrderService,
+        private branchContext: BranchContextService,
+        private branchService: BranchService,
+        private route: ActivatedRoute,
+        private router: Router,
         private messageService: MessageService
     ) {}
 
     ngOnInit(): void {
-        this.loadCatalog();
+        this.route.queryParams.subscribe((params) => {
+            const paramBranchId = params['branchId'];
+            if (paramBranchId && !isNaN(Number(paramBranchId))) {
+                this.branchId = Number(paramBranchId);
+                this.branchMissingError = false;
+                this.resolveBranchName(this.branchId);
+                this.loadCatalog(this.branchId);
+            } else {
+                this.handleMissingBranchId();
+            }
+        });
     }
 
-    async loadCatalog(): Promise<void> {
+    async resolveBranchName(bId: number): Promise<void> {
+        try {
+            const info = await this.customerOrderService.getOnlineStoreHeader(bId);
+            if (info && info.branchName) {
+                this.branchName = info.branchName;
+                return;
+            }
+        } catch {
+            // Ignore error
+        }
+        this.branchName = '';
+    }
+
+    async handleMissingBranchId(): Promise<void> {
+        // 1. Check if BranchContext has an active branch
+        const ctxBranchId = this.branchContext.getBranchId();
+        if (ctxBranchId) {
+            this.setBranchInUrl(ctxBranchId);
+            return;
+        }
+
+        // 2. Otherwise try loading available branches
         try {
             this.loading = true;
-            this.products = await this.customerOrderService.getOnlineCatalog();
+            await this.branchContext.ensureLoaded();
+            const allowed = this.branchContext.getAllowedBranches();
+            if (allowed && allowed.length > 0) {
+                this.setBranchInUrl(allowed[0].id);
+                return;
+            }
+
+            const branches = await this.branchService.getLookup();
+            this.availableBranches = branches || [];
+            if (this.availableBranches.length === 1) {
+                this.setBranchInUrl(this.availableBranches[0].id);
+                return;
+            } else if (this.availableBranches.length > 1) {
+                this.branchMissingError = true;
+                return;
+            }
+        } catch {
+            // Error loading branches
+        } finally {
+            this.loading = false;
+        }
+
+        this.branchMissingError = true;
+    }
+
+    setBranchInUrl(bId: number): void {
+        this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { branchId: bId },
+            queryParamsHandling: 'merge',
+        });
+    }
+
+    onSelectBranchFromModal(): void {
+        if (!this.selectedBranchIdForModal) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Branch Required',
+                detail: 'Please select a branch to view the online store.',
+            });
+            return;
+        }
+        this.setBranchInUrl(this.selectedBranchIdForModal);
+    }
+
+    async loadCatalog(bId?: number): Promise<void> {
+        try {
+            this.loading = true;
+            this.products = await this.customerOrderService.getOnlineCatalog(bId || undefined);
             this.extractCategories();
             this.applyFilter();
         } catch (error: any) {
@@ -98,6 +190,15 @@ export class OnlineOrderComponent implements OnInit {
     }
 
     addToCart(product: any): void {
+        if (this.branchMissingError || !this.branchId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Branch Required',
+                detail: 'Please select a branch before adding items to cart.',
+            });
+            return;
+        }
+
         const existing = this.cart.find((c) => c.productId === product.id);
         if (existing) {
             existing.quantity += 1;
@@ -173,6 +274,7 @@ export class OnlineOrderComponent implements OnInit {
             const input: CreateCustomerOrderDto = {
                 customerName: this.customerName.trim(),
                 customerMobile: this.customerMobile.trim(),
+                branchId: this.branchId || undefined,
                 notes: this.notes.trim(),
                 lines: this.cart.map((c) => ({
                     productId: c.productId,

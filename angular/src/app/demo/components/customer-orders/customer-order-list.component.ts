@@ -148,10 +148,16 @@ export class CustomerOrderListComponent implements OnInit {
                         this.loadOrders();
                     })
                     .catch((error) => {
+                        const message =
+                            error?.error?.error?.message ||
+                            error?.error?.message ||
+                            error?.message ||
+                            'Failed to approve order';
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.message || 'Failed to approve order',
+                            summary: 'Approve Failed',
+                            detail: message,
+                            life: 6000,
                         });
                     });
             },
@@ -177,10 +183,16 @@ export class CustomerOrderListComponent implements OnInit {
                         this.loadOrders();
                     })
                     .catch((error) => {
+                        const message =
+                            error?.error?.error?.message ||
+                            error?.error?.message ||
+                            error?.message ||
+                            'Failed to reject order';
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Error',
-                            detail: error?.message || 'Failed to reject order',
+                            summary: 'Reject Failed',
+                            detail: message,
+                            life: 6000,
                         });
                     });
             },

@@ -16,8 +16,10 @@ namespace SmartPos.Inventory
             int branchId)
         {
             return products.Where(p =>
-                !branchStocks.Any(bs => bs.ProductId == p.Id)
-                || branchStocks.Any(bs => bs.BranchId == branchId && bs.ProductId == p.Id));
+                p.BranchId == branchId
+                || p.BranchId == 0
+                || branchStocks.Any(bs => bs.BranchId == branchId && bs.ProductId == p.Id)
+                || !branchStocks.Any(bs => bs.ProductId == p.Id));
         }
     }
 }

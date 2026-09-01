@@ -46,6 +46,8 @@ namespace SmartPos.Products.Dto
         [Required(ErrorMessage = "Unit is required.")]
         public int UnitId { get; set; }
 
+        public int BranchId { get; set; }
+
         public string ImageBase64 { get; set; }
 
         /// <summary>

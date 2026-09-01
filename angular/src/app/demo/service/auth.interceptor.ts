@@ -64,7 +64,8 @@ export class AuthInterceptor implements HttpInterceptor {
 
         return next.handle(request).pipe(
             catchError((error: HttpErrorResponse) => {
-                if (error.status === 401 && isApiRequest) {
+                const isOnlineOrder = req.url.includes('CustomerOrder') || this.router.url.includes('online-order');
+                if (error.status === 401 && isApiRequest && !isOnlineOrder) {
                     this.authService.logout();
                     this.router.navigate(['/auth/login']);
                 }

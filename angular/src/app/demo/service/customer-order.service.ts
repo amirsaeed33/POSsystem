@@ -67,6 +67,13 @@ export class CustomerOrderService {
         return Array.isArray(result) ? result : result?.items || [];
     }
 
+    async getOnlineStoreHeader(branchId: number): Promise<any> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetOnlineStoreHeader`, { params: { branchId } })
+        );
+        return this.unwrap(res, 'Failed to load store info');
+    }
+
     async createOnlineOrder(input: CreateCustomerOrderDto): Promise<CustomerOrderDto> {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/CreateOnlineOrder`, {

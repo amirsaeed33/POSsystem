@@ -91,6 +91,36 @@ namespace SmartPos.Products
             product.Barcode = barcode;
             product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
 
+            int resolvedBranchId = input.BranchId;
+            if (resolvedBranchId <= 0)
+            {
+                var effectiveBranchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+                if (effectiveBranchId.HasValue && effectiveBranchId.Value > 0)
+                {
+                    resolvedBranchId = effectiveBranchId.Value;
+                }
+                else if (targetBranchIds != null && targetBranchIds.Any())
+                {
+                    resolvedBranchId = targetBranchIds.First();
+                }
+                else
+                {
+                    var defaultBranch = await _branchRepository.FirstOrDefaultAsync(b => b.IsActive);
+                    resolvedBranchId = defaultBranch?.Id ?? (await _branchRepository.GetAll().Select(b => b.Id).FirstOrDefaultAsync());
+                }
+            }
+
+            if (resolvedBranchId <= 0)
+            {
+                throw new UserFriendlyException("Please select or create a valid store branch before creating products.");
+            }
+
+            product.BranchId = resolvedBranchId;
+            if (!targetBranchIds.Contains(resolvedBranchId))
+            {
+                targetBranchIds.Add(resolvedBranchId);
+            }
+
             try
             {
                 await Repository.InsertAsync(product);
@@ -149,6 +179,19 @@ namespace SmartPos.Products
             product.CategoryId = input.CategoryId;
             product.BrandId = input.BrandId;
             product.UnitId = input.UnitId;
+
+            if (input.BranchId > 0)
+            {
+                product.BranchId = input.BranchId;
+            }
+            else if (product.BranchId <= 0)
+            {
+                var effectiveBranchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+                if (effectiveBranchId.HasValue && effectiveBranchId.Value > 0)
+                {
+                    product.BranchId = effectiveBranchId.Value;
+                }
+            }
 
             if (ProductImageStore.IsNewImagePayload(input.ImageBase64))
             {
@@ -258,7 +301,7 @@ namespace SmartPos.Products
 
             if (!_effectiveBranchIdForQuery.HasValue)
             {
-                return query.Where(x => false);
+                return query;
             }
 
             return query.WhereVisibleToBranch(
@@ -685,6 +728,7 @@ namespace SmartPos.Products
                         CategoryId = categoryId,
                         BrandId = brandId,
                         UnitId = unitId,
+                        BranchId = activeBranchId,
                         Location = row.Location?.Trim(),
                         Description = row.Description?.Trim()
                     };

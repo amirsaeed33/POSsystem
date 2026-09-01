@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { PermissionNames } from '../demo/api/permission-names';
 import { PermissionService } from '../demo/service/permission.service';
 import { LayoutService } from './service/app.layout.service';
+import { BranchContextService } from '../demo/service/branch-context.service';
 
 @Component({
     selector: 'app-menu',
@@ -13,7 +14,8 @@ export class AppMenuComponent implements OnInit {
 
     constructor(
         public layoutService: LayoutService,
-        private permissionService: PermissionService
+        private permissionService: PermissionService,
+        private branchContext: BranchContextService
     ) { }
 
     async ngOnInit() {
@@ -22,6 +24,8 @@ export class AppMenuComponent implements OnInit {
         } catch {
             // Menu falls back to cached grants (if any).
         }
+
+        const currentBranchId = this.branchContext.getBranchId();
 
         // Every root entry is a collapsible group (static/overlay) or hover panel (slim).
         const menu = [
@@ -61,7 +65,7 @@ export class AppMenuComponent implements OnInit {
                     { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'], permission: PermissionNames.Sales },
                     { label: 'Sale Returns', icon: 'pi pi-replay', routerLink: ['/sale-returns'], permission: PermissionNames.Sales },
                     { label: 'Customer Orders', icon: 'pi pi-file', routerLink: ['/customer-orders'], permission: PermissionNames.CustomerOrders },
-                    { label: 'Online Storefront', icon: 'pi pi-globe', routerLink: ['/online-order'], target: '_blank' },
+                    { label: 'Online Storefront', icon: 'pi pi-globe', routerLink: ['/online-order'], queryParams: currentBranchId ? { branchId: currentBranchId } : undefined, target: '_blank' },
                     { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'], permission: PermissionNames.Customers },
                 ]
             },
@@ -97,7 +101,6 @@ export class AppMenuComponent implements OnInit {
                         routerLink: ['/staff'],
                         anyPermission: [
                             PermissionNames.Staff,
-                            PermissionNames.StaffAttendance,
                             PermissionNames.StaffPayroll,
                         ],
                     },

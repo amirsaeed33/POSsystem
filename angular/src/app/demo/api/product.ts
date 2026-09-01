@@ -38,6 +38,8 @@ export interface ProductDto {
     brandName?: string;
     unitId: number;
     unitName?: string;
+    branchId?: number;
+    branchName?: string;
     imagePath?: string;
     imageBase64?: string;
     /** Computed: true when tenant-level (all locations). */
@@ -58,6 +60,7 @@ export interface CreateProductDto {
     categoryId: number;
     brandId: number;
     unitId: number;
+    branchId?: number;
     imageBase64?: string;
     /** Empty = tenant-level (all locations). */
     branchIds?: number[];

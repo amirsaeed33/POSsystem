@@ -5,8 +5,8 @@
             <div class="flex align-items-center gap-2">
                 <i class="pi pi-shopping-bag text-primary text-3xl"></i>
                 <div>
-                    <h4 class="m-0 font-bold text-900">SmartPos Store</h4>
-                    <span class="text-xs text-500">Online Customer Ordering</span>
+                    <h4 class="m-0 font-bold text-900">{{ branchName || 'Online Store' }}</h4>
+                    <span class="text-xs text-500 block mt-1">Online Customer Ordering</span>
                 </div>
             </div>
 
@@ -236,6 +236,51 @@
                 label="Continue Shopping"
                 class="w-full p-button-primary border-round-xl"
                 (click)="successModalVisible = false"
+            ></button>
+        </div>
+    </p-dialog>
+
+    <!-- Branch Selection Required Modal -->
+    <p-dialog
+        [visible]="branchMissingError"
+        [modal]="true"
+        [closable]="false"
+        styleClass="w-full max-w-28rem text-center border-round-2xl"
+    >
+        <div class="py-4">
+            <div class="w-4rem h-4rem border-circle bg-amber-100 text-amber-600 font-bold flex align-items-center justify-content-center text-3xl mx-auto mb-3">
+                <i class="pi pi-sitemap text-3xl"></i>
+            </div>
+
+            <h4 class="font-bold text-900 m-0 mb-2">Select Branch</h4>
+            <p class="text-600 text-sm mb-4">A Branch ID is required in the URL (e.g., <code>?branchId=1</code>). Please select a branch below to view store products.</p>
+
+            <div class="flex flex-column gap-3 text-left mb-4" *ngIf="availableBranches.length">
+                <label for="branchSelect" class="font-medium text-800">Available Branches</label>
+                <p-dropdown
+                    id="branchSelect"
+                    [options]="availableBranches"
+                    [(ngModel)]="selectedBranchIdForModal"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Select Store Branch"
+                    styleClass="w-full border-round-xl"
+                    appendTo="body"
+                ></p-dropdown>
+            </div>
+
+            <div class="text-center py-3 text-500 text-xs" *ngIf="!availableBranches.length">
+                No active branches found. Please ensure at least one branch is created in the system.
+            </div>
+
+            <button
+                *ngIf="availableBranches.length"
+                pButton
+                type="button"
+                label="View Branch Store"
+                icon="pi pi-check"
+                class="w-full p-button-primary border-round-xl"
+                (click)="onSelectBranchFromModal()"
             ></button>
         </div>
     </p-dialog>

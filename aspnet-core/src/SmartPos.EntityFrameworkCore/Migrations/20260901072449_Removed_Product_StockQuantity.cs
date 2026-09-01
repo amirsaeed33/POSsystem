@@ -34,6 +34,9 @@ BEGIN
 END");
 
             migrationBuilder.Sql(@"
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppProducts]') AND name = N'BranchId')
+    ALTER TABLE [AppProducts] ADD [BranchId] int NOT NULL DEFAULT 0;
+
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppUnits]') AND name = N'BranchId')
     ALTER TABLE [AppUnits] ADD [BranchId] int NOT NULL DEFAULT 0;
 

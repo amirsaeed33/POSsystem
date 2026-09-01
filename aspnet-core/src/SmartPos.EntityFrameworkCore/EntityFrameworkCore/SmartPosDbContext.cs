@@ -217,6 +217,11 @@ namespace SmartPos.EntityFrameworkCore
                 b.Property(x => x.WholesalePrice).HasPrecision(18, 2);
                 b.Property(x => x.CostPrice).HasPrecision(18, 2);
                 b.Property(x => x.AlertQuantityLimit).HasPrecision(18, 2);
+                b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 b.HasIndex(x => new { x.TenantId, x.Barcode })
                     .IsUnique()
                     .HasFilter("[Barcode] IS NOT NULL AND [IsDeleted] = 0");

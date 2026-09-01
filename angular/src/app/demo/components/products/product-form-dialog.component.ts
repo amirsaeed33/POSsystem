@@ -174,6 +174,7 @@ export class ProductFormDialogComponent implements OnChanges {
 
         const currentBranchId = this.branchContext.getBranchId();
         const assignment = {
+            branchId: currentBranchId || undefined,
             branchIds: currentBranchId ? [currentBranchId] : [],
         };
 
