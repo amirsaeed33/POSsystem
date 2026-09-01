@@ -95,10 +95,10 @@ export class BarcodePrintDialogComponent implements OnChanges {
                     JsBarcode(`#${printId}`, barcodeVal, {
                         format: 'CODE128',
                         lineColor: '#000',
-                        width: 1.5,
-                        height: 38,
+                        width: 1.4,
+                        height: 32,
                         displayValue: this.showCodeText,
-                        fontSize: 11,
+                        fontSize: 10,
                         margin: 1
                     });
                 } catch (e) {
@@ -122,12 +122,15 @@ export class BarcodePrintDialogComponent implements OnChanges {
         this.updateStickers();
         setTimeout(() => {
             this.generateBarcodes();
-            requestAnimationFrame(() => {
-                window.print();
-                setTimeout(() => {
+            setTimeout(() => {
+                const cleanup = () => {
                     document.body.classList.remove('printing-barcode');
-                }, 500);
-            });
+                    window.removeEventListener('afterprint', cleanup);
+                };
+                window.addEventListener('afterprint', cleanup);
+                window.print();
+                setTimeout(cleanup, 2500);
+            }, 100);
         }, 150);
     }
 }

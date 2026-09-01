@@ -1,6 +1,7 @@
 <p-dialog
     [(visible)]="visible"
     [modal]="true"
+    [appendTo]="'body'"
     [style]="{ width: '90vw', maxWidth: '850px' }"
     header="Print Product Barcode Labels"
     [draggable]="false"
@@ -93,18 +94,6 @@
         </div>
     </div>
 
-    <!-- Printable Label Container (Visible during Window Print) -->
-    <div [id]="'barcode-print-area'" [class]="'barcode-print-area ' + paperSize">
-        <div *ngFor="let st of stickers" class="barcode-sticker-label">
-            <div *ngIf="showCompanyName" class="sticker-company">{{ companyName }}</div>
-            <div *ngIf="showProductName" class="sticker-title">{{ st.product.name }}</div>
-            <div class="sticker-barcode">
-                <svg [id]="'barcode-print-svg-' + st.idx + '-' + st.i"></svg>
-            </div>
-            <div *ngIf="showPrice" class="sticker-price">Price: PKR {{ st.product.price | number:'1.2-2' }}</div>
-        </div>
-    </div>
-
     <ng-template pTemplate="footer">
         <div class="flex justify-content-between align-items-center w-full no-print">
             <span class="text-sm font-semibold text-700">Total Labels: <mark class="px-2 py-1 bg-primary-100 text-primary-700 border-round font-bold">{{ totalLabelsCount }}</mark></span>
@@ -130,3 +119,15 @@
         </div>
     </ng-template>
 </p-dialog>
+
+<!-- Printable Label Container (Visible during Window Print) -->
+<div [id]="'barcode-print-area'" [class]="'barcode-print-area ' + paperSize">
+    <div *ngFor="let st of stickers" class="barcode-sticker-label">
+        <div *ngIf="showCompanyName" class="sticker-company">{{ companyName }}</div>
+        <div *ngIf="showProductName" class="sticker-title">{{ st.product.name }}</div>
+        <div class="sticker-barcode">
+            <svg [id]="'barcode-print-svg-' + st.idx + '-' + st.i"></svg>
+        </div>
+        <div *ngIf="showPrice" class="sticker-price">Price: PKR {{ st.product.price | number:'1.2-2' }}</div>
+    </div>
+</div>
