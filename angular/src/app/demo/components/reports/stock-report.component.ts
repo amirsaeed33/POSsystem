@@ -2,9 +2,10 @@ import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { StockReportDto, StockReportRowDto } from 'src/app/demo/api/report';
 import { ReportService } from 'src/app/demo/service/report.service';
-import { NotificationEmailService } from 'src/app/demo/service/notification-email.service';
+import { NotificationEmailService } from '../../service/notification-email.service';
 
 @Component({
+    selector: 'app-stock-report',
     templateUrl: './stock-report.component.html',
     styleUrls: ['./stock-report.component.css'],
     providers: [MessageService],
@@ -40,19 +41,23 @@ export class StockReportComponent implements OnInit {
         this.loading = true;
         this.reportService
             .getStockReport(this.keyword?.trim() || undefined)
-            .then((result) => {
-                this.report = result;
+            .then((res) => {
+                this.report = res;
             })
-            .catch((error) => {
+            .catch((err) => {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: error?.message || 'Failed to load stock report',
+                    detail: err?.message || 'Failed to load stock report',
                 });
             })
             .finally(() => {
                 this.loading = false;
             });
+    }
+
+    onSearch(): void {
+        this.generate();
     }
 
     /** Match angular-old: page-level print of the dedicated print layout. */
@@ -79,6 +84,19 @@ export class StockReportComponent implements OnInit {
             return 'Low Stock';
         }
         return 'Out of Stock';
+    }
+
+    getSeverity(status: string): string {
+        switch (status) {
+            case 'In Stock':
+                return 'success';
+            case 'Low Stock':
+                return 'warning';
+            case 'Out of Stock':
+                return 'danger';
+            default:
+                return 'info';
+        }
     }
 
     statusSeverity(
@@ -109,7 +127,7 @@ export class StockReportComponent implements OnInit {
                         detail: 'Low stock alert report has been sent to your email.'
                     });
                 },
-                error: (err) => {
+                error: (err: any) => {
                     this.sendingEmail = false;
                     this.messageService.add({
                         severity: 'error',

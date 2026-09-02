@@ -2,10 +2,10 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { SaleReportDto } from 'src/app/demo/api/report';
 import { ReportService } from 'src/app/demo/service/report.service';
-
-import { NotificationEmailService } from 'src/app/demo/service/notification-email.service';
+import { NotificationEmailService } from '../../service/notification-email.service';
 
 @Component({
+    selector: 'app-sale-report',
     templateUrl: './sale-report.component.html',
     providers: [MessageService],
 })
@@ -105,7 +105,7 @@ export class SaleReportComponent implements OnInit {
                         detail: 'Daily business summary report has been sent to your email.'
                     });
                 },
-                error: (err) => {
+                error: (err: any) => {
                     this.sendingEmail = false;
                     this.messageService.add({
                         severity: 'error',
