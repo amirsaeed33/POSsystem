@@ -45,10 +45,10 @@
                 <label for="accountType" class="font-medium">Account Type</label>
                 <p-dropdown
                     inputId="accountType"
-                    [options]="accountTypeOptions"
-                    [(ngModel)]="account.accountType"
-                    optionLabel="label"
-                    optionValue="value"
+                    [options]="accountTypeLookups"
+                    [(ngModel)]="account.accountTypeId"
+                    optionLabel="displayName"
+                    optionValue="id"
                     placeholder="Select account type"
                     [showClear]="true"
                     styleClass="w-full"

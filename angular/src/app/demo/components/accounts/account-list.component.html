@@ -79,7 +79,7 @@
             <tr>
                 <td>{{ account.name }}</td>
                 <td>{{ account.code || '—' }}</td>
-                <td>{{ account.accountType || '—' }}</td>
+                <td>{{ account.accountTypeName || account.accountType || '—' }}</td>
                 <td>{{ account.openingBalance | number: '1.2-2' }}</td>
                 <td>{{ account.balance | number: '1.2-2' }}</td>
                 <td>

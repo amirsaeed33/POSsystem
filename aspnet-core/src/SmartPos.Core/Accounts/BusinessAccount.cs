@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
+using SmartPos.Lookups;
 
 namespace SmartPos.Accounts
 {
@@ -24,6 +25,14 @@ namespace SmartPos.Accounts
 
         [StringLength(MaxAccountTypeLength)]
         public virtual string AccountType { get; set; }
+
+        /// <summary>
+        /// FK to <see cref="LookUp"/> where Type = AccountType.
+        /// </summary>
+        public virtual int? AccountTypeId { get; set; }
+
+        [ForeignKey(nameof(AccountTypeId))]
+        public virtual LookUp AccountTypeLookup { get; set; }
 
         public virtual decimal OpeningBalance { get; set; }
 

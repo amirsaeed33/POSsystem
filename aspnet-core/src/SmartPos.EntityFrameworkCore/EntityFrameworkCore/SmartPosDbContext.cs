@@ -284,6 +284,10 @@ namespace SmartPos.EntityFrameworkCore
             modelBuilder.Entity<BusinessAccount>(b =>
             {
                 b.Property(x => x.OpeningBalance).HasPrecision(18, 2);
+                b.HasOne(x => x.AccountTypeLookup)
+                    .WithMany()
+                    .HasForeignKey(x => x.AccountTypeId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<LedgerEntry>(b =>

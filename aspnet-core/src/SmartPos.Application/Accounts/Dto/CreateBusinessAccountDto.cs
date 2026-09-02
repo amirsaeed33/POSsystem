@@ -17,6 +17,8 @@ namespace SmartPos.Accounts.Dto
         [StringLength(BusinessAccount.MaxAccountTypeLength)]
         public string AccountType { get; set; }
 
+        public int? AccountTypeId { get; set; }
+
         public decimal OpeningBalance { get; set; }
 
         [StringLength(BusinessAccount.MaxDescriptionLength)]

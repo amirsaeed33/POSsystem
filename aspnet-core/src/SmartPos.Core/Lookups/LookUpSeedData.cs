@@ -13,6 +13,7 @@ namespace SmartPos.Lookups
             new(LookUpTypes.LookUpType, LookUpTypes.StockAdjustmentReason, "Stock Adjustment Reason", 30),
             new(LookUpTypes.LookUpType, LookUpTypes.Gender, "Gender", 40),
             new(LookUpTypes.LookUpType, LookUpTypes.BranchStatus, "Branch Status", 50),
+            new(LookUpTypes.LookUpType, LookUpTypes.AccountType, "Account Type", 60),
 
             new(LookUpTypes.PaymentMethod, "Cash", "Cash", 10),
             new(LookUpTypes.PaymentMethod, "Card", "Card", 20),
@@ -39,6 +40,16 @@ namespace SmartPos.Lookups
             new(LookUpTypes.BranchStatus, BranchStatuses.Pending, "Pending", 10),
             new(LookUpTypes.BranchStatus, BranchStatuses.Approved, "Approved", 20),
             new(LookUpTypes.BranchStatus, BranchStatuses.Rejected, "Rejected", 30),
+
+            new(LookUpTypes.AccountType, "Cash", "Cash", 10),
+            new(LookUpTypes.AccountType, "Bank", "Bank", 20),
+            new(LookUpTypes.AccountType, "CreditCard", "Credit Card", 30),
+            new(LookUpTypes.AccountType, "Asset", "Asset", 40),
+            new(LookUpTypes.AccountType, "Liability", "Liability", 50),
+            new(LookUpTypes.AccountType, "Equity", "Equity", 60),
+            new(LookUpTypes.AccountType, "Revenue", "Revenue", 70),
+            new(LookUpTypes.AccountType, "Expense", "Expense", 80),
+            new(LookUpTypes.AccountType, "Other", "Other", 90),
         };
     }
 

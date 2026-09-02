@@ -3,6 +3,8 @@ export interface BusinessAccountDto {
     name: string;
     code?: string;
     accountType?: string;
+    accountTypeId?: number;
+    accountTypeName?: string;
     openingBalance: number;
     balance: number;
     description?: string;
@@ -13,6 +15,7 @@ export interface CreateBusinessAccountDto {
     name: string;
     code?: string;
     accountType?: string;
+    accountTypeId?: number;
     openingBalance: number;
     description?: string;
     isActive: boolean;

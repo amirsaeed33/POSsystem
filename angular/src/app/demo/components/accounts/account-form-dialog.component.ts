@@ -3,6 +3,7 @@ import {
     EventEmitter,
     Input,
     OnChanges,
+    OnInit,
     Output,
     SimpleChanges,
 } from '@angular/core';
@@ -11,13 +12,15 @@ import {
     BusinessAccountDto,
     CreateBusinessAccountDto,
 } from 'src/app/demo/api/business-account';
+import { LookUpDto, LookUpTypes } from 'src/app/demo/api/lookup';
 import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
+import { LookUpService } from 'src/app/demo/service/lookup.service';
 
 @Component({
     selector: 'app-account-form-dialog',
     templateUrl: './account-form-dialog.component.html',
 })
-export class AccountFormDialogComponent implements OnChanges {
+export class AccountFormDialogComponent implements OnInit, OnChanges {
     @Input() visible = false;
     @Input() accountId: number | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
@@ -27,20 +30,28 @@ export class AccountFormDialogComponent implements OnChanges {
     saving = false;
     loading = false;
 
-    accountTypeOptions = [
-        { label: 'Cash', value: 'Cash' },
-        { label: 'Bank', value: 'Bank' },
-        { label: 'Credit Card', value: 'Credit Card' },
-        { label: 'Purchase', value: 'Purchase' },
-        { label: 'Sale', value: 'Sale' },
-        { label: 'Expense', value: 'Expense' },
-        { label: 'Other', value: 'Other' },
-    ];
+    accountTypeLookups: LookUpDto[] = [];
 
     constructor(
         private businessAccountService: BusinessAccountService,
+        private lookupService: LookUpService,
         private messageService: MessageService
     ) {}
+
+    ngOnInit(): void {
+        this.loadAccountTypeLookups();
+    }
+
+    private loadAccountTypeLookups(): void {
+        this.lookupService
+            .getByType(LookUpTypes.AccountType)
+            .then((res: LookUpDto[]) => {
+                this.accountTypeLookups = res || [];
+            })
+            .catch(() => {
+                this.accountTypeLookups = [];
+            });
+    }
 
     get dialogTitle(): string {
         return this.accountId ? 'Edit Account' : 'Create Account';
@@ -49,6 +60,7 @@ export class AccountFormDialogComponent implements OnChanges {
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.resetForm();
+            this.loadAccountTypeLookups();
             if (this.accountId) {
                 this.loadAccount(this.accountId);
             }
@@ -80,6 +92,7 @@ export class AccountFormDialogComponent implements OnChanges {
             name,
             code: this.account.code?.trim() || undefined,
             accountType: this.account.accountType || undefined,
+            accountTypeId: this.account.accountTypeId || undefined,
             openingBalance: this.account.openingBalance ?? 0,
             description: this.account.description?.trim() || undefined,
             isActive: this.account.isActive !== false,
@@ -123,6 +136,8 @@ export class AccountFormDialogComponent implements OnChanges {
             name: '',
             code: '',
             accountType: undefined,
+            accountTypeId: undefined,
+            accountTypeName: undefined,
             openingBalance: 0,
             balance: 0,
             description: '',
