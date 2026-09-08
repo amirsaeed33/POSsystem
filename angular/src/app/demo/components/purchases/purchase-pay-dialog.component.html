@@ -1,0 +1,99 @@
+<p-dialog
+    header="Pay Remaining Amount"
+    [visible]="visible"
+    (visibleChange)="onVisibleChange($event)"
+    [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
+    styleClass="dialog-sm"
+    [breakpoints]="{ '960px': '90vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onHide()"
+>
+    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+
+    <div *ngIf="!loading && purchase" class="grid formgrid p-fluid">
+        <div class="field col-12">
+            <div class="surface-100 p-3 border-round mb-3">
+                <div class="flex justify-content-between mb-1">
+                    <span class="text-500">Purchase Invoice:</span>
+                    <span class="font-bold">{{ purchase.invoiceNo || ('#' + purchase.id) }}</span>
+                </div>
+                <div class="flex justify-content-between mb-1">
+                    <span class="text-500">Total Bill Amount:</span>
+                    <span class="font-semibold">{{ purchase.totalAmount | number: '1.2-2' }}</span>
+                </div>
+                <div class="flex justify-content-between mb-1">
+                    <span class="text-500">Already Paid:</span>
+                    <span class="text-green-600 font-semibold">{{ (purchase.amountPaid || 0) | number: '1.2-2' }}</span>
+                </div>
+                <div class="flex justify-content-between border-top-1 surface-border pt-1">
+                    <span class="font-bold text-700">Remaining Due:</span>
+                    <span class="font-bold text-red-600">{{ purchase.dueAmount | number: '1.2-2' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="field col-12">
+            <label for="payAccountId">Payment Account (Pay From) <span class="text-red-500">*</span></label>
+            <p-dropdown
+                inputId="payAccountId"
+                [options]="paymentAccounts"
+                [(ngModel)]="selectedAccountId"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Select cash or bank account"
+                [filter]="true"
+                filterBy="name"
+                appendTo="body"
+            ></p-dropdown>
+        </div>
+
+        <div class="field col-12">
+            <label for="payAmount">Amount To Pay <span class="text-red-500">*</span></label>
+            <p-inputNumber
+                inputId="payAmount"
+                [(ngModel)]="amountToPay"
+                [min]="0.01"
+                [max]="purchase.dueAmount || purchase.totalAmount"
+                mode="decimal"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+            ></p-inputNumber>
+        </div>
+
+        <div class="field col-12">
+            <label for="payDesc">Payment Description</label>
+            <input
+                pInputText
+                id="payDesc"
+                type="text"
+                [(ngModel)]="description"
+            />
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            [disabled]="saving"
+            (click)="onHide()"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Make Payment"
+            icon="pi pi-check"
+            class="p-button-success"
+            [loading]="saving"
+            [disabled]="loading"
+            (click)="submitPayment()"
+        ></button>
+    </ng-template>
+</p-dialog>

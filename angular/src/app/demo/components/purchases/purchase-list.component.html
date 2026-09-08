@@ -57,8 +57,9 @@
                 <th pSortableColumn="purchaseDate">Purchase Date <p-sortIcon field="purchaseDate"></p-sortIcon></th>
                 <th pSortableColumn="supplierName">Supplier <p-sortIcon field="supplierName"></p-sortIcon></th>
                 <th pSortableColumn="totalAmount">Total Amount <p-sortIcon field="totalAmount"></p-sortIcon></th>
-                <th pSortableColumn="notes">Notes <p-sortIcon field="notes"></p-sortIcon></th>
-                <th style="width: 13rem">Actions</th>
+                <th pSortableColumn="dueAmount">Due Amount <p-sortIcon field="dueAmount"></p-sortIcon></th>
+                <th pSortableColumn="paymentStatus">Payment <p-sortIcon field="paymentStatus"></p-sortIcon></th>
+                <th class="text-center" style="width: 8rem">Actions</th>
             </tr>
         </ng-template>
 
@@ -67,50 +68,40 @@
                 <td>{{ purchase.invoiceNo || ('#' + purchase.id) }}</td>
                 <td>{{ purchase.purchaseDate | date: 'mediumDate' }}</td>
                 <td>{{ purchase.supplierName || '—' }}</td>
-                <td>{{ purchase.totalAmount | number: '1.2-2' }}</td>
-                <td>{{ purchase.notes || '—' }}</td>
+                <td class="font-bold">{{ purchase.totalAmount | number: '1.2-2' }}</td>
+                <td class="font-semibold text-red-600">
+                    {{ (purchase.dueAmount ?? purchase.totalAmount) | number: '1.2-2' }}
+                </td>
                 <td>
-                    <div class="flex gap-2">
+                    <span [class]="purchase.paymentStatus === 'Paid' ? 'p-tag p-tag-success' : (purchase.paymentStatus === 'Partial' ? 'p-tag p-tag-warning' : 'p-tag p-tag-danger')">
+                        {{ purchase.paymentStatus || 'Unpaid' }}
+                    </span>
+                </td>
+                <td class="text-center">
+                    <div class="flex align-items-center justify-content-center gap-2">
                         <button
+                            *ngIf="purchase.paymentStatus !== 'Paid'; else emptyPaySlot"
                             pButton
                             pRipple
                             type="button"
-                            icon="pi pi-eye"
-                            class="tbl-action-btn view-btn"
-                            pTooltip="View Details"
+                            icon="pi pi-dollar"
+                            class="p-button-success p-button-sm tbl-action-btn"
+                            pTooltip="Pay Remaining Amount"
                             tooltipPosition="top"
-                            (click)="openViewDialog(purchase)"
+                            (click)="openPayDialog(purchase)"
                         ></button>
+                        <ng-template #emptyPaySlot>
+                            <div style="width: 2.25rem; height: 2.25rem"></div>
+                        </ng-template>
                         <button
                             pButton
                             pRipple
                             type="button"
-                            icon="pi pi-replay"
-                            class="p-button-text p-button-warning p-button-sm"
-                            pTooltip="Return Purchase"
+                            icon="pi pi-ellipsis-v"
+                            class="tbl-action-btn more-btn"
+                            pTooltip="Actions"
                             tooltipPosition="top"
-                            (click)="openReturnDialog(purchase)"
-                        ></button>
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-print"
-                            class="tbl-action-btn print-btn"
-                            pTooltip="Print Invoice"
-                            tooltipPosition="top"
-                            (click)="openPrintDialog(purchase.id)"
-                        ></button>
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-trash"
-                            class="tbl-action-btn delete-btn"
-                            [pTooltip]="!canDelete ? 'You do not have permission to Delete' : 'Delete'"
-                            tooltipPosition="top"
-                            (click)="onDelete(purchase)"
-                            [disabled]="!canDelete"
+                            (click)="openActionMenu($event, menu, purchase)"
                         ></button>
                     </div>
                 </td>
@@ -119,7 +110,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="6" class="text-center p-4">
+                <td colspan="7" class="text-center p-4">
                     <div class="text-500">No purchases found</div>
                 </td>
             </tr>
@@ -130,6 +121,12 @@
         [(visible)]="createDialogVisible"
         (saved)="onDialogSaved()"
     ></app-purchase-form-dialog>
+
+    <app-purchase-pay-dialog
+        [(visible)]="payDialogVisible"
+        [purchase]="payingPurchase"
+        (saved)="onDialogSaved()"
+    ></app-purchase-pay-dialog>
 
     <app-purchase-view-dialog
         [(visible)]="viewDialogVisible"
@@ -151,6 +148,7 @@
         (saved)="onDialogSaved()"
     ></app-purchase-return-form-dialog>
 
+    <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
 </div>

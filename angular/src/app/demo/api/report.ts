@@ -101,3 +101,29 @@ export interface ProductProfitReportDto {
     averageProfitMarginPercent?: number | null;
     items: ProductProfitReportRowDto[];
 }
+
+export interface BalanceSheetRowDto {
+    accountName: string;
+    accountCode?: string;
+    accountType?: string;
+    balance: number;
+}
+
+export interface BalanceSheetCategoryDto {
+    categoryName: string;
+    totalAmount: number;
+    items: BalanceSheetRowDto[];
+}
+
+export interface BalanceSheetReportDto {
+    totalAssets: number;
+    totalLiabilities: number;
+    totalEquity: number;
+    netProfitOrLoss: number;
+    initialCapital: number;
+    isBalanced: boolean;
+    assetCategories: BalanceSheetCategoryDto[];
+    liabilityCategories: BalanceSheetCategoryDto[];
+    equityCategories: BalanceSheetCategoryDto[];
+}
+

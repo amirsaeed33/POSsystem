@@ -177,4 +177,46 @@ namespace SmartPos.Reports.Dto
 
         public decimal? ProfitMarginPercent { get; set; }
     }
+
+    public class BalanceSheetReportDto
+    {
+        public decimal TotalAssets { get; set; }
+
+        public decimal TotalLiabilities { get; set; }
+
+        public decimal TotalEquity { get; set; }
+
+        public decimal NetProfitOrLoss { get; set; }
+
+        public decimal InitialCapital { get; set; }
+
+        public bool IsBalanced { get; set; }
+
+        public List<BalanceSheetCategoryDto> AssetCategories { get; set; }
+
+        public List<BalanceSheetCategoryDto> LiabilityCategories { get; set; }
+
+        public List<BalanceSheetCategoryDto> EquityCategories { get; set; }
+    }
+
+    public class BalanceSheetCategoryDto
+    {
+        public string CategoryName { get; set; }
+
+        public decimal TotalAmount { get; set; }
+
+        public List<BalanceSheetRowDto> Items { get; set; }
+    }
+
+    public class BalanceSheetRowDto
+    {
+        public string AccountName { get; set; }
+
+        public string AccountCode { get; set; }
+
+        public string AccountType { get; set; }
+
+        public decimal Balance { get; set; }
+    }
 }
+

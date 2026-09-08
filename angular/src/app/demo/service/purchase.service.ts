@@ -121,11 +121,29 @@ export class PurchaseService {
             purchaseDate: item.purchaseDate ?? item.PurchaseDate,
             invoiceNo: item.invoiceNo ?? item.InvoiceNo,
             totalAmount: item.totalAmount ?? item.TotalAmount ?? 0,
+            amountPaid: item.amountPaid ?? item.AmountPaid ?? 0,
+            paymentStatus: item.paymentStatus ?? item.PaymentStatus ?? 'Unpaid',
+            dueAmount: item.dueAmount ?? item.DueAmount ?? 0,
             notes: item.notes ?? item.Notes,
             lines: (Array.isArray(lines) ? lines : []).map((line: any) =>
                 this.mapLine(line)
             ),
         };
+    }
+
+    async payPurchase(input: {
+        purchaseId: number;
+        paymentAccountId: number;
+        amount: number;
+        description?: string;
+    }): Promise<void> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/PayPurchase`, input)
+        );
+        if (res == null) {
+            return;
+        }
+        this.unwrap(res, 'Failed to pay purchase');
     }
 
     private mapLine(item: any): PurchaseLineDto {

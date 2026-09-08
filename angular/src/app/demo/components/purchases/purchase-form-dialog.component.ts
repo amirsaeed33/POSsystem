@@ -11,9 +11,11 @@ import { MessageService } from 'primeng/api';
 import { CreatePurchaseDto, CreatePurchaseLineDto } from 'src/app/demo/api/purchase';
 import { ProductDto } from 'src/app/demo/api/product';
 import { SupplierDto } from 'src/app/demo/api/supplier';
+import { BusinessAccountDto } from 'src/app/demo/api/business-account';
 import { PurchaseService } from 'src/app/demo/service/purchase.service';
 import { ProductService } from 'src/app/demo/service/product.service';
 import { SupplierService } from 'src/app/demo/service/supplier.service';
+import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
 
 @Component({
     selector: 'app-purchase-form-dialog',
@@ -27,6 +29,7 @@ export class PurchaseFormDialogComponent implements OnChanges {
     purchase: CreatePurchaseDto = this.emptyPurchase();
     products: ProductDto[] = [];
     suppliers: SupplierDto[] = [];
+    paymentAccounts: BusinessAccountDto[] = [];
     saving = false;
     loading = false;
 
@@ -38,6 +41,7 @@ export class PurchaseFormDialogComponent implements OnChanges {
         private purchaseService: PurchaseService,
         private productService: ProductService,
         private supplierService: SupplierService,
+        private businessAccountService: BusinessAccountService,
         private messageService: MessageService
     ) {}
 
@@ -47,6 +51,7 @@ export class PurchaseFormDialogComponent implements OnChanges {
             0
         );
     }
+
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
@@ -282,6 +287,8 @@ export class PurchaseFormDialogComponent implements OnChanges {
             supplierId: null as any,
             purchaseDate: this.toDateInputValue(),
             notes: '',
+            paymentAccountId: null,
+            amountPaid: 0,
             lines: [this.emptyLine()],
         };
     }
@@ -304,10 +311,26 @@ export class PurchaseFormDialogComponent implements OnChanges {
         Promise.all([
             this.productService.getAll({ skipCount: 0, maxResultCount: 1000 }),
             this.supplierService.getLookup(),
+            this.businessAccountService.getAll({ skipCount: 0, maxResultCount: 1000 }),
         ])
-            .then(([products, suppliers]) => {
+            .then(([products, suppliers, accounts]) => {
                 this.products = products.items;
                 this.suppliers = suppliers;
+                const items = accounts.items || [];
+                const allowedTypes = ['Cash', 'Bank', 'Mobile Wallet'];
+                let filtered = items.filter((a) => {
+                    if (a.isActive === false) return false;
+                    const type = a.accountTypeName || a.accountType || '';
+                    return allowedTypes.some((t) => type.toLowerCase().includes(t.toLowerCase())) ||
+                           a.code === 'CASH' || a.code === 'BANK';
+                });
+                if (!filtered.length) {
+                    filtered = items.filter((a) => a.isActive !== false);
+                }
+                this.paymentAccounts = filtered;
+                if (this.paymentAccounts.length > 0 && !this.purchase.paymentAccountId) {
+                    this.purchase.paymentAccountId = this.paymentAccounts[0].id;
+                }
             })
             .catch((error) => {
                 this.messageService.add({
@@ -321,3 +344,4 @@ export class PurchaseFormDialogComponent implements OnChanges {
             });
     }
 }
+

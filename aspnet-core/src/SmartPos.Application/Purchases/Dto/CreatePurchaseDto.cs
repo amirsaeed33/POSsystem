@@ -18,6 +18,10 @@ namespace SmartPos.Purchases.Dto
         [StringLength(Purchase.MaxNotesLength)]
         public string Notes { get; set; }
 
+        public int? PaymentAccountId { get; set; }
+
+        public decimal AmountPaid { get; set; }
+
         [Required]
         [MinLength(1)]
         public List<CreatePurchaseLineDto> Lines { get; set; }

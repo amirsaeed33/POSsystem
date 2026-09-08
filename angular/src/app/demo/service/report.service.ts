@@ -13,6 +13,9 @@ import {
     StockReportRowDto,
     ProductProfitReportDto,
     ProductProfitReportRowDto,
+    BalanceSheetReportDto,
+    BalanceSheetCategoryDto,
+    BalanceSheetRowDto,
 } from '../api/report';
 import { environment } from '../../../environments/environment';
 
@@ -23,6 +26,20 @@ export class ReportService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Report`;
 
     constructor(private http: HttpClient) {}
+
+    async getBalanceSheetReport(
+        input?: ReportDateRangeInput
+    ): Promise<BalanceSheetReportDto> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetBalanceSheetReport`, {
+                params: this.toParams(input),
+            })
+        );
+        return this.mapBalanceSheetReport(
+            this.unwrap(res, 'Failed to load balance sheet report')
+        );
+    }
+
 
     async getSaleReport(input?: ReportDateRangeInput): Promise<SaleReportDto> {
         const res: any = await firstValueFrom(
@@ -253,4 +270,30 @@ export class ReportService {
             ),
         };
     }
+
+    private mapBalanceSheetReport(data: any): BalanceSheetReportDto {
+        const mapCategory = (cat: any): BalanceSheetCategoryDto => ({
+            categoryName: cat.categoryName ?? cat.CategoryName ?? '',
+            totalAmount: cat.totalAmount ?? cat.TotalAmount ?? 0,
+            items: ((cat.items || cat.Items) || []).map((item: any): BalanceSheetRowDto => ({
+                accountName: item.accountName ?? item.AccountName ?? '',
+                accountCode: item.accountCode ?? item.AccountCode,
+                accountType: item.accountType ?? item.AccountType,
+                balance: item.balance ?? item.Balance ?? 0,
+            })),
+        });
+
+        return {
+            totalAssets: data.totalAssets ?? data.TotalAssets ?? 0,
+            totalLiabilities: data.totalLiabilities ?? data.TotalLiabilities ?? 0,
+            totalEquity: data.totalEquity ?? data.TotalEquity ?? 0,
+            netProfitOrLoss: data.netProfitOrLoss ?? data.NetProfitOrLoss ?? 0,
+            initialCapital: data.initialCapital ?? data.InitialCapital ?? 0,
+            isBalanced: data.isBalanced ?? data.IsBalanced ?? false,
+            assetCategories: ((data.assetCategories || data.AssetCategories) || []).map(mapCategory),
+            liabilityCategories: ((data.liabilityCategories || data.LiabilityCategories) || []).map(mapCategory),
+            equityCategories: ((data.equityCategories || data.EquityCategories) || []).map(mapCategory),
+        };
+    }
 }
+

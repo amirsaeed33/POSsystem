@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
+import { Menu } from 'primeng/menu';
 import { PurchaseDto } from 'src/app/demo/api/purchase';
 import { PurchaseService } from 'src/app/demo/service/purchase.service';
 
@@ -16,8 +17,11 @@ export class PurchaseListComponent implements OnInit {
     loading = false;
     totalRecords = 0;
     keyword = '';
+    menuItems: MenuItem[] = [];
 
     createDialogVisible = false;
+    payDialogVisible = false;
+    payingPurchase: PurchaseDto | null = null;
     viewDialogVisible = false;
     viewingPurchaseId: number | null = null;
     printDialogVisible = false;
@@ -78,6 +82,41 @@ export class PurchaseListComponent implements OnInit {
 
     openCreateDialog(): void {
         this.createDialogVisible = true;
+    }
+
+    openPayDialog(purchase: PurchaseDto): void {
+        this.payingPurchase = purchase;
+        this.payDialogVisible = true;
+    }
+
+    openActionMenu(event: Event, menu: Menu, purchase: PurchaseDto): void {
+        this.menuItems = [
+            {
+                label: 'View Details',
+                icon: 'pi pi-eye',
+                command: () => this.openViewDialog(purchase),
+            },
+            {
+                label: 'Return Purchase',
+                icon: 'pi pi-replay',
+                command: () => this.openReturnDialog(purchase),
+            },
+            {
+                label: 'Print Invoice',
+                icon: 'pi pi-print',
+                command: () => this.openPrintDialog(purchase.id),
+            },
+            {
+                separator: true,
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                disabled: !this.canDelete,
+                command: () => this.onDelete(purchase),
+            },
+        ];
+        menu.toggle(event);
     }
 
     openViewDialog(purchase: PurchaseDto): void {

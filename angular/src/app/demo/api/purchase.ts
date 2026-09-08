@@ -15,6 +15,9 @@ export interface PurchaseDto {
     purchaseDate: string | Date;
     invoiceNo?: string;
     totalAmount: number;
+    amountPaid?: number;
+    paymentStatus?: string;
+    dueAmount?: number;
     notes?: string;
     lines?: PurchaseLineDto[];
 }
@@ -30,6 +33,8 @@ export interface CreatePurchaseDto {
     purchaseDate: string | Date;
     invoiceNo?: string;
     notes?: string;
+    paymentAccountId?: number | null;
+    amountPaid?: number;
     lines: CreatePurchaseLineDto[];
 }
 

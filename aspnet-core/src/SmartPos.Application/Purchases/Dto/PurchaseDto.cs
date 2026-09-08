@@ -18,6 +18,12 @@ namespace SmartPos.Purchases.Dto
 
         public decimal TotalAmount { get; set; }
 
+        public decimal AmountPaid { get; set; }
+
+        public string PaymentStatus { get; set; }
+
+        public decimal DueAmount { get; set; }
+
         public string Notes { get; set; }
 
         public List<PurchaseLineDto> Lines { get; set; }

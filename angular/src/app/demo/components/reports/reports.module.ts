@@ -14,6 +14,7 @@ import { PurchaseReportComponent } from './purchase-report.component';
 import { ExpenseReportComponent } from './expense-report.component';
 import { StockReportComponent } from './stock-report.component';
 import { ProductProfitReportComponent } from './product-profit-report.component';
+import { BalanceSheetReportComponent } from './balance-sheet-report.component';
 import { InvoicePrintModule } from '../invoices/invoice-print.module';
 
 @NgModule({
@@ -36,6 +37,8 @@ import { InvoicePrintModule } from '../invoices/invoice-print.module';
         ExpenseReportComponent,
         StockReportComponent,
         ProductProfitReportComponent,
+        BalanceSheetReportComponent,
     ],
 })
 export class ReportsModule {}
+

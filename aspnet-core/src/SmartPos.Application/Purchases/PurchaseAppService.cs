@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -82,6 +83,13 @@ namespace SmartPos.Purchases
             if (input.PurchaseDate == default)
             {
                 input.PurchaseDate = Abp.Timing.Clock.Now;
+            }
+            else if (input.PurchaseDate.TimeOfDay == TimeSpan.Zero)
+            {
+                var now = Abp.Timing.Clock.Now;
+                input.PurchaseDate = input.PurchaseDate.Date == now.Date 
+                    ? now 
+                    : input.PurchaseDate.Date.Add(now.TimeOfDay);
             }
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
@@ -174,6 +182,39 @@ namespace SmartPos.Purchases
                 Credit = purchase.TotalAmount,
                 Description = description
             });
+
+            // Process Immediate Payment if specified
+            if (input.AmountPaid > 0 && input.PaymentAccountId.HasValue)
+            {
+                var payAmount = System.Math.Min(input.AmountPaid, purchase.TotalAmount);
+                var paymentDescription = $"Payment for Purchase {purchase.InvoiceNo}";
+
+                // Debit Supplier Account (reduces liability/payable)
+                await _ledgerRepository.InsertAsync(new LedgerEntry
+                {
+                    TenantId = AbpSession.TenantId,
+                    AccountId = supplier.AccountId.Value,
+                    TransactionDate = purchase.PurchaseDate,
+                    VoucherType = VoucherTypes.Payment,
+                    VoucherId = purchase.Id,
+                    Debit = payAmount,
+                    Credit = 0,
+                    Description = paymentDescription
+                });
+
+                // Credit Payment Account (Cash/Bank money goes out)
+                await _ledgerRepository.InsertAsync(new LedgerEntry
+                {
+                    TenantId = AbpSession.TenantId,
+                    AccountId = input.PaymentAccountId.Value,
+                    TransactionDate = purchase.PurchaseDate,
+                    VoucherType = VoucherTypes.Payment,
+                    VoucherId = purchase.Id,
+                    Debit = 0,
+                    Credit = payAmount,
+                    Description = paymentDescription
+                });
+            }
 
             await CurrentUnitOfWork.SaveChangesAsync();
 
@@ -280,6 +321,41 @@ namespace SmartPos.Purchases
             return dto;
         }
 
+        public override async Task<PagedResultDto<PurchaseDto>> GetAllAsync(PagedPurchaseResultRequestDto input)
+        {
+            var result = await base.GetAllAsync(input);
+            if (result.Items != null && result.Items.Any())
+            {
+                var purchaseIds = result.Items.Select(x => x.Id).ToList();
+                var paymentEntries = await _ledgerRepository.GetAllListAsync(
+                    x => x.VoucherType == VoucherTypes.Payment && x.VoucherId.HasValue && purchaseIds.Contains(x.VoucherId.Value));
+
+                var paymentMap = paymentEntries
+                    .GroupBy(x => x.VoucherId.Value)
+                    .ToDictionary(g => g.Key, g => g.Sum(x => x.Debit));
+
+                foreach (var dto in result.Items)
+                {
+                    dto.AmountPaid = paymentMap.TryGetValue(dto.Id, out var paid) ? paid : 0;
+                    dto.DueAmount = System.Math.Max(0, dto.TotalAmount - dto.AmountPaid);
+                    if (dto.AmountPaid >= dto.TotalAmount && dto.TotalAmount > 0)
+                    {
+                        dto.PaymentStatus = "Paid";
+                    }
+                    else if (dto.AmountPaid > 0)
+                    {
+                        dto.PaymentStatus = "Partial";
+                    }
+                    else
+                    {
+                        dto.PaymentStatus = "Unpaid";
+                    }
+                }
+            }
+
+            return result;
+        }
+
         public override async Task<PurchaseDto> GetAsync(EntityDto<int> input)
         {
             var entity = await AsyncQueryableExecuter.FirstOrDefaultAsync(
@@ -296,7 +372,91 @@ namespace SmartPos.Purchases
                 line.Product = await _productRepository.FirstOrDefaultAsync(line.ProductId);
             }
 
-            return MapToEntityDto(entity);
+            var dto = MapToEntityDto(entity);
+            var payments = await _ledgerRepository.GetAllListAsync(
+                x => x.VoucherType == VoucherTypes.Payment && x.VoucherId == entity.Id);
+
+            dto.AmountPaid = payments.Sum(x => x.Debit);
+            dto.DueAmount = System.Math.Max(0, dto.TotalAmount - dto.AmountPaid);
+            if (dto.AmountPaid >= dto.TotalAmount && dto.TotalAmount > 0)
+            {
+                dto.PaymentStatus = "Paid";
+            }
+            else if (dto.AmountPaid > 0)
+            {
+                dto.PaymentStatus = "Partial";
+            }
+            else
+            {
+                dto.PaymentStatus = "Unpaid";
+            }
+
+            return dto;
+        }
+
+        public async Task PayPurchaseAsync(MakePaymentInputDto input)
+        {
+            CheckUpdatePermission();
+
+            if (input == null || input.PurchaseId <= 0 || input.Amount <= 0)
+            {
+                throw new UserFriendlyException("Invalid payment request.");
+            }
+
+            var purchase = await GetEntityByIdAsync(input.PurchaseId);
+            if (purchase == null)
+            {
+                throw new UserFriendlyException("Purchase not found.");
+            }
+
+            var supplier = await _supplierRepository.GetAsync(purchase.SupplierId);
+            if (!supplier.AccountId.HasValue)
+            {
+                throw new UserFriendlyException("Supplier has no linked account.");
+            }
+
+            var existingPayments = await _ledgerRepository.GetAllListAsync(
+                x => x.VoucherType == VoucherTypes.Payment && x.VoucherId == purchase.Id);
+            var paidSoFar = existingPayments.Sum(x => x.Debit);
+            var due = System.Math.Max(0, purchase.TotalAmount - paidSoFar);
+
+            if (due <= 0)
+            {
+                throw new UserFriendlyException("This purchase is already fully paid.");
+            }
+
+            var payAmount = System.Math.Min(input.Amount, due);
+            var description = !input.Description.IsNullOrWhiteSpace()
+                ? input.Description
+                : $"Payment for Purchase {purchase.InvoiceNo}";
+
+            // Debit Supplier Account (reduces payable balance)
+            await _ledgerRepository.InsertAsync(new LedgerEntry
+            {
+                TenantId = AbpSession.TenantId,
+                AccountId = supplier.AccountId.Value,
+                TransactionDate = Abp.Timing.Clock.Now,
+                VoucherType = VoucherTypes.Payment,
+                VoucherId = purchase.Id,
+                Debit = payAmount,
+                Credit = 0,
+                Description = description
+            });
+
+            // Credit Payment Account (Cash/Bank money out)
+            await _ledgerRepository.InsertAsync(new LedgerEntry
+            {
+                TenantId = AbpSession.TenantId,
+                AccountId = input.PaymentAccountId,
+                TransactionDate = Abp.Timing.Clock.Now,
+                VoucherType = VoucherTypes.Payment,
+                VoucherId = purchase.Id,
+                Debit = 0,
+                Credit = payAmount,
+                Description = description
+            });
+
+            await CurrentUnitOfWork.SaveChangesAsync();
         }
     }
 }

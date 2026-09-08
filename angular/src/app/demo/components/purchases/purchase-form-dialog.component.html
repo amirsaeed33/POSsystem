@@ -40,6 +40,39 @@
             />
         </div>
 
+        <div class="field col-12 md:col-6">
+            <label for="paymentAccountId">Payment Account (Paid From)</label>
+            <p-dropdown
+                inputId="paymentAccountId"
+                [options]="paymentAccounts"
+                [(ngModel)]="purchase.paymentAccountId"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Select payment account"
+                [filter]="true"
+                filterBy="name"
+                [showClear]="true"
+                appendTo="body"
+            ></p-dropdown>
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label for="amountPaid">Amount Paid Immediately</label>
+            <p-inputNumber
+                inputId="amountPaid"
+                [(ngModel)]="purchase.amountPaid"
+                [min]="0"
+                [max]="grandTotal"
+                mode="decimal"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+                placeholder="0.00"
+            ></p-inputNumber>
+            <small class="text-500" *ngIf="grandTotal > 0">
+                Due: {{ (grandTotal - (purchase.amountPaid || 0)) | number: '1.2-2' }}
+            </small>
+        </div>
+
         <div class="field col-12">
             <label for="notes">Notes</label>
             <input

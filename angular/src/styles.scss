@@ -142,6 +142,16 @@ $gutter: 1rem; //for primeflex grid system
       background-color: rgba(139, 92, 246, 0.2) !important;
     }
   }
+
+  &.more-btn {
+    color: #64748b !important;
+    background-color: rgba(100, 116, 139, 0.08) !important;
+    border: none !important;
+
+    &:hover {
+      background-color: rgba(100, 116, 139, 0.2) !important;
+    }
+  }
 }
 
 /* 3. Mobile Table Horizontal Scroll Fix */

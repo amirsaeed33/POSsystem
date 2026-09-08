@@ -17,7 +17,10 @@ using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Purchases;
 using SmartPos.Reports.Dto;
+using SmartPos.Accounts;
+using SmartPos.Customers;
 using SmartPos.Sales;
+using SmartPos.Suppliers;
 
 namespace SmartPos.Reports
 {
@@ -33,6 +36,10 @@ namespace SmartPos.Reports
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
         private readonly IBranchStockManager _branchStockManager;
+        private readonly IRepository<BusinessAccount> _accountRepository;
+        private readonly AccountBalanceManager _accountBalanceManager;
+        private readonly IRepository<Customer> _customerRepository;
+        private readonly IRepository<Supplier> _supplierRepository;
 
         public ReportAppService(
             IRepository<Sale> saleRepository,
@@ -43,7 +50,11 @@ namespace SmartPos.Reports
             IRepository<BranchStock> branchStockRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
-            IBranchStockManager branchStockManager)
+            IBranchStockManager branchStockManager,
+            IRepository<BusinessAccount> accountRepository,
+            AccountBalanceManager accountBalanceManager,
+            IRepository<Customer> customerRepository,
+            IRepository<Supplier> supplierRepository)
         {
             _saleRepository = saleRepository;
             _purchaseRepository = purchaseRepository;
@@ -54,6 +65,10 @@ namespace SmartPos.Reports
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _branchStockManager = branchStockManager;
+            _accountRepository = accountRepository;
+            _accountBalanceManager = accountBalanceManager;
+            _customerRepository = customerRepository;
+            _supplierRepository = supplierRepository;
         }
 
         public async Task<SaleReportDto> GetSaleReportAsync(ReportDateRangeInput input)
@@ -396,6 +411,203 @@ namespace SmartPos.Reports
             };
         }
 
+        public async Task<BalanceSheetReportDto> GetBalanceSheetReportAsync(ReportDateRangeInput input)
+        {
+            var stockReport = await GetStockReportAsync(input);
+            var totalStockCostValue = stockReport?.TotalStockCostValue ?? 0;
+
+            // Get business accounts and balances
+            var allAccounts = await _accountRepository.GetAllIncluding(a => a.AccountTypeLookup)
+                .AsNoTracking()
+                .Where(a => a.IsActive)
+                .ToListAsync();
+
+            var cashAndBankItems = new List<BalanceSheetRowDto>();
+            var otherAssetItems = new List<BalanceSheetRowDto>();
+            var liabilityItems = new List<BalanceSheetRowDto>();
+            var equityItems = new List<BalanceSheetRowDto>();
+
+            decimal liquidCashBankTotal = 0;
+            decimal totalInitialCapital = 0;
+
+            foreach (var account in allAccounts)
+            {
+                await _accountBalanceManager.EnsureOpeningBalancePostedAsync(account);
+                var balance = await _accountBalanceManager.GetBalanceAsync(account.Id);
+                var accountType = account.AccountTypeLookup?.DisplayName ?? account.AccountTypeLookup?.Name ?? account.AccountType ?? "";
+                totalInitialCapital += account.OpeningBalance;
+
+                var row = new BalanceSheetRowDto
+                {
+                    AccountName = account.Name,
+                    AccountCode = account.Code,
+                    AccountType = accountType,
+                    Balance = balance
+                };
+
+                if (accountType.Equals("Cash", StringComparison.OrdinalIgnoreCase) ||
+                    accountType.Equals("Bank", StringComparison.OrdinalIgnoreCase) ||
+                    accountType.Equals("Mobile Wallet", StringComparison.OrdinalIgnoreCase) ||
+                    account.Code == Accounts.SystemAccountCodes.Cash ||
+                    account.Code == Accounts.SystemAccountCodes.Bank)
+                {
+                    cashAndBankItems.Add(row);
+                    liquidCashBankTotal += balance;
+                }
+                else if (accountType.Equals("Asset", StringComparison.OrdinalIgnoreCase) ||
+                         accountType.Equals("Current Asset", StringComparison.OrdinalIgnoreCase))
+                {
+                    otherAssetItems.Add(row);
+                }
+                else if (accountType.Equals("Liability", StringComparison.OrdinalIgnoreCase) ||
+                         accountType.Equals("Current Liability", StringComparison.OrdinalIgnoreCase))
+                {
+                    liabilityItems.Add(row);
+                }
+                else if (accountType.Equals("Equity", StringComparison.OrdinalIgnoreCase) ||
+                         accountType.Equals("Capital", StringComparison.OrdinalIgnoreCase))
+                {
+                    equityItems.Add(row);
+                }
+            }
+
+            // Customer Receivables (Accounts Receivable)
+            var customers = await _customerRepository.GetAll().AsNoTracking().Where(c => c.AccountId.HasValue).ToListAsync();
+            decimal totalCustomerReceivables = 0;
+            foreach (var customer in customers)
+            {
+                var bal = await _accountBalanceManager.GetBalanceAsync(customer.AccountId.Value);
+                if (bal > 0)
+                {
+                    totalCustomerReceivables += bal;
+                }
+            }
+
+            if (totalCustomerReceivables != 0)
+            {
+                otherAssetItems.Add(new BalanceSheetRowDto
+                {
+                    AccountName = "Accounts Receivable (Customer Receivables)",
+                    AccountCode = "AR-CUST",
+                    AccountType = "Asset",
+                    Balance = totalCustomerReceivables
+                });
+            }
+
+            // Inventory Stock Valuation Asset
+            if (totalStockCostValue > 0)
+            {
+                otherAssetItems.Add(new BalanceSheetRowDto
+                {
+                    AccountName = "Inventory Stock (Cost Valuation)",
+                    AccountCode = "INV-STOCK",
+                    AccountType = "Asset",
+                    Balance = totalStockCostValue
+                });
+            }
+
+            // Supplier Payables (Accounts Payable)
+            var suppliers = await _supplierRepository.GetAll().AsNoTracking().Where(s => s.AccountId.HasValue).ToListAsync();
+            decimal totalSupplierPayables = 0;
+            foreach (var supplier in suppliers)
+            {
+                var bal = await _accountBalanceManager.GetBalanceAsync(supplier.AccountId.Value);
+                if (bal < 0)
+                {
+                    totalSupplierPayables += Math.Abs(bal);
+                }
+            }
+
+            if (totalSupplierPayables != 0)
+            {
+                liabilityItems.Add(new BalanceSheetRowDto
+                {
+                    AccountName = "Accounts Payable (Supplier Payables)",
+                    AccountCode = "AP-SUPP",
+                    AccountType = "Liability",
+                    Balance = totalSupplierPayables
+                });
+            }
+
+            var assetCategories = new List<BalanceSheetCategoryDto>
+            {
+                new BalanceSheetCategoryDto
+                {
+                    CategoryName = "Cash & Liquid Accounts",
+                    TotalAmount = cashAndBankItems.Sum(x => x.Balance),
+                    Items = cashAndBankItems
+                },
+                new BalanceSheetCategoryDto
+                {
+                    CategoryName = "Other Assets & Inventory",
+                    TotalAmount = otherAssetItems.Sum(x => x.Balance),
+                    Items = otherAssetItems
+                }
+            };
+
+            var liabilityCategories = new List<BalanceSheetCategoryDto>
+            {
+                new BalanceSheetCategoryDto
+                {
+                    CategoryName = "Current Liabilities",
+                    TotalAmount = liabilityItems.Sum(x => x.Balance),
+                    Items = liabilityItems
+                }
+            };
+
+            var totalAssets = assetCategories.Sum(c => c.TotalAmount);
+            var totalLiabilities = liabilityCategories.Sum(c => c.TotalAmount);
+
+            // Revenue and Expenses for Net Profit calculation
+            var salesReport = await GetSaleReportAsync(input);
+            var expenseReport = await GetExpenseReportAsync(input);
+            var netProfitOrLoss = (salesReport?.TotalAmount ?? 0) - (expenseReport?.TotalAmount ?? 0);
+
+            if (totalInitialCapital > 0 && !equityItems.Any(x => x.AccountCode == "CAP-INIT"))
+            {
+                equityItems.Add(new BalanceSheetRowDto
+                {
+                    AccountName = "Initial Owner Capital",
+                    AccountCode = "CAP-INIT",
+                    AccountType = "Equity",
+                    Balance = totalInitialCapital
+                });
+            }
+
+            equityItems.Add(new BalanceSheetRowDto
+            {
+                AccountName = "Retained Earnings / Net Profit (Loss)",
+                AccountCode = "NET-PROFIT",
+                AccountType = "Equity",
+                Balance = netProfitOrLoss
+            });
+
+            var equityCategories = new List<BalanceSheetCategoryDto>
+            {
+                new BalanceSheetCategoryDto
+                {
+                    CategoryName = "Owner Equity & Retained Earnings",
+                    TotalAmount = equityItems.Sum(x => x.Balance),
+                    Items = equityItems
+                }
+            };
+
+            var totalEquity = equityCategories.Sum(c => c.TotalAmount);
+
+            return new BalanceSheetReportDto
+            {
+                TotalAssets = totalAssets,
+                TotalLiabilities = totalLiabilities,
+                TotalEquity = totalEquity,
+                NetProfitOrLoss = netProfitOrLoss,
+                InitialCapital = totalInitialCapital,
+                IsBalanced = Math.Abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01m,
+                AssetCategories = assetCategories,
+                LiabilityCategories = liabilityCategories,
+                EquityCategories = equityCategories
+            };
+        }
+
         private static (DateTime from, DateTime toExclusive) NormalizeRange(ReportDateRangeInput input)
         {
             var now = Abp.Timing.Clock.Now;
@@ -411,3 +623,4 @@ namespace SmartPos.Reports
         }
     }
 }
+

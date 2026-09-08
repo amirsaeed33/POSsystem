@@ -334,13 +334,14 @@ namespace SmartPos.Dashboard
             var recentSales = await _saleRepository.GetAllIncluding(x => x.Customer)
                 .AsNoTracking()
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .OrderByDescending(x => x.SaleDate)
+                .OrderByDescending(x => x.CreationTime)
                 .Take(50)
                 .Select(x => new
                 {
                     x.Id,
                     x.InvoiceNo,
                     x.SaleDate,
+                    x.CreationTime,
                     x.TotalAmount,
                     x.CustomerId,
                     CustomerName = x.Customer != null ? x.Customer.Name : null
@@ -350,23 +351,23 @@ namespace SmartPos.Dashboard
             var recentPurchases = await _purchaseRepository.GetAll()
                 .AsNoTracking()
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .OrderByDescending(x => x.PurchaseDate)
+                .OrderByDescending(x => x.CreationTime)
                 .Take(10)
-                .Select(x => new { x.Id, x.InvoiceNo, x.PurchaseDate, x.TotalAmount })
+                .Select(x => new { x.Id, x.InvoiceNo, x.PurchaseDate, x.CreationTime, x.TotalAmount })
                 .ToListAsync();
 
             var recentExpenses = await _expenseRepository.GetAll()
                 .AsNoTracking()
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .OrderByDescending(x => x.ExpenseDate)
+                .OrderByDescending(x => x.CreationTime)
                 .Take(10)
-                .Select(x => new { x.Id, x.ReferenceNo, x.ExpenseDate, x.Amount })
+                .Select(x => new { x.Id, x.ReferenceNo, x.ExpenseDate, x.CreationTime, x.Amount })
                 .ToListAsync();
 
             var recentAdjustments = await _stockAdjustmentRepository.GetAllIncluding(x => x.Lines)
                 .AsNoTracking()
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .OrderByDescending(x => x.AdjustmentDate)
+                .OrderByDescending(x => x.CreationTime)
                 .Take(10)
                 .ToListAsync();
 
@@ -374,7 +375,7 @@ namespace SmartPos.Dashboard
                 recentSales.Select(sale => (
                     sale.Id,
                     sale.InvoiceNo,
-                    sale.SaleDate,
+                    sale.SaleDate.TimeOfDay != TimeSpan.Zero ? sale.SaleDate : sale.CreationTime,
                     sale.TotalAmount,
                     (int?)sale.CustomerId,
                     sale.CustomerName
@@ -386,21 +387,21 @@ namespace SmartPos.Dashboard
                 Type = "sale",
                 Title = "Sale #" + (string.IsNullOrWhiteSpace(sale.InvoiceNo) ? sale.Id.ToString() : sale.InvoiceNo),
                 Amount = sale.TotalAmount,
-                OccurredAt = sale.SaleDate
+                OccurredAt = sale.SaleDate.TimeOfDay != TimeSpan.Zero ? sale.SaleDate : sale.CreationTime
             }));
             timeline.AddRange(recentPurchases.Select(purchase => new DashboardTimelineEventDto
             {
                 Type = "purchase",
                 Title = "Purchase #" + (string.IsNullOrWhiteSpace(purchase.InvoiceNo) ? purchase.Id.ToString() : purchase.InvoiceNo),
                 Amount = purchase.TotalAmount,
-                OccurredAt = purchase.PurchaseDate
+                OccurredAt = purchase.PurchaseDate.TimeOfDay != TimeSpan.Zero ? purchase.PurchaseDate : purchase.CreationTime
             }));
             timeline.AddRange(recentExpenses.Select(expense => new DashboardTimelineEventDto
             {
                 Type = "expense",
                 Title = "Expense #" + (string.IsNullOrWhiteSpace(expense.ReferenceNo) ? expense.Id.ToString() : expense.ReferenceNo),
                 Amount = expense.Amount,
-                OccurredAt = expense.ExpenseDate
+                OccurredAt = expense.ExpenseDate.TimeOfDay != TimeSpan.Zero ? expense.ExpenseDate : expense.CreationTime
             }));
             timeline.AddRange(recentAdjustments.Select(adj =>
             {
@@ -415,7 +416,7 @@ namespace SmartPos.Dashboard
                     Title = "Stock Adjusted #" + (string.IsNullOrWhiteSpace(adj.ReferenceNo) ? adj.Id.ToString() : adj.ReferenceNo),
                     Amount = 0,
                     QuantityLabel = qtyLabel,
-                    OccurredAt = adj.AdjustmentDate
+                    OccurredAt = adj.AdjustmentDate.TimeOfDay != TimeSpan.Zero ? adj.AdjustmentDate : adj.CreationTime
                 };
             }));
 
