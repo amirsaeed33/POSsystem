@@ -360,14 +360,17 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     }
 
     private formatTimeAgo(value: string | Date): string {
-        const date = new Date(value);
+        if (!value) return '';
+        const strVal = typeof value === 'string' ? value : value.toISOString();
+        const date = new Date(strVal);
         if (isNaN(date.getTime())) {
             return '';
         }
-        const seconds = Math.max(
-            0,
-            Math.floor((Date.now() - date.getTime()) / 1000)
-        );
+        const diffMs = Date.now() - date.getTime();
+        if (diffMs < 0 && Math.abs(diffMs) < 60000) {
+            return 'just now';
+        }
+        const seconds = Math.floor(diffMs / 1000);
         if (seconds < 60) {
             return 'just now';
         }

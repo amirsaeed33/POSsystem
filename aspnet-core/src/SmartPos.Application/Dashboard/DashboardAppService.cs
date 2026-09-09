@@ -387,21 +387,21 @@ namespace SmartPos.Dashboard
                 Type = "sale",
                 Title = "Sale #" + (string.IsNullOrWhiteSpace(sale.InvoiceNo) ? sale.Id.ToString() : sale.InvoiceNo),
                 Amount = sale.TotalAmount,
-                OccurredAt = sale.SaleDate.TimeOfDay != TimeSpan.Zero ? sale.SaleDate : sale.CreationTime
+                OccurredAt = EnsureUtc(sale.CreationTime)
             }));
             timeline.AddRange(recentPurchases.Select(purchase => new DashboardTimelineEventDto
             {
                 Type = "purchase",
                 Title = "Purchase #" + (string.IsNullOrWhiteSpace(purchase.InvoiceNo) ? purchase.Id.ToString() : purchase.InvoiceNo),
                 Amount = purchase.TotalAmount,
-                OccurredAt = purchase.PurchaseDate.TimeOfDay != TimeSpan.Zero ? purchase.PurchaseDate : purchase.CreationTime
+                OccurredAt = EnsureUtc(purchase.CreationTime)
             }));
             timeline.AddRange(recentExpenses.Select(expense => new DashboardTimelineEventDto
             {
                 Type = "expense",
                 Title = "Expense #" + (string.IsNullOrWhiteSpace(expense.ReferenceNo) ? expense.Id.ToString() : expense.ReferenceNo),
                 Amount = expense.Amount,
-                OccurredAt = expense.ExpenseDate.TimeOfDay != TimeSpan.Zero ? expense.ExpenseDate : expense.CreationTime
+                OccurredAt = EnsureUtc(expense.CreationTime)
             }));
             timeline.AddRange(recentAdjustments.Select(adj =>
             {
@@ -416,7 +416,7 @@ namespace SmartPos.Dashboard
                     Title = "Stock Adjusted #" + (string.IsNullOrWhiteSpace(adj.ReferenceNo) ? adj.Id.ToString() : adj.ReferenceNo),
                     Amount = 0,
                     QuantityLabel = qtyLabel,
-                    OccurredAt = adj.AdjustmentDate.TimeOfDay != TimeSpan.Zero ? adj.AdjustmentDate : adj.CreationTime
+                    OccurredAt = EnsureUtc(adj.CreationTime)
                 };
             }));
 
@@ -713,6 +713,13 @@ namespace SmartPos.Dashboard
             }
 
             return result;
+        }
+
+        private static DateTime EnsureUtc(DateTime dt)
+        {
+            if (dt == default) return dt;
+            if (dt.Kind == DateTimeKind.Utc) return dt;
+            return DateTime.SpecifyKind(dt, DateTimeKind.Local).ToUniversalTime();
         }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -63,6 +64,13 @@ namespace SmartPos.Expenses
             if (input.ExpenseDate == default)
             {
                 input.ExpenseDate = Abp.Timing.Clock.Now;
+            }
+            else if (input.ExpenseDate.TimeOfDay == TimeSpan.Zero)
+            {
+                var now = Abp.Timing.Clock.Now;
+                input.ExpenseDate = input.ExpenseDate.Date == now.Date 
+                    ? now 
+                    : input.ExpenseDate.Date.Add(now.TimeOfDay);
             }
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
