@@ -1,0 +1,252 @@
+.login-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.login-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+    z-index: 0;
+}
+
+.login-container::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    z-index: 1;
+    background: 
+        radial-gradient(circle at 30% 70%, rgba(35, 166, 213, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 70% 30%, rgba(231, 60, 126, 0.15) 0%, transparent 40%);
+    animation: ambientGlow 20s infinite alternate ease-in-out;
+    pointer-events: none;
+}
+
+@keyframes ambientGlow {
+    0% { transform: scale(1) translate(0, 0); }
+    100% { transform: scale(1.2) translate(5%, -5%); }
+}
+
+
+
+@keyframes panbg {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(-10%, -10%, 0) scale(1.1); }
+}
+
+.floating-icons {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.floating-icons i {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.1);
+    font-size: 4rem;
+}
+
+.floating-icons .icon-1 { left: 10%; animation: floatIcon1 25s infinite ease-in-out; animation-delay: 0s; font-size: 5rem; color: rgba(35, 166, 213, 0.15); }
+.floating-icons .icon-2 { left: 80%; animation: floatIcon2 20s infinite ease-in-out; animation-delay: -5s; font-size: 3rem; color: rgba(231, 60, 126, 0.15); }
+.floating-icons .icon-3 { left: 20%; animation: floatIcon3 22s infinite ease-in-out; animation-delay: -10s; font-size: 4rem; color: rgba(35, 166, 213, 0.15); }
+.floating-icons .icon-4 { left: 60%; animation: floatIcon2 28s infinite ease-in-out; animation-delay: -2s; font-size: 6rem; color: rgba(231, 60, 126, 0.15); }
+.floating-icons .icon-5 { left: 45%; animation: floatIcon1 30s infinite ease-in-out; animation-delay: -15s; font-size: 4.5rem; color: rgba(255, 255, 255, 0.1); }
+.floating-icons .icon-6 { left: 90%; animation: floatIcon3 24s infinite ease-in-out; animation-delay: -8s; font-size: 3.5rem; color: rgba(255, 255, 255, 0.1); }
+
+@keyframes floatIcon1 {
+    0% { transform: translate(0, 100vh) rotate(0deg) scale(0.8); opacity: 0; }
+    20% { transform: translate(30px, 60vh) rotate(45deg) scale(0.9); opacity: 1; }
+    50% { transform: translate(-40px, 20vh) rotate(120deg) scale(1); opacity: 1; }
+    80% { transform: translate(20px, -20vh) rotate(240deg) scale(1.1); opacity: 1; }
+    100% { transform: translate(-10px, -40vh) rotate(360deg) scale(1.2); opacity: 0; }
+}
+
+@keyframes floatIcon2 {
+    0% { transform: translate(0, 100vh) rotate(0deg) scale(1.2); opacity: 0; }
+    20% { transform: translate(-50px, 60vh) rotate(-45deg) scale(1); opacity: 1; }
+    50% { transform: translate(30px, 20vh) rotate(-120deg) scale(0.9); opacity: 1; }
+    80% { transform: translate(-20px, -20vh) rotate(-240deg) scale(0.8); opacity: 1; }
+    100% { transform: translate(40px, -40vh) rotate(-360deg) scale(0.7); opacity: 0; }
+}
+
+@keyframes floatIcon3 {
+    0% { transform: translate(0, 100vh) rotate(0deg) scale(0.9); opacity: 0; }
+    33% { transform: translate(60px, 40vh) rotate(90deg) scale(1.1); opacity: 1; }
+    66% { transform: translate(-60px, 0vh) rotate(180deg) scale(1); opacity: 1; }
+    100% { transform: translate(0, -40vh) rotate(270deg) scale(0.9); opacity: 0; }
+}
+
+@keyframes gridMove {
+    0% { transform: perspective(600px) rotateX(70deg) translateY(0); }
+    100% { transform: perspective(600px) rotateX(70deg) translateY(52px); }
+}
+
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes pulseGlow {
+    0% {
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.4), 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 0 50px rgba(255, 255, 255, 0.4), 0 8px 32px 0 rgba(31, 38, 135, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.4), 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    }
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+    position: relative;
+    z-index: 10;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 2px solid white !important;
+    border-radius: 20px !important;
+    animation: pulseGlow 3s infinite alternate !important;
+}
+
+@keyframes pulseGlowDark {
+    0% {
+        box-shadow: 0 0 15px rgba(35, 166, 213, 0.4), 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(35, 166, 213, 0.7), 0 0 60px rgba(231, 60, 126, 0.5), 0 8px 32px 0 rgba(0, 0, 0, 0.7);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(35, 166, 213, 0.4), 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* Dark mode support if applicable */
+:host-context(body.layout-theme-dark) .glass-card {
+    background: rgba(30, 30, 30, 0.85) !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    animation: pulseGlowDark 3s infinite alternate !important;
+}
+
+.sexy-input {
+    border-radius: 10px !important;
+    transition: all 0.3s ease !important;
+}
+
+.sexy-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(35, 166, 213, 0.25) !important;
+    border-color: #23a6d5 !important;
+}
+
+.sexy-btn {
+    border-radius: 8px !important;
+    background: #1e1e1e !important;
+    color: #ffffff !important;
+    border: none !important;
+    transition: all 0.3s ease !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+:host-context(body.layout-theme-dark) .sexy-btn {
+    background: #ffffff !important;
+    color: #1e1e1e !important;
+}
+
+.sexy-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+.speech-highlight {
+    box-shadow: 0 0 25px 8px rgba(231, 60, 126, 0.6) !important;
+    border: 2px solid rgba(231, 60, 126, 1) !important;
+    transform: scale(1.05) !important;
+    transition: all 0.3s ease-out !important;
+    z-index: 20 !important;
+    position: relative;
+}
+
+.spoken-word-caption {
+    position: absolute;
+    bottom: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 5rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 0 20px rgba(231, 60, 126, 0.9), 0 0 40px rgba(35, 166, 213, 0.9);
+    z-index: 50;
+    pointer-events: none;
+    animation: popWord 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes popWord {
+    0% { opacity: 0; transform: translateX(-50%) scale(0.5) translateY(20px); }
+    100% { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
+}
+
+@keyframes cardEnterLeft {
+    0% { opacity: 0; transform: translateX(-100vw) rotateY(-45deg); }
+    100% { opacity: 1; transform: translateX(0) rotateY(0); }
+}
+
+.card-enter-left {
+    animation: cardEnterLeft 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes flyInUp {
+    0% { opacity: 0; transform: translateY(150px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes flyInDown {
+    0% { opacity: 0; transform: translateY(-150px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes flyInLeft {
+    0% { opacity: 0; transform: translateX(-150px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes flyInRight {
+    0% { opacity: 0; transform: translateX(150px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+
+.fly-in-up { animation: flyInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; opacity: 0; }
+.fly-in-down { animation: flyInDown 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; opacity: 0; }
+.fly-in-left { animation: flyInLeft 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; opacity: 0; }
+.fly-in-right { animation: flyInRight 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; opacity: 0; }
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+/* Ensure cursor pointer on all clickable elements */
+.sexy-btn, .sexy-btn:disabled, .social-login-btn, a, button, label, .p-checkbox, .p-button {
+    cursor: pointer !important;
+}
+
+.sexy-btn * {
+    cursor: pointer !important;
+}
+
+
+

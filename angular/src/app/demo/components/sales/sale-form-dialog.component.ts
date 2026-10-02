@@ -41,6 +41,8 @@ export class SaleFormDialogComponent implements OnChanges {
     printDialogVisible = false;
     printingSaleId: number | null = null;
     printAutoPrint = false;
+    
+    customerDialogVisible = false;
 
     constructor(
         private saleService: SaleService,
@@ -158,6 +160,40 @@ export class SaleFormDialogComponent implements OnChanges {
         if (this.sale.lines.length > 1) {
             this.sale.lines.splice(index, 1);
         }
+    }
+    
+    openCustomerDialog(): void {
+        this.customerDialogVisible = true;
+    }
+    
+    onCustomerSaved(): void {
+        this.customerDialogVisible = false;
+        
+        const oldIds = new Set(this.customers.map(c => c.id));
+        this.saleService.getPosCustomers().then(customers => {
+            const mappedCustomers = (customers || []).map((c) => ({
+                id: c.id,
+                name: c.name,
+                customerType: c.customerType,
+            })) as CustomerDto[];
+            
+            this.customers = [...mappedCustomers]; // new reference for change detection
+            
+            let newCustomer = this.customers.find(c => !oldIds.has(c.id));
+            
+            // Fallback: If no new customer found by ID difference, just pick the one with the highest ID (most recently created)
+            if (!newCustomer && this.customers.length > 0) {
+                newCustomer = this.customers.reduce((prev, current) => (prev.id > current.id) ? prev : current);
+            }
+            
+            if (newCustomer) {
+                // Use setTimeout to ensure Angular has updated the dropdown options before setting the model
+                setTimeout(() => {
+                    this.sale.customerId = newCustomer!.id;
+                    this.onCustomerSelected();
+                });
+            }
+        });
     }
 
     onCustomerSelected(): void {

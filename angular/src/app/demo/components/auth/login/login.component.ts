@@ -1,5 +1,5 @@
 import { animate, style, transition, trigger } from '@angular/animations';
-import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { Component, NgZone, OnDestroy, OnInit, HostListener } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
@@ -16,6 +16,7 @@ type LoginMode = 'password' | 'emailCode';
 
 @Component({
 	templateUrl: './login.component.html',
+	styleUrls: ['./login.component.scss'],
 	providers: [MessageService],
 	animations: [
 		trigger('slideIn', [
@@ -39,10 +40,15 @@ export class LoginComponent implements OnInit, OnDestroy {
 	emailCodeSent = false;
 	emailCodeExpirationMinutes = 5;
 	resendCooldownRemaining = 0;
+	highlightCredentials = false;
+	highlightButton = false;
+	currentSpokenWord = '';
 	private googleClientId = '';
 	private googleScriptLoaded = false;
 	private returnUrl = '/';
 	private resendTimer: ReturnType<typeof setInterval> | null = null;
+	private inactivityTimer: any;
+	private readonly INACTIVITY_LIMIT = 3 * 60 * 1000; // 3 minutes in ms
 
 	constructor(
 		private layoutService: LayoutService,
@@ -70,6 +76,8 @@ export class LoginComponent implements OnInit, OnDestroy {
 	}
 
 	async ngOnInit(): Promise<void> {
+		this.speakGreeting();
+		this.resetInactivityTimer();
 		this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
 
 		// Tenant is resolved from the user on the backend after login — clear any stale picker cookie.
@@ -88,8 +96,138 @@ export class LoginComponent implements OnInit, OnDestroy {
 		}
 	}
 
+	private speakGreeting(): void {
+		if ('speechSynthesis' in window) {
+			setTimeout(() => {
+				const greetings = [
+					"Welcome back! It is an absolute pleasure to see you. Please grace us with your presence by entering your credentials, and softly clicking the sign in button.",
+					"Hello there, wonderful! I am so thrilled to see you today. Please enter your credentials to unlock your dashboard, and elegantly press the sign in button.",
+					"Greetings! The system has been eagerly waiting for you. Simply type your credentials below, and gently hit that sign in button to begin our day.",
+					"Welcome, gorgeous! Let's get started on another amazing day. Kindly provide your credentials, and click the sign in button whenever you are ready."
+				];
+				const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+				
+				const msg = new SpeechSynthesisUtterance(randomGreeting);
+				
+				const playVoice = () => {
+					const voices = window.speechSynthesis.getVoices();
+					// Find a smart female voice (Zira on Windows, Samantha on Mac, or Google's Female voices)
+					const smartGirlVoice = voices.find(v => 
+						v.name.includes('Zira') || 
+						v.name.includes('Female') || 
+						v.name.includes('Samantha') ||
+						v.name.includes('Victoria')
+					);
+					
+					if (smartGirlVoice) {
+						msg.voice = smartGirlVoice;
+					}
+					
+					msg.pitch = 1.2;
+					msg.rate = 1.0;
+					
+					msg.onboundary = (event) => {
+						const exactWord = msg.text.substring(event.charIndex).split(' ')[0].replace(/[^a-zA-Z]/g, '');
+						const word = exactWord.toLowerCase();
+						this.ngZone.run(() => {
+							this.currentSpokenWord = exactWord;
+							if (word === 'credentials') {
+								this.highlightCredentials = true;
+								setTimeout(() => this.highlightCredentials = false, 2000);
+							}
+							if (word === 'sign') {
+								this.highlightButton = true;
+								setTimeout(() => this.highlightButton = false, 2000);
+							}
+						});
+					};
+					
+					msg.onend = () => {
+						this.ngZone.run(() => {
+							this.currentSpokenWord = '';
+						});
+					};
+
+					window.speechSynthesis.speak(msg);
+				};
+
+				if (window.speechSynthesis.getVoices().length > 0) {
+					playVoice();
+				} else {
+					window.speechSynthesis.onvoiceschanged = playVoice;
+				}
+			}, 800);
+		}
+	}
+
+	@HostListener('window:mousemove')
+	@HostListener('window:keydown')
+	@HostListener('window:click')
+	resetInactivityTimer(): void {
+		if (this.inactivityTimer) {
+			clearTimeout(this.inactivityTimer);
+		}
+		this.inactivityTimer = setTimeout(() => {
+			this.speakAttractionMessage();
+		}, this.INACTIVITY_LIMIT);
+	}
+
+	private speakAttractionMessage(): void {
+		if ('speechSynthesis' in window) {
+			const attractionMessages = [
+				"Are you still there? Your beautiful dashboard is waiting for you.",
+				"Hey, I miss you! Please come back and sign in.",
+				"Don't leave me hanging! Type in your credentials and let's go.",
+				"Hello? I am getting lonely over here. Please sign in so we can continue."
+			];
+			const randomMsg = attractionMessages[Math.floor(Math.random() * attractionMessages.length)];
+			
+			const msg = new SpeechSynthesisUtterance(randomMsg);
+			const voices = window.speechSynthesis.getVoices();
+			const smartGirlVoice = voices.find(v => 
+				v.name.includes('Zira') || 
+				v.name.includes('Female') || 
+				v.name.includes('Samantha') ||
+				v.name.includes('Victoria')
+			);
+			
+			if (smartGirlVoice) msg.voice = smartGirlVoice;
+			msg.pitch = 1.2;
+			msg.rate = 1.0;
+			
+			msg.onboundary = (event) => {
+				const exactWord = msg.text.substring(event.charIndex).split(' ')[0].replace(/[^a-zA-Z]/g, '');
+				const word = exactWord.toLowerCase();
+				this.ngZone.run(() => {
+					this.currentSpokenWord = exactWord;
+					if (word === 'credentials') {
+						this.highlightCredentials = true;
+						setTimeout(() => this.highlightCredentials = false, 2000);
+					}
+					if (word === 'sign') {
+						this.highlightButton = true;
+						setTimeout(() => this.highlightButton = false, 2000);
+					}
+				});
+			};
+			
+			msg.onend = () => {
+				this.ngZone.run(() => {
+					this.currentSpokenWord = '';
+				});
+				// Start the timer again after she finishes speaking
+				this.resetInactivityTimer();
+			};
+
+			window.speechSynthesis.speak(msg);
+		}
+	}
+
 	ngOnDestroy(): void {
 		this.clearResendTimer();
+		if (this.inactivityTimer) {
+			clearTimeout(this.inactivityTimer);
+		}
 	}
 
 	get filledInput(): boolean {

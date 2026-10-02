@@ -16,26 +16,31 @@
     <div *ngIf="!loading" class="grid formgrid p-fluid">
         <div class="field col-12 md:col-6">
             <label for="customerId">Customer <span class="text-red-500">*</span></label>
-            <p-dropdown
-                inputId="customerId"
-                [options]="customers"
-                [(ngModel)]="sale.customerId"
-                (ngModelChange)="onCustomerSelected()"
-                optionLabel="name"
-                optionValue="id"
-                placeholder="Select customer"
-                [filter]="true"
-                filterBy="name"
-                [showClear]="true"
-                appendTo="body"
-            >
-                <ng-template let-item pTemplate="item">
-                    {{ customerOptionLabel(item) }}
-                </ng-template>
-                <ng-template let-item pTemplate="selectedItem">
-                    <span *ngIf="item">{{ customerOptionLabel(item) }}</span>
-                </ng-template>
-            </p-dropdown>
+            <div class="flex gap-2">
+                <p-dropdown
+                    class="flex-1"
+                    styleClass="w-full"
+                    inputId="customerId"
+                    [options]="customers"
+                    [(ngModel)]="sale.customerId"
+                    (ngModelChange)="onCustomerSelected()"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Select customer"
+                    [filter]="true"
+                    filterBy="name"
+                    [showClear]="true"
+                    appendTo="body"
+                >
+                    <ng-template let-item pTemplate="item">
+                        {{ customerOptionLabel(item) }}
+                    </ng-template>
+                    <ng-template let-item pTemplate="selectedItem">
+                        <span *ngIf="item">{{ customerOptionLabel(item) }}</span>
+                    </ng-template>
+                </p-dropdown>
+                <button pButton pRipple type="button" icon="pi pi-plus" class="p-button-outlined" (click)="openCustomerDialog()" pTooltip="Add new customer"></button>
+            </div>
         </div>
 
         <div class="field col-12 md:col-6">
@@ -317,3 +322,8 @@
     [saleId]="printingSaleId"
     [autoPrint]="printAutoPrint"
 ></app-print-sale-invoice-dialog>
+
+<app-customer-form-dialog
+    [(visible)]="customerDialogVisible"
+    (saved)="onCustomerSaved()"
+></app-customer-form-dialog>

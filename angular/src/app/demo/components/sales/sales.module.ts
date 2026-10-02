@@ -18,11 +18,13 @@ import { SaleFormDialogComponent } from './sale-form-dialog.component';
 import { SaleViewDialogComponent } from './sale-view-dialog.component';
 import { InvoicePrintModule } from '../invoices/invoice-print.module';
 import { SaleReturnsModule } from '../sale-returns/sale-returns.module';
+import { CustomerSharedModule } from '../customers/customer-shared.module';
 
 @NgModule({
     imports: [
         CommonModule,
         FormsModule,
+        CustomerSharedModule,
         SalesRoutingModule,
         InvoicePrintModule,
         SaleReturnsModule,

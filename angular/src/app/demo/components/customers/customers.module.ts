@@ -14,7 +14,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
 import { CustomersRoutingModule } from './customers-routing.module';
 import { CustomerListComponent } from './customer-list.component';
-import { CustomerFormDialogComponent } from './customer-form-dialog.component';
+import { CustomerSharedModule } from './customer-shared.module';
 
 @NgModule({
     imports: [
@@ -32,7 +32,8 @@ import { CustomerFormDialogComponent } from './customer-form-dialog.component';
         ConfirmDialogModule,
         DropdownModule,
         TagModule,
+        CustomerSharedModule
     ],
-    declarations: [CustomerListComponent, CustomerFormDialogComponent],
+    declarations: [CustomerListComponent]
 })
 export class CustomersModule {}

@@ -1,9 +1,24 @@
-<div class="surface-ground h-screen w-screen flex align-items-center justify-content-center overflow-hidden"
+<div class="login-container h-screen w-screen flex align-items-center justify-content-center overflow-hidden px-4"
     [ngClass]="{'p-input-filled': filledInput}">
-    <div class="surface-card py-7 px-5 sm:px-7 shadow-2 flex flex-column w-11 sm:w-30rem" style="border-radius:14px"
-        [@slideIn]>
-        <h1 class="font-bold text-2xl mt-0 mb-2">SmartPos</h1>
-        <p class="text-color-secondary mb-4">
+    
+    <!-- Floating Background Icons -->
+    <div class="floating-icons">
+        <i class="pi pi-shopping-cart icon-1"></i>
+        <i class="pi pi-credit-card icon-2"></i>
+        <i class="pi pi-chart-line icon-3"></i>
+        <i class="pi pi-wallet icon-4"></i>
+        <i class="pi pi-box icon-5"></i>
+        <i class="pi pi-tags icon-6"></i>
+    </div>
+    
+    <!-- Live Spoken Word Caption -->
+    <div *ngIf="currentSpokenWord" class="spoken-word-caption">
+        {{ currentSpokenWord }}
+    </div>
+
+    <div class="glass-card py-7 px-5 sm:px-7 shadow-2 flex flex-column w-11 card-enter-left" style="border-radius:14px; max-width: 31rem;">
+        <h1 class="font-bold text-2xl mt-0 mb-2 fly-in-down">SmartPos</h1>
+        <p class="text-color-secondary mb-4 fly-in-right delay-1">
             <ng-container *ngIf="loginMode === 'password'">Sign in with your POSsystem account to
                 continue.</ng-container>
             <ng-container *ngIf="loginMode === 'emailCode' && !emailCodeSent">Enter your email to receive a sign-in
@@ -13,11 +28,12 @@
         </p>
 
         <form *ngIf="loginMode === 'password'" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-            <div class="mb-4">
+            <div class="mb-4 fly-in-left delay-1">
                 <span class="p-input-icon-left w-full">
                     <i class="pi pi-user"></i>
-                    <input type="text" pInputText placeholder="Email or Username" class="w-full"
+                    <input type="text" pInputText placeholder="Email or Username" class="w-full sexy-input"
                         formControlName="userNameOrEmailAddress"
+                        [class.speech-highlight]="highlightCredentials"
                         [class.ng-invalid]="loginForm.get('userNameOrEmailAddress')?.invalid && loginForm.get('userNameOrEmailAddress')?.touched"
                         style="padding-left: 2.5rem;">
                 </span>
@@ -27,10 +43,11 @@
                 </small>
             </div>
 
-            <div class="mb-4">
+            <div class="mb-4 fly-in-right delay-2">
                 <span class="p-input-icon-left w-full">
                     <i class="pi pi-key"></i>
-                    <input type="password" pInputText placeholder="Password" class="w-full" formControlName="password"
+                    <input type="password" pInputText placeholder="Password" class="w-full sexy-input" formControlName="password"
+                        [class.speech-highlight]="highlightCredentials"
                         [class.ng-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
                         style="padding-left: 2.5rem;">
                 </span>
@@ -40,12 +57,14 @@
                 </small>
             </div>
 
-            <div class="flex align-items-center mb-4">
+            <div class="flex align-items-center mb-4 fly-in-left delay-3">
                 <p-checkbox formControlName="rememberClient" [binary]="true" inputId="remember"></p-checkbox>
                 <label for="remember" class="ml-2 text-sm">Always keep me signed in</label>
             </div>
 
-            <button type="submit" pButton pRipple class="mb-4 w-full" [disabled]="loading || loginForm.invalid">
+            <button type="submit" pButton pRipple class="mb-4 w-full sexy-btn fly-in-up delay-4" 
+                    [class.speech-highlight]="highlightButton"
+                    [disabled]="loading || loginForm.invalid">
                 <i *ngIf="loading" class="pi pi-spin pi-spinner mr-2"></i>
                 <span *ngIf="!loading">Sign In</span>
                 <span *ngIf="loading">Signing In...</span>
@@ -56,7 +75,7 @@
             <div class="mb-4" *ngIf="!emailCodeSent">
                 <span class="p-input-icon-left w-full">
                     <i class="pi pi-envelope"></i>
-                    <input type="email" pInputText placeholder="Email" class="w-full" formControlName="emailAddress"
+                    <input type="email" pInputText placeholder="Email" class="w-full sexy-input" formControlName="emailAddress"
                         style="padding-left: 2.5rem;">
                 </span>
                 <small class="p-error block mt-1"
@@ -71,7 +90,7 @@
                 </div>
                 <span class="p-input-icon-left w-full">
                     <i class="pi pi-shield"></i>
-                    <input type="text" pInputText placeholder="6-digit code" class="w-full" formControlName="code"
+                    <input type="text" pInputText placeholder="6-digit code" class="w-full sexy-input" formControlName="code"
                         maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="padding-left: 2.5rem;">
                 </span>
                 <small class="p-error block mt-1"
@@ -80,7 +99,7 @@
                 </small>
             </div>
 
-            <button type="submit" pButton pRipple class="mb-3 w-full"
+            <button type="submit" pButton pRipple class="mb-3 w-full sexy-btn"
                 [disabled]="loading || (emailCodeSent ? emailCodeForm.get('code')?.invalid : emailCodeForm.get('emailAddress')?.invalid)">
                 <i *ngIf="loading" class="pi pi-spin pi-spinner mr-2"></i>
                 <span *ngIf="!loading && !emailCodeSent">Send code</span>
@@ -104,9 +123,9 @@
         <p-toast></p-toast>
 
         <ng-container *ngIf="loginMode === 'password'">
-            <span class="text-color-secondary text-center mb-4">or sign in with below</span>
+            <span class="text-color-secondary text-center mb-4 fly-in-up delay-4">or sign in with below</span>
 
-            <div class="flex gap-4 align-items-center justify-content-center">
+            <div class="flex gap-4 align-items-center justify-content-center fly-in-up delay-4">
                 <a href="#"
                     class="inline-flex flex-shrink-0 w-3rem h-3rem justify-content-center align-items-center surface-ground border-circle social-login-btn"
                     [class.opacity-60]="!googleEnabled" (click)="loginWithGoogle($event)" title="Sign in with Google">
@@ -118,15 +137,13 @@
                     <i class="pi pi-envelope text-2xl text-color"></i>
                 </a>
             </div>
-            <div class="text-center text-sm text-color-secondary mt-3">
+            <div class="text-center text-sm text-color-secondary mt-3 fly-in-up delay-4">
                 Forgot password? Use email sign-in code.
             </div>
-            <div class="text-center text-sm mt-3">
+            <div class="text-center text-sm mt-3 fly-in-up delay-4">
                 New company?
                 <a routerLink="/auth/signup" class="font-medium ml-1">Sign up</a>
             </div>
         </ng-container>
     </div>
-</div>
-
-<app-config [minimal]="true"></app-config>
+</div>
