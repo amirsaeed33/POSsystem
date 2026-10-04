@@ -112,12 +112,13 @@
 }
 
 .glass-card {
-    background: rgba(255, 255, 255, 0.85) !important;
+    background: rgba(255, 255, 255, 0.25) !important;
     position: relative;
     z-index: 10;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    border: 2px solid white !important;
+    backdrop-filter: blur(25px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(150%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15) !important;
     border-radius: 20px !important;
     animation: pulseGlow 3s infinite alternate !important;
 }
@@ -136,8 +137,10 @@
 
 /* Dark mode support if applicable */
 :host-context(body.layout-theme-dark) .glass-card {
-    background: rgba(30, 30, 30, 0.85) !important;
-    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    background: rgba(17, 25, 40, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(25px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(150%) !important;
     animation: pulseGlowDark 3s infinite alternate !important;
 }
 

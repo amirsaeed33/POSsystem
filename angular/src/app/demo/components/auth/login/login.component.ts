@@ -42,6 +42,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 	resendCooldownRemaining = 0;
 	highlightCredentials = false;
 	highlightButton = false;
+	showPassword = false;
 	currentSpokenWord = '';
 	private googleClientId = '';
 	private googleScriptLoaded = false;

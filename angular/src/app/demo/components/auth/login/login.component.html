@@ -44,12 +44,13 @@
             </div>
 
             <div class="mb-4 fly-in-right delay-2">
-                <span class="p-input-icon-left w-full">
+                <span class="p-input-icon-left p-input-icon-right w-full">
                     <i class="pi pi-key"></i>
-                    <input type="password" pInputText placeholder="Password" class="w-full sexy-input" formControlName="password"
+                    <input [type]="showPassword ? 'text' : 'password'" pInputText placeholder="Password" class="w-full sexy-input" formControlName="password"
                         [class.speech-highlight]="highlightCredentials"
                         [class.ng-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
-                        style="padding-left: 2.5rem;">
+                        style="padding-left: 2.5rem; padding-right: 2.5rem;">
+                    <i class="pi" [ngClass]="showPassword ? 'pi-eye-slash' : 'pi-eye'" (click)="showPassword = !showPassword" style="cursor: pointer; pointer-events: auto;"></i>
                 </span>
                 <small class="p-error block mt-1"
                     *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
