@@ -46,6 +46,7 @@ interface TimelineEvent {
     type: 'sale' | 'purchase' | 'expense' | 'stock';
     title: string;
     amountLabel: string;
+    amount?: number;
     timeAgo: string;
     occurredAt: number;
     icon: string;
@@ -352,6 +353,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                 type,
                 title: event.title,
                 amountLabel,
+                amount: event.amount ?? 0,
                 timeAgo: this.formatTimeAgo(event.occurredAt),
                 occurredAt: new Date(event.occurredAt).getTime() || 0,
                 ...style,
@@ -672,28 +674,76 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         let profitValues: number[] = [];
 
         if (this.selectedTrendPeriod === 'hour') {
-            // Aggregate data into last 15 Hours (e.g., 09:00, 10:00, ..., 23:00)
-            const currentHour = new Date().getHours();
+            // Aggregate real transaction data into last 15 Hours
+            const now = new Date();
+            const currentHour = now.getHours();
             const hoursList: string[] = [];
+            const hourIndexes = new Map<number, number>();
+
             for (let i = 14; i >= 0; i--) {
                 const h = (currentHour - i + 24) % 24;
                 const formatted = (h < 10 ? '0' : '') + h + ':00';
                 hoursList.push(formatted);
+                hourIndexes.set(h, 14 - i);
             }
             labels = hoursList;
 
-            // Distribute today totals proportionally across active operational hours
-            const salesTotal = this.todaySales || 0;
-            const purchaseTotal = this.todayPurchases || 0;
-            const expenseTotal = this.todayExpenses || 0;
-            const profitTotal = this.todayProfit || (salesTotal - purchaseTotal - expenseTotal);
+            salesValues = new Array(15).fill(0);
+            purchasesValues = new Array(15).fill(0);
+            expensesValues = new Array(15).fill(0);
 
-            // Realistic hourly weight curve (peak hours around mid-day)
-            const weights = [0.02, 0.03, 0.05, 0.08, 0.10, 0.12, 0.14, 0.12, 0.10, 0.08, 0.06, 0.04, 0.03, 0.02, 0.01];
-            salesValues = weights.map(w => Math.round(salesTotal * w));
-            purchasesValues = weights.map(w => Math.round(purchaseTotal * w));
-            expensesValues = weights.map(w => Math.round(expenseTotal * w));
-            profitValues = weights.map(w => Math.round(profitTotal * w));
+            let trackedSales = 0;
+            let trackedPurchases = 0;
+            let trackedExpenses = 0;
+
+            if (this.timelineEvents && this.timelineEvents.length) {
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                const todayEnd = todayStart + 86400000;
+
+                for (const event of this.timelineEvents) {
+                    if (event.occurredAt >= todayStart && event.occurredAt < todayEnd) {
+                        const eventHour = new Date(event.occurredAt).getHours();
+                        const idx = hourIndexes.get(eventHour);
+                        if (idx !== undefined) {
+                            const val = event.amount ?? 0;
+                            if (event.type === 'sale') {
+                                salesValues[idx] += val;
+                                trackedSales += val;
+                            } else if (event.type === 'purchase') {
+                                purchasesValues[idx] += val;
+                                trackedPurchases += val;
+                            } else if (event.type === 'expense') {
+                                expensesValues[idx] += val;
+                                trackedExpenses += val;
+                            }
+                        }
+                    }
+                }
+            }
+
+            const currentHourIndex = hourIndexes.get(currentHour) ?? 14;
+            const untrackedSales = Math.max(0, (this.todaySales || 0) - trackedSales);
+            const untrackedPurchases = Math.max(0, (this.todayPurchases || 0) - trackedPurchases);
+            const untrackedExpenses = Math.max(0, (this.todayExpenses || 0) - trackedExpenses);
+
+            if (untrackedSales > 0) {
+                salesValues[currentHourIndex] += untrackedSales;
+            }
+            if (untrackedPurchases > 0) {
+                purchasesValues[currentHourIndex] += untrackedPurchases;
+            }
+            if (untrackedExpenses > 0) {
+                expensesValues[currentHourIndex] += untrackedExpenses;
+            }
+
+            const profitRatio = (this.todaySales && this.todaySales > 0)
+                ? ((this.todayProfit !== undefined && this.todayProfit !== null ? this.todayProfit : (this.todaySales - this.todayPurchases - this.todayExpenses)) / this.todaySales)
+                : 1;
+
+            profitValues = salesValues.map((s, i) => {
+                const profitFromSales = Math.round(s * profitRatio);
+                return Math.max(0, profitFromSales - expensesValues[i]);
+            });
         } else if (this.selectedTrendPeriod === 'month') {
             // Aggregate data into last 15 Months using cashFlow + current month
             const months = (this.cashFlow || []).slice(-15);
