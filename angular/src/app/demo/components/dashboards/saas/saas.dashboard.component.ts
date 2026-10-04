@@ -103,7 +103,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     selectedTrendChartType = 'bar';
 
     get trendChartTitle(): string {
-        if (this.selectedTrendPeriod === 'hour') return '15-Hour Financial Trend';
+        if (this.selectedTrendPeriod === 'hour') return '24-Hour Financial Trend';
         if (this.selectedTrendPeriod === 'month') return '15-Month Financial Trend';
         if (this.selectedTrendPeriod === 'year') return '15-Year Financial Trend';
         return '15-Day Financial Trend';
@@ -674,23 +674,23 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         let profitValues: number[] = [];
 
         if (this.selectedTrendPeriod === 'hour') {
-            // Aggregate real transaction data into last 15 Hours
+            // Aggregate real transaction data into last 24 Hours
             const now = new Date();
             const currentHour = now.getHours();
             const hoursList: string[] = [];
             const hourIndexes = new Map<number, number>();
 
-            for (let i = 14; i >= 0; i--) {
+            for (let i = 23; i >= 0; i--) {
                 const h = (currentHour - i + 24) % 24;
                 const formatted = (h < 10 ? '0' : '') + h + ':00';
                 hoursList.push(formatted);
-                hourIndexes.set(h, 14 - i);
+                hourIndexes.set(h, 23 - i);
             }
             labels = hoursList;
 
-            salesValues = new Array(15).fill(0);
-            purchasesValues = new Array(15).fill(0);
-            expensesValues = new Array(15).fill(0);
+            salesValues = new Array(24).fill(0);
+            purchasesValues = new Array(24).fill(0);
+            expensesValues = new Array(24).fill(0);
 
             let trackedSales = 0;
             let trackedPurchases = 0;
@@ -721,7 +721,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                 }
             }
 
-            const currentHourIndex = hourIndexes.get(currentHour) ?? 14;
+            const currentHourIndex = hourIndexes.get(currentHour) ?? 23;
             const untrackedSales = Math.max(0, (this.todaySales || 0) - trackedSales);
             const untrackedPurchases = Math.max(0, (this.todayPurchases || 0) - trackedPurchases);
             const untrackedExpenses = Math.max(0, (this.todayExpenses || 0) - trackedExpenses);
