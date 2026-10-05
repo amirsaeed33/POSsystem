@@ -78,6 +78,8 @@ export class BranchService {
             discountAmount: input.discountAmount ?? 0,
             companyTypeId: input.companyTypeId,
             hostCatalogItemIds: input.hostCatalogItemIds || [],
+            dateFormat: input.dateFormat || 'dd/MM/yyyy',
+            currencyFormat: input.currencyFormat || 'PKR',
         };
 
         if (input.imageBase64) body.imageBase64 = input.imageBase64;
@@ -121,6 +123,8 @@ export class BranchService {
                 taxPercent: input.taxPercent ?? 0,
                 discountPercent: input.discountPercent ?? 0,
                 discountAmount: input.discountAmount ?? 0,
+                dateFormat: input.dateFormat || 'dd/MM/yyyy',
+                currencyFormat: input.currencyFormat || 'PKR',
             })
         );
         return this.map(this.unwrap(res, 'Failed to update branch'));
@@ -241,6 +245,8 @@ export class BranchService {
             taxPercent: item.taxPercent ?? item.TaxPercent ?? 0,
             discountPercent: item.discountPercent ?? item.DiscountPercent ?? 0,
             discountAmount: item.discountAmount ?? item.DiscountAmount ?? 0,
+            dateFormat: item.dateFormat ?? item.DateFormat ?? 'dd/MM/yyyy',
+            currencyFormat: item.currencyFormat ?? item.CurrencyFormat ?? 'PKR',
         };
     }
 }

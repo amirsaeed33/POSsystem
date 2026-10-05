@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { PurchaseReportDto } from 'src/app/demo/api/report';
@@ -18,7 +19,7 @@ export class PurchaseReportComponent implements OnInit {
     printDialogVisible = false;
     printingPurchaseId: number | null = null;
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private reportService: ReportService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef

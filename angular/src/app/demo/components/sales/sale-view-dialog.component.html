@@ -21,7 +21,7 @@
             </div>
             <div class="col-12 md:col-6">
                 <div class="text-500 mb-1">Sale Date</div>
-                <div class="font-medium">{{ sale.saleDate | date: 'mediumDate' }}</div>
+                <div class="font-medium">{{ sale.saleDate | date: formatService.dateFormat }}</div>
             </div>
             <div class="col-12 md:col-6">
                 <div class="text-500 mb-1">Customer</div>
@@ -86,7 +86,7 @@
             <div class="flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
                 <div>
                     <strong>#{{ saleReturn.id }}</strong>
-                    — {{ saleReturn.returnDate | date: 'mediumDate' }}
+                    — {{ saleReturn.returnDate | date: formatService.dateFormat }}
                     — Total: {{ saleReturn.totalAmount | number: '1.2-2' }}
                     <span *ngIf="saleReturn.notes" class="text-500"> ({{ saleReturn.notes }})</span>
                 </div>

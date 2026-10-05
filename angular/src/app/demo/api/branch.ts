@@ -29,6 +29,8 @@ export interface BranchDto {
     taxPercent?: number;
     discountPercent?: number;
     discountAmount?: number;
+    dateFormat?: string;
+    currencyFormat?: string;
 }
 
 export interface CreateBranchDto {
@@ -47,6 +49,8 @@ export interface CreateBranchDto {
     discountAmount?: number;
     companyTypeId?: number;
     hostCatalogItemIds?: number[];
+    dateFormat?: string;
+    currencyFormat?: string;
 }
 
 export interface PagedBranchResultRequestDto {

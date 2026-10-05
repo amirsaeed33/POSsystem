@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
@@ -51,7 +52,7 @@ export class OnlineOrderComponent implements OnInit {
 
     loading = false;
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private customerOrderService: CustomerOrderService,
         private branchContext: BranchContextService,
         private branchService: BranchService,

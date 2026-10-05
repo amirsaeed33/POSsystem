@@ -108,7 +108,7 @@
         <ng-template pTemplate="body" let-att>
             <tr>
                 <td>{{ att.staffName || '—' }}</td>
-                <td>{{ att.date | date: 'mediumDate' }}</td>
+                <td>{{ att.date | date: formatService.dateFormat }}</td>
                 <td>
                     <span
                         class="px-2 py-1 border-round font-bold text-xs"

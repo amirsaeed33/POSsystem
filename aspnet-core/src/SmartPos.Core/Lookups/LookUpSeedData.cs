@@ -14,6 +14,7 @@ namespace SmartPos.Lookups
             new(LookUpTypes.LookUpType, LookUpTypes.Gender, "Gender", 40),
             new(LookUpTypes.LookUpType, LookUpTypes.BranchStatus, "Branch Status", 50),
             new(LookUpTypes.LookUpType, LookUpTypes.AccountType, "Account Type", 60),
+            new(LookUpTypes.LookUpType, LookUpTypes.Designation, "Designation", 70),
 
             new(LookUpTypes.PaymentMethod, "Cash", "Cash", 10),
             new(LookUpTypes.PaymentMethod, "Card", "Card", 20),
@@ -50,6 +51,12 @@ namespace SmartPos.Lookups
             new(LookUpTypes.AccountType, "Revenue", "Revenue", 70),
             new(LookUpTypes.AccountType, "Expense", "Expense", 80),
             new(LookUpTypes.AccountType, "Other", "Other", 90),
+
+            new(LookUpTypes.Designation, "Staff", "Staff", 10),
+            new(LookUpTypes.Designation, "Sale man", "Sale man", 20),
+            new(LookUpTypes.Designation, "Manager", "Manager", 30),
+            new(LookUpTypes.Designation, "Cashier", "Cashier", 40),
+            new(LookUpTypes.Designation, "Accountant", "Accountant", 50),
         };
     }
 

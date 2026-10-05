@@ -85,7 +85,7 @@
 
         <ng-template pTemplate="body" let-entry>
             <tr>
-                <td>{{ entry.transactionDate | date: 'mediumDate' }}</td>
+                <td>{{ entry.transactionDate | date: formatService.dateFormat }}</td>
                 <td>{{ entry.accountName || '—' }}</td>
                 <td>{{ entry.voucherType || '—' }}</td>
                 <td>{{ entry.voucherId != null ? entry.voucherId : '—' }}</td>

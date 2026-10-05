@@ -72,7 +72,7 @@
         <ng-template pTemplate="body" let-item>
             <tr>
                 <td>{{ item.referenceNo || ('#' + item.id) }}</td>
-                <td>{{ item.adjustmentDate | date: 'mediumDate' }}</td>
+                <td>{{ item.adjustmentDate | date: formatService.dateFormat }}</td>
                 <td>{{ reasonLabel(item.reason) }}</td>
                 <td>{{ item.notes || '—' }}</td>
                 <td>

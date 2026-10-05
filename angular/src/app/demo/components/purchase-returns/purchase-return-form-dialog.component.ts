@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import {
     Component,
     EventEmitter,
@@ -44,7 +45,7 @@ export class PurchaseReturnFormDialogComponent implements OnChanges {
     returnDate = '';
     notes = '';
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private purchaseReturnService: PurchaseReturnService,
         private purchaseService: PurchaseService,
         private messageService: MessageService

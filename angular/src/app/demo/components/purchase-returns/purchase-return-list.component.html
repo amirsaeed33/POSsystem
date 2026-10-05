@@ -63,7 +63,7 @@
         <ng-template pTemplate="body" let-item>
             <tr>
                 <td>#{{ item.id }}</td>
-                <td>{{ item.returnDate | date: 'mediumDate' }}</td>
+                <td>{{ item.returnDate | date: formatService.dateFormat }}</td>
                 <td>{{ item.purchaseInvoiceNo || ('Purchase #' + item.purchaseId) }}</td>
                 <td>{{ item.supplierName || '—' }}</td>
                 <td>{{ item.totalAmount | number: '1.2-2' }}</td>

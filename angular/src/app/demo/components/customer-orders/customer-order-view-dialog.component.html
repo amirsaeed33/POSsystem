@@ -21,7 +21,7 @@
             </div>
             <div class="col-12 md:col-6">
                 <div class="text-500 mb-1">Order Date</div>
-                <div class="font-medium">{{ order.orderDate | date: 'mediumDate' }}</div>
+                <div class="font-medium">{{ order.orderDate | date: formatService.dateFormat }}</div>
             </div>
             <div class="col-12 md:col-6">
                 <div class="text-500 mb-1">Customer</div>

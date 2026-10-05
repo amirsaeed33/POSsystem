@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import {
     ChangeDetectorRef,
     Component,
@@ -28,7 +29,7 @@ export class PrintExpenseInvoiceDialogComponent implements OnChanges {
     loading = false;
     today = new Date().toLocaleString();
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private expenseService: ExpenseService,
         private branchService: BranchService,
         private messageService: MessageService,

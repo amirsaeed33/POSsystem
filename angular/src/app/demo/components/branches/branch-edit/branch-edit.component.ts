@@ -26,6 +26,32 @@ export class BranchEditComponent implements OnInit {
     branch: BranchDto = this.emptyBranch();
     statusOptions: LookUpDto[] = [];
 
+    dateFormatOptions = [
+        { label: 'dd/MM/yyyy (31/12/2026)', value: 'dd/MM/yyyy' },
+        { label: 'MM/dd/yyyy (12/31/2026)', value: 'MM/dd/yyyy' },
+        { label: 'yyyy-MM-dd (2026-12-31)', value: 'yyyy-MM-dd' },
+        { label: 'dd-MM-yyyy (31-12-2026)', value: 'dd-MM-yyyy' },
+        { label: 'dd MMM yyyy (31 Dec 2026)', value: 'dd MMM yyyy' },
+        { label: 'MMM d, y (Dec 31, 2026)', value: 'MMM d, y' },
+        { label: 'MMMM d, y (December 31, 2026)', value: 'MMMM d, y' },
+        { label: 'EEEE, MMMM d, y (Thursday, December 31, 2026)', value: 'EEEE, MMMM d, y' }
+    ];
+
+    currencyFormatOptions = [
+        { label: 'PKR - Pakistani Rupee', value: 'PKR' },
+        { label: 'USD - US Dollar', value: 'USD' },
+        { label: 'EUR - Euro', value: 'EUR' },
+        { label: 'GBP - British Pound', value: 'GBP' },
+        { label: 'AED - UAE Dirham', value: 'AED' },
+        { label: 'SAR - Saudi Riyal', value: 'SAR' },
+        { label: 'INR - Indian Rupee', value: 'INR' },
+        { label: 'AUD - Australian Dollar', value: 'AUD' },
+        { label: 'CAD - Canadian Dollar', value: 'CAD' },
+        { label: 'SGD - Singapore Dollar', value: 'SGD' },
+        { label: 'JPY - Japanese Yen', value: 'JPY' },
+        { label: 'CNY - Chinese Yuan', value: 'CNY' }
+    ];
+
     imagePreview = '';
     saving = false;
     loading = false;
@@ -137,6 +163,8 @@ export class BranchEditComponent implements OnInit {
             taxPercent: this.branch.taxPercent ?? 0,
             discountPercent: this.branch.discountPercent ?? 0,
             discountAmount: this.branch.discountAmount ?? 0,
+            dateFormat: this.branch.dateFormat || 'dd/MM/yyyy',
+            currencyFormat: this.branch.currencyFormat || 'PKR',
         };
 
 
@@ -294,6 +322,8 @@ export class BranchEditComponent implements OnInit {
             taxPercent: 0,
             discountPercent: 0,
             discountAmount: 0,
+            dateFormat: 'dd/MM/yyyy',
+            currencyFormat: 'PKR',
         };
     }
 }

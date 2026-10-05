@@ -81,7 +81,7 @@
         <ng-template pTemplate="body" let-order>
             <tr>
                 <td>{{ order.orderNo || ('#' + order.id) }}</td>
-                <td>{{ order.orderDate | date: 'mediumDate' }}</td>
+                <td>{{ order.orderDate | date: formatService.dateFormat }}</td>
                 <td>{{ order.customerName || '—' }}</td>
                 <td>
                     <p-tag

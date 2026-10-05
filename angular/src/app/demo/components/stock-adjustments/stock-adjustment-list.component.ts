@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -30,7 +31,7 @@ export class StockAdjustmentListComponent implements OnInit {
     canEdit = false;
     canDelete = false;
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private stockAdjustmentService: StockAdjustmentService,
         private permissionService: PermissionService,
         private messageService: MessageService,

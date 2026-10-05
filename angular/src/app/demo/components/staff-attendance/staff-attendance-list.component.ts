@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, Input, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Table } from 'primeng/table';
@@ -51,7 +52,7 @@ export class StaffAttendanceListComponent implements OnInit {
         this.permissionService.isGranted(PermissionNames.StaffAttendanceDelete) ||
         this.permissionService.isGranted(PermissionNames.StaffAttendance);
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private attendanceService: StaffAttendanceService,
         private staffService: StaffService,
         private permissionService: PermissionService,

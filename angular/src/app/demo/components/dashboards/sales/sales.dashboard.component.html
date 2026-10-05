@@ -174,7 +174,7 @@
                         </td>
                         <td>
                             <span class="p-column-title">Price</span>
-                            {{product.price | currency:'USD'}}
+                            {{product.price | currency: formatService.currencyFormat}}
                         </td>
                         <td class="text-center">
                             <button pButton type="button" icon="pi pi-search" class="p-button-text"></button>

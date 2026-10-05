@@ -89,7 +89,7 @@
         <ng-template pTemplate="body" let-row>
             <tr>
                 <td>{{ row.invoiceNo || ('#' + row.id) }}</td>
-                <td>{{ row.saleDate | date: 'mediumDate' }}</td>
+                <td>{{ row.saleDate | date: formatService.dateFormat }}</td>
                 <td>{{ row.customerName || '—' }}</td>
                 <td class="text-right">{{ row.totalAmount | number: '1.2-2' }}</td>
                 <td>{{ row.notes || '—' }}</td>

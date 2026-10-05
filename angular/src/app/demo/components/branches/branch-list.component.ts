@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -42,7 +43,7 @@ export class BranchListComponent implements OnInit {
         return this.permissionService.isGranted(PermissionNames.BranchesDelete);
     }
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private branchService: BranchService,
         private lookupService: LookUpService,
         private permissionService: PermissionService,

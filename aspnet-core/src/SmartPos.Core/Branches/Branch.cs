@@ -20,6 +20,8 @@ namespace SmartPos.Branches
         public const int MaxWebsiteLength = 512;
         public const int MaxInvoiceFooterLength = 1024;
         public const int MaxActivationTokenHashLength = 128;
+        public const int MaxDateFormatLength = 32;
+        public const int MaxCurrencyFormatLength = 32;
 
         public virtual int? TenantId { get; set; }
 
@@ -58,6 +60,12 @@ namespace SmartPos.Branches
 
         [StringLength(MaxWebsiteLength)]
         public virtual string Website { get; set; }
+
+        [StringLength(MaxDateFormatLength)]
+        public virtual string DateFormat { get; set; } = "dd/MM/yyyy";
+
+        [StringLength(MaxCurrencyFormatLength)]
+        public virtual string CurrencyFormat { get; set; } = "PKR";
 
         [StringLength(MaxInvoiceFooterLength)]
         public virtual string InvoiceFooter { get; set; }

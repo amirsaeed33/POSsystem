@@ -99,7 +99,7 @@
                         <div class="flex align-items-center justify-content-between mt-2 pt-2 border-top-1 surface-border">
                             <div>
                                 <span class="text-xs text-500 block">Price</span>
-                                <span class="text-lg font-bold text-primary">{{ product.price | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                                <span class="text-lg font-bold text-primary">{{ product.price | currency: formatService.currencyFormat:'symbol':'1.2-2' }}</span>
                             </div>
 
                             <button
@@ -139,7 +139,7 @@
                 <div *ngFor="let item of cart" class="p-3 mb-2 border-round surface-card border-1 surface-border flex align-items-center justify-content-between">
                     <div class="flex-1 pr-2">
                         <span class="font-bold text-900 text-sm block line-clamp-1">{{ item.name }}</span>
-                        <span class="text-xs text-500">{{ item.unitPrice | currency:'PKR ':'symbol':'1.2-2' }} / {{ item.unitName }}</span>
+                        <span class="text-xs text-500">{{ item.unitPrice | currency: formatService.currencyFormat:'symbol':'1.2-2' }} / {{ item.unitName }}</span>
                     </div>
 
                     <div class="flex align-items-center gap-2">
@@ -153,7 +153,7 @@
             <div *ngIf="cart.length > 0" class="pt-3 border-top-1 surface-border">
                 <div class="flex align-items-center justify-content-between mb-3">
                     <span class="font-bold text-700">Total Amount</span>
-                    <span class="font-bold text-xl text-primary">{{ cartSubtotal | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                    <span class="font-bold text-xl text-primary">{{ cartSubtotal | currency: formatService.currencyFormat:'symbol':'1.2-2' }}</span>
                 </div>
 
                 <button
@@ -194,7 +194,7 @@
 
             <div class="surface-card p-3 border-round border-1 surface-border mb-3 flex align-items-center justify-content-between">
                 <span class="font-medium text-700">Total Order Price:</span>
-                <span class="font-bold text-xl text-primary">{{ cartSubtotal | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                <span class="font-bold text-xl text-primary">{{ cartSubtotal | currency: formatService.currencyFormat:'symbol':'1.2-2' }}</span>
             </div>
 
             <button
@@ -227,7 +227,7 @@
             <div class="surface-card p-3 border-round border-1 surface-border mb-4">
                 <span class="text-xs text-500 block mb-1">Order Tracking Number</span>
                 <span class="text-xl font-bold text-primary block">{{ confirmedOrderNo }}</span>
-                <span class="text-xs text-600 mt-2 block">Total Amount: {{ confirmedTotal | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                <span class="text-xs text-600 mt-2 block">Total Amount: {{ confirmedTotal | currency: formatService.currencyFormat:'symbol':'1.2-2' }}</span>
             </div>
 
             <button

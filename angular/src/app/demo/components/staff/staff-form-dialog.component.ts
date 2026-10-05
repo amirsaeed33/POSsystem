@@ -12,6 +12,8 @@ import { StaffDto } from 'src/app/demo/api/staff';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { StaffService } from 'src/app/demo/service/staff.service';
+import { LookUpService } from 'src/app/demo/service/lookup.service';
+import { LookUpDto } from 'src/app/demo/api/lookup';
 
 @Component({
     selector: 'app-staff-form-dialog',
@@ -25,6 +27,7 @@ export class StaffFormDialogComponent implements OnChanges {
 
     staff: StaffDto = this.emptyStaff();
     branches: BranchDto[] = [];
+    designations: LookUpDto[] = [];
     saving = false;
     loading = false;
 
@@ -32,6 +35,7 @@ export class StaffFormDialogComponent implements OnChanges {
         private staffService: StaffService,
         private branchService: BranchService,
         private branchContext: BranchContextService,
+        private lookupService: LookUpService,
         private messageService: MessageService
     ) {}
 
@@ -43,6 +47,7 @@ export class StaffFormDialogComponent implements OnChanges {
         if (changes['visible'] && this.visible) {
             this.resetForm();
             this.loadBranches();
+            this.loadDesignations();
             if (this.staffId) {
                 this.loadStaff(this.staffId);
             }
@@ -157,6 +162,17 @@ export class StaffFormDialogComponent implements OnChanges {
             })
             .catch(() => {
                 this.branches = [];
+            });
+    }
+
+    private loadDesignations(): void {
+        this.lookupService
+            .getByType('Designation')
+            .then((items) => {
+                this.designations = items || [];
+            })
+            .catch(() => {
+                this.designations = [];
             });
     }
 

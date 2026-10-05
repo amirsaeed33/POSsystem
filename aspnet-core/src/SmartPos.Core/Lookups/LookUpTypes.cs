@@ -15,5 +15,6 @@ namespace SmartPos.Lookups
         public const string Gender = "Gender";
         public const string BranchStatus = "BranchStatus";
         public const string AccountType = "AccountType";
+        public const string Designation = "Designation";
     }
 }

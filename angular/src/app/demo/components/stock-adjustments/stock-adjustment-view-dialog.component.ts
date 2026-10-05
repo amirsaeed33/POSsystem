@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import {
     Component,
     EventEmitter,
@@ -25,7 +26,7 @@ export class StockAdjustmentViewDialogComponent implements OnChanges {
     adjustment: StockAdjustmentDto | null = null;
     loading = false;
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private stockAdjustmentService: StockAdjustmentService,
         private messageService: MessageService
     ) {}

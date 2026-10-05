@@ -39,15 +39,16 @@
             </div>
             <div class="col-12 md:col-6 flex flex-column gap-2">
                 <label for="staffDesignation" class="font-medium">Designation</label>
-                <input
-                    id="staffDesignation"
-                    type="text"
-                    pInputText
-                    class="w-full"
-                    maxlength="128"
+                <p-dropdown
+                    inputId="staffDesignation"
+                    [options]="designations"
+                    optionLabel="displayName"
+                    optionValue="displayName"
                     [(ngModel)]="staff.designation"
+                    placeholder="Select Designation"
+                    styleClass="w-full"
                     [disabled]="saving"
-                />
+                ></p-dropdown>
             </div>
         </div>
 

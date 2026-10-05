@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Table } from 'primeng/table';
@@ -29,7 +30,7 @@ export class CustomerOrderListComponent implements OnInit {
         { label: 'Rejected', value: CustomerOrderStatus.Rejected },
     ];
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private customerOrderService: CustomerOrderService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService,

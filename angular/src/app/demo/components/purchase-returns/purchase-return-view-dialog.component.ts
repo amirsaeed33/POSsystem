@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import {
     Component,
     EventEmitter,
@@ -23,7 +24,7 @@ export class PurchaseReturnViewDialogComponent implements OnChanges {
     purchaseReturn: PurchaseReturnDto | null = null;
     loading = false;
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private purchaseReturnService: PurchaseReturnService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService

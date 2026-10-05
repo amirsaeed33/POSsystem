@@ -45,7 +45,7 @@
                 </div>
                 <div>
                     <strong>Expense Date:</strong>
-                    {{ expense.expenseDate | date: 'mediumDate' }}
+                    {{ expense.expenseDate | date: formatService.dateFormat }}
                 </div>
             </div>
         </div>

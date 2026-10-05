@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import {
     Component,
     EventEmitter,
@@ -23,7 +24,7 @@ export class SaleReturnViewDialogComponent implements OnChanges {
     saleReturn: SaleReturnDto | null = null;
     loading = false;
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private saleReturnService: SaleReturnService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService

@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -21,7 +22,7 @@ export class LedgerEntryListComponent implements OnInit {
     dialogVisible = false;
     editingEntryId: number | null = null;
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private ledgerEntryService: LedgerEntryService,
         private businessAccountService: BusinessAccountService,
         private messageService: MessageService,

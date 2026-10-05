@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import {Component, OnInit, ViewChild, ElementRef} from '@angular/core';
 import {SelectItem} from 'primeng/api';
 import { Product } from 'src/app/demo/api/product';
@@ -46,7 +47,7 @@ export class SalesDashboardComponent implements OnInit {
 
     @ViewChild('chatcontainer') chatContainerViewChild!: ElementRef;
 
-    constructor(private productService: ProductService, public layoutService: LayoutService) {}
+    constructor(public formatService: AppFormatService, private productService: ProductService, public layoutService: LayoutService) {}
 
     ngOnInit() {
         this.productService.getProducts().then(data => this.products = data.slice(0, 5));

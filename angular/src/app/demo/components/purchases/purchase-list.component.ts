@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
@@ -34,7 +35,7 @@ export class PurchaseListComponent implements OnInit {
     canEdit = false;
     canDelete = false;
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private purchaseService: PurchaseService,
         private permissionService: PermissionService,
         private messageService: MessageService,

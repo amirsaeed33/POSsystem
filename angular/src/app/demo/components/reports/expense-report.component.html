@@ -77,7 +77,7 @@
         </ng-template>
         <ng-template pTemplate="body" let-row>
             <tr>
-                <td>{{ row.expenseDate | date: 'mediumDate' }}</td>
+                <td>{{ row.expenseDate | date: formatService.dateFormat }}</td>
                 <td>{{ row.referenceNo || ('#' + row.id) }}</td>
                 <td>{{ row.description || '—' }}</td>
                 <td>{{ row.paymentAccountName || '—' }}</td>

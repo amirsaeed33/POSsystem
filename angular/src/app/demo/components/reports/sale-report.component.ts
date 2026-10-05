@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { SaleReportDto } from 'src/app/demo/api/report';
@@ -21,7 +22,7 @@ export class SaleReportComponent implements OnInit {
     printDialogVisible = false;
     printingSaleId: number | null = null;
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private reportService: ReportService,
         private notificationEmailService: NotificationEmailService,
         private messageService: MessageService,

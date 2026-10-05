@@ -21,6 +21,12 @@ namespace SmartPos.Branches.Dto
         [StringLength(Branch.MaxAddressLength)]
         public string InvoiceAddress { get; set; }
 
+        [StringLength(Branch.MaxDateFormatLength)]
+        public string DateFormat { get; set; } = "dd/MM/yyyy";
+
+        [StringLength(Branch.MaxCurrencyFormatLength)]
+        public string CurrencyFormat { get; set; } = "PKR";
+
         [StringLength(Branch.MaxEmailLength)]
         public string InvoiceContactEmail { get; set; }
 

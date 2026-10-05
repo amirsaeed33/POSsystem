@@ -285,7 +285,7 @@
                 <div class="invoice-meta text-right">
                     <div class="doc-title text-2xl font-bold text-primary mb-1">SALE INVOICE</div>
                     <div class="text-sm text-700"><strong>Invoice No:</strong> INV-2026-0089</div>
-                    <div class="text-sm text-700"><strong>Date:</strong> {{ dummyInvoiceDate | date: 'mediumDate' }}</div>
+                    <div class="text-sm text-700"><strong>Date:</strong> {{ dummyInvoiceDate | date: formatService.dateFormat }}</div>
                     <div class="text-sm text-700"><strong>Payment Method:</strong> Cash</div>
                 </div>
             </div>
@@ -357,7 +357,7 @@
                 <div *ngIf="!selectedInvoiceBranch.invoiceFooter" class="font-medium text-700 mb-1">
                     Thank you for shopping with us! Please visit again.
                 </div>
-                <div class="text-xs text-500">Printed On: {{ printDate | date:'medium' }}</div>
+                <div class="text-xs text-500">Printed On: {{ printDate | date: formatService.dateFormat }}</div>
             </div>
         </div>
 

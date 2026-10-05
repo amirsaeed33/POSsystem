@@ -1,3 +1,4 @@
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -19,7 +20,7 @@ export class SaleReturnListComponent implements OnInit {
     viewingReturnId: number | null = null;
     createSaleId: number | null = null;
 
-    constructor(
+    constructor(public formatService: AppFormatService, 
         private saleReturnService: SaleReturnService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
