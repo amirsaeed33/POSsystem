@@ -132,6 +132,9 @@ namespace SmartPos.Authorization
             tenants.CreateChildPermission(PermissionNames.Pages_Tenants_Create, L("CreateTenant"));
             tenants.CreateChildPermission(PermissionNames.Pages_Tenants_Edit, L("EditTenant"));
             tenants.CreateChildPermission(PermissionNames.Pages_Tenants_Delete, L("DeleteTenant"));
+
+            var notificationSettings = context.CreatePermission(PermissionNames.Pages_NotificationSettings, L("NotificationSettings"));
+            notificationSettings.CreateChildPermission(PermissionNames.Pages_NotificationSettings_Edit, L("EditNotificationSettings"));
         }
 
         private static ILocalizableString L(string name)

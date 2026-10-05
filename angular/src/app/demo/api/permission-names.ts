@@ -118,4 +118,7 @@ export const PermissionNames = {
     HostCatalogCreate: 'Pages.HostCatalog.Create',
     HostCatalogEdit: 'Pages.HostCatalog.Edit',
     HostCatalogDelete: 'Pages.HostCatalog.Delete',
+
+    NotificationSettings: 'Pages.NotificationSettings',
+    NotificationSettingsEdit: 'Pages.NotificationSettings.Edit',
 } as const;

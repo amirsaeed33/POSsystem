@@ -20,6 +20,7 @@ using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Products.Dto;
 using SmartPos.Sales.Dto;
+using SmartPos.BranchNotificationSettings;
 
 namespace SmartPos.Sales
 {
@@ -39,6 +40,7 @@ namespace SmartPos.Sales
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<BusinessAccount> _accountRepository;
         private readonly SystemAccountManager _systemAccountManager;
+        private readonly IBranchNotificationService _branchNotificationService;
 
         public SaleAppService(
             IRepository<Sale> repository,
@@ -54,7 +56,8 @@ namespace SmartPos.Sales
             IRepository<BranchStock> branchStockRepository,
             IRepository<Branch> branchRepository,
             IRepository<BusinessAccount> accountRepository,
-            SystemAccountManager systemAccountManager)
+            SystemAccountManager systemAccountManager,
+            IBranchNotificationService branchNotificationService)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -70,6 +73,7 @@ namespace SmartPos.Sales
             _branchRepository = branchRepository;
             _accountRepository = accountRepository;
             _systemAccountManager = systemAccountManager;
+            _branchNotificationService = branchNotificationService;
             CreatePermissionName = PermissionNames.Pages_Sales_Create;
             UpdatePermissionName = PermissionNames.Pages_Sales_Edit;
             DeletePermissionName = PermissionNames.Pages_Sales_Delete;
@@ -352,6 +356,16 @@ namespace SmartPos.Sales
 
             var dto = MapToEntityDto(sale);
             await PopulateReturnFlagsAsync(new[] { dto });
+
+            _branchNotificationService.SendNotificationAfterCommit(
+                BranchNotificationType.Sale,
+                sale.TenantId,
+                sale.BranchId,
+                sale.InvoiceNo,
+                sale.TotalAmount,
+                AbpSession.UserId,
+                sale.SaleDate);
+
             return dto;
         }
 

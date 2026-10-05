@@ -108,6 +108,7 @@ export class AppMenuComponent implements OnInit {
                     { label: 'Roles', icon: 'pi pi-lock', routerLink: ['/profile/role'], permission: PermissionNames.Roles },
                     { label: 'Branches', icon: 'pi pi-sitemap', routerLink: ['/branches'], permission: PermissionNames.Branches },
                     { label: 'Lookups', icon: 'pi pi-list', routerLink: ['/lookups'], permission: PermissionNames.LookUps },
+                    { label: 'Notification Settings', icon: 'pi pi-bell', routerLink: ['/notification-settings'], permission: PermissionNames.NotificationSettings },
                     { label: 'Company types', icon: 'pi pi-building', routerLink: ['/host-catalog'], permission: PermissionNames.HostCatalog },
                     { label: 'Email Templates', icon: 'pi pi-envelope', routerLink: ['/email-templates'], permission: PermissionNames.EmailTemplates },
                     { label: 'Tenants', icon: 'pi pi-globe', routerLink: ['/tenants'], permission: PermissionNames.Tenants },

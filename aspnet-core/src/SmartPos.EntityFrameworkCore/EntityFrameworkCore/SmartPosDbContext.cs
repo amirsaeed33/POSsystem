@@ -30,6 +30,8 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<Branch> Branches { get; set; }
 
+        public virtual DbSet<BranchNotificationSetting> BranchNotificationSettings { get; set; }
+
         public virtual DbSet<BranchStock> BranchStocks { get; set; }
 
         public virtual DbSet<Brand> Brands { get; set; }
@@ -127,6 +129,17 @@ namespace SmartPos.EntityFrameworkCore
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<BranchNotificationSetting>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.BranchId })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             modelBuilder.Entity<LookUp>(b =>
             {
