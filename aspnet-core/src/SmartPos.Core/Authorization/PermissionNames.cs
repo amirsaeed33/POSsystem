@@ -122,5 +122,8 @@ namespace SmartPos.Authorization
         public const string Pages_HostCatalog_Create = "Pages.HostCatalog.Create";
         public const string Pages_HostCatalog_Edit = "Pages.HostCatalog.Edit";
         public const string Pages_HostCatalog_Delete = "Pages.HostCatalog.Delete";
+
+        public const string Pages_NotificationSettings = "Pages.NotificationSettings";
+        public const string Pages_NotificationSettings_Edit = "Pages.NotificationSettings.Edit";
     }
 }

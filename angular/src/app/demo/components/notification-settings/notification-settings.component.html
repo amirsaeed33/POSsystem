@@ -1,0 +1,200 @@
+<p-toast></p-toast>
+
+<div class="grid">
+    <div class="col-12">
+        <div class="card p-fluid">
+            <!-- Header Section -->
+            <div class="flex flex-column md:flex-row justify-content-between align-items-start md:align-items-center mb-4 pb-3 border-bottom-1 surface-border gap-3">
+                <div>
+                    <h4 class="m-0 text-900 font-semibold flex align-items-center gap-2">
+                        <i class="pi pi-bell text-primary text-2xl"></i>
+                        Branch Notification Settings
+                    </h4>
+                    <p class="text-600 m-0 mt-1">
+                        Configure automated email notifications for sales, purchases, and expenses for this branch location.
+                    </p>
+                </div>
+
+                <div class="flex align-items-center gap-2">
+                    <p-tag *ngIf="currentBranch" [value]="currentBranch.name" icon="pi pi-building" severity="info" [rounded]="true"></p-tag>
+                    <p-tag *ngIf="!currentBranch" value="No Branch Selected" severity="warning" [rounded]="true"></p-tag>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div *ngIf="loading" class="flex flex-column align-items-center justify-content-center p-6 text-600 gap-3">
+                <i class="pi pi-spin pi-spinner text-4xl text-primary"></i>
+                <span>Loading notification settings...</span>
+            </div>
+
+            <!-- Content when not loading -->
+            <div *ngIf="!loading">
+                <!-- Master Toggle Section -->
+                <div class="p-4 mb-4 border-round-xl border-1 surface-border" [ngClass]="isEnabled ? 'bg-primary-reverse border-primary' : 'surface-card'">
+                    <div class="flex align-items-center justify-content-between gap-4">
+                        <div class="flex align-items-center gap-3">
+                            <div class="flex align-items-center justify-content-center border-round-lg w-3rem h-3rem" [ngClass]="isEnabled ? 'bg-primary text-white' : 'surface-200 text-600'">
+                                <i class="pi pi-power-off text-xl"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-900 text-lg">Master Notification Switch</div>
+                                <div class="text-600 text-sm mt-1">
+                                    {{ isEnabled ? 'Automated email alerts are currently ACTIVE for this branch.' : 'Automated email alerts are currently DISABLED for this branch.' }}
+                                </div>
+                            </div>
+                        </div>
+                        <p-inputSwitch [(ngModel)]="isEnabled"></p-inputSwitch>
+                    </div>
+                </div>
+
+                <!-- Event Toggles Section -->
+                <div class="mb-5">
+                    <h5 class="text-900 font-medium mb-3 flex align-items-center gap-2">
+                        <i class="pi pi-sliders-h text-primary"></i>
+                        Event Notification Triggers
+                    </h5>
+
+                    <div class="grid">
+                        <!-- Sale Trigger -->
+                        <div class="col-12 md:col-4">
+                            <div class="p-3 border-round-lg border-1 surface-border h-full flex flex-column justify-content-between surface-card shadow-1" [style.opacity]="isEnabled ? '1' : '0.6'">
+                                <div class="flex justify-content-between align-items-start mb-3">
+                                    <div class="flex align-items-center gap-2">
+                                        <div class="flex align-items-center justify-content-center border-round w-2rem h-2rem bg-green-100 text-green-700">
+                                            <i class="pi pi-shopping-cart"></i>
+                                        </div>
+                                        <span class="font-semibold text-900">Sale Created</span>
+                                    </div>
+                                    <p-inputSwitch [(ngModel)]="notifyOnSale" [disabled]="!isEnabled"></p-inputSwitch>
+                                </div>
+                                <p class="text-600 text-sm m-0">
+                                    Send email when a new customer sale is successfully recorded in this branch.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Purchase Trigger -->
+                        <div class="col-12 md:col-4">
+                            <div class="p-3 border-round-lg border-1 surface-border h-full flex flex-column justify-content-between surface-card shadow-1" [style.opacity]="isEnabled ? '1' : '0.6'">
+                                <div class="flex justify-content-between align-items-start mb-3">
+                                    <div class="flex align-items-center gap-2">
+                                        <div class="flex align-items-center justify-content-center border-round w-2rem h-2rem bg-indigo-100 text-indigo-700">
+                                            <i class="pi pi-shopping-bag"></i>
+                                        </div>
+                                        <span class="font-semibold text-900">Purchase Created</span>
+                                    </div>
+                                    <p-inputSwitch [(ngModel)]="notifyOnPurchase" [disabled]="!isEnabled"></p-inputSwitch>
+                                </div>
+                                <p class="text-600 text-sm m-0">
+                                    Send email when a new supplier purchase order is saved in this branch.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Expense Trigger -->
+                        <div class="col-12 md:col-4">
+                            <div class="p-3 border-round-lg border-1 surface-border h-full flex flex-column justify-content-between surface-card shadow-1" [style.opacity]="isEnabled ? '1' : '0.6'">
+                                <div class="flex justify-content-between align-items-start mb-3">
+                                    <div class="flex align-items-center gap-2">
+                                        <div class="flex align-items-center justify-content-center border-round w-2rem h-2rem bg-amber-100 text-amber-700">
+                                            <i class="pi pi-wallet"></i>
+                                        </div>
+                                        <span class="font-semibold text-900">Expense Created</span>
+                                    </div>
+                                    <p-inputSwitch [(ngModel)]="notifyOnExpense" [disabled]="!isEnabled"></p-inputSwitch>
+                                </div>
+                                <p class="text-600 text-sm m-0">
+                                    Send email when a new expense voucher is created in this branch.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recipient Emails Section -->
+                <div class="mb-5">
+                    <h5 class="text-900 font-medium mb-3 flex align-items-center gap-2">
+                        <i class="pi pi-envelope text-primary"></i>
+                        Notification Recipients
+                    </h5>
+
+                    <!-- Input + Add Button -->
+                    <div class="flex flex-column sm:flex-row gap-2 mb-2">
+                        <div class="flex-grow-1">
+                            <div class="p-input-icon-left w-full">
+                                <i class="pi pi-at"></i>
+                                <input
+                                    type="email"
+                                    pInputText
+                                    [(ngModel)]="newEmailInput"
+                                    (keydown.enter)="$event.preventDefault(); addEmail()"
+                                    placeholder="Enter email address (e.g. manager@branch.com)"
+                                    class="w-full"
+                                />
+                            </div>
+                        </div>
+                        <button
+                            pButton
+                            type="button"
+                            label="Add Recipient"
+                            icon="pi pi-plus"
+                            class="p-button-outlined sm:w-auto"
+                            (click)="addEmail()"
+                        ></button>
+                    </div>
+
+                    <!-- Validation Error Message -->
+                    <small *ngIf="emailInputError" class="p-error block mb-3 flex align-items-center gap-1">
+                        <i class="pi pi-exclamation-circle"></i>
+                        {{ emailInputError }}
+                    </small>
+
+                    <!-- Email List Display -->
+                    <div class="surface-card border-round-lg border-1 surface-border p-3 mt-3">
+                        <div class="text-600 text-xs font-semibold uppercase tracking-wider mb-2">
+                            Configured Recipient Emails ({{ emailList.length }})
+                        </div>
+
+                        <div *ngIf="!emailList.length" class="text-center py-4 text-500">
+                            <i class="pi pi-inbox text-3xl mb-2 text-400"></i>
+                            <p class="m-0 text-sm">No recipient emails added yet. Enter an email address above and click "Add Recipient".</p>
+                        </div>
+
+                        <div *ngIf="emailList.length" class="flex flex-wrap gap-2">
+                            <span
+                                *ngFor="let email of emailList; let i = index"
+                                class="inline-flex align-items-center gap-2 px-3 py-2 border-round-xl surface-100 border-1 surface-border text-800 text-sm font-medium hover:surface-200 transition-colors"
+                            >
+                                <i class="pi pi-envelope text-primary text-xs"></i>
+                                <span>{{ email }}</span>
+                                <button
+                                    type="button"
+                                    class="p-link text-500 hover:text-red-500 flex align-items-center justify-content-center ml-1"
+                                    (click)="removeEmail(i)"
+                                    pTooltip="Remove recipient"
+                                    tooltipPosition="top"
+                                >
+                                    <i class="pi pi-times text-xs"></i>
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="flex justify-content-end gap-2 pt-3 border-top-1 surface-border">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Save Notification Settings"
+                        icon="pi pi-check"
+                        class="p-button-primary w-full sm:w-auto"
+                        [loading]="saving"
+                        (click)="save()"
+                    ></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

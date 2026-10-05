@@ -17,6 +17,7 @@ using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Purchases.Dto;
 using SmartPos.Suppliers;
+using SmartPos.BranchNotificationSettings;
 
 namespace SmartPos.Purchases
 {
@@ -33,6 +34,7 @@ namespace SmartPos.Purchases
         private readonly IBranchContext _branchContext;
         private readonly IBranchStockManager _branchStockManager;
         private readonly SystemAccountManager _systemAccountManager;
+        private readonly IBranchNotificationService _branchNotificationService;
 
         public PurchaseAppService(
             IRepository<Purchase> repository,
@@ -45,7 +47,8 @@ namespace SmartPos.Purchases
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
             IBranchStockManager branchStockManager,
-            SystemAccountManager systemAccountManager)
+            SystemAccountManager systemAccountManager,
+            IBranchNotificationService branchNotificationService)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -58,6 +61,7 @@ namespace SmartPos.Purchases
             _branchContext = branchContext;
             _branchStockManager = branchStockManager;
             _systemAccountManager = systemAccountManager;
+            _branchNotificationService = branchNotificationService;
             CreatePermissionName = PermissionNames.Pages_Purchases_Create;
             UpdatePermissionName = PermissionNames.Pages_Purchases_Edit;
             DeletePermissionName = PermissionNames.Pages_Purchases_Delete;
@@ -223,6 +227,15 @@ namespace SmartPos.Purchases
             {
                 line.Product = await _productRepository.FirstOrDefaultAsync(line.ProductId);
             }
+
+            _branchNotificationService.SendNotificationAfterCommit(
+                BranchNotificationType.Purchase,
+                purchase.TenantId,
+                purchase.BranchId,
+                purchase.InvoiceNo,
+                purchase.TotalAmount,
+                AbpSession.UserId,
+                purchase.PurchaseDate);
 
             return MapToEntityDto(purchase);
         }

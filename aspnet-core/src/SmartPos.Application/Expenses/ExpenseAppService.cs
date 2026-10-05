@@ -13,6 +13,7 @@ using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Expenses.Dto;
+using SmartPos.BranchNotificationSettings;
 
 namespace SmartPos.Expenses
 {
@@ -25,6 +26,7 @@ namespace SmartPos.Expenses
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
         private readonly SystemAccountManager _systemAccountManager;
+        private readonly IBranchNotificationService _branchNotificationService;
 
         public ExpenseAppService(
             IRepository<Expense> repository,
@@ -33,7 +35,8 @@ namespace SmartPos.Expenses
             IRepository<User, long> userRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
-            SystemAccountManager systemAccountManager)
+            SystemAccountManager systemAccountManager,
+            IBranchNotificationService branchNotificationService)
             : base(repository)
         {
             _accountRepository = accountRepository;
@@ -42,6 +45,7 @@ namespace SmartPos.Expenses
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _systemAccountManager = systemAccountManager;
+            _branchNotificationService = branchNotificationService;
             CreatePermissionName = PermissionNames.Pages_Expenses_Create;
             UpdatePermissionName = PermissionNames.Pages_Expenses_Edit;
             DeletePermissionName = PermissionNames.Pages_Expenses_Delete;
@@ -114,7 +118,18 @@ namespace SmartPos.Expenses
                 Description = description
             });
 
-            return await GetAsync(new EntityDto<int>(expense.Id));
+            var result = await GetAsync(new EntityDto<int>(expense.Id));
+
+            _branchNotificationService.SendNotificationAfterCommit(
+                BranchNotificationType.Expense,
+                expense.TenantId,
+                expense.BranchId,
+                string.IsNullOrWhiteSpace(expense.ReferenceNo) ? $"EXP-{expense.Id:D6}" : expense.ReferenceNo,
+                expense.Amount,
+                AbpSession.UserId,
+                expense.ExpenseDate);
+
+            return result;
         }
 
         public override async Task<ExpenseDto> UpdateAsync(ExpenseDto input)
