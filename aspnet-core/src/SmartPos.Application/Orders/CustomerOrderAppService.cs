@@ -133,7 +133,9 @@ namespace SmartPos.Orders
                     BranchId = branch.Id,
                     BranchName = branch.Name,
                     Address = branch.InvoiceAddress,
-                    Phone = branch.InvoiceContactPhone
+                    Phone = branch.InvoiceContactPhone,
+                    CurrencyFormat = branch.CurrencyFormat ?? "PKR",
+                    DateFormat = branch.DateFormat ?? "dd/MM/yyyy"
                 };
             }
         }

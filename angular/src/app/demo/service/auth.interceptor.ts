@@ -36,6 +36,7 @@ export class AuthInterceptor implements HttpInterceptor {
             const headers: Record<string, string> = {
                 '.AspNetCore.Culture':
                     this.localizationService.getCultureHeaderValue(),
+                'ngrok-skip-browser-warning': 'true',
             };
             const token = this.authService.getAccessToken();
             if (token) {

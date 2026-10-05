@@ -25,6 +25,8 @@ export interface CartItem {
 export class OnlineOrderComponent implements OnInit {
     branchId: number | null = null;
     branchName = '';
+    currencyFormat = 'PKR';
+    dateFormat = 'dd/MM/yyyy';
     branchMissingError = false;
     availableBranches: any[] = [];
     selectedBranchIdForModal: number | null = null;

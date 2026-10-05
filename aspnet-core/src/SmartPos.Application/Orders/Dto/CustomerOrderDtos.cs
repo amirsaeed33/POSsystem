@@ -32,6 +32,8 @@ namespace SmartPos.Orders.Dto
         public string BranchName { get; set; }
         public string Address { get; set; }
         public string Phone { get; set; }
+        public string CurrencyFormat { get; set; }
+        public string DateFormat { get; set; }
     }
 
     public class OnlineProductDto
