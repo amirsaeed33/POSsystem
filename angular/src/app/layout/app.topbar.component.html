@@ -111,14 +111,9 @@
                 title="Today's Online Orders"
                 (click)="loadTodayOrders()"
             >
-                <i class="pi pi-bell text-xl text-700"></i>
-                <span
-                    *ngIf="pendingOrdersCount > 0"
-                    class="badge flex align-items-center justify-content-center bg-red-500 text-white border-circle font-bold absolute shadow-2"
-                    style="top: 2px; right: 2px; min-width: 1.2rem; height: 1.2rem; padding: 0 4px; font-size: 0.7rem; border: 2px solid var(--surface-card, #fff);"
-                >
-                    {{ pendingOrdersCount }}
-                </span>
+                <i class="pi pi-bell p-overlay-badge text-xl text-700" style="font-size: 1.25rem;">
+                    <p-badge *ngIf="pendingOrdersCount > 0" [value]="pendingOrdersCount.toString()" severity="danger" styleClass="text-xs"></p-badge>
+                </i>
             </button>
 
             <!-- Notifications Overlay Dropdown -->

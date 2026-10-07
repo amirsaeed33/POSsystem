@@ -66,13 +66,13 @@
                 </div>
                 <div class="flex flex-wrap align-items-center gap-3">
                     <div class="flex align-items-center gap-2">
-                        <span class="font-medium text-sm text-color-secondary">Period:</span>
+                        <span class="font-medium text-sm text-color-secondary hidden sm:inline">Period:</span>
                         <p-selectButton [options]="trendPeriodOptions" [(ngModel)]="selectedTrendPeriod"
                             optionLabel="label" optionValue="value" styleClass="p-button-sm selectbutton-sm"
                             (onChange)="onTrendPreferenceChange()"></p-selectButton>
                     </div>
                     <div class="flex align-items-center gap-2">
-                        <span class="font-medium text-sm text-color-secondary">Chart Type:</span>
+                        <span class="font-medium text-sm text-color-secondary hidden sm:inline">Chart Type:</span>
                         <p-selectButton [options]="trendChartTypes" [(ngModel)]="selectedTrendChartType"
                             optionLabel="label" optionValue="value" styleClass="p-button-sm selectbutton-sm"
                             (onChange)="onTrendPreferenceChange()"></p-selectButton>
