@@ -96,5 +96,127 @@ namespace SmartPos.Emailing
 </body>
 </html>";
         }
+        public static string TransactionCreatedBodyHtml()
+        {
+            return @"<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=""utf-8""/>
+  <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+      .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .header { background: {{PrimaryColor}}; padding: 24px; color: #ffffff; text-align: center; }
+      .header h2 { margin: 0; font-size: 22px; font-weight: 600; }
+      .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 14px; }
+      .content { padding: 24px; }
+      .badge { background: {{BadgeBg}}; color: {{BadgeColor}}; font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 12px; display: inline-block; }
+      table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+      th { background: #f8fafc; color: #475569; text-align: left; padding: 12px 14px; border-bottom: 2px solid #e2e8f0; font-weight: 600; width: 35%; }
+      td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+      .amount { color: {{PrimaryColor}}; font-weight: bold; font-size: 16px; }
+      .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class='container'>
+      <div class='header'>
+          <h2>{{TitleEmoji}} New {{TypeName}} Created</h2>
+          <p>{{BranchName}} &middot; {{FormattedDate}}</p>
+      </div>
+      <div class='content'>
+          <p>A new <strong>{{TypeName}}</strong> transaction has been successfully recorded in <strong>{{BranchName}}</strong>.</p>
+          <table>
+              <tbody>
+                  <tr>
+                      <th>Transaction Type</th>
+                      <td><span class='badge'>{{TypeName}}</span></td>
+                  </tr>
+                  <tr>
+                      <th>Branch Location</th>
+                      <td><strong>{{BranchName}}</strong></td>
+                  </tr>
+                  <tr>
+                      <th>Reference / Invoice</th>
+                      <td><strong style='font-family: monospace; font-size: 14px;'>{{ReferenceNo}}</strong></td>
+                  </tr>
+                  <tr>
+                      <th>Total Amount</th>
+                      <td class='amount'>{{TotalAmount}}</td>
+                  </tr>
+                  <tr>
+                      <th>Recorded By</th>
+                      <td>{{CreatorName}}</td>
+                  </tr>
+                  <tr>
+                      <th>Date &amp; Time</th>
+                      <td>{{FormattedDate}}</td>
+                  </tr>
+              </tbody>
+          </table>
+      </div>
+      <div class='footer'>
+          Sent automatically by <strong>SmartPOS System</strong> for branch: <strong>{{BranchName}}</strong>.
+      </div>
+  </div>
+</body>
+</html>";
+        }
+
+        public static string OnlineOrderCreatedBodyHtml()
+        {
+            return @"<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=""utf-8""/>
+  <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+      .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .header { background: #ec4899; padding: 24px; color: #ffffff; text-align: center; }
+      .header h2 { margin: 0; font-size: 22px; font-weight: 600; }
+      .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 14px; }
+      .content { padding: 24px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+      th { background: #f8fafc; color: #475569; text-align: left; padding: 12px 14px; border-bottom: 2px solid #e2e8f0; font-weight: 600; width: 35%; }
+      td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+      .amount { color: #ec4899; font-weight: bold; font-size: 16px; }
+      .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class='container'>
+      <div class='header'>
+          <h2>🛍️ New Online Order Received</h2>
+          <p>{{BranchName}} &middot; {{FormattedDate}}</p>
+      </div>
+      <div class='content'>
+          <p>A new online order (<strong>{{OrderNo}}</strong>) has been placed by <strong>{{CustomerName}}</strong>.</p>
+          <table>
+              <tbody>
+                  <tr>
+                      <th>Branch Location</th>
+                      <td><strong>{{BranchName}}</strong></td>
+                  </tr>
+                  <tr>
+                      <th>Order No</th>
+                      <td><strong style='font-family: monospace; font-size: 14px;'>{{OrderNo}}</strong></td>
+                  </tr>
+                  <tr>
+                      <th>Total Amount</th>
+                      <td class='amount'>{{TotalAmount}}</td>
+                  </tr>
+                  <tr>
+                      <th>Date &amp; Time</th>
+                      <td>{{FormattedDate}}</td>
+                  </tr>
+              </tbody>
+          </table>
+      </div>
+      <div class='footer'>
+          Sent automatically by <strong>SmartPOS System</strong> for branch: <strong>{{BranchName}}</strong>.
+      </div>
+  </div>
+</body>
+</html>";
+        }
     }
 }

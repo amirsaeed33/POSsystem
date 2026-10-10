@@ -20,6 +20,7 @@ using SmartPos.Products;
 using SmartPos.Sales;
 using SmartPos.Sales.Dto;
 using Abp.Net.Mail;
+using SmartPos.Emailing;
 
 namespace SmartPos.Orders
 {
@@ -39,6 +40,7 @@ namespace SmartPos.Orders
         private readonly ISaleAppService _saleAppService;
         private readonly IBranchEmailNotifier _branchEmailNotifier;
         private readonly IRepository<BranchNotificationSetting> _notificationSettingRepository;
+        private readonly IRepository<EmailTemplate> _emailTemplateRepository;
 
         public CustomerOrderAppService(
             IRepository<CustomerOrder> repository,
@@ -52,7 +54,8 @@ namespace SmartPos.Orders
             IBranchContext branchContext,
             ISaleAppService saleAppService,
             IBranchEmailNotifier branchEmailNotifier,
-            IRepository<BranchNotificationSetting> notificationSettingRepository)
+            IRepository<BranchNotificationSetting> notificationSettingRepository,
+            IRepository<EmailTemplate> emailTemplateRepository)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -66,6 +69,7 @@ namespace SmartPos.Orders
             _saleAppService = saleAppService;
             _branchEmailNotifier = branchEmailNotifier;
             _notificationSettingRepository = notificationSettingRepository;
+            _emailTemplateRepository = emailTemplateRepository;
             
             CreatePermissionName = PermissionNames.Pages_CustomerOrders_Create;
             UpdatePermissionName = PermissionNames.Pages_CustomerOrders_Edit;
@@ -252,8 +256,36 @@ namespace SmartPos.Orders
 
                 if (settings != null && settings.IsEnabled && settings.NotifyOnOnlineOrder && !string.IsNullOrWhiteSpace(settings.Emails))
                 {
-                    var subject = $"New Online Order {order.OrderNo} Received";
-                    var body = $"A new online order ({order.OrderNo}) has been placed by {input.CustomerName} for {order.TotalAmount:C}. Please check the system for details.";
+                    var branchName = branch?.Name ?? $"Branch #{branchId}";
+                    var safeBranchName = System.Net.WebUtility.HtmlEncode(branchName);
+                    var safeOrderNo = System.Net.WebUtility.HtmlEncode(order.OrderNo);
+                    var safeCustomerName = System.Net.WebUtility.HtmlEncode(input.CustomerName ?? "Guest");
+                    
+                    var template = await _emailTemplateRepository.FirstOrDefaultAsync(x => x.Code == EmailTemplateCodes.OnlineOrderCreated && x.TenantId == tenantId && x.IsActive);
+                    if (template == null && tenantId.HasValue)
+                    {
+                        template = await _emailTemplateRepository.FirstOrDefaultAsync(x => x.Code == EmailTemplateCodes.OnlineOrderCreated && x.TenantId == null && x.IsActive);
+                    }
+
+                    var subjectTemplate = template?.Subject ?? $"New Online Order {safeOrderNo} Received";
+                    var bodyTemplate = template?.BodyHtml;
+
+                    if (string.IsNullOrWhiteSpace(bodyTemplate))
+                    {
+                        bodyTemplate = EmailTemplateDefaults.OnlineOrderCreatedBodyHtml();
+                    }
+
+                    var placeholders = new System.Collections.Generic.Dictionary<string, string>
+                    {
+                        { "BranchName", safeBranchName },
+                        { "OrderNo", safeOrderNo },
+                        { "CustomerName", safeCustomerName },
+                        { "TotalAmount", order.TotalAmount.ToString("N2") },
+                        { "FormattedDate", order.OrderDate.ToString("yyyy-MM-dd hh:mm tt") }
+                    };
+
+                    var subject = EmailTemplateRenderer.Render(subjectTemplate, placeholders);
+                    var body = EmailTemplateRenderer.Render(bodyTemplate, placeholders);
 
                     await _branchEmailNotifier.SendEmailsAsync(settings.Emails, subject, body);
                 }

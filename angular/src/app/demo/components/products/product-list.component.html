@@ -151,37 +151,42 @@
                 <td>{{ product.stockQuantity }}</td>
                 <td>{{ product.alertQuantityLimit }}</td>
                 <td>
-                    <div class="flex gap-2">
+                    <div class="relative flex align-items-center justify-content-center">
                         <button
-                            pButton
-                            pRipple
                             type="button"
-                            icon="pi pi-print"
-                            class="tbl-action-btn print-btn"
-                            pTooltip="Print Barcode"
-                            tooltipPosition="top"
-                            (click)="openBarcodeDialog(product)"
-                        ></button>
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-pencil"
-                            class="tbl-action-btn edit-btn"
-                            pTooltip="Edit"
-                            tooltipPosition="top"
-                            (click)="openEditDialog(product)"
-                        ></button>
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-trash"
-                            class="tbl-action-btn delete-btn"
-                            pTooltip="Delete"
-                            tooltipPosition="top"
-                            (click)="onDelete(product)"
-                        ></button>
+                            class="p-link w-2rem h-2rem border-circle inline-flex align-items-center justify-content-center hover:surface-hover transition-colors transition-duration-150"
+                            pStyleClass="@next"
+                            enterClass="hidden"
+                            enterActiveClass="scalein"
+                            leaveToClass="hidden"
+                            leaveActiveClass="fadeout"
+                            [hideOnOutsideClick]="true"
+                        >
+                            <i class="pi pi-ellipsis-v text-color"></i>
+                        </button>
+                        <ul class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-1 right-0 top-auto z-5 text-left" style="min-width: 12rem">
+                            <li>
+                                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                                   (click)="openBarcodeDialog(product)">
+                                    <i class="pi pi-print mr-2 text-primary"></i>
+                                    <span class="text-900">Print Barcode</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                                   (click)="openEditDialog(product)">
+                                    <i class="pi pi-pencil mr-2 text-blue-500"></i>
+                                    <span class="text-900">Edit</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-red-500"
+                                   (click)="onDelete(product)">
+                                    <i class="pi pi-trash mr-2"></i>
+                                    <span>Delete</span>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </td>
             </tr>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +41,7 @@ namespace SmartPos.EntityFrameworkCore.Seed
                 {
                     new TenantRoleAndUserBuilder(context, tenantId).Create(createAdminUser: false);
                     new DefaultLookupsCreator(context, tenantId).Create();
+                    new DefaultEmailTemplatesCreator(context, tenantId).Create();
                 }
             }
             finally

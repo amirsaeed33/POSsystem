@@ -145,7 +145,7 @@ namespace SmartPos.BranchNotificationSettings
                                     creatorName = "System";
                                 }
 
-                                var (subject, bodyHtml) = BuildNotificationEmailHtml(type, branchName, referenceNo, totalAmount, creatorName, dateTime);
+                                var (subject, bodyHtml) = await BuildNotificationEmailHtmlAsync(type, branchName, referenceNo, totalAmount, creatorName, dateTime, tenantId);
 
                                 using (var mailSenderWrapper = _iocResolver.ResolveAsDisposable<ISmtpMailSender>())
                                 {
@@ -174,42 +174,47 @@ namespace SmartPos.BranchNotificationSettings
             }
         }
 
-        private static (string Subject, string BodyHtml) BuildNotificationEmailHtml(
+        private async Task<(string Subject, string BodyHtml)> BuildNotificationEmailHtmlAsync(
             BranchNotificationType type,
             string branchName,
             string referenceNo,
             decimal totalAmount,
             string creatorName,
-            DateTime dateTime)
+            DateTime dateTime,
+            int? tenantId)
         {
             string typeName;
             string primaryColor;
             string badgeBg;
             string badgeColor;
             string titleEmoji;
+            string templateCode;
 
             switch (type)
             {
                 case BranchNotificationType.Sale:
                     typeName = "Sale";
-                    primaryColor = "#10b981"; // Emerald
+                    primaryColor = "#10b981";
                     badgeBg = "#d1fae5";
                     badgeColor = "#065f46";
                     titleEmoji = "🛒";
+                    templateCode = EmailTemplateCodes.SaleCreated;
                     break;
                 case BranchNotificationType.Purchase:
                     typeName = "Purchase";
-                    primaryColor = "#6366f1"; // Indigo
+                    primaryColor = "#6366f1";
                     badgeBg = "#e0e7ff";
                     badgeColor = "#3730a3";
                     titleEmoji = "📦";
+                    templateCode = EmailTemplateCodes.PurchaseCreated;
                     break;
                 case BranchNotificationType.Expense:
                     typeName = "Expense";
-                    primaryColor = "#f59e0b"; // Amber
+                    primaryColor = "#f59e0b";
                     badgeBg = "#fef3c7";
                     badgeColor = "#92400e";
                     titleEmoji = "💸";
+                    templateCode = EmailTemplateCodes.ExpenseCreated;
                     break;
                 default:
                     typeName = type.ToString();
@@ -217,6 +222,7 @@ namespace SmartPos.BranchNotificationSettings
                     badgeBg = "#dbeafe";
                     badgeColor = "#1e40af";
                     titleEmoji = "🔔";
+                    templateCode = EmailTemplateCodes.SaleCreated;
                     break;
             }
 
@@ -225,74 +231,43 @@ namespace SmartPos.BranchNotificationSettings
             var safeCreatorName = WebUtility.HtmlEncode(creatorName ?? "System");
             var formattedDate = dateTime.ToString("yyyy-MM-dd hh:mm tt");
 
-            var subject = $"[SmartPOS] New {typeName} Alert - {safeRefNo} ({safeBranchName})";
+            EmailTemplate template = null;
+            using (var templateRepoWrapper = _iocResolver.ResolveAsDisposable<IRepository<EmailTemplate>>())
+            {
+                template = await templateRepoWrapper.Object.FirstOrDefaultAsync(x => x.Code == templateCode && x.TenantId == tenantId && x.IsActive);
+                if (template == null && tenantId.HasValue)
+                {
+                    // Fallback to host template
+                    template = await templateRepoWrapper.Object.FirstOrDefaultAsync(x => x.Code == templateCode && x.TenantId == null && x.IsActive);
+                }
+            }
 
-            var sb = new StringBuilder();
-            sb.Append($@"
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset='utf-8'/>
-    <style>
-        body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }}
-        .container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }}
-        .header {{ background: {primaryColor}; padding: 24px; color: #ffffff; text-align: center; }}
-        .header h2 {{ margin: 0; font-size: 22px; font-weight: 600; }}
-        .header p {{ margin: 6px 0 0 0; opacity: 0.9; font-size: 14px; }}
-        .content {{ padding: 24px; }}
-        .badge {{ background: {badgeBg}; color: {badgeColor}; font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 12px; display: inline-block; }}
-        table {{ width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }}
-        th {{ background: #f8fafc; color: #475569; text-align: left; padding: 12px 14px; border-bottom: 2px solid #e2e8f0; font-weight: 600; width: 35%; }}
-        td {{ padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }}
-        .amount {{ color: {primaryColor}; font-weight: bold; font-size: 16px; }}
-        .footer {{ background: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }}
-    </style>
-</head>
-<body>
-    <div class='container'>
-        <div class='header'>
-            <h2>{titleEmoji} New {typeName} Created</h2>
-            <p>{safeBranchName} · {formattedDate}</p>
-        </div>
-        <div class='content'>
-            <p>A new <strong>{typeName}</strong> transaction has been successfully recorded in <strong>{safeBranchName}</strong>.</p>
-            <table>
-                <tbody>
-                    <tr>
-                        <th>Transaction Type</th>
-                        <td><span class='badge'>{typeName}</span></td>
-                    </tr>
-                    <tr>
-                        <th>Branch Location</th>
-                        <td><strong>{safeBranchName}</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Reference / Invoice</th>
-                        <td><strong style='font-family: monospace; font-size: 14px;'>{safeRefNo}</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Total Amount</th>
-                        <td class='amount'>{totalAmount:N2}</td>
-                    </tr>
-                    <tr>
-                        <th>Recorded By</th>
-                        <td>{safeCreatorName}</td>
-                    </tr>
-                    <tr>
-                        <th>Date & Time</th>
-                        <td>{formattedDate}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class='footer'>
-            Sent automatically by <strong>SmartPOS System</strong> for branch: <strong>{safeBranchName}</strong>.
-        </div>
-    </div>
-</body>
-</html>");
+            var subjectTemplate = template?.Subject ?? $"[SmartPOS] New {typeName} Alert - {safeRefNo} ({safeBranchName})";
+            var bodyTemplate = template?.BodyHtml;
 
-            return (subject, sb.ToString());
+            if (string.IsNullOrWhiteSpace(bodyTemplate))
+            {
+                bodyTemplate = EmailTemplateDefaults.TransactionCreatedBodyHtml();
+            }
+
+            var placeholders = new Dictionary<string, string>
+            {
+                { "TypeName", typeName },
+                { "BranchName", safeBranchName },
+                { "ReferenceNo", safeRefNo },
+                { "TotalAmount", totalAmount.ToString("N2") },
+                { "CreatorName", safeCreatorName },
+                { "FormattedDate", formattedDate },
+                { "PrimaryColor", primaryColor },
+                { "BadgeBg", badgeBg },
+                { "BadgeColor", badgeColor },
+                { "TitleEmoji", titleEmoji }
+            };
+
+            return (
+                EmailTemplateRenderer.Render(subjectTemplate, placeholders),
+                EmailTemplateRenderer.Render(bodyTemplate, placeholders)
+            );
         }
     }
 }

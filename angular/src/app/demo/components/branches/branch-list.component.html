@@ -153,7 +153,9 @@
                             Tenant:
                             <strong>{{ branch.tenancyName || ('#' + branch.tenantId) }}</strong>
                         </div>
-                        <h3 class="branch-card__title m-0">{{ branch.name }}</h3>
+                        <h3 class="branch-card__title m-0 cursor-pointer hover:text-primary transition-colors transition-duration-150" (click)="openEditPage(branch)">
+                            {{ branch.name }}
+                        </h3>
                         <div class="branch-card__code">
                             <i class="pi pi-hashtag text-xs"></i>
                             {{ branch.code }}
