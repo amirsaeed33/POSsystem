@@ -15,6 +15,8 @@ namespace SmartPos.BranchNotificationSettings.Dto
 
         public bool NotifyOnPurchase { get; set; }
 
+        public bool NotifyOnOnlineOrder { get; set; }
+
         public bool NotifyOnExpense { get; set; }
 
         [StringLength(BranchNotificationSetting.MaxEmailsLength)]

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { BranchDto } from 'src/app/demo/api/branch';
@@ -11,7 +11,8 @@ import { BranchNotificationSettingDto } from 'src/app/demo/api/branch-notificati
     templateUrl: './notification-settings.component.html',
     providers: [MessageService]
 })
-export class NotificationSettingsComponent implements OnInit, OnDestroy {
+export class NotificationSettingsComponent implements OnInit, OnDestroy, OnChanges {
+    @Input() branchId?: number; // Optional Input for embedding
     currentBranch: BranchDto | null = null;
     setting: BranchNotificationSettingDto | null = null;
 
@@ -21,6 +22,7 @@ export class NotificationSettingsComponent implements OnInit, OnDestroy {
     isEnabled = false;
     notifyOnSale = false;
     notifyOnPurchase = false;
+    notifyOnOnlineOrder = false;
     notifyOnExpense = false;
 
     emailList: string[] = [];
@@ -35,7 +37,18 @@ export class NotificationSettingsComponent implements OnInit, OnDestroy {
         private messageService: MessageService
     ) {}
 
-    ngOnInit(): void {
+    async ngOnInit(): Promise<void> {
+        if (this.branchId) {
+            // Embedded mode: use provided branchId
+            this.currentBranch = { id: this.branchId } as BranchDto;
+            await this.loadSettings(this.branchId);
+            return;
+        }
+
+        // Standalone mode: use topbar context
+        this.loading = true;
+        await this.branchContext.ensureLoaded();
+        
         this.currentBranch = this.branchContext.getCurrentBranch();
 
         this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
@@ -47,7 +60,19 @@ export class NotificationSettingsComponent implements OnInit, OnDestroy {
         });
 
         if (this.currentBranch?.id) {
-            this.loadSettings(this.currentBranch.id);
+            await this.loadSettings(this.currentBranch.id);
+        } else {
+            this.loading = false;
+        }
+    }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes['branchId'] && !changes['branchId'].isFirstChange()) {
+            const newBranchId = changes['branchId'].currentValue;
+            if (newBranchId) {
+                this.currentBranch = { id: newBranchId } as BranchDto;
+                this.loadSettings(newBranchId);
+            }
         }
     }
 
@@ -64,6 +89,7 @@ export class NotificationSettingsComponent implements OnInit, OnDestroy {
             this.isEnabled = data.isEnabled;
             this.notifyOnSale = data.notifyOnSale;
             this.notifyOnPurchase = data.notifyOnPurchase;
+            this.notifyOnOnlineOrder = data.notifyOnOnlineOrder;
             this.notifyOnExpense = data.notifyOnExpense;
             this.emailList = [...(data.emailList || [])];
         } catch (err: any) {
@@ -139,6 +165,7 @@ export class NotificationSettingsComponent implements OnInit, OnDestroy {
                 isEnabled: this.isEnabled,
                 notifyOnSale: this.notifyOnSale,
                 notifyOnPurchase: this.notifyOnPurchase,
+                notifyOnOnlineOrder: this.notifyOnOnlineOrder,
                 notifyOnExpense: this.notifyOnExpense,
                 emails: this.emailList.join(', '),
                 emailList: this.emailList
@@ -148,6 +175,7 @@ export class NotificationSettingsComponent implements OnInit, OnDestroy {
             this.isEnabled = updated.isEnabled;
             this.notifyOnSale = updated.notifyOnSale;
             this.notifyOnPurchase = updated.notifyOnPurchase;
+            this.notifyOnOnlineOrder = updated.notifyOnOnlineOrder;
             this.notifyOnExpense = updated.notifyOnExpense;
             this.emailList = [...(updated.emailList || [])];
 

@@ -10,6 +10,7 @@ namespace SmartPos.BranchNotificationSettings.Dto
         public bool IsEnabled { get; set; }
         public bool NotifyOnSale { get; set; }
         public bool NotifyOnPurchase { get; set; }
+        public bool NotifyOnOnlineOrder { get; set; }
         public bool NotifyOnExpense { get; set; }
         public string Emails { get; set; }
         public List<string> EmailList { get; set; } = new List<string>();

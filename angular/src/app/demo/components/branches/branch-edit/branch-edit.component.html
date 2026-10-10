@@ -14,7 +14,10 @@
         </button>
     </div>
 
-    <div class="flex flex-column gap-3" [class.p-fluid]="true" *ngIf="!loading; else loadingTpl">
+    <div *ngIf="!loading; else loadingTpl">
+        <p-tabView>
+            <p-tabPanel header="General Info">
+                <div class="flex flex-column gap-3" [class.p-fluid]="true">
 
         <div class="flex flex-column md:flex-row align-items-start md:align-items-center gap-4 mb-2">
             <div class="flex flex-column align-items-center gap-2 flex-shrink-0">
@@ -285,6 +288,18 @@
 
        
 
+                </div>
+
+                <div class="flex justify-content-end gap-2 mt-4">
+                    <button pButton pRipple type="button" label="Cancel" class="p-button-text" (click)="onCancel()" [disabled]="saving"></button>
+                    <button pButton pRipple type="button" label="Update" icon="pi pi-check" (click)="save()" [disabled]="saving || loading || !(branch.name || '').trim() || !(branch.code || '').trim()" [loading]="saving"></button>
+                </div>
+            </p-tabPanel>
+            
+            <p-tabPanel header="Notifications">
+                <app-notification-settings *ngIf="branch?.id" [branchId]="branch.id"></app-notification-settings>
+            </p-tabPanel>
+        </p-tabView>
     </div>
 
     <ng-template #loadingTpl>
@@ -293,30 +308,5 @@
         </div>
     </ng-template>
 
-
-    <div class="flex justify-content-end gap-2 mt-4">
-
-        <button
-            pButton
-            pRipple
-            type="button"
-            label="Cancel"
-            class="p-button-text"
-            (click)="onCancel()"
-            [disabled]="saving">
-        </button>
-
-        <button
-            pButton
-            pRipple
-            type="button"
-            label="Update"
-            icon="pi pi-check"
-            (click)="save()"
-            [disabled]="saving || loading || !(branch.name || '').trim() || !(branch.code || '').trim()"
-            [loading]="saving">
-        </button>
-
-    </div>
 
 </div>

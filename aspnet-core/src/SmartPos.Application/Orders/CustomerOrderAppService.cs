@@ -19,6 +19,7 @@ using SmartPos.Orders.Dto;
 using SmartPos.Products;
 using SmartPos.Sales;
 using SmartPos.Sales.Dto;
+using Abp.Net.Mail;
 
 namespace SmartPos.Orders
 {
@@ -36,6 +37,8 @@ namespace SmartPos.Orders
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
         private readonly ISaleAppService _saleAppService;
+        private readonly IBranchEmailNotifier _branchEmailNotifier;
+        private readonly IRepository<BranchNotificationSetting> _notificationSettingRepository;
 
         public CustomerOrderAppService(
             IRepository<CustomerOrder> repository,
@@ -47,7 +50,9 @@ namespace SmartPos.Orders
             IRepository<BranchStock> branchStockRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
-            ISaleAppService saleAppService)
+            ISaleAppService saleAppService,
+            IBranchEmailNotifier branchEmailNotifier,
+            IRepository<BranchNotificationSetting> notificationSettingRepository)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -59,6 +64,9 @@ namespace SmartPos.Orders
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _saleAppService = saleAppService;
+            _branchEmailNotifier = branchEmailNotifier;
+            _notificationSettingRepository = notificationSettingRepository;
+            
             CreatePermissionName = PermissionNames.Pages_CustomerOrders_Create;
             UpdatePermissionName = PermissionNames.Pages_CustomerOrders_Edit;
             DeletePermissionName = PermissionNames.Pages_CustomerOrders_Delete;
@@ -238,6 +246,17 @@ namespace SmartPos.Orders
 
                 order.OrderNo = "ORD-" + insertedId.ToString("D5");
                 await CurrentUnitOfWork.SaveChangesAsync();
+
+                var settings = await _notificationSettingRepository.FirstOrDefaultAsync(
+                    s => s.BranchId == branchId && s.TenantId == tenantId);
+
+                if (settings != null && settings.IsEnabled && settings.NotifyOnOnlineOrder && !string.IsNullOrWhiteSpace(settings.Emails))
+                {
+                    var subject = $"New Online Order {order.OrderNo} Received";
+                    var body = $"A new online order ({order.OrderNo}) has been placed by {input.CustomerName} for {order.TotalAmount:C}. Please check the system for details.";
+
+                    await _branchEmailNotifier.SendEmailsAsync(settings.Emails, subject, body);
+                }
 
                 return new CustomerOrderDto
                 {

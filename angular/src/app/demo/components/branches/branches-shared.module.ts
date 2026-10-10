@@ -19,6 +19,9 @@ import { BranchFormDialogComponent } from './branch-form-dialog.component';
 import { BranchEditComponent } from './branch-edit/branch-edit.component';
 import { BranchCreateComponent } from './branch-create/branch-create.component';
 
+import { TabViewModule } from 'primeng/tabview';
+import { NotificationSettingsSharedModule } from '../notification-settings/notification-settings-shared.module';
+
 @NgModule({
     imports: [
         CommonModule,
@@ -35,6 +38,8 @@ import { BranchCreateComponent } from './branch-create/branch-create.component';
         ConfirmDialogModule,
         StyleClassModule,
         DropdownModule,
+        TabViewModule,
+        NotificationSettingsSharedModule
     ],
     providers: [MessageService],
     declarations: [

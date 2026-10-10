@@ -75,6 +75,7 @@ namespace SmartPos.BranchNotificationSettings
                     IsEnabled = input.IsEnabled,
                     NotifyOnSale = input.NotifyOnSale,
                     NotifyOnPurchase = input.NotifyOnPurchase,
+                    NotifyOnOnlineOrder = input.NotifyOnOnlineOrder,
                     NotifyOnExpense = input.NotifyOnExpense,
                     Emails = cleanedEmails
                 };
@@ -86,6 +87,7 @@ namespace SmartPos.BranchNotificationSettings
                 setting.IsEnabled = input.IsEnabled;
                 setting.NotifyOnSale = input.NotifyOnSale;
                 setting.NotifyOnPurchase = input.NotifyOnPurchase;
+                setting.NotifyOnOnlineOrder = input.NotifyOnOnlineOrder;
                 setting.NotifyOnExpense = input.NotifyOnExpense;
                 setting.Emails = cleanedEmails;
 
@@ -175,6 +177,7 @@ namespace SmartPos.BranchNotificationSettings
                 IsEnabled = entity.IsEnabled,
                 NotifyOnSale = entity.NotifyOnSale,
                 NotifyOnPurchase = entity.NotifyOnPurchase,
+                NotifyOnOnlineOrder = entity.NotifyOnOnlineOrder,
                 NotifyOnExpense = entity.NotifyOnExpense,
                 Emails = entity.Emails ?? string.Empty,
                 EmailList = emailList

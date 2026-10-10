@@ -5,6 +5,7 @@ export interface BranchNotificationSettingDto {
     isEnabled: boolean;
     notifyOnSale: boolean;
     notifyOnPurchase: boolean;
+    notifyOnOnlineOrder: boolean;
     notifyOnExpense: boolean;
     emails: string;
     emailList: string[];
@@ -15,6 +16,7 @@ export interface CreateOrUpdateBranchNotificationSettingDto {
     isEnabled: boolean;
     notifyOnSale: boolean;
     notifyOnPurchase: boolean;
+    notifyOnOnlineOrder: boolean;
     notifyOnExpense: boolean;
     emails?: string;
     emailList?: string[];

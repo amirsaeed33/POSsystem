@@ -67,6 +67,7 @@ export class BranchNotificationSettingService {
             isEnabled: !!(item.isEnabled ?? item.IsEnabled),
             notifyOnSale: !!(item.notifyOnSale ?? item.NotifyOnSale),
             notifyOnPurchase: !!(item.notifyOnPurchase ?? item.NotifyOnPurchase),
+            notifyOnOnlineOrder: !!(item.notifyOnOnlineOrder ?? item.NotifyOnOnlineOrder),
             notifyOnExpense: !!(item.notifyOnExpense ?? item.NotifyOnExpense),
             emails: emails,
             emailList: emailList

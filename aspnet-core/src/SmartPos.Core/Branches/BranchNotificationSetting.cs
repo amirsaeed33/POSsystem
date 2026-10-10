@@ -23,6 +23,8 @@ namespace SmartPos.Branches
 
         public virtual bool NotifyOnPurchase { get; set; }
 
+        public virtual bool NotifyOnOnlineOrder { get; set; }
+
         public virtual bool NotifyOnExpense { get; set; }
 
         [StringLength(MaxEmailsLength)]
