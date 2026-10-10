@@ -91,7 +91,8 @@ namespace SmartPos.Orders
 
                 var products = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit)
                     .AsNoTracking()
-                    .Where(s=>s.BranchId== targetBranchId)
+                    .Where(p => p.TenantId == targetBranch.TenantId)
+                    .WhereVisibleToBranch(_branchStockRepository.GetAll(), targetBranchId)
                     .ToListAsync();
 
                 var branchInfo = await _branchStockRepository.GetAll()

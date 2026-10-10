@@ -12,6 +12,7 @@ import { DialogModule } from 'primeng/dialog';
 import { SidebarModule } from 'primeng/sidebar';
 import { ToastModule } from 'primeng/toast';
 import { DropdownModule } from 'primeng/dropdown';
+import { ImageModule } from 'primeng/image';
 
 @NgModule({
     imports: [
@@ -26,6 +27,7 @@ import { DropdownModule } from 'primeng/dropdown';
         SidebarModule,
         ToastModule,
         DropdownModule,
+        ImageModule,
     ],
     declarations: [OnlineOrderComponent],
 })
