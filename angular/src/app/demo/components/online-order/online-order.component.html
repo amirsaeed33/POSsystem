@@ -6,7 +6,7 @@
                 <i class="pi pi-shopping-bag text-primary text-3xl"></i>
                 <div>
                     <h4 class="m-0 font-bold text-900">{{ branchName || 'Online Store' }}</h4>
-                    <span class="text-xs text-500 block mt-1">Online Customer Ordering</span>
+                    <span class="text-xs text-500 hidden sm:block mt-1">Online Customer Ordering</span>
                 </div>
             </div>
 
@@ -50,7 +50,7 @@
                 pButton
                 type="button"
                 [label]="cat"
-                class="p-button-rounded p-button-sm white-space-nowrap font-medium"
+                class="p-button-rounded p-button-sm white-space-nowrap font-medium flex-shrink-0"
                 [class.p-button-outlined]="selectedCategory !== cat"
                 (click)="selectCategory(cat)"
             ></button>

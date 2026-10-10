@@ -136,7 +136,9 @@
                     </ng-template>
                 </td>
                 <td>
-                    {{ product.name }}
+                    <a href="javascript:void(0)" class="text-primary hover:underline font-medium cursor-pointer" style="text-decoration: none;" (click)="openEditDialog(product)">
+                        {{ product.name }}
+                    </a>
                     <span *ngIf="product.isShared" class="ml-2 text-xs text-primary font-medium">All locations</span>
                 </td>
                 <td>{{ product.barcode || '—' }}</td>
