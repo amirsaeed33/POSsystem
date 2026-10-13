@@ -50,6 +50,8 @@ namespace SmartPos.Products.Dto
 
         public string ImageBase64 { get; set; }
 
+        public string Specifications { get; set; }
+
         /// <summary>
         /// Tenant-admin only. Optional. Empty = tenant-level (all locations);
         /// otherwise product is limited to these branches.

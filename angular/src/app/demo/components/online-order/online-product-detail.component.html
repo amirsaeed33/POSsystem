@@ -118,6 +118,10 @@
                             <i class="pi pi-box text-primary"></i>
                             <span>Unit: <strong>{{ product.unitName || 'Pcs' }}</strong></span>
                         </div>
+                        <div class="surface-100 border-round-xl px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center border-1 surface-border font-medium">
+                            <i class="pi pi-dollar text-primary"></i>
+                            <span>Currency: <strong>{{ currencyFormat }}</strong></span>
+                        </div>
                         <div *ngIf="product.brandName" class="surface-100 border-round-xl px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center border-1 surface-border font-medium">
                             <i class="pi pi-bookmark text-primary"></i>
                             <span>Brand: <strong>{{ product.brandName }}</strong></span>
@@ -146,10 +150,12 @@
                         <div class="surface-50 border-round-2xl p-4 border-1 surface-border flex flex-wrap align-items-center justify-content-between gap-3 shadow-1">
                             <div>
                                 <span class="text-xs text-500 block mb-1 font-medium">Selling Price per {{ product.unitName || 'Pcs' }}</span>
-                                <div class="flex align-items-baseline gap-2">
+                                <div class="flex align-items-baseline gap-2 flex-wrap">
                                     <span class="text-4xl font-extrabold text-primary">
                                         {{ product.price | currency: currencyFormat:'symbol':'1.2-2' }}
                                     </span>
+                                    <span class="text-base font-bold text-600 bg-gray-100 px-2 py-1 border-round-lg border-1 surface-border">{{ currencyFormat }}</span>
+                                    <span class="text-sm font-medium text-500">/ {{ product.unitName || 'Pcs' }}</span>
                                 </div>
                             </div>
 
@@ -158,6 +164,24 @@
                                     <i class="pi pi-check-circle text-green-600"></i>
                                     <span>{{ product.stockQuantity }} Available in Stock</span>
                                 </span>
+                            </div>
+                        </div>
+
+                        <!-- Key Specifications & Features (PriceOye Style Highlights) -->
+                        <div *ngIf="specificationsList && specificationsList.length > 0" class="surface-50 border-round-2xl p-3 border-1 surface-border shadow-1">
+                            <div class="flex align-items-center justify-content-between mb-2">
+                                <span class="font-bold text-xs uppercase text-700 tracking-wider flex align-items-center gap-2">
+                                    <i class="pi pi-sliders-h text-primary"></i> Key Specifications & Attributes
+                                </span>
+                                <span class="text-xs text-500 font-semibold">{{ specificationsList.length }} specs</span>
+                            </div>
+                            <div class="grid grid-nogutter gap-2">
+                                <div *ngFor="let spec of specificationsList" class="col-12 sm:col-5 flex-1 min-w-min p-2 bg-white border-round-xl border-1 surface-border shadow-1">
+                                    <div class="flex flex-column">
+                                        <span class="text-xs text-500 font-semibold">{{ spec.key }}</span>
+                                        <span class="text-sm font-bold text-900 mt-1">{{ spec.value }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -241,6 +265,38 @@
                                 (click)="addToCart()"
                             ></button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PriceOye-style Technical Specifications Section -->
+        <div *ngIf="specificationsList && specificationsList.length > 0" class="surface-card border-round-3xl border-1 surface-border p-4 md:p-5 shadow-2 mb-6">
+            <div class="flex flex-wrap align-items-center justify-content-between gap-3 pb-4 border-bottom-1 surface-border">
+                <div class="flex align-items-center gap-3">
+                    <div class="surface-100 border-round-xl p-2 text-primary flex align-items-center justify-content-center" style="width: 2.75rem; height: 2.75rem;">
+                        <i class="pi pi-sliders-h text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="m-0 font-bold text-900 text-xl md:text-2xl">Technical Specifications</h3>
+                        <span class="text-xs text-500 mt-1 block">Full detailed specifications & attributes for {{ product.name }}</span>
+                    </div>
+                </div>
+                <p-tag [value]="specificationsList.length + ' Specifications'" severity="info" styleClass="text-xs font-bold px-3 py-1 border-round-xl"></p-tag>
+            </div>
+
+            <!-- Specifications Table -->
+            <div class="border-round-2xl overflow-hidden border-1 surface-border mt-4">
+                <div *ngFor="let spec of specificationsList; let odd = odd; let last = last"
+                    [class.bg-white]="!odd"
+                    [class.surface-50]="odd"
+                    [class.border-bottom-1]="!last"
+                    class="surface-border grid grid-nogutter py-3 px-4 align-items-center">
+                    <div class="col-12 sm:col-4 font-semibold text-700 text-sm">
+                        {{ spec.key }}
+                    </div>
+                    <div class="col-12 sm:col-8 font-bold text-900 text-sm mt-1 sm:mt-0">
+                        {{ spec.value }}
                     </div>
                 </div>
             </div>

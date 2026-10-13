@@ -46,9 +46,11 @@ namespace SmartPos.Orders.Dto
         public string Barcode { get; set; }
         public string UnitName { get; set; }
         public decimal Price { get; set; }
+        public string CurrencyFormat { get; set; }
         public string ImagePath { get; set; }
         public bool InStock { get; set; }
         public decimal StockQuantity { get; set; }
+        public string Specifications { get; set; }
     }
 
     public class CreateCustomerOrderLineDto

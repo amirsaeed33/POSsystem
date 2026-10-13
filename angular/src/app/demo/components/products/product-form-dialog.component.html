@@ -100,6 +100,49 @@
             <img *ngIf="imagePreview" [src]="imagePreview" alt="preview"
                 class="mt-2 border-round" style="max-width: 160px; max-height: 160px; object-fit: cover;" />
         </div>
+
+        <!-- Technical Specifications / Attributes -->
+        <div class="surface-card p-3 border-round border-1 surface-border flex flex-column gap-2">
+            <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="flex align-items-center gap-2">
+                    <i class="pi pi-sliders-h text-primary font-bold"></i>
+                    <span class="font-semibold text-900">Technical Specifications</span>
+                    <span class="text-xs text-500">(e.g. Solar, Battery, Mobile)</span>
+                </div>
+                <div class="flex align-items-center gap-1 flex-wrap">
+                    <span class="text-xs text-500 mr-1">Presets:</span>
+                    <button pButton type="button" label="⚡ Solar" class="p-button-outlined p-button-secondary py-1 px-2 text-xs"
+                        (click)="applyPreset('solar')" [disabled]="saving" pTooltip="Add Solar Panel attributes"></button>
+                    <button pButton type="button" label="🔋 Battery" class="p-button-outlined p-button-secondary py-1 px-2 text-xs"
+                        (click)="applyPreset('battery')" [disabled]="saving" pTooltip="Add Battery attributes"></button>
+                    <button pButton type="button" label="📱 Mobile" class="p-button-outlined p-button-secondary py-1 px-2 text-xs"
+                        (click)="applyPreset('mobile')" [disabled]="saving" pTooltip="Add Mobile Phone attributes"></button>
+                    <button pButton type="button" icon="pi pi-plus" label="Add Field" class="p-button-outlined p-button-primary py-1 px-2 text-xs ml-1"
+                        (click)="addSpecItem()" [disabled]="saving"></button>
+                </div>
+            </div>
+
+            <div *ngIf="specItems.length === 0" class="text-xs text-500 py-3 text-center surface-50 border-round">
+                No specifications defined yet. Click a preset (⚡ Solar, 🔋 Battery, 📱 Mobile) or click "Add Field" to add custom attributes.
+            </div>
+
+            <div *ngIf="specItems.length > 0" class="flex flex-column gap-2 mt-2 max-h-16rem overflow-y-auto pr-1">
+                <div *ngFor="let item of specItems; let i = index" class="grid grid-nogutter align-items-center gap-2">
+                    <div class="col-12 sm:col-5">
+                        <input type="text" pInputText [(ngModel)]="item.key" placeholder="Attribute name (e.g. Capacity, RAM)"
+                            class="w-full p-inputtext-sm" [disabled]="saving" />
+                    </div>
+                    <div class="col">
+                        <input type="text" pInputText [(ngModel)]="item.value" placeholder="Value (e.g. 550W, 128GB, With Water)"
+                            class="w-full p-inputtext-sm" [disabled]="saving" />
+                    </div>
+                    <div class="col-fixed" style="width: 2.5rem;">
+                        <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm p-0 w-full h-full"
+                            (click)="removeSpecItem(i)" [disabled]="saving" pTooltip="Remove attribute"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <ng-template #loadingTpl>

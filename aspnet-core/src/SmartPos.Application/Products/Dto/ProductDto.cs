@@ -67,6 +67,8 @@ namespace SmartPos.Products.Dto
 
         public string ImageBase64 { get; set; }
 
+        public string Specifications { get; set; }
+
         /// <summary>
         /// True when the product is tenant-level (available at every location).
         /// Computed from BranchStock assignments (empty or all active branches).

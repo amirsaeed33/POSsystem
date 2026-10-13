@@ -184,6 +184,7 @@ namespace SmartPos.Products
             product.CategoryId = input.CategoryId;
             product.BrandId = input.BrandId;
             product.UnitId = input.UnitId;
+            product.Specifications = input.Specifications;
 
             if (input.BranchId > 0)
             {

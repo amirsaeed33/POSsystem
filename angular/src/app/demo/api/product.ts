@@ -45,6 +45,7 @@ export interface ProductDto {
     /** Computed: true when tenant-level (all locations). */
     isShared?: boolean;
     branchIds?: number[];
+    specifications?: string;
 }
 
 export interface CreateProductDto {
@@ -64,6 +65,7 @@ export interface CreateProductDto {
     imageBase64?: string;
     /** Empty = tenant-level (all locations). */
     branchIds?: number[];
+    specifications?: string;
 }
 
 export interface PagedProductResultRequestDto {

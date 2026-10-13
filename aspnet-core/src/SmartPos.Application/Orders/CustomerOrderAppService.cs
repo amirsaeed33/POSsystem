@@ -100,6 +100,7 @@ namespace SmartPos.Orders
                 }
 
                 var targetBranchId = targetBranch.Id;
+                var branchCurrency = !string.IsNullOrWhiteSpace(targetBranch.CurrencyFormat) ? targetBranch.CurrencyFormat : "PKR";
 
                 var products = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit, p => p.Brand)
                     .AsNoTracking()
@@ -122,9 +123,11 @@ namespace SmartPos.Orders
                         Barcode = p.Barcode,
                         UnitName = p.Unit?.Name ?? "Pcs",
                         Price = branchInfo.TryGetValue(p.Id, out var info) && info.Price > 0 ? info.Price : p.Price,
+                        CurrencyFormat = branchCurrency,
                         ImagePath = p.ImagePath,
                         InStock = branchInfo.TryGetValue(p.Id, out info) ? info.Quantity > 0 : true,
-                        StockQuantity = branchInfo.TryGetValue(p.Id, out info) ? info.Quantity : 0
+                        StockQuantity = branchInfo.TryGetValue(p.Id, out info) ? info.Quantity : 0,
+                        Specifications = p.Specifications
                     })
                     .ToList();
             }
@@ -157,6 +160,7 @@ namespace SmartPos.Orders
                 var price = product.Price;
                 var stockQty = 0m;
                 var inStock = true;
+                var branchCurrency = !string.IsNullOrWhiteSpace(targetBranch?.CurrencyFormat) ? targetBranch.CurrencyFormat : "PKR";
 
                 if (targetBranch != null)
                 {
@@ -182,9 +186,11 @@ namespace SmartPos.Orders
                     Barcode = product.Barcode,
                     UnitName = product.Unit?.Name ?? "Pcs",
                     Price = price,
+                    CurrencyFormat = branchCurrency,
                     ImagePath = product.ImagePath,
                     InStock = inStock,
-                    StockQuantity = stockQty
+                    StockQuantity = stockQty,
+                    Specifications = product.Specifications
                 };
             }
         }
@@ -200,7 +206,9 @@ namespace SmartPos.Orders
                     return new OnlineStoreHeaderDto
                     {
                         BranchId = branchId,
-                        BranchName = $"Branch #{branchId}"
+                        BranchName = $"Branch #{branchId}",
+                        CurrencyFormat = "PKR",
+                        DateFormat = "dd/MM/yyyy"
                     };
                 }
 
@@ -210,8 +218,8 @@ namespace SmartPos.Orders
                     BranchName = branch.Name,
                     Address = branch.InvoiceAddress,
                     Phone = branch.InvoiceContactPhone,
-                    CurrencyFormat = branch.CurrencyFormat ?? "PKR",
-                    DateFormat = branch.DateFormat ?? "dd/MM/yyyy"
+                    CurrencyFormat = !string.IsNullOrWhiteSpace(branch.CurrencyFormat) ? branch.CurrencyFormat : "PKR",
+                    DateFormat = !string.IsNullOrWhiteSpace(branch.DateFormat) ? branch.DateFormat : "dd/MM/yyyy"
                 };
             }
         }

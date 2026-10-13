@@ -75,5 +75,10 @@ namespace SmartPos.Products
 
         [StringLength(MaxImagePathLength)]
         public virtual string ImagePath { get; set; }
+
+        /// <summary>
+        /// Structured JSON string storing product specifications and technical attributes (e.g. RAM, Capacity, Dimensions).
+        /// </summary>
+        public virtual string Specifications { get; set; }
     }
 }

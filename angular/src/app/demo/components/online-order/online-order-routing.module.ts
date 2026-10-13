@@ -7,6 +7,7 @@ import { OnlineProductDetailComponent } from './online-product-detail.component'
     imports: [
         RouterModule.forChild([
             { path: '', component: OnlineOrderComponent },
+            { path: 'product', component: OnlineOrderComponent },
             { path: 'product/:id', component: OnlineProductDetailComponent },
         ]),
     ],

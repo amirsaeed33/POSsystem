@@ -21,6 +21,11 @@ import { BranchContextService } from 'src/app/demo/service/branch-context.servic
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 
+export interface ProductSpecItem {
+    key: string;
+    value: string;
+}
+
 @Component({
     selector: 'app-product-form-dialog',
     templateUrl: './product-form-dialog.component.html',
@@ -32,6 +37,7 @@ export class ProductFormDialogComponent implements OnChanges {
     @Output() saved = new EventEmitter<void>();
 
     product: ProductDto = this.emptyProduct();
+    specItems: ProductSpecItem[] = [];
     categories: CategoryDto[] = [];
     brands: BrandDto[] = [];
     units: UnitDto[] = [];
@@ -135,8 +141,20 @@ export class ProductFormDialogComponent implements OnChanges {
     onCategoryChange(catId?: number): void {
         if (!catId) return;
         const cat = this.categories.find((c) => c.id === catId);
-        if (cat && cat.defaultUnitId) {
-            this.product.unitId = cat.defaultUnitId;
+        if (cat) {
+            if (cat.defaultUnitId) {
+                this.product.unitId = cat.defaultUnitId;
+            }
+            if (this.specItems.length === 0) {
+                const nameLower = (cat.name || '').toLowerCase();
+                if (nameLower.includes('solar') || nameLower.includes('panel')) {
+                    this.applyPreset('solar');
+                } else if (nameLower.includes('batter') || nameLower.includes('ups')) {
+                    this.applyPreset('battery');
+                } else if (nameLower.includes('mobile') || nameLower.includes('phone')) {
+                    this.applyPreset('mobile');
+                }
+            }
         }
     }
 
@@ -186,6 +204,8 @@ export class ProductFormDialogComponent implements OnChanges {
             branchIds: currentBranchId ? [currentBranchId] : [],
         };
 
+        const specsJson = this.serializeSpecs();
+
         const request = this.productId
             ? this.productService.update({
                   ...this.product,
@@ -199,6 +219,7 @@ export class ProductFormDialogComponent implements OnChanges {
                   costPrice,
                   alertQuantityLimit: Number(this.product.alertQuantityLimit),
                   imageBase64,
+                  specifications: specsJson,
                   ...assignment,
               })
             : this.productService.create({
@@ -215,6 +236,7 @@ export class ProductFormDialogComponent implements OnChanges {
                   brandId: this.product.brandId,
                   unitId: this.product.unitId,
                   imageBase64: undefined,
+                  specifications: specsJson,
                   ...assignment,
               } as CreateProductDto);
 
@@ -298,6 +320,7 @@ export class ProductFormDialogComponent implements OnChanges {
 
     private resetForm(): void {
         this.product = this.emptyProduct();
+        this.specItems = [];
         this.selectedBranchIds = [];
         this.imagePreview = '';
         this.saving = false;
@@ -355,6 +378,7 @@ export class ProductFormDialogComponent implements OnChanges {
             .get(id)
             .then((product) => {
                 this.product = { ...product, imageBase64: undefined };
+                this.specItems = this.parseSpecs(product.specifications);
                 // Tenant-level (all locations) keeps assignment empty.
                 this.selectedBranchIds =
                     product.isShared || !product.branchIds?.length
@@ -373,5 +397,71 @@ export class ProductFormDialogComponent implements OnChanges {
             .finally(() => {
                 this.loading = false;
             });
+    }
+
+    addSpecItem(key: string = '', value: string = ''): void {
+        this.specItems.push({ key: key.trim(), value: value.trim() });
+    }
+
+    removeSpecItem(index: number): void {
+        this.specItems.splice(index, 1);
+    }
+
+    applyPreset(presetType: string): void {
+        const presets: Record<string, string[]> = {
+            solar: ['Wattage / Capacity', 'Cell Type', 'Efficiency', 'Dimensions (L x W x H)', 'Weight', 'Max Voltage (Voc)', 'Warranty'],
+            battery: ['Capacity (Ah)', 'Battery Type (Water/Dry/Gel/Lithium)', 'Voltage', 'Weight', 'Dimensions', 'Warranty'],
+            mobile: ['RAM', 'Storage / ROM', 'Processor / Chipset', 'Rear Camera', 'Front Camera', 'Battery Capacity', 'Screen Size', 'PTA Status'],
+            general: ['Model / Series', 'Color', 'Material', 'Weight', 'Dimensions', 'Warranty'],
+        };
+        const keys = presets[presetType] || [];
+        keys.forEach((k) => {
+            if (!this.specItems.some((item) => item.key.toLowerCase() === k.toLowerCase())) {
+                this.specItems.push({ key: k, value: '' });
+            }
+        });
+    }
+
+    parseSpecs(raw?: string): ProductSpecItem[] {
+        if (!raw) return [];
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed
+                    .map((item: any) => ({
+                        key: item.key || item.name || item.title || '',
+                        value: item.value || item.val || '',
+                    }))
+                    .filter((i) => i.key || i.value);
+            } else if (typeof parsed === 'object') {
+                return Object.keys(parsed)
+                    .map((k) => ({
+                        key: k,
+                        value: String(parsed[k] ?? ''),
+                    }))
+                    .filter((i) => i.key || i.value);
+            }
+        } catch {
+            const lines = raw.split('\n');
+            const items: ProductSpecItem[] = [];
+            for (const line of lines) {
+                const idx = line.indexOf(':');
+                if (idx > -1) {
+                    items.push({
+                        key: line.substring(0, idx).trim(),
+                        value: line.substring(idx + 1).trim(),
+                    });
+                }
+            }
+            return items.filter((i) => i.key || i.value);
+        }
+        return [];
+    }
+
+    serializeSpecs(): string | undefined {
+        const valid = this.specItems
+            .map((i) => ({ key: (i.key || '').trim(), value: (i.value || '').trim() }))
+            .filter((i) => i.key && i.value);
+        return valid.length ? JSON.stringify(valid) : undefined;
     }
 }

@@ -73,8 +73,10 @@ export class OnlineOrderComponent implements OnInit {
     async resolveBranchName(bId: number): Promise<void> {
         try {
             const info = await this.customerOrderService.getOnlineStoreHeader(bId);
-            if (info && info.branchName) {
-                this.branchName = info.branchName;
+            if (info) {
+                if (info.branchName) this.branchName = info.branchName;
+                if (info.currencyFormat) this.currencyFormat = info.currencyFormat;
+                if (info.dateFormat) this.dateFormat = info.dateFormat;
                 return;
             }
         } catch {
@@ -143,6 +145,9 @@ export class OnlineOrderComponent implements OnInit {
         try {
             this.loading = true;
             this.products = await this.customerOrderService.getOnlineCatalog(bId || undefined);
+            if (this.products && this.products.length > 0 && this.products[0].currencyFormat) {
+                this.currencyFormat = this.products[0].currencyFormat;
+            }
             this.extractCategories();
             this.applyFilter();
 
@@ -309,5 +314,32 @@ export class OnlineOrderComponent implements OnInit {
             return (parts[0][0] + parts[1][0]).toUpperCase();
         }
         return name.slice(0, 2).toUpperCase();
+    }
+
+    getQuickSpecs(raw?: string): { key: string; value: string }[] {
+        if (!raw) return [];
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed
+                    .map((item: any) => ({
+                        key: item.key || item.name || '',
+                        value: item.value || item.val || '',
+                    }))
+                    .filter((i) => i.key && i.value)
+                    .slice(0, 3);
+            } else if (typeof parsed === 'object') {
+                return Object.keys(parsed)
+                    .map((k) => ({
+                        key: k,
+                        value: String(parsed[k] ?? ''),
+                    }))
+                    .filter((i) => i.key && i.value)
+                    .slice(0, 3);
+            }
+        } catch {
+            return [];
+        }
+        return [];
     }
 }

@@ -19,6 +19,7 @@ export class OnlineProductDetailComponent implements OnInit {
     dateFormat = 'dd/MM/yyyy';
 
     product: any = null;
+    specificationsList: { key: string; value: string }[] = [];
     relatedProducts: any[] = [];
     loading = false;
     quantity = 1;
@@ -44,23 +45,40 @@ export class OnlineProductDetailComponent implements OnInit {
     ) {}
 
     ngOnInit(): void {
+        const snapBranchId = this.route.snapshot.queryParamMap.get('branchId');
+        if (snapBranchId && !isNaN(Number(snapBranchId))) {
+            this.branchId = Number(snapBranchId);
+            this.resolveBranchInfo(this.branchId);
+        }
+
+        const snapProductId = this.route.snapshot.paramMap.get('id');
+        if (snapProductId && !isNaN(Number(snapProductId))) {
+            this.productId = Number(snapProductId);
+            this.quantity = 1;
+            this.checkAndLoad();
+        }
+
         this.route.paramMap.subscribe((params) => {
             const idParam = params.get('id');
             if (idParam && !isNaN(Number(idParam))) {
-                this.productId = Number(idParam);
-                this.quantity = 1;
-                this.checkAndLoad();
+                const newId = Number(idParam);
+                if (newId !== this.productId) {
+                    this.productId = newId;
+                    this.quantity = 1;
+                    this.checkAndLoad();
+                }
             }
         });
 
         this.route.queryParamMap.subscribe((qParams) => {
             const bId = qParams.get('branchId');
             if (bId && !isNaN(Number(bId))) {
-                this.branchId = Number(bId);
-                this.resolveBranchInfo(this.branchId);
-            }
-            if (this.productId) {
-                this.checkAndLoad();
+                const newBranchId = Number(bId);
+                if (newBranchId !== this.branchId) {
+                    this.branchId = newBranchId;
+                    this.resolveBranchInfo(this.branchId);
+                    this.checkAndLoad();
+                }
             }
         });
     }
@@ -68,10 +86,10 @@ export class OnlineProductDetailComponent implements OnInit {
     async resolveBranchInfo(bId: number): Promise<void> {
         try {
             const info = await this.customerOrderService.getOnlineStoreHeader(bId);
-            if (info && info.branchName) {
-                this.branchName = info.branchName;
-                this.currencyFormat = info.currencyFormat || 'PKR';
-                this.dateFormat = info.dateFormat || 'dd/MM/yyyy';
+            if (info) {
+                if (info.branchName) this.branchName = info.branchName;
+                if (info.currencyFormat) this.currencyFormat = info.currencyFormat;
+                if (info.dateFormat) this.dateFormat = info.dateFormat;
             }
         } catch {
             this.branchName = '';
@@ -86,6 +104,12 @@ export class OnlineProductDetailComponent implements OnInit {
                 this.productId,
                 this.branchId || undefined
             );
+
+            if (this.product && this.product.currencyFormat) {
+                this.currencyFormat = this.product.currencyFormat;
+            }
+
+            this.specificationsList = this.parseSpecs(this.product?.specifications);
 
             // Load related products from catalog
             this.loadRelatedProducts();
@@ -106,6 +130,9 @@ export class OnlineProductDetailComponent implements OnInit {
                 this.branchId || undefined
             );
             if (catalog && catalog.length > 0) {
+                if (!this.currencyFormat && catalog[0].currencyFormat) {
+                    this.currencyFormat = catalog[0].currencyFormat;
+                }
                 this.relatedProducts = catalog
                     .filter((p) => p.id !== this.productId)
                     .slice(0, 4);
@@ -243,5 +270,41 @@ export class OnlineProductDetailComponent implements OnInit {
             return (parts[0][0] + parts[1][0]).toUpperCase();
         }
         return name.slice(0, 2).toUpperCase();
+    }
+
+    parseSpecs(raw?: string): { key: string; value: string }[] {
+        if (!raw) return [];
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed
+                    .map((item: any) => ({
+                        key: item.key || item.name || item.title || '',
+                        value: item.value || item.val || '',
+                    }))
+                    .filter((i) => i.key && i.value);
+            } else if (typeof parsed === 'object') {
+                return Object.keys(parsed)
+                    .map((k) => ({
+                        key: k,
+                        value: String(parsed[k] ?? ''),
+                    }))
+                    .filter((i) => i.key && i.value);
+            }
+        } catch {
+            const lines = raw.split('\n');
+            const items: { key: string; value: string }[] = [];
+            for (const line of lines) {
+                const idx = line.indexOf(':');
+                if (idx > -1) {
+                    items.push({
+                        key: line.substring(0, idx).trim(),
+                        value: line.substring(idx + 1).trim(),
+                    });
+                }
+            }
+            return items.filter((i) => i.key && i.value);
+        }
+        return [];
     }
 }
