@@ -2,20 +2,12 @@ import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
+import { OnlineCartService, CartItem } from 'src/app/demo/service/online-cart.service';
 import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { MessageService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
-
-export interface CartItem {
-    productId: number;
-    name: string;
-    unitName: string;
-    unitPrice: number;
-    quantity: number;
-    imagePath?: string;
-}
 
 @Component({
     selector: 'app-online-order',
@@ -37,8 +29,6 @@ export class OnlineOrderComponent implements OnInit {
     selectedCategory = 'All';
 
     searchKeyword = '';
-    cart: CartItem[] = [];
-    cartSidebarVisible = false;
 
     // Checkout modal & state
     checkoutModalVisible = false;
@@ -54,7 +44,9 @@ export class OnlineOrderComponent implements OnInit {
 
     loading = false;
 
-    constructor(public formatService: AppFormatService, 
+    constructor(
+        public formatService: AppFormatService,
+        public cartService: OnlineCartService,
         private customerOrderService: CustomerOrderService,
         private branchContext: BranchContextService,
         private branchService: BranchService,
@@ -66,11 +58,12 @@ export class OnlineOrderComponent implements OnInit {
     ngOnInit(): void {
         this.route.queryParams.subscribe((params) => {
             const paramBranchId = params['branchId'];
+            const paramProductId = params['productId'];
             if (paramBranchId && !isNaN(Number(paramBranchId))) {
                 this.branchId = Number(paramBranchId);
                 this.branchMissingError = false;
                 this.resolveBranchName(this.branchId);
-                this.loadCatalog(this.branchId);
+                this.loadCatalog(this.branchId, paramProductId ? Number(paramProductId) : undefined);
             } else {
                 this.handleMissingBranchId();
             }
@@ -146,12 +139,19 @@ export class OnlineOrderComponent implements OnInit {
         this.setBranchInUrl(this.selectedBranchIdForModal);
     }
 
-    async loadCatalog(bId?: number): Promise<void> {
+    async loadCatalog(bId?: number, selectProductId?: number): Promise<void> {
         try {
             this.loading = true;
             this.products = await this.customerOrderService.getOnlineCatalog(bId || undefined);
             this.extractCategories();
             this.applyFilter();
+
+            if (selectProductId) {
+                const target = this.products.find((p) => p.id === selectProductId);
+                if (target) {
+                    this.openProductDetails(target);
+                }
+            }
         } catch (error: any) {
             this.messageService.add({
                 severity: 'error',
@@ -192,7 +192,20 @@ export class OnlineOrderComponent implements OnInit {
         });
     }
 
-    addToCart(product: any): void {
+    openProductDetails(product: any): void {
+        this.router.navigate(['/online-order/product', product.id], {
+            queryParams: this.branchId ? { branchId: this.branchId } : {},
+        });
+    }
+
+    getCartQuantityForProduct(productId: number): number {
+        return this.cartService.getItemQuantity(productId);
+    }
+
+    addToCart(product: any, qty: number = 1, event?: Event): void {
+        if (event) {
+            event.stopPropagation();
+        }
         if (this.branchMissingError || !this.branchId) {
             this.messageService.add({
                 severity: 'warn',
@@ -202,48 +215,18 @@ export class OnlineOrderComponent implements OnInit {
             return;
         }
 
-        const existing = this.cart.find((c) => c.productId === product.id);
-        if (existing) {
-            existing.quantity += 1;
-        } else {
-            this.cart.push({
-                productId: product.id,
-                name: product.name,
-                unitName: product.unitName || 'Pcs',
-                unitPrice: product.price || 0,
-                quantity: 1,
-                imagePath: product.imagePath,
-            });
-        }
+        const countToAdd = Math.max(1, qty || 1);
+        this.cartService.addToCart(product, countToAdd);
         this.messageService.add({
             severity: 'success',
             summary: 'Added to Cart',
-            detail: `${product.name} added to your order`,
+            detail: `${countToAdd > 1 ? countToAdd + 'x ' : ''}${product.name} added to your order`,
             life: 1800,
         });
     }
 
-    updateQuantity(item: CartItem, change: number): void {
-        item.quantity += change;
-        if (item.quantity <= 0) {
-            this.removeFromCart(item);
-        }
-    }
-
-    removeFromCart(item: CartItem): void {
-        this.cart = this.cart.filter((c) => c.productId !== item.productId);
-    }
-
-    get totalItemsCount(): number {
-        return this.cart.reduce((sum, i) => sum + i.quantity, 0);
-    }
-
-    get cartSubtotal(): number {
-        return this.cart.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
-    }
-
     openCheckout(): void {
-        if (!this.cart.length) {
+        if (!this.cartService.items.length) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Cart Empty',
@@ -251,6 +234,7 @@ export class OnlineOrderComponent implements OnInit {
             });
             return;
         }
+        this.cartService.sidebarVisible = false;
         this.checkoutModalVisible = true;
     }
 
@@ -279,7 +263,7 @@ export class OnlineOrderComponent implements OnInit {
                 customerMobile: this.customerMobile.trim(),
                 branchId: this.branchId || undefined,
                 notes: this.notes.trim(),
-                lines: this.cart.map((c) => ({
+                lines: this.cartService.items.map((c) => ({
                     productId: c.productId,
                     quantity: c.quantity,
                     unitPrice: c.unitPrice,
@@ -292,12 +276,12 @@ export class OnlineOrderComponent implements OnInit {
             this.confirmedTotal = createdOrder.totalAmount;
 
             // Reset cart & checkout modal
-            this.cart = [];
+            this.cartService.clearCart();
             this.customerName = '';
             this.customerMobile = '';
             this.notes = '';
             this.checkoutModalVisible = false;
-            this.cartSidebarVisible = false;
+            this.cartService.sidebarVisible = false;
 
             // Show success modal
             this.successModalVisible = true;

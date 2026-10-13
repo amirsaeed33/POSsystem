@@ -22,6 +22,8 @@ namespace SmartPos.Orders
 
         Task<List<OnlineProductDto>> GetOnlineCatalogAsync(int? branchId);
 
+        Task<OnlineProductDto> GetOnlineProductAsync(int id, int? branchId);
+
         Task<OnlineStoreHeaderDto> GetOnlineStoreHeaderAsync(int branchId);
     }
 }

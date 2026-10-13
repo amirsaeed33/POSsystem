@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { OnlineOrderRoutingModule } from './online-order-routing.module';
 import { OnlineOrderComponent } from './online-order.component';
+import { OnlineProductDetailComponent } from './online-product-detail.component';
 
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -13,6 +14,7 @@ import { SidebarModule } from 'primeng/sidebar';
 import { ToastModule } from 'primeng/toast';
 import { DropdownModule } from 'primeng/dropdown';
 import { ImageModule } from 'primeng/image';
+import { TooltipModule } from 'primeng/tooltip';
 
 @NgModule({
     imports: [
@@ -28,7 +30,8 @@ import { ImageModule } from 'primeng/image';
         ToastModule,
         DropdownModule,
         ImageModule,
+        TooltipModule,
     ],
-    declarations: [OnlineOrderComponent],
+    declarations: [OnlineOrderComponent, OnlineProductDetailComponent],
 })
 export class OnlineOrderModule {}

@@ -101,7 +101,7 @@ namespace SmartPos.Orders
 
                 var targetBranchId = targetBranch.Id;
 
-                var products = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit)
+                var products = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit, p => p.Brand)
                     .AsNoTracking()
                     .Where(p => p.TenantId == targetBranch.TenantId)
                     .WhereVisibleToBranch(_branchStockRepository.GetAll(), targetBranchId)
@@ -116,13 +116,76 @@ namespace SmartPos.Orders
                     {
                         Id = p.Id,
                         Name = p.Name,
+                        Description = p.Description,
                         CategoryName = p.Category?.Name ?? "General",
+                        BrandName = p.Brand?.Name,
+                        Barcode = p.Barcode,
                         UnitName = p.Unit?.Name ?? "Pcs",
                         Price = branchInfo.TryGetValue(p.Id, out var info) && info.Price > 0 ? info.Price : p.Price,
                         ImagePath = p.ImagePath,
-                        InStock = branchInfo.TryGetValue(p.Id, out info) ? info.Quantity > 0 : true
+                        InStock = branchInfo.TryGetValue(p.Id, out info) ? info.Quantity > 0 : true,
+                        StockQuantity = branchInfo.TryGetValue(p.Id, out info) ? info.Quantity : 0
                     })
                     .ToList();
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<OnlineProductDto> GetOnlineProductAsync(int id, int? branchId)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var product = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit, p => p.Brand)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == id);
+
+                if (product == null)
+                {
+                    return null;
+                }
+
+                Branch targetBranch = null;
+                if (branchId.HasValue && branchId.Value > 0)
+                {
+                    targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.Id == branchId.Value);
+                }
+                if (targetBranch == null)
+                {
+                    targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.IsActive);
+                }
+
+                var price = product.Price;
+                var stockQty = 0m;
+                var inStock = true;
+
+                if (targetBranch != null)
+                {
+                    var branchStock = await _branchStockRepository.FirstOrDefaultAsync(s => s.BranchId == targetBranch.Id && s.ProductId == id);
+                    if (branchStock != null)
+                    {
+                        if (branchStock.Price > 0)
+                        {
+                            price = branchStock.Price;
+                        }
+                        stockQty = branchStock.Quantity;
+                        inStock = branchStock.Quantity > 0;
+                    }
+                }
+
+                return new OnlineProductDto
+                {
+                    Id = product.Id,
+                    Name = product.Name,
+                    Description = product.Description,
+                    CategoryName = product.Category?.Name ?? "General",
+                    BrandName = product.Brand?.Name,
+                    Barcode = product.Barcode,
+                    UnitName = product.Unit?.Name ?? "Pcs",
+                    Price = price,
+                    ImagePath = product.ImagePath,
+                    InStock = inStock,
+                    StockQuantity = stockQty
+                };
             }
         }
 
