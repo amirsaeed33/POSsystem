@@ -3,15 +3,6 @@
     <div class="surface-card border-bottom-1 surface-border sticky top-0 z-4 shadow-1 px-4 py-3">
         <div class="flex flex-wrap align-items-center justify-content-between gap-3 w-full mx-auto" style="max-width: 1200px;">
             <div class="flex align-items-center gap-3">
-                <button
-                    pButton
-                    type="button"
-                    icon="pi pi-arrow-left"
-                    label="Back to Store"
-                    class="p-button-outlined p-button-sm border-round-xl font-bold"
-                    (click)="backToStore()"
-                ></button>
-
                 <div class="flex align-items-center gap-2 cursor-pointer" (click)="backToStore()">
                     <i class="pi pi-shopping-bag text-primary text-2xl"></i>
                     <div>
@@ -164,24 +155,6 @@
                                     <i class="pi pi-check-circle text-green-600"></i>
                                     <span>{{ product.stockQuantity }} Available in Stock</span>
                                 </span>
-                            </div>
-                        </div>
-
-                        <!-- Key Specifications & Features (PriceOye Style Highlights) -->
-                        <div *ngIf="specificationsList && specificationsList.length > 0" class="surface-50 border-round-2xl p-3 border-1 surface-border shadow-1">
-                            <div class="flex align-items-center justify-content-between mb-2">
-                                <span class="font-bold text-xs uppercase text-700 tracking-wider flex align-items-center gap-2">
-                                    <i class="pi pi-sliders-h text-primary"></i> Key Specifications & Attributes
-                                </span>
-                                <span class="text-xs text-500 font-semibold">{{ specificationsList.length }} specs</span>
-                            </div>
-                            <div class="grid grid-nogutter gap-2">
-                                <div *ngFor="let spec of specificationsList" class="col-12 sm:col-5 flex-1 min-w-min p-2 bg-white border-round-xl border-1 surface-border shadow-1">
-                                    <div class="flex flex-column">
-                                        <span class="text-xs text-500 font-semibold">{{ spec.key }}</span>
-                                        <span class="text-sm font-bold text-900 mt-1">{{ spec.value }}</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
