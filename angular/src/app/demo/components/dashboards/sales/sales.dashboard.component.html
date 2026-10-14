@@ -5,12 +5,12 @@
                 <img src="assets/demo/images/avatar/profile.jpg" width="64" alt="profile" class="border-circle border-2 border-primary flex-shrink-0"/>
                 <div class="ml-3">
                     <span class="text-4xl font-light">Bonjour, <span class="font-normal">Hermione</span></span>
-                    <div class="text-color-secondary">26 January 2023, Thu</div>
+                    <div class="text-color-secondary">{{ today | date: formatService.dateFormat }}</div>
                 </div>
             </div>
             <div class="flex align-items-center justify-content-between gap-3">
                 <p-dropdown [options]="analytics" [(ngModel)]="selectedDrop" placeholder="Category" styleClass="w-full sm:w-10rem"></p-dropdown>
-                <p-calendar [showIcon]="true" selectionMode="range" styleClass="w-full sm:w-14rem" placeholder="Select Range"></p-calendar>
+                <p-calendar [showIcon]="true" selectionMode="range" [dateFormat]="formatService.primeNgDateFormat" styleClass="w-full sm:w-14rem" placeholder="Select Range"></p-calendar>
             </div>
         </div>
     </div>

@@ -4,6 +4,7 @@ import { UserDto } from 'src/app/demo/api/user-management';
 import { UserService } from 'src/app/demo/service/user.service';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 
 @Component({
     templateUrl: './profilelist.component.html',
@@ -24,6 +25,7 @@ export class ProfileListComponent implements OnInit {
 
     constructor(
         private userService: UserService,
+        public formatService: AppFormatService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) { }

@@ -54,7 +54,7 @@
                                 </div>
                                 <div class="branch-card__created text-sm text-500 mt-2" *ngIf="branch.creationTime">
                                     <i class="pi pi-calendar text-xs mr-1"></i>
-                                    Created {{ branch.creationTime | date: 'MMM d, y' }}
+                                    Created {{ branch.creationTime | date: formatService.dateFormat }}
                                 </div>
                             </div>
                             <ng-container
@@ -162,7 +162,7 @@
                         </div>
                         <div class="branch-card__created text-sm text-500 mt-2" *ngIf="branch.creationTime">
                             <i class="pi pi-calendar text-xs mr-1"></i>
-                            Created {{ branch.creationTime | date: 'MMM d, y' }}
+                            Created {{ branch.creationTime | date: formatService.dateFormat }}
                         </div>
                     </div>
 

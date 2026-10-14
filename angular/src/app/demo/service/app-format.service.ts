@@ -1,8 +1,11 @@
 import { Injectable } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { BranchContextService } from './branch-context.service';
 
 @Injectable({ providedIn: 'root' })
 export class AppFormatService {
+    private readonly datePipe = new DatePipe('en-US');
+
     constructor(private branchContext: BranchContextService) {}
 
     get dateFormat(): string {
@@ -20,6 +23,17 @@ export class AppFormatService {
         if (format === 'MMMM d, y') return 'MM d, yy';
         if (format === 'EEEE, MMMM d, y') return 'DD, MM d, yy';
         return 'dd/mm/yy'; // Default
+    }
+
+    formatDate(value?: string | Date | null, fallback = '—'): string {
+        if (!value) {
+            return fallback;
+        }
+        const date = value instanceof Date ? value : new Date(value);
+        if (isNaN(date.getTime())) {
+            return fallback;
+        }
+        return this.datePipe.transform(date, this.dateFormat) || fallback;
     }
 
     get currencyFormat(): string {

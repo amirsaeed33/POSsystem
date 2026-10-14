@@ -8,6 +8,7 @@ import {
     StaffPayrollDto,
 } from 'src/app/demo/api/staff-payroll';
 import { StaffPayrollService } from 'src/app/demo/service/staff-payroll.service';
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 
 @Component({
     selector: 'app-staff-list',
@@ -83,6 +84,7 @@ export class StaffListComponent implements OnInit {
     constructor(
         private staffService: StaffService,
         private staffPayrollService: StaffPayrollService,
+        public formatService: AppFormatService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -148,14 +150,7 @@ export class StaffListComponent implements OnInit {
     }
 
     formatDate(value: string | Date | undefined): string {
-        if (!value) {
-            return '—';
-        }
-        const date = new Date(value);
-        if (isNaN(date.getTime())) {
-            return '—';
-        }
-        return date.toLocaleDateString();
+        return this.formatService.formatDate(value);
     }
 
     onDelete(staff: StaffDto): void {

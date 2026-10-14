@@ -168,7 +168,7 @@
         <div class="print-report-header mb-3">
             <h2>Product Profit Report</h2>
             <div class="text-sm text-color-secondary">
-                From: {{ fromDate }} To: {{ toDate }}
+                From: {{ fromDate | date: formatService.dateFormat }} To: {{ toDate | date: formatService.dateFormat }}
             </div>
         </div>
 

@@ -17,6 +17,8 @@ interface ListItem {
 })
 export class SalesDashboardComponent implements OnInit {
 
+    today = new Date();
+
     orderWeek: any;
 
     selectedOrderWeek: any;

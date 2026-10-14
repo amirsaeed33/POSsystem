@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { ProductProfitReportDto } from 'src/app/demo/api/report';
 import { ReportService } from 'src/app/demo/service/report.service';
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 
 @Component({
     templateUrl: './product-profit-report.component.html',
@@ -24,6 +25,7 @@ export class ProductProfitReportComponent implements OnInit {
 
     constructor(
         private reportService: ReportService,
+        public formatService: AppFormatService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef
     ) {}

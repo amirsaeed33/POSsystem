@@ -173,14 +173,7 @@ export class StaffAttendanceListComponent implements OnInit {
     }
 
     formatDate(value?: string | Date | null): string {
-        if (!value) {
-            return '—';
-        }
-        const date = new Date(value);
-        if (isNaN(date.getTime())) {
-            return '—';
-        }
-        return date.toLocaleDateString();
+        return this.formatService.formatDate(value);
     }
 
     formatTime(value?: string | Date | null): string {

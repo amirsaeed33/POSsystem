@@ -10,6 +10,7 @@ import {
     StaffPayrollDto,
 } from 'src/app/demo/api/staff-payroll';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { StaffPayrollService } from 'src/app/demo/service/staff-payroll.service';
@@ -77,6 +78,7 @@ export class StaffPayrollListComponent implements OnInit, OnDestroy {
         private businessAccountService: BusinessAccountService,
         private permissionService: PermissionService,
         private branchContext: BranchContextService,
+        public formatService: AppFormatService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -300,14 +302,7 @@ export class StaffPayrollListComponent implements OnInit, OnDestroy {
     }
 
     formatDate(value?: string | Date | null): string {
-        if (!value) {
-            return '—';
-        }
-        const date = new Date(value);
-        if (isNaN(date.getTime())) {
-            return '—';
-        }
-        return date.toLocaleDateString();
+        return this.formatService.formatDate(value);
     }
 
     private loadStaffOptions(): void {

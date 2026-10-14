@@ -56,7 +56,7 @@
                         {{user.isActive ? 'Active' : 'Inactive'}}
                     </span>
                 </td>
-                <td>{{user.creationTime | date: 'MM/dd/yyyy'}}</td>
+                <td>{{user.creationTime | date: formatService.dateFormat}}</td>
                 <td>
                     <div class="flex gap-2">
                         <button pButton pRipple icon="pi pi-pencil" class="p-button-text p-button-sm" 
