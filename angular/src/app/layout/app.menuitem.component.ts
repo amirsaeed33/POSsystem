@@ -40,10 +40,19 @@ import {DomHandler} from 'primeng/dom';
     animations: [
         trigger('children', [
             state('collapsed', style({
-                height: '0'
+                height: '0',
+                paddingTop: '0',
+                paddingBottom: '0',
+                marginTop: '0',
+                marginBottom: '0',
+                borderLeftWidth: '0',
+                borderLeftColor: 'transparent',
+                overflow: 'hidden',
+                visibility: 'hidden'
             })),
             state('expanded', style({
-                height: '*'
+                height: '*',
+                overflow: 'hidden'
             })),
             state('hidden', style({
                 display: 'none'
@@ -51,7 +60,11 @@ import {DomHandler} from 'primeng/dom';
             state('visible', style({
                 display: 'block'
             })),
-            transition('collapsed <=> expanded', animate('400ms cubic-bezier(0.86, 0, 0.07, 1)'))
+            transition('collapsed => expanded', [
+                style({ visibility: 'visible' }),
+                animate('400ms cubic-bezier(0.86, 0, 0.07, 1)')
+            ]),
+            transition('expanded => collapsed', animate('400ms cubic-bezier(0.86, 0, 0.07, 1)'))
         ])
     ]
 })
