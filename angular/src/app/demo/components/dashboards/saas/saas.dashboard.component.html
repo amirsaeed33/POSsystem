@@ -1,11 +1,11 @@
-<div class="grid">
-    <div class="col-12 lg:col-6 xl:col-3">
+<div class="grid dashboard-grid">
+    <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-1">
         <div class="card kpi-card sales-card p-0 overflow-hidden flex flex-column h-full">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-users text-6xl text-blue-500"></i>
                 <div class="ml-3">
                     <span class="text-blue-500 block white-space-nowrap">Today's Sales</span>
-                    <span class="text-blue-500 block text-4xl font-bold">{{ formatPkr(todaySales) }}</span>
+                    <span class="text-blue-500 block text-4xl font-bold">{{ formatPkr(displayedTodaySales) }}</span>
                     <span class="text-blue-500 block kpi-subtitle">{{ salesSubtitle }}</span>
                 </div>
             </div>
@@ -13,13 +13,13 @@
                 class="w-full mt-auto" alt="users">
         </div>
     </div>
-    <div class="col-12 lg:col-6 xl:col-3">
+    <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-2">
         <div class="card kpi-card purchases-card p-0 overflow-hidden flex flex-column h-full">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-map text-6xl text-orange-500"></i>
                 <div class="ml-3">
                     <span class="text-orange-500 block white-space-nowrap">Today's Purchases</span>
-                    <span class="text-orange-500 block text-4xl font-bold">{{ formatPkr(todayPurchases) }}</span>
+                    <span class="text-orange-500 block text-4xl font-bold">{{ formatPkr(displayedTodayPurchases) }}</span>
                     <span class="text-orange-500 block kpi-subtitle">{{ purchasesSubtitle }}</span>
                 </div>
             </div>
@@ -27,13 +27,13 @@
                 class="w-full mt-auto" alt="locations">
         </div>
     </div>
-    <div class="col-12 lg:col-6 xl:col-3">
+    <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-3">
         <div class="card kpi-card expenses-card p-0 overflow-hidden flex flex-column h-full">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-directions text-6xl text-green-500"></i>
                 <div class="ml-3">
                     <span class="text-green-500 block white-space-nowrap">Today's Expenses</span>
-                    <span class="text-green-500 block text-4xl font-bold">{{ formatPkr(todayExpenses) }}</span>
+                    <span class="text-green-500 block text-4xl font-bold">{{ formatPkr(displayedTodayExpenses) }}</span>
                     <span class="text-green-500 block kpi-subtitle">{{ expensesSubtitle }}</span>
                 </div>
             </div>
@@ -41,13 +41,13 @@
                 class="w-full mt-auto" alt="conversion">
         </div>
     </div>
-    <div class="col-12 lg:col-6 xl:col-3">
+    <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-4">
         <div class="card kpi-card profit-card p-0 overflow-hidden flex flex-column h-full">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-comments text-6xl text-purple-500"></i>
                 <div class="ml-3">
                     <span class="text-purple-500 block white-space-nowrap">Today's Profit</span>
-                    <span class="text-purple-500 block text-4xl font-bold">{{ formatPkr(todayProfit) }}</span>
+                    <span class="text-purple-500 block text-4xl font-bold">{{ formatPkr(displayedTodayProfit) }}</span>
                     <span class="text-purple-500 block kpi-subtitle">{{ profitSubtitle }}</span>
                 </div>
             </div>
@@ -57,7 +57,7 @@
     </div>
 
     <!-- 15-Day Financial Trend Chart (Immediately below KPI Cards) -->
-    <div class="col-12">
+    <div class="col-12 anim-card anim-delay-5">
         <div class="card">
             <div class="flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
                 <div>
@@ -86,7 +86,7 @@
         </div>
     </div>
 
-    <div class="col-12 xl:col-6">
+    <div class="col-12 xl:col-6 anim-card anim-delay-6">
         <div class="card h-full">
             <div class="flex justify-content-between align-items-center mb-3">
                 <h5>Sales Overview</h5>
@@ -100,11 +100,11 @@
         </div>
     </div>
 
-    <div class="col-12 lg:col-6 xl:col-3">
+    <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-7">
         <div class="card h-full">
             <h5>{{ latestListTitle }}</h5>
             <ul class="list-none p-0 m-0">
-                <li class="mb-4 flex align-items-center" *ngFor="let item of latestListItems">
+                <li class="mb-3 flex align-items-center dashboard-interactive-item" *ngFor="let item of latestListItems">
                     <p-avatar [label]="item.initials" size="large" shape="circle" styleClass="text-base font-bold"
                         [style]="item.avatarStyle"></p-avatar>
                     <div class="ml-3">
@@ -112,7 +112,7 @@
                         <span class="text-color-secondary block">{{ item.subtitle }}</span>
                     </div>
                 </li>
-                <li class="mb-4 flex align-items-center" *ngIf="!latestListItems.length">
+                <li class="mb-3 flex align-items-center" *ngIf="!latestListItems.length">
                     <div class="ml-0">
                         <span class="text-color-secondary block">No data available</span>
                     </div>
@@ -123,7 +123,7 @@
         </div>
     </div>
 
-    <div class="col-12 lg:col-6 xl:col-3">
+    <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-8">
         <div class="card">
             <h5>Quick Actions</h5>
             <div class="text-center mb-5">
@@ -132,7 +132,7 @@
             </div>
 
             <ul class="list-none p-0 m-0">
-                <li class="mb-4 flex align-items-center justify-content-between gap-2">
+                <li class="mb-3 flex align-items-center justify-content-between gap-2 dashboard-interactive-item">
                     <div class="flex align-items-center min-w-0">
                         <p-avatar icon="pi pi-box" size="large" shape="circle" styleClass="text-base font-bold"
                             [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
@@ -149,7 +149,7 @@
                     </span>
                 </li>
 
-                <li class="mb-4 flex align-items-center justify-content-between gap-2">
+                <li class="mb-3 flex align-items-center justify-content-between gap-2 dashboard-interactive-item">
                     <div class="flex align-items-center min-w-0">
                         <p-avatar icon="pi pi-file" size="large" shape="circle" styleClass="text-base font-bold"
                             [style]="{'background-color':'rgba(94, 208, 250, 0.1)', 'color': '#1992D4', 'border': '1px solid #5ED0FA'}"></p-avatar>
@@ -166,7 +166,7 @@
                     </span>
                 </li>
 
-                <li class="mb-4 flex align-items-center justify-content-between gap-2" *ngIf="canOpenPos()">
+                <li class="mb-3 flex align-items-center justify-content-between gap-2 dashboard-interactive-item" *ngIf="canOpenPos()">
                     <div class="flex align-items-center min-w-0">
                         <p-avatar icon="pi pi-desktop" size="large" shape="circle" styleClass="text-base font-bold"
                             [style]="{'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'}"></p-avatar>
@@ -183,7 +183,7 @@
                     </span>
                 </li>
 
-                <li class="mb-4 flex align-items-center justify-content-between gap-2">
+                <li class="mb-3 flex align-items-center justify-content-between gap-2 dashboard-interactive-item">
                     <div class="flex align-items-center min-w-0">
                         <p-avatar icon="pi pi-building" size="large" shape="circle" styleClass="text-base font-bold"
                             [style]="{'background-color':'rgba(167, 139, 250, 0.12)', 'color': '#7C3AED', 'border': '1px solid #C4B5FD'}"></p-avatar>
@@ -202,7 +202,7 @@
         </div>
     </div>
 
-    <div class="col-12 lg:col-6 xl:col-4">
+    <div class="col-12 lg:col-6 xl:col-4 anim-card anim-delay-9">
         <div class="card h-full">
             <h5>Top Selling Products</h5>
             <div class="flex align-items-center justify-content-between pb-2 mb-1 border-bottom-1 surface-border gap-2">
@@ -212,7 +212,7 @@
                 <span class="font-bold text-right" style="min-width:3.5rem">Rank</span>
             </div>
             <ul class="list-none p-0 m-0">
-                <li class="flex flex-wrap align-items-center justify-content-between py-2 gap-2"
+                <li class="flex flex-wrap align-items-center justify-content-between py-2 gap-2 dashboard-interactive-item"
                     *ngFor="let product of topProducts">
                     <span class="flex-1 white-space-nowrap overflow-hidden text-overflow-ellipsis">{{ product.name
                         }}</span>
@@ -236,7 +236,7 @@
         </div>
     </div>
 
-    <div class="col-12 lg:col-6 xl:col-4">
+    <div class="col-12 lg:col-6 xl:col-4 anim-card anim-delay-10">
         <div class="card h-full">
             <div class="flex justify-content-between align-items-center mb-3 gap-2">
                 <h5 class="m-0">Sales Breakdown</h5>
@@ -299,7 +299,7 @@
         </div>
     </div>
 
-    <div class="col-12 lg:col-6 xl:col-4">
+    <div class="col-12 lg:col-6 xl:col-4 anim-card anim-delay-11">
         <div class="card h-full">
             <h5>Stock Highlights</h5>
             <ng-container *ngIf="currentStockHighlight as item; else noStockHighlight">
@@ -354,7 +354,7 @@
         </div>
     </div>
 
-    <div class="col-12 lg:col-6">
+    <div class="col-12 lg:col-6 anim-card anim-delay-12">
         <div class="card widget-timeline">
             <h5>Timeline</h5>
             <ul class="list-none p-0 m-0">
@@ -398,7 +398,7 @@
             </ul>
         </div>
     </div>
-    <div class="col-12 xl:col-6">
+    <div class="col-12 xl:col-6 anim-card anim-delay-13">
         <div class="card">
             <h5>Monthly Sales Growth</h5>
 

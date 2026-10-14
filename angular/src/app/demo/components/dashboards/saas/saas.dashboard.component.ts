@@ -121,6 +121,13 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     todayExpenses = 0;
     todayProfit = 0;
 
+    // Animated display counters for first-load numbers
+    displayedTodaySales = 0;
+    displayedTodayPurchases = 0;
+    displayedTodayExpenses = 0;
+    displayedTodayProfit = 0;
+    private counterAnimationId: number | null = null;
+
     cashFlow: MonthlyCashFlowDto[] = [];
     last7Days: DailyOverviewDto[] = [];
     last15Days: DailyOverviewDto[] = [];
@@ -289,12 +296,55 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.todaySalesCount = 0;
             this.branchCount = 0;
             this.latestListTitle = 'Latest Sales';
-            this.latestListItems = [];
             this.timelineEvents = [];
         }
+        this.animateCounters();
         this.buildOverviewChart();
         this.buildRevenueChart();
         this.build15DayTrendChart();
+    }
+
+    animateCounters(): void {
+        if (this.counterAnimationId) {
+            cancelAnimationFrame(this.counterAnimationId);
+            this.counterAnimationId = null;
+        }
+
+        const startSales = this.displayedTodaySales;
+        const endSales = this.todaySales;
+        const startPurchases = this.displayedTodayPurchases;
+        const endPurchases = this.todayPurchases;
+        const startExpenses = this.displayedTodayExpenses;
+        const endExpenses = this.todayExpenses;
+        const startProfit = this.displayedTodayProfit;
+        const endProfit = this.todayProfit;
+
+        const duration = 1200;
+        const startTime = performance.now();
+
+        const step = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Smooth easeOutQuart
+            const ease = 1 - Math.pow(1 - progress, 4);
+
+            this.displayedTodaySales = Math.round(startSales + (endSales - startSales) * ease);
+            this.displayedTodayPurchases = Math.round(startPurchases + (endPurchases - startPurchases) * ease);
+            this.displayedTodayExpenses = Math.round(startExpenses + (endExpenses - startExpenses) * ease);
+            this.displayedTodayProfit = Math.round(startProfit + (endProfit - startProfit) * ease);
+
+            if (progress < 1) {
+                this.counterAnimationId = requestAnimationFrame(step);
+            } else {
+                this.displayedTodaySales = endSales;
+                this.displayedTodayPurchases = endPurchases;
+                this.displayedTodayExpenses = endExpenses;
+                this.displayedTodayProfit = endProfit;
+                this.counterAnimationId = null;
+            }
+        };
+
+        this.counterAnimationId = requestAnimationFrame(step);
     }
 
     private mapTimelineEvents(
@@ -550,6 +600,24 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         const borderColor = documentStyle.getPropertyValue('--surface-border');
 
         this.overviewChartOptions = {
+            animation: {
+                duration: 1100,
+                easing: 'easeOutQuart',
+                delay: (context: any) => {
+                    let delay = 0;
+                    if (context.type === 'data' && context.mode === 'default') {
+                        delay = context.dataIndex * 40 + context.datasetIndex * 80;
+                    }
+                    return delay;
+                }
+            },
+            transitions: {
+                active: {
+                    animation: {
+                        duration: 300
+                    }
+                }
+            },
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -629,6 +697,24 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         };
 
         this.revenueChartOptions = {
+            animation: {
+                duration: 1300,
+                easing: 'easeOutCubic',
+                delay: (context: any) => {
+                    let delay = 0;
+                    if (context.type === 'data' && context.mode === 'default') {
+                        delay = context.dataIndex * 35;
+                    }
+                    return delay;
+                }
+            },
+            transitions: {
+                active: {
+                    animation: {
+                        duration: 300
+                    }
+                }
+            },
             plugins: {
                 legend: {
                     display: true,
@@ -911,6 +997,24 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         };
 
         this.trend15DaysChartOptions = {
+            animation: {
+                duration: 1200,
+                easing: 'easeOutQuart',
+                delay: (context: any) => {
+                    let delay = 0;
+                    if (context.type === 'data' && context.mode === 'default') {
+                        delay = context.dataIndex * 30 + context.datasetIndex * 70;
+                    }
+                    return delay;
+                }
+            },
+            transitions: {
+                active: {
+                    animation: {
+                        duration: 300
+                    }
+                }
+            },
             plugins: {
                 legend: {
                     display: true,
@@ -1106,6 +1210,10 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         if (this.subscription) {
             this.subscription.unsubscribe();
+        }
+        if (this.counterAnimationId) {
+            cancelAnimationFrame(this.counterAnimationId);
+            this.counterAnimationId = null;
         }
     }
 }
