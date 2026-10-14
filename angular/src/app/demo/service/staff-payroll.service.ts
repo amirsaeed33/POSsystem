@@ -5,6 +5,7 @@ import { PagedResultDto } from '../api/staff';
 import {
     CreateStaffPayrollDto,
     PagedStaffPayrollResultRequestDto,
+    ProcessStaffPayrollPaymentDto,
     StaffPayrollDto,
 } from '../api/staff-payroll';
 import { environment } from '../../../environments/environment';
@@ -94,6 +95,19 @@ export class StaffPayrollService {
             return;
         }
         this.unwrap(res, 'Failed to delete payroll');
+    }
+
+    async processPayment(input: ProcessStaffPayrollPaymentDto): Promise<StaffPayrollDto> {
+        const payload: any = {
+            payrollId: input.payrollId,
+            paymentAccountId: input.paymentAccountId ?? null,
+            remarks: input.remarks ? input.remarks.trim() : null,
+            paymentDate: input.paymentDate instanceof Date ? input.paymentDate.toISOString() : (input.paymentDate ?? null),
+        };
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/ProcessPayment`, payload)
+        );
+        return this.mapPayroll(this.unwrap(res, 'Failed to process salary payment'));
     }
 
     private toPayload(input: CreateStaffPayrollDto | StaffPayrollDto): any {

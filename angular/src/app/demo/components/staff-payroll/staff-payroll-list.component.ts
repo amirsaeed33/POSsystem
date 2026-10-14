@@ -1,12 +1,16 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Table } from 'primeng/table';
+import { Subscription } from 'rxjs';
+import { BusinessAccountDto } from 'src/app/demo/api/business-account';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { StaffDto } from 'src/app/demo/api/staff';
 import {
     PayrollPaymentStatus,
     StaffPayrollDto,
 } from 'src/app/demo/api/staff-payroll';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { StaffPayrollService } from 'src/app/demo/service/staff-payroll.service';
 import { StaffService } from 'src/app/demo/service/staff.service';
@@ -16,7 +20,7 @@ import { StaffService } from 'src/app/demo/service/staff.service';
     templateUrl: './staff-payroll-list.component.html',
     providers: [MessageService, ConfirmationService],
 })
-export class StaffPayrollListComponent implements OnInit {
+export class StaffPayrollListComponent implements OnInit, OnDestroy {
     /** When true, omit outer card wrapper (used inside Staff hub tabs). */
     @Input() embedded = false;
 
@@ -29,6 +33,7 @@ export class StaffPayrollListComponent implements OnInit {
     monthFilter: number | null = null;
     yearFilter: number | null = new Date().getFullYear();
     paymentStatusFilter: PayrollPaymentStatus | null = null;
+    private branchSub?: Subscription;
 
     monthOptions = [
         { label: 'All', value: null },
@@ -48,6 +53,14 @@ export class StaffPayrollListComponent implements OnInit {
     dialogVisible = false;
     editingId: number | null = null;
 
+    // Payment confirmation dialog state
+    payDialogVisible = false;
+    selectedPayrollForPay: StaffPayrollDto | null = null;
+    payRemarks = '';
+    selectedAccountId: number | null = null;
+    paymentAccounts: BusinessAccountDto[] = [];
+    payLoading = false;
+
     readonly canCreate =
         this.permissionService.isGranted(PermissionNames.StaffPayrollCreate) ||
         this.permissionService.isGranted(PermissionNames.StaffPayroll);
@@ -61,14 +74,28 @@ export class StaffPayrollListComponent implements OnInit {
     constructor(
         private payrollService: StaffPayrollService,
         private staffService: StaffService,
+        private businessAccountService: BusinessAccountService,
         private permissionService: PermissionService,
+        private branchContext: BranchContextService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
         this.loadStaffOptions();
+        this.loadPaymentAccounts();
         this.loadRecords();
+
+        this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
+            if (branch) {
+                this.loadStaffOptions();
+                this.loadRecords();
+            }
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.branchSub?.unsubscribe();
     }
 
     loadRecords(): void {
@@ -119,6 +146,77 @@ export class StaffPayrollListComponent implements OnInit {
 
     onDialogSaved(): void {
         this.loadRecords();
+    }
+
+    openPayDialog(record: StaffPayrollDto): void {
+        this.selectedPayrollForPay = record;
+        this.payRemarks = '';
+        if (this.paymentAccounts.length > 0) {
+            this.selectedAccountId = this.paymentAccounts[0].id;
+        } else {
+            this.selectedAccountId = null;
+        }
+        this.payDialogVisible = true;
+    }
+
+    onPayHide(): void {
+        if (this.payLoading) {
+            return;
+        }
+        this.payDialogVisible = false;
+        this.selectedPayrollForPay = null;
+        this.payRemarks = '';
+    }
+
+    submitPay(): void {
+        if (!this.selectedPayrollForPay) {
+            return;
+        }
+
+        this.payLoading = true;
+        this.payrollService
+            .processPayment({
+                payrollId: this.selectedPayrollForPay.id,
+                paymentAccountId: this.selectedAccountId,
+                remarks: this.payRemarks,
+            })
+            .then(() => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Success',
+                    detail: 'Salary payment processed successfully.',
+                });
+                this.payDialogVisible = false;
+                this.selectedPayrollForPay = null;
+                this.payRemarks = '';
+                this.loadRecords();
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Payment Error',
+                    detail: error?.message || 'Failed to process salary payment.',
+                });
+            })
+            .finally(() => {
+                this.payLoading = false;
+            });
+    }
+
+    private loadPaymentAccounts(): void {
+        this.businessAccountService
+            .getAll({ skipCount: 0, maxResultCount: 100 })
+            .then((result) => {
+                this.paymentAccounts = (result.items || []).filter(
+                    (a) => a.isActive !== false
+                );
+                if (this.paymentAccounts.length > 0 && !this.selectedAccountId) {
+                    this.selectedAccountId = this.paymentAccounts[0].id;
+                }
+            })
+            .catch(() => {
+                this.paymentAccounts = [];
+            });
     }
 
     onDelete(record: StaffPayrollDto): void {

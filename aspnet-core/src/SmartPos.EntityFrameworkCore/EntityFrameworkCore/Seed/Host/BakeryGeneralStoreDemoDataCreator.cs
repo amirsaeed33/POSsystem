@@ -94,6 +94,7 @@ namespace SmartPos.EntityFrameworkCore.Seed.Host
                 _context.Products.Add(new Product
                 {
                     TenantId = _tenantId,
+                    BranchId = branchId,
                     Name = item.Name,
                     Description = item.Description,
                     Barcode = BarcodePrefix + index.ToString("D5"),

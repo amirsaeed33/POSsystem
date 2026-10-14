@@ -94,7 +94,7 @@
                 <th pSortableColumn="paymentStatus">Payment</th>
                 <th>Payment Date</th>
                 <th pSortableColumn="branchName">Branch</th>
-                <th style="width: 8rem">Actions</th>
+                <th style="width: 10rem">Actions</th>
             </tr>
         </ng-template>
 
@@ -113,7 +113,19 @@
                 <td>{{ formatDate(row.paymentDate) }}</td>
                 <td>{{ row.branchName || '—' }}</td>
                 <td>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 align-items-center">
+                        <button
+                            *ngIf="row.paymentStatus === 0"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-dollar"
+                            class="p-button-text p-button-success p-button-sm"
+                            pTooltip="Pay"
+                            tooltipPosition="top"
+                            (click)="openPayDialog(row)"
+                            [disabled]="!canEdit"
+                        ></button>
                         <button
                             pButton
                             pRipple
@@ -155,6 +167,82 @@
         [payrollId]="editingId"
         (saved)="onDialogSaved()"
     ></app-staff-payroll-form-dialog>
+
+    <!-- Salary Payment Confirmation Dialog -->
+    <p-dialog
+        [(visible)]="payDialogVisible"
+        [modal]="true"
+        [style]="{ width: '450px' }"
+        header="Process Salary Payment"
+        [closable]="!payLoading"
+        (onHide)="onPayHide()"
+    >
+        <div *ngIf="selectedPayrollForPay" class="flex flex-column gap-3">
+            <div class="surface-100 p-3 border-round">
+                <div class="flex justify-content-between mb-2">
+                    <span class="text-600 font-medium">Staff Member:</span>
+                    <span class="font-bold">{{ selectedPayrollForPay.staffName || '—' }}</span>
+                </div>
+                <div class="flex justify-content-between mb-2">
+                    <span class="text-600 font-medium">Period:</span>
+                    <span>{{ monthLabel(selectedPayrollForPay.month) }} {{ selectedPayrollForPay.year }}</span>
+                </div>
+                <div class="flex justify-content-between align-items-center pt-2 border-top-1 surface-border">
+                    <span class="text-600 font-medium">Net Salary to Pay:</span>
+                    <span class="text-xl font-bold text-green-600">{{ selectedPayrollForPay.netSalary }}</span>
+                </div>
+            </div>
+
+            <div class="field" *ngIf="paymentAccounts.length > 0">
+                <label for="payAccount" class="font-medium">Paid From (Account)</label>
+                <p-dropdown
+                    id="payAccount"
+                    [options]="paymentAccounts"
+                    [(ngModel)]="selectedAccountId"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Default Cash Account"
+                    styleClass="w-full"
+                    [disabled]="payLoading"
+                ></p-dropdown>
+            </div>
+
+            <div class="field">
+                <label for="payRemarks" class="font-medium">Remarks (Optional)</label>
+                <textarea
+                    id="payRemarks"
+                    pInputTextarea
+                    [(ngModel)]="payRemarks"
+                    rows="3"
+                    class="w-full"
+                    placeholder="Enter optional payment remarks..."
+                    [disabled]="payLoading"
+                ></textarea>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="onPayHide()"
+                [disabled]="payLoading"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-check"
+                label="Confirm Payment"
+                class="p-button-success"
+                (click)="submitPay()"
+                [loading]="payLoading"
+            ></button>
+        </ng-template>
+    </p-dialog>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>

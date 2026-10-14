@@ -46,3 +46,11 @@ export interface PagedStaffPayrollResultRequestDto {
     skipCount?: number;
     maxResultCount?: number;
 }
+
+export interface ProcessStaffPayrollPaymentDto {
+    payrollId: number;
+    paymentAccountId?: number | null;
+    paymentDate?: string | Date | null;
+    remarks?: string | null;
+}
+

@@ -10,5 +10,6 @@ namespace SmartPos.StaffPayrolls
         CreateStaffPayrollDto,
         StaffPayrollDto>
     {
+        System.Threading.Tasks.Task<StaffPayrollDto> ProcessPaymentAsync(ProcessStaffPayrollPaymentDto input);
     }
 }
