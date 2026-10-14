@@ -203,13 +203,31 @@ export class StaffPayrollListComponent implements OnInit, OnDestroy {
             });
     }
 
+    private readonly excludedAccountTypes = [
+        'Purchase',
+        'Sale',
+        'Expense',
+        'Customer',
+        'Supplier',
+    ];
+
     private loadPaymentAccounts(): void {
         this.businessAccountService
             .getAll({ skipCount: 0, maxResultCount: 100 })
             .then((result) => {
-                this.paymentAccounts = (result.items || []).filter(
-                    (a) => a.isActive !== false
+                const items = result.items || [];
+                let accounts = items.filter(
+                    (a) =>
+                        a.isActive !== false &&
+                        this.excludedAccountTypes.indexOf(a.accountType || '') < 0 &&
+                        !a.code?.startsWith('SYS-EXPENSE') &&
+                        !a.code?.startsWith('SYS-PURCHASE') &&
+                        !a.code?.startsWith('SYS-SALE')
                 );
+                if (!accounts.length) {
+                    accounts = items.filter((a) => a.isActive !== false);
+                }
+                this.paymentAccounts = accounts;
                 if (this.paymentAccounts.length > 0 && !this.selectedAccountId) {
                     this.selectedAccountId = this.paymentAccounts[0].id;
                 }
