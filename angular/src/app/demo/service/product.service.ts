@@ -111,6 +111,7 @@ export class ProductService {
                     imagePath: input.imagePath,
                     imageBase64: input.imageBase64,
                     branchIds: input.branchIds,
+                    specifications: input.specifications,
                 })
             );
             return this.mapProduct(this.unwrap(res, 'Failed to update product'));
@@ -200,6 +201,7 @@ export class ProductService {
             imageBase64: item.imageBase64 ?? item.ImageBase64,
             isShared: !!(item.isShared ?? item.IsShared),
             branchIds: item.branchIds ?? item.BranchIds ?? [],
+            specifications: item.specifications ?? item.Specifications ?? undefined,
         };
     }
 

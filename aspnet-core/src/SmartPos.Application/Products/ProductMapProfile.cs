@@ -16,19 +16,22 @@ namespace SmartPos.Products
                 .ForMember(d => d.StockProfit, opt => opt.Ignore())
                 .ForMember(d => d.ImageBase64, opt => opt.Ignore())
                 .ForMember(d => d.BranchIds, opt => opt.Ignore())
-                .ForMember(d => d.IsShared, opt => opt.Ignore());
+                .ForMember(d => d.IsShared, opt => opt.Ignore())
+                .ForMember(d => d.Specifications, opt => opt.MapFrom(s => s.Specifications));
 
             CreateMap<CreateProductDto, Product>()
                 .ForMember(d => d.Category, opt => opt.Ignore())
                 .ForMember(d => d.Brand, opt => opt.Ignore())
                 .ForMember(d => d.Unit, opt => opt.Ignore())
-                .ForMember(d => d.ImagePath, opt => opt.Ignore());
+                .ForMember(d => d.ImagePath, opt => opt.Ignore())
+                .ForMember(d => d.Specifications, opt => opt.MapFrom(s => s.Specifications));
 
             CreateMap<ProductDto, Product>()
                 .ForMember(d => d.Category, opt => opt.Ignore())
                 .ForMember(d => d.Brand, opt => opt.Ignore())
                 .ForMember(d => d.Unit, opt => opt.Ignore())
-                .ForMember(d => d.ImagePath, opt => opt.Ignore());
+                .ForMember(d => d.ImagePath, opt => opt.Ignore())
+                .ForMember(d => d.Specifications, opt => opt.MapFrom(s => s.Specifications));
         }
     }
 }

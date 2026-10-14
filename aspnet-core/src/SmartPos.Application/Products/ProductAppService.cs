@@ -95,6 +95,7 @@ namespace SmartPos.Products
             product.TenantId = AbpSession.TenantId;
             product.Barcode = barcode;
             product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
+            product.Specifications = input.Specifications;
 
             int resolvedBranchId = input.BranchId;
             if (resolvedBranchId <= 0)

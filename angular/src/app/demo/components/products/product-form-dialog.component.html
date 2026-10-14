@@ -11,6 +11,56 @@
     (visibleChange)="onVisibleChange($event)"
 >
     <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
+        <!-- Circular Product Image at Top -->
+        <div class="flex justify-content-center align-items-center mb-1">
+            <div
+                class="product-avatar-container"
+                (click)="fileInput.click()"
+                style="cursor: pointer; position: relative; display: inline-block;"
+                pTooltip="Click to change product image"
+                tooltipPosition="bottom"
+            >
+                <img
+                    *ngIf="imagePreview; else noImageTpl"
+                    [src]="imagePreview"
+                    alt="Product Image"
+                    class="border-circle shadow-2"
+                    style="width: 110px; height: 110px; object-fit: cover; border: 3px solid var(--primary-color); display: block;"
+                />
+                <ng-template #noImageTpl>
+                    <div
+                        class="border-circle surface-100 flex flex-column align-items-center justify-content-center shadow-1 text-500 hover:surface-200 transition-colors"
+                        style="width: 110px; height: 110px; border: 3px dashed var(--primary-color);"
+                    >
+                        <i class="pi pi-camera text-3xl text-primary mb-1"></i>
+                        <span class="text-xs font-semibold text-600">Upload</span>
+                    </div>
+                </ng-template>
+
+                <div
+                    *ngIf="imagePreview"
+                    class="product-avatar-overlay"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background-color: rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;"
+                >
+                    <i class="pi pi-camera" style="font-size: 1.5rem; color: white;"></i>
+                    <span style="color: white; font-weight: 500; margin-top: 0.25rem; font-size: 0.75rem;">Change</span>
+                </div>
+                <input
+                    #fileInput
+                    type="file"
+                    accept="image/*"
+                    (change)="onFileSelected($event)"
+                    style="display: none;"
+                    [disabled]="saving"
+                />
+            </div>
+        </div>
+        <style>
+            .product-avatar-container:hover .product-avatar-overlay {
+                opacity: 1 !important;
+            }
+        </style>
+
         <div class="formgrid grid">
             <div class="field col-12 md:col-6 flex flex-column gap-2 mb-0">
                 <label for="productName" class="font-medium">Name <span class="p-error">*</span></label>
@@ -92,13 +142,6 @@
                     optionLabel="name" optionValue="id" placeholder="Select unit"
                     [filter]="true" styleClass="w-full" [disabled]="saving" appendTo="body"></p-dropdown>
             </div>
-        </div>
-
-        <div class="flex flex-column gap-2" *ngIf="productId">
-            <label for="productImage" class="font-medium">Product Image</label>
-            <input id="productImage" type="file" accept="image/*" (change)="onFileSelected($event)" [disabled]="saving" />
-            <img *ngIf="imagePreview" [src]="imagePreview" alt="preview"
-                class="mt-2 border-round" style="max-width: 160px; max-height: 160px; object-fit: cover;" />
         </div>
 
         <!-- Technical Specifications / Attributes -->
