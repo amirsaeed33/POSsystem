@@ -14,6 +14,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
+import { StyleClassModule } from 'primeng/styleclass';
 import { StaffListComponent } from './staff-list.component';
 import { StaffFormDialogComponent } from './staff-form-dialog.component';
 import { StaffLoginDialogComponent } from './staff-login-dialog.component';
@@ -35,6 +36,7 @@ import { StaffLoginDialogComponent } from './staff-login-dialog.component';
         DropdownModule,
         CheckboxModule,
         TagModule,
+        StyleClassModule,
     ],
     declarations: [
         StaffListComponent,

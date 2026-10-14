@@ -11,8 +11,8 @@
     (visibleChange)="onVisibleChange($event)"
 >
     <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
-        <!-- Circular Product Image at Top -->
-        <div class="flex justify-content-center align-items-center mb-1">
+        <!-- Circular Product Image at Top (Edit Mode Only) -->
+        <div class="flex justify-content-center align-items-center mb-1" *ngIf="productId">
             <div
                 class="product-avatar-container"
                 (click)="fileInput.click()"
