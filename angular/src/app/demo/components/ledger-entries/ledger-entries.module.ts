@@ -11,6 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
+import { StyleClassModule } from 'primeng/styleclass';
 import { LedgerEntriesRoutingModule } from './ledger-entries-routing.module';
 import { LedgerEntryListComponent } from './ledger-entry-list.component';
 import { LedgerEntryFormDialogComponent } from './ledger-entry-form-dialog.component';
@@ -30,6 +31,7 @@ import { LedgerEntryFormDialogComponent } from './ledger-entry-form-dialog.compo
         TooltipModule,
         ConfirmDialogModule,
         DropdownModule,
+        StyleClassModule,
     ],
     declarations: [LedgerEntryListComponent, LedgerEntryFormDialogComponent],
 })

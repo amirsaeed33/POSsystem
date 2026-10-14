@@ -56,7 +56,7 @@
                 <th pSortableColumn="customerName">Customer <p-sortIcon field="customerName"></p-sortIcon></th>
                 <th pSortableColumn="totalAmount">Total <p-sortIcon field="totalAmount"></p-sortIcon></th>
                 <th>Notes</th>
-                <th style="width: 9rem">Actions</th>
+                <th class="text-center" style="width: 4.5rem">Actions</th>
             </tr>
         </ng-template>
 
@@ -68,28 +68,38 @@
                 <td>{{ item.customerName || '—' }}</td>
                 <td>{{ item.totalAmount | number: '1.2-2' }}</td>
                 <td>{{ item.notes || '—' }}</td>
-                <td>
-                    <div class="flex gap-2">
+                <td class="text-center">
+                    <div class="relative flex align-items-center justify-content-center">
                         <button
-                            pButton
-                            pRipple
                             type="button"
-                            icon="pi pi-eye"
-                            class="p-button-text p-button-sm"
-                            pTooltip="View"
-                            tooltipPosition="top"
-                            (click)="openViewDialog(item)"
-                        ></button>
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-trash"
-                            class="p-button-text p-button-danger p-button-sm"
-                            pTooltip="Delete"
-                            tooltipPosition="top"
-                            (click)="onDelete(item)"
-                        ></button>
+                            class="p-link w-2rem h-2rem border-circle inline-flex align-items-center justify-content-center hover:surface-hover transition-colors transition-duration-150"
+                            pStyleClass="@next"
+                            enterClass="hidden"
+                            enterActiveClass="scalein"
+                            leaveToClass="hidden"
+                            leaveActiveClass="fadeout"
+                            [hideOnOutsideClick]="true"
+                            pTooltip="Actions"
+                            tooltipPosition="left"
+                        >
+                            <i class="pi pi-ellipsis-v text-color"></i>
+                        </button>
+                        <ul class="list-none p-2 m-0 border-round shadow-3 hidden absolute surface-overlay origin-top mt-1 right-0 top-auto tbl-action-dropdown-menu text-left">
+                            <li>
+                                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                                   (click)="openViewDialog(item)">
+                                    <i class="pi pi-eye mr-2 text-primary"></i>
+                                    <span>View Details</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-red-500"
+                                   (click)="onDelete(item)">
+                                    <i class="pi pi-trash mr-2"></i>
+                                    <span>Delete</span>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </td>
             </tr>

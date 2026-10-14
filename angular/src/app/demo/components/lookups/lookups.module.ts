@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { CheckboxModule } from 'primeng/checkbox';
+import { StyleClassModule } from 'primeng/styleclass';
 import { LookUpsRoutingModule } from './lookups-routing.module';
 import { LookUpListComponent } from './lookup-list.component';
 import { LookUpFormDialogComponent } from './lookup-form-dialog.component';
@@ -32,6 +33,7 @@ import { LookUpFormDialogComponent } from './lookup-form-dialog.component';
         ConfirmDialogModule,
         DropdownModule,
         CheckboxModule,
+        StyleClassModule,
     ],
     declarations: [LookUpListComponent, LookUpFormDialogComponent],
 })

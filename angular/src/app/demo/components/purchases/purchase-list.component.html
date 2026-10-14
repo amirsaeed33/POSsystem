@@ -59,7 +59,7 @@
                 <th pSortableColumn="totalAmount">Total Amount <p-sortIcon field="totalAmount"></p-sortIcon></th>
                 <th pSortableColumn="dueAmount">Due Amount <p-sortIcon field="dueAmount"></p-sortIcon></th>
                 <th pSortableColumn="paymentStatus">Payment <p-sortIcon field="paymentStatus"></p-sortIcon></th>
-                <th class="text-center" style="width: 8rem">Actions</th>
+                <th class="text-center" style="width: 4.5rem">Actions</th>
             </tr>
         </ng-template>
 
@@ -78,32 +78,16 @@
                     </span>
                 </td>
                 <td class="text-center">
-                    <div class="flex align-items-center justify-content-center gap-2">
-                        <button
-                            *ngIf="purchase.paymentStatus !== 'Paid'; else emptyPaySlot"
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-dollar"
-                            class="p-button-success p-button-sm tbl-action-btn"
-                            pTooltip="Pay Remaining Amount"
-                            tooltipPosition="top"
-                            (click)="openPayDialog(purchase)"
-                        ></button>
-                        <ng-template #emptyPaySlot>
-                            <div style="width: 2.25rem; height: 2.25rem"></div>
-                        </ng-template>
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-ellipsis-v"
-                            class="tbl-action-btn more-btn"
-                            pTooltip="Actions"
-                            tooltipPosition="top"
-                            (click)="openActionMenu($event, menu, purchase)"
-                        ></button>
-                    </div>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-ellipsis-v"
+                        class="tbl-action-btn more-btn"
+                        pTooltip="Actions"
+                        tooltipPosition="left"
+                        (click)="openActionMenu($event, menu, purchase)"
+                    ></button>
                 </td>
             </tr>
         </ng-template>

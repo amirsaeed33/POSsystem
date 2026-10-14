@@ -11,6 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
+import { StyleClassModule } from 'primeng/styleclass';
 import { StockAdjustmentsRoutingModule } from './stock-adjustments-routing.module';
 import { StockAdjustmentListComponent } from './stock-adjustment-list.component';
 import { StockAdjustmentFormDialogComponent } from './stock-adjustment-form-dialog.component';
@@ -31,6 +32,7 @@ import { StockAdjustmentViewDialogComponent } from './stock-adjustment-view-dial
         TooltipModule,
         ConfirmDialogModule,
         DropdownModule,
+        StyleClassModule,
     ],
     declarations: [
         StockAdjustmentListComponent,

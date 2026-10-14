@@ -27,7 +27,7 @@
                 <th pSortableColumn="displayName" class="white-space-nowrap">Display Name <p-sortIcon field="displayName"></p-sortIcon></th>
                 <th class="white-space-nowrap">Description</th>
                 <th class="white-space-nowrap">Permissions</th>
-                <th class="white-space-nowrap">Actions</th>
+                <th class="text-center" style="width: 4.5rem">Actions</th>
             </tr>
         </ng-template>
         <ng-template pTemplate="body" let-role>
@@ -41,12 +41,38 @@
                     </span>
                     <span *ngIf="!role.grantedPermissions || role.grantedPermissions.length === 0" class="text-500">No permissions</span>
                 </td>
-                <td>
-                    <div class="flex gap-2">
-                        <button pButton pRipple icon="pi pi-pencil" class="p-button-text p-button-sm" 
-                            (click)="openEditDialog(role)" pTooltip="Edit" tooltipPosition="top"></button>
-                        <button pButton pRipple icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" 
-                            (click)="onDeleteRole(role)" pTooltip="Delete" tooltipPosition="top"></button>
+                <td class="text-center">
+                    <div class="relative flex align-items-center justify-content-center">
+                        <button
+                            type="button"
+                            class="p-link w-2rem h-2rem border-circle inline-flex align-items-center justify-content-center hover:surface-hover transition-colors transition-duration-150"
+                            pStyleClass="@next"
+                            enterClass="hidden"
+                            enterActiveClass="scalein"
+                            leaveToClass="hidden"
+                            leaveActiveClass="fadeout"
+                            [hideOnOutsideClick]="true"
+                            pTooltip="Actions"
+                            tooltipPosition="left"
+                        >
+                            <i class="pi pi-ellipsis-v text-color"></i>
+                        </button>
+                        <ul class="list-none p-2 m-0 border-round shadow-3 hidden absolute surface-overlay origin-top mt-1 right-0 top-auto tbl-action-dropdown-menu text-left">
+                            <li>
+                                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                                   (click)="openEditDialog(role)">
+                                    <i class="pi pi-pencil mr-2 text-blue-500"></i>
+                                    <span>Edit</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-red-500"
+                                   (click)="onDeleteRole(role)">
+                                    <i class="pi pi-trash mr-2"></i>
+                                    <span>Delete</span>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </td>
             </tr>

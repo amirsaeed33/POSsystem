@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
+import { StyleClassModule } from 'primeng/styleclass';
 import { CustomersRoutingModule } from './customers-routing.module';
 import { CustomerListComponent } from './customer-list.component';
 import { CustomerSharedModule } from './customer-shared.module';
@@ -32,6 +33,7 @@ import { CustomerSharedModule } from './customer-shared.module';
         ConfirmDialogModule,
         DropdownModule,
         TagModule,
+        StyleClassModule,
         CustomerSharedModule
     ],
     declarations: [CustomerListComponent]

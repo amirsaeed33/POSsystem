@@ -11,6 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
+import { StyleClassModule } from 'primeng/styleclass';
 import { TenantsRoutingModule } from './tenants-routing.module';
 import { TenantListComponent } from './tenant-list.component';
 import { TenantFormDialogComponent } from './tenant-form-dialog.component';
@@ -30,6 +31,7 @@ import { TenantFormDialogComponent } from './tenant-form-dialog.component';
         TooltipModule,
         ConfirmDialogModule,
         CheckboxModule,
+        StyleClassModule,
     ],
     declarations: [TenantListComponent, TenantFormDialogComponent],
 })

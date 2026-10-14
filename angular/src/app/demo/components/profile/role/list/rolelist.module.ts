@@ -13,6 +13,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
 import { CheckboxModule } from 'primeng/checkbox';
+import { StyleClassModule } from 'primeng/styleclass';
 import { RoleListComponent } from './rolelist.component';
 import { RoleFormDialogComponent } from './role-form-dialog.component';
 import { RoleListRoutingModule } from './rolelist-routing.module';
@@ -34,7 +35,8 @@ import { RoleListRoutingModule } from './rolelist-routing.module';
 		TooltipModule,
 		ConfirmDialogModule,
 		DialogModule,
-		CheckboxModule
+		CheckboxModule,
+		StyleClassModule
 	],
 	declarations: [RoleListComponent, RoleFormDialogComponent]
 })

@@ -12,6 +12,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
+import { StyleClassModule } from 'primeng/styleclass';
 import { ExpensesRoutingModule } from './expenses-routing.module';
 import { ExpenseListComponent } from './expense-list.component';
 import { ExpenseFormDialogComponent } from './expense-form-dialog.component';
@@ -34,6 +35,7 @@ import { InvoicePrintModule } from '../invoices/invoice-print.module';
         TooltipModule,
         ConfirmDialogModule,
         DropdownModule,
+        StyleClassModule,
     ],
     declarations: [ExpenseListComponent, ExpenseFormDialogComponent],
 })

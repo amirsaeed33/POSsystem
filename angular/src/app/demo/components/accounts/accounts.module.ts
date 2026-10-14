@@ -13,6 +13,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { CheckboxModule } from 'primeng/checkbox';
+import { StyleClassModule } from 'primeng/styleclass';
 import { AccountsRoutingModule } from './accounts-routing.module';
 import { AccountListComponent } from './account-list.component';
 import { AccountFormDialogComponent } from './account-form-dialog.component';
@@ -34,6 +35,7 @@ import { AccountFormDialogComponent } from './account-form-dialog.component';
         ConfirmDialogModule,
         DropdownModule,
         CheckboxModule,
+        StyleClassModule,
     ],
     declarations: [AccountListComponent, AccountFormDialogComponent],
 })

@@ -91,7 +91,15 @@ export class PurchaseListComponent implements OnInit {
     }
 
     openActionMenu(event: Event, menu: Menu, purchase: PurchaseDto): void {
-        this.menuItems = [
+        const items: MenuItem[] = [];
+        if (purchase.paymentStatus !== 'Paid') {
+            items.push({
+                label: 'Pay Remaining Amount',
+                icon: 'pi pi-dollar',
+                command: () => this.openPayDialog(purchase),
+            });
+        }
+        items.push(
             {
                 label: 'View Details',
                 icon: 'pi pi-eye',
@@ -115,8 +123,9 @@ export class PurchaseListComponent implements OnInit {
                 icon: 'pi pi-trash',
                 disabled: !this.canDelete,
                 command: () => this.onDelete(purchase),
-            },
-        ];
+            }
+        );
+        this.menuItems = items;
         menu.toggle(event);
     }
 

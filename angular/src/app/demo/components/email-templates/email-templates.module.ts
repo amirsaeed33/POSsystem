@@ -11,6 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
+import { StyleClassModule } from 'primeng/styleclass';
 import { EmailTemplatesRoutingModule } from './email-templates-routing.module';
 import { EmailTemplateListComponent } from './email-template-list.component';
 import { EmailTemplateFormDialogComponent } from './email-template-form-dialog.component';
@@ -30,6 +31,7 @@ import { EmailTemplateFormDialogComponent } from './email-template-form-dialog.c
         TooltipModule,
         ConfirmDialogModule,
         CheckboxModule,
+        StyleClassModule,
     ],
     declarations: [EmailTemplateListComponent, EmailTemplateFormDialogComponent],
 })

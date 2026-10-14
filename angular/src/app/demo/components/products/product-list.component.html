@@ -110,7 +110,7 @@
                 <th pSortableColumn="costPrice">Purchase Price <p-sortIcon field="costPrice"></p-sortIcon></th>
                 <th pSortableColumn="stockQuantity">Stock <p-sortIcon field="stockQuantity"></p-sortIcon></th>
                 <th pSortableColumn="alertQuantityLimit">Alert <p-sortIcon field="alertQuantityLimit"></p-sortIcon></th>
-                <th style="width: 8rem">Actions</th>
+                <th style="width: 4.5rem; text-align: center;">Actions</th>
             </tr>
         </ng-template>
 
@@ -150,7 +150,7 @@
                 <td>{{ product.costPrice | number: '1.2-2' }}</td>
                 <td>{{ product.stockQuantity }}</td>
                 <td>{{ product.alertQuantityLimit }}</td>
-                <td>
+                <td class="text-center">
                     <div class="relative flex align-items-center justify-content-center">
                         <button
                             type="button"
@@ -161,10 +161,12 @@
                             leaveToClass="hidden"
                             leaveActiveClass="fadeout"
                             [hideOnOutsideClick]="true"
+                            pTooltip="Actions"
+                            tooltipPosition="left"
                         >
                             <i class="pi pi-ellipsis-v text-color"></i>
                         </button>
-                        <ul class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-1 right-0 top-auto z-5 text-left" style="min-width: 12rem">
+                        <ul class="list-none p-2 m-0 border-round shadow-3 hidden absolute surface-overlay origin-top mt-1 right-0 top-auto tbl-action-dropdown-menu text-left">
                             <li>
                                 <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
                                    (click)="openBarcodeDialog(product)">

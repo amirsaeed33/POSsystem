@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
+import { StyleClassModule } from 'primeng/styleclass';
 import { StaffAttendanceListComponent } from './staff-attendance-list.component';
 import { StaffAttendanceFormDialogComponent } from './staff-attendance-form-dialog.component';
 
@@ -30,6 +31,7 @@ import { StaffAttendanceFormDialogComponent } from './staff-attendance-form-dial
         ConfirmDialogModule,
         DropdownModule,
         TagModule,
+        StyleClassModule,
     ],
     declarations: [
         StaffAttendanceListComponent,

@@ -10,6 +10,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { StyleClassModule } from 'primeng/styleclass';
 import { BrandListComponent } from './brand-list.component';
 import { BrandFormDialogComponent } from './brand-form-dialog.component';
 
@@ -26,6 +27,7 @@ import { BrandFormDialogComponent } from './brand-form-dialog.component';
         ToastModule,
         TooltipModule,
         ConfirmDialogModule,
+        StyleClassModule,
     ],
     declarations: [BrandListComponent, BrandFormDialogComponent],
     exports: [BrandListComponent, BrandFormDialogComponent],

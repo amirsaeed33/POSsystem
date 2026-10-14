@@ -203,11 +203,13 @@
                 leaveToClass="hidden"
                 leaveActiveClass="fadeout"
                 [hideOnOutsideClick]="true"
+                pTooltip="Actions"
+                tooltipPosition="left"
             >
                 <i class="pi pi-ellipsis-v text-color"></i>
             </button>
             <ul
-                class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-1 right-0 top-auto z-5"
+                class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-1 right-0 top-auto z-5 tbl-action-dropdown-menu"
                 style="min-width: 12rem"
             >
                 <li *ngIf="canEditBranch(branch)">

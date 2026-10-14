@@ -10,6 +10,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { StyleClassModule } from 'primeng/styleclass';
 import { UnitListComponent } from './unit-list.component';
 import { UnitFormDialogComponent } from './unit-form-dialog.component';
 
@@ -26,6 +27,7 @@ import { UnitFormDialogComponent } from './unit-form-dialog.component';
         ToastModule,
         TooltipModule,
         ConfirmDialogModule,
+        StyleClassModule,
     ],
     declarations: [UnitListComponent, UnitFormDialogComponent],
     exports: [UnitListComponent, UnitFormDialogComponent],

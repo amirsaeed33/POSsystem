@@ -154,6 +154,48 @@ $gutter: 1rem; //for primeflex grid system
   }
 }
 
+/* Standardized Table Action Dropdown Menu */
+.tbl-action-dropdown-menu {
+  min-width: 10.5rem;
+  z-index: 1050 !important;
+  background-color: var(--surface-overlay, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+
+  li a {
+    color: var(--text-color, #1e293b);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+    border-radius: 6px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--surface-hover, #f1f5f9);
+    }
+
+    i {
+      font-size: 0.95rem;
+      width: 1.25rem;
+      margin-right: 0.5rem;
+      text-align: center;
+    }
+
+    &.action-danger,
+    &.text-red-500 {
+      color: #ef4444 !important;
+
+      &:hover {
+        background-color: rgba(239, 68, 68, 0.08) !important;
+      }
+    }
+  }
+}
+
+
 /* 3. Mobile Table Horizontal Scroll Fix */
 @media screen and (max-width: 960px) {
   .p-datatable-wrapper {

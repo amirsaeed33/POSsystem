@@ -13,6 +13,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
+import { StyleClassModule } from 'primeng/styleclass';
 import { StaffPayrollListComponent } from './staff-payroll-list.component';
 import { StaffPayrollFormDialogComponent } from './staff-payroll-form-dialog.component';
 
@@ -32,6 +33,7 @@ import { StaffPayrollFormDialogComponent } from './staff-payroll-form-dialog.com
         ConfirmDialogModule,
         DropdownModule,
         TagModule,
+        StyleClassModule,
     ],
     declarations: [StaffPayrollListComponent, StaffPayrollFormDialogComponent],
     exports: [StaffPayrollListComponent, StaffPayrollFormDialogComponent],

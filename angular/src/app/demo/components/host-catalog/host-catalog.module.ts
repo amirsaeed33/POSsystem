@@ -9,6 +9,8 @@ import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
+import { TooltipModule } from 'primeng/tooltip';
+import { StyleClassModule } from 'primeng/styleclass';
 import { HostCatalogRoutingModule } from './host-catalog-routing.module';
 import { HostCatalogListComponent } from './host-catalog-list.component';
 
@@ -25,6 +27,8 @@ import { HostCatalogListComponent } from './host-catalog-list.component';
         ToastModule,
         ConfirmDialogModule,
         CheckboxModule,
+        TooltipModule,
+        StyleClassModule,
     ],
     declarations: [HostCatalogListComponent],
 })
