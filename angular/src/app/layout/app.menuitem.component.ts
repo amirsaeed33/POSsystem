@@ -15,7 +15,7 @@ import {DomHandler} from 'primeng/dom';
 		<ng-container>
             <div *ngIf="root && item.visible !== false" class="layout-menuitem-root-text">{{item.label}}</div>
 			<a *ngIf="(!item.routerLink || item.items) && item.visible !== false" [attr.href]="item.url" (click)="itemClick($event)" (mouseenter)="onMouseEnter()"
-			   [ngClass]="item.class" [attr.target]="item.target" tabindex="0" pRipple [pTooltip]="item.label" [tooltipDisabled]="!(isSlim && root && !active)">
+			   [ngClass]="item.class" [class.active-root-link]="root && hasActiveRoute" [attr.target]="item.target" tabindex="0" pRipple [pTooltip]="item.label" [tooltipDisabled]="!(isSlim && root && !active)">
 				<i [ngClass]="item.icon" class="layout-menuitem-icon"></i>
 				<span class="layout-menuitem-text">{{item.label}}</span>
 				<i class="pi pi-fw pi-angle-down layout-submenu-toggler" *ngIf="item.items"></i>
@@ -82,6 +82,13 @@ export class AppMenuitemComponent implements OnInit, OnDestroy {
     
     active = false;
 
+    hasActiveRoute = false;
+
+    @HostBinding('class.active-root-menuitem')
+    get activeRootClass() {
+        return this.root && this.hasActiveRoute;
+    }
+
     menuSourceSubscription: Subscription;
 
     menuResetSubscription: Subscription;
@@ -116,6 +123,7 @@ export class AppMenuitemComponent implements OnInit, OnDestroy {
                         this.updateActiveStateFromRoute();
                     }
                 }
+                this.checkActiveRouteDescendant();
             });
     }
 
@@ -125,6 +133,7 @@ export class AppMenuitemComponent implements OnInit, OnDestroy {
         if (!this.isSlim && this.item.routerLink) {
             this.updateActiveStateFromRoute();
         }
+        this.checkActiveRouteDescendant();
     }
 
     ngAfterViewChecked() {
@@ -169,6 +178,30 @@ export class AppMenuitemComponent implements OnInit, OnDestroy {
         if (activeRoute) {
             this.menuService.onMenuStateChange({key: this.key, routeEvent: true});
         }
+    }
+
+    checkActiveRouteDescendant() {
+        this.hasActiveRoute = this.hasActiveChildRoute(this.item);
+        this.cd.markForCheck();
+    }
+
+    private hasActiveChildRoute(item: any): boolean {
+        if (!item) return false;
+        if (item.routerLink) {
+            return this.router.isActive(
+                item.routerLink[0],
+                (item.routerLinkActiveOptions as IsActiveMatchOptions) || {
+                    paths: 'exact',
+                    queryParams: 'ignored',
+                    matrixParams: 'ignored',
+                    fragment: 'ignored'
+                }
+            );
+        }
+        if (item.items && item.items.length) {
+            return item.items.some((child: any) => this.hasActiveChildRoute(child));
+        }
+        return false;
     }
 
     itemClick(event: MouseEvent) {

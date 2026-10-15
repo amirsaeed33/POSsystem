@@ -39,12 +39,17 @@
                 margin-bottom: .35rem;
                 border-radius: var(--border-radius);
                 line-height: 1.2;
-                font-weight: 700;
-                transition: background-color var(--transition-duration), box-shadow var(--transition-duration);
+                font-weight: 400;
+                transition: background-color var(--transition-duration), box-shadow var(--transition-duration), color var(--transition-duration), font-weight var(--transition-duration);
                 cursor: pointer;
+
+                .layout-menuitem-text {
+                    font-weight: 400;
+                }
 
                 .layout-menuitem-icon {
                     margin-right: .5rem;
+                    transition: color var(--transition-duration), transform var(--transition-duration);
                 }
 
                 .layout-submenu-toggler {
@@ -52,12 +57,43 @@
                     transition: transform var(--transition-duration);
                 }
 
-                &.active-route {
-                    font-weight: 700;
+                &.active-route,
+                &.active-root-link {
+                    font-weight: 700 !important;
+                    -webkit-text-stroke: 0.45px currentColor;
+                    color: var(--v-menuitem-active-color);
+
+                    .layout-menuitem-text {
+                        font-weight: 700 !important;
+                        -webkit-text-stroke: 0.45px currentColor;
+                    }
+
+                    .layout-menuitem-icon {
+                        color: var(--v-menuitem-active-color);
+                        transform: scale(1.1);
+                    }
                 }
 
                 &:hover {
                     background: var(--v-menuitem-hover-bg);
+                }
+            }
+
+            &.active-root-menuitem {
+                > a {
+                    font-weight: 700 !important;
+                    -webkit-text-stroke: 0.45px currentColor;
+                    color: var(--v-menuitem-active-color);
+
+                    .layout-menuitem-text {
+                        font-weight: 700 !important;
+                        -webkit-text-stroke: 0.45px currentColor;
+                    }
+
+                    .layout-menuitem-icon {
+                        color: var(--v-menuitem-active-color);
+                        transform: scale(1.1);
+                    }
                 }
             }
 
