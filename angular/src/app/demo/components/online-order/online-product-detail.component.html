@@ -56,187 +56,189 @@
             <button pButton type="button" icon="pi pi-arrow-left" label="Return to Catalog" class="p-button-primary border-round-xl" (click)="backToStore()"></button>
         </div>
 
-        <!-- Product Showcase Card -->
-        <div *ngIf="!loading && product" class="surface-card border-round-3xl border-1 surface-border p-4 md:p-6 shadow-2 mb-6">
-            <div class="grid">
-                <!-- Left Column: Product Image & Badges -->
-                <div class="col-12 md:col-6 lg:col-5 flex flex-column gap-3">
-                    <div class="surface-100 border-round-2xl border-1 surface-border p-4 flex flex-column align-items-center justify-content-center relative overflow-hidden bg-white shadow-1" style="min-height: 340px;">
-                        <!-- Stock Status Tag -->
-                        <div class="absolute top-0 left-0 m-3 z-2">
-                            <p-tag
-                                [severity]="product.inStock !== false ? 'success' : 'danger'"
-                                [value]="product.inStock !== false ? 'In Stock' : 'Out of Stock'"
-                                [icon]="product.inStock !== false ? 'pi pi-check' : 'pi pi-times'"
-                                styleClass="text-xs font-bold px-3 py-1 shadow-2 border-round-xl"
-                            ></p-tag>
-                        </div>
-
-                        <!-- Category Tag -->
-                        <div class="absolute top-0 right-0 m-3 z-2">
-                            <p-tag
-                                [value]="product.categoryName || 'General'"
-                                severity="info"
-                                styleClass="text-xs font-bold px-3 py-1 shadow-2 border-round-xl"
-                            ></p-tag>
-                        </div>
-
-                        <!-- Product Image -->
-                        <ng-container *ngIf="product.imagePath; else noImageTpl">
-                            <div class="w-full flex flex-column align-items-center justify-content-center py-4">
-                                <p-image
-                                    [src]="getImageUrl(product.imagePath)"
-                                    [alt]="product.name"
-                                    [preview]="true"
-                                    imageClass="max-w-full h-18rem md:h-22rem object-contain transition-transform transition-duration-300 hover:scale-105"
-                                    styleClass="flex justify-content-center align-items-center"
-                                ></p-image>
-                                <span class="text-xs text-500 mt-3 flex align-items-center gap-1 font-medium">
-                                    <i class="pi pi-search-plus text-xs text-primary"></i> Click image to inspect & zoom
-                                </span>
+        <!-- Product Showcase Card with Pocket Gradient Frame -->
+        <div *ngIf="!loading && product" class="showcase-pocket-frame mb-6">
+            <div class="showcase-pocket-content">
+                <div class="grid">
+                    <!-- Left Column: Product Image & Badges -->
+                    <div class="col-12 md:col-6 lg:col-5 flex flex-column gap-3">
+                        <div class="surface-100 border-round-2xl border-1 surface-border p-4 flex flex-column align-items-center justify-content-center relative overflow-hidden bg-white shadow-1" style="min-height: 340px;">
+                            <!-- Stock Status Tag -->
+                            <div class="absolute top-0 left-0 m-3 z-2">
+                                <p-tag
+                                    [severity]="product.inStock !== false ? 'success' : 'danger'"
+                                    [value]="product.inStock !== false ? 'In Stock' : 'Out of Stock'"
+                                    [icon]="product.inStock !== false ? 'pi pi-check' : 'pi pi-times'"
+                                    styleClass="text-xs font-bold px-3 py-1 shadow-2 border-round-xl"
+                                ></p-tag>
                             </div>
-                        </ng-container>
-                        <ng-template #noImageTpl>
-                            <div class="w-10rem h-10rem border-circle bg-primary-50 text-primary font-bold flex align-items-center justify-content-center text-6xl shadow-2 my-5">
-                                {{ getInitials(product.name) }}
+
+                            <!-- Category Tag -->
+                            <div class="absolute top-0 right-0 m-3 z-2">
+                                <p-tag
+                                    [value]="product.categoryName || 'General'"
+                                    severity="info"
+                                    styleClass="text-xs font-bold px-3 py-1 shadow-2 border-round-xl"
+                                ></p-tag>
                             </div>
-                        </ng-template>
-                    </div>
 
-                    <!-- Quick Specs Pills Row -->
-                    <div class="flex flex-wrap gap-2">
-                        <div class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
-                            <i class="pi pi-box text-primary"></i>
-                            <span>Unit: <strong>{{ product.unitName || 'Pcs' }}</strong></span>
-                        </div>
-                        <div class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
-                            <i class="pi pi-dollar text-primary"></i>
-                            <span>Currency: <strong>{{ currencyFormat }}</strong></span>
-                        </div>
-                        <div *ngIf="product.brandName" class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
-                            <i class="pi pi-bookmark text-primary"></i>
-                            <span>Brand: <strong>{{ product.brandName }}</strong></span>
-                        </div>
-                        <div *ngIf="product.barcode" class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
-                            <i class="pi pi-barcode text-primary"></i>
-                            <span>SKU: <strong>{{ product.barcode }}</strong></span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column: Product Info & Actions -->
-                <div class="col-12 md:col-6 lg:col-7 flex flex-column justify-content-between gap-4 pl-md-4">
-                    <div class="flex flex-column gap-3">
-                        <!-- Category / Brand sub-heading -->
-                        <div class="flex align-items-center gap-2 text-xs text-500 font-semibold uppercase tracking-wider">
-                            <span>{{ product.categoryName || 'General Category' }}</span>
-                            <span *ngIf="product.brandName">•</span>
-                            <span *ngIf="product.brandName">{{ product.brandName }}</span>
-                        </div>
-
-                        <!-- Product Title -->
-                        <h1 class="m-0 font-extrabold text-900 text-3xl lg:text-4xl line-height-2">{{ product.name }}</h1>
-
-                        <!-- Price & Stock Container -->
-                        <div class="surface-50 border-round-2xl p-4 border-1 surface-border flex flex-wrap align-items-center justify-content-between gap-3 shadow-1">
-                            <div>
-                                <span class="text-xs text-500 block mb-1 font-medium">Selling Price per {{ product.unitName || 'Pcs' }}</span>
-                                <div class="flex align-items-baseline gap-2 flex-wrap">
-                                    <span class="text-4xl font-extrabold text-primary">
-                                        {{ product.price | currency: currencyFormat:'symbol':'1.2-2' }}
+                            <!-- Product Image -->
+                            <ng-container *ngIf="product.imagePath; else noImageTpl">
+                                <div class="w-full flex flex-column align-items-center justify-content-center py-4">
+                                    <p-image
+                                        [src]="getImageUrl(product.imagePath)"
+                                        [alt]="product.name"
+                                        [preview]="true"
+                                        imageClass="max-w-full h-18rem md:h-22rem object-contain transition-transform transition-duration-300 hover:scale-105"
+                                        styleClass="flex justify-content-center align-items-center"
+                                    ></p-image>
+                                    <span class="text-xs text-500 mt-3 flex align-items-center gap-1 font-medium">
+                                        <i class="pi pi-search-plus text-xs text-primary"></i> Click image to inspect & zoom
                                     </span>
-                                    <span class="text-base font-bold text-600 bg-gray-100 px-2 py-1 border-round-lg border-1 surface-border">{{ currencyFormat }}</span>
-                                    <span class="text-sm font-medium text-500">/ {{ product.unitName || 'Pcs' }}</span>
+                                </div>
+                            </ng-container>
+                            <ng-template #noImageTpl>
+                                <div class="w-10rem h-10rem border-circle bg-primary-50 text-primary font-bold flex align-items-center justify-content-center text-6xl shadow-2 my-5">
+                                    {{ getInitials(product.name) }}
+                                </div>
+                            </ng-template>
+                        </div>
+
+                        <!-- Quick Specs Pills Row -->
+                        <div class="flex flex-wrap gap-2">
+                            <div class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
+                                <i class="pi pi-box text-primary"></i>
+                                <span>Unit: <strong>{{ product.unitName || 'Pcs' }}</strong></span>
+                            </div>
+                            <div class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
+                                <i class="pi pi-dollar text-primary"></i>
+                                <span>Currency: <strong>{{ currencyFormat }}</strong></span>
+                            </div>
+                            <div *ngIf="product.brandName" class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
+                                <i class="pi pi-bookmark text-primary"></i>
+                                <span>Brand: <strong>{{ product.brandName }}</strong></span>
+                            </div>
+                            <div *ngIf="product.barcode" class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
+                                <i class="pi pi-barcode text-primary"></i>
+                                <span>SKU: <strong>{{ product.barcode }}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Product Info & Actions -->
+                    <div class="col-12 md:col-6 lg:col-7 flex flex-column justify-content-between gap-4 pl-md-4">
+                        <div class="flex flex-column gap-3">
+                            <!-- Category / Brand sub-heading -->
+                            <div class="flex align-items-center gap-2 text-xs text-500 font-semibold uppercase tracking-wider">
+                                <span>{{ product.categoryName || 'General Category' }}</span>
+                                <span *ngIf="product.brandName">•</span>
+                                <span *ngIf="product.brandName">{{ product.brandName }}</span>
+                            </div>
+
+                            <!-- Product Title -->
+                            <h1 class="m-0 font-extrabold text-900 text-3xl lg:text-4xl line-height-2">{{ product.name }}</h1>
+
+                            <!-- Price & Stock Container -->
+                            <div class="surface-50 border-round-2xl p-4 border-1 surface-border flex flex-wrap align-items-center justify-content-between gap-3 shadow-1">
+                                <div>
+                                    <span class="text-xs text-500 block mb-1 font-medium">Selling Price per {{ product.unitName || 'Pcs' }}</span>
+                                    <div class="flex align-items-baseline gap-2 flex-wrap">
+                                        <span class="text-4xl font-extrabold text-primary">
+                                            {{ product.price | currency: currencyFormat:'symbol':'1.2-2' }}
+                                        </span>
+                                        <span class="text-base font-bold text-600 bg-gray-100 px-2 py-1 border-round-lg border-1 surface-border">{{ currencyFormat }}</span>
+                                        <span class="text-sm font-medium text-500">/ {{ product.unitName || 'Pcs' }}</span>
+                                    </div>
+                                </div>
+
+                                <div *ngIf="product.stockQuantity && product.stockQuantity > 0">
+                                    <span class="text-sm text-green-700 bg-green-50 px-3 py-2 border-round-xl font-bold border-1 border-green-200 inline-flex align-items-center gap-2">
+                                        <i class="pi pi-check-circle text-green-600"></i>
+                                        <span>{{ product.stockQuantity }} Available in Stock</span>
+                                    </span>
                                 </div>
                             </div>
 
-                            <div *ngIf="product.stockQuantity && product.stockQuantity > 0">
-                                <span class="text-sm text-green-700 bg-green-50 px-3 py-2 border-round-xl font-bold border-1 border-green-200 inline-flex align-items-center gap-2">
-                                    <i class="pi pi-check-circle text-green-600"></i>
-                                    <span>{{ product.stockQuantity }} Available in Stock</span>
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Description Box -->
-                        <div>
-                            <span class="font-bold text-xs uppercase text-600 tracking-wider block mb-2">Product Description</span>
-                            <div class="surface-card p-4 border-round-2xl border-1 surface-border text-sm text-700 line-height-3 shadow-1">
-                                <p class="m-0 white-space-pre-line" *ngIf="product.description; else noDescTpl">
-                                    {{ product.description }}
-                                </p>
-                                <ng-template #noDescTpl>
-                                    <p class="m-0 text-600">
-                                        High-grade {{ product.name }} provided directly from our store catalog. Place your order online for speedy fulfillment.
+                            <!-- Description Box -->
+                            <div>
+                                <span class="font-bold text-xs uppercase text-600 tracking-wider block mb-2">Product Description</span>
+                                <div class="surface-card p-4 border-round-2xl border-1 surface-border text-sm text-700 line-height-3 shadow-1">
+                                    <p class="m-0 white-space-pre-line" *ngIf="product.description; else noDescTpl">
+                                        {{ product.description }}
                                     </p>
-                                </ng-template>
+                                    <ng-template #noDescTpl>
+                                        <p class="m-0 text-600">
+                                            High-grade {{ product.name }} provided directly from our store catalog. Place your order online for speedy fulfillment.
+                                        </p>
+                                    </ng-template>
+                                </div>
+                            </div>
+
+                            <!-- Cart Presence Banner if already in cart -->
+                            <div *ngIf="cartService.getItemQuantity(product.id) > 0" class="surface-100 border-round-2xl p-3 px-4 flex align-items-center justify-content-between text-sm text-primary font-bold border-1 border-primary-200">
+                                <span class="flex align-items-center gap-2">
+                                    <i class="pi pi-shopping-bag text-primary font-bold text-lg"></i>
+                                    <span>Currently in your cart: <strong>{{ cartService.getItemQuantity(product.id) }} {{ product.unitName || 'Pcs' }}</strong></span>
+                                </span>
+                                <button pButton type="button" label="Open Cart" class="p-button-link p-0 text-sm font-bold" (click)="cartService.sidebarVisible = true"></button>
                             </div>
                         </div>
 
-                        <!-- Cart Presence Banner if already in cart -->
-                        <div *ngIf="cartService.getItemQuantity(product.id) > 0" class="surface-100 border-round-2xl p-3 px-4 flex align-items-center justify-content-between text-sm text-primary font-bold border-1 border-primary-200">
-                            <span class="flex align-items-center gap-2">
-                                <i class="pi pi-shopping-bag text-primary font-bold text-lg"></i>
-                                <span>Currently in your cart: <strong>{{ cartService.getItemQuantity(product.id) }} {{ product.unitName || 'Pcs' }}</strong></span>
-                            </span>
-                            <button pButton type="button" label="Open Cart" class="p-button-link p-0 text-sm font-bold" (click)="cartService.sidebarVisible = true"></button>
-                        </div>
-                    </div>
+                        <!-- Quantity Stepper & Add to Cart Action -->
+                        <div class="pt-4 border-top-1 surface-border flex flex-column gap-3">
+                            <div class="flex flex-wrap align-items-center justify-content-between gap-3">
+                                <div class="flex flex-column">
+                                    <span class="font-bold text-base text-900">Select Quantity</span>
+                                    <span class="text-xs text-500">Order Subtotal: <strong>{{ (product.price * quantity) | currency: currencyFormat:'symbol':'1.2-2' }}</strong></span>
+                                </div>
 
-                    <!-- Quantity Stepper & Add to Cart Action -->
-                    <div class="pt-4 border-top-1 surface-border flex flex-column gap-3">
-                        <div class="flex flex-wrap align-items-center justify-content-between gap-3">
-                            <div class="flex flex-column">
-                                <span class="font-bold text-base text-900">Select Quantity</span>
-                                <span class="text-xs text-500">Order Subtotal: <strong>{{ (product.price * quantity) | currency: currencyFormat:'symbol':'1.2-2' }}</strong></span>
+                                <!-- Stepper Buttons -->
+                                <div class="flex align-items-center gap-2 border-1 surface-border border-round-2xl p-1 bg-white shadow-2">
+                                    <button
+                                        pButton
+                                        type="button"
+                                        icon="pi pi-minus"
+                                        class="p-button-text p-button-rounded w-2rem h-2rem p-0"
+                                        [disabled]="quantity <= 1"
+                                        (click)="decrementQuantity()"
+                                    ></button>
+                                    <input
+                                        type="number"
+                                        [(ngModel)]="quantity"
+                                        min="1"
+                                        (change)="onQuantityChange()"
+                                        class="p-inputtext p-inputtext-sm text-center font-bold text-lg border-none p-0 w-3rem bg-transparent shadow-none"
+                                        style="outline: none;"
+                                    />
+                                    <button
+                                        pButton
+                                        type="button"
+                                        icon="pi pi-plus"
+                                        class="p-button-text p-button-rounded w-2rem h-2rem p-0"
+                                        (click)="incrementQuantity()"
+                                    ></button>
+                                </div>
                             </div>
 
-                            <!-- Stepper Buttons -->
-                            <div class="flex align-items-center gap-2 border-1 surface-border border-round-2xl p-1 bg-white shadow-2">
+                            <!-- Action Buttons Row -->
+                            <div class="flex flex-wrap gap-3 pt-2">
                                 <button
                                     pButton
                                     type="button"
-                                    icon="pi pi-minus"
-                                    class="p-button-text p-button-rounded w-2rem h-2rem p-0"
-                                    [disabled]="quantity <= 1"
-                                    (click)="decrementQuantity()"
+                                    icon="pi pi-arrow-left"
+                                    label="Continue Shopping"
+                                    class="p-button-outlined p-button-secondary border-round-2xl px-4 font-bold"
+                                    (click)="backToStore()"
                                 ></button>
-                                <input
-                                    type="number"
-                                    [(ngModel)]="quantity"
-                                    min="1"
-                                    (change)="onQuantityChange()"
-                                    class="p-inputtext p-inputtext-sm text-center font-bold text-lg border-none p-0 w-3rem bg-transparent shadow-none"
-                                    style="outline: none;"
-                                />
                                 <button
                                     pButton
                                     type="button"
-                                    icon="pi pi-plus"
-                                    class="p-button-text p-button-rounded w-2rem h-2rem p-0"
-                                    (click)="incrementQuantity()"
+                                    icon="pi pi-cart-plus"
+                                    [label]="'Add ' + quantity + ' to Cart • ' + ((product.price * quantity) | currency: currencyFormat:'symbol':'1.2-2')"
+                                    class="p-button-primary border-round-2xl flex-1 font-bold shadow-4 p-button-lg"
+                                    (click)="addToCart()"
                                 ></button>
                             </div>
-                        </div>
-
-                        <!-- Action Buttons Row -->
-                        <div class="flex flex-wrap gap-3 pt-2">
-                            <button
-                                pButton
-                                type="button"
-                                icon="pi pi-arrow-left"
-                                label="Continue Shopping"
-                                class="p-button-outlined p-button-secondary border-round-2xl px-4 font-bold"
-                                (click)="backToStore()"
-                            ></button>
-                            <button
-                                pButton
-                                type="button"
-                                icon="pi pi-cart-plus"
-                                [label]="'Add ' + quantity + ' to Cart • ' + ((product.price * quantity) | currency: currencyFormat:'symbol':'1.2-2')"
-                                class="p-button-primary border-round-2xl flex-1 font-bold shadow-4 p-button-lg"
-                                (click)="addToCart()"
-                            ></button>
                         </div>
                     </div>
                 </div>
