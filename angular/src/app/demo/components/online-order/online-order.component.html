@@ -72,81 +72,95 @@
         <!-- Products Grid -->
         <div *ngIf="!loading && filteredProducts.length > 0" class="grid">
             <div *ngFor="let product of filteredProducts" class="col-12 sm:col-6 md:col-4 lg:col-3">
-                <div
-                    class="surface-card border-round-2xl shadow-2 hover:shadow-6 transition-all transition-duration-300 flex flex-column h-full overflow-hidden border-1 surface-border relative"
-                >
-                    <!-- Product Image Container -->
-                    <div
-                        class="relative w-full h-13rem bg-white flex align-items-center justify-content-center p-3 border-bottom-1 surface-border overflow-hidden cursor-pointer"
-                        (click)="openProductDetails(product)"
-                        title="Click image to view details"
-                    >
-                        <ng-container *ngIf="product.imagePath; else initialsTpl">
-                            <img
-                                [src]="getImageUrl(product.imagePath)"
-                                [alt]="product.name"
-                                class="w-full h-11rem object-contain transition-transform transition-duration-300 hover:scale-105 cursor-pointer"
-                            />
-                        </ng-container>
-                        <ng-template #initialsTpl>
-                            <div class="w-5rem h-5rem border-circle bg-primary-50 text-primary font-bold flex align-items-center justify-content-center text-3xl shadow-1 cursor-pointer">
-                                {{ getInitials(product.name) }}
+                <!-- Pocket Container Layer -->
+                <div class="pocket-container">
+                    <!-- Floating Inner Card Layer -->
+                    <div class="pocket-inner-card">
+                        <!-- Product Image Container -->
+                        <div
+                            class="relative w-full h-13rem bg-white flex align-items-center justify-content-center p-3 border-bottom-1 surface-border overflow-hidden cursor-pointer"
+                            (click)="openProductDetails(product)"
+                            title="Click image to view details"
+                        >
+                            <ng-container *ngIf="product.imagePath; else initialsTpl">
+                                <img
+                                    [src]="getImageUrl(product.imagePath)"
+                                    [alt]="product.name"
+                                    class="w-full h-11rem object-contain transition-transform transition-duration-300 hover:scale-105 cursor-pointer"
+                                />
+                            </ng-container>
+                            <ng-template #initialsTpl>
+                                <div class="w-5rem h-5rem border-circle bg-primary-50 text-primary font-bold flex align-items-center justify-content-center text-3xl shadow-1 cursor-pointer">
+                                    {{ getInitials(product.name) }}
+                                </div>
+                            </ng-template>
+
+                            <!-- Category Tag -->
+                            <span class="absolute top-0 right-0 m-3 z-1">
+                                <p-tag [value]="product.categoryName" severity="info" styleClass="text-xs font-bold px-2 py-1 shadow-1 border-round-xl"></p-tag>
+                            </span>
+
+                            <!-- Stock status badge if marked out of stock -->
+                            <span *ngIf="product.inStock === false" class="absolute top-0 left-0 m-3 z-1">
+                                <p-tag value="Out of Stock" severity="danger" styleClass="text-xs font-bold px-2 py-1 shadow-1 border-round-xl"></p-tag>
+                            </span>
+                        </div>
+
+                        <!-- Details -->
+                        <div class="flex-1 flex flex-column justify-content-between p-3">
+                            <div>
+                                <div class="flex justify-content-between align-items-start gap-2 mb-1">
+                                    <h6
+                                        class="font-bold text-900 m-0 text-lg line-clamp-2 flex-1 cursor-pointer hover:text-primary transition-colors"
+                                        (click)="openProductDetails(product)"
+                                        title="Click to view details"
+                                        style="line-height: 1.2;"
+                                    >
+                                        {{ product.name }}
+                                    </h6>
+                                    <span class="text-lg font-bold text-primary white-space-nowrap mt-1">
+                                        {{ product.price | currency: currencyFormat:'symbol':'1.2-2' }}
+                                    </span>
+                                </div>
+
+                                <div class="flex align-items-center justify-content-between mt-1">
+                                    <span class="text-xs text-500 font-medium">Unit: {{ product.unitName || 'Pcs' }}</span>
+                                    <span *ngIf="getCartQuantityForProduct(product.id) > 0" class="badge bg-primary-50 text-primary border-1 border-primary-200 font-bold text-xs px-2 py-1 border-round-lg">
+                                        <i class="pi pi-check mr-1"></i>{{ getCartQuantityForProduct(product.id) }} in cart
+                                    </span>
+                                </div>
+
+                                <!-- Quick Specifications Tags on Card -->
+                                <div *ngIf="getQuickSpecs(product.specifications).length > 0" class="flex flex-wrap gap-1 mt-2">
+                                    <span *ngFor="let spec of getQuickSpecs(product.specifications)" class="bg-gray-100 text-700 text-xs px-2 py-1 border-round-lg border-1 surface-border line-height-1">
+                                        <span class="text-500 font-medium">{{ spec.key }}:</span> <strong>{{ spec.value }}</strong>
+                                    </span>
+                                </div>
                             </div>
-                        </ng-template>
 
-                        <!-- Category Tag -->
-                        <span class="absolute top-0 right-0 m-3 z-1">
-                            <p-tag [value]="product.categoryName" severity="info" styleClass="text-xs font-bold px-2 py-1 shadow-1 border-round-xl"></p-tag>
-                        </span>
-
-                        <!-- Stock status badge if marked out of stock -->
-                        <span *ngIf="product.inStock === false" class="absolute top-0 left-0 m-3 z-1">
-                            <p-tag value="Out of Stock" severity="danger" styleClass="text-xs font-bold px-2 py-1 shadow-1 border-round-xl"></p-tag>
-                        </span>
+                            <div class="mt-3 pt-3 border-top-1 surface-border">
+                                <button
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-cart-plus"
+                                    label="Add to Cart"
+                                    class="p-button-rounded border-round-2xl font-bold shadow-2 transition-transform transition-duration-200 hover:-translate-y-1 w-full flex justify-content-center"
+                                    (click)="addToCart(product, 1, $event)"
+                                ></button>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Details -->
-                    <div class="flex-1 flex flex-column justify-content-between p-3">
-                        <div>
-                            <div class="flex justify-content-between align-items-start gap-2 mb-1">
-                                <h6
-                                    class="font-bold text-900 m-0 text-lg line-clamp-2 flex-1 cursor-pointer hover:text-primary transition-colors"
-                                    (click)="openProductDetails(product)"
-                                    title="Click to view details"
-                                    style="line-height: 1.2;"
-                                >
-                                    {{ product.name }}
-                                </h6>
-                                <span class="text-lg font-bold text-primary white-space-nowrap mt-1">
-                                    {{ product.price | currency: currencyFormat:'symbol':'1.2-2' }}
-                                </span>
-                            </div>
-
-                            <div class="flex align-items-center justify-content-between mt-1">
-                                <span class="text-xs text-500 font-medium">Unit: {{ product.unitName || 'Pcs' }}</span>
-                                <span *ngIf="getCartQuantityForProduct(product.id) > 0" class="badge bg-primary-50 text-primary border-1 border-primary-200 font-bold text-xs px-2 py-1 border-round-lg">
-                                    <i class="pi pi-check mr-1"></i>{{ getCartQuantityForProduct(product.id) }} in cart
-                                </span>
-                            </div>
-
-                            <!-- Quick Specifications Tags on Card -->
-                            <div *ngIf="getQuickSpecs(product.specifications).length > 0" class="flex flex-wrap gap-1 mt-2">
-                                <span *ngFor="let spec of getQuickSpecs(product.specifications)" class="bg-gray-100 text-700 text-xs px-2 py-1 border-round-lg border-1 surface-border line-height-1">
-                                    <span class="text-500 font-medium">{{ spec.key }}:</span> <strong>{{ spec.value }}</strong>
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="mt-3 pt-3 border-top-1 surface-border">
-                            <button
-                                pButton
-                                type="button"
-                                icon="pi pi-cart-plus"
-                                label="Add to Cart"
-                                class="p-button-rounded border-round-2xl font-bold shadow-2 transition-transform transition-duration-200 hover:-translate-y-1 w-full flex justify-content-center"
-                                (click)="addToCart(product, 1, $event)"
-                            ></button>
-                        </div>
+                    <!-- Subtle Bottom Pocket Label / Metadata -->
+                    <div class="pocket-bottom-label" (click)="openProductDetails(product)" title="View product specifications & details">
+                        <span class="flex align-items-center gap-1">
+                            <i class="pi pi-sparkles text-xs"></i>
+                            <span>{{ product.categoryName || 'Online Order' }}</span>
+                        </span>
+                        <span class="flex align-items-center gap-1 opacity-90">
+                            <span>View Specs</span>
+                            <i class="pi pi-arrow-up-right text-xs pocket-action-arrow"></i>
+                        </span>
                     </div>
                 </div>
             </div>

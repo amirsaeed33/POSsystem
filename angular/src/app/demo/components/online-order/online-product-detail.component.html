@@ -105,19 +105,19 @@
 
                     <!-- Quick Specs Pills Row -->
                     <div class="flex flex-wrap gap-2">
-                        <div class="surface-100 border-round-xl px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center border-1 surface-border font-medium">
+                        <div class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
                             <i class="pi pi-box text-primary"></i>
                             <span>Unit: <strong>{{ product.unitName || 'Pcs' }}</strong></span>
                         </div>
-                        <div class="surface-100 border-round-xl px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center border-1 surface-border font-medium">
+                        <div class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
                             <i class="pi pi-dollar text-primary"></i>
                             <span>Currency: <strong>{{ currencyFormat }}</strong></span>
                         </div>
-                        <div *ngIf="product.brandName" class="surface-100 border-round-xl px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center border-1 surface-border font-medium">
+                        <div *ngIf="product.brandName" class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
                             <i class="pi pi-bookmark text-primary"></i>
                             <span>Brand: <strong>{{ product.brandName }}</strong></span>
                         </div>
-                        <div *ngIf="product.barcode" class="surface-100 border-round-xl px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center border-1 surface-border font-medium">
+                        <div *ngIf="product.barcode" class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
                             <i class="pi pi-barcode text-primary"></i>
                             <span>SKU: <strong>{{ product.barcode }}</strong></span>
                         </div>
@@ -243,33 +243,35 @@
             </div>
         </div>
 
-        <!-- PriceOye-style Technical Specifications Section -->
-        <div *ngIf="specificationsList && specificationsList.length > 0" class="surface-card border-round-3xl border-1 surface-border p-4 md:p-5 shadow-2 mb-6">
-            <div class="flex flex-wrap align-items-center justify-content-between gap-3 pb-4 border-bottom-1 surface-border">
-                <div class="flex align-items-center gap-3">
-                    <div class="surface-100 border-round-xl p-2 text-primary flex align-items-center justify-content-center" style="width: 2.75rem; height: 2.75rem;">
-                        <i class="pi pi-sliders-h text-xl"></i>
+        <!-- PriceOye-style Technical Specifications Section with Pocket Gradient Frame -->
+        <div *ngIf="specificationsList && specificationsList.length > 0" class="specs-pocket-frame mb-6">
+            <div class="specs-pocket-content">
+                <div class="flex flex-wrap align-items-center justify-content-between gap-3 pb-4 border-bottom-1 surface-border">
+                    <div class="flex align-items-center gap-3">
+                        <div class="surface-100 border-round-xl p-2 text-primary flex align-items-center justify-content-center" style="width: 2.75rem; height: 2.75rem;">
+                            <i class="pi pi-sliders-h text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="m-0 font-bold text-900 text-xl md:text-2xl">Technical Specifications</h3>
+                            <span class="text-xs text-500 mt-1 block">Full detailed specifications & attributes for {{ product.name }}</span>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="m-0 font-bold text-900 text-xl md:text-2xl">Technical Specifications</h3>
-                        <span class="text-xs text-500 mt-1 block">Full detailed specifications & attributes for {{ product.name }}</span>
-                    </div>
+                    <p-tag [value]="specificationsList.length + ' Specifications'" severity="info" styleClass="text-xs font-bold px-3 py-1 border-round-xl"></p-tag>
                 </div>
-                <p-tag [value]="specificationsList.length + ' Specifications'" severity="info" styleClass="text-xs font-bold px-3 py-1 border-round-xl"></p-tag>
-            </div>
 
-            <!-- Specifications Table -->
-            <div class="border-round-2xl overflow-hidden border-1 surface-border mt-4">
-                <div *ngFor="let spec of specificationsList; let odd = odd; let last = last"
-                    [class.bg-white]="!odd"
-                    [class.surface-50]="odd"
-                    [class.border-bottom-1]="!last"
-                    class="surface-border grid grid-nogutter py-3 px-4 align-items-center">
-                    <div class="col-12 sm:col-4 font-semibold text-700 text-sm">
-                        {{ spec.key }}
-                    </div>
-                    <div class="col-12 sm:col-8 font-bold text-900 text-sm mt-1 sm:mt-0">
-                        {{ spec.value }}
+                <!-- Specifications Table -->
+                <div class="border-round-2xl overflow-hidden border-1 surface-border mt-4">
+                    <div *ngFor="let spec of specificationsList; let odd = odd; let last = last"
+                        [class.bg-white]="!odd"
+                        [class.surface-50]="odd"
+                        [class.border-bottom-1]="!last"
+                        class="surface-border grid grid-nogutter py-3 px-4 align-items-center">
+                        <div class="col-12 sm:col-4 font-semibold text-700 text-sm">
+                            {{ spec.key }}
+                        </div>
+                        <div class="col-12 sm:col-8 font-bold text-900 text-sm mt-1 sm:mt-0">
+                            {{ spec.value }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -287,42 +289,55 @@
 
             <div class="grid">
                 <div *ngFor="let rel of relatedProducts" class="col-12 sm:col-6 md:col-3">
-                    <div
-                        class="surface-card border-round-2xl shadow-2 hover:shadow-5 transition-all transition-duration-300 flex flex-column h-full overflow-hidden border-1 surface-border cursor-pointer"
-                        (click)="navigateToProduct(rel.id)"
-                    >
-                        <!-- Rel Image -->
-                        <div class="relative w-full h-11rem bg-white flex align-items-center justify-content-center p-3 border-bottom-1 surface-border">
-                            <ng-container *ngIf="rel.imagePath; else relInitialsTpl">
-                                <img [src]="getImageUrl(rel.imagePath)" [alt]="rel.name" class="w-full h-10rem object-contain transition-transform transition-duration-300 hover:scale-105" />
-                            </ng-container>
-                            <ng-template #relInitialsTpl>
-                                <div class="w-4rem h-4rem border-circle bg-primary-50 text-primary font-bold flex align-items-center justify-content-center text-2xl shadow-1">
-                                    {{ getInitials(rel.name) }}
+                    <!-- Pocket Container Layer -->
+                    <div class="pocket-container" (click)="navigateToProduct(rel.id)">
+                        <!-- Floating Inner Card Layer -->
+                        <div class="pocket-inner-card">
+                            <!-- Rel Image -->
+                            <div class="relative w-full h-11rem bg-white flex align-items-center justify-content-center p-3 border-bottom-1 surface-border">
+                                <ng-container *ngIf="rel.imagePath; else relInitialsTpl">
+                                    <img [src]="getImageUrl(rel.imagePath)" [alt]="rel.name" class="w-full h-10rem object-contain transition-transform transition-duration-300 hover:scale-105" />
+                                </ng-container>
+                                <ng-template #relInitialsTpl>
+                                    <div class="w-4rem h-4rem border-circle bg-primary-50 text-primary font-bold flex align-items-center justify-content-center text-2xl shadow-1">
+                                        {{ getInitials(rel.name) }}
+                                    </div>
+                                </ng-template>
+                                <span class="absolute top-0 right-0 m-2">
+                                    <p-tag [value]="rel.categoryName" severity="info" styleClass="text-xs font-bold px-2 py-1 shadow-1 border-round-xl"></p-tag>
+                                </span>
+                            </div>
+
+                            <!-- Rel Info -->
+                            <div class="flex-1 flex flex-column justify-content-between p-3">
+                                <div>
+                                    <h6 class="font-bold text-900 m-0 text-base line-clamp-2" style="line-height: 1.2;">{{ rel.name }}</h6>
+                                    <span class="text-base font-bold text-primary block mt-1">{{ rel.price | currency: currencyFormat:'symbol':'1.2-2' }}</span>
                                 </div>
-                            </ng-template>
-                            <span class="absolute top-0 right-0 m-2">
-                                <p-tag [value]="rel.categoryName" severity="info" styleClass="text-xs font-bold px-2 py-1 shadow-1 border-round-xl"></p-tag>
-                            </span>
+
+                                <div class="mt-3 pt-2 border-top-1 surface-border">
+                                    <button
+                                        pButton
+                                        type="button"
+                                        icon="pi pi-cart-plus"
+                                        label="Add to Cart"
+                                        class="p-button-rounded border-round-2xl font-bold shadow-2 transition-transform transition-duration-200 hover:-translate-y-1 w-full flex justify-content-center p-button-sm"
+                                        (click)="$event.stopPropagation(); addToCart(rel, 1)"
+                                    ></button>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Rel Info -->
-                        <div class="flex-1 flex flex-column justify-content-between p-3">
-                            <div>
-                                <h6 class="font-bold text-900 m-0 text-base line-clamp-2" style="line-height: 1.2;">{{ rel.name }}</h6>
-                                <span class="text-base font-bold text-primary block mt-1">{{ rel.price | currency: currencyFormat:'symbol':'1.2-2' }}</span>
-                            </div>
-
-                            <div class="mt-3 pt-2 border-top-1 surface-border">
-                                <button
-                                    pButton
-                                    type="button"
-                                    icon="pi pi-cart-plus"
-                                    label="Add to Cart"
-                                    class="p-button-rounded border-round-2xl font-bold shadow-2 transition-transform transition-duration-200 hover:-translate-y-1 w-full flex justify-content-center p-button-sm"
-                                    (click)="$event.stopPropagation(); addToCart(rel, 1)"
-                                ></button>
-                            </div>
+                        <!-- Subtle Bottom Pocket Label / Metadata -->
+                        <div class="pocket-bottom-label" title="View product specifications & details">
+                            <span class="flex align-items-center gap-1">
+                                <i class="pi pi-sparkles text-xs"></i>
+                                <span>{{ rel.categoryName || 'Smart Store' }}</span>
+                            </span>
+                            <span class="flex align-items-center gap-1 opacity-90">
+                                <span>View Specs</span>
+                                <i class="pi pi-arrow-up-right text-xs pocket-action-arrow"></i>
+                            </span>
                         </div>
                     </div>
                 </div>

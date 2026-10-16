@@ -9,6 +9,7 @@ import { environment } from 'src/environments/environment';
 @Component({
     selector: 'app-online-product-detail',
     templateUrl: './online-product-detail.component.html',
+    styleUrls: ['./online-product-detail.component.scss'],
     providers: [MessageService],
 })
 export class OnlineProductDetailComponent implements OnInit {

@@ -12,6 +12,7 @@ import { environment } from 'src/environments/environment';
 @Component({
     selector: 'app-online-order',
     templateUrl: './online-order.component.html',
+    styleUrls: ['./online-order.component.scss'],
     providers: [MessageService],
 })
 export class OnlineOrderComponent implements OnInit {
