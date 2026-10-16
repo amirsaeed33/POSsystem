@@ -155,14 +155,18 @@ export class SaleService {
         }
     }
 
-    private posCustomersCache: {
+    private static posCustomersCache: {
         data: { id: number; name: string; customerType: number }[];
         timestamp: number;
     } | null = null;
     private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
+    static clearPosCustomersCache(): void {
+        SaleService.posCustomersCache = null;
+    }
+
     clearPosCustomersCache(): void {
-        this.posCustomersCache = null;
+        SaleService.posCustomersCache = null;
     }
 
     async getPosCustomers(forceRefresh = false): Promise<
@@ -171,10 +175,10 @@ export class SaleService {
         const now = Date.now();
         if (
             !forceRefresh &&
-            this.posCustomersCache &&
-            now - this.posCustomersCache.timestamp < this.CACHE_DURATION_MS
+            SaleService.posCustomersCache &&
+            now - SaleService.posCustomersCache.timestamp < this.CACHE_DURATION_MS
         ) {
-            return this.posCustomersCache.data;
+            return SaleService.posCustomersCache.data;
         }
 
         const res: any = await firstValueFrom(
@@ -187,7 +191,7 @@ export class SaleService {
             name: item.name ?? item.Name,
             customerType: item.customerType ?? item.CustomerType ?? 0,
         }));
-        this.posCustomersCache = { data: mapped, timestamp: now };
+        SaleService.posCustomersCache = { data: mapped, timestamp: now };
         return mapped;
     }
 

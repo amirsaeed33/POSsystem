@@ -18,7 +18,7 @@ export class CustomerFormDialogComponent implements OnChanges {
     @Input() visible = false;
     @Input() customerId: number | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
-    @Output() saved = new EventEmitter<void>();
+    @Output() saved = new EventEmitter<CustomerDto | void>();
 
     customer: CustomerDto = this.emptyCustomer();
     saving = false;
@@ -86,7 +86,7 @@ export class CustomerFormDialogComponent implements OnChanges {
             : this.customerService.create(payload);
 
         request
-            .then(() => {
+            .then((result) => {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Success',
@@ -94,7 +94,7 @@ export class CustomerFormDialogComponent implements OnChanges {
                         ? 'Customer updated successfully'
                         : 'Customer created successfully',
                 });
-                this.saved.emit();
+                this.saved.emit(result);
                 this.onHide();
             })
             .catch((error) => {

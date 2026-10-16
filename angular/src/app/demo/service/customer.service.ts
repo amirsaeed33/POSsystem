@@ -8,6 +8,7 @@ import {
     PagedResultDto,
 } from '../api/customer';
 import { environment } from '../../../environments/environment';
+import { SaleService } from './sale.service';
 
 @Injectable({
     providedIn: 'root',
@@ -78,6 +79,7 @@ export class CustomerService {
 
     async create(input: CreateCustomerDto): Promise<CustomerDto> {
         this.clearCache();
+        SaleService.clearPosCustomersCache();
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 name: input.name,
@@ -93,6 +95,7 @@ export class CustomerService {
 
     async update(input: CustomerDto): Promise<CustomerDto> {
         this.clearCache();
+        SaleService.clearPosCustomersCache();
         const res: any = await firstValueFrom(
             this.http.put<any>(`${this.apiUrl}/Update`, {
                 id: input.id,
@@ -109,6 +112,7 @@ export class CustomerService {
 
     async delete(id: number): Promise<void> {
         this.clearCache();
+        SaleService.clearPosCustomersCache();
         const res: any = await firstValueFrom(
             this.http.delete<any>(`${this.apiUrl}/Delete`, {
                 params: { Id: id },

@@ -166,32 +166,53 @@ export class SaleFormDialogComponent implements OnChanges {
         this.customerDialogVisible = true;
     }
     
-    onCustomerSaved(): void {
+    onCustomerSaved(createdCustomer?: CustomerDto | void): void {
         this.customerDialogVisible = false;
         
-        const oldIds = new Set(this.customers.map(c => c.id));
-        this.saleService.getPosCustomers().then(customers => {
+        SaleService.clearPosCustomersCache();
+        const oldIds = new Set(this.customers.map((c) => c.id));
+        
+        this.saleService.getPosCustomers(true).then((customers) => {
             const mappedCustomers = (customers || []).map((c) => ({
                 id: c.id,
                 name: c.name,
                 customerType: c.customerType,
             })) as CustomerDto[];
             
-            this.customers = [...mappedCustomers]; // new reference for change detection
-            
-            let newCustomer = this.customers.find(c => !oldIds.has(c.id));
-            
-            // Fallback: If no new customer found by ID difference, just pick the one with the highest ID (most recently created)
-            if (!newCustomer && this.customers.length > 0) {
-                newCustomer = this.customers.reduce((prev, current) => (prev.id > current.id) ? prev : current);
+            if (createdCustomer && createdCustomer.id) {
+                if (!mappedCustomers.some((c) => c.id === createdCustomer.id)) {
+                    mappedCustomers.unshift({
+                        id: createdCustomer.id,
+                        name: createdCustomer.name,
+                        customerType: createdCustomer.customerType,
+                    } as CustomerDto);
+                }
             }
             
-            if (newCustomer) {
-                // Use setTimeout to ensure Angular has updated the dropdown options before setting the model
-                setTimeout(() => {
-                    this.sale.customerId = newCustomer!.id;
-                    this.onCustomerSelected();
-                });
+            this.customers = [...mappedCustomers];
+            
+            const targetCustomer = (createdCustomer && createdCustomer.id && this.customers.find((c) => c.id === createdCustomer.id))
+                || this.customers.find((c) => !oldIds.has(c.id))
+                || (this.customers.length > 0 ? this.customers[this.customers.length - 1] : null);
+            
+            if (targetCustomer) {
+                this.sale.customerId = targetCustomer.id;
+                this.onCustomerSelected();
+            }
+        }).catch(() => {
+            if (createdCustomer && createdCustomer.id) {
+                if (!this.customers.some((c) => c.id === createdCustomer.id)) {
+                    this.customers = [
+                        {
+                            id: createdCustomer.id,
+                            name: createdCustomer.name,
+                            customerType: createdCustomer.customerType,
+                        } as CustomerDto,
+                        ...this.customers,
+                    ];
+                }
+                this.sale.customerId = createdCustomer.id;
+                this.onCustomerSelected();
             }
         });
     }
@@ -217,11 +238,14 @@ export class SaleFormDialogComponent implements OnChanges {
     }
 
     customerOptionLabel(customer: CustomerDto): string {
+        if (!customer) {
+            return '';
+        }
         const typeLabel =
             customer.customerType === CustomerType.Wholesaler
                 ? 'Wholesaler'
                 : 'Direct';
-        return `${customer.name} — ${typeLabel}`;
+        return `${customer.name || ''} — ${typeLabel}`;
     }
 
     save(): void {
@@ -494,7 +518,7 @@ export class SaleFormDialogComponent implements OnChanges {
         this.loading = true;
         Promise.all([
             this.saleService.getPosProducts(),
-            this.saleService.getPosCustomers(),
+            this.saleService.getPosCustomers(true),
         ])
             .then(([products, customers]) => {
                 this.products = products || [];
