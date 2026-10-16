@@ -193,57 +193,7 @@
 
     <!-- Verona StyleClass overflow menu (same pattern as topbar) -->
     <ng-template #branchActionsMenu let-branch>
-        <div class="relative flex-shrink-0">
-            <button
-                type="button"
-                class="p-link w-2rem h-2rem border-circle inline-flex align-items-center justify-content-center hover:surface-hover transition-colors transition-duration-150"
-                pStyleClass="@next"
-                enterClass="hidden"
-                enterActiveClass="scalein"
-                leaveToClass="hidden"
-                leaveActiveClass="fadeout"
-                [hideOnOutsideClick]="true"
-                pTooltip="Actions"
-                tooltipPosition="left"
-            >
-                <i class="pi pi-ellipsis-v text-color"></i>
-            </button>
-            <ul
-                class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-1 right-0 top-auto z-5 tbl-action-dropdown-menu"
-                style="min-width: 12rem"
-            >
-                <li *ngIf="canEditBranch(branch)">
-                    <a
-                        pRipple
-                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
-                        (click)="openEditPage(branch)"
-                    >
-                        <i class="pi pi-pencil mr-2"></i>
-                        <span>Edit</span>
-                    </a>
-                </li>
-                <li>
-                    <a
-                        pRipple
-                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-primary"
-                        (click)="openPrintInvoiceModal(branch)"
-                    >
-                        <i class="pi pi-print mr-2"></i>
-                        <span>Print Invoice</span>
-                    </a>
-                </li>
-                <li *ngIf="canDeleteBranch(branch)">
-                    <a
-                        pRipple
-                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-red-500"
-                        (click)="onDelete(branch)"
-                    >
-                        <i class="pi pi-trash mr-2"></i>
-                        <span>Delete</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
+        <app-row-actions [items]="getRowActions(branch)"></app-row-actions>
     </ng-template>
 
     <p-dialog

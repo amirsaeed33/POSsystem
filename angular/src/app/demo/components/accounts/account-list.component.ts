@@ -6,6 +6,7 @@ import { BusinessAccountService } from 'src/app/demo/service/business-account.se
 
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     selector: 'app-account-list',
@@ -115,5 +116,23 @@ export class AccountListComponent implements OnInit {
                     });
             },
         });
+    }
+
+    getRowActions(account: BusinessAccountDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                visible: this.canEdit,
+                action: () => this.openEditDialog(account),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                visible: this.canDelete,
+                action: () => this.onDelete(account),
+            },
+        ];
     }
 }

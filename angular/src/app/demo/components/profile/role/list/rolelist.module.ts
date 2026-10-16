@@ -14,6 +14,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
 import { CheckboxModule } from 'primeng/checkbox';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { RoleListComponent } from './rolelist.component';
 import { RoleFormDialogComponent } from './role-form-dialog.component';
 import { RoleListRoutingModule } from './rolelist-routing.module';
@@ -36,7 +37,8 @@ import { RoleListRoutingModule } from './rolelist-routing.module';
 		ConfirmDialogModule,
 		DialogModule,
 		CheckboxModule,
-		StyleClassModule
+		StyleClassModule,
+		AppRowActionsComponent
 	],
 	declarations: [RoleListComponent, RoleFormDialogComponent]
 })

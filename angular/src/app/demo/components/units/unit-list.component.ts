@@ -3,6 +3,7 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { UnitDto } from 'src/app/demo/api/unit';
 import { UnitService } from 'src/app/demo/service/unit.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     selector: 'app-unit-list',
@@ -20,6 +21,23 @@ export class UnitListComponent implements OnInit {
 
     dialogVisible = false;
     editingUnitId: number | null = null;
+
+    getRowActions(unit: UnitDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(unit)
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(unit)
+            }
+        ];
+    }
 
     constructor(
         private unitService: UnitService,

@@ -16,6 +16,7 @@ import { StyleClassModule } from 'primeng/styleclass';
 import { CustomersRoutingModule } from './customers-routing.module';
 import { CustomerListComponent } from './customer-list.component';
 import { CustomerSharedModule } from './customer-shared.module';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -34,7 +35,8 @@ import { CustomerSharedModule } from './customer-shared.module';
         DropdownModule,
         TagModule,
         StyleClassModule,
-        CustomerSharedModule
+        CustomerSharedModule,
+        AppRowActionsComponent,
     ],
     declarations: [CustomerListComponent]
 })

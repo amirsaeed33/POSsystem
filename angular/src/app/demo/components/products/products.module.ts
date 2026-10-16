@@ -19,6 +19,7 @@ import { ProductListComponent } from './product-list.component';
 import { ProductFormDialogComponent } from './product-form-dialog.component';
 import { BarcodePrintDialogComponent } from './barcode-print-dialog.component';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -39,6 +40,7 @@ import { StyleClassModule } from 'primeng/styleclass';
         MultiSelectModule,
         CheckboxModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [ProductListComponent, ProductFormDialogComponent, BarcodePrintDialogComponent],
 })

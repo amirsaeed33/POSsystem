@@ -17,6 +17,7 @@ import { StyleClassModule } from 'primeng/styleclass';
 import { AccountsRoutingModule } from './accounts-routing.module';
 import { AccountListComponent } from './account-list.component';
 import { AccountFormDialogComponent } from './account-form-dialog.component';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -36,6 +37,7 @@ import { AccountFormDialogComponent } from './account-form-dialog.component';
         DropdownModule,
         CheckboxModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [AccountListComponent, AccountFormDialogComponent],
 })

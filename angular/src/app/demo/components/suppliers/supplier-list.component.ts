@@ -6,6 +6,7 @@ import { SupplierService } from 'src/app/demo/service/supplier.service';
 
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './supplier-list.component.html',
@@ -23,6 +24,27 @@ export class SupplierListComponent implements OnInit {
     canCreate = false;
     canEdit = false;
     canDelete = false;
+
+    getRowActions(supplier: SupplierDto): RowActionItem[] {
+        const actions: RowActionItem[] = [];
+        if (this.canEdit) {
+            actions.push({
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(supplier),
+            });
+        }
+        if (this.canDelete) {
+            actions.push({
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(supplier),
+            });
+        }
+        return actions;
+    }
 
     constructor(
         private supplierService: SupplierService,

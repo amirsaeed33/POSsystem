@@ -13,6 +13,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { StyleClassModule } from 'primeng/styleclass';
 import { HostCatalogRoutingModule } from './host-catalog-routing.module';
 import { HostCatalogListComponent } from './host-catalog-list.component';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -29,6 +30,7 @@ import { HostCatalogListComponent } from './host-catalog-list.component';
         CheckboxModule,
         TooltipModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [HostCatalogListComponent],
 })

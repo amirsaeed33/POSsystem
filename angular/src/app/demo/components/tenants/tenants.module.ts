@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { TenantsRoutingModule } from './tenants-routing.module';
 import { TenantListComponent } from './tenant-list.component';
 import { TenantFormDialogComponent } from './tenant-form-dialog.component';
@@ -32,6 +33,7 @@ import { TenantFormDialogComponent } from './tenant-form-dialog.component';
         ConfirmDialogModule,
         CheckboxModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [TenantListComponent, TenantFormDialogComponent],
 })

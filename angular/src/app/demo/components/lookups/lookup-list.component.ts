@@ -3,6 +3,7 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { LookUpDto, LookUpTypes } from 'src/app/demo/api/lookup';
 import { LookUpService } from 'src/app/demo/service/lookup.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './lookup-list.component.html',
@@ -126,5 +127,21 @@ export class LookUpListComponent implements OnInit {
                     detail: error?.message || 'Failed to load lookup types',
                 });
             });
+    }
+
+    getRowActions(item: LookUpDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                action: () => this.openEditDialog(item),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                action: () => this.onDelete(item),
+            },
+        ];
     }
 }

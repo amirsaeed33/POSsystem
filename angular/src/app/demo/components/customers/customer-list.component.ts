@@ -3,6 +3,7 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { CustomerService } from 'src/app/demo/service/customer.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 
@@ -113,5 +114,23 @@ export class CustomerListComponent implements OnInit {
                     });
             },
         });
+    }
+
+    getRowActions(customer: CustomerDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                visible: this.canEdit,
+                action: () => this.openEditDialog(customer),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                visible: this.canDelete,
+                action: () => this.onDelete(customer),
+            },
+        ];
     }
 }

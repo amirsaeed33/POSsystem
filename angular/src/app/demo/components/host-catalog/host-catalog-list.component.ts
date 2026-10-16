@@ -6,6 +6,7 @@ import {
     HostCatalogItemTypes,
 } from 'src/app/demo/api/host-catalog';
 import { HostCatalogService } from 'src/app/demo/service/host-catalog.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './host-catalog-list.component.html',
@@ -236,5 +237,21 @@ export class HostCatalogListComponent implements OnInit {
                     });
             },
         });
+    }
+
+    getRowActions(item: HostCatalogItemDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                action: () => this.openEdit(item),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                action: () => this.onDelete(item),
+            },
+        ];
     }
 }

@@ -16,6 +16,7 @@ import { StyleClassModule } from 'primeng/styleclass';
 import { LookUpsRoutingModule } from './lookups-routing.module';
 import { LookUpListComponent } from './lookup-list.component';
 import { LookUpFormDialogComponent } from './lookup-form-dialog.component';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -34,6 +35,7 @@ import { LookUpFormDialogComponent } from './lookup-form-dialog.component';
         DropdownModule,
         CheckboxModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [LookUpListComponent, LookUpFormDialogComponent],
 })

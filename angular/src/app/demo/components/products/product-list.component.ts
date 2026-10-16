@@ -6,6 +6,7 @@ import { ProductService } from 'src/app/demo/service/product.service';
 import * as XLSX from 'xlsx';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './product-list.component.html',
@@ -56,6 +57,34 @@ export class ProductListComponent implements OnInit {
             this.selectedProducts = [...this.products];
         }
         this.barcodeDialogVisible = true;
+    }
+
+    getRowActions(product: ProductDto): RowActionItem[] {
+        const actions: RowActionItem[] = [
+            {
+                label: 'Print barcode',
+                icon: 'pi pi-print',
+                color: 'blue',
+                action: () => this.openBarcodeDialog(product)
+            }
+        ];
+        if (this.canEdit) {
+            actions.push({
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(product)
+            });
+        }
+        if (this.canDelete) {
+            actions.push({
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(product)
+            });
+        }
+        return actions;
     }
 
     ngOnInit(): void {

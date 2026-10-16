@@ -15,6 +15,7 @@ import { StyleClassModule } from 'primeng/styleclass';
 import { LedgerEntriesRoutingModule } from './ledger-entries-routing.module';
 import { LedgerEntryListComponent } from './ledger-entry-list.component';
 import { LedgerEntryFormDialogComponent } from './ledger-entry-form-dialog.component';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -32,6 +33,7 @@ import { LedgerEntryFormDialogComponent } from './ledger-entry-form-dialog.compo
         ConfirmDialogModule,
         DropdownModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [LedgerEntryListComponent, LedgerEntryFormDialogComponent],
 })

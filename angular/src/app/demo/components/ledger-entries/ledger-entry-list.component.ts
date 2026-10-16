@@ -6,6 +6,7 @@ import { LedgerEntryDto } from 'src/app/demo/api/ledger-entry';
 import { BusinessAccountDto } from 'src/app/demo/api/business-account';
 import { LedgerEntryService } from 'src/app/demo/service/ledger-entry.service';
 import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './ledger-entry-list.component.html',
@@ -123,5 +124,21 @@ export class LedgerEntryListComponent implements OnInit {
                     detail: error?.message || 'Failed to load accounts',
                 });
             });
+    }
+
+    getRowActions(entry: LedgerEntryDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                action: () => this.openEditDialog(entry),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                action: () => this.onDelete(entry),
+            },
+        ];
     }
 }

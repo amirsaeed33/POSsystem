@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { MenuModule } from 'primeng/menu';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { PurchasesRoutingModule } from './purchases-routing.module';
 import { PurchaseListComponent } from './purchase-list.component';
 import { PurchaseFormDialogComponent } from './purchase-form-dialog.component';
@@ -38,6 +39,7 @@ import { PurchaseReturnsModule } from '../purchase-returns/purchase-returns.modu
         ConfirmDialogModule,
         DropdownModule,
         MenuModule,
+        AppRowActionsComponent,
     ],
     declarations: [
         PurchaseListComponent,

@@ -14,6 +14,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { StaffPayrollListComponent } from './staff-payroll-list.component';
 import { StaffPayrollFormDialogComponent } from './staff-payroll-form-dialog.component';
 
@@ -34,6 +35,7 @@ import { StaffPayrollFormDialogComponent } from './staff-payroll-form-dialog.com
         DropdownModule,
         TagModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [StaffPayrollListComponent, StaffPayrollFormDialogComponent],
     exports: [StaffPayrollListComponent, StaffPayrollFormDialogComponent],

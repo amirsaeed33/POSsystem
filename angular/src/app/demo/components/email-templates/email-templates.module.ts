@@ -15,6 +15,7 @@ import { StyleClassModule } from 'primeng/styleclass';
 import { EmailTemplatesRoutingModule } from './email-templates-routing.module';
 import { EmailTemplateListComponent } from './email-template-list.component';
 import { EmailTemplateFormDialogComponent } from './email-template-form-dialog.component';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -32,6 +33,7 @@ import { EmailTemplateFormDialogComponent } from './email-template-form-dialog.c
         ConfirmDialogModule,
         CheckboxModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [EmailTemplateListComponent, EmailTemplateFormDialogComponent],
 })

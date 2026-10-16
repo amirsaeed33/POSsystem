@@ -78,16 +78,7 @@
                     </span>
                 </td>
                 <td class="text-center">
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-ellipsis-v"
-                        class="tbl-action-btn more-btn"
-                        pTooltip="Actions"
-                        tooltipPosition="left"
-                        (click)="openActionMenu($event, menu, purchase)"
-                    ></button>
+                    <app-row-actions [items]="getRowActions(purchase)"></app-row-actions>
                 </td>
             </tr>
         </ng-template>
@@ -132,7 +123,6 @@
         (saved)="onDialogSaved()"
     ></app-purchase-return-form-dialog>
 
-    <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
 </div>

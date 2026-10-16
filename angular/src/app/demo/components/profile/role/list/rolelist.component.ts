@@ -4,6 +4,7 @@ import { Table } from 'primeng/table';
 import { RoleDto } from 'src/app/demo/api/role-management';
 import { RoleService } from 'src/app/demo/service/role.service';
 import { MessageService, ConfirmationService } from 'primeng/api';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './rolelist.component.html',
@@ -17,6 +18,23 @@ export class RoleListComponent implements OnInit {
 
     dialogVisible = false;
     editingRoleId: number | null = null;
+
+    getRowActions(role: RoleDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(role)
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDeleteRole(role)
+            }
+        ];
+    }
 
     constructor(
         private roleService: RoleService,

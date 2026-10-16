@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { StockAdjustmentsRoutingModule } from './stock-adjustments-routing.module';
 import { StockAdjustmentListComponent } from './stock-adjustment-list.component';
 import { StockAdjustmentFormDialogComponent } from './stock-adjustment-form-dialog.component';
@@ -33,6 +34,7 @@ import { StockAdjustmentViewDialogComponent } from './stock-adjustment-view-dial
         ConfirmDialogModule,
         DropdownModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [
         StockAdjustmentListComponent,

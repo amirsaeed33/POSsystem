@@ -4,6 +4,7 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SaleReturnDto } from 'src/app/demo/api/sale-return';
 import { SaleReturnService } from 'src/app/demo/service/sale-return.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './sale-return-list.component.html',
@@ -19,6 +20,23 @@ export class SaleReturnListComponent implements OnInit {
     viewDialogVisible = false;
     viewingReturnId: number | null = null;
     createSaleId: number | null = null;
+
+    getRowActions(item: SaleReturnDto): RowActionItem[] {
+        return [
+            {
+                label: 'View details',
+                icon: 'pi pi-eye',
+                color: 'blue',
+                action: () => this.openViewDialog(item)
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(item)
+            }
+        ];
+    }
 
     constructor(public formatService: AppFormatService, 
         private saleReturnService: SaleReturnService,

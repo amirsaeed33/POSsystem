@@ -15,6 +15,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { StaffListComponent } from './staff-list.component';
 import { StaffFormDialogComponent } from './staff-form-dialog.component';
 import { StaffLoginDialogComponent } from './staff-login-dialog.component';
@@ -37,6 +38,7 @@ import { StaffLoginDialogComponent } from './staff-login-dialog.component';
         CheckboxModule,
         TagModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [
         StaffListComponent,

@@ -8,6 +8,7 @@ import { PurchaseService } from 'src/app/demo/service/purchase.service';
 
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './purchase-list.component.html',
@@ -90,43 +91,45 @@ export class PurchaseListComponent implements OnInit {
         this.payDialogVisible = true;
     }
 
-    openActionMenu(event: Event, menu: Menu, purchase: PurchaseDto): void {
-        const items: MenuItem[] = [];
+    getRowActions(purchase: PurchaseDto): RowActionItem[] {
+        const actions: RowActionItem[] = [];
         if (purchase.paymentStatus !== 'Paid') {
-            items.push({
-                label: 'Pay Remaining Amount',
+            actions.push({
+                label: 'Pay remaining amount',
                 icon: 'pi pi-dollar',
-                command: () => this.openPayDialog(purchase),
+                color: 'green',
+                action: () => this.openPayDialog(purchase),
             });
         }
-        items.push(
+        actions.push(
             {
-                label: 'View Details',
+                label: 'View details',
                 icon: 'pi pi-eye',
-                command: () => this.openViewDialog(purchase),
+                color: 'blue',
+                action: () => this.openViewDialog(purchase),
             },
             {
-                label: 'Return Purchase',
+                label: 'Return purchase',
                 icon: 'pi pi-replay',
-                command: () => this.openReturnDialog(purchase),
+                color: 'amber',
+                action: () => this.openReturnDialog(purchase),
             },
             {
-                label: 'Print Invoice',
+                label: 'Print invoice',
                 icon: 'pi pi-print',
-                command: () => this.openPrintDialog(purchase.id),
-            },
-            {
-                separator: true,
-            },
-            {
-                label: 'Delete',
-                icon: 'pi pi-trash',
-                disabled: !this.canDelete,
-                command: () => this.onDelete(purchase),
+                color: 'indigo',
+                action: () => this.openPrintDialog(purchase.id),
             }
         );
-        this.menuItems = items;
-        menu.toggle(event);
+        if (this.canDelete) {
+            actions.push({
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(purchase),
+            });
+        }
+        return actions;
     }
 
     openViewDialog(purchase: PurchaseDto): void {

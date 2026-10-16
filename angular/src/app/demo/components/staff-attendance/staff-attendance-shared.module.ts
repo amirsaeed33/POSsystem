@@ -13,6 +13,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { StaffAttendanceListComponent } from './staff-attendance-list.component';
 import { StaffAttendanceFormDialogComponent } from './staff-attendance-form-dialog.component';
 
@@ -32,6 +33,7 @@ import { StaffAttendanceFormDialogComponent } from './staff-attendance-form-dial
         DropdownModule,
         TagModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [
         StaffAttendanceListComponent,

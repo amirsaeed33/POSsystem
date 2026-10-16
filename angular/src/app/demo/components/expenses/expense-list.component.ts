@@ -4,6 +4,7 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ExpenseDto } from 'src/app/demo/api/expense';
 import { ExpenseService } from 'src/app/demo/service/expense.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
@@ -123,5 +124,28 @@ export class ExpenseListComponent implements OnInit {
                     });
             },
         });
+    }
+
+    getRowActions(expense: ExpenseDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                visible: this.canEdit,
+                action: () => this.openEditDialog(expense),
+            },
+            {
+                label: 'Print voucher',
+                icon: 'pi pi-print',
+                action: () => this.openPrintDialog(expense),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                visible: this.canDelete,
+                action: () => this.onDelete(expense),
+            },
+        ];
     }
 }

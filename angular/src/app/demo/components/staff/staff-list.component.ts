@@ -9,6 +9,7 @@ import {
 } from 'src/app/demo/api/staff-payroll';
 import { StaffPayrollService } from 'src/app/demo/service/staff-payroll.service';
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     selector: 'app-staff-list',
@@ -31,6 +32,35 @@ export class StaffListComponent implements OnInit {
     totalRecords = 0;
     keyword = '';
     statusFilter: boolean | null = null;
+
+    getRowActions(staff: StaffDto): RowActionItem[] {
+        return [
+            {
+                label: 'Create payroll',
+                icon: 'pi pi-wallet',
+                color: 'blue',
+                action: () => this.onCreatePayroll(staff),
+            },
+            {
+                label: staff.hasUserAccount ? 'Change password' : 'Create login',
+                icon: 'pi pi-key',
+                color: 'indigo',
+                action: () => this.openLoginDialog(staff),
+            },
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(staff),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(staff),
+            },
+        ];
+    }
 
     statusOptions = [
         { label: 'All', value: null },

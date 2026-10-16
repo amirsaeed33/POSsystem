@@ -11,6 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { SuppliersRoutingModule } from './suppliers-routing.module';
 import { SupplierListComponent } from './supplier-list.component';
 import { SupplierFormDialogComponent } from './supplier-form-dialog.component';
@@ -30,6 +31,7 @@ import { SupplierFormDialogComponent } from './supplier-form-dialog.component';
         TooltipModule,
         ConfirmDialogModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [SupplierListComponent, SupplierFormDialogComponent],
 })

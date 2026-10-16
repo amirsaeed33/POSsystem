@@ -3,6 +3,7 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { CategoryDto } from 'src/app/demo/api/category';
 import { CategoryService } from 'src/app/demo/service/category.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 
@@ -113,5 +114,23 @@ export class CategoryListComponent implements OnInit {
                     });
             },
         });
+    }
+
+    getRowActions(category: CategoryDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                visible: this.canEdit,
+                action: () => this.openEditDialog(category),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                visible: this.canDelete,
+                action: () => this.onDelete(category),
+            },
+        ];
     }
 }

@@ -13,6 +13,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { StyleClassModule } from 'primeng/styleclass';
 import { BrandListComponent } from './brand-list.component';
 import { BrandFormDialogComponent } from './brand-form-dialog.component';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -28,6 +29,7 @@ import { BrandFormDialogComponent } from './brand-form-dialog.component';
         TooltipModule,
         ConfirmDialogModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [BrandListComponent, BrandFormDialogComponent],
     exports: [BrandListComponent, BrandFormDialogComponent],

@@ -15,6 +15,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { DropdownModule } from 'primeng/dropdown';
 import { CheckboxModule } from 'primeng/checkbox';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { ProfileListComponent } from './profilelist.component';
 import { ResetPasswordDialogComponent } from './reset-password-dialog.component';
 import { UserFormDialogComponent } from './user-form-dialog.component';
@@ -39,7 +40,8 @@ import { ProfileListRoutingModule } from './profilelist-routing.module';
 		MultiSelectModule,
 		DropdownModule,
 		CheckboxModule,
-		StyleClassModule
+		StyleClassModule,
+		AppRowActionsComponent
 	],
 	declarations: [
 		ProfileListComponent,

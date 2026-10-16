@@ -21,6 +21,7 @@ import { BranchCreateComponent } from './branch-create/branch-create.component';
 
 import { TabViewModule } from 'primeng/tabview';
 import { NotificationSettingsSharedModule } from '../notification-settings/notification-settings-shared.module';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -39,7 +40,8 @@ import { NotificationSettingsSharedModule } from '../notification-settings/notif
         StyleClassModule,
         DropdownModule,
         TabViewModule,
-        NotificationSettingsSharedModule
+        NotificationSettingsSharedModule,
+        AppRowActionsComponent,
     ],
     providers: [MessageService],
     declarations: [

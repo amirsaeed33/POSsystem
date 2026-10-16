@@ -8,6 +8,7 @@ import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { LookUpService } from 'src/app/demo/service/lookup.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './branch-list.component.html',
@@ -41,6 +42,33 @@ export class BranchListComponent implements OnInit {
 
     canDeleteBranch(branch: BranchDto): boolean {
         return this.permissionService.isGranted(PermissionNames.BranchesDelete);
+    }
+
+    getRowActions(branch: BranchDto): RowActionItem[] {
+        const actions: RowActionItem[] = [];
+        if (this.canEditBranch(branch)) {
+            actions.push({
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditPage(branch)
+            });
+        }
+        actions.push({
+            label: 'Print invoice',
+            icon: 'pi pi-print',
+            color: 'indigo',
+            action: () => this.openPrintInvoiceModal(branch)
+        });
+        if (this.canDeleteBranch(branch)) {
+            actions.push({
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(branch)
+            });
+        }
+        return actions;
     }
 
     constructor(public formatService: AppFormatService, 

@@ -4,6 +4,7 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { EmailTemplateDto } from 'src/app/demo/api/email-template';
 import { EmailTemplateService } from 'src/app/demo/service/email-template.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './email-template-list.component.html',
@@ -126,5 +127,26 @@ export class EmailTemplateListComponent implements OnInit {
                     });
             },
         });
+    }
+
+    getRowActions(template: EmailTemplateDto): RowActionItem[] {
+        return [
+            {
+                label: 'Preview as sent',
+                icon: 'pi pi-eye',
+                action: () => this.openPreview(template),
+            },
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                action: () => this.openEditDialog(template),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                action: () => this.onDelete(template),
+            },
+        ];
     }
 }

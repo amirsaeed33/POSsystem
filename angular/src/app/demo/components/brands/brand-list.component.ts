@@ -3,6 +3,7 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { BrandDto } from 'src/app/demo/api/brand';
 import { BrandService } from 'src/app/demo/service/brand.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     selector: 'app-brand-list',
@@ -103,5 +104,21 @@ export class BrandListComponent implements OnInit {
                     });
             },
         });
+    }
+
+    getRowActions(brand: BrandDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                action: () => this.openEditDialog(brand),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                action: () => this.onDelete(brand),
+            },
+        ];
     }
 }

@@ -14,6 +14,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { StyleClassModule } from 'primeng/styleclass';
 import { CategoryListComponent } from './category-list.component';
 import { CategoryFormDialogComponent } from './category-form-dialog.component';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -30,6 +31,7 @@ import { CategoryFormDialogComponent } from './category-form-dialog.component';
         ConfirmDialogModule,
         DropdownModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [CategoryListComponent, CategoryFormDialogComponent],
     exports: [CategoryListComponent, CategoryFormDialogComponent],

@@ -10,6 +10,7 @@ import { StockAdjustmentService } from 'src/app/demo/service/stock-adjustment.se
 
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './stock-adjustment-list.component.html',
@@ -30,6 +31,34 @@ export class StockAdjustmentListComponent implements OnInit {
     canCreate = false;
     canEdit = false;
     canDelete = false;
+
+    getRowActions(item: StockAdjustmentDto): RowActionItem[] {
+        const actions: RowActionItem[] = [
+            {
+                label: 'View details',
+                icon: 'pi pi-eye',
+                color: 'blue',
+                action: () => this.openViewDialog(item),
+            },
+        ];
+        if (this.canEdit) {
+            actions.push({
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(item),
+            });
+        }
+        if (this.canDelete) {
+            actions.push({
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(item),
+            });
+        }
+        return actions;
+    }
 
     constructor(public formatService: AppFormatService, 
         private stockAdjustmentService: StockAdjustmentService,

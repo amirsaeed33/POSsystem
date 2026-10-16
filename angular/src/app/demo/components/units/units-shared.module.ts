@@ -11,6 +11,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { UnitListComponent } from './unit-list.component';
 import { UnitFormDialogComponent } from './unit-form-dialog.component';
 
@@ -28,6 +29,7 @@ import { UnitFormDialogComponent } from './unit-form-dialog.component';
         TooltipModule,
         ConfirmDialogModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [UnitListComponent, UnitFormDialogComponent],
     exports: [UnitListComponent, UnitFormDialogComponent],

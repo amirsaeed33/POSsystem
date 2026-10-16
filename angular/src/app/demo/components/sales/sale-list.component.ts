@@ -7,6 +7,7 @@ import { SaleService } from 'src/app/demo/service/sale.service';
 
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './sale-list.component.html',
@@ -30,6 +31,32 @@ export class SaleListComponent implements OnInit {
     canCreate = false;
     canEdit = false;
     canDelete = false;
+
+    getRowActions(sale: SaleDto): RowActionItem[] {
+        const actions: RowActionItem[] = [
+            {
+                label: 'View details',
+                icon: 'pi pi-eye',
+                color: 'blue',
+                action: () => this.openViewDialog(sale),
+            },
+            {
+                label: 'Print invoice',
+                icon: 'pi pi-print',
+                color: 'indigo',
+                action: () => this.openPrintDialog(sale.id),
+            }
+        ];
+        if (this.canDelete) {
+            actions.push({
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(sale),
+            });
+        }
+        return actions;
+    }
 
     constructor(public formatService: AppFormatService, 
         private saleService: SaleService,

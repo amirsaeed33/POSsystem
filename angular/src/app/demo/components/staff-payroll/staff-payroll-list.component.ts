@@ -15,6 +15,7 @@ import { BusinessAccountService } from 'src/app/demo/service/business-account.se
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { StaffPayrollService } from 'src/app/demo/service/staff-payroll.service';
 import { StaffService } from 'src/app/demo/service/staff.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     selector: 'app-staff-payroll-list',
@@ -35,6 +36,35 @@ export class StaffPayrollListComponent implements OnInit, OnDestroy {
     yearFilter: number | null = new Date().getFullYear();
     paymentStatusFilter: PayrollPaymentStatus | null = null;
     private branchSub?: Subscription;
+
+    getRowActions(row: StaffPayrollDto): RowActionItem[] {
+        const actions: RowActionItem[] = [];
+        if (row.paymentStatus === 0 && this.canEdit) {
+            actions.push({
+                label: 'Pay salary',
+                icon: 'pi pi-dollar',
+                color: 'green',
+                action: () => this.openPayDialog(row),
+            });
+        }
+        if (this.canEdit) {
+            actions.push({
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(row),
+            });
+        }
+        if (this.canDelete) {
+            actions.push({
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(row),
+            });
+        }
+        return actions;
+    }
 
     monthOptions = [
         { label: 'All', value: null },

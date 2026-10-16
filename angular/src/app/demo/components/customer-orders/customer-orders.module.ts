@@ -17,6 +17,7 @@ import { CustomerOrdersRoutingModule } from './customer-orders-routing.module';
 import { CustomerOrderListComponent } from './customer-order-list.component';
 import { CustomerOrderFormDialogComponent } from './customer-order-form-dialog.component';
 import { CustomerOrderViewDialogComponent } from './customer-order-view-dialog.component';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -35,6 +36,7 @@ import { CustomerOrderViewDialogComponent } from './customer-order-view-dialog.c
         DropdownModule,
         TagModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [
         CustomerOrderListComponent,

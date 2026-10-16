@@ -87,45 +87,7 @@
                 <td>{{ sale.taxAmount | number: '1.2-2' }}</td>
                 <td>{{ sale.totalAmount | number: '1.2-2' }}</td>
                 <td class="text-center">
-                    <div class="relative flex align-items-center justify-content-center">
-                        <button
-                            type="button"
-                            class="p-link w-2rem h-2rem border-circle inline-flex align-items-center justify-content-center hover:surface-hover transition-colors transition-duration-150"
-                            pStyleClass="@next"
-                            enterClass="hidden"
-                            enterActiveClass="scalein"
-                            leaveToClass="hidden"
-                            leaveActiveClass="fadeout"
-                            [hideOnOutsideClick]="true"
-                            pTooltip="Actions"
-                            tooltipPosition="left"
-                        >
-                            <i class="pi pi-ellipsis-v text-color"></i>
-                        </button>
-                        <ul class="list-none p-2 m-0 border-round shadow-3 hidden absolute surface-overlay origin-top mt-1 right-0 top-auto tbl-action-dropdown-menu text-left">
-                            <li>
-                                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
-                                   (click)="openViewDialog(sale)">
-                                    <i class="pi pi-eye mr-2 text-primary"></i>
-                                    <span>View Details</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
-                                   (click)="openPrintDialog(sale.id)">
-                                    <i class="pi pi-print mr-2 text-indigo-500"></i>
-                                    <span>Print Invoice</span>
-                                </a>
-                            </li>
-                            <li *ngIf="canDelete">
-                                <a pRipple class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer text-red-500"
-                                   (click)="onDelete(sale)">
-                                    <i class="pi pi-trash mr-2"></i>
-                                    <span>Delete</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                    <app-row-actions [items]="getRowActions(sale)"></app-row-actions>
                 </td>
             </tr>
         </ng-template>

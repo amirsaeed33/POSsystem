@@ -12,6 +12,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { SaleReturnsRoutingModule } from './sale-returns-routing.module';
 import { SaleReturnListComponent } from './sale-return-list.component';
 import { SaleReturnFormDialogComponent } from './sale-return-form-dialog.component';
@@ -33,6 +34,7 @@ import { SaleReturnViewDialogComponent } from './sale-return-view-dialog.compone
         ConfirmDialogModule,
         DropdownModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [
         SaleReturnListComponent,

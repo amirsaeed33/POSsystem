@@ -13,6 +13,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { SalesRoutingModule } from './sales-routing.module';
 import { SaleListComponent } from './sale-list.component';
 import { SaleFormDialogComponent } from './sale-form-dialog.component';
@@ -41,6 +42,7 @@ import { CustomerSharedModule } from '../customers/customer-shared.module';
         DropdownModule,
         TagModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [
         SaleListComponent,

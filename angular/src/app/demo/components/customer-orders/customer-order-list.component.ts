@@ -8,6 +8,7 @@ import {
     CustomerOrderStatus,
 } from 'src/app/demo/api/customer-order';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './customer-order-list.component.html',
@@ -228,5 +229,34 @@ export class CustomerOrderListComponent implements OnInit {
                     });
             },
         });
+    }
+
+    getRowActions(order: CustomerOrderDto): RowActionItem[] {
+        return [
+            {
+                label: 'View details',
+                icon: 'pi pi-eye',
+                action: () => this.openViewDialog(order),
+            },
+            {
+                label: 'Approve',
+                icon: 'pi pi-check',
+                visible: this.isPending(order),
+                action: () => this.onApprove(order),
+            },
+            {
+                label: 'Reject',
+                icon: 'pi pi-times',
+                visible: this.isPending(order),
+                action: () => this.onReject(order),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                visible: this.isPending(order),
+                action: () => this.onDelete(order),
+            },
+        ];
     }
 }

@@ -5,6 +5,7 @@ import { UserService } from 'src/app/demo/service/user.service';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './profilelist.component.html',
@@ -22,6 +23,35 @@ export class ProfileListComponent implements OnInit {
     resetDialogVisible = false;
     resetUserId: number | null = null;
     resetUserName = '';
+
+    getRowActions(user: UserDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(user)
+            },
+            {
+                label: 'Reset password',
+                icon: 'pi pi-key',
+                color: 'indigo',
+                action: () => this.onResetPassword(user)
+            },
+            {
+                label: user.isActive ? 'Deactivate' : 'Activate',
+                icon: user.isActive ? 'pi pi-ban' : 'pi pi-check',
+                color: user.isActive ? 'amber' : 'green',
+                action: () => this.onToggleActive(user)
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDeleteUser(user)
+            }
+        ];
+    }
 
     constructor(
         private userService: UserService,

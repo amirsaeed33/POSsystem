@@ -11,6 +11,7 @@ import {
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { StaffAttendanceService } from 'src/app/demo/service/staff-attendance.service';
 import { StaffService } from 'src/app/demo/service/staff.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     selector: 'app-staff-attendance-list',
@@ -30,6 +31,27 @@ export class StaffAttendanceListComponent implements OnInit {
     statusFilter: AttendanceStatus | null = null;
     fromDate: string | null = null;
     toDate: string | null = null;
+
+    getRowActions(att: StaffAttendanceDto): RowActionItem[] {
+        const actions: RowActionItem[] = [];
+        if (this.canEdit) {
+            actions.push({
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(att)
+            });
+        }
+        if (this.canDelete) {
+            actions.push({
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(att)
+            });
+        }
+        return actions;
+    }
 
     statusOptions = [
         { label: 'All', value: null },

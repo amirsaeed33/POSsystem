@@ -17,6 +17,7 @@ import { ExpensesRoutingModule } from './expenses-routing.module';
 import { ExpenseListComponent } from './expense-list.component';
 import { ExpenseFormDialogComponent } from './expense-form-dialog.component';
 import { InvoicePrintModule } from '../invoices/invoice-print.module';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
     imports: [
@@ -36,6 +37,7 @@ import { InvoicePrintModule } from '../invoices/invoice-print.module';
         ConfirmDialogModule,
         DropdownModule,
         StyleClassModule,
+        AppRowActionsComponent,
     ],
     declarations: [ExpenseListComponent, ExpenseFormDialogComponent],
 })

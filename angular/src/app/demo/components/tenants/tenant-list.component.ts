@@ -3,6 +3,7 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TenantDto } from 'src/app/demo/api/tenant';
 import { TenantService } from 'src/app/demo/service/tenant.service';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @Component({
     templateUrl: './tenant-list.component.html',
@@ -16,6 +17,23 @@ export class TenantListComponent implements OnInit {
 
     dialogVisible = false;
     editingTenantId: number | null = null;
+
+    getRowActions(tenant: TenantDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(tenant)
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(tenant)
+            }
+        ];
+    }
 
     constructor(
         private tenantService: TenantService,
