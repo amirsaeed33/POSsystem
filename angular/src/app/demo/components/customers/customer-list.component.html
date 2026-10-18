@@ -65,7 +65,22 @@
 
         <ng-template pTemplate="body" let-customer>
             <tr>
-                <td>{{ customer.name }}</td>
+                <td>
+                    <a
+                        *ngIf="canEdit"
+                        href="javascript:void(0)"
+                        class="text-primary hover:underline font-semibold cursor-pointer"
+                        style="text-decoration: none;"
+                        (click)="openEditDialog(customer)"
+                        [pTooltip]="'Click to edit ' + customer.name"
+                        tooltipPosition="top"
+                    >
+                        {{ customer.name }}
+                    </a>
+                    <span *ngIf="!canEdit" class="font-semibold text-900">
+                        {{ customer.name }}
+                    </span>
+                </td>
                 <td>
                     <span
                         class="p-tag"
