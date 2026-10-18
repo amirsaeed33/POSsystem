@@ -264,6 +264,58 @@ export class OnlineProductDetailComponent implements OnInit {
         return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
     }
 
+    getProductImage(product: any): string {
+        if (product?.imagePath && !product.imagePath.includes('placeholder.png')) {
+            return this.getImageUrl(product.imagePath);
+        }
+        const text = `${product?.name || ''} ${product?.categoryName || ''} ${product?.brandName || ''} ${product?.description || ''} ${this.branchName || ''}`.toLowerCase();
+        const id = Math.abs(product?.id || 1);
+
+        if (
+            text.includes('battery') ||
+            text.includes('batteries') ||
+            text.includes('lithium') ||
+            text.includes('tubular') ||
+            text.includes('gel') ||
+            text.includes('osaka') ||
+            text.includes('phoenix') ||
+            text.includes('narada') ||
+            text.includes('volta')
+        ) {
+            const batteryImages = [
+                'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=800&q=80',
+            ];
+            return batteryImages[id % batteryImages.length];
+        }
+
+        if (
+            text.includes('inverter') ||
+            text.includes('ups') ||
+            text.includes('inverex') ||
+            text.includes('growatt') ||
+            text.includes('fronus') ||
+            text.includes('knox') ||
+            text.includes('hybrid')
+        ) {
+            const inverterImages = [
+                'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=800&q=80',
+            ];
+            return inverterImages[id % inverterImages.length];
+        }
+
+        const solarPanelImages = [
+            'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1558449028-b53a39d100fc?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1613665813446-82a78c468a1d?auto=format&fit=crop&w=800&q=80',
+        ];
+        return solarPanelImages[id % solarPanelImages.length];
+    }
+
     getInitials(name: string): string {
         if (!name) return 'PR';
         const parts = name.trim().split(' ');

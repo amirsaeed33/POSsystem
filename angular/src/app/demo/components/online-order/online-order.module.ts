@@ -15,6 +15,8 @@ import { ToastModule } from 'primeng/toast';
 import { DropdownModule } from 'primeng/dropdown';
 import { ImageModule } from 'primeng/image';
 import { TooltipModule } from 'primeng/tooltip';
+import { BadgeModule } from 'primeng/badge';
+import { DividerModule } from 'primeng/divider';
 
 @NgModule({
     imports: [
@@ -31,6 +33,8 @@ import { TooltipModule } from 'primeng/tooltip';
         DropdownModule,
         ImageModule,
         TooltipModule,
+        BadgeModule,
+        DividerModule,
     ],
     declarations: [OnlineOrderComponent, OnlineProductDetailComponent],
 })

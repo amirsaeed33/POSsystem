@@ -83,25 +83,18 @@
                             </div>
 
                             <!-- Product Image -->
-                            <ng-container *ngIf="product.imagePath; else noImageTpl">
-                                <div class="w-full flex flex-column align-items-center justify-content-center py-4">
-                                    <p-image
-                                        [src]="getImageUrl(product.imagePath)"
-                                        [alt]="product.name"
-                                        [preview]="true"
-                                        imageClass="max-w-full h-18rem md:h-22rem object-contain transition-transform transition-duration-300 hover:scale-105"
-                                        styleClass="flex justify-content-center align-items-center"
-                                    ></p-image>
-                                    <span class="text-xs text-500 mt-3 flex align-items-center gap-1 font-medium">
-                                        <i class="pi pi-search-plus text-xs text-primary"></i> Click image to inspect & zoom
-                                    </span>
-                                </div>
-                            </ng-container>
-                            <ng-template #noImageTpl>
-                                <div class="w-10rem h-10rem border-circle bg-primary-50 text-primary font-bold flex align-items-center justify-content-center text-6xl shadow-2 my-5">
-                                    {{ getInitials(product.name) }}
-                                </div>
-                            </ng-template>
+                            <div class="w-full flex flex-column align-items-center justify-content-center py-4">
+                                <p-image
+                                    [src]="getProductImage(product)"
+                                    [alt]="product.name"
+                                    [preview]="true"
+                                    imageClass="max-w-full h-18rem md:h-22rem object-contain transition-transform transition-duration-300 hover:scale-105 border-round-xl"
+                                    styleClass="flex justify-content-center align-items-center"
+                                ></p-image>
+                                <span class="text-xs text-500 mt-3 flex align-items-center gap-1 font-medium">
+                                    <i class="pi pi-search-plus text-xs text-primary"></i> Click image to inspect & zoom
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Quick Specs Pills Row -->
