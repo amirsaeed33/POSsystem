@@ -1,3 +1,234 @@
+/* =========================================================================
+   Format Switcher Toolbar
+   ========================================================================= */
+.format-toolbar {
+  background: var(--surface-50, #f8fafc);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.format-toggle-group {
+  display: inline-flex;
+  background: #e2e8f0;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.format-btn {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.format-btn:hover {
+  color: #0f172a;
+}
+
+.format-btn.active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.35);
+}
+
+/* =========================================================================
+   1. THERMAL 80MM RECEIPT STYLING
+   ========================================================================= */
+.thermal-sheet {
+  width: 78mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 12px 14px 20px;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Courier New', Courier, monospace, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color-scheme: light;
+}
+
+.thermal-logo {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  border-radius: 50%;
+  margin: 0 auto 6px;
+  display: block;
+}
+
+.thermal-store-name {
+  font-size: 15px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.thermal-store-info {
+  font-size: 11px;
+  color: #222222;
+  line-height: 1.3;
+}
+
+.thermal-divider-dashed {
+  border-bottom: 1px dashed #000000;
+  margin: 8px 0;
+  width: 100%;
+}
+
+.thermal-divider-double {
+  border-bottom: 2px dashed #000000;
+  margin: 8px 0;
+  width: 100%;
+}
+
+.thermal-meta {
+  font-size: 11.5px;
+}
+
+.thermal-meta-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2.5px;
+}
+
+.thermal-items-header {
+  display: flex;
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  padding: 2px 0;
+}
+
+.col-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+
+.col-qty {
+  width: 38px;
+}
+
+.col-price {
+  width: 62px;
+}
+
+.col-total {
+  width: 68px;
+}
+
+.thermal-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.thermal-item-entry {
+  display: flex;
+  flex-column: column;
+}
+
+.thermal-item-name {
+  font-size: 12px;
+  font-weight: 700;
+  word-break: break-word;
+  line-height: 1.25;
+  margin-bottom: 2px;
+}
+
+.thermal-item-row {
+  display: flex;
+  align-items: baseline;
+  font-size: 11.5px;
+}
+
+.thermal-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.thermal-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.thermal-grand-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 900;
+  padding: 3px 0;
+}
+
+.thermal-notes {
+  font-size: 11px;
+  padding: 4px;
+  background: #f8fafc;
+  border-left: 2px solid #000;
+  margin: 6px 0;
+}
+
+.thermal-footer {
+  margin-top: 8px;
+}
+
+.thermal-footer-msg {
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.thermal-barcode-box {
+  margin: 8px auto 4px;
+}
+
+.barcode-lines {
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 2px;
+  font-size: 14px;
+}
+
+.barcode-text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin-top: 1px;
+}
+
+.thermal-timestamp {
+  font-size: 10px;
+  color: #444;
+  margin-top: 6px;
+}
+
+.thermal-branding {
+  font-size: 9px;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 3px;
+}
+
+/* =========================================================================
+   2. STANDARD A4 SHEET STYLING (Existing format)
+   ========================================================================= */
 .invoice-sheet {
   color: #111;
   font-size: 14px;

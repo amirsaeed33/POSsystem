@@ -220,6 +220,80 @@ $gutter: 1rem; //for primeflex grid system
 }
 
 @media print {
+  /* ---- Thermal Receipt print (body.printing-thermal) ---- */
+  body.printing-thermal * {
+    visibility: hidden !important;
+  }
+
+  body.printing-thermal .print-area.thermal-sheet,
+  body.printing-thermal .print-area.thermal-sheet * {
+    visibility: visible !important;
+  }
+
+  body.printing-thermal .print-area.thermal-sheet {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 78mm !important;
+    max-width: 78mm !important;
+    padding: 2mm 3mm !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+    color-scheme: light !important;
+    font-family: 'Courier New', Courier, monospace, 'Segoe UI', sans-serif !important;
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.printing-thermal .no-print,
+  body.printing-thermal .p-dialog-header,
+  body.printing-thermal .p-dialog-footer,
+  body.printing-thermal .layout-topbar,
+  body.printing-thermal .layout-sidebar,
+  body.printing-thermal .layout-mask,
+  body.printing-thermal .layout-config,
+  body.printing-thermal .layout-config-button,
+  body.printing-thermal .p-toast,
+  body.printing-thermal .p-confirm-dialog {
+    display: none !important;
+  }
+
+  body.printing-thermal .p-dialog-mask,
+  body.printing-thermal .p-component-overlay,
+  body.printing-thermal .p-dialog,
+  body.printing-thermal .p-dialog-content,
+  body.printing-thermal .p-dialog-draggable,
+  body.printing-thermal .sale-invoice-dialog {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    background: transparent !important;
+    transform: none !important;
+    inset: auto !important;
+  }
+
+  body.printing-thermal .layout-wrapper,
+  body.printing-thermal .layout-main,
+  body.printing-thermal .layout-main-container,
+  body.printing-thermal .layout-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
   /* ---- Invoice print (body.printing-invoice) ---- */
   body.printing-invoice * {
     visibility: hidden !important;
