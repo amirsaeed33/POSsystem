@@ -175,7 +175,7 @@
     <!-- MAIN BODY: CAROUSEL VIEW OR GRID VIEW -->
 
     <!-- VIEW MODE 1: Horizontal Slider / Carousel Rows (Foodies Pakistan Style) -->
-    <main class="max-w-7xl mx-auto pb-8" *ngIf="viewMode === 'carousel' && !searchKeyword">
+    <main class="max-w-7xl mx-auto pb-8" *ngIf="viewMode === 'carousel' && !searchKeyword && selectedCategory === 'All'">
         <!-- Section 1: 🔥 Hot Deals & Trending Items -->
         <section class="fp-store-section" *ngIf="trendingDeals.length > 0">
             <div class="section-header-row">
@@ -185,21 +185,32 @@
                         Special Picks
                     </span>
                 </div>
-                <div class="section-controls hidden md:flex">
+                <div class="section-controls flex align-items-center">
                     <button
+                        pButton
                         type="button"
-                        class="fp-scroll-arrow"
-                        (click)="scrollCarousel('trackTrending', 'left')"
-                    >
-                        <i class="pi pi-chevron-left text-xs"></i>
-                    </button>
-                    <button
-                        type="button"
-                        class="fp-scroll-arrow"
-                        (click)="scrollCarousel('trackTrending', 'right')"
-                    >
-                        <i class="pi pi-chevron-right text-xs"></i>
-                    </button>
+                        label="See All"
+                        icon="pi pi-chevron-right"
+                        iconPos="right"
+                        class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
+                        (click)="selectCategory('🔥 Deals')"
+                    ></button>
+                    <div class="hidden md:flex align-items-center gap-1">
+                        <button
+                            type="button"
+                            class="fp-scroll-arrow"
+                            (click)="scrollCarousel('trackTrending', 'left')"
+                        >
+                            <i class="pi pi-chevron-left text-xs"></i>
+                        </button>
+                        <button
+                            type="button"
+                            class="fp-scroll-arrow"
+                            (click)="scrollCarousel('trackTrending', 'right')"
+                        >
+                            <i class="pi pi-chevron-right text-xs"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -256,21 +267,32 @@
                         Top Rated
                     </span>
                 </div>
-                <div class="section-controls hidden md:flex">
+                <div class="section-controls flex align-items-center">
                     <button
+                        pButton
                         type="button"
-                        class="fp-scroll-arrow"
-                        (click)="scrollCarousel('trackPopular', 'left')"
-                    >
-                        <i class="pi pi-chevron-left text-xs"></i>
-                    </button>
-                    <button
-                        type="button"
-                        class="fp-scroll-arrow"
-                        (click)="scrollCarousel('trackPopular', 'right')"
-                    >
-                        <i class="pi pi-chevron-right text-xs"></i>
-                    </button>
+                        label="See All"
+                        icon="pi pi-chevron-right"
+                        iconPos="right"
+                        class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
+                        (click)="selectCategory('✨ Popular')"
+                    ></button>
+                    <div class="hidden md:flex align-items-center gap-1">
+                        <button
+                            type="button"
+                            class="fp-scroll-arrow"
+                            (click)="scrollCarousel('trackPopular', 'left')"
+                        >
+                            <i class="pi pi-chevron-left text-xs"></i>
+                        </button>
+                        <button
+                            type="button"
+                            class="fp-scroll-arrow"
+                            (click)="scrollCarousel('trackPopular', 'right')"
+                        >
+                            <i class="pi pi-chevron-right text-xs"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -324,27 +346,38 @@
             *ngFor="let sec of categorySections; let sIdx = index"
         >
             <div class="section-header-row">
-                <div class="section-title">
+                <div class="section-title cursor-pointer" (click)="selectCategory(sec.category)">
                     <span>{{ sec.category }}</span>
                     <span class="badge surface-200 text-700 text-xs px-2 py-1 border-round-3xl font-bold">
                         {{ sec.items.length }} items
                     </span>
                 </div>
-                <div class="section-controls hidden md:flex">
+                <div class="section-controls flex align-items-center">
                     <button
+                        pButton
                         type="button"
-                        class="fp-scroll-arrow"
-                        (click)="scrollCarousel('trackCat' + sIdx, 'left')"
-                    >
-                        <i class="pi pi-chevron-left text-xs"></i>
-                    </button>
-                    <button
-                        type="button"
-                        class="fp-scroll-arrow"
-                        (click)="scrollCarousel('trackCat' + sIdx, 'right')"
-                    >
-                        <i class="pi pi-chevron-right text-xs"></i>
-                    </button>
+                        label="See All"
+                        icon="pi pi-chevron-right"
+                        iconPos="right"
+                        class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
+                        (click)="selectCategory(sec.category)"
+                    ></button>
+                    <div class="hidden md:flex align-items-center gap-1">
+                        <button
+                            type="button"
+                            class="fp-scroll-arrow"
+                            (click)="scrollCarousel('trackCat' + sIdx, 'left')"
+                        >
+                            <i class="pi pi-chevron-left text-xs"></i>
+                        </button>
+                        <button
+                            type="button"
+                            class="fp-scroll-arrow"
+                            (click)="scrollCarousel('trackCat' + sIdx, 'right')"
+                        >
+                            <i class="pi pi-chevron-right text-xs"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -401,22 +434,33 @@
     </main>
 
     <!-- VIEW MODE 2: Responsive Grid (Foodies Pakistan Cards Grid) -->
-    <main class="max-w-7xl mx-auto p-4 pb-8" *ngIf="viewMode === 'grid' || searchKeyword">
-        <div class="flex align-items-center justify-content-between mb-4">
-            <div class="font-bold text-xl text-900">
+    <main class="max-w-7xl mx-auto p-4 pb-8" *ngIf="viewMode === 'grid' || searchKeyword || selectedCategory !== 'All'">
+        <div class="flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div class="font-bold text-xl text-900 flex align-items-center gap-2">
                 <span *ngIf="searchKeyword">Search results for "{{ searchKeyword }}"</span>
                 <span *ngIf="!searchKeyword">{{ selectedCategory }}</span>
-                <span class="text-500 text-sm font-normal ml-2">({{ filteredProducts.length }} items found)</span>
+                <span class="text-500 text-sm font-normal">({{ filteredProducts.length }} items found)</span>
             </div>
-            <button
-                pButton
-                type="button"
-                icon="pi pi-arrow-left"
-                label="Back to Carousels"
-                class="p-button-text p-button-sm font-semibold"
-                *ngIf="viewMode === 'grid'"
-                (click)="viewMode = 'carousel'"
-            ></button>
+            <div class="flex align-items-center gap-2">
+                <button
+                    pButton
+                    type="button"
+                    icon="pi pi-times"
+                    label="Clear Filter"
+                    class="p-button-outlined p-button-secondary p-button-sm font-semibold"
+                    *ngIf="selectedCategory !== 'All' || searchKeyword"
+                    (click)="clearFilter()"
+                ></button>
+                <button
+                    pButton
+                    type="button"
+                    icon="pi pi-arrow-left"
+                    label="Back to Carousels"
+                    class="p-button-text p-button-sm font-semibold"
+                    *ngIf="viewMode === 'grid' && selectedCategory === 'All' && !searchKeyword"
+                    (click)="viewMode = 'carousel'"
+                ></button>
+            </div>
         </div>
 
         <div class="grid">
@@ -462,17 +506,21 @@
                 </div>
             </div>
 
-            <!-- Empty Search Results -->
+            <!-- Empty Filter / Search Results -->
             <div *ngIf="filteredProducts.length === 0 && !loading" class="col-12 text-center py-8">
-                <i class="pi pi-search text-5xl text-400 mb-3 block"></i>
-                <h4 class="text-900 font-bold mb-1">No items matched your search</h4>
-                <p class="text-600 mb-3">Try checking for typos or searching a different term.</p>
+                <i class="pi pi-filter-slash text-5xl text-400 mb-3 block"></i>
+                <h4 class="text-900 font-bold mb-1">
+                    <span *ngIf="searchKeyword">No items matched "{{ searchKeyword }}"</span>
+                    <span *ngIf="!searchKeyword">No products found in "{{ selectedCategory }}"</span>
+                </h4>
+                <p class="text-600 mb-3">Try choosing another category or clearing your search filters.</p>
                 <button
                     pButton
                     type="button"
-                    label="Show All Items"
+                    icon="pi pi-refresh"
+                    label="Show All Products"
                     class="p-button-outlined border-round-3xl"
-                    (click)="searchKeyword = ''; selectCategory('All')"
+                    (click)="clearFilter()"
                 ></button>
             </div>
         </div>

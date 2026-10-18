@@ -277,8 +277,8 @@ export class OnlineOrderComponent implements OnInit {
     extractCategories(): void {
         const set = new Set<string>();
         this.products.forEach((p) => {
-            if (p.categoryName) {
-                set.add(p.categoryName);
+            if (p.categoryName && p.categoryName.trim()) {
+                set.add(p.categoryName.trim());
             }
         });
         this.categories = ['All', '🔥 Deals', '✨ Popular', ...Array.from(set)];
@@ -293,7 +293,7 @@ export class OnlineOrderComponent implements OnInit {
         // Group by category for dedicated rows
         const catMap = new Map<string, any[]>();
         this.products.forEach((p) => {
-            const cat = p.categoryName || 'Featured Products';
+            const cat = (p.categoryName && p.categoryName.trim()) || 'Featured Products';
             if (!catMap.has(cat)) {
                 catMap.set(cat, []);
             }
@@ -307,7 +307,11 @@ export class OnlineOrderComponent implements OnInit {
     }
 
     selectCategory(cat: string): void {
-        this.selectedCategory = cat;
+        if (this.selectedCategory === cat && cat !== 'All') {
+            this.selectedCategory = 'All';
+        } else {
+            this.selectedCategory = cat;
+        }
         this.applyFilter();
     }
 
