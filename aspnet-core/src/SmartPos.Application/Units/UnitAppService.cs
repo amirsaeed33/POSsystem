@@ -113,8 +113,8 @@ namespace SmartPos.Units
                     items = await query.OrderBy(x => x.Name).ToListAsync();
                 }
 
-                // Fallback 2: If tenant still has no units, load default active units across host
-                if (items.Count == 0)
+                // Fallback 2: If host user has no units, load default active units across host
+                if (items.Count == 0 && AbpSession.TenantId == null)
                 {
                     using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
                     {
@@ -145,7 +145,7 @@ namespace SmartPos.Units
         {
             var branchId = ResolveBranchId();
             return Repository.GetAll()
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value || x.BranchId == 0)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Description != null && x.Description.Contains(input.Keyword))

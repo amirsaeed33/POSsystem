@@ -141,8 +141,11 @@ namespace SmartPos.Branches
 
             if (headerBranchId.HasValue)
             {
-                await EnsureCanAccessBranchAsync(headerBranchId.Value);
-                return headerBranchId.Value;
+                if (await CanAccessBranchAsync(headerBranchId.Value))
+                {
+                    return headerBranchId.Value;
+                }
+                // Header branch is invalid or from a different tenant — gracefully fallback to user's branch
             }
 
             // Host admin must pick a location from the topbar.

@@ -129,7 +129,7 @@ namespace SmartPos.Categories
         {
             var branchId = ResolveBranchId();
             return Repository.GetAllIncluding(x => x.DefaultUnit)
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value || x.BranchId == 0)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Description != null && x.Description.Contains(input.Keyword)));

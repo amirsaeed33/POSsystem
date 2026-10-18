@@ -58,6 +58,24 @@ namespace SmartPos.Branches
             }
 
             var headerBranchId = branchContext.BranchId.Value;
+            if (headerBranchId > 0 && abpSession.TenantId.HasValue)
+            {
+                try
+                {
+                    var branchRepo = Abp.Dependency.IocManager.Instance.Resolve<IRepository<Branch>>();
+                    var branchExists = branchRepo.GetAll().Any(b => b.Id == headerBranchId && b.IsActive);
+                    if (!branchExists)
+                    {
+                        // Invalid or stale cross-tenant branch header — ignore and use user's branch
+                        return userBranchId;
+                    }
+                }
+                catch
+                {
+                    // Fallback
+                }
+            }
+
             if (canSwitchLocations || userBranchId == headerBranchId)
             {
                 return headerBranchId;

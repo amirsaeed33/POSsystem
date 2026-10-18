@@ -81,9 +81,10 @@ export class LoginComponent implements OnInit, OnDestroy {
 		this.resetInactivityTimer();
 		this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
 
-		// Tenant is resolved from the user on the backend after login — clear any stale picker cookie.
+		// Tenant is resolved from the user on the backend after login — clear any stale picker cookie and branch context.
 		if (!this.authService.isAuthenticated()) {
 			this.tenantContext.setTenantId(undefined);
+			this.branchContext.clear();
 		}
 
 		try {
