@@ -58,6 +58,7 @@ export class UnitService {
         if (
             !forceRefresh &&
             this.lookupCache &&
+            this.lookupCache.data.length > 0 &&
             now - this.lookupCache.timestamp < this.CACHE_DURATION_MS
         ) {
             return this.lookupCache.data;
@@ -71,7 +72,11 @@ export class UnitService {
         const mapped = (Array.isArray(items) ? items : []).map((item: any) =>
             this.mapUnit(item)
         );
-        this.lookupCache = { data: mapped, timestamp: now };
+        if (mapped.length > 0) {
+            this.lookupCache = { data: mapped, timestamp: now };
+        } else {
+            this.lookupCache = null;
+        }
         return mapped;
     }
 

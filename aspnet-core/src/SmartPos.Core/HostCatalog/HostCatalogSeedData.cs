@@ -35,6 +35,7 @@ namespace SmartPos.HostCatalog
             CompanyType("Spare Parts");
             CompanyType("Grocery");
             CompanyType("Restaurant");
+            CompanyType("Solar Panels");
 
             // Mobile Shop
             Child("Mobile Shop", HostCatalogItemTypes.Category, "Mobiles");
@@ -87,6 +88,23 @@ namespace SmartPos.HostCatalog
             Child("Restaurant", HostCatalogItemTypes.Unit, "Portion", "ptn");
             Child("Restaurant", HostCatalogItemTypes.Unit, "Glass", "gl");
             Child("Restaurant", HostCatalogItemTypes.Brand, "House Special");
+
+            // Solar Panels
+            Child("Solar Panels", HostCatalogItemTypes.Category, "Solar Panels");
+            Child("Solar Panels", HostCatalogItemTypes.Category, "Inverters");
+            Child("Solar Panels", HostCatalogItemTypes.Category, "Batteries");
+            Child("Solar Panels", HostCatalogItemTypes.Category, "Mounting Structures");
+            Child("Solar Panels", HostCatalogItemTypes.Category, "Solar Cables & Breakers");
+            Child("Solar Panels", HostCatalogItemTypes.Unit, "Piece", "pc");
+            Child("Solar Panels", HostCatalogItemTypes.Unit, "Watt", "W");
+            Child("Solar Panels", HostCatalogItemTypes.Unit, "Set", "set");
+            Child("Solar Panels", HostCatalogItemTypes.Unit, "Meter", "m");
+            Child("Solar Panels", HostCatalogItemTypes.Brand, "Longi");
+            Child("Solar Panels", HostCatalogItemTypes.Brand, "Jinko Solar");
+            Child("Solar Panels", HostCatalogItemTypes.Brand, "Canadian Solar");
+            Child("Solar Panels", HostCatalogItemTypes.Brand, "Inverex");
+            Child("Solar Panels", HostCatalogItemTypes.Brand, "Growatt");
+            Child("Solar Panels", HostCatalogItemTypes.Brand, "Fronus");
 
             return items;
         }

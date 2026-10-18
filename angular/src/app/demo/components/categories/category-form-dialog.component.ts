@@ -122,7 +122,7 @@ export class CategoryFormDialogComponent implements OnChanges {
 
     private loadUnits(): void {
         this.unitService
-            .getLookup()
+            .getLookup(true)
             .then((units) => {
                 this.units = units || [];
             })
