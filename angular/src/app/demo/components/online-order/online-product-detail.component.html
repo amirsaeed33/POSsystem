@@ -220,24 +220,29 @@
                                 </div>
                             </div>
 
-                            <!-- Action Buttons Row -->
-                            <div class="flex flex-wrap gap-3 pt-2">
+                            <!-- Action Buttons Row (Always in One Single Row) -->
+                            <div class="action-buttons-row pt-2">
                                 <button
                                     pButton
                                     type="button"
-                                    icon="pi pi-arrow-left"
-                                    label="Continue Shopping"
-                                    class="p-button-outlined p-button-secondary border-round-2xl px-4 font-bold"
+                                    class="p-button-outlined p-button-secondary border-round-2xl font-bold btn-continue"
                                     (click)="backToStore()"
-                                ></button>
+                                    title="Continue Shopping"
+                                >
+                                    <i class="pi pi-arrow-left text-xs sm:text-base mr-1"></i>
+                                    <span class="btn-text-full">Continue Shopping</span>
+                                    <span class="btn-text-short">Back</span>
+                                </button>
                                 <button
                                     pButton
                                     type="button"
-                                    icon="pi pi-cart-plus"
-                                    [label]="'Add ' + quantity + ' to Cart • ' + ((product.price * quantity) | currency: currencyFormat:'symbol':'1.2-2')"
-                                    class="p-button-primary border-round-2xl flex-1 font-bold shadow-4 p-button-lg"
+                                    class="p-button-primary border-round-2xl font-bold shadow-4 btn-add-cart"
                                     (click)="addToCart()"
-                                ></button>
+                                >
+                                    <i class="pi pi-cart-plus text-sm sm:text-lg mr-1"></i>
+                                    <span class="btn-text-full">Add {{ quantity }} to Cart • {{ ((product.price * quantity) | currency: currencyFormat:'symbol':'1.0-0') }}</span>
+                                    <span class="btn-text-short">Add ({{ quantity }}) • {{ ((product.price * quantity) | currency: currencyFormat:'symbol':'1.0-0') }}</span>
+                                </button>
                             </div>
                         </div>
                     </div>
