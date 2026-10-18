@@ -67,6 +67,10 @@ export class BrandFormDialogComponent implements OnChanges {
     }
 
     save(): void {
+        if (this.saving) {
+            return;
+        }
+
         const name = (this.brand.name || '').trim();
         if (!name) {
             this.messageService.add({

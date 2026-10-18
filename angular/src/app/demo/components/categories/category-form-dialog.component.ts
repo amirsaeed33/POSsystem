@@ -72,6 +72,10 @@ export class CategoryFormDialogComponent implements OnChanges {
     }
 
     save(): void {
+        if (this.saving) {
+            return;
+        }
+
         const name = (this.category.name || '').trim();
         if (!name) {
             this.messageService.add({
