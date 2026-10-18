@@ -64,7 +64,22 @@
 
         <ng-template pTemplate="body" let-supplier>
             <tr>
-                <td>{{ supplier.name }}</td>
+                <td>
+                    <a
+                        *ngIf="canEdit"
+                        href="javascript:void(0)"
+                        class="text-primary hover:underline font-semibold cursor-pointer"
+                        style="text-decoration: none;"
+                        (click)="openEditDialog(supplier)"
+                        [pTooltip]="'Click to edit ' + supplier.name"
+                        tooltipPosition="top"
+                    >
+                        {{ supplier.name }}
+                    </a>
+                    <span *ngIf="!canEdit" class="font-semibold text-900">
+                        {{ supplier.name }}
+                    </span>
+                </td>
                 <td>{{ supplier.phone || '—' }}</td>
                 <td>{{ supplier.email || '—' }}</td>
                 <td>{{ supplier.address || '—' }}</td>
