@@ -34,8 +34,11 @@
                 optionLabel="name"
                 optionValue="id"
                 [showClear]="true"
+                [filter]="true"
+                filterBy="name,symbol"
                 placeholder="Select Default Unit"
                 styleClass="w-full"
+                appendTo="body"
                 [disabled]="saving"
             ></p-dropdown>
         </div>

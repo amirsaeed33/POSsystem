@@ -6,6 +6,7 @@ using Abp.Application.Services.Dto;
 using Abp.Authorization;
 using Abp.Runtime.Caching;
 using Abp.Domain.Repositories;
+using Abp.Domain.Uow;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Abp.UI;
@@ -88,7 +89,7 @@ namespace SmartPos.Units
             await ClearLookupCacheAsync();
         }
 
-        [AbpAuthorize(PermissionNames.Pages_Units, PermissionNames.Pages_Products)]
+        [AbpAuthorize(PermissionNames.Pages_Units, PermissionNames.Pages_Products, PermissionNames.Pages_Categories)]
         public async Task<ListResultDto<UnitDto>> GetLookupAsync()
         {
             var branchId = ResolveBranchId();
@@ -99,13 +100,39 @@ namespace SmartPos.Units
             return await cache.GetAsync(cacheKey, async (key) =>
             {
                 var query = Repository.GetAll().Where(x => x.IsActive);
+                List<Unit> items = new List<Unit>();
+
                 if (branchId.HasValue)
                 {
-                    query = query.Where(x => x.BranchId == branchId.Value);
+                    items = await query.Where(x => x.BranchId == branchId.Value).OrderBy(x => x.Name).ToListAsync();
                 }
 
-                var items = await query.OrderBy(x => x.Name).ToListAsync();
-                return new ListResultDto<UnitDto>(ObjectMapper.Map<List<UnitDto>>(items));
+                // Fallback 1: If current branch has no units, load active units from the tenant
+                if (items.Count == 0)
+                {
+                    items = await query.OrderBy(x => x.Name).ToListAsync();
+                }
+
+                // Fallback 2: If tenant still has no units, load default active units across host
+                if (items.Count == 0)
+                {
+                    using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                    {
+                        items = await Repository.GetAll()
+                            .Where(x => x.IsActive)
+                            .OrderBy(x => x.Name)
+                            .ToListAsync();
+                    }
+                }
+
+                // Deduplicate by name if fallback pooled units across multiple branches
+                var distinctItems = items
+                    .GroupBy(x => x.Name.Trim(), System.StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First())
+                    .OrderBy(x => x.Name)
+                    .ToList();
+
+                return new ListResultDto<UnitDto>(ObjectMapper.Map<List<UnitDto>>(distinctItems));
             });
         }
 
