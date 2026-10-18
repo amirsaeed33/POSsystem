@@ -10,9 +10,11 @@ import { PermissionService } from 'src/app/demo/service/permission.service';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { CustomerOrderDto, CustomerOrderStatus } from 'src/app/demo/api/customer-order';
 import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
+import { BranchService } from 'src/app/demo/service/branch.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { UserLoginInfoDto } from 'src/app/demo/api/session';
 import { environment } from 'src/environments/environment';
+import { Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-topbar',
@@ -32,6 +34,22 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     branches: BranchDto[] = [];
     currentBranch: BranchDto | null = null;
     changingBranch = false;
+    branchLogoFailed = false;
+    private branchSubscription?: Subscription;
+
+    get branchDisplayName(): string {
+        return this.currentBranch?.name || 'SmartPos';
+    }
+
+    get branchLogo(): string | null {
+        if (this.branchLogoFailed) {
+            return null;
+        }
+        if (this.currentBranch?.imagePath) {
+            return this.branchService.getImageUrl(this.currentBranch.imagePath);
+        }
+        return null;
+    }
 
     todayPendingOrders: CustomerOrderDto[] = [];
     pendingOrdersCount = 0;
@@ -46,6 +64,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         private sessionService: SessionService,
         private tenantContext: TenantContextService,
         private branchContext: BranchContextService,
+        private branchService: BranchService,
         private permissionService: PermissionService,
         private customerOrderService: CustomerOrderService,
         private messageService: MessageService,
@@ -74,6 +93,15 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.currentBranch = this.branchContext.getCurrentBranch();
+        this.branchLogoFailed = false;
+        this.branchSubscription = this.branchContext.currentBranch$.subscribe((b) => {
+            if (b) {
+                this.currentBranch = b;
+                this.branchLogoFailed = false;
+            }
+        });
+
         this.tenantContext
             .ensureMultiTenancyLoaded()
             .catch(() => undefined)
@@ -86,6 +114,9 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         if (this.orderPollTimer) {
             clearInterval(this.orderPollTimer);
+        }
+        if (this.branchSubscription) {
+            this.branchSubscription.unsubscribe();
         }
     }
 
@@ -208,6 +239,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         }
 
         this.changingBranch = true;
+        this.branchLogoFailed = false;
         this.branchContext.setCurrentBranch(branch);
         this.currentBranch = branch;
 
@@ -334,7 +366,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         return this.layoutService.config().colorScheme;
     }
 
-    get logo(): string {
+    get defaultLogo(): string {
         const path = 'assets/layout/images/logo-';
         const logo =
             this.layoutTheme === 'primaryColor' &&
@@ -344,6 +376,14 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                   ? 'dark.png'
                   : 'light.png';
         return path + logo;
+    }
+
+    get logo(): string {
+        return this.branchLogo || this.defaultLogo;
+    }
+
+    onLogoError(): void {
+        this.branchLogoFailed = true;
     }
 
     get tabs(): MenuItem[] {

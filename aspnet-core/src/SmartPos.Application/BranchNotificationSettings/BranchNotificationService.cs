@@ -153,7 +153,7 @@ namespace SmartPos.BranchNotificationSettings
                                     {
                                         try
                                         {
-                                            await mailSenderWrapper.Object.SendAsync(recipient, subject, bodyHtml, isBodyHtml: true);
+                                            await mailSenderWrapper.Object.SendAsync(recipient, subject, bodyHtml, isBodyHtml: true, fromDisplayName: branchName);
                                         }
                                         catch (Exception sendEx)
                                         {

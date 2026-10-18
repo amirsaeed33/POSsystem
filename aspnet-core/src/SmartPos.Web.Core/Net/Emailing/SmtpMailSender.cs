@@ -18,7 +18,7 @@ namespace SmartPos.Net.Emailing
             _configuration = configuration;
         }
 
-        public async Task SendAsync(string toAddress, string subject, string body, bool isBodyHtml = false)
+        public async Task SendAsync(string toAddress, string subject, string body, bool isBodyHtml = false, string fromDisplayName = null)
         {
             if (string.IsNullOrWhiteSpace(toAddress))
             {
@@ -29,7 +29,9 @@ namespace SmartPos.Net.Emailing
             var userName = _configuration["Email:UserName"];
             var password = _configuration["Email:Password"];
             var fromAddress = _configuration["Email:FromAddress"] ?? userName;
-            var fromDisplayName = _configuration["Email:FromDisplayName"] ?? "SmartPos";
+            var resolvedFromDisplayName = !string.IsNullOrWhiteSpace(fromDisplayName)
+                ? fromDisplayName.Trim()
+                : (_configuration["Email:FromDisplayName"] ?? "SmartPos");
 
             if (string.IsNullOrWhiteSpace(host) ||
                 string.IsNullOrWhiteSpace(userName) ||
@@ -56,7 +58,7 @@ namespace SmartPos.Net.Emailing
                 using (var message = new MailMessage())
                 using (var smtp = new SmtpClient())
                 {
-                    message.From = new MailAddress(fromAddress, fromDisplayName);
+                    message.From = new MailAddress(fromAddress, resolvedFromDisplayName);
                     message.To.Add(new MailAddress(toAddress.Trim()));
                     message.Subject = subject ?? string.Empty;
                     message.IsBodyHtml = isBodyHtml;

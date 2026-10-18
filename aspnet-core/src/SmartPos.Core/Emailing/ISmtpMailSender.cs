@@ -4,6 +4,6 @@ namespace SmartPos.Emailing
 {
     public interface ISmtpMailSender
     {
-        Task SendAsync(string toAddress, string subject, string body, bool isBodyHtml = false);
+        Task SendAsync(string toAddress, string subject, string body, bool isBodyHtml = false, string fromDisplayName = null);
     }
 }

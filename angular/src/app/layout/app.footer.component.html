@@ -1,7 +1,7 @@
 <div class="layout-footer">
     <div class="footer-start">
-        <img [src]="'assets/layout/images/logo-' + (colorScheme === 'light' ? 'dark' : 'light') + '.png'" alt="logo" />
-        <span class="app-name">SmartPos</span>
+        <img [src]="logo" alt="logo" (error)="onLogoError()" style="max-height: 2.25rem; max-width: 3rem; width: auto; object-fit: contain; border-radius: 4px;" />
+        <span class="app-name">{{ branchName }}</span>
     </div>
     <div class="footer-end">
         <span>© Your Organization</span>
