@@ -123,6 +123,51 @@
   }
 }
 
+/* Search Bar styling with proper icon clearance and smooth focus */
+.fp-search-input {
+  width: 100%;
+  border-radius: 9999px !important;
+  background-color: var(--surface-100, #f1f5f9) !important;
+  border: 1.5px solid transparent !important;
+  padding-left: 2.75rem !important;  /* Guarantees icon and text never overlap */
+  padding-right: 2.5rem !important;
+  padding-top: 0.625rem !important;
+  padding-bottom: 0.625rem !important;
+  font-size: 0.925rem;
+  line-height: 1.4;
+  color: var(--text-color, #0f172a);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &::placeholder {
+    color: var(--text-color-secondary, #64748b);
+    opacity: 0.85;
+    font-size: 0.875rem;
+  }
+
+  &:focus {
+    background-color: #ffffff !important;
+    border-color: var(--primary-color, #2563eb) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  }
+}
+
+.p-input-icon-left {
+  > i:first-of-type {
+    left: 1rem !important;
+    font-size: 1rem !important;
+    color: var(--text-color-secondary, #64748b) !important;
+    z-index: 2;
+  }
+}
+
+.p-input-icon-right {
+  > i:last-of-type {
+    right: 1rem !important;
+    font-size: 0.9rem !important;
+    z-index: 2;
+  }
+}
+
 .fp-cart-trigger {
   position: relative;
   display: inline-flex;

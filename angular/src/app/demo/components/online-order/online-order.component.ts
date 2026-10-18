@@ -311,23 +311,36 @@ export class OnlineOrderComponent implements OnInit {
         this.applyFilter();
     }
 
+    clearFilter(): void {
+        this.selectedCategory = 'All';
+        this.searchKeyword = '';
+        this.applyFilter();
+    }
+
     applyFilter(): void {
         const query = (this.searchKeyword || '').toLowerCase().trim();
-        this.filteredProducts = this.products.filter((p) => {
+        const selectedCat = (this.selectedCategory || 'All').trim();
+        const targetCatLower = selectedCat.toLowerCase();
+
+        const dealIds = new Set((this.trendingDeals || []).map((d) => d.id));
+        const popIds = new Set((this.popularItems || []).map((d) => d.id));
+
+        this.filteredProducts = (this.products || []).filter((p) => {
             let matchesCat = true;
-            if (this.selectedCategory === 'All') {
+            if (selectedCat === 'All') {
                 matchesCat = true;
-            } else if (this.selectedCategory === '🔥 Deals') {
-                matchesCat = true;
-            } else if (this.selectedCategory === '✨ Popular') {
-                matchesCat = true;
+            } else if (selectedCat === '🔥 Deals') {
+                matchesCat = dealIds.has(p.id) || (p.discountPercent && p.discountPercent > 0);
+            } else if (selectedCat === '✨ Popular') {
+                matchesCat = popIds.has(p.id);
             } else {
-                matchesCat = p.categoryName === this.selectedCategory;
+                const pCatLower = (p.categoryName || '').trim().toLowerCase();
+                matchesCat = pCatLower === targetCatLower;
             }
 
             const matchesSearch =
                 !query ||
-                p.name.toLowerCase().includes(query) ||
+                (p.name || '').toLowerCase().includes(query) ||
                 (p.categoryName || '').toLowerCase().includes(query) ||
                 (p.brandName || '').toLowerCase().includes(query) ||
                 (p.code || '').toLowerCase().includes(query);

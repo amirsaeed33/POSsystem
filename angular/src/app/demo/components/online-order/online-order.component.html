@@ -48,8 +48,8 @@
                     <input
                         pInputText
                         type="text"
-                        class="w-full border-round-3xl surface-100 border-none px-4 py-2 font-medium"
-                        placeholder="Search dishes, groceries or brands..."
+                        class="w-full border-round-3xl border-none font-medium fp-search-input"
+                        placeholder="Search products, items or brands..."
                         [(ngModel)]="searchKeyword"
                         (input)="applyFilter()"
                     />
@@ -126,8 +126,8 @@
                 <input
                     pInputText
                     type="text"
-                    class="w-full border-round-3xl surface-100 border-none px-4 py-2 font-medium"
-                    placeholder="Search dishes, groceries or brands..."
+                    class="w-full border-round-3xl border-none font-medium fp-search-input"
+                    placeholder="Search products, items or brands..."
                     [(ngModel)]="searchKeyword"
                     (input)="applyFilter()"
                 />
@@ -593,8 +593,8 @@
     >
         <ng-template pTemplate="header">
             <div class="flex align-items-center gap-2">
-                <i class="pi pi-shopping-bag text-red-500 text-xl"></i>
-                <h4 class="m-0 font-bold text-900">Your Foodies Order</h4>
+                <i class="pi pi-shopping-bag text-primary text-xl"></i>
+                <h4 class="m-0 font-bold text-900">{{ branchName ? (branchName + ' Cart') : 'Your Cart' }}</h4>
             </div>
         </ng-template>
 
@@ -604,7 +604,7 @@
                 <div *ngIf="cartService.items.length === 0" class="text-center py-8">
                     <i class="pi pi-shopping-cart text-5xl text-300 mb-3 block"></i>
                     <h5 class="text-900 font-bold mb-1">Your cart is empty</h5>
-                    <p class="text-500 text-sm">Add some delicious dishes or items to begin.</p>
+                    <p class="text-500 text-sm">Add items or products to your cart to begin.</p>
                 </div>
 
                 <div
