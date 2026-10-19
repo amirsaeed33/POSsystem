@@ -1,27 +1,37 @@
 <div class="fp-store-wrapper min-h-screen">
     <!-- 1. Top Sticky Navbar & Authentication -->
     <header class="fp-store-navbar" [class.fp-navbar-scrolled]="isScrolled">
-        <div class="flex flex-wrap align-items-center justify-content-between gap-3 max-w-7xl mx-auto w-full">
+        <div class="flex align-items-center justify-content-between gap-2 max-w-7xl mx-auto w-full">
             <!-- Left: Brand Logo, Name & Location Selector -->
-            <div class="flex align-items-center gap-3">
+            <div class="flex align-items-center gap-2 sm:gap-3 overflow-hidden">
                 <div class="fp-brand-group cursor-pointer" (click)="loadCatalog(branchId || undefined)">
                     <div class="brand-logo-sq">
                         <i class="pi pi-bolt"></i>
                     </div>
                     <div class="brand-text-col">
                         <div class="brand-name">
-                            <span>{{ branchName || 'Online Store' }}</span>
+                            <span class="brand-title-text">{{ branchName || 'Online Store' }}</span>
                             <span class="fp-live-pill">
                                 <span class="pulse-dot"></span>
                                 Open
                             </span>
                         </div>
-                        <div class="brand-sub">{{ isSolarStore() ? 'Solar Energy & Power Systems' : 'Online Store & Ordering' }}</div>
+                        <div class="brand-sub hidden sm:block">{{ isSolarStore() ? 'Solar Energy & Power Systems' : 'Online Store & Ordering' }}</div>
+                        <!-- Mobile Location / Branch Switcher Pill -->
+                        <div
+                            class="fp-mobile-branch-btn md:hidden"
+                            *ngIf="availableBranches.length > 1"
+                            (click)="$event.stopPropagation(); mobileBranchModal = true"
+                        >
+                            <i class="pi pi-map-marker text-red-500"></i>
+                            <span class="branch-pill-name">{{ branchName || 'Change Branch' }}</span>
+                            <i class="pi pi-chevron-down text-400" style="font-size: 0.65rem;"></i>
+                        </div>
                     </div>
                 </div>
 
-                <!-- City / Branch Selector -->
-                <div class="hidden sm:flex align-items-center" *ngIf="availableBranches.length > 0">
+                <!-- Desktop Branch Selector -->
+                <div class="hidden md:flex align-items-center" *ngIf="availableBranches.length > 0">
                     <p-dropdown
                         [options]="availableBranches"
                         [(ngModel)]="branchId"
@@ -41,7 +51,7 @@
                 </div>
             </div>
 
-            <!-- Center: Search Input Bar -->
+            <!-- Center: Search Input Bar (Desktop) -->
             <div class="flex-grow-1 max-w-26rem hidden md:block">
                 <span class="p-input-icon-left p-input-icon-right w-full">
                     <i class="pi pi-search text-500"></i>
@@ -62,16 +72,7 @@
             </div>
 
             <!-- Right: View Mode Toggle, Sign In / Profile, and Cart Drawer -->
-            <div class="flex align-items-center gap-2">
-                <!-- Mobile Search Trigger -->
-                <button
-                    pButton
-                    type="button"
-                    icon="pi pi-search"
-                    class="p-button-text p-button-rounded md:hidden"
-                    (click)="searchKeyword = searchKeyword ? '' : ' '; applyFilter()"
-                ></button>
-
+            <div class="flex align-items-center gap-1 sm:gap-2 flex-shrink-0">
                 <!-- View Mode Toggle (Carousel vs Grid) -->
                 <button
                     pButton
@@ -80,11 +81,11 @@
                     [icon]="viewMode === 'carousel' ? 'pi pi-th-large' : 'pi pi-list'"
                     [pTooltip]="viewMode === 'carousel' ? 'Switch to Grid View' : 'Switch to Carousel Sections'"
                     tooltipPosition="bottom"
-                    class="p-button-outlined p-button-rounded border-300 text-700"
+                    class="p-button-outlined p-button-rounded border-300 text-700 fp-nav-icon-btn"
                     (click)="viewMode = viewMode === 'carousel' ? 'grid' : 'carousel'"
                 ></button>
 
-                <!-- Authentication: Sign In or Profile Pill -->
+                <!-- Authentication: Sign In (Desktop) -->
                 <a
                     *ngIf="!isLoggedIn"
                     routerLink="/auth/login"
@@ -94,6 +95,17 @@
                     <span class="font-bold text-xs">Sign In</span>
                 </a>
 
+                <!-- Mobile Auth Icon (Guest) -->
+                <a
+                    *ngIf="!isLoggedIn"
+                    routerLink="/auth/login"
+                    class="fp-nav-icon-btn flex sm:hidden align-items-center justify-content-center text-700 hover:surface-200 transition-colors"
+                    pTooltip="Sign In"
+                >
+                    <i class="pi pi-user text-base"></i>
+                </a>
+
+                <!-- Authentication: Logged in Avatar -->
                 <div
                     *ngIf="isLoggedIn"
                     class="fp-auth-pill cursor-pointer"
@@ -109,6 +121,7 @@
                     type="button"
                     class="fp-cart-trigger"
                     (click)="cartService.sidebarVisible = true"
+                    [attr.aria-label]="'Shopping cart with ' + cartService.totalItemsCount + ' items'"
                 >
                     <i class="pi pi-shopping-bag text-base"></i>
                     <span class="hidden sm:inline">Cart</span>
@@ -119,20 +132,20 @@
             </div>
         </div>
 
-        <!-- Mobile Search Row -->
-        <div class="mt-2 block md:hidden max-w-7xl mx-auto" *ngIf="searchKeyword !== undefined">
+        <!-- Mobile Dedicated Search Bar (Visible on mobile for fast shopping) -->
+        <div class="mt-2 block md:hidden max-w-7xl mx-auto w-full">
             <span class="p-input-icon-left p-input-icon-right w-full">
                 <i class="pi pi-search text-500"></i>
                 <input
                     pInputText
                     type="text"
-                    class="w-full border-round-3xl border-none font-medium fp-search-input"
-                    placeholder="Search products, items or brands..."
+                    class="w-full border-round-3xl border-none font-medium fp-search-input fp-mobile-search-input"
+                    [placeholder]="'Search in ' + (branchName || 'Catalog') + '...'"
                     [(ngModel)]="searchKeyword"
                     (input)="applyFilter()"
                 />
                 <i
-                    class="pi pi-times cursor-pointer text-400"
+                    class="pi pi-times cursor-pointer text-400 p-2"
                     *ngIf="searchKeyword"
                     (click)="searchKeyword = ''; applyFilter()"
                 ></i>
@@ -434,19 +447,19 @@
     </main>
 
     <!-- VIEW MODE 2: Responsive Grid (Foodies Pakistan Cards Grid) -->
-    <main class="max-w-7xl mx-auto p-4 pb-8" *ngIf="viewMode === 'grid' || searchKeyword || selectedCategory !== 'All'">
-        <div class="flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-            <div class="font-bold text-xl text-900 flex align-items-center gap-2">
-                <span *ngIf="searchKeyword">Search results for "{{ searchKeyword }}"</span>
+    <main class="max-w-7xl mx-auto p-2 sm:p-4 pb-8" *ngIf="viewMode === 'grid' || searchKeyword || selectedCategory !== 'All'">
+        <div class="flex align-items-center justify-content-between mb-3 sm:mb-4 flex-wrap gap-2">
+            <div class="font-bold text-base sm:text-xl text-900 flex align-items-center gap-2">
+                <span *ngIf="searchKeyword">Search: "{{ searchKeyword }}"</span>
                 <span *ngIf="!searchKeyword">{{ selectedCategory }}</span>
-                <span class="text-500 text-sm font-normal">({{ filteredProducts.length }} items found)</span>
+                <span class="text-500 text-xs sm:text-sm font-normal">({{ filteredProducts.length }} items)</span>
             </div>
-            <div class="flex align-items-center gap-2">
+            <div class="flex align-items-center gap-1 sm:gap-2">
                 <button
                     pButton
                     type="button"
                     icon="pi pi-times"
-                    label="Clear Filter"
+                    label="Clear"
                     class="p-button-outlined p-button-secondary p-button-sm font-semibold"
                     *ngIf="selectedCategory !== 'All' || searchKeyword"
                     (click)="clearFilter()"
@@ -455,7 +468,7 @@
                     pButton
                     type="button"
                     icon="pi pi-arrow-left"
-                    label="Back to Carousels"
+                    label="Carousels"
                     class="p-button-text p-button-sm font-semibold"
                     *ngIf="viewMode === 'grid' && selectedCategory === 'All' && !searchKeyword"
                     (click)="viewMode = 'carousel'"
@@ -463,10 +476,10 @@
             </div>
         </div>
 
-        <div class="grid">
+        <div class="grid grid-nogutter sm:grid-gutter">
             <div
                 *ngFor="let product of filteredProducts; let idx = index"
-                class="col-12 sm:col-6 lg:col-4 xl:col-3"
+                class="col-6 sm:col-6 lg:col-4 xl:col-3 p-1 sm:p-2"
             >
                 <div class="fp-food-card grid-mode" (click)="openProductModal(product)">
                     <!-- Media Container -->
@@ -792,9 +805,10 @@
     <p-dialog
         [(visible)]="successModalVisible"
         [modal]="true"
-        [style]="{ width: '400px', maxWidth: '92vw' }"
+        [style]="{ width: '400px', maxWidth: '94vw' }"
         [closable]="false"
         [draggable]="false"
+        styleClass="fp-mobile-dialog"
     >
         <div class="text-center py-4">
             <div class="w-5rem h-5rem border-round-circle bg-green-100 text-green-600 inline-flex align-items-center justify-content-center text-3xl mb-3 shadow-1">
@@ -820,6 +834,94 @@
                 label="Continue Shopping"
                 class="p-button-danger border-round-xl font-bold w-full py-2 shadow-2"
                 (click)="successModalVisible = false"
+            ></button>
+        </div>
+    </p-dialog>
+
+    <!-- 8. Mobile Floating Bottom Cart Bar -->
+    <aside
+        class="fp-mobile-bottom-cart-bar md:hidden"
+        *ngIf="cartService.totalItemsCount > 0 && !detailModalVisible"
+        (click)="cartService.sidebarVisible = true"
+        aria-label="View mobile cart"
+    >
+        <div class="cart-bar-content">
+            <div class="cart-bar-left">
+                <div class="cart-bar-icon">
+                    <i class="pi pi-shopping-bag"></i>
+                    <span class="cart-bar-badge">{{ cartService.totalItemsCount }}</span>
+                </div>
+                <div class="cart-bar-text">
+                    <div class="cart-bar-count">{{ cartService.totalItemsCount }} {{ cartService.totalItemsCount === 1 ? 'item' : 'items' }} added</div>
+                    <div class="cart-bar-subtotal">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</div>
+                </div>
+            </div>
+            <div class="cart-bar-right">
+                <span class="font-bold">View Cart</span>
+                <i class="pi pi-arrow-right text-xs"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 9. Mobile Branch Selector Dialog -->
+    <p-dialog
+        header="Choose Location / Branch"
+        [(visible)]="mobileBranchModal"
+        [modal]="true"
+        [style]="{ width: '400px', maxWidth: '94vw' }"
+        [draggable]="false"
+        styleClass="fp-mobile-dialog"
+    >
+        <div class="flex flex-column gap-2 py-2">
+            <div
+                *ngFor="let b of availableBranches"
+                class="p-3 border-round-xl border-1 flex align-items-center justify-content-between cursor-pointer transition-colors"
+                [class.surface-200]="b.id === branchId"
+                [class.surface-border]="b.id !== branchId"
+                [class.border-primary]="b.id === branchId"
+                (click)="setBranchInUrl(b.id); mobileBranchModal = false"
+            >
+                <div class="flex align-items-center gap-2">
+                    <i class="pi pi-map-marker text-lg" [class.text-red-500]="b.id === branchId" [class.text-500]="b.id !== branchId"></i>
+                    <div>
+                        <div class="font-bold text-sm text-900">{{ b.name }}</div>
+                        <div class="text-xs text-500" *ngIf="b.code">Code: {{ b.code }}</div>
+                    </div>
+                </div>
+                <i class="pi pi-check text-primary font-bold" *ngIf="b.id === branchId"></i>
+            </div>
+        </div>
+    </p-dialog>
+
+    <!-- 10. Branch Missing Error Selection Dialog -->
+    <p-dialog
+        header="Select a Branch to View Store"
+        [(visible)]="branchMissingError"
+        [modal]="true"
+        [style]="{ width: '420px', maxWidth: '94vw' }"
+        [closable]="false"
+        [draggable]="false"
+        styleClass="fp-mobile-dialog"
+    >
+        <div class="py-2">
+            <p class="text-600 text-sm mb-3">Please select which branch catalog you would like to order from:</p>
+            <p-dropdown
+                [options]="availableBranches"
+                [(ngModel)]="selectedBranchIdForModal"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Select a Branch..."
+                styleClass="w-full mb-3"
+            ></p-dropdown>
+            <button
+                pButton
+                type="button"
+                label="Open Storefront"
+                icon="pi pi-arrow-right"
+                iconPos="right"
+                class="p-button-danger w-full py-3 border-round-xl font-bold shadow-2"
+                [disabled]="!selectedBranchIdForModal"
+                (click)="onSelectBranchFromModal()"
             ></button>
         </div>
     </p-dialog>

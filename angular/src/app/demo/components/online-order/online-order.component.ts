@@ -29,6 +29,7 @@ export class OnlineOrderComponent implements OnInit {
     branchMissingError = false;
     availableBranches: any[] = [];
     selectedBranchIdForModal: number | null = null;
+    mobileBranchModal = false;
 
     products: any[] = [];
     filteredProducts: any[] = [];
@@ -313,6 +314,12 @@ export class OnlineOrderComponent implements OnInit {
             this.selectedCategory = cat;
         }
         this.applyFilter();
+        setTimeout(() => {
+            const activeChip = document.querySelector('.fp-cat-chip.active');
+            if (activeChip) {
+                activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+        }, 60);
     }
 
     clearFilter(): void {

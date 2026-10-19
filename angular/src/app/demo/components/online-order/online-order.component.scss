@@ -9,6 +9,8 @@
   background-color: var(--surface-ground, #f8fafc);
   color: var(--text-color, #0f172a);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 1. Top Sticky Navbar */
@@ -26,6 +28,10 @@
   &.fp-navbar-scrolled {
     box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
     background: rgba(255, 255, 255, 0.98);
+  }
+
+  @media (max-width: 767px) {
+    padding: 0.5rem 0.85rem;
   }
 }
 
@@ -45,10 +51,13 @@
     justify-content: center;
     font-size: 1.25rem;
     box-shadow: 0 4px 12px rgba(226, 55, 68, 0.35);
+    flex-shrink: 0;
   }
 
   .brand-text-col {
     line-height: 1.2;
+    min-width: 0;
+
     .brand-name {
       font-size: 1.15rem;
       font-weight: 800;
@@ -57,13 +66,80 @@
       display: flex;
       align-items: center;
       gap: 0.4rem;
+
+      .brand-title-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
     .brand-sub {
       font-size: 0.75rem;
       color: #64748b;
       font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
+
+  @media (max-width: 767px) {
+    gap: 0.5rem;
+
+    .brand-logo-sq {
+      width: 36px;
+      height: 36px;
+      font-size: 1.1rem;
+      border-radius: 10px;
+    }
+
+    .brand-text-col {
+      .brand-name {
+        font-size: 0.95rem;
+
+        .brand-title-text {
+          max-width: 130px;
+        }
+      }
+    }
+  }
+}
+
+.fp-mobile-branch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 2px;
+  cursor: pointer;
+  background: var(--surface-100, #f1f5f9);
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  border: 1px solid var(--surface-border, #e2e8f0);
+
+  .branch-pill-name {
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #0f172a;
+    font-weight: 700;
+  }
+}
+
+.fp-nav-icon-btn {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  flex-shrink: 0;
+  border: 1px solid var(--surface-border, #e2e8f0);
 }
 
 .fp-live-pill {
@@ -149,6 +225,13 @@
     border-color: var(--primary-color, #2563eb) !important;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
   }
+
+  &.fp-mobile-search-input {
+    font-size: 16px !important; /* Critical: Stops iOS Safari auto-zoom on input focus */
+    padding-top: 0.55rem !important;
+    padding-bottom: 0.55rem !important;
+    height: 42px;
+  }
 }
 
 .p-input-icon-left {
@@ -189,6 +272,10 @@
     box-shadow: 0 6px 18px rgba(226, 55, 68, 0.45);
   }
 
+  &:active {
+    transform: scale(0.96);
+  }
+
   .cart-badge {
     display: inline-flex;
     align-items: center;
@@ -201,6 +288,19 @@
     color: #e23744;
     font-size: 0.72rem;
     font-weight: 800;
+  }
+
+  @media (max-width: 767px) {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.82rem;
+    gap: 0.35rem;
+
+    .cart-badge {
+      min-width: 18px;
+      height: 18px;
+      font-size: 0.68rem;
+      padding: 0 4px;
+    }
   }
 }
 
@@ -478,10 +578,13 @@
       font-weight: 800;
       color: #0f172a;
       line-height: 1.3;
-      white-space: nowrap;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
       text-overflow: ellipsis;
       margin-bottom: 0.25rem;
+      height: 2.6em;
     }
 
     .product-subtitle {
@@ -800,6 +903,367 @@
     &:hover {
       transform: translateY(-1px);
       box-shadow: 0 6px 18px rgba(226, 55, 68, 0.45);
+    }
+  }
+}
+
+/* ==========================================================================
+   Comprehensive Mobile & Tablet Responsiveness Enhancements
+   ========================================================================== */
+
+/* 1. Mobile Floating Bottom Cart Bar */
+.fp-mobile-bottom-cart-bar {
+  position: fixed;
+  bottom: max(14px, env(safe-area-inset-bottom, 14px));
+  left: 14px;
+  right: 14px;
+  z-index: 990;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 28px -4px rgba(226, 55, 68, 0.45), 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  animation: slideUpCartBar 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  .cart-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.15rem;
+  }
+
+  .cart-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .cart-bar-icon {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+
+      .cart-bar-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background: #ffffff;
+        color: #e23744;
+        font-size: 0.68rem;
+        font-weight: 800;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    .cart-bar-text {
+      line-height: 1.2;
+
+      .cart-bar-count {
+        font-size: 0.72rem;
+        color: rgba(255, 255, 255, 0.85);
+        font-weight: 600;
+      }
+      .cart-bar-subtotal {
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+    }
+  }
+
+  .cart-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(255, 255, 255, 0.22);
+    padding: 0.45rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes slideUpCartBar {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 2. Mobile Dialogs, Forms & Inputs (iOS Safari Friendly) */
+.fp-mobile-dialog,
+.fp-checkout-dialog,
+.p-dialog {
+  .p-inputtext,
+  textarea.p-inputtextarea {
+    font-size: 16px !important; /* Critical: Stops iOS Safari auto-zoom on input focus */
+  }
+
+  .p-dialog-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+
+    button {
+      flex: 1 1 auto;
+      min-height: 42px;
+    }
+  }
+}
+
+/* 3. Mobile Cart Drawer / Sidebar */
+.fp-cart-sidebar {
+  .p-sidebar-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--surface-border, #e2e8f0);
+  }
+
+  .p-sidebar-content {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 16px)) !important;
+  }
+}
+
+/* 4. Global Responsive Rules for Mobile Viewports (< 768px) */
+@media (max-width: 767px) {
+  /* Sticky category bar */
+  .fp-category-bar {
+    padding: 0.45rem 0.85rem;
+  }
+
+  .fp-cat-chip {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.8rem;
+    height: 34px;
+    min-height: 34px;
+  }
+
+  /* Carousel Section Spacing */
+  .fp-store-section {
+    margin-top: 1.25rem;
+    padding: 0 0.85rem;
+
+    .section-header-row {
+      margin-bottom: 0.75rem;
+
+      .section-title {
+        font-size: 1.05rem;
+        gap: 0.35rem;
+
+        .badge {
+          font-size: 0.65rem !important;
+          padding: 0.15rem 0.45rem !important;
+        }
+      }
+    }
+  }
+
+  /* Carousel Product Track & Card */
+  .fp-product-carousel-track {
+    gap: 0.75rem;
+    padding: 0.2rem 0.85rem 1rem 0.85rem;
+    margin: 0 -0.85rem;
+    scroll-padding: 0 0.85rem;
+  }
+
+  .fp-food-card {
+    flex: 0 0 220px;
+    max-width: 220px;
+    min-width: 195px;
+    border-radius: 16px;
+
+    .card-media-box {
+      height: 125px;
+      aspect-ratio: unset;
+
+      .badge-deal,
+      .badge-rating {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.45rem;
+        top: 0.5rem;
+      }
+      .badge-deal {
+        left: 0.5rem;
+      }
+      .badge-rating {
+        right: 0.5rem;
+      }
+      .badge-category {
+        font-size: 0.68rem;
+        bottom: 0.45rem;
+        left: 0.5rem;
+      }
+    }
+
+    .card-body-box {
+      padding: 0.7rem;
+
+      .product-title {
+        font-size: 0.88rem;
+        height: 2.3em;
+        line-height: 1.25;
+        margin-bottom: 0.2rem;
+      }
+
+      .product-subtitle {
+        font-size: 0.72rem;
+        margin-bottom: 0.45rem;
+      }
+
+      .card-footer-row {
+        padding-top: 0.5rem;
+
+        .price-col {
+          .strike-price {
+            font-size: 0.65rem;
+          }
+          .main-price {
+            font-size: 1rem;
+          }
+        }
+
+        .btn-add-cart {
+          padding: 0.35rem 0.7rem;
+          font-size: 0.75rem;
+          min-height: 32px;
+        }
+      }
+    }
+  }
+
+  /* Product Detail Sheet on Mobile */
+  .fp-modal-sheet {
+    max-height: 90vh;
+  }
+
+  .fp-modal-hero {
+    height: 175px;
+
+    .hero-info-pinned {
+      bottom: 0.75rem;
+      left: 1rem;
+      right: 1rem;
+
+      .hero-main-title {
+        font-size: 1.15rem;
+      }
+    }
+  }
+
+  .fp-modal-scroll {
+    padding: 1rem;
+  }
+
+  .fp-modal-bottom-bar {
+    padding: 0.75rem 1rem;
+    padding-bottom: max(0.85rem, env(safe-area-inset-bottom, 16px));
+
+    .qty-stepper {
+      .btn-step {
+        width: 36px;
+        height: 36px;
+      }
+      .qty-display {
+        min-width: 28px;
+        font-size: 0.9rem;
+      }
+    }
+
+    .btn-submit-cart {
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      min-height: 44px;
+    }
+  }
+}
+
+/* 5. Mobile 2-Column Grid Layout (< 640px) */
+@media (max-width: 639px) {
+  .fp-food-card.grid-mode {
+    border-radius: 14px;
+
+    .card-media-box {
+      height: 115px;
+      aspect-ratio: unset;
+
+      .badge-deal {
+        top: 0.35rem;
+        left: 0.35rem;
+        font-size: 0.6rem;
+        padding: 0.15rem 0.35rem;
+      }
+
+      .badge-rating {
+        top: 0.35rem;
+        right: 0.35rem;
+        font-size: 0.6rem;
+        padding: 0.15rem 0.35rem;
+      }
+
+      .badge-category {
+        display: none; /* Keep image clean in 2-column mobile layout */
+      }
+    }
+
+    .card-body-box {
+      padding: 0.55rem 0.5rem;
+
+      .product-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        height: 2.4em;
+        line-height: 1.2;
+        margin-bottom: 0.15rem;
+      }
+
+      .product-subtitle {
+        font-size: 0.68rem;
+        margin-bottom: 0.35rem;
+      }
+
+      .card-footer-row {
+        padding-top: 0.4rem;
+
+        .price-col {
+          .strike-price {
+            font-size: 0.62rem;
+          }
+          .main-price {
+            font-size: 0.92rem;
+            font-weight: 800;
+          }
+        }
+
+        .btn-add-cart {
+          padding: 0.3rem 0.55rem;
+          font-size: 0.72rem;
+          min-height: 28px;
+        }
+      }
     }
   }
 }
