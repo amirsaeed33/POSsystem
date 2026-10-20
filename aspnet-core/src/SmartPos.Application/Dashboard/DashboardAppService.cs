@@ -91,6 +91,10 @@ namespace SmartPos.Dashboard
             var previousPeriodStart = currentPeriodStart.AddMonths(-1);
             var previousPeriodEnd = EquivalentPreviousPeriodEnd(now, currentPeriodStart, previousPeriodStart);
 
+            var fifteenDaysAgo = todayStart.AddDays(-14);
+            var sevenDaysAgo = todayStart.AddDays(-6);
+            var recentSalesStart = previousPeriodStart < fifteenDaysAgo ? previousPeriodStart : fifteenDaysAgo;
+
             var sales = await _saleRepository.GetAll()
                 .AsNoTracking()
                 .Where(x => x.SaleDate >= startMonth)
@@ -128,23 +132,44 @@ namespace SmartPos.Dashboard
                 p => p.Id,
                 p => branchInfoByProductId.TryGetValue(p.Id, out var info) ? info.CostPrice : p.CostPrice);
 
-            var todaySaleLines = await _saleRepository.GetAllIncluding(x => x.Lines)
+            // Fetch all sales with lines covering the full 12-month cashFlow window AND the recent 15-day
+            // trend window in a single query. recentSalesStart goes back to startMonth for monthly COGS.
+            var recentSalesWithLines = await _saleRepository.GetAllIncluding(x => x.Lines)
                 .AsNoTracking()
-                .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
+                .Where(x => x.SaleDate >= startMonth && x.SaleDate < currentPeriodEnd)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .ToListAsync();
+
+            var missingProductIds = recentSalesWithLines
+                .SelectMany(s => s.Lines ?? Enumerable.Empty<SaleLine>())
+                .Select(l => l.ProductId)
+                .Where(id => !costByProductId.ContainsKey(id))
+                .Distinct()
+                .ToList();
+
+            if (missingProductIds.Count > 0)
+            {
+                var extraCosts = await _productRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(p => missingProductIds.Contains(p.Id))
+                    .Select(p => new { p.Id, p.CostPrice })
+                    .ToDictionaryAsync(p => p.Id, p => p.CostPrice);
+
+                foreach (var kvp in extraCosts)
+                {
+                    costByProductId[kvp.Key] = kvp.Value;
+                }
+            }
+
+            var todaySaleLines = recentSalesWithLines
+                .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
+                .ToList();
             var todayCogs = CalculateCostOfGoodsSold(todaySaleLines, costByProductId);
             var todayProfit = Math.Round(todaySales - todayCogs - todayExpenses, 2);
 
-            var marginSales = await _saleRepository.GetAllIncluding(x => x.Lines)
-                .AsNoTracking()
-                .Where(x => x.SaleDate >= previousPeriodStart && x.SaleDate < currentPeriodEnd)
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .ToListAsync();
-
-            var currentMarginSales = marginSales
+            var currentMarginSales = recentSalesWithLines
                 .Where(x => x.SaleDate >= currentPeriodStart && x.SaleDate < currentPeriodEnd);
-            var previousMarginSales = marginSales
+            var previousMarginSales = recentSalesWithLines
                 .Where(x => x.SaleDate >= previousPeriodStart && x.SaleDate < previousPeriodEnd);
 
             var averageProfitMargin = CalculateAverageProfitMargin(currentMarginSales, costByProductId);
@@ -157,6 +182,8 @@ namespace SmartPos.Dashboard
             for (var i = 0; i < 12; i++)
             {
                 var monthDate = startMonth.AddMonths(i);
+                var monthStart = new DateTime(monthDate.Year, monthDate.Month, 1);
+                var monthEnd = monthStart.AddMonths(1);
                 var income = sales
                     .Where(x => x.SaleDate.Year == monthDate.Year && x.SaleDate.Month == monthDate.Month)
                     .Sum(x => x.TotalAmount);
@@ -166,6 +193,10 @@ namespace SmartPos.Dashboard
                 var monthPurchases = purchases
                     .Where(x => x.PurchaseDate.Year == monthDate.Year && x.PurchaseDate.Month == monthDate.Month)
                     .Sum(x => x.TotalAmount);
+                var monthSalesLines = recentSalesWithLines
+                    .Where(x => x.SaleDate >= monthStart && x.SaleDate < monthEnd);
+                var monthCogs = CalculateCostOfGoodsSold(monthSalesLines, costByProductId);
+                var monthProfit = Math.Round(income - monthCogs - expense, 2);
 
                 cashFlow.Add(new MonthlyCashFlowDto
                 {
@@ -174,12 +205,12 @@ namespace SmartPos.Dashboard
                     MonthLabel = monthDate.ToString("MMM", CultureInfo.InvariantCulture),
                     Income = income,
                     Expense = expense,
-                    Purchases = monthPurchases
+                    Purchases = monthPurchases,
+                    Profit = monthProfit
                 });
             }
 
             var last7Days = new List<DailyOverviewDto>();
-            var sevenDaysAgo = todayStart.AddDays(-6);
             for (var i = 0; i < 7; i++)
             {
                 var dayDate = sevenDaysAgo.AddDays(i);
@@ -193,6 +224,10 @@ namespace SmartPos.Dashboard
                 var dayExpenses = expenses
                     .Where(x => x.ExpenseDate >= dayDate && x.ExpenseDate < dayEnd)
                     .Sum(x => x.Amount);
+                var daySalesWithLines = recentSalesWithLines
+                    .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd);
+                var dayCogs = CalculateCostOfGoodsSold(daySalesWithLines, costByProductId);
+                var dayProfit = Math.Round(daySales - dayCogs - dayExpenses, 2);
 
                 last7Days.Add(new DailyOverviewDto
                 {
@@ -201,12 +236,12 @@ namespace SmartPos.Dashboard
                     Sales = daySales,
                     Purchases = dayPurchases,
                     Expenses = dayExpenses,
-                    Profit = Math.Round(daySales - dayPurchases - dayExpenses, 2)
+                    CostOfGoodsSold = dayCogs,
+                    Profit = dayProfit
                 });
             }
 
             var last15Days = new List<DailyOverviewDto>();
-            var fifteenDaysAgo = todayStart.AddDays(-14);
             for (var i = 0; i < 15; i++)
             {
                 var dayDate = fifteenDaysAgo.AddDays(i);
@@ -220,6 +255,10 @@ namespace SmartPos.Dashboard
                 var dayExpenses = expenses
                     .Where(x => x.ExpenseDate >= dayDate && x.ExpenseDate < dayEnd)
                     .Sum(x => x.Amount);
+                var daySalesWithLines = recentSalesWithLines
+                    .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd);
+                var dayCogs = CalculateCostOfGoodsSold(daySalesWithLines, costByProductId);
+                var dayProfit = Math.Round(daySales - dayCogs - dayExpenses, 2);
 
                 last15Days.Add(new DailyOverviewDto
                 {
@@ -228,7 +267,8 @@ namespace SmartPos.Dashboard
                     Sales = daySales,
                     Purchases = dayPurchases,
                     Expenses = dayExpenses,
-                    Profit = Math.Round(daySales - dayPurchases - dayExpenses, 2)
+                    CostOfGoodsSold = dayCogs,
+                    Profit = dayProfit
                 });
             }
 

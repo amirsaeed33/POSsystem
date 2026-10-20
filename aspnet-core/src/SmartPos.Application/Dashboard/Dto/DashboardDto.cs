@@ -109,6 +109,8 @@ namespace SmartPos.Dashboard.Dto
 
         public decimal Expenses { get; set; }
 
+        public decimal CostOfGoodsSold { get; set; }
+
         public decimal Profit { get; set; }
     }
 
@@ -126,6 +128,9 @@ namespace SmartPos.Dashboard.Dto
 
         /// <summary>Purchase totals for the month (used with Expense for outgoing).</summary>
         public decimal Purchases { get; set; }
+
+        /// <summary>Gross profit for the month: Sales − CostOfGoodsSold − Expenses.</summary>
+        public decimal Profit { get; set; }
     }
 
     public class DashboardProductRowDto

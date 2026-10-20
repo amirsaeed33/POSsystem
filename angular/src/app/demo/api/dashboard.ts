@@ -4,6 +4,7 @@ export interface DailyOverviewDto {
     sales: number;
     purchases: number;
     expenses: number;
+    costOfGoodsSold?: number;
     profit?: number;
 }
 
@@ -63,6 +64,7 @@ export interface MonthlyCashFlowDto {
     income: number;
     expense: number;
     purchases: number;
+    profit?: number;
 }
 
 export interface DashboardProductRowDto {

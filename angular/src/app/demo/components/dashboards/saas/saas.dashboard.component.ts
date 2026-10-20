@@ -564,7 +564,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     }
 
     get total15DaysProfit(): number {
-        return (this.last15Days || []).reduce((acc, x) => acc + (x.profit ?? ((x.sales ?? 0) - (x.purchases ?? 0) - (x.expenses ?? 0))), 0);
+        return (this.last15Days || []).reduce((acc, x) => acc + (x.profit ?? ((x.sales ?? 0) - (x.costOfGoodsSold ?? 0) - (x.expenses ?? 0))), 0);
     }
 
     kpiSubtitle(amount: number): string {
@@ -823,8 +823,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             }
 
             const profitRatio = (this.todaySales && this.todaySales > 0)
-                ? ((this.todayProfit !== undefined && this.todayProfit !== null ? this.todayProfit : (this.todaySales - this.todayPurchases - this.todayExpenses)) / this.todaySales)
-                : 1;
+                ? ((this.todayProfit !== undefined && this.todayProfit !== null ? this.todayProfit : 0) / this.todaySales)
+                : (this.averageProfitMargin > 0 ? this.averageProfitMargin / 100 : 0.2);
 
             profitValues = salesValues.map((s, i) => {
                 const profitFromSales = Math.round(s * profitRatio);
@@ -837,7 +837,11 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             salesValues = months.map(m => m.income ?? 0);
             purchasesValues = months.map(m => m.purchases ?? 0);
             expensesValues = months.map(m => m.expense ?? 0);
-            profitValues = months.map(m => (m.income ?? 0) - (m.purchases ?? 0) - (m.expense ?? 0));
+            // Use backend-computed profit (Sales − COGS − Expenses). Fall back to margin approximation if absent.
+            const marginRatio = this.averageProfitMargin > 0 ? (this.averageProfitMargin / 100) : 0.2;
+            profitValues = months.map(m => m.profit != null
+                ? m.profit
+                : Math.round(((m.income ?? 0) * marginRatio) - (m.expense ?? 0)));
         } else if (this.selectedTrendPeriod === 'year') {
             // Aggregate cashFlow data into last 15 Years
             const yearlyMap = new Map<number, { sales: number; purchases: number; expenses: number }>();
@@ -860,7 +864,19 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             salesValues = yearsList.map(y => yearlyMap.get(y)?.sales ?? 0);
             purchasesValues = yearsList.map(y => yearlyMap.get(y)?.purchases ?? 0);
             expensesValues = yearsList.map(y => yearlyMap.get(y)?.expenses ?? 0);
-            profitValues = yearsList.map(y => (yearlyMap.get(y)?.sales ?? 0) - (yearlyMap.get(y)?.purchases ?? 0) - (yearlyMap.get(y)?.expenses ?? 0));
+            // Aggregate per-year profit from cashFlow which already has backend-computed profit per month.
+            const yearlyProfitMap = new Map<number, number>();
+            (this.cashFlow || []).forEach(m => {
+                const yr = m.year || new Date().getFullYear();
+                yearlyProfitMap.set(yr, (yearlyProfitMap.get(yr) ?? 0) + (m.profit ?? 0));
+            });
+            const marginRatio2 = this.averageProfitMargin > 0 ? (this.averageProfitMargin / 100) : 0.2;
+            profitValues = yearsList.map(y => {
+                const cached = yearlyProfitMap.get(y);
+                if (cached != null) return cached;
+                // Fallback approximation when no cashFlow entry exists for that year
+                return Math.round(((yearlyMap.get(y)?.sales ?? 0) * marginRatio2) - (yearlyMap.get(y)?.expenses ?? 0));
+            });
         } else {
             // Default 15 Days
             const dataList: DailyOverviewDto[] = this.last15Days || [];
@@ -868,7 +884,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             salesValues = dataList.map((x: DailyOverviewDto) => x.sales ?? 0);
             purchasesValues = dataList.map((x: DailyOverviewDto) => x.purchases ?? 0);
             expensesValues = dataList.map((x: DailyOverviewDto) => x.expenses ?? 0);
-            profitValues = dataList.map((x: DailyOverviewDto) => x.profit ?? ((x.sales ?? 0) - (x.purchases ?? 0) - (x.expenses ?? 0)));
+            profitValues = dataList.map((x: DailyOverviewDto) => x.profit ?? ((x.sales ?? 0) - (x.costOfGoodsSold ?? 0) - (x.expenses ?? 0)));
         }
 
         // Create canvas gradients for a rich, modern look

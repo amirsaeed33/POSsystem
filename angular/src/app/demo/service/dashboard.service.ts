@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+    DailyOverviewDto,
     DashboardDto,
     DashboardLatestListItemDto,
     DashboardProductRowDto,
@@ -77,21 +78,25 @@ export class DashboardService {
             isGrowthPositive:
                 data.isGrowthPositive ?? data.IsGrowthPositive ?? true,
             last7Days: (Array.isArray(data.last7Days || data.Last7Days) ? (data.last7Days || data.Last7Days) : []).map(
-                (item: any) => ({
+                (item: any): DailyOverviewDto => ({
                     date: item.date ?? item.Date ?? '',
                     dayLabel: item.dayLabel ?? item.DayLabel ?? '',
                     sales: item.sales ?? item.Sales ?? 0,
                     purchases: item.purchases ?? item.Purchases ?? 0,
                     expenses: item.expenses ?? item.Expenses ?? 0,
+                    costOfGoodsSold: item.costOfGoodsSold ?? item.CostOfGoodsSold ?? 0,
+                    profit: item.profit ?? item.Profit ?? 0,
                 })
             ),
             last15Days: (Array.isArray(data.last15Days || data.Last15Days) ? (data.last15Days || data.Last15Days) : []).map(
-                (item: any) => ({
+                (item: any): DailyOverviewDto => ({
                     date: item.date ?? item.Date ?? '',
                     dayLabel: item.dayLabel ?? item.DayLabel ?? '',
                     sales: item.sales ?? item.Sales ?? 0,
                     purchases: item.purchases ?? item.Purchases ?? 0,
                     expenses: item.expenses ?? item.Expenses ?? 0,
+                    costOfGoodsSold: item.costOfGoodsSold ?? item.CostOfGoodsSold ?? 0,
+                    profit: item.profit ?? item.Profit ?? 0,
                 })
             ),
             cashFlow: (Array.isArray(cashFlow) ? cashFlow : []).map(
@@ -102,6 +107,7 @@ export class DashboardService {
                     income: item.income ?? item.Income ?? 0,
                     expense: item.expense ?? item.Expense ?? 0,
                     purchases: item.purchases ?? item.Purchases ?? 0,
+                    profit: item.profit ?? item.Profit ?? 0,
                 })
             ),
             products: (Array.isArray(products) ? products : []).map(
