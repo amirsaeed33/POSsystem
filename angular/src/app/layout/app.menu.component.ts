@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { PermissionNames } from '../demo/api/permission-names';
 import { PermissionService } from '../demo/service/permission.service';
 import { LayoutService } from './service/app.layout.service';
@@ -8,9 +9,10 @@ import { BranchContextService } from '../demo/service/branch-context.service';
     selector: 'app-menu',
     templateUrl: './app.menu.component.html'
 })
-export class AppMenuComponent implements OnInit {
+export class AppMenuComponent implements OnInit, OnDestroy {
 
     model: any[] = [];
+    private branchSub?: Subscription;
 
     constructor(
         public layoutService: LayoutService,
@@ -25,7 +27,68 @@ export class AppMenuComponent implements OnInit {
             // Menu falls back to cached grants (if any).
         }
 
+        this.buildMenu();
+
+        // Rebuild menu whenever selected branch changes
+        this.branchSub = this.branchContext.currentBranch$.subscribe(() => {
+            this.buildMenu();
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.branchSub?.unsubscribe();
+    }
+
+    private buildMenu(): void {
         const currentBranchId = this.branchContext.getBranchId();
+        const isRestaurant = this.branchContext.isRestaurantBranch();
+
+        const productItems: any[] = [
+            {
+                label: 'Settings',
+                icon: 'pi pi-cog',
+                routerLink: ['/product-settings'],
+                anyPermission: [
+                    PermissionNames.Brands,
+                    PermissionNames.Units,
+                    PermissionNames.Categories,
+                ],
+            },
+            { label: 'Products', icon: 'pi pi-box', routerLink: ['/products'], permission: PermissionNames.Products },
+            { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'], permission: PermissionNames.Suppliers },
+        ];
+
+        if (isRestaurant) {
+            productItems.push({
+                label: 'Grocery Purchases',
+                icon: 'pi pi-shopping-cart',
+                routerLink: ['/grocery-purchases'],
+                anyPermission: [
+                    PermissionNames.GroceryPurchases,
+                    PermissionNames.Purchases,
+                ],
+            });
+        } else {
+            productItems.push({
+                label: 'Purchases',
+                icon: 'pi pi-shopping-bag',
+                routerLink: ['/purchases'],
+                permission: PermissionNames.Purchases,
+            });
+            productItems.push({
+                label: 'Purchase Returns',
+                icon: 'pi pi-replay',
+                routerLink: ['/purchase-returns'],
+                permission: PermissionNames.Purchases,
+            });
+        }
+
+        productItems.push({
+            label: 'Stock Adjustments',
+            icon: 'pi pi-sync',
+            routerLink: ['/stock-adjustments'],
+            permission: PermissionNames.StockAdjustments,
+        });
 
         // Every root entry is a collapsible group (static/overlay) or hover panel (slim).
         const menu = [
@@ -40,23 +103,7 @@ export class AppMenuComponent implements OnInit {
             {
                 label: 'Products',
                 icon: 'pi pi-box',
-                items: [
-                    {
-                        label: 'Settings',
-                        icon: 'pi pi-cog',
-                        routerLink: ['/product-settings'],
-                        anyPermission: [
-                            PermissionNames.Brands,
-                            PermissionNames.Units,
-                            PermissionNames.Categories,
-                        ],
-                    },
-                    { label: 'Products', icon: 'pi pi-box', routerLink: ['/products'], permission: PermissionNames.Products },
-                    { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'], permission: PermissionNames.Suppliers },
-                    { label: 'Purchases', icon: 'pi pi-shopping-bag', routerLink: ['/purchases'], permission: PermissionNames.Purchases },
-                    { label: 'Purchase Returns', icon: 'pi pi-replay', routerLink: ['/purchase-returns'], permission: PermissionNames.Purchases },
-                    { label: 'Stock Adjustments', icon: 'pi pi-sync', routerLink: ['/stock-adjustments'], permission: PermissionNames.StockAdjustments },
-                ]
+                items: productItems,
             },
             {
                 label: 'Sales',

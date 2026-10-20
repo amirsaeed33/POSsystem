@@ -22,6 +22,11 @@ export interface DashboardDto {
     todayPurchases: number;
     todayExpenses: number;
     todayProfit: number;
+    isRestaurantBranch?: boolean;
+    weeklySales?: number;
+    weeklyPurchases?: number;
+    weeklyExpenses?: number;
+    weeklyProfit?: number;
     averageProfitMargin: number;
     previousAverageProfitMargin: number;
     growthPercentage: number;

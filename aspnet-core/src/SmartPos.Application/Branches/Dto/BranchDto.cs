@@ -30,6 +30,8 @@ namespace SmartPos.Branches.Dto
 
         public string TenancyName { get; set; }
 
+        public string BranchType { get; set; }
+
         public bool IsActive { get; set; }
 
         [StringLength(Branch.MaxImagePathLength)]

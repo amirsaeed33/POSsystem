@@ -5,12 +5,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
+using Abp.Domain.Uow;
 using Abp.Linq.Extensions;
 using Abp.Timing;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Branches;
 using SmartPos.Dashboard.Dto;
 using SmartPos.Expenses;
+using SmartPos.GroceryPurchases;
+using SmartPos.HostCatalog;
 using SmartPos.Inventory;
 using SmartPos.Orders;
 using SmartPos.Products;
@@ -34,6 +37,8 @@ namespace SmartPos.Dashboard
         private readonly IRepository<BranchStock> _branchStockRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchStockManager _branchStockManager;
+        private readonly IRepository<GroceryPurchase> _groceryPurchaseRepository;
+        private readonly IRepository<BranchSeedRequest> _branchSeedRequestRepository;
 
         public DashboardAppService(
             IRepository<Product> productRepository,
@@ -45,7 +50,9 @@ namespace SmartPos.Dashboard
             IRepository<Branch> branchRepository,
             IRepository<BranchStock> branchStockRepository,
             IBranchAccessChecker branchAccessChecker,
-            IBranchStockManager branchStockManager)
+            IBranchStockManager branchStockManager,
+            IRepository<GroceryPurchase> groceryPurchaseRepository,
+            IRepository<BranchSeedRequest> branchSeedRequestRepository)
         {
             _productRepository = productRepository;
             _saleRepository = saleRepository;
@@ -57,11 +64,48 @@ namespace SmartPos.Dashboard
             _branchStockRepository = branchStockRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchStockManager = branchStockManager;
+            _groceryPurchaseRepository = groceryPurchaseRepository;
+            _branchSeedRequestRepository = branchSeedRequestRepository;
+        }
+
+        private static bool IsRestaurantTypeName(string typeName)
+        {
+            if (string.IsNullOrWhiteSpace(typeName)) return false;
+            var t = typeName.Trim().ToLowerInvariant();
+            return t == "restaurant" || t == "resturent" || t.Contains("restaurant") || t.Contains("resturent");
         }
 
         public async Task<DashboardDto> GetAsync()
         {
-            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+
+                var isRestaurantBranch = false;
+                if (branchId.HasValue)
+                {
+                    var currentBranch = await _branchRepository.FirstOrDefaultAsync(branchId.Value);
+                    if (currentBranch != null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(currentBranch.BranchType))
+                        {
+                            isRestaurantBranch = IsRestaurantTypeName(currentBranch.BranchType);
+                        }
+                        else
+                        {
+                            var seedType = await _branchSeedRequestRepository.GetAllIncluding(x => x.CompanyType)
+                                .Where(x => x.BranchId == branchId.Value && x.CompanyType != null)
+                                .Select(x => x.CompanyType.Name)
+                                .FirstOrDefaultAsync();
+                            if (IsRestaurantTypeName(seedType))
+                            {
+                                isRestaurantBranch = true;
+                                currentBranch.BranchType = "Restaurant";
+                                await _branchRepository.UpdateAsync(currentBranch);
+                            }
+                        }
+                    }
+                }
 
             var productQuery = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x=>x.Unit)
                 .AsNoTracking();
@@ -116,11 +160,22 @@ namespace SmartPos.Dashboard
                 .Select(x => new { x.ExpenseDate, x.Amount })
                 .ToListAsync();
 
+            var groceryPurchases = await _groceryPurchaseRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => x.PurchaseDate >= startMonth)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .Select(x => new { x.PurchaseDate, TotalAmount = x.PurchasePrice, x.ProductName })
+                .ToListAsync();
+
             var todaySales = sales
                 .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
                 .Sum(x => x.TotalAmount);
 
-            var todayPurchases = purchases
+            var todayGroceryPurchases = groceryPurchases
+                .Where(x => x.PurchaseDate >= todayStart && x.PurchaseDate < tomorrow)
+                .Sum(x => x.TotalAmount);
+
+            var todayPurchases = isRestaurantBranch ? todayGroceryPurchases : purchases
                 .Where(x => x.PurchaseDate >= todayStart && x.PurchaseDate < tomorrow)
                 .Sum(x => x.TotalAmount);
 
@@ -165,7 +220,46 @@ namespace SmartPos.Dashboard
                 .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
                 .ToList();
             var todayCogs = CalculateCostOfGoodsSold(todaySaleLines, costByProductId);
-            var todayProfit = Math.Round(todaySales - todayCogs - todayExpenses, 2);
+            var todayProfit = isRestaurantBranch
+                ? Math.Round(todaySales - todayGroceryPurchases - todayExpenses, 2)
+                : Math.Round(todaySales - todayCogs - todayExpenses, 2);
+
+            // Weekly summary: current week (Monday to Sunday)
+            var diffFromMonday = (7 + (int)now.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+            var currentWeekStart = todayStart.AddDays(-diffFromMonday);
+            var currentWeekEnd = currentWeekStart.AddDays(7);
+
+            var weeklySales = sales
+                .Where(x => x.SaleDate >= currentWeekStart && x.SaleDate < currentWeekEnd)
+                .Sum(x => x.TotalAmount);
+
+            var weeklyExpenses = expenses
+                .Where(x => x.ExpenseDate >= currentWeekStart && x.ExpenseDate < currentWeekEnd)
+                .Sum(x => x.Amount);
+
+            decimal weeklyPurchases;
+            decimal weeklyProfit;
+
+            if (isRestaurantBranch)
+            {
+                var weeklyGroceryPurchases = groceryPurchases
+                    .Where(x => x.PurchaseDate >= currentWeekStart && x.PurchaseDate < currentWeekEnd)
+                    .Sum(x => x.TotalAmount);
+
+                weeklyPurchases = weeklyGroceryPurchases;
+                weeklyProfit = Math.Round(weeklySales - weeklyGroceryPurchases - weeklyExpenses, 2);
+            }
+            else
+            {
+                weeklyPurchases = purchases
+                    .Where(x => x.PurchaseDate >= currentWeekStart && x.PurchaseDate < currentWeekEnd)
+                    .Sum(x => x.TotalAmount);
+
+                var weeklySalesWithLines = recentSalesWithLines
+                    .Where(x => x.SaleDate >= currentWeekStart && x.SaleDate < currentWeekEnd);
+                var weeklyCogs = CalculateCostOfGoodsSold(weeklySalesWithLines, costByProductId);
+                weeklyProfit = Math.Round(weeklySales - weeklyCogs - weeklyExpenses, 2);
+            }
 
             var currentMarginSales = recentSalesWithLines
                 .Where(x => x.SaleDate >= currentPeriodStart && x.SaleDate < currentPeriodEnd);
@@ -190,13 +284,19 @@ namespace SmartPos.Dashboard
                 var expense = expenses
                     .Where(x => x.ExpenseDate.Year == monthDate.Year && x.ExpenseDate.Month == monthDate.Month)
                     .Sum(x => x.Amount);
-                var monthPurchases = purchases
-                    .Where(x => x.PurchaseDate.Year == monthDate.Year && x.PurchaseDate.Month == monthDate.Month)
-                    .Sum(x => x.TotalAmount);
+                var monthPurchases = isRestaurantBranch
+                    ? groceryPurchases
+                        .Where(x => x.PurchaseDate.Year == monthDate.Year && x.PurchaseDate.Month == monthDate.Month)
+                        .Sum(x => x.TotalAmount)
+                    : purchases
+                        .Where(x => x.PurchaseDate.Year == monthDate.Year && x.PurchaseDate.Month == monthDate.Month)
+                        .Sum(x => x.TotalAmount);
                 var monthSalesLines = recentSalesWithLines
                     .Where(x => x.SaleDate >= monthStart && x.SaleDate < monthEnd);
                 var monthCogs = CalculateCostOfGoodsSold(monthSalesLines, costByProductId);
-                var monthProfit = Math.Round(income - monthCogs - expense, 2);
+                var monthProfit = isRestaurantBranch
+                    ? Math.Round(income - monthPurchases - expense, 2)
+                    : Math.Round(income - monthCogs - expense, 2);
 
                 cashFlow.Add(new MonthlyCashFlowDto
                 {
@@ -218,16 +318,22 @@ namespace SmartPos.Dashboard
                 var daySales = sales
                     .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd)
                     .Sum(x => x.TotalAmount);
-                var dayPurchases = purchases
-                    .Where(x => x.PurchaseDate >= dayDate && x.PurchaseDate < dayEnd)
-                    .Sum(x => x.TotalAmount);
+                var dayPurchases = isRestaurantBranch
+                    ? groceryPurchases
+                        .Where(x => x.PurchaseDate >= dayDate && x.PurchaseDate < dayEnd)
+                        .Sum(x => x.TotalAmount)
+                    : purchases
+                        .Where(x => x.PurchaseDate >= dayDate && x.PurchaseDate < dayEnd)
+                        .Sum(x => x.TotalAmount);
                 var dayExpenses = expenses
                     .Where(x => x.ExpenseDate >= dayDate && x.ExpenseDate < dayEnd)
                     .Sum(x => x.Amount);
                 var daySalesWithLines = recentSalesWithLines
                     .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd);
                 var dayCogs = CalculateCostOfGoodsSold(daySalesWithLines, costByProductId);
-                var dayProfit = Math.Round(daySales - dayCogs - dayExpenses, 2);
+                var dayProfit = isRestaurantBranch
+                    ? Math.Round(daySales - dayPurchases - dayExpenses, 2)
+                    : Math.Round(daySales - dayCogs - dayExpenses, 2);
 
                 last7Days.Add(new DailyOverviewDto
                 {
@@ -249,16 +355,22 @@ namespace SmartPos.Dashboard
                 var daySales = sales
                     .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd)
                     .Sum(x => x.TotalAmount);
-                var dayPurchases = purchases
-                    .Where(x => x.PurchaseDate >= dayDate && x.PurchaseDate < dayEnd)
-                    .Sum(x => x.TotalAmount);
+                var dayPurchases = isRestaurantBranch
+                    ? groceryPurchases
+                        .Where(x => x.PurchaseDate >= dayDate && x.PurchaseDate < dayEnd)
+                        .Sum(x => x.TotalAmount)
+                    : purchases
+                        .Where(x => x.PurchaseDate >= dayDate && x.PurchaseDate < dayEnd)
+                        .Sum(x => x.TotalAmount);
                 var dayExpenses = expenses
                     .Where(x => x.ExpenseDate >= dayDate && x.ExpenseDate < dayEnd)
                     .Sum(x => x.Amount);
                 var daySalesWithLines = recentSalesWithLines
                     .Where(x => x.SaleDate >= dayDate && x.SaleDate < dayEnd);
                 var dayCogs = CalculateCostOfGoodsSold(daySalesWithLines, costByProductId);
-                var dayProfit = Math.Round(daySales - dayCogs - dayExpenses, 2);
+                var dayProfit = isRestaurantBranch
+                    ? Math.Round(daySales - dayPurchases - dayExpenses, 2)
+                    : Math.Round(daySales - dayCogs - dayExpenses, 2);
 
                 last15Days.Add(new DailyOverviewDto
                 {
@@ -305,7 +417,7 @@ namespace SmartPos.Dashboard
                 userName = user.UserName;
             }
 
-            var widgetData = await LoadWidgetDataAsync(todayStart, tomorrow, lowStock.Count, branchId);
+            var widgetData = await LoadWidgetDataAsync(todayStart, tomorrow, lowStock.Count, branchId, isRestaurantBranch);
 
             return new DashboardDto
             {
@@ -322,6 +434,11 @@ namespace SmartPos.Dashboard
                 TodayPurchases = todayPurchases,
                 TodayExpenses = todayExpenses,
                 TodayProfit = todayProfit,
+                IsRestaurantBranch = isRestaurantBranch,
+                WeeklySales = weeklySales,
+                WeeklyPurchases = weeklyPurchases,
+                WeeklyExpenses = weeklyExpenses,
+                WeeklyProfit = weeklyProfit,
                 AverageProfitMargin = averageProfitMargin,
                 PreviousAverageProfitMargin = previousAverageProfitMargin,
                 GrowthPercentage = growthPercentage,
@@ -336,6 +453,7 @@ namespace SmartPos.Dashboard
                 Timeline = widgetData.Timeline
             };
         }
+    }
 
         private async Task<Dictionary<int, BranchProductInfo>> ResolveBranchProductInfoAsync(
             int? branchId,
@@ -357,7 +475,8 @@ namespace SmartPos.Dashboard
             DateTime todayStart,
             DateTime tomorrow,
             int lowStockCount,
-            int? branchId)
+            int? branchId,
+            bool isRestaurantBranch)
         {
             var pendingOrdersQuery = _customerOrderRepository.GetAll()
                 .Where(x => x.Status == CustomerOrderStatus.Pending)
@@ -429,13 +548,35 @@ namespace SmartPos.Dashboard
                 Amount = sale.TotalAmount,
                 OccurredAt = EnsureUtc(sale.CreationTime)
             }));
-            timeline.AddRange(recentPurchases.Select(purchase => new DashboardTimelineEventDto
+
+            if (isRestaurantBranch)
             {
-                Type = "purchase",
-                Title = "Purchase #" + (string.IsNullOrWhiteSpace(purchase.InvoiceNo) ? purchase.Id.ToString() : purchase.InvoiceNo),
-                Amount = purchase.TotalAmount,
-                OccurredAt = EnsureUtc(purchase.CreationTime)
-            }));
+                var recentGroceryPurchases = await _groceryPurchaseRepository.GetAll()
+                    .AsNoTracking()
+                    .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                    .OrderByDescending(x => x.CreationTime)
+                    .Take(10)
+                    .Select(x => new { x.Id, x.ProductName, x.PurchasePrice, x.CreationTime })
+                    .ToListAsync();
+
+                timeline.AddRange(recentGroceryPurchases.Select(gp => new DashboardTimelineEventDto
+                {
+                    Type = "purchase",
+                    Title = "Grocery: " + gp.ProductName,
+                    Amount = gp.PurchasePrice,
+                    OccurredAt = EnsureUtc(gp.CreationTime)
+                }));
+            }
+            else
+            {
+                timeline.AddRange(recentPurchases.Select(purchase => new DashboardTimelineEventDto
+                {
+                    Type = "purchase",
+                    Title = "Purchase #" + (string.IsNullOrWhiteSpace(purchase.InvoiceNo) ? purchase.Id.ToString() : purchase.InvoiceNo),
+                    Amount = purchase.TotalAmount,
+                    OccurredAt = EnsureUtc(purchase.CreationTime)
+                }));
+            }
             timeline.AddRange(recentExpenses.Select(expense => new DashboardTimelineEventDto
             {
                 Type = "expense",

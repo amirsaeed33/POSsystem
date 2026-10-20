@@ -67,6 +67,11 @@ export class DashboardService {
             todayPurchases: data.todayPurchases ?? data.TodayPurchases ?? 0,
             todayExpenses: data.todayExpenses ?? data.TodayExpenses ?? 0,
             todayProfit: data.todayProfit ?? data.TodayProfit ?? 0,
+            isRestaurantBranch: !!(data.isRestaurantBranch ?? data.IsRestaurantBranch),
+            weeklySales: data.weeklySales ?? data.WeeklySales ?? 0,
+            weeklyPurchases: data.weeklyPurchases ?? data.WeeklyPurchases ?? 0,
+            weeklyExpenses: data.weeklyExpenses ?? data.WeeklyExpenses ?? 0,
+            weeklyProfit: data.weeklyProfit ?? data.WeeklyProfit ?? 0,
             averageProfitMargin:
                 data.averageProfitMargin ?? data.AverageProfitMargin ?? 0,
             previousAverageProfitMargin:

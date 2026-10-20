@@ -22,8 +22,12 @@ namespace SmartPos.Branches
         public const int MaxActivationTokenHashLength = 128;
         public const int MaxDateFormatLength = 32;
         public const int MaxCurrencyFormatLength = 32;
+        public const int MaxBranchTypeLength = 64;
 
         public virtual int? TenantId { get; set; }
+
+        [StringLength(MaxBranchTypeLength)]
+        public virtual string BranchType { get; set; }
 
         [Required]
         [StringLength(MaxNameLength)]
