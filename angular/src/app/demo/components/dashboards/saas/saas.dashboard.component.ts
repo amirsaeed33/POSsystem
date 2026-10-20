@@ -141,6 +141,10 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     growthPercentage = 0;
     isGrowthPositive = true;
 
+    // Visibility toggles for dashboard charts (hidden per user request)
+    showSalesOverview = false;
+    showMonthlySalesGrowth = false;
+
     stockHighlights: StockHighlightItem[] = [];
     stockHighlightIndex = 0;
 
@@ -822,12 +826,17 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                 expensesValues[currentHourIndex] += untrackedExpenses;
             }
 
-            const profitRatio = (this.todaySales && this.todaySales > 0)
-                ? ((this.todayProfit !== undefined && this.todayProfit !== null ? this.todayProfit : 0) / this.todaySales)
+            // Calculate today's gross profit from sales (before expenses were deducted on the backend)
+            // so subtracting hourly expenses does not double-deduct expenses.
+            const todayNetProfit = (this.todayProfit !== undefined && this.todayProfit !== null) ? this.todayProfit : 0;
+            const todayGrossProfit = todayNetProfit + (this.todayExpenses || 0);
+
+            const grossProfitRatio = (this.todaySales && this.todaySales > 0)
+                ? (todayGrossProfit / this.todaySales)
                 : (this.averageProfitMargin > 0 ? this.averageProfitMargin / 100 : 0.2);
 
             profitValues = salesValues.map((s, i) => {
-                const profitFromSales = Math.round(s * profitRatio);
+                const profitFromSales = Math.round(s * grossProfitRatio);
                 return Math.max(0, profitFromSales - expensesValues[i]);
             });
         } else if (this.selectedTrendPeriod === 'month') {
