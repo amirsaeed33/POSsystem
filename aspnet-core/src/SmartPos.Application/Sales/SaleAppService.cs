@@ -262,9 +262,16 @@ namespace SmartPos.Sales
                 await CurrentUnitOfWork.SaveChangesAsync();
             }
 
+            var now = Abp.Timing.Clock.Now;
             if (input.SaleDate == default)
             {
-                input.SaleDate = Abp.Timing.Clock.Now;
+                input.SaleDate = now;
+            }
+            else if (input.SaleDate.TimeOfDay == TimeSpan.Zero)
+            {
+                input.SaleDate = input.SaleDate.Date == now.Date
+                    ? now
+                    : input.SaleDate.Date.Add(now.TimeOfDay);
             }
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();

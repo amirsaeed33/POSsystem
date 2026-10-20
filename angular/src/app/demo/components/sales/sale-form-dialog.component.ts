@@ -279,10 +279,18 @@ export class SaleFormDialogComponent implements OnChanges {
         const cardAmount = 0;
 
         this.saving = true;
+
+        const now = new Date();
+        let saleDateValue: any = this.sale.saleDate;
+        if (saleDateValue && typeof saleDateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(saleDateValue)) {
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            saleDateValue = `${saleDateValue}T${timeStr}`;
+        }
+
         this.saleService
             .create({
                 customerId: this.sale.customerId,
-                saleDate: this.sale.saleDate,
+                saleDate: saleDateValue || new Date().toISOString(),
                 notes: this.sale.notes?.trim() || undefined,
                 discountAmount: this.sale.discountAmount || 0,
                 discountPercent: this.sale.discountPercent || 0,

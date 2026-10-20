@@ -378,7 +378,7 @@ export class PosComponent implements OnInit {
         this.saleService
             .create({
                 customerId: this.customerId as number,
-                saleDate: this.toDateInputValue(),
+                saleDate: new Date().toISOString(),
                 notes: this.notes?.trim() || undefined,
                 discountAmount: this.discountAmount || 0,
                 discountPercent: this.discountPercent || 0,
