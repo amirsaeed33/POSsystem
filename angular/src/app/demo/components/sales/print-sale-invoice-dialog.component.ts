@@ -52,6 +52,35 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
         }
     }
 
+    getDeliveryFee(): number {
+        if (!this.sale?.notes) return 0;
+        const match = this.sale.notes.match(/🛵 Delivery:\s*PKR\s*([\d,.]+)/i);
+        if (match && match[1]) {
+            return parseFloat(match[1].replace(/,/g, '')) || 0;
+        }
+        return 0;
+    }
+
+    isFreeDelivery(): boolean {
+        if (!this.sale?.notes) return false;
+        return /🛵 Delivery:\s*FREE/i.test(this.sale.notes);
+    }
+
+    getDeliveryZoneName(): string | null {
+        if (!this.sale?.notes) return null;
+        const match = this.sale.notes.match(/🛵 Delivery:[^|(]+\(([^)]+)\)/i);
+        return match ? match[1].trim() : null;
+    }
+
+    getInvoiceGrandTotal(): number {
+        if (!this.sale) return 0;
+        const deliveryFee = this.getDeliveryFee();
+        if (deliveryFee > 0 && Math.abs(this.sale.totalAmount - (this.sale.subTotal + deliveryFee)) < 0.01) {
+            return this.sale.totalAmount;
+        }
+        return this.sale.totalAmount + deliveryFee;
+    }
+
     setPrintFormat(format: 'thermal' | 'a4'): void {
         this.printFormat = format;
         localStorage.setItem('smartpos_invoice_print_format', format);

@@ -314,6 +314,11 @@ export class OnlineProductDetailComponent implements OnInit {
         try {
             this.submitting = true;
 
+            const subtotal = this.cartService.cartSubtotal;
+            const deliveryCharges = this.cartService.deliveryFee;
+            const grandTotal = this.cartService.cartGrandTotal;
+            const deliveryAreaName = this.cartService.selectedAreaZone?.name || 'Standard Delivery';
+
             const addressParts: string[] = [];
             if (this.deliveryAddress.trim()) {
                 addressParts.push(`📍 Addr: ${this.deliveryAddress.trim()}`);
@@ -321,6 +326,7 @@ export class OnlineProductDetailComponent implements OnInit {
             if (this.deliveryLandmark.trim()) {
                 addressParts.push(`🏛️ Landmark: ${this.deliveryLandmark.trim()}`);
             }
+            addressParts.push(`🛵 Delivery: ${deliveryCharges > 0 ? 'PKR ' + deliveryCharges : 'FREE'} (${deliveryAreaName})`);
             if (this.googleMapsLink) {
                 addressParts.push(`🗺️ Maps: ${this.googleMapsLink}`);
             }
@@ -341,6 +347,13 @@ export class OnlineProductDetailComponent implements OnInit {
                 google_maps_link: this.googleMapsLink ?? undefined,
                 deliveryAddress: this.deliveryAddress.trim() || undefined,
                 deliveryLandmark: this.deliveryLandmark.trim() || undefined,
+                subtotal: subtotal,
+                deliveryCharges: deliveryCharges,
+                delivery_charges: deliveryCharges,
+                grandTotal: grandTotal,
+                grand_total: grandTotal,
+                deliveryArea: deliveryAreaName,
+                delivery_area: deliveryAreaName,
                 lines: this.cartService.items.map((c) => ({
                     productId: c.productId,
                     quantity: c.quantity,

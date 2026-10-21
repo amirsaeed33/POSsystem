@@ -34,8 +34,24 @@
                 </div>
             </div>
             <div class="col-12 md:col-6">
-                <div class="text-500 mb-1">Total Amount</div>
-                <div class="font-medium">{{ order.totalAmount | number: '1.2-2' }}</div>
+                <div class="text-500 mb-1">Items Subtotal</div>
+                <div class="font-medium">PKR {{ getOrderSubtotal() | number: '1.2-2' }}</div>
+            </div>
+            <div class="col-12 md:col-6">
+                <div class="text-500 mb-1">Delivery Charges</div>
+                <div class="font-medium flex align-items-center gap-2">
+                    <span *ngIf="getOrderDeliveryCharges() > 0" class="text-900 font-bold">
+                        PKR {{ getOrderDeliveryCharges() | number: '1.2-2' }}
+                    </span>
+                    <span *ngIf="getOrderDeliveryCharges() === 0" class="text-green-600 font-bold bg-green-50 px-2 py-0.5 border-round text-xs">
+                        FREE Delivery
+                    </span>
+                    <span *ngIf="getDeliveryAreaName()" class="text-xs text-500">({{ getDeliveryAreaName() }})</span>
+                </div>
+            </div>
+            <div class="col-12 md:col-6">
+                <div class="text-500 mb-1">Grand Total</div>
+                <div class="font-bold text-xl text-primary">PKR {{ (order.totalAmount || order.grandTotal) | number: '1.2-2' }}</div>
             </div>
             <div class="col-12 md:col-6">
                 <div class="text-500 mb-1">Sale Invoice</div>
@@ -81,6 +97,34 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Order Bill Financial Summary -->
+        <div class="surface-100 p-3 border-round border-1 surface-border mt-3">
+            <div class="flex justify-content-end">
+                <div class="w-full md:w-20rem">
+                    <div class="flex justify-content-between mb-2 text-sm">
+                        <span class="text-600">Subtotal:</span>
+                        <span class="font-bold text-800">PKR {{ getOrderSubtotal() | number: '1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-content-between mb-2 text-sm">
+                        <span class="text-600 flex align-items-center gap-1">
+                            <span>Delivery Charges:</span>
+                            <span *ngIf="getDeliveryAreaName()" class="text-xs text-500">({{ getDeliveryAreaName() }})</span>
+                        </span>
+                        <span *ngIf="getOrderDeliveryCharges() > 0" class="font-bold text-800">
+                            PKR {{ getOrderDeliveryCharges() | number: '1.2-2' }}
+                        </span>
+                        <span *ngIf="getOrderDeliveryCharges() === 0" class="text-green-600 font-bold bg-green-50 px-2 py-0.5 border-round text-xs">
+                            FREE
+                        </span>
+                    </div>
+                    <div class="flex justify-content-between pt-2 border-top-1 surface-border text-base">
+                        <span class="font-bold text-900">Grand Total:</span>
+                        <span class="font-bold text-xl text-primary">PKR {{ (order.totalAmount || order.grandTotal) | number: '1.2-2' }}</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

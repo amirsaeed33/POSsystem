@@ -23,6 +23,13 @@ export interface CustomerOrderDto {
     status: number;
     statusName?: string;
     totalAmount: number;
+    subtotal?: number;
+    deliveryCharges?: number;
+    delivery_charges?: number;
+    grandTotal?: number;
+    grand_total?: number;
+    deliveryArea?: string;
+    delivery_area?: string;
     notes?: string;
     saleId?: number;
     saleInvoiceNo?: string;
@@ -48,6 +55,13 @@ export interface CreateCustomerOrderDto {
     google_maps_link?: string;
     deliveryAddress?: string;
     deliveryLandmark?: string;
+    subtotal?: number;
+    deliveryCharges?: number;
+    delivery_charges?: number;
+    grandTotal?: number;
+    grand_total?: number;
+    deliveryArea?: string;
+    delivery_area?: string;
     lines: CreateCustomerOrderLineDto[];
 }
 

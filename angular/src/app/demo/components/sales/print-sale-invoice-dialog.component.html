@@ -109,11 +109,18 @@
                 <span>+{{ sale.taxAmount | number:'1.0-2' }}</span>
             </div>
 
+            <!-- Delivery Charges Line Item -->
+            <div class="thermal-total-row" *ngIf="getDeliveryFee() > 0 || isFreeDelivery()">
+                <span>Delivery Charges<span *ngIf="getDeliveryZoneName()" class="text-xs"> ({{ getDeliveryZoneName() }})</span>:</span>
+                <span *ngIf="getDeliveryFee() > 0">+{{ getDeliveryFee() | number:'1.0-2' }}</span>
+                <span *ngIf="isFreeDelivery()" class="font-bold">FREE</span>
+            </div>
+
             <div class="thermal-divider-double"></div>
 
             <div class="thermal-grand-total">
                 <span>TOTAL:</span>
-                <span>{{ company?.currencyFormat || 'PKR' }} {{ sale.totalAmount | number:'1.0-2' }}</span>
+                <span>{{ company?.currencyFormat || 'PKR' }} {{ getInvoiceGrandTotal() | number:'1.0-2' }}</span>
             </div>
 
             <div class="thermal-divider-dashed"></div>
@@ -197,7 +204,7 @@
             </div>
             <div>
                 <div class="label">Total Amount</div>
-                <div class="value total">{{ sale.totalAmount }}</div>
+                <div class="value total">{{ getInvoiceGrandTotal() | number:'1.2-2' }}</div>
             </div>
         </div>
 
@@ -227,24 +234,33 @@
             <tfoot>
                 <tr>
                     <td colspan="4" class="text-right">Sub Total</td>
-                    <td class="text-right">{{ sale.subTotal }}</td>
+                    <td class="text-right">{{ sale.subTotal | number:'1.2-2' }}</td>
                 </tr>
-                <tr>
-                    <td colspan="4" class="text-right">Discount</td>
-                    <td class="text-right">-{{ sale.discountAmount }}</td>
+                <tr *ngIf="sale.discountAmount && sale.discountAmount > 0">
+                    <td colspan="4" class="text-right">Discount ({{ sale.discountPercent || 0 }}%)</td>
+                    <td class="text-right">-{{ sale.discountAmount | number:'1.2-2' }}</td>
                 </tr>
-                <tr>
+                <tr *ngIf="sale.taxAmount && sale.taxAmount > 0">
                     <td colspan="4" class="text-right">
                         Tax ({{ sale.taxPercent }}%)
                     </td>
-                    <td class="text-right">{{ sale.taxAmount }}</td>
+                    <td class="text-right">{{ sale.taxAmount | number:'1.2-2' }}</td>
+                </tr>
+                <tr *ngIf="getDeliveryFee() > 0 || isFreeDelivery()">
+                    <td colspan="4" class="text-right">
+                        Delivery Charges <span *ngIf="getDeliveryZoneName()">({{ getDeliveryZoneName() }})</span>
+                    </td>
+                    <td class="text-right">
+                        <span *ngIf="getDeliveryFee() > 0">+{{ getDeliveryFee() | number:'1.2-2' }}</span>
+                        <span *ngIf="isFreeDelivery()" class="font-bold text-green-600">FREE</span>
+                    </td>
                 </tr>
                 <tr>
                     <td colspan="4" class="text-right">
                         <strong>Total Amount</strong>
                     </td>
                     <td class="text-right">
-                        <strong>{{ sale.totalAmount }}</strong>
+                        <strong>{{ getInvoiceGrandTotal() | number:'1.2-2' }}</strong>
                     </td>
                 </tr>
             </tfoot>
