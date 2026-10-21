@@ -32,6 +32,8 @@ export interface SaleDto {
     cardAmount: number;
     creditAmount: number;
     notes?: string;
+    deliveryCharges?: number;
+    deliveryAreaName?: string;
     hasReturns?: boolean;
     returnCount?: number;
     lines?: SaleLineDto[];
@@ -48,6 +50,8 @@ export interface CreateSaleDto {
     saleDate: string | Date;
     invoiceNo?: string;
     notes?: string;
+    deliveryCharges?: number;
+    deliveryAreaName?: string;
     discountAmount: number;
     discountPercent: number;
     taxPercent: number;

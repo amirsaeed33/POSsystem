@@ -106,6 +106,12 @@ namespace SmartPos.Authorization
         public const string Pages_CustomerOrders_Create = "Pages.CustomerOrders.Create";
         public const string Pages_CustomerOrders_Edit = "Pages.CustomerOrders.Edit";
         public const string Pages_CustomerOrders_Delete = "Pages.CustomerOrders.Delete";
+        public const string Pages_CustomerOrders_OverrideDeliveryFee = "Pages.CustomerOrders.OverrideDeliveryFee";
+
+        public const string Pages_DeliveryAreas = "Pages.DeliveryAreas";
+        public const string Pages_DeliveryAreas_Create = "Pages.DeliveryAreas.Create";
+        public const string Pages_DeliveryAreas_Edit = "Pages.DeliveryAreas.Edit";
+        public const string Pages_DeliveryAreas_Delete = "Pages.DeliveryAreas.Delete";
 
         public const string Pages_EmailTemplates = "Pages.EmailTemplates";
         public const string Pages_EmailTemplates_Create = "Pages.EmailTemplates.Create";

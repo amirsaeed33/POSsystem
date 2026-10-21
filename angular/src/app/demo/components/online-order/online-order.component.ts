@@ -2,6 +2,7 @@ import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, HostListener, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
+import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
 import { OnlineCartService, CartItem } from 'src/app/demo/service/online-cart.service';
 import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
@@ -88,6 +89,13 @@ export class OnlineOrderComponent implements OnInit {
     locationAccuracy: number | null = null;
     locationError: string | null = null;
 
+    // Delivery Areas & Free Delivery Engine
+    deliveryAreas: DeliveryAreaDto[] = [];
+    selectedDeliveryAreaId: number | null = null;
+    selectedDeliveryArea: DeliveryAreaDto | null = null;
+    baseDeliveryFee = 100;
+    freeDeliveryThreshold = 1500;
+
     // Success confirmation modal
     successModalVisible = false;
     confirmedOrderNo = '';
@@ -155,7 +163,8 @@ export class OnlineOrderComponent implements OnInit {
         private sessionService: SessionService,
         private route: ActivatedRoute,
         private router: Router,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private deliveryAreaService: DeliveryAreaService
     ) {}
 
     ngOnInit(): void {
@@ -288,6 +297,9 @@ export class OnlineOrderComponent implements OnInit {
             }
             this.extractCategories();
             this.organizeCarousels();
+            if (bId) {
+                this.loadDeliveryAreas(bId);
+            }
             this.applyFilter();
 
             if (selectProductId) {
@@ -1084,6 +1096,66 @@ export class OnlineOrderComponent implements OnInit {
         }
     }
 
+    async loadDeliveryAreas(bId: number): Promise<void> {
+        try {
+            const [areas, header] = await Promise.all([
+                this.deliveryAreaService.getActiveAreasForBranch(bId),
+                this.customerOrderService.getOnlineStoreHeader(bId),
+            ]);
+            this.deliveryAreas = areas || [];
+            if (header) {
+                this.baseDeliveryFee = header.baseDeliveryFee ?? 100;
+                this.freeDeliveryThreshold = header.freeDeliveryThreshold ?? 1500;
+            }
+            if (this.deliveryAreas.length > 0 && !this.selectedDeliveryAreaId) {
+                this.selectedDeliveryAreaId = this.deliveryAreas[0].id;
+                this.selectedDeliveryArea = this.deliveryAreas[0];
+            }
+        } catch (e) {
+            console.error('Failed to load delivery areas/header info', e);
+        }
+    }
+
+    getDeliveryFee(): number {
+        if (this.isFreeDeliveryEligible()) {
+            return 0;
+        }
+        if (this.selectedDeliveryArea) {
+            return this.selectedDeliveryArea.deliveryFee ?? 0;
+        }
+        return this.deliveryAreas.length > 0 ? this.deliveryAreas[0].deliveryFee : this.baseDeliveryFee;
+    }
+
+    isFreeDeliveryEligible(): boolean {
+        const subtotal = this.cartService.cartSubtotal;
+        if (subtotal >= this.freeDeliveryThreshold) {
+            return true;
+        }
+        if (this.cartService.items.some((item) => {
+            const product = this.products.find((p) => p.id === item.productId);
+            return (product as any)?.isFreeDelivery;
+        })) {
+            return true;
+        }
+        return false;
+    }
+
+    getGrandTotal(): number {
+        return Math.max(0, this.cartService.cartSubtotal + this.getDeliveryFee());
+    }
+
+    onDeliveryAreaChange(areaId: number): void {
+        this.selectedDeliveryAreaId = areaId;
+        this.selectedDeliveryArea = this.deliveryAreas.find((a) => a.id === areaId) || null;
+    }
+
+    isMinOrderSatisfied(): boolean {
+        if (!this.selectedDeliveryArea || !this.selectedDeliveryArea.minimumOrderAmount) {
+            return true;
+        }
+        return this.cartService.cartSubtotal >= this.selectedDeliveryArea.minimumOrderAmount;
+    }
+
     async submitOrder(): Promise<void> {
         if (!this.customerName.trim()) {
             this.messageService.add({
@@ -1133,6 +1205,7 @@ export class OnlineOrderComponent implements OnInit {
                 google_maps_link: this.googleMapsLink ?? undefined,
                 deliveryAddress: this.deliveryAddress.trim() || undefined,
                 deliveryLandmark: this.deliveryLandmark.trim() || undefined,
+                deliveryAreaId: this.selectedDeliveryAreaId ?? (this.selectedDeliveryArea?.id || undefined),
                 lines: this.cartService.items.map((c) => ({
                     productId: c.productId,
                     quantity: c.quantity,

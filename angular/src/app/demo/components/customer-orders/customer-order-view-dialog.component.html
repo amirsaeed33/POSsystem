@@ -5,60 +5,147 @@
     [modal]="true"
     appendTo="body"
     [blockScroll]="true"
-    [style]="{ width: '48rem' }"
-    [breakpoints]="{ '960px': '90vw' }"
+    [style]="{ width: '52rem' }"
+    [breakpoints]="{ '960px': '92vw' }"
     [draggable]="false"
     [resizable]="false"
     (onHide)="onHide()"
 >
-    <div *ngIf="loading" class="text-center p-4 text-500">Loading...</div>
+    <div *ngIf="loading" class="text-center p-4 text-500">
+        <i class="pi pi-spin pi-spinner mr-2"></i>Loading order details...
+    </div>
 
     <div *ngIf="!loading && order">
+        <!-- Order Header Information -->
         <div class="grid mb-3">
             <div class="col-12 md:col-6">
-                <div class="text-500 mb-1">Order No</div>
-                <div class="font-medium">{{ order.orderNo || ('#' + order.id) }}</div>
+                <div class="text-500 text-sm mb-1">Order No</div>
+                <div class="font-bold text-lg text-900">{{ order.orderNo || ('#' + order.id) }}</div>
             </div>
             <div class="col-12 md:col-6">
-                <div class="text-500 mb-1">Order Date</div>
-                <div class="font-medium">{{ order.orderDate | date: formatService.dateFormat }}</div>
+                <div class="text-500 text-sm mb-1">Order Date</div>
+                <div class="font-medium text-900">{{ order.orderDate | date: formatService.dateFormat }}</div>
             </div>
             <div class="col-12 md:col-6">
-                <div class="text-500 mb-1">Customer</div>
-                <div class="font-medium">{{ order.customerName || '—' }}</div>
+                <div class="text-500 text-sm mb-1">Customer</div>
+                <div class="font-medium text-900">{{ order.customerName || '—' }}</div>
             </div>
             <div class="col-12 md:col-6">
-                <div class="text-500 mb-1">Status</div>
-                <div class="font-medium">
-                    {{ order.statusName || statusLabel(order.status) }}
+                <div class="text-500 text-sm mb-1">Status</div>
+                <div>
+                    <span
+                        class="p-badge"
+                        [ngClass]="{
+                            'p-badge-warning': order.status === 0,
+                            'p-badge-success': order.status === 1,
+                            'p-badge-danger': order.status === 2
+                        }"
+                    >
+                        {{ order.statusName || statusLabel(order.status) }}
+                    </span>
                 </div>
             </div>
-            <div class="col-12 md:col-6">
-                <div class="text-500 mb-1">Total Amount</div>
-                <div class="font-medium">{{ order.totalAmount | number: '1.2-2' }}</div>
+            <div class="col-12 md:col-6" *ngIf="order.saleInvoiceNo">
+                <div class="text-500 text-sm mb-1">Sale Invoice</div>
+                <div class="font-bold text-primary">{{ order.saleInvoiceNo }}</div>
             </div>
-            <div class="col-12 md:col-6">
-                <div class="text-500 mb-1">Sale Invoice</div>
-                <div class="font-medium">{{ order.saleInvoiceNo || '—' }}</div>
+        </div>
+
+        <!-- Delivery Charges & Location Card -->
+        <div class="surface-card border-1 surface-border border-round p-3 mb-3">
+            <div class="flex justify-content-between align-items-center mb-2">
+                <span class="font-bold text-900 flex align-items-center gap-2">
+                    <i class="pi pi-truck text-primary"></i>
+                    Delivery Details & Pricing
+                </span>
+                <button
+                    *ngIf="order.status === 0 && canOverrideDeliveryFee"
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-pencil"
+                    label="Adjust / Waive Delivery Fee"
+                    class="p-button-sm p-button-outlined p-button-warning"
+                    (click)="openOverrideDialog()"
+                ></button>
             </div>
-            <div class="col-12">
-                <div class="text-500 mb-1">Notes / Delivery Location</div>
-                <div class="font-medium">{{ order.notes || '—' }}</div>
-                <div *ngIf="getGoogleMapsLink(order.notes)" class="mt-2">
-                    <a
-                        [href]="getGoogleMapsLink(order.notes)"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="p-button p-button-sm p-button-outlined p-button-danger border-round-xl inline-flex align-items-center gap-2 font-bold no-underline"
-                    >
-                        <i class="pi pi-map-marker text-red-500"></i>
-                        <span>Open Live Delivery Location in Google Maps</span>
-                        <i class="pi pi-external-link text-xs"></i>
-                    </a>
+
+            <div class="grid text-sm">
+                <div class="col-12 md:col-4">
+                    <span class="text-500 block mb-1">Delivery Area:</span>
+                    <span class="font-semibold text-900">
+                        <i class="pi pi-map-marker text-red-500 mr-1 text-xs"></i>
+                        {{ order.deliveryAreaName || 'Standard Delivery' }}
+                    </span>
+                </div>
+                <div class="col-12 md:col-4">
+                    <span class="text-500 block mb-1">Cart Subtotal:</span>
+                    <span class="font-semibold text-700">
+                        PKR {{ (order.subTotal || 0) | number: '1.2-2' }}
+                    </span>
+                </div>
+                <div class="col-12 md:col-4">
+                    <span class="text-500 block mb-1">Delivery Charges:</span>
+                    <span *ngIf="(order.deliveryFee ?? 0) === 0 || order.isFreeDelivery" class="text-green-600 font-bold">
+                        <span class="p-badge p-badge-success mr-1">FREE</span>
+                        <span class="text-xs text-500" *ngIf="order.freeDeliveryReason">({{ order.freeDeliveryReason }})</span>
+                    </span>
+                    <span *ngIf="(order.deliveryFee ?? 0) > 0" class="font-bold text-primary">
+                        PKR {{ order.deliveryFee | number: '1.2-2' }}
+                    </span>
+                </div>
+                <div class="col-12">
+                    <div class="flex justify-content-between align-items-center pt-2 border-top-1 surface-border mt-1">
+                        <span class="font-bold text-base text-900">Order Grand Total:</span>
+                        <span class="font-bold text-xl text-primary">
+                            PKR {{ order.totalAmount | number: '1.2-2' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Trail for Delivery Fee Override -->
+            <div
+                *ngIf="order.originalDeliveryFee !== null && order.originalDeliveryFee !== undefined && order.deliveryFeeOverrideReason"
+                class="override-audit-box mt-3 text-sm"
+            >
+                <div class="font-bold text-orange-900 flex align-items-center gap-1 mb-1">
+                    <i class="pi pi-info-circle text-orange-600"></i>
+                    Delivery Charges Overridden by Admin
+                </div>
+                <div class="text-800">
+                    <strong>Original Fee:</strong> PKR {{ order.originalDeliveryFee | number: '1.2-2' }} &rarr;
+                    <strong>New Fee:</strong> PKR {{ order.deliveryFee | number: '1.2-2' }}
+                </div>
+                <div class="text-700 mt-1">
+                    <strong>Reason:</strong> "{{ order.deliveryFeeOverrideReason }}"
+                </div>
+                <div class="text-500 text-xs mt-1" *ngIf="order.deliveryFeeOverrideTime">
+                    Overridden by {{ order.deliveryFeeOverriddenByName || 'Admin' }} on
+                    {{ order.deliveryFeeOverrideTime | date: 'medium' }}
                 </div>
             </div>
         </div>
 
+        <!-- Notes / Delivery Location -->
+        <div class="surface-50 border-round p-3 mb-3 text-sm">
+            <div class="text-500 font-semibold mb-1">Delivery Address & Instructions:</div>
+            <div class="text-800 font-medium">{{ order.notes || 'No special delivery instructions provided.' }}</div>
+            <div *ngIf="getGoogleMapsLink(order.notes)" class="mt-2">
+                <a
+                    [href]="getGoogleMapsLink(order.notes)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="p-button p-button-sm p-button-outlined p-button-danger border-round-xl inline-flex align-items-center gap-2 font-bold no-underline"
+                >
+                    <i class="pi pi-map-marker text-red-500"></i>
+                    <span>Open Live Delivery Location in Google Maps</span>
+                    <i class="pi pi-external-link text-xs"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Line Items Table -->
         <div class="surface-border border-1 border-round overflow-auto">
             <table class="w-full">
                 <thead>
@@ -71,10 +158,10 @@
                 </thead>
                 <tbody>
                     <tr *ngFor="let line of order.lines || []">
-                        <td class="p-2">{{ line.productName || ('#' + line.productId) }}</td>
+                        <td class="p-2 font-medium">{{ line.productName || ('#' + line.productId) }}</td>
                         <td class="p-2 text-right">{{ line.quantity }}</td>
-                        <td class="p-2 text-right">{{ line.unitPrice | number: '1.2-2' }}</td>
-                        <td class="p-2 text-right">{{ line.lineTotal | number: '1.2-2' }}</td>
+                        <td class="p-2 text-right">PKR {{ line.unitPrice | number: '1.2-2' }}</td>
+                        <td class="p-2 text-right font-semibold">PKR {{ line.lineTotal | number: '1.2-2' }}</td>
                     </tr>
                     <tr *ngIf="!(order.lines || []).length">
                         <td colspan="4" class="p-3 text-center text-500">No line items</td>
@@ -92,6 +179,87 @@
             label="Close"
             class="p-button-text"
             (click)="onHide()"
+        ></button>
+    </ng-template>
+</p-dialog>
+
+<!-- Manual Delivery Fee Override Modal -->
+<p-dialog
+    [(visible)]="overrideDialogVisible"
+    header="Adjust Delivery Charges"
+    [modal]="true"
+    appendTo="body"
+    [style]="{ width: '420px' }"
+    [closable]="!overriding"
+    styleClass="p-fluid"
+>
+    <div class="p-2" *ngIf="order">
+        <div class="mb-3 text-sm text-600">
+            Current Delivery Fee: <strong class="text-900">PKR {{ (order.deliveryFee || 0) | number: '1.2-2' }}</strong>
+            <span *ngIf="order.deliveryAreaName"> ({{ order.deliveryAreaName }})</span>
+        </div>
+
+        <div class="field mb-3">
+            <label class="font-semibold text-900">New Delivery Fee (PKR) <span class="text-red-500">*</span></label>
+            <p-inputNumber
+                [(ngModel)]="overrideFee"
+                mode="currency"
+                currency="PKR"
+                locale="en-PK"
+                [min]="0"
+                [max]="100000"
+                [minFractionDigits]="2"
+            ></p-inputNumber>
+            <div class="flex gap-2 mt-2">
+                <button
+                    pButton
+                    type="button"
+                    label="Waive (Free Delivery)"
+                    class="p-button-xs p-button-outlined p-button-success"
+                    (click)="overrideFee = 0"
+                ></button>
+                <button
+                    pButton
+                    type="button"
+                    label="Set Standard (PKR 100)"
+                    class="p-button-xs p-button-outlined p-button-secondary"
+                    (click)="overrideFee = 100"
+                ></button>
+            </div>
+        </div>
+
+        <div class="field mb-2">
+            <label class="font-semibold text-900">Reason for Adjustment <span class="text-red-500">*</span></label>
+            <textarea
+                pInputTextarea
+                [(ngModel)]="overrideReason"
+                rows="3"
+                placeholder="e.g. VIP Customer, nearby address, delayed delivery compensation..."
+                maxlength="256"
+                class="w-full"
+            ></textarea>
+            <small class="text-500">Mandatory audit trail reason (min 3 chars).</small>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            label="Cancel"
+            icon="pi pi-times"
+            class="p-button-text"
+            (click)="overrideDialogVisible = false"
+            [disabled]="overriding"
+        ></button>
+        <button
+            pButton
+            pRipple
+            label="Apply Adjustment"
+            icon="pi pi-check"
+            class="p-button-warning font-semibold"
+            (click)="submitOverride()"
+            [loading]="overriding"
         ></button>
     </ng-template>
 </p-dialog>

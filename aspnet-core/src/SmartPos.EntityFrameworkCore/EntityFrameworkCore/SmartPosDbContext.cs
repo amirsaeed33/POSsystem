@@ -89,6 +89,10 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<CustomerOrderLine> CustomerOrderLines { get; set; }
 
+        public virtual DbSet<DeliveryArea> DeliveryAreas { get; set; }
+
+        public virtual DbSet<DeliveryPromotion> DeliveryPromotions { get; set; }
+
         public virtual DbSet<StockAdjustment> StockAdjustments { get; set; }
 
         public virtual DbSet<StockAdjustmentLine> StockAdjustmentLines { get; set; }
@@ -484,6 +488,7 @@ namespace SmartPos.EntityFrameworkCore
                 b.Property(x => x.TaxPercent).HasPrecision(18, 2);
                 b.Property(x => x.TaxAmount).HasPrecision(18, 2);
                 b.Property(x => x.TotalAmount).HasPrecision(18, 2);
+                b.Property(x => x.DeliveryCharges).HasPrecision(18, 2);
                 b.Property(x => x.CashAmount).HasPrecision(18, 2);
                 b.Property(x => x.CardAmount).HasPrecision(18, 2);
                 b.Property(x => x.CreditAmount).HasPrecision(18, 2);
@@ -566,8 +571,12 @@ namespace SmartPos.EntityFrameworkCore
 
             modelBuilder.Entity<CustomerOrder>(b =>
             {
+                b.Property(x => x.SubTotal).HasPrecision(18, 2);
+                b.Property(x => x.DeliveryFee).HasPrecision(18, 2);
+                b.Property(x => x.OriginalDeliveryFee).HasPrecision(18, 2);
                 b.Property(x => x.TotalAmount).HasPrecision(18, 2);
                 b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.DeliveryAreaId);
                 b.HasOne(x => x.Branch)
                     .WithMany()
                     .HasForeignKey(x => x.BranchId)
@@ -579,6 +588,42 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasOne(x => x.Sale)
                     .WithMany()
                     .HasForeignKey(x => x.SaleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.DeliveryArea)
+                    .WithMany()
+                    .HasForeignKey(x => x.DeliveryAreaId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                b.HasOne(x => x.DeliveryPromotion)
+                    .WithMany()
+                    .HasForeignKey(x => x.DeliveryPromotionId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<DeliveryArea>(b =>
+            {
+                b.Property(x => x.DeliveryFee).HasPrecision(18, 2);
+                b.Property(x => x.MinimumOrderAmount).HasPrecision(18, 2);
+                b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.IsActive);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<DeliveryPromotion>(b =>
+            {
+                b.Property(x => x.MinimumOrderAmount).HasPrecision(18, 2);
+                b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.ProductId);
+                b.HasIndex(x => x.IsActive);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 

@@ -4,6 +4,7 @@ import { MessageService } from 'primeng/api';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { OnlineCartService, CartItem } from 'src/app/demo/service/online-cart.service';
 import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
+import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -48,12 +49,20 @@ export class OnlineProductDetailComponent implements OnInit {
     confirmedOrderNo = '';
     confirmedTotal = 0;
 
+    // Delivery areas & pricing
+    deliveryAreas: DeliveryAreaDto[] = [];
+    selectedAreaId: number | null = null;
+    selectedArea: DeliveryAreaDto | null = null;
+    defaultDeliveryFee: number = 100;
+    freeDeliveryThreshold: number = 1500;
+
     constructor(
         public cartService: OnlineCartService,
         private customerOrderService: CustomerOrderService,
         private route: ActivatedRoute,
         private router: Router,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private deliveryAreaService: DeliveryAreaService
     ) {}
 
     ngOnInit(): void {
@@ -61,6 +70,7 @@ export class OnlineProductDetailComponent implements OnInit {
         if (snapBranchId && !isNaN(Number(snapBranchId))) {
             this.branchId = Number(snapBranchId);
             this.resolveBranchInfo(this.branchId);
+            this.loadDeliveryAreas(this.branchId);
         }
 
         const snapProductId = this.route.snapshot.paramMap.get('id');
@@ -68,6 +78,10 @@ export class OnlineProductDetailComponent implements OnInit {
             this.productId = Number(snapProductId);
             this.quantity = 1;
             this.checkAndLoad();
+        }
+
+        if (!snapBranchId) {
+            this.loadDeliveryAreas();
         }
 
         this.route.paramMap.subscribe((params) => {
@@ -89,6 +103,7 @@ export class OnlineProductDetailComponent implements OnInit {
                 if (newBranchId !== this.branchId) {
                     this.branchId = newBranchId;
                     this.resolveBranchInfo(this.branchId);
+                    this.loadDeliveryAreas(this.branchId);
                     this.checkAndLoad();
                 }
             }
@@ -96,6 +111,16 @@ export class OnlineProductDetailComponent implements OnInit {
     }
 
     async resolveBranchInfo(bId: number): Promise<void> {
+        if (!this.isMinOrderSatisfied()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Minimum Order Not Met',
+                detail: `Minimum order amount for ${this.selectedArea?.name} is PKR ${this.selectedArea?.minimumOrderAmount}. Please add more items.`,
+                life: 5000,
+            });
+            return;
+        }
+
         try {
             const info = await this.customerOrderService.getOnlineStoreHeader(bId);
             if (info) {
@@ -293,6 +318,42 @@ export class OnlineProductDetailComponent implements OnInit {
         }
     }
 
+    async loadDeliveryAreas(bId?: number): Promise<void> {
+        try {
+            this.deliveryAreas = await this.deliveryAreaService.getActiveAreasForBranch(bId || 0);
+            if (this.deliveryAreas.length > 0 && !this.selectedAreaId) {
+                this.selectedAreaId = this.deliveryAreas[0].id;
+                this.selectedArea = this.deliveryAreas[0];
+            }
+        } catch {
+            this.deliveryAreas = [];
+        }
+    }
+
+    onAreaChange(): void {
+        this.selectedArea = this.deliveryAreas.find(a => a.id === this.selectedAreaId) || null;
+    }
+
+    getDeliveryFee(): number {
+        if (this.isFreeDeliveryEligible()) return 0;
+        if (this.selectedArea) return this.selectedArea.deliveryFee ?? 0;
+        if (this.deliveryAreas.length > 0) return this.deliveryAreas[0].deliveryFee ?? 0;
+        return this.defaultDeliveryFee;
+    }
+
+    isFreeDeliveryEligible(): boolean {
+        return this.cartService.cartSubtotal >= this.freeDeliveryThreshold;
+    }
+
+    getGrandTotal(): number {
+        return this.cartService.cartSubtotal + this.getDeliveryFee();
+    }
+
+    isMinOrderSatisfied(): boolean {
+        if (!this.selectedArea || !this.selectedArea.minimumOrderAmount) return true;
+        return this.cartService.cartSubtotal >= this.selectedArea.minimumOrderAmount;
+    }
+
     async submitOrder(): Promise<void> {
         if (!this.customerName.trim()) {
             this.messageService.add({
@@ -341,6 +402,7 @@ export class OnlineProductDetailComponent implements OnInit {
                 google_maps_link: this.googleMapsLink ?? undefined,
                 deliveryAddress: this.deliveryAddress.trim() || undefined,
                 deliveryLandmark: this.deliveryLandmark.trim() || undefined,
+                deliveryAreaId: this.selectedAreaId ?? (this.selectedArea?.id || undefined),
                 lines: this.cartService.items.map((c) => ({
                     productId: c.productId,
                     quantity: c.quantity,

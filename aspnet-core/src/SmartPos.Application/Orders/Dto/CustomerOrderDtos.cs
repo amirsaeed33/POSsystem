@@ -27,9 +27,36 @@ namespace SmartPos.Orders.Dto
 
         public string GoogleMapsLink { get; set; }
 
+        public string DeliveryAddress { get; set; }
+
+        public string DeliveryLandmark { get; set; }
+
+        public int? DeliveryAreaId { get; set; }
+
+        public string DeliveryArea { get; set; }
+
+        public decimal? Subtotal { get; set; }
+
+        public decimal? DeliveryCharges { get; set; }
+
+        public decimal? GrandTotal { get; set; }
+
         [Required]
         [MinLength(1)]
         public List<CreateCustomerOrderLineDto> Lines { get; set; }
+    }
+
+    public class OverrideDeliveryFeeInput
+    {
+        [Required]
+        public int OrderId { get; set; }
+
+        [Range(0, 100000)]
+        public decimal NewDeliveryFee { get; set; }
+
+        [Required]
+        [StringLength(256, MinimumLength = 3)]
+        public string Reason { get; set; }
     }
 
     public class OnlineStoreHeaderDto
@@ -40,6 +67,10 @@ namespace SmartPos.Orders.Dto
         public string Phone { get; set; }
         public string CurrencyFormat { get; set; }
         public string DateFormat { get; set; }
+        public decimal BaseDeliveryFee { get; set; }
+        public bool IsDeliveryEnabled { get; set; }
+        public decimal FreeDeliveryThreshold { get; set; }
+        public string DeliveryAreaNote { get; set; }
     }
 
     public class OnlineProductDto
@@ -57,6 +88,7 @@ namespace SmartPos.Orders.Dto
         public bool InStock { get; set; }
         public decimal StockQuantity { get; set; }
         public string Specifications { get; set; }
+        public bool IsFreeDelivery { get; set; }
     }
 
     public class CreateCustomerOrderLineDto
@@ -99,6 +131,26 @@ namespace SmartPos.Orders.Dto
         public CustomerOrderStatus Status { get; set; }
 
         public string StatusName { get; set; }
+
+        public decimal SubTotal { get; set; }
+
+        public decimal DeliveryFee { get; set; }
+
+        public int? DeliveryAreaId { get; set; }
+
+        public string DeliveryAreaName { get; set; }
+
+        public bool IsFreeDelivery { get; set; }
+
+        public string FreeDeliveryReason { get; set; }
+
+        public decimal? OriginalDeliveryFee { get; set; }
+
+        public string DeliveryFeeOverrideReason { get; set; }
+
+        public string DeliveryFeeOverriddenByName { get; set; }
+
+        public DateTime? DeliveryFeeOverrideTime { get; set; }
 
         public decimal TotalAmount { get; set; }
 

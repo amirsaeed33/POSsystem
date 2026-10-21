@@ -61,6 +61,7 @@
                 <th pSortableColumn="subTotal">Sub Total <p-sortIcon field="subTotal"></p-sortIcon></th>
                 <th pSortableColumn="discountAmount">Discount <p-sortIcon field="discountAmount"></p-sortIcon></th>
                 <th pSortableColumn="taxAmount">Tax <p-sortIcon field="taxAmount"></p-sortIcon></th>
+                <th pSortableColumn="deliveryCharges">Delivery <p-sortIcon field="deliveryCharges"></p-sortIcon></th>
                 <th pSortableColumn="totalAmount">Total <p-sortIcon field="totalAmount"></p-sortIcon></th>
                 <th class="text-center" style="width: 4.5rem">Actions</th>
             </tr>
@@ -85,7 +86,14 @@
                 <td>{{ sale.subTotal | number: '1.2-2' }}</td>
                 <td>{{ sale.discountAmount | number: '1.2-2' }}</td>
                 <td>{{ sale.taxAmount | number: '1.2-2' }}</td>
-                <td>{{ sale.totalAmount | number: '1.2-2' }}</td>
+                <td>
+                    <span *ngIf="sale.deliveryCharges && sale.deliveryCharges > 0" class="font-bold text-primary">
+                        {{ sale.deliveryCharges | number: '1.2-2' }}
+                        <span *ngIf="sale.deliveryAreaName" class="text-xs text-500 block">({{ sale.deliveryAreaName }})</span>
+                    </span>
+                    <span *ngIf="!sale.deliveryCharges || sale.deliveryCharges === 0" class="text-500">—</span>
+                </td>
+                <td class="font-bold">{{ sale.totalAmount | number: '1.2-2' }}</td>
                 <td class="text-center">
                     <app-row-actions [items]="getRowActions(sale)"></app-row-actions>
                 </td>
@@ -94,7 +102,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="10" class="text-center p-4">
+                <td colspan="11" class="text-center p-4">
                     <div class="text-500">No sales found</div>
                 </td>
             </tr>

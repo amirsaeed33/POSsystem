@@ -296,6 +296,8 @@ namespace SmartPos.Sales
                 DiscountPercent = discountPercent,
                 TaxPercent = taxPercent,
                 PaymentType = input.PaymentType,
+                DeliveryCharges = Math.Max(0, input.DeliveryCharges),
+                DeliveryAreaName = input.DeliveryAreaName,
                 Lines = new List<SaleLine>()
             };
 
@@ -352,7 +354,7 @@ namespace SmartPos.Sales
             sale.DiscountAmount = discountAmount;
             var taxable = sale.SubTotal - sale.DiscountAmount;
             sale.TaxAmount = Math.Round(taxable * sale.TaxPercent / 100m, 2);
-            sale.TotalAmount = Math.Round(taxable + sale.TaxAmount, 2);
+            sale.TotalAmount = Math.Round(taxable + sale.TaxAmount + sale.DeliveryCharges, 2);
 
             ApplyPaymentSplit(sale, input);
 

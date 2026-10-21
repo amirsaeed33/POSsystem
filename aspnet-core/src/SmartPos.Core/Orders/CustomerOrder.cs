@@ -36,6 +36,37 @@ namespace SmartPos.Orders
 
         public virtual CustomerOrderStatus Status { get; set; }
 
+        public virtual decimal SubTotal { get; set; }
+
+        public virtual decimal DeliveryFee { get; set; }
+
+        public virtual int? DeliveryAreaId { get; set; }
+
+        [ForeignKey(nameof(DeliveryAreaId))]
+        public virtual DeliveryArea DeliveryArea { get; set; }
+
+        [StringLength(128)]
+        public virtual string DeliveryAreaName { get; set; }
+
+        public virtual bool IsFreeDelivery { get; set; }
+
+        [StringLength(256)]
+        public virtual string FreeDeliveryReason { get; set; }
+
+        public virtual int? DeliveryPromotionId { get; set; }
+
+        [ForeignKey(nameof(DeliveryPromotionId))]
+        public virtual DeliveryPromotion DeliveryPromotion { get; set; }
+
+        public virtual decimal? OriginalDeliveryFee { get; set; }
+
+        [StringLength(256)]
+        public virtual string DeliveryFeeOverrideReason { get; set; }
+
+        public virtual long? DeliveryFeeOverriddenByUserId { get; set; }
+
+        public virtual DateTime? DeliveryFeeOverrideTime { get; set; }
+
         public virtual decimal TotalAmount { get; set; }
 
         [StringLength(MaxNotesLength)]

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <localizationDictionary culture="en">
   <texts>
     <text name="HomePage" value="Home page" />
@@ -361,5 +361,10 @@
     <text name="AllStatuses">All statuses</text>
     <text name="InsufficientStock">Insufficient stock</text>
     <text name="View">View</text>
+    <text name="DeliveryAreas">Delivery Areas</text>
+    <text name="CreateDeliveryArea">Create Delivery Area</text>
+    <text name="EditDeliveryArea">Edit Delivery Area</text>
+    <text name="DeleteDeliveryArea">Delete Delivery Area</text>
+    <text name="OverrideDeliveryFee">Override Delivery Fee</text>
   </texts>
 </localizationDictionary>

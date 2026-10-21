@@ -63,6 +63,10 @@
                 <span>CUSTOMER:</span>
                 <span>{{ sale.customerName || 'Walk Customer' }}</span>
             </div>
+            <div class="thermal-meta-row" *ngIf="sale.deliveryAreaName">
+                <span>DELIVERY AREA:</span>
+                <span class="font-bold">{{ sale.deliveryAreaName }}</span>
+            </div>
             <div class="thermal-meta-row">
                 <span>PAYMENT:</span>
                 <span class="font-bold">{{ paymentTypeName }}</span>
@@ -107,6 +111,10 @@
             <div class="thermal-total-row" *ngIf="sale.taxAmount && sale.taxAmount > 0">
                 <span>Tax ({{ sale.taxPercent || 0 }}%):</span>
                 <span>+{{ sale.taxAmount | number:'1.0-2' }}</span>
+            </div>
+            <div class="thermal-total-row" *ngIf="sale.deliveryCharges && sale.deliveryCharges > 0">
+                <span>Delivery Fee:</span>
+                <span>+{{ sale.deliveryCharges | number:'1.0-2' }}</span>
             </div>
 
             <div class="thermal-divider-double"></div>
@@ -195,6 +203,10 @@
                 <div class="label">Customer</div>
                 <div class="value">{{ sale.customerName || '—' }}</div>
             </div>
+            <div *ngIf="sale.deliveryAreaName">
+                <div class="label">Delivery Area</div>
+                <div class="value">{{ sale.deliveryAreaName }}</div>
+            </div>
             <div>
                 <div class="label">Total Amount</div>
                 <div class="value total">{{ sale.totalAmount }}</div>
@@ -238,6 +250,12 @@
                         Tax ({{ sale.taxPercent }}%)
                     </td>
                     <td class="text-right">{{ sale.taxAmount }}</td>
+                </tr>
+                <tr *ngIf="sale.deliveryCharges && sale.deliveryCharges > 0">
+                    <td colspan="4" class="text-right">
+                        Delivery Charges
+                    </td>
+                    <td class="text-right">+{{ sale.deliveryCharges }}</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="text-right">

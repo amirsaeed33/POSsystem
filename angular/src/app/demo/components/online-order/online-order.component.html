@@ -843,13 +843,22 @@
                     <span>Subtotal</span>
                     <span class="font-bold text-800">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
                 </div>
-                <div class="flex align-items-center justify-content-between mb-3 text-sm text-600">
-                    <span>Delivery / Packing</span>
-                    <span class="text-green-600 font-bold">FREE</span>
+                <div class="flex align-items-center justify-content-between mb-2 text-sm text-600">
+                    <span>Delivery Charges</span>
+                    <span *ngIf="isFreeDeliveryEligible() || getDeliveryFee() === 0" class="text-green-600 font-bold flex align-items-center gap-1">
+                        <i class="pi pi-check-circle text-xs"></i> FREE
+                    </span>
+                    <span *ngIf="!isFreeDeliveryEligible() && getDeliveryFee() > 0" class="font-bold text-800">
+                        PKR {{ getDeliveryFee() | number: '1.0-0' }}
+                    </span>
+                </div>
+                <div *ngIf="!isFreeDeliveryEligible() && freeDeliveryThreshold > cartService.cartSubtotal" class="bg-green-50 border-round p-2 mb-3 text-xs text-green-800 flex align-items-center gap-1">
+                    <i class="pi pi-bolt text-green-600"></i>
+                    <span>Add <strong>PKR {{ (freeDeliveryThreshold - cartService.cartSubtotal) | number: '1.0-0' }}</strong> more for FREE delivery!</span>
                 </div>
                 <div class="flex align-items-center justify-content-between mb-4 text-lg font-bold text-900">
                     <span>Total Amount</span>
-                    <span class="text-red-500">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
+                    <span class="text-red-500">PKR {{ getGrandTotal() | number: '1.0-0' }}</span>
                 </div>
 
                 <button
@@ -952,6 +961,50 @@
                 </div>
             </div>
 
+            <!-- Delivery Area Selection -->
+            <div class="field mb-3" *ngIf="deliveryAreas.length > 0">
+                <label class="font-bold text-xs text-700 flex align-items-center gap-1">
+                    <i class="pi pi-map-marker text-red-500 text-xs"></i>
+                    <span>Select Delivery Area / Sector *</span>
+                </label>
+                <p-dropdown
+                    [options]="deliveryAreas"
+                    [(ngModel)]="selectedDeliveryAreaId"
+                    (onChange)="onDeliveryAreaChange($event.value)"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Choose your delivery area..."
+                    styleClass="w-full border-round-xl"
+                >
+                    <ng-template let-area pTemplate="item">
+                        <div class="flex align-items-center justify-content-between w-full">
+                            <div>
+                                <span class="font-semibold">{{ area.name }}</span>
+                                <span class="text-xs text-500 block" *ngIf="area.estimatedDeliveryTime">({{ area.estimatedDeliveryTime }})</span>
+                            </div>
+                            <div>
+                                <span *ngIf="area.deliveryFee === 0" class="text-green-600 font-bold text-xs">FREE</span>
+                                <span *ngIf="area.deliveryFee > 0" class="font-bold text-700 text-xs">PKR {{ area.deliveryFee | number: '1.0-0' }}</span>
+                            </div>
+                        </div>
+                    </ng-template>
+                    <ng-template let-area pTemplate="selectedItem">
+                        <div class="flex align-items-center justify-content-between w-full">
+                            <span>{{ area.name }}</span>
+                            <span class="font-bold text-xs ml-2 text-primary">
+                                {{ area.deliveryFee === 0 ? 'FREE' : ('+ PKR ' + (area.deliveryFee | number: '1.0-0')) }}
+                            </span>
+                        </div>
+                    </ng-template>
+                </p-dropdown>
+
+                <!-- Min order warning banner if subtotal is below area minimum -->
+                <div *ngIf="selectedDeliveryArea && selectedDeliveryArea.minimumOrderAmount > 0 && !isMinOrderSatisfied()" class="mt-2 p-2 bg-yellow-50 border-round text-xs text-yellow-900 flex align-items-center gap-2">
+                    <i class="pi pi-exclamation-triangle text-yellow-700"></i>
+                    <span>Minimum order for {{ selectedDeliveryArea.name }} is <strong>PKR {{ selectedDeliveryArea.minimumOrderAmount | number: '1.0-0' }}</strong>. Please add more items to qualify.</span>
+                </div>
+            </div>
+
             <!-- Manual Delivery Address & Landmark Fields -->
             <div class="field mb-3">
                 <label class="font-bold text-xs text-700">House / Flat / Shop # & Street</label>
@@ -1001,9 +1054,20 @@
                     class="border-round-xl"
                 ></textarea>
             </div>
-            <div class="surface-100 p-3 border-round-xl flex align-items-center justify-content-between mb-3">
-                <span class="font-bold text-sm text-800">Total Payable:</span>
-                <span class="font-bold text-lg text-red-500">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
+            <div class="surface-100 p-3 border-round-xl mb-3">
+                <div class="flex align-items-center justify-content-between text-sm text-600 mb-1">
+                    <span>Subtotal:</span>
+                    <span class="font-bold text-800">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
+                </div>
+                <div class="flex align-items-center justify-content-between text-sm text-600 mb-2">
+                    <span>Delivery Fee:</span>
+                    <span *ngIf="isFreeDeliveryEligible() || getDeliveryFee() === 0" class="text-green-600 font-bold">FREE</span>
+                    <span *ngIf="!isFreeDeliveryEligible() && getDeliveryFee() > 0" class="font-bold text-800">PKR {{ getDeliveryFee() | number: '1.0-0' }}</span>
+                </div>
+                <div class="flex align-items-center justify-content-between pt-2 border-top-1 surface-border">
+                    <span class="font-bold text-base text-900">Total Payable:</span>
+                    <span class="font-bold text-xl text-red-500">PKR {{ getGrandTotal() | number: '1.0-0' }}</span>
+                </div>
             </div>
         </div>
 

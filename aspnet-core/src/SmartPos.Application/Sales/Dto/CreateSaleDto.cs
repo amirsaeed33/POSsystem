@@ -36,6 +36,12 @@ namespace SmartPos.Sales.Dto
         [Range(0, double.MaxValue)]
         public decimal CardAmount { get; set; }
 
+        [Range(0, double.MaxValue)]
+        public decimal DeliveryCharges { get; set; }
+
+        [StringLength(128)]
+        public string DeliveryAreaName { get; set; }
+
         [Required]
         [MinLength(1)]
         public List<CreateSaleLineDto> Lines { get; set; }

@@ -22,11 +22,27 @@ export interface CustomerOrderDto {
     orderNo?: string;
     status: number;
     statusName?: string;
+    subTotal?: number;
+    deliveryFee?: number;
+    deliveryAreaId?: number;
+    deliveryAreaName?: string;
+    isFreeDelivery?: boolean;
+    freeDeliveryReason?: string;
+    originalDeliveryFee?: number;
+    deliveryFeeOverrideReason?: string;
+    deliveryFeeOverriddenByName?: string;
+    deliveryFeeOverrideTime?: string | Date;
     totalAmount: number;
     notes?: string;
     saleId?: number;
     saleInvoiceNo?: string;
     lines?: CustomerOrderLineDto[];
+}
+
+export interface OverrideDeliveryFeeInput {
+    orderId: number;
+    newDeliveryFee: number;
+    reason: string;
 }
 
 export interface CreateCustomerOrderLineDto {
@@ -48,6 +64,11 @@ export interface CreateCustomerOrderDto {
     google_maps_link?: string;
     deliveryAddress?: string;
     deliveryLandmark?: string;
+    deliveryAreaId?: number;
+    deliveryArea?: string;
+    subtotal?: number;
+    deliveryCharges?: number;
+    grandTotal?: number;
     lines: CreateCustomerOrderLineDto[];
 }
 

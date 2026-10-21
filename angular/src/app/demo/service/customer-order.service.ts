@@ -5,6 +5,7 @@ import {
     CreateCustomerOrderDto,
     CustomerOrderDto,
     CustomerOrderLineDto,
+    OverrideDeliveryFeeInput,
     PagedCustomerOrderResultRequestDto,
     PagedResultDto,
 } from '../api/customer-order';
@@ -96,10 +97,30 @@ export class CustomerOrderService {
                 longitude: input.longitude,
                 googleMapsLink: input.googleMapsLink || (input as any).google_maps_link,
                 google_maps_link: input.googleMapsLink || (input as any).google_maps_link,
+                deliveryAddress: input.deliveryAddress,
+                deliveryLandmark: input.deliveryLandmark,
+                deliveryAreaId: input.deliveryAreaId,
+                deliveryArea: input.deliveryArea,
+                subtotal: input.subtotal,
+                deliveryCharges: input.deliveryCharges,
+                grandTotal: input.grandTotal,
                 lines: input.lines,
             })
         );
         return this.map(this.unwrap(res, 'Failed to place online order'));
+    }
+
+    async overrideDeliveryFee(
+        input: OverrideDeliveryFeeInput
+    ): Promise<CustomerOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/OverrideDeliveryFee`, {
+                orderId: input.orderId,
+                newDeliveryFee: input.newDeliveryFee,
+                reason: input.reason,
+            })
+        );
+        return this.map(this.unwrap(res, 'Failed to override delivery fee'));
     }
 
     async delete(id: number): Promise<void> {
@@ -173,6 +194,16 @@ export class CustomerOrderService {
             orderNo: item.orderNo ?? item.OrderNo,
             status: item.status ?? item.Status ?? 0,
             statusName: item.statusName ?? item.StatusName,
+            subTotal: item.subTotal ?? item.SubTotal ?? 0,
+            deliveryFee: item.deliveryFee ?? item.DeliveryFee ?? 0,
+            deliveryAreaId: item.deliveryAreaId ?? item.DeliveryAreaId,
+            deliveryAreaName: item.deliveryAreaName ?? item.DeliveryAreaName,
+            isFreeDelivery: item.isFreeDelivery ?? item.IsFreeDelivery ?? false,
+            freeDeliveryReason: item.freeDeliveryReason ?? item.FreeDeliveryReason,
+            originalDeliveryFee: item.originalDeliveryFee ?? item.OriginalDeliveryFee,
+            deliveryFeeOverrideReason: item.deliveryFeeOverrideReason ?? item.DeliveryFeeOverrideReason,
+            deliveryFeeOverriddenByName: item.deliveryFeeOverriddenByName ?? item.DeliveryFeeOverriddenByName,
+            deliveryFeeOverrideTime: item.deliveryFeeOverrideTime ?? item.DeliveryFeeOverrideTime,
             totalAmount: item.totalAmount ?? item.TotalAmount ?? 0,
             notes: item.notes ?? item.Notes,
             saleId: item.saleId ?? item.SaleId,

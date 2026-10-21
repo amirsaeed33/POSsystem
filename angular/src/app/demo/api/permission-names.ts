@@ -103,6 +103,12 @@ export const PermissionNames = {
     CustomerOrdersCreate: 'Pages.CustomerOrders.Create',
     CustomerOrdersEdit: 'Pages.CustomerOrders.Edit',
     CustomerOrdersDelete: 'Pages.CustomerOrders.Delete',
+    CustomerOrdersOverrideDeliveryFee: 'Pages.CustomerOrders.OverrideDeliveryFee',
+
+    DeliveryAreas: 'Pages.DeliveryAreas',
+    DeliveryAreasCreate: 'Pages.DeliveryAreas.Create',
+    DeliveryAreasEdit: 'Pages.DeliveryAreas.Edit',
+    DeliveryAreasDelete: 'Pages.DeliveryAreas.Delete',
 
     EmailTemplates: 'Pages.EmailTemplates',
     EmailTemplatesCreate: 'Pages.EmailTemplates.Create',

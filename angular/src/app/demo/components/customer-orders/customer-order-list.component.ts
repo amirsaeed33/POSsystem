@@ -9,6 +9,8 @@ import {
 } from 'src/app/demo/api/customer-order';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
+import { PermissionService } from 'src/app/demo/service/permission.service';
+import { PermissionNames } from 'src/app/demo/api/permission-names';
 
 @Component({
     templateUrl: './customer-order-list.component.html',
@@ -31,14 +33,20 @@ export class CustomerOrderListComponent implements OnInit {
         { label: 'Rejected', value: CustomerOrderStatus.Rejected },
     ];
 
+    canOverrideDeliveryFee = false;
+
     constructor(public formatService: AppFormatService, 
         private customerOrderService: CustomerOrderService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService,
-        private route: ActivatedRoute
+        private route: ActivatedRoute,
+        private permissionService: PermissionService
     ) {}
 
     ngOnInit(): void {
+        this.canOverrideDeliveryFee = this.permissionService.isGranted(
+            PermissionNames.CustomerOrdersOverrideDeliveryFee
+        );
         this.loadOrders();
         this.route.queryParams.subscribe((params) => {
             if (params['id']) {
@@ -236,6 +244,12 @@ export class CustomerOrderListComponent implements OnInit {
             {
                 label: 'View details',
                 icon: 'pi pi-eye',
+                action: () => this.openViewDialog(order),
+            },
+            {
+                label: 'Adjust Delivery Fee',
+                icon: 'pi pi-dollar',
+                visible: this.isPending(order) && this.canOverrideDeliveryFee,
                 action: () => this.openViewDialog(order),
             },
             {

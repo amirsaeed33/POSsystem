@@ -63,6 +63,7 @@ const routes: Routes = [
             { path: 'suppliers', data: { breadcrumb: 'Suppliers', permission: PermissionNames.Suppliers }, loadChildren: () => import('./demo/components/suppliers/suppliers.module').then(m => m.SuppliersModule) },
             { path: 'products', data: { breadcrumb: 'Products', permission: PermissionNames.Products }, loadChildren: () => import('./demo/components/products/products.module').then(m => m.ProductsModule) },
             { path: 'customer-orders', data: { breadcrumb: 'Customer Orders', permission: PermissionNames.CustomerOrders }, loadChildren: () => import('./demo/components/customer-orders/customer-orders.module').then(m => m.CustomerOrdersModule) },
+            { path: 'delivery-areas', data: { breadcrumb: 'Delivery Areas', permission: PermissionNames.DeliveryAreas }, loadChildren: () => import('./demo/components/delivery-areas/delivery-areas.module').then(m => m.DeliveryAreasModule) },
             { path: 'purchases', data: { breadcrumb: 'Purchases', permission: PermissionNames.Purchases }, loadChildren: () => import('./demo/components/purchases/purchases.module').then(m => m.PurchasesModule) },
             { path: 'sales', data: { breadcrumb: 'Sales', permission: PermissionNames.Sales }, loadChildren: () => import('./demo/components/sales/sales.module').then(m => m.SalesModule) },
             { path: 'sale-returns', data: { breadcrumb: 'Sale Returns', permission: PermissionNames.Sales }, loadChildren: () => import('./demo/components/sale-returns/sale-returns.module').then(m => m.SaleReturnsModule) },

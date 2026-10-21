@@ -44,7 +44,12 @@ namespace SmartPos.Sales
 
         public virtual decimal TaxAmount { get; set; }
 
-        /// <summary>Grand total after discount and tax.</summary>
+        public virtual decimal DeliveryCharges { get; set; }
+
+        [StringLength(128)]
+        public virtual string DeliveryAreaName { get; set; }
+
+        /// <summary>Grand total after discount, tax, and delivery.</summary>
         public virtual decimal TotalAmount { get; set; }
 
         /// <summary><see cref="PaymentTypes"/> value.</summary>

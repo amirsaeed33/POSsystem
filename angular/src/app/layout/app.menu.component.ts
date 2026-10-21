@@ -85,6 +85,12 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                                   permission: PermissionNames.CustomerOrders,
                               },
                               {
+                                  label: 'Delivery Areas',
+                                  icon: 'pi pi-map-marker',
+                                  routerLink: ['/delivery-areas'],
+                                  permission: PermissionNames.DeliveryAreas,
+                              },
+                              {
                                   label: 'Online Menu & Ordering',
                                   icon: 'pi pi-globe',
                                   routerLink: ['/online-order'],
@@ -158,6 +164,12 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                                   icon: 'pi pi-file',
                                   routerLink: ['/customer-orders'],
                                   permission: PermissionNames.CustomerOrders,
+                              },
+                              {
+                                  label: 'Delivery Areas',
+                                  icon: 'pi pi-map-marker',
+                                  routerLink: ['/delivery-areas'],
+                                  permission: PermissionNames.DeliveryAreas,
                               },
                               {
                                   label: 'Online Storefront',

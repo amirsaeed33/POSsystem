@@ -26,6 +26,10 @@ namespace SmartPos.Sales.Dto
 
         public decimal TaxAmount { get; set; }
 
+        public decimal DeliveryCharges { get; set; }
+
+        public string DeliveryAreaName { get; set; }
+
         public decimal TotalAmount { get; set; }
 
         public int PaymentType { get; set; }

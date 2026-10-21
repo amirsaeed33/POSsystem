@@ -25,5 +25,7 @@ namespace SmartPos.Orders
         Task<OnlineProductDto> GetOnlineProductAsync(int id, int? branchId);
 
         Task<OnlineStoreHeaderDto> GetOnlineStoreHeaderAsync(int branchId);
+
+        Task<CustomerOrderDto> OverrideDeliveryFeeAsync(OverrideDeliveryFeeInput input);
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -41,6 +42,8 @@ namespace SmartPos.Orders
         private readonly IBranchEmailNotifier _branchEmailNotifier;
         private readonly IRepository<BranchNotificationSetting> _notificationSettingRepository;
         private readonly IRepository<EmailTemplate> _emailTemplateRepository;
+        private readonly IRepository<DeliveryArea> _deliveryAreaRepository;
+        private readonly IRepository<DeliveryPromotion> _deliveryPromotionRepository;
 
         public CustomerOrderAppService(
             IRepository<CustomerOrder> repository,
@@ -55,7 +58,9 @@ namespace SmartPos.Orders
             ISaleAppService saleAppService,
             IBranchEmailNotifier branchEmailNotifier,
             IRepository<BranchNotificationSetting> notificationSettingRepository,
-            IRepository<EmailTemplate> emailTemplateRepository)
+            IRepository<EmailTemplate> emailTemplateRepository,
+            IRepository<DeliveryArea> deliveryAreaRepository,
+            IRepository<DeliveryPromotion> deliveryPromotionRepository)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -70,6 +75,8 @@ namespace SmartPos.Orders
             _branchEmailNotifier = branchEmailNotifier;
             _notificationSettingRepository = notificationSettingRepository;
             _emailTemplateRepository = emailTemplateRepository;
+            _deliveryAreaRepository = deliveryAreaRepository;
+            _deliveryPromotionRepository = deliveryPromotionRepository;
             
             CreatePermissionName = PermissionNames.Pages_CustomerOrders_Create;
             UpdatePermissionName = PermissionNames.Pages_CustomerOrders_Edit;
@@ -201,25 +208,36 @@ namespace SmartPos.Orders
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
                 var branch = await _branchRepository.FirstOrDefaultAsync(b => b.Id == branchId);
-                if (branch == null)
+                var areas = await _deliveryAreaRepository.GetAll()
+                    .Where(a => a.BranchId == branchId && a.IsActive)
+                    .OrderBy(a => a.DeliveryFee)
+                    .ToListAsync();
+
+                var baseFee = areas.Any() ? areas.First().DeliveryFee : 100m;
+                var freeThreshold = 1500m;
+                var now = Abp.Timing.Clock.Now;
+                var promo = await _deliveryPromotionRepository.FirstOrDefaultAsync(p =>
+                    p.IsActive && (!p.BranchId.HasValue || p.BranchId == branchId) &&
+                    (!p.StartDate.HasValue || p.StartDate <= now) &&
+                    (!p.EndDate.HasValue || p.EndDate >= now) &&
+                    p.MinimumOrderAmount.HasValue);
+                if (promo != null && promo.MinimumOrderAmount.HasValue)
                 {
-                    return new OnlineStoreHeaderDto
-                    {
-                        BranchId = branchId,
-                        BranchName = $"Branch #{branchId}",
-                        CurrencyFormat = "PKR",
-                        DateFormat = "dd/MM/yyyy"
-                    };
+                    freeThreshold = promo.MinimumOrderAmount.Value;
                 }
 
                 return new OnlineStoreHeaderDto
                 {
-                    BranchId = branch.Id,
-                    BranchName = branch.Name,
-                    Address = branch.InvoiceAddress,
-                    Phone = branch.InvoiceContactPhone,
-                    CurrencyFormat = !string.IsNullOrWhiteSpace(branch.CurrencyFormat) ? branch.CurrencyFormat : "PKR",
-                    DateFormat = !string.IsNullOrWhiteSpace(branch.DateFormat) ? branch.DateFormat : "dd/MM/yyyy"
+                    BranchId = branch != null ? branch.Id : branchId,
+                    BranchName = branch?.Name ?? $"Branch #{branchId}",
+                    Address = branch?.InvoiceAddress,
+                    Phone = branch?.InvoiceContactPhone,
+                    CurrencyFormat = !string.IsNullOrWhiteSpace(branch?.CurrencyFormat) ? branch.CurrencyFormat : "PKR",
+                    DateFormat = !string.IsNullOrWhiteSpace(branch?.DateFormat) ? branch.DateFormat : "dd/MM/yyyy",
+                    BaseDeliveryFee = baseFee,
+                    IsDeliveryEnabled = true,
+                    FreeDeliveryThreshold = freeThreshold,
+                    DeliveryAreaNote = areas.Any() ? $"{areas.Count} active delivery areas" : "Standard Delivery"
                 };
             }
         }
@@ -281,20 +299,25 @@ namespace SmartPos.Orders
                     }
                 }
 
-                var finalNotes = input.Notes ?? string.Empty;
-                if (!string.IsNullOrWhiteSpace(input.GoogleMapsLink) && !finalNotes.Contains("maps.google.com"))
+                var noteParts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(input.Notes))
                 {
-                    var mapSnippet = $"🗺️ Maps: {input.GoogleMapsLink}";
-                    if (string.IsNullOrWhiteSpace(finalNotes))
-                    {
-                        finalNotes = mapSnippet;
-                    }
-                    else if (finalNotes.Length + mapSnippet.Length + 3 <= CustomerOrder.MaxNotesLength)
-                    {
-                        finalNotes = $"{finalNotes} | {mapSnippet}";
-                    }
+                    noteParts.Add(input.Notes.Trim());
+                }
+                if (!string.IsNullOrWhiteSpace(input.DeliveryAddress))
+                {
+                    noteParts.Add($"📍 {input.DeliveryAddress.Trim()}");
+                }
+                if (!string.IsNullOrWhiteSpace(input.DeliveryLandmark))
+                {
+                    noteParts.Add($"🚩 {input.DeliveryLandmark.Trim()}");
+                }
+                if (!string.IsNullOrWhiteSpace(input.GoogleMapsLink) && !noteParts.Any(p => p.Contains("maps.google.com")))
+                {
+                    noteParts.Add($"🗺️ {input.GoogleMapsLink.Trim()}");
                 }
 
+                var finalNotes = string.Join(" | ", noteParts);
                 if (finalNotes.Length > CustomerOrder.MaxNotesLength)
                 {
                     finalNotes = finalNotes.Substring(0, CustomerOrder.MaxNotesLength);
@@ -311,7 +334,8 @@ namespace SmartPos.Orders
                     Lines = new List<CustomerOrderLine>()
                 };
 
-                decimal total = 0;
+                decimal subTotal = 0;
+                var orderedProductIds = new List<int>();
                 foreach (var lineInput in input.Lines)
                 {
                     if (lineInput.Quantity <= 0)
@@ -320,21 +344,117 @@ namespace SmartPos.Orders
                     }
 
                     var product = await _productRepository.GetAsync(lineInput.ProductId);
-                    var unitPrice = lineInput.UnitPrice > 0 ? lineInput.UnitPrice : product.Price;
-                    var lineTotal = lineInput.Quantity * unitPrice;
-                    total += lineTotal;
+                    var branchStock = await _branchStockRepository.FirstOrDefaultAsync(s => s.BranchId == branchId && s.ProductId == lineInput.ProductId);
+                    var authoritativePrice = branchStock != null && branchStock.Price > 0 ? branchStock.Price : product.Price;
+                    var lineTotal = lineInput.Quantity * authoritativePrice;
+                    subTotal += lineTotal;
+                    orderedProductIds.Add(product.Id);
 
                     order.Lines.Add(new CustomerOrderLine
                     {
                         TenantId = tenantId,
                         ProductId = lineInput.ProductId,
                         Quantity = lineInput.Quantity,
-                        UnitPrice = unitPrice,
+                        UnitPrice = authoritativePrice,
                         LineTotal = lineTotal
                     });
                 }
 
-                order.TotalAmount = total;
+                subTotal = Math.Round(subTotal, 2);
+
+                // Server-side delivery area resolution & calculation
+                DeliveryArea deliveryArea = null;
+                if (input.DeliveryAreaId.HasValue && input.DeliveryAreaId.Value > 0)
+                {
+                    deliveryArea = await _deliveryAreaRepository.FirstOrDefaultAsync(
+                        a => a.Id == input.DeliveryAreaId.Value && a.BranchId == branchId && a.IsActive);
+                }
+
+                if (deliveryArea == null && !string.IsNullOrWhiteSpace(input.DeliveryArea))
+                {
+                    var areaQuery = input.DeliveryArea.Trim().ToLower();
+                    deliveryArea = await _deliveryAreaRepository.FirstOrDefaultAsync(
+                        a => a.BranchId == branchId && a.IsActive && a.Name.ToLower() == areaQuery);
+                }
+
+                decimal defaultFee = 100m;
+                string resolvedAreaName = input.DeliveryArea?.Trim();
+                int? resolvedAreaId = null;
+
+                if (deliveryArea != null)
+                {
+                    defaultFee = deliveryArea.DeliveryFee;
+                    resolvedAreaName = deliveryArea.Name;
+                    resolvedAreaId = deliveryArea.Id;
+
+                    if (deliveryArea.MinimumOrderAmount > 0 && subTotal < deliveryArea.MinimumOrderAmount)
+                    {
+                        throw new UserFriendlyException(
+                            $"Minimum order subtotal for delivery to {deliveryArea.Name} is PKR {deliveryArea.MinimumOrderAmount:N0}. Your current subtotal is PKR {subTotal:N0}.");
+                    }
+                }
+                else
+                {
+                    var firstActive = await _deliveryAreaRepository.FirstOrDefaultAsync(a => a.BranchId == branchId && a.IsActive);
+                    if (firstActive != null)
+                    {
+                        defaultFee = firstActive.DeliveryFee;
+                        if (string.IsNullOrWhiteSpace(resolvedAreaName))
+                        {
+                            resolvedAreaName = firstActive.Name;
+                            resolvedAreaId = firstActive.Id;
+                        }
+                    }
+                }
+
+                // Check free delivery promotions
+                var now = Abp.Timing.Clock.Now;
+                var activePromos = await _deliveryPromotionRepository.GetAll()
+                    .Where(p => p.IsActive && (!p.BranchId.HasValue || p.BranchId == branchId))
+                    .Where(p => !p.StartDate.HasValue || p.StartDate <= now)
+                    .Where(p => !p.EndDate.HasValue || p.EndDate >= now)
+                    .ToListAsync();
+
+                bool isFreeDelivery = false;
+                string freeDeliveryReason = null;
+                int? appliedPromotionId = null;
+
+                // Priority 1: Deal item with free delivery promotion
+                var dealPromo = activePromos.FirstOrDefault(p => p.ProductId.HasValue && orderedProductIds.Contains(p.ProductId.Value));
+                if (dealPromo != null)
+                {
+                    isFreeDelivery = true;
+                    appliedPromotionId = dealPromo.Id;
+                    freeDeliveryReason = $"Promotion: {dealPromo.Name} (Included deal item)";
+                }
+                else
+                {
+                    // Priority 2: Amount threshold promotion
+                    var amountPromo = activePromos.FirstOrDefault(p => p.MinimumOrderAmount.HasValue && subTotal >= p.MinimumOrderAmount.Value);
+                    if (amountPromo != null)
+                    {
+                        isFreeDelivery = true;
+                        appliedPromotionId = amountPromo.Id;
+                        freeDeliveryReason = $"Promotion: {amountPromo.Name} (Orders over PKR {amountPromo.MinimumOrderAmount:N0})";
+                    }
+                    else if (subTotal >= 1500m)
+                    {
+                        isFreeDelivery = true;
+                        freeDeliveryReason = "Free Delivery on orders PKR 1,500 and above";
+                    }
+                }
+
+                decimal finalDeliveryFee = isFreeDelivery ? 0 : defaultFee;
+
+                order.SubTotal = subTotal;
+                order.DeliveryFee = finalDeliveryFee;
+                order.DeliveryAreaId = resolvedAreaId;
+                order.DeliveryAreaName = resolvedAreaName;
+                order.IsFreeDelivery = isFreeDelivery;
+                order.FreeDeliveryReason = freeDeliveryReason;
+                order.DeliveryPromotionId = appliedPromotionId;
+                order.TotalAmount = Math.Round(subTotal + finalDeliveryFee, 2);
+
                 var insertedId = await Repository.InsertAndGetIdAsync(order);
                 await CurrentUnitOfWork.SaveChangesAsync();
 
@@ -380,16 +500,7 @@ namespace SmartPos.Orders
                     await _branchEmailNotifier.SendEmailsAsync(settings.Emails, subject, body);
                 }
 
-                return new CustomerOrderDto
-                {
-                    Id = insertedId,
-                    OrderNo = order.OrderNo,
-                    CustomerName = input.CustomerName,
-                    OrderDate = order.OrderDate,
-                    Status = order.Status,
-                    TotalAmount = order.TotalAmount,
-                    Notes = order.Notes
-                };
+                return await GetAsync(new EntityDto<int>(insertedId));
             }
         }
 
@@ -448,7 +559,12 @@ namespace SmartPos.Orders
                 });
             }
 
-            order.TotalAmount = total;
+            var deliveryFee = input.DeliveryCharges.GetValueOrDefault(0);
+            order.SubTotal = Math.Round(total, 2);
+            order.DeliveryFee = Math.Round(deliveryFee, 2);
+            order.DeliveryAreaId = input.DeliveryAreaId;
+            order.DeliveryAreaName = input.DeliveryArea;
+            order.TotalAmount = Math.Round(total + deliveryFee, 2);
 
             await Repository.InsertAsync(order);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -488,6 +604,62 @@ namespace SmartPos.Orders
             await Repository.DeleteAsync(order);
         }
 
+        [AbpAuthorize(PermissionNames.Pages_CustomerOrders_OverrideDeliveryFee)]
+        public async Task<CustomerOrderDto> OverrideDeliveryFeeAsync(OverrideDeliveryFeeInput input)
+        {
+            if (input == null)
+            {
+                throw new ArgumentNullException(nameof(input));
+            }
+
+            var order = await GetEntityByIdAsync(input.OrderId);
+            if (order == null)
+            {
+                throw new UserFriendlyException("Order not found.");
+            }
+
+            if (order.Status != CustomerOrderStatus.Pending)
+            {
+                throw new UserFriendlyException("Delivery charges can only be modified while the order is Pending.");
+            }
+
+            if (string.IsNullOrWhiteSpace(input.Reason) || input.Reason.Trim().Length < 3)
+            {
+                throw new UserFriendlyException("A valid reason (at least 3 characters) is required to adjust or waive delivery charges.");
+            }
+
+            if (input.NewDeliveryFee < 0)
+            {
+                throw new UserFriendlyException("Delivery fee cannot be negative.");
+            }
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+            if (!order.OriginalDeliveryFee.HasValue)
+            {
+                order.OriginalDeliveryFee = order.DeliveryFee;
+            }
+
+            var newFee = Math.Round(input.NewDeliveryFee, 2);
+            order.DeliveryFee = newFee;
+            order.DeliveryFeeOverrideReason = input.Reason.Trim();
+            order.DeliveryFeeOverriddenByUserId = AbpSession.UserId;
+            order.DeliveryFeeOverrideTime = Abp.Timing.Clock.Now;
+
+            if (newFee == 0)
+            {
+                order.IsFreeDelivery = true;
+                order.FreeDeliveryReason = "Waived by Admin: " + input.Reason.Trim();
+            }
+
+            order.TotalAmount = Math.Round(order.SubTotal + order.DeliveryFee, 2);
+
+            await Repository.UpdateAsync(order);
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            return await GetAsync(new EntityDto<int>(order.Id));
+        }
+
         public async Task<SaleDto> ApproveAsync(EntityDto<int> input)
         {
             var order = await GetEntityByIdAsync(input.Id);
@@ -513,6 +685,8 @@ namespace SmartPos.Orders
                 CustomerId = order.CustomerId,
                 SaleDate = Abp.Timing.Clock.Now,
                 PaymentType = PaymentTypes.Credit,
+                DeliveryCharges = order.DeliveryFee,
+                DeliveryAreaName = order.DeliveryAreaName,
                 Notes = string.IsNullOrWhiteSpace(order.Notes)
                     ? "From order " + (order.OrderNo ?? ("#" + order.Id))
                     : order.Notes + " (Order " + (order.OrderNo ?? ("#" + order.Id)) + ")",
@@ -589,6 +763,15 @@ namespace SmartPos.Orders
 
         protected override CustomerOrderDto MapToEntityDto(CustomerOrder entity)
         {
+            string overrideUserName = null;
+            if (entity.DeliveryFeeOverriddenByUserId.HasValue)
+            {
+                var overrideUser = _userRepository.FirstOrDefault(entity.DeliveryFeeOverriddenByUserId.Value);
+                overrideUserName = !string.IsNullOrWhiteSpace(overrideUser?.FullName)
+                    ? overrideUser.FullName
+                    : overrideUser?.UserName;
+            }
+
             var dto = new CustomerOrderDto
             {
                 Id = entity.Id,
@@ -598,6 +781,16 @@ namespace SmartPos.Orders
                 OrderNo = entity.OrderNo,
                 Status = entity.Status,
                 StatusName = entity.Status.ToString(),
+                SubTotal = entity.SubTotal,
+                DeliveryFee = entity.DeliveryFee,
+                DeliveryAreaId = entity.DeliveryAreaId,
+                DeliveryAreaName = entity.DeliveryAreaName,
+                IsFreeDelivery = entity.IsFreeDelivery,
+                FreeDeliveryReason = entity.FreeDeliveryReason,
+                OriginalDeliveryFee = entity.OriginalDeliveryFee,
+                DeliveryFeeOverrideReason = entity.DeliveryFeeOverrideReason,
+                DeliveryFeeOverriddenByName = overrideUserName,
+                DeliveryFeeOverrideTime = entity.DeliveryFeeOverrideTime,
                 TotalAmount = entity.TotalAmount,
                 Notes = entity.Notes,
                 SaleId = entity.SaleId,

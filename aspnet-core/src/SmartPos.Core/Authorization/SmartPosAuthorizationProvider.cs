@@ -109,6 +109,12 @@ namespace SmartPos.Authorization
             customerOrders.CreateChildPermission(PermissionNames.Pages_CustomerOrders_Create, L("CreateCustomerOrder"));
             customerOrders.CreateChildPermission(PermissionNames.Pages_CustomerOrders_Edit, L("EditCustomerOrder"));
             customerOrders.CreateChildPermission(PermissionNames.Pages_CustomerOrders_Delete, L("DeleteCustomerOrder"));
+            customerOrders.CreateChildPermission(PermissionNames.Pages_CustomerOrders_OverrideDeliveryFee, L("OverrideDeliveryFee"));
+
+            var deliveryAreas = context.CreatePermission(PermissionNames.Pages_DeliveryAreas, L("DeliveryAreas"));
+            deliveryAreas.CreateChildPermission(PermissionNames.Pages_DeliveryAreas_Create, L("CreateDeliveryArea"));
+            deliveryAreas.CreateChildPermission(PermissionNames.Pages_DeliveryAreas_Edit, L("EditDeliveryArea"));
+            deliveryAreas.CreateChildPermission(PermissionNames.Pages_DeliveryAreas_Delete, L("DeleteDeliveryArea"));
 
             var emailTemplates = context.CreatePermission(PermissionNames.Pages_EmailTemplates, L("EmailTemplates"));
             emailTemplates.CreateChildPermission(PermissionNames.Pages_EmailTemplates_Create, L("CreateEmailTemplate"));
