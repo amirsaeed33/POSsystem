@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { PermissionNames } from '../demo/api/permission-names';
 import { PermissionService } from '../demo/service/permission.service';
 import { LayoutService } from './service/app.layout.service';
@@ -8,9 +9,10 @@ import { BranchContextService } from '../demo/service/branch-context.service';
     selector: 'app-menu',
     templateUrl: './app.menu.component.html'
 })
-export class AppMenuComponent implements OnInit {
+export class AppMenuComponent implements OnInit, OnDestroy {
 
     model: any[] = [];
+    private branchSub?: Subscription;
 
     constructor(
         public layoutService: LayoutService,
@@ -25,18 +27,58 @@ export class AppMenuComponent implements OnInit {
             // Menu falls back to cached grants (if any).
         }
 
-        const currentBranchId = this.branchContext.getBranchId();
+        this.buildMenu();
+        this.branchSub = this.branchContext.currentBranch$.subscribe(() => {
+            this.buildMenu();
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.branchSub?.unsubscribe();
+    }
+
+    private buildMenu(): void {
+        const currentBranch = this.branchContext.getCurrentBranch();
+        const currentBranchId = currentBranch?.id ?? this.branchContext.getBranchId();
+        const isRestaurant = currentBranch?.businessType === 2;
 
         // Every root entry is a collapsible group (static/overlay) or hover panel (slim).
-        const menu = [
+        const menu: any[] = [
             {
                 label: 'Main',
                 icon: 'pi pi-home',
                 items: [
                     { label: 'Dashboard', icon: 'pi pi-home', routerLink: ['/'] },
-                    { label: 'POS Screen', icon: 'pi pi-desktop', routerLink: ['/pos'], permission: PermissionNames.Sales },
+                    {
+                        label: isRestaurant ? '🍽️ Restaurant POS' : 'POS Screen',
+                        icon: 'pi pi-desktop',
+                        routerLink: ['/pos'],
+                        permission: PermissionNames.Sales,
+                    },
                 ]
             },
+            ...(isRestaurant
+                ? [
+                      {
+                          label: 'Restaurant',
+                          icon: 'pi pi-compass',
+                          items: [
+                              {
+                                  label: 'Dining Tables & POS',
+                                  icon: 'pi pi-table',
+                                  routerLink: ['/pos'],
+                                  permission: PermissionNames.Sales,
+                              },
+                              {
+                                  label: 'Modifiers & Add-ons',
+                                  icon: 'pi pi-sliders-h',
+                                  routerLink: ['/products'],
+                                  permission: PermissionNames.Products,
+                              },
+                          ],
+                      },
+                  ]
+                : []),
             {
                 label: 'Products',
                 icon: 'pi pi-box',

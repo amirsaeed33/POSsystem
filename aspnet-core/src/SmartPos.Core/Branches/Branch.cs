@@ -79,6 +79,12 @@ namespace SmartPos.Branches
         /// <summary>Default discount amount applied on sales for this location.</summary>
         public virtual decimal DiscountAmount { get; set; }
 
+        /// <summary>Business type for this location: Retail = 1, Restaurant = 2.</summary>
+        public virtual BusinessType BusinessType { get; set; } = BusinessType.Retail;
+
+        /// <summary>Optional default dine-in service charge % applied for restaurant branches.</summary>
+        public virtual decimal ServiceChargePercent { get; set; }
+
         /// <summary>SHA256 (Base64) of the one-time branch activation token emailed after host approval.</summary>
         [StringLength(MaxActivationTokenHashLength)]
         public virtual string ActivationTokenHash { get; set; }

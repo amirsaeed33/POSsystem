@@ -69,6 +69,11 @@ export class BranchCreateComponent implements OnInit {
     seedCatalog: HostCatalogByCompanyTypeDto | null = null;
     selectedHostItemIds: number[] = [];
 
+    businessTypeOptions = [
+        { label: '🛒 Retail & Supermarket', value: 1 },
+        { label: '🍽️ Restaurant & Cafe', value: 2 },
+    ];
+
     constructor(
         private branchService: BranchService,
         private branchContext: BranchContextService,
@@ -245,6 +250,8 @@ export class BranchCreateComponent implements OnInit {
             taxPercent: this.branch.taxPercent ?? 0,
             discountPercent: this.branch.discountPercent ?? 0,
             discountAmount: this.branch.discountAmount ?? 0,
+            businessType: this.branch.businessType ?? 1,
+            serviceChargePercent: this.branch.serviceChargePercent ?? 0,
             companyTypeId: this.selectedCompanyTypeId,
             hostCatalogItemIds: this.selectedHostItemIds,
         };
@@ -323,6 +330,8 @@ export class BranchCreateComponent implements OnInit {
             taxPercent: 0,
             discountPercent: 0,
             discountAmount: 0,
+            businessType: 1,
+            serviceChargePercent: 0,
         };
     }
 }

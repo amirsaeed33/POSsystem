@@ -142,6 +142,11 @@
                                 [class.branch-badge--ok]="branch.status === BranchStatuses.Approved"
                                 [class.branch-badge--rejected]="branch.status === BranchStatuses.Rejected"
                             >{{ statusLabel(branch) }}</span>
+                            <span
+                                class="branch-badge"
+                                [style.background]="branch.businessType === 2 ? '#fef3c7' : '#f1f5f9'"
+                                [style.color]="branch.businessType === 2 ? '#b45309' : '#475569'"
+                            >{{ branch.businessType === 2 ? '🍽️ Restaurant' : '🛒 Retail' }}</span>
                         </div>
                         <ng-container
                             *ngTemplateOutlet="branchActionsMenu; context: { $implicit: branch }"

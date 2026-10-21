@@ -18,6 +18,7 @@ using SmartPos.Orders;
 using SmartPos.Products;
 using SmartPos.Purchases;
 using SmartPos.Sales;
+using SmartPos.Restaurant;
 using SmartPos.Staffs;
 using SmartPos.Suppliers;
 using SmartPos.Units;
@@ -91,6 +92,16 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<StockAdjustment> StockAdjustments { get; set; }
 
         public virtual DbSet<StockAdjustmentLine> StockAdjustmentLines { get; set; }
+
+        public virtual DbSet<RestaurantTable> RestaurantTables { get; set; }
+
+        public virtual DbSet<RestaurantOrder> RestaurantOrders { get; set; }
+
+        public virtual DbSet<RestaurantOrderLine> RestaurantOrderLines { get; set; }
+
+        public virtual DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
+
+        public virtual DbSet<ProductModifierOption> ProductModifierOptions { get; set; }
 
         public SmartPosDbContext(DbContextOptions<SmartPosDbContext> options)
             : base(options)
@@ -607,6 +618,57 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.ProductId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<RestaurantTable>(b =>
+            {
+                b.HasIndex(x => new { x.BranchId, x.TableNo });
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<RestaurantOrder>(b =>
+            {
+                b.HasIndex(x => new { x.BranchId, x.Status });
+                b.HasIndex(x => x.TableId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Table)
+                    .WithMany()
+                    .HasForeignKey(x => x.TableId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<RestaurantOrderLine>(b =>
+            {
+                b.HasOne(x => x.Order)
+                    .WithMany(x => x.Lines)
+                    .HasForeignKey(x => x.OrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ProductModifierGroup>(b =>
+            {
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ProductModifierOption>(b =>
+            {
+                b.HasOne(x => x.ModifierGroup)
+                    .WithMany(x => x.Options)
+                    .HasForeignKey(x => x.ModifierGroupId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

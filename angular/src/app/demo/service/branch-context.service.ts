@@ -115,9 +115,7 @@ export class BranchContextService {
             branches.find((b) => b.id === preferred) ||
             branches[0];
 
-        if (this.currentBranchSubject.value?.id !== selected.id) {
-            this.setCurrentBranch(selected);
-        }
+        this.setCurrentBranch(selected);
         return branches;
     }
 }

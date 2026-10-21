@@ -70,5 +70,10 @@ namespace SmartPos.Branches.Dto
 
         [Range(0, double.MaxValue)]
         public decimal DiscountAmount { get; set; }
+
+        public BusinessType BusinessType { get; set; } = BusinessType.Retail;
+
+        [Range(0, 100)]
+        public decimal ServiceChargePercent { get; set; }
     }
 }

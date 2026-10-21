@@ -56,6 +56,11 @@
                     {{ locationLabel }}
                 </span>
                 <span
+                    *ngIf="currentBranch?.businessType === 2"
+                    class="text-xs px-2 py-1 border-round font-medium bg-yellow-100 text-yellow-900"
+                    title="Active Restaurant & Dining Table Mode"
+                >🍽️ Restaurant</span>
+                <span
                     *ngIf="currentBranch?.status && currentBranch?.status !== BranchStatuses.Approved"
                     class="text-xs px-2 py-1 border-round font-medium"
                     [ngClass]="{
@@ -78,7 +83,10 @@
                         (click)="onChangeBranch(branch)"
                     >
                         <span class="flex-1">
-                            <span class="block font-medium">{{ branch.name }}</span>
+                            <span class="block font-medium">
+                                {{ branch.name }}
+                                <span *ngIf="branch.businessType === 2" class="text-xs ml-1 text-yellow-700 font-semibold">🍽️ Restaurant</span>
+                            </span>
                             <span class="text-xs text-500" *ngIf="branch.code">{{ branch.code }}</span>
                             <span
                                 class="text-xs text-500 block"
