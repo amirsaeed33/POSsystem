@@ -168,7 +168,10 @@
                         (click)="viewOrder(order)"
                     >
                         <div class="flex align-items-center justify-content-between mb-1">
-                            <span class="font-bold text-900 text-sm">#{{ order.orderNo || order.id }}</span>
+                            <div class="flex align-items-center gap-2">
+                                <span class="font-bold text-900 text-sm">#{{ order.orderNo || order.id }}</span>
+                                <span *ngIf="order.branchName" class="badge bg-blue-50 text-blue-700 px-1 border-round text-xs font-normal">{{ order.branchName }}</span>
+                            </div>
                             <span class="text-xs text-500">{{ formatOrderTime(order.orderDate) }}</span>
                         </div>
                         <div class="flex align-items-center justify-content-between text-xs text-700">

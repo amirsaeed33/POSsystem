@@ -103,6 +103,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             if (b) {
                 this.currentBranch = b;
                 this.branchLogoFailed = false;
+                this.loadTodayOrders();
             }
         });
 
@@ -130,21 +131,22 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             const res = await this.customerOrderService.getAll({ maxResultCount: 100 });
             const allOrders = res.items || [];
 
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            // Filter today's pending/active orders (remove completed or rejected)
+            // Filter all pending/active orders that require store attention
             this.todayPendingOrders = allOrders.filter((order) => {
                 const isPending = order.status === CustomerOrderStatus.Pending || order.status === 0;
-                if (!isPending) {
-                    return false;
-                }
-                if (!order.orderDate) {
+                if (!isPending) return false;
+
+                // Host admin sees all incoming online orders across all branches
+                if (this.isHostAdmin) {
                     return true;
                 }
-                const orderDate = new Date(order.orderDate);
-                orderDate.setHours(0, 0, 0, 0);
-                return orderDate.getTime() === today.getTime();
+
+                // Branch staff / tenant admin only sees orders for their active branch
+                if (this.currentBranch?.id && order.branchId) {
+                    return order.branchId === this.currentBranch.id;
+                }
+
+                return true;
             });
 
             this.pendingOrdersCount = this.todayPendingOrders.length;

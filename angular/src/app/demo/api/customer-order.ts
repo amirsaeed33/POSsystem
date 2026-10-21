@@ -36,6 +36,8 @@ export interface CustomerOrderDto {
     notes?: string;
     saleId?: number;
     saleInvoiceNo?: string;
+    branchId?: number;
+    branchName?: string;
     lines?: CustomerOrderLineDto[];
 }
 

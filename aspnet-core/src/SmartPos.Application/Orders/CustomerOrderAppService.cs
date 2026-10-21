@@ -591,156 +591,176 @@ namespace SmartPos.Orders
             throw new UserFriendlyException("Orders cannot be edited. Reject and create a new order instead.");
         }
 
+        public override async Task<PagedResultDto<CustomerOrderDto>> GetAllAsync(PagedCustomerOrderResultRequestDto input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                return await base.GetAllAsync(input);
+            }
+        }
+
         public override async Task DeleteAsync(EntityDto<int> input)
         {
-            CheckDeletePermission();
-
-            var order = await GetEntityByIdAsync(input.Id);
-            if (order == null)
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
-                throw new UserFriendlyException("Order not found.");
+                CheckDeletePermission();
+
+                var order = await GetEntityByIdAsync(input.Id);
+                if (order == null)
+                {
+                    throw new UserFriendlyException("Order not found.");
+                }
+
+                if (order.Status != CustomerOrderStatus.Pending)
+                {
+                    throw new UserFriendlyException("Only pending orders can be deleted.");
+                }
+
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+                foreach (var line in order.Lines.ToList())
+                {
+                    await _lineRepository.DeleteAsync(line);
+                }
+
+                await Repository.DeleteAsync(order);
             }
-
-            if (order.Status != CustomerOrderStatus.Pending)
-            {
-                throw new UserFriendlyException("Only pending orders can be deleted.");
-            }
-
-            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
-
-            foreach (var line in order.Lines.ToList())
-            {
-                await _lineRepository.DeleteAsync(line);
-            }
-
-            await Repository.DeleteAsync(order);
         }
 
         [AbpAuthorize(PermissionNames.Pages_CustomerOrders_OverrideDeliveryFee)]
         public async Task<CustomerOrderDto> OverrideDeliveryFeeAsync(OverrideDeliveryFeeInput input)
         {
-            if (input == null)
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
-                throw new ArgumentNullException(nameof(input));
+                if (input == null)
+                {
+                    throw new ArgumentNullException(nameof(input));
+                }
+
+                var order = await GetEntityByIdAsync(input.OrderId);
+                if (order == null)
+                {
+                    throw new UserFriendlyException("Order not found.");
+                }
+
+                if (order.Status != CustomerOrderStatus.Pending)
+                {
+                    throw new UserFriendlyException("Delivery charges can only be modified while the order is Pending.");
+                }
+
+                if (string.IsNullOrWhiteSpace(input.Reason) || input.Reason.Trim().Length < 3)
+                {
+                    throw new UserFriendlyException("A valid reason (at least 3 characters) is required to adjust or waive delivery charges.");
+                }
+
+                if (input.NewDeliveryFee < 0)
+                {
+                    throw new UserFriendlyException("Delivery fee cannot be negative.");
+                }
+
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+                if (!order.OriginalDeliveryFee.HasValue)
+                {
+                    order.OriginalDeliveryFee = order.DeliveryFee;
+                }
+
+                var newFee = Math.Round(input.NewDeliveryFee, 2);
+                order.DeliveryFee = newFee;
+                order.DeliveryFeeOverrideReason = input.Reason.Trim();
+                order.DeliveryFeeOverriddenByUserId = AbpSession.UserId;
+                order.DeliveryFeeOverrideTime = Abp.Timing.Clock.Now;
+
+                if (newFee == 0)
+                {
+                    order.IsFreeDelivery = true;
+                    order.FreeDeliveryReason = "Waived by Admin: " + input.Reason.Trim();
+                }
+
+                order.TotalAmount = Math.Round(order.SubTotal + order.DeliveryFee, 2);
+
+                await Repository.UpdateAsync(order);
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                return await GetAsync(new EntityDto<int>(order.Id));
             }
-
-            var order = await GetEntityByIdAsync(input.OrderId);
-            if (order == null)
-            {
-                throw new UserFriendlyException("Order not found.");
-            }
-
-            if (order.Status != CustomerOrderStatus.Pending)
-            {
-                throw new UserFriendlyException("Delivery charges can only be modified while the order is Pending.");
-            }
-
-            if (string.IsNullOrWhiteSpace(input.Reason) || input.Reason.Trim().Length < 3)
-            {
-                throw new UserFriendlyException("A valid reason (at least 3 characters) is required to adjust or waive delivery charges.");
-            }
-
-            if (input.NewDeliveryFee < 0)
-            {
-                throw new UserFriendlyException("Delivery fee cannot be negative.");
-            }
-
-            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
-
-            if (!order.OriginalDeliveryFee.HasValue)
-            {
-                order.OriginalDeliveryFee = order.DeliveryFee;
-            }
-
-            var newFee = Math.Round(input.NewDeliveryFee, 2);
-            order.DeliveryFee = newFee;
-            order.DeliveryFeeOverrideReason = input.Reason.Trim();
-            order.DeliveryFeeOverriddenByUserId = AbpSession.UserId;
-            order.DeliveryFeeOverrideTime = Abp.Timing.Clock.Now;
-
-            if (newFee == 0)
-            {
-                order.IsFreeDelivery = true;
-                order.FreeDeliveryReason = "Waived by Admin: " + input.Reason.Trim();
-            }
-
-            order.TotalAmount = Math.Round(order.SubTotal + order.DeliveryFee, 2);
-
-            await Repository.UpdateAsync(order);
-            await CurrentUnitOfWork.SaveChangesAsync();
-
-            return await GetAsync(new EntityDto<int>(order.Id));
         }
 
         public async Task<SaleDto> ApproveAsync(EntityDto<int> input)
         {
-            var order = await GetEntityByIdAsync(input.Id);
-            if (order == null)
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
-                throw new UserFriendlyException("Order not found.");
-            }
-
-            if (order.Status != CustomerOrderStatus.Pending)
-            {
-                throw new UserFriendlyException("Only pending orders can be approved.");
-            }
-
-            if (order.Lines == null || !order.Lines.Any())
-            {
-                throw new UserFriendlyException("Order has no product lines.");
-            }
-
-            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
-
-            var sale = await _saleAppService.CreateSaleInternalAsync(new CreateSaleDto
-            {
-                CustomerId = order.CustomerId,
-                SaleDate = Abp.Timing.Clock.Now,
-                PaymentType = PaymentTypes.Credit,
-                DeliveryCharges = order.DeliveryFee,
-                DeliveryAreaName = order.DeliveryAreaName,
-                Notes = string.IsNullOrWhiteSpace(order.Notes)
-                    ? "From order " + (order.OrderNo ?? ("#" + order.Id))
-                    : order.Notes + " (Order " + (order.OrderNo ?? ("#" + order.Id)) + ")",
-                Lines = order.Lines.Select(x => new CreateSaleLineDto
+                var order = await GetEntityByIdAsync(input.Id);
+                if (order == null)
                 {
-                    ProductId = x.ProductId,
-                    Quantity = x.Quantity,
-                    UnitPrice = x.UnitPrice
-                }).ToList()
-            });
+                    throw new UserFriendlyException("Order not found.");
+                }
 
-            order.Status = CustomerOrderStatus.Approved;
-            order.SaleId = sale.Id;
-            await CurrentUnitOfWork.SaveChangesAsync();
+                if (order.Status != CustomerOrderStatus.Pending)
+                {
+                    throw new UserFriendlyException("Only pending orders can be approved.");
+                }
 
-            return sale;
+                if (order.Lines == null || !order.Lines.Any())
+                {
+                    throw new UserFriendlyException("Order has no product lines.");
+                }
+
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+                var sale = await _saleAppService.CreateSaleInternalAsync(new CreateSaleDto
+                {
+                    CustomerId = order.CustomerId,
+                    SaleDate = Abp.Timing.Clock.Now,
+                    PaymentType = PaymentTypes.Credit,
+                    DeliveryCharges = order.DeliveryFee,
+                    DeliveryAreaName = order.DeliveryAreaName,
+                    Notes = string.IsNullOrWhiteSpace(order.Notes)
+                        ? "From order " + (order.OrderNo ?? ("#" + order.Id))
+                        : order.Notes + " (Order " + (order.OrderNo ?? ("#" + order.Id)) + ")",
+                    Lines = order.Lines.Select(x => new CreateSaleLineDto
+                    {
+                        ProductId = x.ProductId,
+                        Quantity = x.Quantity,
+                        UnitPrice = x.UnitPrice
+                    }).ToList()
+                });
+
+                order.Status = CustomerOrderStatus.Approved;
+                order.SaleId = sale.Id;
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                return sale;
+            }
         }
 
         public async Task RejectAsync(EntityDto<int> input)
         {
-            var order = await GetEntityByIdAsync(input.Id);
-            if (order == null)
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
-                throw new UserFriendlyException("Order not found.");
+                var order = await GetEntityByIdAsync(input.Id);
+                if (order == null)
+                {
+                    throw new UserFriendlyException("Order not found.");
+                }
+
+                if (order.Status != CustomerOrderStatus.Pending)
+                {
+                    throw new UserFriendlyException("Only pending orders can be rejected.");
+                }
+
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+                order.Status = CustomerOrderStatus.Rejected;
+                await CurrentUnitOfWork.SaveChangesAsync();
             }
-
-            if (order.Status != CustomerOrderStatus.Pending)
-            {
-                throw new UserFriendlyException("Only pending orders can be rejected.");
-            }
-
-            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
-
-            order.Status = CustomerOrderStatus.Rejected;
-            await CurrentUnitOfWork.SaveChangesAsync();
         }
 
         protected override IQueryable<CustomerOrder> CreateFilteredQuery(PagedCustomerOrderResultRequestDto input)
         {
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
 
-            return Repository.GetAllIncluding(x => x.Customer, x => x.Sale, x => x.Lines)
+            return Repository.GetAllIncluding(x => x.Customer, x => x.Sale, x => x.Lines, x => x.Branch)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(input.Status.HasValue, x => x.Status == input.Status.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
@@ -752,25 +772,31 @@ namespace SmartPos.Orders
 
         protected override async Task<CustomerOrder> GetEntityByIdAsync(int id)
         {
-            return await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.Customer, x => x.Sale, x => x.Lines)
-                    .Where(x => x.Id == id));
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                return await AsyncQueryableExecuter.FirstOrDefaultAsync(
+                    Repository.GetAllIncluding(x => x.Customer, x => x.Sale, x => x.Lines, x => x.Branch)
+                        .Where(x => x.Id == id));
+            }
         }
 
         public override async Task<CustomerOrderDto> GetAsync(EntityDto<int> input)
         {
-            var entity = await GetEntityByIdAsync(input.Id);
-            if (entity == null)
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
-                throw new UserFriendlyException("Order not found.");
-            }
+                var entity = await GetEntityByIdAsync(input.Id);
+                if (entity == null)
+                {
+                    throw new UserFriendlyException("Order not found.");
+                }
 
-            foreach (var line in entity.Lines)
-            {
-                line.Product = await _productRepository.FirstOrDefaultAsync(line.ProductId);
-            }
+                foreach (var line in entity.Lines)
+                {
+                    line.Product = await _productRepository.FirstOrDefaultAsync(line.ProductId);
+                }
 
-            return MapToEntityDto(entity);
+                return MapToEntityDto(entity);
+            }
         }
 
         protected override CustomerOrderDto MapToEntityDto(CustomerOrder entity)
@@ -787,6 +813,8 @@ namespace SmartPos.Orders
             var dto = new CustomerOrderDto
             {
                 Id = entity.Id,
+                BranchId = entity.BranchId,
+                BranchName = entity.Branch?.Name,
                 CustomerId = entity.CustomerId,
                 CustomerName = entity.Customer?.Name,
                 OrderDate = entity.OrderDate,
