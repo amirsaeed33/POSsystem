@@ -622,7 +622,20 @@
 
             <div class="surface-card p-3 border-round border-1 surface-border mb-4">
                 <span class="text-xs text-500 block mb-1">Order Tracking Number</span>
-                <span class="text-xl font-bold text-primary block">{{ confirmedOrderNo }}</span>
+                <div class="flex align-items-center justify-content-between">
+                    <span class="text-xl font-bold text-primary font-mono">{{ confirmedOrderNo }}</span>
+                    <button
+                        type="button"
+                        pButton
+                        pRipple
+                        [icon]="orderCopied ? 'pi pi-check text-green-600' : 'pi pi-copy text-700'"
+                        class="p-button-rounded p-button-text p-button-sm w-2rem h-2rem hover:surface-200"
+                        (click)="copyOrderNo(confirmedOrderNo)"
+                        [pTooltip]="orderCopied ? 'Copied!' : 'Copy Order Number'"
+                        tooltipPosition="top"
+                        aria-label="Copy Order Number"
+                    ></button>
+                </div>
                 <span class="text-xs text-600 mt-2 block">Total Amount: {{ confirmedTotal | currency: currencyFormat:'symbol':'1.2-2' }}</span>
             </div>
 

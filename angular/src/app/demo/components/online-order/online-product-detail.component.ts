@@ -49,6 +49,7 @@ export class OnlineProductDetailComponent implements OnInit {
     successModalVisible = false;
     confirmedOrderNo = '';
     confirmedTotal = 0;
+    orderCopied = false;
 
     // Delivery areas & pricing
     deliveryAreas: DeliveryAreaDto[] = [];
@@ -576,5 +577,53 @@ export class OnlineProductDetailComponent implements OnInit {
             return items.filter((i) => i.key && i.value);
         }
         return [];
+    }
+
+    copyOrderNo(orderNo: string): void {
+        if (!orderNo) return;
+        if (navigator?.clipboard?.writeText) {
+            navigator.clipboard.writeText(orderNo).then(() => {
+                this.orderCopied = true;
+                this.messageService?.add({
+                    severity: 'success',
+                    summary: 'Copied',
+                    detail: `Order number ${orderNo} copied to clipboard!`,
+                    life: 2500,
+                });
+                setTimeout(() => {
+                    this.orderCopied = false;
+                }, 2500);
+            }).catch(() => {
+                this.fallbackCopy(orderNo);
+            });
+        } else {
+            this.fallbackCopy(orderNo);
+        }
+    }
+
+    private fallbackCopy(text: string): void {
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            this.orderCopied = true;
+            this.messageService?.add({
+                severity: 'success',
+                summary: 'Copied',
+                detail: `Order number ${text} copied to clipboard!`,
+                life: 2500,
+            });
+            setTimeout(() => {
+                this.orderCopied = false;
+            }, 2500);
+        } catch {
+            // Ignore
+        }
     }
 }

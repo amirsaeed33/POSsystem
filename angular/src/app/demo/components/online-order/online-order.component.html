@@ -1110,13 +1110,26 @@
                 Your order has been received by our kitchen and will be ready shortly.
             </p>
             <div class="surface-100 p-3 border-round-xl mb-4 text-left">
-                <div class="flex justify-content-between text-xs text-600 mb-1">
-                    <span>Order Number:</span>
-                    <span class="font-bold text-900">{{ confirmedOrderNo }}</span>
+                <div class="flex justify-content-between align-items-center text-xs text-600 mb-2">
+                    <span class="font-medium">Order Number:</span>
+                    <div class="flex align-items-center gap-1">
+                        <span class="font-bold text-900 text-sm font-mono">{{ confirmedOrderNo }}</span>
+                        <button
+                            type="button"
+                            pButton
+                            pRipple
+                            [icon]="orderCopied ? 'pi pi-check text-green-600' : 'pi pi-copy text-700'"
+                            class="p-button-rounded p-button-text p-button-sm w-2rem h-2rem hover:surface-200"
+                            (click)="copyOrderNo(confirmedOrderNo)"
+                            [pTooltip]="orderCopied ? 'Copied!' : 'Copy Order Number'"
+                            tooltipPosition="top"
+                            aria-label="Copy Order Number"
+                        ></button>
+                    </div>
                 </div>
-                <div class="flex justify-content-between text-xs text-600">
-                    <span>Total Amount:</span>
-                    <span class="font-bold text-green-600">PKR {{ confirmedTotal | number: '1.0-0' }}</span>
+                <div class="flex justify-content-between align-items-center text-xs text-600">
+                    <span class="font-medium">Total Amount:</span>
+                    <span class="font-bold text-green-600 text-sm">PKR {{ confirmedTotal | number: '1.0-0' }}</span>
                 </div>
             </div>
             <button
