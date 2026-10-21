@@ -31,16 +31,6 @@ namespace SmartPos.Dashboard.Dto
 
         public decimal TodayProfit { get; set; }
 
-        public bool IsRestaurantBranch { get; set; }
-
-        public decimal WeeklySales { get; set; }
-
-        public decimal WeeklyPurchases { get; set; }
-
-        public decimal WeeklyExpenses { get; set; }
-
-        public decimal WeeklyProfit { get; set; }
-
         /// <summary>Average profit margin % for the current month-to-date period.</summary>
         public decimal AverageProfitMargin { get; set; }
 

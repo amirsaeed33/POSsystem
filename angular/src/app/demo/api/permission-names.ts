@@ -82,11 +82,6 @@ export const PermissionNames = {
     PurchasesEdit: 'Pages.Purchases.Edit',
     PurchasesDelete: 'Pages.Purchases.Delete',
 
-    GroceryPurchases: 'Pages.GroceryPurchases',
-    GroceryPurchasesCreate: 'Pages.GroceryPurchases.Create',
-    GroceryPurchasesEdit: 'Pages.GroceryPurchases.Edit',
-    GroceryPurchasesDelete: 'Pages.GroceryPurchases.Delete',
-
     Sales: 'Pages.Sales',
     SalesCreate: 'Pages.Sales.Create',
     SalesEdit: 'Pages.Sales.Edit',

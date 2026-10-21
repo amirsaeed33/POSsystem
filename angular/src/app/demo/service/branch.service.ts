@@ -247,7 +247,6 @@ export class BranchService {
             discountAmount: item.discountAmount ?? item.DiscountAmount ?? 0,
             dateFormat: item.dateFormat ?? item.DateFormat ?? 'dd/MM/yyyy',
             currencyFormat: item.currencyFormat ?? item.CurrencyFormat ?? 'PKR',
-            branchType: item.branchType ?? item.BranchType ?? null,
         };
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -8,7 +8,6 @@ using Abp.Application.Services.Dto;
 using Abp.Authorization;
 using Abp.Domain.Entities;
 using Abp.Domain.Repositories;
-using Abp.Domain.Uow;
 using Abp.Extensions;
 using Abp.IdentityFramework;
 using Abp.Linq.Extensions;
@@ -244,12 +243,7 @@ namespace SmartPos.Users
                 return;
             }
 
-            Branch branch;
-            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
-            {
-                branch = await _branchRepository.FirstOrDefaultAsync(branchId.Value);
-            }
-
+            var branch = await _branchRepository.FirstOrDefaultAsync(branchId.Value);
             if (branch == null || !branch.IsActive)
             {
                 throw new UserFriendlyException("Selected location is invalid or inactive.");

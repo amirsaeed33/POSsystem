@@ -111,8 +111,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     get trendChartSubtitle(): string {
         const periodUnit = this.selectedTrendPeriod === 'hour' ? 'hourly' : this.selectedTrendPeriod === 'month' ? 'monthly' : this.selectedTrendPeriod === 'year' ? 'yearly' : 'daily';
-        const purchaseLabel = this.isRestaurantBranch ? 'Grocery Purchases' : 'Purchases';
-        return `Compare ${periodUnit} Sales, ${purchaseLabel}, Expenses & Profit (click legend items to toggle visibility)`;
+        return `Compare ${periodUnit} Sales, Purchases, Expenses & Profit (click legend items to toggle visibility)`;
     }
 
     subscription: Subscription;
@@ -121,12 +120,6 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     todayPurchases = 0;
     todayExpenses = 0;
     todayProfit = 0;
-
-    isRestaurantBranch = false;
-    weeklySales = 0;
-    weeklyPurchases = 0;
-    weeklyExpenses = 0;
-    weeklyProfit = 0;
 
     // Animated display counters for first-load numbers
     displayedTodaySales = 0;
@@ -252,11 +245,6 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.todayPurchases = data.todayPurchases ?? 0;
             this.todayExpenses = data.todayExpenses ?? 0;
             this.todayProfit = data.todayProfit ?? 0;
-            this.isRestaurantBranch = !!data.isRestaurantBranch;
-            this.weeklySales = data.weeklySales ?? 0;
-            this.weeklyPurchases = data.weeklyPurchases ?? 0;
-            this.weeklyExpenses = data.weeklyExpenses ?? 0;
-            this.weeklyProfit = data.weeklyProfit ?? 0;
             this.averageProfitMargin = data.averageProfitMargin ?? 0;
             this.previousAverageProfitMargin =
                 data.previousAverageProfitMargin ?? 0;
@@ -297,11 +285,6 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.todayPurchases = 0;
             this.todayExpenses = 0;
             this.todayProfit = 0;
-            this.isRestaurantBranch = false;
-            this.weeklySales = 0;
-            this.weeklyPurchases = 0;
-            this.weeklyExpenses = 0;
-            this.weeklyProfit = 0;
             this.averageProfitMargin = 0;
             this.previousAverageProfitMargin = 0;
             this.growthPercentage = 0;
@@ -596,14 +579,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         return this.kpiSubtitle(this.todaySales);
     }
 
-    get purchasesCardTitle(): string {
-        return this.isRestaurantBranch ? "Today's Grocery Purchases" : "Today's Purchases";
-    }
-
     get purchasesSubtitle(): string {
-        if (this.isRestaurantBranch) {
-            return (this.todayPurchases ?? 0) === 0 ? 'No grocery purchases today' : 'Grocery purchases';
-        }
         return this.kpiSubtitle(this.todayPurchases);
     }
 
@@ -618,9 +594,6 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.todayExpenses === 0;
         if (noActivity) {
             return 'No data today';
-        }
-        if (this.isRestaurantBranch) {
-            return 'Sales − grocery purchases − expenses';
         }
         return 'Sales − product cost − expenses';
     }
@@ -986,7 +959,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     hidden: hiddenDatasetIndexes.includes(0)
                 },
                 {
-                    label: this.isRestaurantBranch ? 'Grocery Purchases' : 'Purchases',
+                    label: 'Purchases',
                     data: labels.length ? purchasesValues : [0],
                     borderColor: '#d97706',
                     backgroundColor: isBar ? '#d97706' : purchasesGrad,
@@ -1228,7 +1201,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     fill: false,
                 },
                 {
-                    label: this.isRestaurantBranch ? 'Grocery Purchases' : 'Purchases',
+                    label: 'Purchases',
                     data: purchases,
                     backgroundColor: [barColor],
                     hoverBackgroundColor: [primaryColor300],

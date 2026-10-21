@@ -85,11 +85,6 @@ namespace SmartPos.Authorization
         public const string Pages_Purchases_Edit = "Pages.Purchases.Edit";
         public const string Pages_Purchases_Delete = "Pages.Purchases.Delete";
 
-        public const string Pages_GroceryPurchases = "Pages.GroceryPurchases";
-        public const string Pages_GroceryPurchases_Create = "Pages.GroceryPurchases.Create";
-        public const string Pages_GroceryPurchases_Edit = "Pages.GroceryPurchases.Edit";
-        public const string Pages_GroceryPurchases_Delete = "Pages.GroceryPurchases.Delete";
-
         public const string Pages_Sales = "Pages.Sales";
         public const string Pages_Sales_Create = "Pages.Sales.Create";
         public const string Pages_Sales_Edit = "Pages.Sales.Edit";

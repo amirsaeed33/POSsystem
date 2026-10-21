@@ -20,7 +20,6 @@ using SmartPos.Purchases;
 using SmartPos.Sales;
 using SmartPos.Staffs;
 using SmartPos.Suppliers;
-using SmartPos.GroceryPurchases;
 using SmartPos.Units;
 
 namespace SmartPos.EntityFrameworkCore
@@ -92,8 +91,6 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<StockAdjustment> StockAdjustments { get; set; }
 
         public virtual DbSet<StockAdjustmentLine> StockAdjustmentLines { get; set; }
-
-        public virtual DbSet<GroceryPurchase> GroceryPurchases { get; set; }
 
         public SmartPosDbContext(DbContextOptions<SmartPosDbContext> options)
             : base(options)
@@ -609,21 +606,6 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasOne(x => x.Product)
                     .WithMany()
                     .HasForeignKey(x => x.ProductId)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            modelBuilder.Entity<GroceryPurchase>(b =>
-            {
-                b.Property(x => x.PurchasePrice).HasPrecision(18, 2);
-                b.HasIndex(x => x.BranchId);
-                b.HasIndex(x => new { x.BranchId, x.PurchaseDate });
-                b.HasOne(x => x.Branch)
-                    .WithMany()
-                    .HasForeignKey(x => x.BranchId)
-                    .OnDelete(DeleteBehavior.Restrict);
-                b.HasOne(x => x.UnitRef)
-                    .WithMany()
-                    .HasForeignKey(x => x.UnitId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
         }

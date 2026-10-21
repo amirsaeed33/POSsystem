@@ -49,20 +49,6 @@ export class BranchContextService {
         return status !== BranchStatuses.Approved.toLowerCase();
     }
 
-    isRestaurantBranch(): boolean {
-        const branch = this.currentBranchSubject.value;
-        if (!branch) {
-            return false;
-        }
-        const type = (branch.branchType || '').trim().toLowerCase();
-        return (
-            type === 'restaurant' ||
-            type === 'resturent' ||
-            type.includes('restaurant') ||
-            type.includes('resturent')
-        );
-    }
-
     setCurrentBranch(branch: BranchDto | null): void {
         if (!branch?.id) {
             this.clear();

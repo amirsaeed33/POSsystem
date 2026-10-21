@@ -88,11 +88,6 @@ namespace SmartPos.Authorization
             purchases.CreateChildPermission(PermissionNames.Pages_Purchases_Edit, L("EditPurchase"));
             purchases.CreateChildPermission(PermissionNames.Pages_Purchases_Delete, L("DeletePurchase"));
 
-            var groceryPurchases = context.CreatePermission(PermissionNames.Pages_GroceryPurchases, L("GroceryPurchases"));
-            groceryPurchases.CreateChildPermission(PermissionNames.Pages_GroceryPurchases_Create, L("CreateGroceryPurchase"));
-            groceryPurchases.CreateChildPermission(PermissionNames.Pages_GroceryPurchases_Edit, L("EditGroceryPurchase"));
-            groceryPurchases.CreateChildPermission(PermissionNames.Pages_GroceryPurchases_Delete, L("DeleteGroceryPurchase"));
-
             var sales = context.CreatePermission(PermissionNames.Pages_Sales, L("Sales"));
             sales.CreateChildPermission(PermissionNames.Pages_Sales_Create, L("CreateSale"));
             sales.CreateChildPermission(PermissionNames.Pages_Sales_Edit, L("EditSale"));

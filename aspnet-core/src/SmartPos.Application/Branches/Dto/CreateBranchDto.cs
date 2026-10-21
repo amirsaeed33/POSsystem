@@ -55,8 +55,6 @@ namespace SmartPos.Branches.Dto
         [Range(1, int.MaxValue)]
         public int CompanyTypeId { get; set; }
 
-        public string BranchType { get; set; }
-
         /// <summary>Selected host catalog Category/Unit/Brand ids to seed after approval.</summary>
         public List<int> HostCatalogItemIds { get; set; } = new List<int>();
     }

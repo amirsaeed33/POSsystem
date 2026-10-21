@@ -41,8 +41,6 @@ namespace SmartPos.Branches
         private readonly IConfiguration _configuration;
         private readonly BranchCatalogSeedService _branchCatalogSeedService;
         private readonly ICacheManager _cacheManager;
-        private readonly IRepository<HostCatalogItem> _hostCatalogItemRepository;
-        private readonly IRepository<BranchSeedRequest> _branchSeedRequestRepository;
 
         public BranchAppService(
             IRepository<Branch> repository,
@@ -55,9 +53,7 @@ namespace SmartPos.Branches
             ISmtpMailSender smtpMailSender,
             IConfiguration configuration,
             BranchCatalogSeedService branchCatalogSeedService,
-            ICacheManager cacheManager,
-            IRepository<HostCatalogItem> hostCatalogItemRepository,
-            IRepository<BranchSeedRequest> branchSeedRequestRepository)
+            ICacheManager cacheManager)
             : base(repository)
         {
             _productRepository = productRepository;
@@ -70,8 +66,6 @@ namespace SmartPos.Branches
             _configuration = configuration;
             _branchCatalogSeedService = branchCatalogSeedService;
             _cacheManager = cacheManager;
-            _hostCatalogItemRepository = hostCatalogItemRepository;
-            _branchSeedRequestRepository = branchSeedRequestRepository;
             CreatePermissionName = PermissionNames.Pages_Branches_Create;
             UpdatePermissionName = PermissionNames.Pages_Branches_Edit;
             DeletePermissionName = PermissionNames.Pages_Branches_Delete;
@@ -99,19 +93,6 @@ namespace SmartPos.Branches
             // New branches always start as Pending until host admin approves.
             branch.StatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
             branch.ImagePath = BranchImageStore.SaveBase64Image(input.ImageBase64);
-
-            if (!string.IsNullOrWhiteSpace(input.BranchType))
-            {
-                branch.BranchType = input.BranchType.Trim();
-            }
-            else if (input.CompanyTypeId > 0)
-            {
-                var companyType = await _hostCatalogItemRepository.FirstOrDefaultAsync(input.CompanyTypeId);
-                if (companyType != null)
-                {
-                    branch.BranchType = companyType.Name;
-                }
-            }
 
             await Repository.InsertAsync(branch);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -162,10 +143,6 @@ namespace SmartPos.Branches
             branch.DiscountAmount = Math.Max(0, input.DiscountAmount);
             branch.DateFormat = string.IsNullOrWhiteSpace(input.DateFormat) ? "dd/MM/yyyy" : input.DateFormat.Trim();
             branch.CurrencyFormat = string.IsNullOrWhiteSpace(input.CurrencyFormat) ? "PKR" : input.CurrencyFormat.Trim();
-            if (!string.IsNullOrWhiteSpace(input.BranchType))
-            {
-                branch.BranchType = input.BranchType.Trim();
-            }
 
             // Only host admin with approve permission may change StatusId.
             // Selecting Approved sends an activation email and keeps Pending.
@@ -253,7 +230,6 @@ namespace SmartPos.Branches
             }
 
             await FillStatusNamesAsync(new[] { dto });
-            await FillBranchTypesAsync(new[] { dto });
             return dto;
         }
 
@@ -308,7 +284,6 @@ namespace SmartPos.Branches
             }
 
             await FillStatusNamesAsync(result.Items);
-            await FillBranchTypesAsync(result.Items);
             return result;
         }
 
@@ -338,7 +313,6 @@ namespace SmartPos.Branches
                         }
                         await FillTenancyNamesAsync(allDtos);
                         await FillStatusNamesAsync(allDtos);
-                        await FillBranchTypesAsync(allDtos);
                         return new ListResultDto<BranchDto>(allDtos);
                     }
                 }
@@ -368,7 +342,6 @@ namespace SmartPos.Branches
                     dtos[i].TenantId = branches[i].TenantId;
                 }
                 await FillStatusNamesAsync(dtos);
-                await FillBranchTypesAsync(dtos);
                 return new ListResultDto<BranchDto>(dtos);
             });
         }
@@ -580,7 +553,6 @@ namespace SmartPos.Branches
             var dto = base.MapToEntityDto(entity);
             dto.TenantId = entity.TenantId;
             dto.StatusId = entity.StatusId;
-            dto.BranchType = entity.BranchType;
             return dto;
         }
 
@@ -664,49 +636,6 @@ namespace SmartPos.Branches
                 {
                     dto.Status = lookUp.Name;
                     dto.StatusDisplayName = lookUp.DisplayName;
-                }
-            }
-        }
-
-        private async Task FillBranchTypesAsync(IReadOnlyList<BranchDto> branches)
-        {
-            if (branches == null || branches.Count == 0)
-            {
-                return;
-            }
-
-            var missingTypeBranchIds = branches
-                .Where(x => string.IsNullOrWhiteSpace(x.BranchType))
-                .Select(x => x.Id)
-                .Distinct()
-                .ToList();
-
-            if (missingTypeBranchIds.Count == 0)
-            {
-                return;
-            }
-
-            Dictionary<int, string> seedTypes;
-            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
-            {
-                seedTypes = await _branchSeedRequestRepository.GetAllIncluding(x => x.CompanyType)
-                    .Where(x => missingTypeBranchIds.Contains(x.BranchId) && x.CompanyType != null)
-                    .GroupBy(x => x.BranchId)
-                    .Select(g => new { BranchId = g.Key, TypeName = g.OrderByDescending(x => x.Id).Select(x => x.CompanyType.Name).FirstOrDefault() })
-                    .ToDictionaryAsync(x => x.BranchId, x => x.TypeName);
-
-                foreach (var dto in branches)
-                {
-                    if (string.IsNullOrWhiteSpace(dto.BranchType) && seedTypes.TryGetValue(dto.Id, out var typeName))
-                    {
-                        dto.BranchType = typeName;
-                        var branchEntity = await Repository.FirstOrDefaultAsync(dto.Id);
-                        if (branchEntity != null && string.IsNullOrWhiteSpace(branchEntity.BranchType))
-                        {
-                            branchEntity.BranchType = typeName;
-                            await Repository.UpdateAsync(branchEntity);
-                        }
-                    }
                 }
             }
         }

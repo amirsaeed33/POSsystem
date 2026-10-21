@@ -31,13 +31,11 @@ export interface BranchDto {
     discountAmount?: number;
     dateFormat?: string;
     currencyFormat?: string;
-    branchType?: string;
 }
 
 export interface CreateBranchDto {
     name: string;
     code: string;
-    branchType?: string;
     isActive?: boolean;
     imageBase64?: string | null;
     invoiceAddress?: string;

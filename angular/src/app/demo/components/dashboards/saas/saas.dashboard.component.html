@@ -1,46 +1,4 @@
 <div class="grid dashboard-grid">
-    <!-- Restaurant Weekly Summary (Restaurant Branch Only) -->
-    <div class="col-12 anim-card" *ngIf="isRestaurantBranch">
-        <div class="card p-4 surface-card border-round shadow-1">
-            <div class="flex flex-wrap align-items-center justify-content-between mb-3 gap-2 border-bottom-1 surface-border pb-3">
-                <div>
-                    <h5 class="m-0 font-bold text-xl flex align-items-center gap-2">
-                        <i class="pi pi-calendar text-primary text-xl"></i>
-                        Weekly Summary
-                    </h5>
-                    <span class="text-color-secondary text-sm">Aggregated restaurant performance for the current week</span>
-                </div>
-                <span class="p-tag p-tag-info font-semibold">Restaurant Branch</span>
-            </div>
-            <div class="grid">
-                <div class="col-12 sm:col-6 lg:col-3">
-                    <div class="p-3 surface-50 dark:surface-800 border-round">
-                        <span class="text-color-secondary block text-sm font-medium mb-1">Weekly Sales</span>
-                        <span class="text-2xl font-bold text-blue-500">{{ formatPkr(weeklySales) }}</span>
-                    </div>
-                </div>
-                <div class="col-12 sm:col-6 lg:col-3">
-                    <div class="p-3 surface-50 dark:surface-800 border-round">
-                        <span class="text-color-secondary block text-sm font-medium mb-1">Weekly Grocery Purchases</span>
-                        <span class="text-2xl font-bold text-orange-500">{{ formatPkr(weeklyPurchases) }}</span>
-                    </div>
-                </div>
-                <div class="col-12 sm:col-6 lg:col-3">
-                    <div class="p-3 surface-50 dark:surface-800 border-round">
-                        <span class="text-color-secondary block text-sm font-medium mb-1">Weekly Expenses</span>
-                        <span class="text-2xl font-bold text-green-500">{{ formatPkr(weeklyExpenses) }}</span>
-                    </div>
-                </div>
-                <div class="col-12 sm:col-6 lg:col-3">
-                    <div class="p-3 surface-50 dark:surface-800 border-round">
-                        <span class="text-color-secondary block text-sm font-medium mb-1">Weekly Profit</span>
-                        <span class="text-2xl font-bold" [ngClass]="weeklyProfit >= 0 ? 'text-purple-500' : 'text-red-500'">{{ formatPkr(weeklyProfit) }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-1">
         <div class="card kpi-card sales-card p-0 overflow-hidden flex flex-column h-full">
             <div class="flex align-items-center p-3 flex-grow-1">
@@ -60,7 +18,7 @@
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-map text-6xl text-orange-500"></i>
                 <div class="ml-3">
-                    <span class="text-orange-500 block white-space-nowrap">{{ purchasesCardTitle }}</span>
+                    <span class="text-orange-500 block white-space-nowrap">Today's Purchases</span>
                     <span class="text-orange-500 block text-4xl font-bold">{{ formatPkr(displayedTodayPurchases) }}</span>
                     <span class="text-orange-500 block kpi-subtitle">{{ purchasesSubtitle }}</span>
                 </div>

@@ -2,7 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { PermissionNames } from '../api/permission-names';
 
 const GRANTED_PERMISSIONS_KEY = 'grantedPermissions';
 
@@ -23,22 +22,7 @@ export class PermissionService {
         if (!permissionName) {
             return true;
         }
-        if (this.grantedPermissions.has(permissionName)) {
-            return true;
-        }
-        if (permissionName === PermissionNames.GroceryPurchases && this.grantedPermissions.has(PermissionNames.Purchases)) {
-            return true;
-        }
-        if (permissionName === PermissionNames.GroceryPurchasesCreate && this.grantedPermissions.has(PermissionNames.PurchasesCreate)) {
-            return true;
-        }
-        if (permissionName === PermissionNames.GroceryPurchasesEdit && this.grantedPermissions.has(PermissionNames.PurchasesEdit)) {
-            return true;
-        }
-        if (permissionName === PermissionNames.GroceryPurchasesDelete && this.grantedPermissions.has(PermissionNames.PurchasesDelete)) {
-            return true;
-        }
-        return false;
+        return this.grantedPermissions.has(permissionName);
     }
 
     clear(): void {
