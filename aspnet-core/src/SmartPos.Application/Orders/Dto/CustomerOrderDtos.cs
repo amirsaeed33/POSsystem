@@ -21,6 +21,12 @@ namespace SmartPos.Orders.Dto
         [StringLength(CustomerOrder.MaxNotesLength)]
         public string Notes { get; set; }
 
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
+        public string GoogleMapsLink { get; set; }
+
         [Required]
         [MinLength(1)]
         public List<CreateCustomerOrderLineDto> Lines { get; set; }

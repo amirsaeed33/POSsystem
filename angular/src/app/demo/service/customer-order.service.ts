@@ -92,6 +92,10 @@ export class CustomerOrderService {
                 branchId: input.branchId,
                 orderDate: this.toApiDate(input.orderDate || new Date()),
                 notes: input.notes,
+                latitude: input.latitude,
+                longitude: input.longitude,
+                googleMapsLink: input.googleMapsLink || (input as any).google_maps_link,
+                google_maps_link: input.googleMapsLink || (input as any).google_maps_link,
                 lines: input.lines,
             })
         );

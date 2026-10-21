@@ -1957,3 +1957,86 @@
     }
   }
 }
+
+/* 5. GPS Live Location Button & Badges in Checkout */
+.fp-gps-location-btn {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  user-select: none;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &.active {
+    background: #f0fdf4;
+    border-color: #4ade80;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18);
+  }
+
+  .gps-icon-badge {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #e23744;
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+  }
+
+  &.active .gps-icon-badge {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #16a34a;
+  }
+
+  .gps-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+    animation: gpsPulse 1.8s infinite;
+  }
+
+  .gps-status-pill {
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #64748b;
+  }
+
+  &.active .gps-status-pill {
+    background: #ffffff;
+    border-color: #86efac;
+  }
+}
+
+@keyframes gpsPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.gps-success-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+
+  .gps-success-badge {
+    background: #dcfce7;
+    color: #15803d;
+  }
+}
+
+.gps-error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+

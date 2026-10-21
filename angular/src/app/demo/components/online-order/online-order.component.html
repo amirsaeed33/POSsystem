@@ -876,6 +876,103 @@
         [draggable]="false"
     >
         <div class="p-fluid py-2">
+            <!-- 1. Sleek Prominent GPS Live Location Button & Status Card (Top of Drawer/Modal) -->
+            <div class="mb-3">
+                <button
+                    type="button"
+                    class="fp-gps-location-btn w-full flex align-items-center justify-content-between p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-200"
+                    [class.active]="locationCaptured"
+                    [disabled]="locating"
+                    (click)="captureCurrentLocation()"
+                    id="btnGpsCaptureLocation"
+                >
+                    <div class="flex align-items-center gap-3">
+                        <div class="gps-icon-badge flex align-items-center justify-content-center border-round-circle">
+                            <i *ngIf="!locating" class="pi pi-map-marker text-lg"></i>
+                            <i *ngIf="locating" class="pi pi-spin pi-spinner text-lg"></i>
+                        </div>
+                        <div class="text-left">
+                            <div class="font-bold text-sm text-900 flex align-items-center gap-2">
+                                <span>📍 Use Current Location</span>
+                                <span *ngIf="locationCaptured" class="gps-live-dot"></span>
+                            </div>
+                            <div class="text-xs text-500 font-medium">
+                                {{ locating ? 'Detecting high-accuracy GPS coordinates...' : locationCaptured ? 'Live GPS coordinates attached' : 'Detect via GPS' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="gps-status-pill flex align-items-center gap-1 font-semibold text-xs">
+                        <span *ngIf="!locating && !locationCaptured">Locate</span>
+                        <span *ngIf="locating">Detecting...</span>
+                        <span *ngIf="locationCaptured" class="text-green-600 flex align-items-center gap-1">
+                            <i class="pi pi-check"></i> Ready
+                        </span>
+                    </div>
+                </button>
+
+                <!-- Location Captured Green Confirmation Badge -->
+                <div *ngIf="locationCaptured && latitude && longitude" class="gps-success-box mt-2 p-2 border-round-lg flex align-items-center justify-content-between">
+                    <div class="flex align-items-center gap-2 overflow-hidden">
+                        <span class="gps-success-badge inline-flex align-items-center gap-1 text-xs font-bold px-2 py-1 border-round-md">
+                            <i class="pi pi-check-circle"></i> ✓ Location captured successfully
+                        </span>
+                        <span class="text-xs text-600 white-space-nowrap overflow-hidden text-overflow-ellipsis">
+                            ({{ latitude | number: '1.4-4' }}, {{ longitude | number: '1.4-4' }})
+                        </span>
+                    </div>
+                    <div class="flex align-items-center gap-2 flex-shrink-0">
+                        <a
+                            [href]="googleMapsLink"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-xs font-bold text-primary hover:underline flex align-items-center gap-1"
+                            title="Open in Google Maps"
+                        >
+                            <i class="pi pi-external-link text-xs"></i>
+                            <span>Map</span>
+                        </a>
+                        <button
+                            type="button"
+                            class="p-link text-xs text-400 hover:text-red-500 font-bold ml-1"
+                            (click)="clearLocation()"
+                            title="Remove GPS location"
+                        >
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Location Error Alert Notification -->
+                <div *ngIf="locationError" class="gps-error-banner mt-2 p-2 border-round-lg flex align-items-center justify-content-between text-xs">
+                    <div class="flex align-items-center gap-2 text-red-600 font-medium">
+                        <i class="pi pi-exclamation-circle"></i>
+                        <span>{{ locationError }}</span>
+                    </div>
+                    <button type="button" class="p-link text-xs text-500 font-bold" (click)="locationError = null">Dismiss</button>
+                </div>
+            </div>
+
+            <!-- Manual Delivery Address & Landmark Fields -->
+            <div class="field mb-3">
+                <label class="font-bold text-xs text-700">House / Flat / Shop # & Street</label>
+                <input
+                    pInputText
+                    [(ngModel)]="deliveryAddress"
+                    placeholder="e.g. Flat 3B, House 14, Street 5..."
+                    class="border-round-xl"
+                />
+            </div>
+            <div class="field mb-3">
+                <label class="font-bold text-xs text-700">Nearby Landmark / Area</label>
+                <input
+                    pInputText
+                    [(ngModel)]="deliveryLandmark"
+                    placeholder="e.g. Near Shell Pump, Gulberg III..."
+                    class="border-round-xl"
+                />
+            </div>
+
+            <!-- Customer Contact Information -->
             <div class="field mb-3">
                 <label class="font-bold text-xs text-700">Full Name *</label>
                 <input
@@ -895,12 +992,12 @@
                 />
             </div>
             <div class="field mb-3">
-                <label class="font-bold text-xs text-700">Delivery Address / Kitchen Notes</label>
+                <label class="font-bold text-xs text-700">Kitchen / Special Instructions</label>
                 <textarea
                     pInputTextarea
                     rows="2"
                     [(ngModel)]="notes"
-                    placeholder="Floor, street, instructions (e.g. less spicy)..."
+                    placeholder="e.g. Extra napkins, ring bell, deliver fresh..."
                     class="border-round-xl"
                 ></textarea>
             </div>

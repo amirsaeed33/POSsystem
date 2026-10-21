@@ -42,6 +42,12 @@ export interface CreateCustomerOrderDto {
     branchId?: number;
     orderDate?: string | Date;
     notes?: string;
+    latitude?: number;
+    longitude?: number;
+    googleMapsLink?: string;
+    google_maps_link?: string;
+    deliveryAddress?: string;
+    deliveryLandmark?: string;
     lines: CreateCustomerOrderLineDto[];
 }
 

@@ -62,6 +62,12 @@ export class CustomerOrderViewDialogComponent implements OnChanges {
         }
     }
 
+    getGoogleMapsLink(notes?: string): string | null {
+        if (!notes) return null;
+        const match = notes.match(/https?:\/\/maps\.google\.com[^\s|]+/);
+        return match ? match[0] : null;
+    }
+
     private loadOrder(id: number): void {
         this.loading = true;
         this.order = null;

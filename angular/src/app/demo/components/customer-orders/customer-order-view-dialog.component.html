@@ -42,8 +42,20 @@
                 <div class="font-medium">{{ order.saleInvoiceNo || '—' }}</div>
             </div>
             <div class="col-12">
-                <div class="text-500 mb-1">Notes</div>
+                <div class="text-500 mb-1">Notes / Delivery Location</div>
                 <div class="font-medium">{{ order.notes || '—' }}</div>
+                <div *ngIf="getGoogleMapsLink(order.notes)" class="mt-2">
+                    <a
+                        [href]="getGoogleMapsLink(order.notes)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="p-button p-button-sm p-button-outlined p-button-danger border-round-xl inline-flex align-items-center gap-2 font-bold no-underline"
+                    >
+                        <i class="pi pi-map-marker text-red-500"></i>
+                        <span>Open Live Delivery Location in Google Maps</span>
+                        <i class="pi pi-external-link text-xs"></i>
+                    </a>
+                </div>
             </div>
         </div>
 

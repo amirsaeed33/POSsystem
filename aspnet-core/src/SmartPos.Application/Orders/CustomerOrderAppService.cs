@@ -281,13 +281,32 @@ namespace SmartPos.Orders
                     }
                 }
 
+                var finalNotes = input.Notes ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(input.GoogleMapsLink) && !finalNotes.Contains("maps.google.com"))
+                {
+                    var mapSnippet = $"🗺️ Maps: {input.GoogleMapsLink}";
+                    if (string.IsNullOrWhiteSpace(finalNotes))
+                    {
+                        finalNotes = mapSnippet;
+                    }
+                    else if (finalNotes.Length + mapSnippet.Length + 3 <= CustomerOrder.MaxNotesLength)
+                    {
+                        finalNotes = $"{finalNotes} | {mapSnippet}";
+                    }
+                }
+
+                if (finalNotes.Length > CustomerOrder.MaxNotesLength)
+                {
+                    finalNotes = finalNotes.Substring(0, CustomerOrder.MaxNotesLength);
+                }
+
                 var order = new CustomerOrder
                 {
                     TenantId = tenantId,
                     BranchId = branchId,
                     CustomerId = customerId,
                     OrderDate = input.OrderDate == default ? Abp.Timing.Clock.Now : input.OrderDate,
-                    Notes = input.Notes,
+                    Notes = finalNotes,
                     Status = CustomerOrderStatus.Pending,
                     Lines = new List<CustomerOrderLine>()
                 };
