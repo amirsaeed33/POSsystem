@@ -100,12 +100,6 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                                   target: '_blank',
                               },
                               {
-                                  label: 'Modifiers & Add-ons',
-                                  icon: 'pi pi-sliders-h',
-                                  routerLink: ['/products'],
-                                  permission: PermissionNames.Products,
-                              },
-                              {
                                   label: 'Customers',
                                   icon: 'pi pi-users',
                                   routerLink: ['/customers'],
