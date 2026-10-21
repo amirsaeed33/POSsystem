@@ -80,5 +80,10 @@ namespace SmartPos.Products
         /// Structured JSON string storing product specifications and technical attributes (e.g. RAM, Capacity, Dimensions).
         /// </summary>
         public virtual string Specifications { get; set; }
+
+        /// <summary>
+        /// Indicates if this specific product qualifies for free delivery.
+        /// </summary>
+        public virtual bool IsFreeDelivery { get; set; }
     }
 }

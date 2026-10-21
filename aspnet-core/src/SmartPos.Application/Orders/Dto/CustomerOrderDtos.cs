@@ -71,6 +71,8 @@ namespace SmartPos.Orders.Dto
         public bool IsDeliveryEnabled { get; set; }
         public decimal FreeDeliveryThreshold { get; set; }
         public string DeliveryAreaNote { get; set; }
+        public bool IsRestaurant { get; set; }
+        public int BusinessType { get; set; }
     }
 
     public class OnlineProductDto

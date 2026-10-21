@@ -28,6 +28,7 @@ export class OnlineOrderComponent implements OnInit {
     currencyFormat = 'PKR';
     dateFormat = 'dd/MM/yyyy';
     branchMissingError = false;
+    isRestaurant = false;
     availableBranches: any[] = [];
     selectedBranchIdForModal: number | null = null;
     mobileBranchModal = false;
@@ -226,12 +227,14 @@ export class OnlineOrderComponent implements OnInit {
                 if (info.branchName) this.branchName = info.branchName;
                 if (info.currencyFormat) this.currencyFormat = info.currencyFormat;
                 if (info.dateFormat) this.dateFormat = info.dateFormat;
+                this.isRestaurant = !!info.isRestaurant || info.businessType === 2;
                 return;
             }
         } catch {
             // Ignore error
         }
         this.branchName = '';
+        this.isRestaurant = false;
     }
 
     async handleMissingBranchId(): Promise<void> {
@@ -689,6 +692,9 @@ export class OnlineOrderComponent implements OnInit {
     }
 
     isRestaurantStore(): boolean {
+        if (this.isRestaurant) {
+            return true;
+        }
         const b = (this.branchName || '').toLowerCase();
         return (
             b.includes('cafe') ||
@@ -697,7 +703,12 @@ export class OnlineOrderComponent implements OnInit {
             b.includes('burger') ||
             b.includes('pizza') ||
             b.includes('dining') ||
-            b.includes('kitchen')
+            b.includes('kitchen') ||
+            b.includes('bite') ||
+            b.includes('bbq') ||
+            b.includes('fast food') ||
+            b.includes('dhaba') ||
+            b.includes('hotel')
         );
     }
 

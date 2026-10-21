@@ -107,12 +107,14 @@ namespace SmartPos.Orders
                 }
 
                 var targetBranchId = targetBranch.Id;
+                var isRestaurant = targetBranch.BusinessType == BusinessType.Restaurant;
                 var branchCurrency = !string.IsNullOrWhiteSpace(targetBranch.CurrencyFormat) ? targetBranch.CurrencyFormat : "PKR";
 
                 var products = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit, p => p.Brand)
                     .AsNoTracking()
-                    .Where(p => p.TenantId == targetBranch.TenantId)
+                    .Where(p => (p.BranchId == targetBranchId) || (p.BranchId == 0 && (!p.TenantId.HasValue || p.TenantId == targetBranch.TenantId)))
                     .WhereVisibleToBranch(_branchStockRepository.GetAll(), targetBranchId)
+                    .Where(p => (p.Barcode == null || !p.Barcode.StartsWith("GROCERY-")) && p.Name != "Grocery")
                     .ToListAsync();
 
                 var branchInfo = await _branchStockRepository.GetAll()
@@ -132,9 +134,10 @@ namespace SmartPos.Orders
                         Price = branchInfo.TryGetValue(p.Id, out var info) && info.Price > 0 ? info.Price : p.Price,
                         CurrencyFormat = branchCurrency,
                         ImagePath = p.ImagePath,
-                        InStock = branchInfo.TryGetValue(p.Id, out info) ? info.Quantity > 0 : true,
-                        StockQuantity = branchInfo.TryGetValue(p.Id, out info) ? info.Quantity : 0,
-                        Specifications = p.Specifications
+                        InStock = isRestaurant ? true : (branchInfo.TryGetValue(p.Id, out info) ? info.Quantity > 0 : true),
+                        StockQuantity = isRestaurant ? 999 : (branchInfo.TryGetValue(p.Id, out info) ? info.Quantity : 0),
+                        Specifications = p.Specifications,
+                        IsFreeDelivery = p.IsFreeDelivery
                     })
                     .ToList();
             }
@@ -164,8 +167,9 @@ namespace SmartPos.Orders
                     targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.IsActive);
                 }
 
+                var isRestaurant = targetBranch != null && targetBranch.BusinessType == BusinessType.Restaurant;
                 var price = product.Price;
-                var stockQty = 0m;
+                var stockQty = isRestaurant ? 999m : 0m;
                 var inStock = true;
                 var branchCurrency = !string.IsNullOrWhiteSpace(targetBranch?.CurrencyFormat) ? targetBranch.CurrencyFormat : "PKR";
 
@@ -178,8 +182,11 @@ namespace SmartPos.Orders
                         {
                             price = branchStock.Price;
                         }
-                        stockQty = branchStock.Quantity;
-                        inStock = branchStock.Quantity > 0;
+                        if (!isRestaurant)
+                        {
+                            stockQty = branchStock.Quantity;
+                            inStock = branchStock.Quantity > 0;
+                        }
                     }
                 }
 
@@ -197,7 +204,8 @@ namespace SmartPos.Orders
                     ImagePath = product.ImagePath,
                     InStock = inStock,
                     StockQuantity = stockQty,
-                    Specifications = product.Specifications
+                    Specifications = product.Specifications,
+                    IsFreeDelivery = product.IsFreeDelivery
                 };
             }
         }
@@ -226,6 +234,8 @@ namespace SmartPos.Orders
                     freeThreshold = promo.MinimumOrderAmount.Value;
                 }
 
+                var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
+
                 return new OnlineStoreHeaderDto
                 {
                     BranchId = branch != null ? branch.Id : branchId,
@@ -237,7 +247,9 @@ namespace SmartPos.Orders
                     BaseDeliveryFee = baseFee,
                     IsDeliveryEnabled = true,
                     FreeDeliveryThreshold = freeThreshold,
-                    DeliveryAreaNote = areas.Any() ? $"{areas.Count} active delivery areas" : "Standard Delivery"
+                    DeliveryAreaNote = areas.Any() ? $"{areas.Count} active delivery areas" : "Standard Delivery",
+                    IsRestaurant = isRestaurant,
+                    BusinessType = branch != null ? (int)branch.BusinessType : 1
                 };
             }
         }

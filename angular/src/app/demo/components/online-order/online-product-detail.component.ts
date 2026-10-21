@@ -19,6 +19,7 @@ export class OnlineProductDetailComponent implements OnInit {
     branchName = '';
     currencyFormat = 'PKR';
     dateFormat = 'dd/MM/yyyy';
+    isRestaurant = false;
 
     product: any = null;
     specificationsList: { key: string; value: string }[] = [];
@@ -111,25 +112,17 @@ export class OnlineProductDetailComponent implements OnInit {
     }
 
     async resolveBranchInfo(bId: number): Promise<void> {
-        if (!this.isMinOrderSatisfied()) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Minimum Order Not Met',
-                detail: `Minimum order amount for ${this.selectedArea?.name} is PKR ${this.selectedArea?.minimumOrderAmount}. Please add more items.`,
-                life: 5000,
-            });
-            return;
-        }
-
         try {
             const info = await this.customerOrderService.getOnlineStoreHeader(bId);
             if (info) {
                 if (info.branchName) this.branchName = info.branchName;
                 if (info.currencyFormat) this.currencyFormat = info.currencyFormat;
                 if (info.dateFormat) this.dateFormat = info.dateFormat;
+                this.isRestaurant = !!info.isRestaurant || info.businessType === 2;
             }
         } catch {
             this.branchName = '';
+            this.isRestaurant = false;
         }
     }
 
@@ -229,6 +222,15 @@ export class OnlineProductDetailComponent implements OnInit {
                 severity: 'warn',
                 summary: 'Cart Empty',
                 detail: 'Please add at least one product to your order.',
+            });
+            return;
+        }
+        if (!this.isMinOrderSatisfied()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Minimum Order Not Met',
+                detail: `Minimum order amount for ${this.selectedArea?.name} is PKR ${this.selectedArea?.minimumOrderAmount}. Please add more items.`,
+                life: 5000,
             });
             return;
         }
@@ -486,6 +488,40 @@ export class OnlineProductDetailComponent implements OnInit {
                 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=800&q=80',
             ];
             return inverterImages[id % inverterImages.length];
+        }
+
+        if (
+            this.isRestaurant ||
+            text.includes('burger') ||
+            text.includes('pizza') ||
+            text.includes('biryani') ||
+            text.includes('tikka') ||
+            text.includes('karahi') ||
+            text.includes('kebab') ||
+            text.includes('chai') ||
+            text.includes('tea') ||
+            text.includes('soup') ||
+            text.includes('naan') ||
+            text.includes('roti') ||
+            text.includes('roll') ||
+            text.includes('food') ||
+            text.includes('dessert') ||
+            text.includes('cake') ||
+            text.includes('ice cream') ||
+            text.includes('fast food') ||
+            text.includes('drink') ||
+            text.includes('beverage')
+        ) {
+            const foodImages = [
+                'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1621996346565-e3d5d628169e?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1527477378698-4797598e5a66?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80'
+            ];
+            return foodImages[id % foodImages.length];
         }
 
         const solarPanelImages = [
