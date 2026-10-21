@@ -55,6 +55,15 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                         routerLink: ['/pos'],
                         permission: PermissionNames.Sales,
                     },
+                    {
+                        label: isRestaurant ? 'Online Food Menu' : 'Online Storefront',
+                        icon: 'pi pi-globe',
+                        routerLink: ['/online-order'],
+                        queryParams: currentBranchId
+                            ? { branchId: currentBranchId }
+                            : undefined,
+                        target: '_blank',
+                    },
                 ]
             },
             ...(isRestaurant
@@ -70,10 +79,31 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                                   permission: PermissionNames.Sales,
                               },
                               {
+                                  label: 'Online Orders',
+                                  icon: 'pi pi-file',
+                                  routerLink: ['/customer-orders'],
+                                  permission: PermissionNames.CustomerOrders,
+                              },
+                              {
+                                  label: 'Online Menu & Ordering',
+                                  icon: 'pi pi-globe',
+                                  routerLink: ['/online-order'],
+                                  queryParams: currentBranchId
+                                      ? { branchId: currentBranchId }
+                                      : undefined,
+                                  target: '_blank',
+                              },
+                              {
                                   label: 'Modifiers & Add-ons',
                                   icon: 'pi pi-sliders-h',
                                   routerLink: ['/products'],
                                   permission: PermissionNames.Products,
+                              },
+                              {
+                                  label: 'Customers',
+                                  icon: 'pi pi-users',
+                                  routerLink: ['/customers'],
+                                  permission: PermissionNames.Customers,
                               },
                           ],
                       },
@@ -100,17 +130,49 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                     { label: 'Stock Adjustments', icon: 'pi pi-sync', routerLink: ['/stock-adjustments'], permission: PermissionNames.StockAdjustments },
                 ]
             },
-            {
-                label: 'Sales',
-                icon: 'pi pi-shopping-cart',
-                items: [
-                    { label: 'Sales', icon: 'pi pi-shopping-cart', routerLink: ['/sales'], permission: PermissionNames.Sales },
-                    { label: 'Sale Returns', icon: 'pi pi-replay', routerLink: ['/sale-returns'], permission: PermissionNames.Sales },
-                    { label: 'Customer Orders', icon: 'pi pi-file', routerLink: ['/customer-orders'], permission: PermissionNames.CustomerOrders },
-                    { label: 'Online Storefront', icon: 'pi pi-globe', routerLink: ['/online-order'], queryParams: currentBranchId ? { branchId: currentBranchId } : undefined, target: '_blank' },
-                    { label: 'Customers', icon: 'pi pi-users', routerLink: ['/customers'], permission: PermissionNames.Customers },
-                ]
-            },
+            ...(!isRestaurant
+                ? [
+                      {
+                          label: 'Sales',
+                          icon: 'pi pi-shopping-cart',
+                          items: [
+                              {
+                                  label: 'Sales',
+                                  icon: 'pi pi-shopping-cart',
+                                  routerLink: ['/sales'],
+                                  permission: PermissionNames.Sales,
+                              },
+                              {
+                                  label: 'Sale Returns',
+                                  icon: 'pi pi-replay',
+                                  routerLink: ['/sale-returns'],
+                                  permission: PermissionNames.Sales,
+                              },
+                              {
+                                  label: 'Customer Orders',
+                                  icon: 'pi pi-file',
+                                  routerLink: ['/customer-orders'],
+                                  permission: PermissionNames.CustomerOrders,
+                              },
+                              {
+                                  label: 'Online Storefront',
+                                  icon: 'pi pi-globe',
+                                  routerLink: ['/online-order'],
+                                  queryParams: currentBranchId
+                                      ? { branchId: currentBranchId }
+                                      : undefined,
+                                  target: '_blank',
+                              },
+                              {
+                                  label: 'Customers',
+                                  icon: 'pi pi-users',
+                                  routerLink: ['/customers'],
+                                  permission: PermissionNames.Customers,
+                              },
+                          ],
+                      },
+                  ]
+                : []),
             {
                 label: 'Business',
                 icon: 'pi pi-briefcase',

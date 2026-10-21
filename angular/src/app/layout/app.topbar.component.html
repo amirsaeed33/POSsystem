@@ -105,6 +105,18 @@
     </div>
 
     <div class="topbar-end flex align-items-center gap-2">
+        <!-- Customer Storefront Launch Button -->
+        <a
+            class="p-button p-button-sm p-button-outlined p-button-rounded flex align-items-center gap-2 text-sm font-semibold text-primary border-primary hover:surface-100 no-underline px-3 py-2 cursor-pointer"
+            [routerLink]="['/online-order']"
+            [queryParams]="storefrontQueryParams"
+            target="_blank"
+            [title]="currentBranch?.businessType === 2 ? 'Open Customer Online Food Menu & Ordering' : 'Open Customer Online Storefront'"
+        >
+            <i [class]="currentBranch?.businessType === 2 ? 'pi pi-compass' : 'pi pi-globe'"></i>
+            <span class="hidden md:inline">{{ currentBranch?.businessType === 2 ? 'Online Food Menu' : 'Online Store' }}</span>
+        </a>
+
         <!-- Online Orders Bell Notification -->
         <div class="topbar-notifications relative">
             <button

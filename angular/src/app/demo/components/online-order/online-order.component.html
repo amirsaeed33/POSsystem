@@ -7,7 +7,7 @@
             <div class="flex align-items-center gap-2 sm:gap-3 overflow-hidden">
                 <div class="fp-brand-group cursor-pointer" (click)="loadCatalog(branchId || undefined)">
                     <div class="brand-logo-sq">
-                        <i class="pi pi-bolt"></i>
+                        <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
                     </div>
                     <div class="brand-text-col">
                         <div class="brand-name">
@@ -17,7 +17,7 @@
                                 Open
                             </span>
                         </div>
-                        <div class="brand-sub">{{ isSolarStore() ? 'Solar Energy & Power Systems' : 'Online Store & Ordering' }}</div>
+                        <div class="brand-sub">{{ isRestaurantStore() ? 'Fresh Food & Online Dining Menu' : isSolarStore() ? 'Solar Energy & Power Systems' : 'Online Store & Delivery' }}</div>
                     </div>
                 </div>
 
@@ -118,11 +118,11 @@
             <!-- Left: Brand Logo + Branch / City Selector -->
             <div class="flex align-items-center gap-2 overflow-hidden flex-grow-1 min-w-0">
                 <div class="brand-logo-sq flex-shrink-0" (click)="loadCatalog(branchId || undefined)">
-                    <i class="pi pi-bolt"></i>
+                    <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
                 </div>
                 <div class="fp-mobile-header-info min-w-0 flex-grow-1">
                     <div class="flex align-items-center gap-1">
-                        <span class="mobile-store-title text-900 font-extrabold">{{ branchName || 'Foodies Store' }}</span>
+                        <span class="mobile-store-title text-900 font-extrabold">{{ branchName || 'Online Store' }}</span>
                         <span class="fp-live-pill-mini">
                             <span class="pulse-dot"></span>
                         </span>

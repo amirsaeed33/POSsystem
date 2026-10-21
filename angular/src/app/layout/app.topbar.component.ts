@@ -51,6 +51,10 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         return null;
     }
 
+    get storefrontQueryParams(): { branchId: number } | undefined {
+        return this.currentBranch?.id ? { branchId: this.currentBranch.id } : undefined;
+    }
+
     todayPendingOrders: CustomerOrderDto[] = [];
     pendingOrdersCount = 0;
     loadingOrders = false;

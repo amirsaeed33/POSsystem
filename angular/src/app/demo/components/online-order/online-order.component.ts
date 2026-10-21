@@ -115,11 +115,24 @@ export class OnlineOrderComponent implements OnInit {
     ];
 
     private foodImages = [
-        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=720&q=80',
-        'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=720&q=80',
-        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=720&q=80',
-        'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=720&q=80',
-        'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=720&q=80',
+        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=720&q=80', // juicy burger
+        'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=720&q=80', // pizza
+        'https://images.unsplash.com/photo-1621996346565-e3d5d628169e?auto=format&fit=crop&w=720&q=80', // creamy pasta
+        'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=720&q=80', // biryani
+        'https://images.unsplash.com/photo-1527477378698-4797598e5a66?auto=format&fit=crop&w=720&q=80', // spicy hot wings
+        'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&w=720&q=80', // cheesy loaded fries
+        'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=720&q=80', // karak tea
+        'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=720&q=80', // iced coffee
+        'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=720&q=80', // mint margarita
+    ];
+
+    private retailImages = [
+        'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=720&q=80', // cold beverage / cola
+        'https://images.unsplash.com/photo-1550989460-0adc9554f529?auto=format&fit=crop&w=720&q=80', // supermarket shelf
+        'https://images.unsplash.com/photo-1527842891421-42eec6e703ea?auto=format&fit=crop&w=720&q=80', // tea & coffee packet
+        'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=720&q=80', // cookies / snacks
+        'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=720&q=80', // personal care
+        'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=720&q=80', // grocery store
     ];
 
     constructor(
@@ -652,8 +665,74 @@ export class OnlineOrderComponent implements OnInit {
         return b.includes('solar') || b.includes('energy') || b.includes('power');
     }
 
-    getProductDomain(product: any): 'solar-panel' | 'inverter' | 'battery' | 'solar-accessory' | 'food' | 'general' {
+    isRestaurantStore(): boolean {
+        const b = (this.branchName || '').toLowerCase();
+        return (
+            b.includes('cafe') ||
+            b.includes('restaurant') ||
+            b.includes('food') ||
+            b.includes('burger') ||
+            b.includes('pizza') ||
+            b.includes('dining') ||
+            b.includes('kitchen')
+        );
+    }
+
+    getProductDomain(product: any): 'solar-panel' | 'inverter' | 'battery' | 'solar-accessory' | 'food' | 'retail' | 'general' {
         const text = `${product?.name || ''} ${product?.categoryName || ''} ${product?.brandName || ''} ${product?.description || ''} ${this.branchName || ''}`.toLowerCase();
+
+        // Food & Beverages (Burgers, Pizzas, Pasta, Biryani, Wings, Fries, Karak Chai, Coffee, Drinks)
+        if (
+            text.includes('burger') ||
+            text.includes('pizza') ||
+            text.includes('pasta') ||
+            text.includes('biryani') ||
+            text.includes('tikka') ||
+            text.includes('wings') ||
+            text.includes('fries') ||
+            text.includes('chai') ||
+            text.includes('tea') ||
+            text.includes('coffee') ||
+            text.includes('latte') ||
+            text.includes('margarita') ||
+            text.includes('sweet') ||
+            text.includes('mithai') ||
+            text.includes('food') ||
+            text.includes('fast food') ||
+            text.includes('bakery') ||
+            text.includes('dessert') ||
+            text.includes('chicken')
+        ) {
+            return 'food';
+        }
+
+        // Retail & Supermarket items (Cold drinks, Mineral water, Packaged tea, Milk, Ketchup, Chips, Cookies, Soaps, Shampoo, Detergent)
+        if (
+            text.includes('coke') ||
+            text.includes('cola') ||
+            text.includes('pepsi') ||
+            text.includes('nestle') ||
+            text.includes('pure life') ||
+            text.includes('mineral water') ||
+            text.includes('water bottle') ||
+            text.includes('lipton') ||
+            text.includes('olper') ||
+            text.includes('milk') ||
+            text.includes('ketchup') ||
+            text.includes('lays') ||
+            text.includes('chips') ||
+            text.includes('oreo') ||
+            text.includes('biscuit') ||
+            text.includes('cookies') ||
+            text.includes('dettol') ||
+            text.includes('soap') ||
+            text.includes('shampoo') ||
+            text.includes('ariel') ||
+            text.includes('detergent') ||
+            text.includes('grocery')
+        ) {
+            return 'retail';
+        }
 
         // Batteries
         if (
@@ -717,18 +796,7 @@ export class OnlineOrderComponent implements OnInit {
             return 'solar-accessory';
         }
 
-        // Food / Dining
-        if (
-            text.includes('sweet') ||
-            text.includes('mithai') ||
-            text.includes('burger') ||
-            text.includes('pizza') ||
-            text.includes('cake') ||
-            text.includes('food') ||
-            text.includes('chicken') ||
-            text.includes('tea') ||
-            text.includes('bakery')
-        ) {
+        if (this.isRestaurantStore()) {
             return 'food';
         }
 
@@ -736,7 +804,7 @@ export class OnlineOrderComponent implements OnInit {
             return 'solar-panel';
         }
 
-        return 'general';
+        return 'retail';
     }
 
     getProductImage(product: any, index: number): string {
@@ -744,9 +812,13 @@ export class OnlineOrderComponent implements OnInit {
             return this.getImageUrl(product.imagePath);
         }
         const domain = this.getProductDomain(product);
-        const idx = Math.abs((product?.id || index || 0));
+        const idx = Math.abs(product?.id || index || 0);
 
         switch (domain) {
+            case 'food':
+                return this.foodImages[idx % this.foodImages.length];
+            case 'retail':
+                return this.retailImages[idx % this.retailImages.length];
             case 'solar-panel':
                 return this.solarPanelImages[idx % this.solarPanelImages.length];
             case 'inverter':
@@ -755,12 +827,14 @@ export class OnlineOrderComponent implements OnInit {
                 return this.batteryImages[idx % this.batteryImages.length];
             case 'solar-accessory':
                 return this.solarAccessoryImages[idx % this.solarAccessoryImages.length];
-            case 'food':
-                return this.foodImages[idx % this.foodImages.length];
             default:
-                return this.isSolarStore()
-                    ? this.solarPanelImages[idx % this.solarPanelImages.length]
-                    : this.solarPanelImages[idx % this.solarPanelImages.length];
+                if (this.isRestaurantStore()) {
+                    return this.foodImages[idx % this.foodImages.length];
+                }
+                if (this.isSolarStore()) {
+                    return this.solarPanelImages[idx % this.solarPanelImages.length];
+                }
+                return this.retailImages[idx % this.retailImages.length];
         }
     }
 
