@@ -1294,14 +1294,14 @@
 @media (max-width: 767px) {
   /* Section headers on mobile */
   .fp-store-section {
-    margin-top: 1.25rem;
-    padding: 0 0.85rem;
+    margin-top: 1.1rem;
+    padding: 0 12px;
 
     .section-header-row {
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
 
       .section-title {
-        font-size: 1.05rem;
+        font-size: 0.95rem;
         gap: 0.35rem;
 
         .badge {
@@ -1312,16 +1312,16 @@
     }
   }
 
-  /* Carousel Product Track: Horizontally Swipeable with Peek Effect */
+  /* Carousel Product Track: Horizontally Swipeable with 2-Card Layout */
   .fp-product-carousel-track {
     display: flex;
-    gap: 12px;
+    gap: 8px; /* 8px compact gap between cards */
     overflow-x: auto;
     scroll-behavior: smooth;
     scroll-snap-type: x mandatory;
-    padding: 0.3rem 0.85rem 1.1rem 0.85rem;
-    margin: 0 -0.85rem;
-    scroll-padding: 0 0.85rem;
+    padding: 0.25rem 12px 0.85rem 12px; /* 12px horizontal padding */
+    margin: 0 -12px;
+    scroll-padding: 0 12px;
     scrollbar-width: none;
     -ms-overflow-style: none;
 
@@ -1330,16 +1330,18 @@
     }
   }
 
-  /* Foodies Pakistan Mobile Card Architecture */
+  /* Foodies Pakistan Mobile Card Architecture: Exactly 2 Cards Visible */
   .fp-food-card {
-    /* 78vw width lets the next card peek clearly from the right edge */
-    flex: 0 0 78vw !important;
-    max-width: 78vw !important;
-    min-width: 270px !important;
+    /* calc(50% - 12px) with 8px gap guarantees exactly 2 cards fit with subtle right edge peek */
+    flex: 0 0 calc(50% - 12px) !important;
+    max-width: calc(50% - 12px) !important;
+    min-width: calc(50% - 12px) !important;
+    width: calc(50% - 12px) !important;
+    flex-shrink: 0 !important;
     scroll-snap-align: start;
-    border-radius: 16px;
+    border-radius: 12px;
     border: 1px solid var(--surface-border, #e2e8f0);
-    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.07);
+    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.06);
     background: #ffffff;
     overflow: hidden;
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
@@ -1349,112 +1351,150 @@
       transform: scale(0.97) !important;
     }
 
-    /* Card Top: Aspect ratio media box with floating badges */
+    /* Card Top: Compact Thumbnail (100px - 110px, 16:10 aspect ratio) */
     .card-media-box {
-      height: 155px;
-      aspect-ratio: unset;
+      height: 105px;
+      aspect-ratio: 16 / 10;
       position: relative;
       overflow: hidden;
 
+      img.card-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
       .badge-deal {
-        top: 8px;
-        left: 8px;
-        font-size: 0.68rem;
-        padding: 0.25rem 0.55rem;
+        top: 6px;
+        left: 6px;
+        font-size: 9px;
+        padding: 2px 5px;
         border-radius: 9999px;
         background: rgba(226, 55, 68, 0.95);
         color: #ffffff;
         font-weight: 700;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-        backdrop-filter: blur(6px);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(4px);
+        line-height: 1.1;
       }
 
       .badge-rating {
-        top: 8px;
-        right: 44px; /* Placed cleanly beside the favorite button */
-        font-size: 0.68rem;
-        padding: 0.25rem 0.55rem;
+        top: 6px;
+        right: 28px; /* Beside favorite button */
+        font-size: 9px;
+        padding: 2px 4px;
         border-radius: 9999px;
         background: rgba(15, 23, 42, 0.85);
         color: #ffffff;
         font-weight: 700;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-        backdrop-filter: blur(6px);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(4px);
+        line-height: 1.1;
+        gap: 2px;
 
         i.pi-star-fill {
+          font-size: 8px;
           color: #fbbf24;
         }
       }
 
       .badge-fav-btn {
-        top: 8px;
-        right: 8px;
-        width: 28px;
-        height: 28px;
-        font-size: 0.85rem;
+        top: 6px;
+        right: 6px;
+        width: 20px;
+        height: 20px;
+        font-size: 0.65rem;
       }
 
       .badge-category {
-        bottom: 8px;
-        left: 8px;
-        font-size: 0.68rem;
-        padding: 0.2rem 0.5rem;
+        bottom: 5px;
+        left: 6px;
+        font-size: 9px;
+        padding: 1px 5px;
         border-radius: 9999px;
         background: rgba(15, 23, 42, 0.8);
         color: #ffffff;
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(4px);
+        line-height: 1.1;
       }
     }
 
-    /* Card Body */
+    /* Card Body: Compact p-2 padding and controlled typography */
     .card-body-box {
-      padding: 0.75rem 0.85rem;
+      padding: 0.5rem; /* tight p-2 */
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
 
       .product-title {
-        font-size: 0.92rem;
-        font-weight: 800;
+        font-size: 12px; /* text-[12px] / text-xs */
+        font-weight: 700;
         line-height: 1.25;
-        height: 2.5em;
-        margin-bottom: 0.2rem;
+        height: 2.5em; /* force 2-line max height */
+        max-height: 2.5em;
+        margin-bottom: 2px;
         color: #0f172a;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .product-subtitle {
-        font-size: 0.72rem;
+        font-size: 10px; /* text-[10px] */
+        line-height: 1.2;
         color: #64748b;
-        margin-bottom: 0.55rem;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .card-footer-row {
-        padding-top: 0.55rem;
+        padding-top: 4px;
         border-top: 1px solid #f1f5f9;
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 4px;
 
         .price-col {
+          line-height: 1.1;
+          min-width: 0;
+
           .strike-price {
-            font-size: 0.65rem;
+            font-size: 9px;
             color: #94a3b8;
+            line-height: 1;
+            text-decoration: line-through;
           }
           .main-price {
-            font-size: 1.05rem;
+            font-size: 0.85rem; /* text-sm */
             font-weight: 800;
             color: #e23744;
+            white-space: nowrap;
           }
         }
 
         .btn-add-cart {
-          padding: 0.4rem 0.85rem;
-          font-size: 0.78rem;
-          min-height: 32px;
+          padding: 3px 8px; /* py-1 px-2.5 */
+          font-size: 11px; /* compact text */
+          min-height: unset;
+          height: auto;
           border-radius: 9999px;
           background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
           color: #ffffff;
           font-weight: 700;
           border: none;
-          box-shadow: 0 2px 8px rgba(226, 55, 68, 0.32);
+          box-shadow: 0 2px 6px rgba(226, 55, 68, 0.28);
+          gap: 3px;
+          white-space: nowrap;
+
+          i {
+            font-size: 8px;
+          }
 
           &:active {
             transform: scale(0.94);
@@ -1917,3 +1957,178 @@
     }
   }
 }
+
+/* 5. GPS Live Location Button & Badges in Checkout */
+.fp-gps-location-btn {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  user-select: none;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &.active {
+    background: #f0fdf4;
+    border-color: #4ade80;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18);
+  }
+
+  .gps-icon-badge {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #e23744;
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+  }
+
+  &.active .gps-icon-badge {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #16a34a;
+  }
+
+  .gps-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+    animation: gpsPulse 1.8s infinite;
+  }
+
+  .gps-status-pill {
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #64748b;
+  }
+
+  &.active .gps-status-pill {
+    background: #ffffff;
+    border-color: #86efac;
+  }
+}
+
+@keyframes gpsPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.gps-success-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+
+  .gps-success-badge {
+    background: #dcfce7;
+    color: #15803d;
+  }
+}
+
+.gps-error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+/* 6. Delivery Charges & Free Delivery Tracker Styles */
+.fp-free-delivery-tracker {
+  background: #fffbeb;
+  border: 1px dashed #fcd34d;
+  transition: all 0.25s ease;
+
+  &.unlocked {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+  }
+
+  .fp-delivery-progress-track {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 9999px;
+    overflow: hidden;
+
+    .fp-delivery-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #f59e0b 0%, #ea580c 100%);
+      border-radius: 9999px;
+      transition: width 0.35s ease;
+
+      &.bg-green-500 {
+        background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+      }
+    }
+  }
+}
+
+.fp-zone-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  .fp-zone-row {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    user-select: none;
+
+    &:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    &:active {
+      transform: scale(0.99);
+    }
+
+    &.selected {
+      background: #fef2f2;
+      border-color: #f87171;
+      box-shadow: 0 0 0 1px #f87171;
+
+      .zone-radio-indicator {
+        background: #e23744;
+        border-color: #e23744;
+        color: #ffffff;
+      }
+    }
+
+    .zone-radio-indicator {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e1;
+      background: #ffffff;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .badge-zone-pill {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.1rem 0.4rem;
+      border-radius: 9999px;
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+  }
+}
+
+.fp-bill-summary-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.text-xxs {
+  font-size: 0.7rem;
+}
+
+

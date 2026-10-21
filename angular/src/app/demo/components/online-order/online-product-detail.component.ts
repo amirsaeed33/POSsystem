@@ -29,8 +29,19 @@ export class OnlineProductDetailComponent implements OnInit {
     checkoutModalVisible = false;
     customerName = '';
     customerMobile = '';
+    deliveryAddress = '';
+    deliveryLandmark = '';
     notes = '';
     submitting = false;
+
+    // Delivery Location & Live GPS state
+    locating = false;
+    locationCaptured = false;
+    latitude: number | null = null;
+    longitude: number | null = null;
+    googleMapsLink: string | null = null;
+    locationAccuracy: number | null = null;
+    locationError: string | null = null;
 
     // Success confirmation modal
     successModalVisible = false;
@@ -200,6 +211,88 @@ export class OnlineProductDetailComponent implements OnInit {
         this.checkoutModalVisible = true;
     }
 
+    captureCurrentLocation(): void {
+        if (!navigator.geolocation) {
+            this.locationError = 'Geolocation is not supported by your browser.';
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS Not Supported',
+                detail: 'Geolocation is not supported by your browser. Please enter your address manually.',
+            });
+            return;
+        }
+
+        this.locating = true;
+        this.locationError = null;
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                this.latitude = Number(pos.coords.latitude.toFixed(6));
+                this.longitude = Number(pos.coords.longitude.toFixed(6));
+                this.locationAccuracy = Math.round(pos.coords.accuracy);
+                this.googleMapsLink = `https://maps.google.com/?q=${this.latitude},${this.longitude}`;
+                this.locationCaptured = true;
+                this.locating = false;
+
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Location Captured',
+                    detail: '✓ Live GPS location captured successfully',
+                    life: 2500,
+                });
+
+                this.reverseGeocode(this.latitude, this.longitude);
+            },
+            (err) => {
+                this.locating = false;
+                let msg = 'Location access denied. Please enter your address manually.';
+                if (err.code === err.TIMEOUT) {
+                    msg = 'GPS signal timed out. Please enter your address manually.';
+                } else if (err.code === err.POSITION_UNAVAILABLE) {
+                    msg = 'GPS position unavailable. Please enter your address manually.';
+                }
+                this.locationError = msg;
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'GPS Location',
+                    detail: msg,
+                    life: 4000,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
+    }
+
+    clearLocation(): void {
+        this.locationCaptured = false;
+        this.latitude = null;
+        this.longitude = null;
+        this.googleMapsLink = null;
+        this.locationAccuracy = null;
+        this.locationError = null;
+    }
+
+    private async reverseGeocode(lat: number, lng: number): Promise<void> {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+                headers: { Accept: 'application/json' },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data?.display_name && !this.deliveryAddress.trim()) {
+                    const parts = data.display_name.split(',').slice(0, 3).join(', ');
+                    this.deliveryAddress = parts.trim();
+                }
+            }
+        } catch {
+            // Best effort
+        }
+    }
+
     async submitOrder(): Promise<void> {
         if (!this.customerName.trim()) {
             this.messageService.add({
@@ -220,11 +313,47 @@ export class OnlineProductDetailComponent implements OnInit {
 
         try {
             this.submitting = true;
+
+            const subtotal = this.cartService.cartSubtotal;
+            const deliveryCharges = this.cartService.deliveryFee;
+            const grandTotal = this.cartService.cartGrandTotal;
+            const deliveryAreaName = this.cartService.selectedAreaZone?.name || 'Standard Delivery';
+
+            const addressParts: string[] = [];
+            if (this.deliveryAddress.trim()) {
+                addressParts.push(`📍 Addr: ${this.deliveryAddress.trim()}`);
+            }
+            if (this.deliveryLandmark.trim()) {
+                addressParts.push(`🏛️ Landmark: ${this.deliveryLandmark.trim()}`);
+            }
+            addressParts.push(`🛵 Delivery: ${deliveryCharges > 0 ? 'PKR ' + deliveryCharges : 'FREE'} (${deliveryAreaName})`);
+            if (this.googleMapsLink) {
+                addressParts.push(`🗺️ Maps: ${this.googleMapsLink}`);
+            }
+            if (this.notes.trim()) {
+                addressParts.push(`📝 Notes: ${this.notes.trim()}`);
+            }
+
+            const formattedNotes = addressParts.length > 0 ? addressParts.join(' | ').substring(0, 510) : this.notes.trim();
+
             const input: CreateCustomerOrderDto = {
                 customerName: this.customerName.trim(),
                 customerMobile: this.customerMobile.trim(),
                 branchId: this.branchId || undefined,
-                notes: this.notes.trim(),
+                notes: formattedNotes,
+                latitude: this.latitude ?? undefined,
+                longitude: this.longitude ?? undefined,
+                googleMapsLink: this.googleMapsLink ?? undefined,
+                google_maps_link: this.googleMapsLink ?? undefined,
+                deliveryAddress: this.deliveryAddress.trim() || undefined,
+                deliveryLandmark: this.deliveryLandmark.trim() || undefined,
+                subtotal: subtotal,
+                deliveryCharges: deliveryCharges,
+                delivery_charges: deliveryCharges,
+                grandTotal: grandTotal,
+                grand_total: grandTotal,
+                deliveryArea: deliveryAreaName,
+                delivery_area: deliveryAreaName,
                 lines: this.cartService.items.map((c) => ({
                     productId: c.productId,
                     quantity: c.quantity,
@@ -241,7 +370,10 @@ export class OnlineProductDetailComponent implements OnInit {
             this.cartService.clearCart();
             this.customerName = '';
             this.customerMobile = '';
+            this.deliveryAddress = '';
+            this.deliveryLandmark = '';
             this.notes = '';
+            this.clearLocation();
             this.checkoutModalVisible = false;
             this.cartService.sidebarVisible = false;
 

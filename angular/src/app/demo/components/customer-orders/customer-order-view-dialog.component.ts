@@ -62,6 +62,47 @@ export class CustomerOrderViewDialogComponent implements OnChanges {
         }
     }
 
+    getGoogleMapsLink(notes?: string): string | null {
+        if (!notes) return null;
+        const match = notes.match(/https?:\/\/maps\.google\.com[^\s|]+/);
+        return match ? match[0] : null;
+    }
+
+    getOrderSubtotal(): number {
+        if (!this.order) return 0;
+        if (this.order.subtotal && this.order.subtotal > 0) {
+            return this.order.subtotal;
+        }
+        if (this.order.lines && this.order.lines.length > 0) {
+            return this.order.lines.reduce((acc, l) => acc + (l.lineTotal || (l.quantity * l.unitPrice)), 0);
+        }
+        return this.order.totalAmount || 0;
+    }
+
+    getOrderDeliveryCharges(): number {
+        if (!this.order) return 0;
+        if (this.order.deliveryCharges !== undefined && this.order.deliveryCharges !== null) {
+            return this.order.deliveryCharges;
+        }
+        if (this.order.delivery_charges !== undefined && this.order.delivery_charges !== null) {
+            return this.order.delivery_charges;
+        }
+        const subtotal = this.getOrderSubtotal();
+        const diff = (this.order.totalAmount || 0) - subtotal;
+        return diff > 0 ? diff : 0;
+    }
+
+    getDeliveryAreaName(): string | null {
+        if (!this.order) return null;
+        if (this.order.deliveryArea) return this.order.deliveryArea;
+        if (this.order.delivery_area) return this.order.delivery_area;
+        if (this.order.notes) {
+            const match = this.order.notes.match(/🛵 Delivery:[^|(]+\(([^)]+)\)/);
+            if (match) return match[1];
+        }
+        return null;
+    }
+
     private loadOrder(id: number): void {
         this.loading = true;
         this.order = null;
