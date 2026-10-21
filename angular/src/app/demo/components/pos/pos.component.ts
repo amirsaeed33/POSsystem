@@ -9,7 +9,20 @@ import { PosCartLine } from 'src/app/demo/api/pos';
 import { PaymentType } from 'src/app/demo/api/sale';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { ProductDto } from 'src/app/demo/api/product';
+import { RestaurantTableDto } from 'src/app/demo/api/restaurant-table';
+import {
+    OrderTypes,
+    RestaurantOrderDto,
+    SendToKitchenResultDto,
+} from 'src/app/demo/api/restaurant-order';
+import {
+    ProductModifierGroupDto,
+    ProductModifierOptionDto,
+} from 'src/app/demo/api/product-modifier';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { RestaurantTableService } from 'src/app/demo/service/restaurant-table.service';
+import { RestaurantOrderService } from 'src/app/demo/service/restaurant-order.service';
+import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
 
 @Component({
@@ -33,6 +46,48 @@ export class PosComponent implements OnInit {
     discountPercent = 0;
     taxPercent = 0;
 
+    // Restaurant Mode
+    isRestaurantMode = false;
+    serviceChargePercent = 0;
+    orderType: 'dineIn' | 'takeaway' = 'dineIn';
+    tables: RestaurantTableDto[] = [];
+    selectedTable: RestaurantTableDto | null = null;
+    tableDialogVisible = false;
+    loadingTables = false;
+
+    // Active Running Order (Hold & Tabs)
+    activeOrderId: number | null = null;
+    activeOrderNo = '';
+    waiterName = '';
+    savingOrder = false;
+    sendingKOT = false;
+    printingBill = false;
+
+    // KOT Modal & Thermal print preview
+    kotDialogVisible = false;
+    kotResult: SendToKitchenResultDto | null = null;
+
+    // Guest Bill Check Dialog
+    guestBillDialogVisible = false;
+
+    // Split Bill Dialog
+    splitBillDialogVisible = false;
+    splitCount = 2;
+
+    // Product Modifiers
+    modifierDialogVisible = false;
+    selectedProductForModifiers: ProductDto | null = null;
+    availableModifierGroups: ProductModifierGroupDto[] = [];
+    selectedModifierOptions: Record<number, number> = {};
+    pendingKitchenNote = '';
+    todayDate = new Date();
+
+    // Quick Add Table form
+    newTableNo = '';
+    newTableArea = 'Main Hall';
+    newTableCapacity = 4;
+    creatingTable = false;
+
     paymentDialogVisible = false;
     paidAmount = 0;
 
@@ -40,6 +95,9 @@ export class PosComponent implements OnInit {
 
     constructor(
         private saleService: SaleService,
+        private restaurantTableService: RestaurantTableService,
+        private restaurantOrderService: RestaurantOrderService,
+        private productModifierService: ProductModifierService,
         private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
@@ -75,10 +133,28 @@ export class PosComponent implements OnInit {
         );
     }
 
+    get serviceChargeAmount(): number {
+        if (
+            !this.isRestaurantMode ||
+            this.orderType !== 'dineIn' ||
+            !this.serviceChargePercent
+        ) {
+            return 0;
+        }
+        const base = this.subTotal - this.computedDiscount;
+        return (
+            Math.round(((base * this.serviceChargePercent) / 100) * 100) / 100
+        );
+    }
+
     get grandTotal(): number {
         return (
             Math.round(
-                (this.subTotal - this.computedDiscount + this.taxAmount) * 100
+                (this.subTotal -
+                    this.computedDiscount +
+                    this.taxAmount +
+                    this.serviceChargeAmount) *
+                    100
             ) / 100
         );
     }
@@ -143,6 +219,437 @@ export class PosComponent implements OnInit {
         this.taxPercent = branch?.taxPercent ?? 0;
         this.discountPercent = branch?.discountPercent ?? 0;
         this.discountAmount = branch?.discountAmount ?? 0;
+        this.isRestaurantMode = branch?.businessType === 2;
+        this.serviceChargePercent = branch?.serviceChargePercent ?? 0;
+
+        if (this.isRestaurantMode && branch?.id) {
+            this.loadTables(branch.id);
+        }
+    }
+
+    loadTables(branchId?: number): void {
+        const bId = branchId || this.branchContext.getBranchId();
+        if (!bId) return;
+        this.loadingTables = true;
+        this.restaurantTableService
+            .getTables(bId)
+            .then((tables) => {
+                this.tables = tables || [];
+            })
+            .catch((err) => {
+                console.error('Failed to load tables', err);
+            })
+            .finally(() => {
+                this.loadingTables = false;
+            });
+    }
+
+    async selectTable(table: RestaurantTableDto): Promise<void> {
+        this.selectedTable = table;
+        this.orderType = 'dineIn';
+        this.tableDialogVisible = false;
+
+        if (table.status === 1 || table.status === 2) {
+            try {
+                const order = await this.restaurantOrderService.getByTable(table.id);
+                if (order && order.lines?.length) {
+                    this.activeOrderId = order.id;
+                    this.activeOrderNo = order.orderNo;
+                    this.waiterName = order.waiterName || '';
+                    this.notes = order.notes || '';
+                    if (order.customerId) {
+                        this.customerId = order.customerId;
+                    }
+                    this.cart = order.lines.map((l) => ({
+                        id: l.id,
+                        productId: l.productId,
+                        productName: l.productName,
+                        quantity: l.quantity,
+                        unitPrice: l.unitPrice,
+                        retailPrice: l.unitPrice,
+                        wholesalePrice: l.unitPrice,
+                        stockQuantity: 999,
+                        kitchenNotes: l.kitchenNotes,
+                        selectedModifiers: l.selectedModifiers,
+                        isSentToKitchen: l.isSentToKitchen,
+                    }));
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Order Resumed',
+                        detail: `Loaded active order #${order.orderNo} for Table ${table.tableNo}`,
+                        life: 3000,
+                    });
+                    return;
+                }
+            } catch (err) {
+                console.error('Failed to load table order', err);
+            }
+        }
+
+        // Available table: new running order
+        this.activeOrderId = null;
+        this.activeOrderNo = '';
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Table Selected',
+            detail: `Table ${table.tableNo} (${table.area || 'Main Hall'}) selected`,
+            life: 2500,
+        });
+    }
+
+    clearTableSelection(): void {
+        this.selectedTable = null;
+        this.activeOrderId = null;
+        this.activeOrderNo = '';
+    }
+
+    // Shift / Transfer Table
+    transferDialogVisible = false;
+    transferringTable = false;
+    selectedTargetTableId: number | null = null;
+
+    get availableTransferTables(): RestaurantTableDto[] {
+        return this.tables.filter(
+            (t) => t.id !== this.selectedTable?.id && t.status === 0
+        );
+    }
+
+    openTransferDialog(): void {
+        if (!this.selectedTable) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'No Table',
+                detail: 'Select an active table first to transfer.',
+            });
+            return;
+        }
+        this.selectedTargetTableId = null;
+        this.transferDialogVisible = true;
+    }
+
+    async confirmTransfer(): Promise<void> {
+        if (!this.selectedTable || !this.selectedTargetTableId) return;
+        this.transferringTable = true;
+        try {
+            const target = this.tables.find(
+                (t) => t.id === this.selectedTargetTableId
+            );
+            await this.restaurantTableService.transferTable(
+                this.selectedTable.id,
+                this.selectedTargetTableId
+            );
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Table Transferred',
+                detail: `Order moved from Table ${this.selectedTable.tableNo} to Table ${target?.tableNo || ''}`,
+            });
+            this.transferDialogVisible = false;
+            await this.loadTables();
+            if (target) {
+                this.selectedTable = target;
+            }
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to transfer table',
+            });
+        } finally {
+            this.transferringTable = false;
+        }
+    }
+
+    async sendToKitchen(): Promise<void> {
+        if (!this.cart.length) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Cart Empty',
+                detail: 'Add food items before sending to the kitchen.',
+            });
+            return;
+        }
+
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId) return;
+
+        this.sendingKOT = true;
+        try {
+            const payload = {
+                id: this.activeOrderId,
+                branchId,
+                tableId: this.orderType === 'dineIn' ? this.selectedTable?.id : null,
+                tableNo: this.orderType === 'dineIn' ? this.selectedTable?.tableNo : 'Takeaway',
+                orderType: this.orderType === 'dineIn' ? OrderTypes.DineIn : OrderTypes.Takeaway,
+                customerId: this.customerId,
+                waiterName: this.waiterName || 'Staff',
+                notes: this.notes,
+                discountPercent: this.discountPercent || 0,
+                discountAmount: this.discountAmount || 0,
+                taxPercent: this.taxPercent || 0,
+                serviceChargePercent: this.serviceChargePercent || 0,
+                lines: this.cart.map((line) => ({
+                    id: line.id,
+                    productId: line.productId,
+                    productName: line.productName,
+                    quantity: line.quantity,
+                    unitPrice: line.unitPrice,
+                    kitchenNotes: line.kitchenNotes,
+                    selectedModifiers: line.selectedModifiers,
+                    isSentToKitchen: line.isSentToKitchen || false,
+                })),
+            };
+
+            const savedOrder = await this.restaurantOrderService.saveOrder(payload);
+            this.activeOrderId = savedOrder.id;
+            this.activeOrderNo = savedOrder.orderNo;
+
+            const kotResult = await this.restaurantOrderService.sendToKitchen(savedOrder.id);
+            this.kotResult = kotResult;
+            this.kotDialogVisible = true;
+
+            this.cart.forEach((l) => (l.isSentToKitchen = true));
+            this.loadTables();
+
+            this.messageService.add({
+                severity: 'success',
+                summary: '🍳 KOT Printed',
+                detail: `Kitchen Order Ticket printed for ${kotResult.tableNo} (Order #${kotResult.orderNo})`,
+                life: 3500,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to send order to kitchen',
+            });
+        } finally {
+            this.sendingKOT = false;
+        }
+    }
+
+    async printGuestBill(): Promise<void> {
+        if (!this.cart.length) return;
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId) return;
+
+        this.printingBill = true;
+        try {
+            if (!this.activeOrderId) {
+                const payload = {
+                    branchId,
+                    tableId: this.orderType === 'dineIn' ? this.selectedTable?.id : null,
+                    tableNo: this.orderType === 'dineIn' ? this.selectedTable?.tableNo : 'Takeaway',
+                    orderType: this.orderType === 'dineIn' ? OrderTypes.DineIn : OrderTypes.Takeaway,
+                    customerId: this.customerId,
+                    waiterName: this.waiterName || 'Staff',
+                    notes: this.notes,
+                    discountPercent: this.discountPercent || 0,
+                    discountAmount: this.discountAmount || 0,
+                    taxPercent: this.taxPercent || 0,
+                    serviceChargePercent: this.serviceChargePercent || 0,
+                    lines: this.cart.map((line) => ({
+                        id: line.id,
+                        productId: line.productId,
+                        productName: line.productName,
+                        quantity: line.quantity,
+                        unitPrice: line.unitPrice,
+                        kitchenNotes: line.kitchenNotes,
+                        selectedModifiers: line.selectedModifiers,
+                        isSentToKitchen: line.isSentToKitchen || false,
+                    })),
+                };
+                const saved = await this.restaurantOrderService.saveOrder(payload);
+                this.activeOrderId = saved.id;
+                this.activeOrderNo = saved.orderNo;
+            }
+
+            await this.restaurantOrderService.printBill(this.activeOrderId);
+            this.guestBillDialogVisible = true;
+            this.loadTables();
+
+            this.messageService.add({
+                severity: 'info',
+                summary: '🧾 Guest Check Ready',
+                detail: `Bill printed for ${this.selectedTable?.tableNo || 'Table'}`,
+                life: 3000,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to print guest bill',
+            });
+        } finally {
+            this.printingBill = false;
+        }
+    }
+
+    openSplitBill(): void {
+        if (!this.cart.length) return;
+        this.splitBillDialogVisible = true;
+    }
+
+    get splitAmountPerPerson(): number {
+        const count = Math.max(1, this.splitCount || 1);
+        return Math.round((this.grandTotal / count) * 100) / 100;
+    }
+
+    // Line Cooking Notes Dialog
+    editingLineForNote: PosCartLine | null = null;
+    lineNoteDialogVisible = false;
+    tempLineNote = '';
+
+    openEditLineNote(line: PosCartLine): void {
+        this.editingLineForNote = line;
+        this.tempLineNote = line.kitchenNotes || '';
+        this.lineNoteDialogVisible = true;
+    }
+
+    saveLineNote(): void {
+        if (this.editingLineForNote) {
+            this.editingLineForNote.kitchenNotes = this.tempLineNote.trim() || undefined;
+        }
+        this.lineNoteDialogVisible = false;
+        this.editingLineForNote = null;
+        this.tempLineNote = '';
+    }
+
+    parseModifiers(modJson?: string): string[] {
+        if (!modJson) return [];
+        try {
+            const parsed = JSON.parse(modJson);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [modJson];
+        }
+    }
+
+    async saveRunningTab(): Promise<void> {
+        if (!this.cart.length) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Empty Order',
+                detail: 'Please add items before saving tab.',
+            });
+            return;
+        }
+
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId) return;
+
+        this.savingOrder = true;
+        try {
+            const payload = {
+                id: this.activeOrderId,
+                branchId,
+                tableId: this.orderType === 'dineIn' ? this.selectedTable?.id : null,
+                tableNo: this.orderType === 'dineIn' ? this.selectedTable?.tableNo : 'Takeaway',
+                orderType: this.orderType === 'dineIn' ? OrderTypes.DineIn : OrderTypes.Takeaway,
+                customerId: this.customerId,
+                waiterName: this.waiterName || 'Staff',
+                notes: this.notes,
+                discountPercent: this.discountPercent || 0,
+                discountAmount: this.discountAmount || 0,
+                taxPercent: this.taxPercent || 0,
+                serviceChargePercent: this.serviceChargePercent || 0,
+                lines: this.cart.map((line) => ({
+                    id: line.id,
+                    productId: line.productId,
+                    productName: line.productName,
+                    quantity: line.quantity,
+                    unitPrice: line.unitPrice,
+                    kitchenNotes: line.kitchenNotes,
+                    selectedModifiers: line.selectedModifiers,
+                    isSentToKitchen: line.isSentToKitchen || false,
+                })),
+            };
+
+            const saved = await this.restaurantOrderService.saveOrder(payload);
+            this.activeOrderId = saved.id;
+            this.activeOrderNo = saved.orderNo;
+            this.loadTables();
+
+            this.messageService.add({
+                severity: 'success',
+                summary: '💾 Tab Saved',
+                detail: `Order #${saved.orderNo} held on ${this.selectedTable ? 'Table ' + this.selectedTable.tableNo : 'Takeaway'}`,
+                life: 3000,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to save tab',
+            });
+        } finally {
+            this.savingOrder = false;
+        }
+    }
+
+    printCurrentModal(elementId: string): void {
+        const printContent = document.getElementById(elementId);
+        if (!printContent) {
+            window.print();
+            return;
+        }
+        const win = window.open('', '', 'height=600,width=400');
+        if (!win) {
+            window.print();
+            return;
+        }
+        win.document.write('<html><head><title>Print</title>');
+        win.document.write('<style>');
+        win.document.write(`
+            body { font-family: 'Courier New', monospace; font-size: 13px; color: #000; padding: 12px; margin: 0; width: 78mm; }
+            .ticket-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
+            .ticket-title { font-size: 16px; font-weight: bold; }
+            .ticket-meta { font-size: 12px; margin: 2px 0; }
+            .ticket-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+            .ticket-table th, .ticket-table td { text-align: left; padding: 3px 0; }
+            .ticket-table th.text-right, .ticket-table td.text-right { text-align: right; }
+            .ticket-notes { font-size: 11px; font-style: italic; padding-left: 6px; }
+            .ticket-footer { border-top: 1px dashed #000; padding-top: 8px; text-align: center; font-size: 11px; }
+            .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 4px; }
+        `);
+        win.document.write('</style></head><body>');
+        win.document.write(printContent.innerHTML);
+        win.document.write('</body></html>');
+        win.document.close();
+        win.focus();
+        setTimeout(() => {
+            win.print();
+            win.close();
+        }, 250);
+    }
+
+    async createQuickTable(): Promise<void> {
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId || !this.newTableNo?.trim()) return;
+        this.creatingTable = true;
+        try {
+            const table = await this.restaurantTableService.create({
+                branchId,
+                tableNo: this.newTableNo.trim(),
+                area: this.newTableArea?.trim() || 'Main Hall',
+                capacity: this.newTableCapacity || 4,
+            });
+            this.tables.push(table);
+            this.selectTable(table);
+            this.newTableNo = '';
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Table Added',
+                detail: `Table ${table.tableNo} created`,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to create table',
+            });
+        } finally {
+            this.creatingTable = false;
+        }
     }
 
     focusSearch(): void {
@@ -198,12 +705,95 @@ export class PosComponent implements OnInit {
         this.focusSearch();
     }
 
-    addProduct(product: ProductDto): void {
-        const retailPrice = product.price || 0;
-        const wholesalePrice = product.wholesalePrice || 0;
+    async addProduct(product: ProductDto): Promise<void> {
+        if (this.isRestaurantMode) {
+            try {
+                const groups = await this.productModifierService.getByProduct(product.id);
+                if (groups && groups.length > 0) {
+                    this.selectedProductForModifiers = product;
+                    this.availableModifierGroups = groups;
+                    this.selectedModifierOptions = {};
+                    this.pendingKitchenNote = '';
+                    for (const g of groups) {
+                        if (g.isRequired && g.options?.length) {
+                            this.selectedModifierOptions[g.id] = g.options[0].id;
+                        }
+                    }
+                    this.modifierDialogVisible = true;
+                    return;
+                }
+            } catch (err) {
+                console.warn('Could not fetch modifiers for product:', err);
+            }
+        }
+        this.pushToCart(product);
+    }
+
+    confirmModifiersAndAddToCart(): void {
+        if (!this.selectedProductForModifiers) return;
+
+        for (const group of this.availableModifierGroups) {
+            if (group.isRequired && !this.selectedModifierOptions[group.id]) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Required Selection',
+                    detail: `Please select an option for "${group.name}".`,
+                });
+                return;
+            }
+        }
+
+        let extraPrice = 0;
+        const modifierNames: string[] = [];
+
+        for (const group of this.availableModifierGroups) {
+            const selectedOptId = this.selectedModifierOptions[group.id];
+            if (selectedOptId) {
+                const opt = group.options?.find((o) => o.id === selectedOptId);
+                if (opt) {
+                    extraPrice += opt.price || 0;
+                    modifierNames.push(`${opt.name}${opt.price > 0 ? ' (+' + opt.price.toFixed(2) + ')' : ''}`);
+                }
+            }
+        }
+
+        this.pushToCart(
+            this.selectedProductForModifiers,
+            { names: modifierNames, extraPrice },
+            this.pendingKitchenNote?.trim() || undefined
+        );
+
+        this.modifierDialogVisible = false;
+        this.selectedProductForModifiers = null;
+        this.availableModifierGroups = [];
+        this.selectedModifierOptions = {};
+        this.pendingKitchenNote = '';
+        this.focusSearch();
+    }
+
+    cancelModifiers(): void {
+        this.modifierDialogVisible = false;
+        this.selectedProductForModifiers = null;
+        this.availableModifierGroups = [];
+        this.selectedModifierOptions = {};
+        this.pendingKitchenNote = '';
+        this.focusSearch();
+    }
+
+    pushToCart(
+        product: ProductDto,
+        extraModifiers?: { names: string[]; extraPrice: number },
+        kitchenNote?: string
+    ): void {
+        const retailPrice = (product.price || 0) + (extraModifiers?.extraPrice || 0);
+        const wholesalePrice = (product.wholesalePrice || 0) + (extraModifiers?.extraPrice || 0);
         const unitPrice = this.resolveUnitPrice(retailPrice, wholesalePrice);
 
-        const existing = this.cart.find((x) => x.productId === product.id);
+        const modJson = extraModifiers?.names?.length ? JSON.stringify(extraModifiers.names) : undefined;
+        const existing = !modJson && !kitchenNote
+            ? this.cart.find((x) => x.productId === product.id && !x.selectedModifiers && !x.kitchenNotes)
+            : null;
+
         if (existing) {
             if (existing.quantity + 1 > (product.stockQuantity || 0)) {
                 this.messageService.add({
@@ -238,6 +828,9 @@ export class PosComponent implements OnInit {
             retailPrice,
             wholesalePrice,
             stockQuantity: product.stockQuantity || 0,
+            kitchenNotes: kitchenNote || undefined,
+            selectedModifiers: modJson,
+            isSentToKitchen: false,
         });
     }
 
@@ -308,6 +901,9 @@ export class PosComponent implements OnInit {
         this.notes = '';
         this.paymentDialogVisible = false;
         this.paidAmount = 0;
+        this.activeOrderId = null;
+        this.activeOrderNo = '';
+        this.selectedTable = null;
         this.focusSearch();
     }
 
@@ -349,7 +945,7 @@ export class PosComponent implements OnInit {
         this.paymentDialogVisible = true;
     }
 
-    confirmPaymentAndSave(): void {
+    async confirmPaymentAndSave(): Promise<void> {
         if (!this.canSave()) {
             return;
         }
@@ -373,26 +969,85 @@ export class PosComponent implements OnInit {
             paid >= total ? PaymentType.Cash : PaymentType.Mixed;
         const cashAmount = paid >= total ? 0 : appliedCash;
         const cardAmount = 0;
+        let saleNote = this.notes?.trim() || '';
 
         this.saving = true;
-        this.saleService
-            .create({
-                customerId: this.customerId as number,
-                saleDate: new Date().toISOString(),
-                notes: this.notes?.trim() || undefined,
-                discountAmount: this.discountAmount || 0,
-                discountPercent: this.discountPercent || 0,
-                taxPercent: this.taxPercent || 0,
-                paymentType,
-                cashAmount,
-                cardAmount,
-                lines: this.cart.map((line) => ({
-                    productId: line.productId,
-                    quantity: line.quantity,
-                    unitPrice: line.unitPrice,
-                })),
-            })
-            .then(() => {
+
+        try {
+            if (this.isRestaurantMode) {
+                const branchId = this.branchContext.getBranchId();
+                if (!this.activeOrderId && branchId) {
+                    const payload = {
+                        branchId,
+                        tableId: this.orderType === 'dineIn' ? this.selectedTable?.id : null,
+                        tableNo: this.orderType === 'dineIn' ? this.selectedTable?.tableNo : 'Takeaway',
+                        orderType: this.orderType === 'dineIn' ? OrderTypes.DineIn : OrderTypes.Takeaway,
+                        customerId: this.customerId,
+                        waiterName: this.waiterName || 'Staff',
+                        notes: this.notes,
+                        discountPercent: this.discountPercent || 0,
+                        discountAmount: this.discountAmount || 0,
+                        taxPercent: this.taxPercent || 0,
+                        serviceChargePercent: this.serviceChargePercent || 0,
+                        lines: this.cart.map((line) => ({
+                            id: line.id,
+                            productId: line.productId,
+                            productName: line.productName,
+                            quantity: line.quantity,
+                            unitPrice: line.unitPrice,
+                            kitchenNotes: line.kitchenNotes,
+                            selectedModifiers: line.selectedModifiers,
+                            isSentToKitchen: line.isSentToKitchen || false,
+                        })),
+                    };
+                    const saved = await this.restaurantOrderService.saveOrder(payload);
+                    this.activeOrderId = saved.id;
+                }
+
+                await this.restaurantOrderService.settleOrder({
+                    orderId: this.activeOrderId!,
+                    customerId: this.customerId as number,
+                    paymentType,
+                    cashAmount,
+                    cardAmount,
+                    notes: saleNote || undefined,
+                });
+
+                const detail =
+                    change > 0
+                        ? `Order settled. Return ${change.toFixed(2)} change to customer.`
+                        : remaining > 0
+                          ? `Order settled. Balance of ${remaining.toFixed(2)} posted on customer credit.`
+                          : 'Order settled successfully';
+
+                this.messageService.add({
+                    severity: 'success',
+                    summary: '🍽️ Order Completed',
+                    detail,
+                });
+
+                this.paymentDialogVisible = false;
+                this.clearCart();
+                this.loadTables();
+                this.loadTopProducts();
+            } else {
+                await this.saleService.create({
+                    customerId: this.customerId as number,
+                    saleDate: new Date().toISOString(),
+                    notes: saleNote || undefined,
+                    discountAmount: this.discountAmount || 0,
+                    discountPercent: this.discountPercent || 0,
+                    taxPercent: this.taxPercent || 0,
+                    paymentType,
+                    cashAmount,
+                    cardAmount,
+                    lines: this.cart.map((line) => ({
+                        productId: line.productId,
+                        quantity: line.quantity,
+                        unitPrice: line.unitPrice,
+                    })),
+                });
+
                 const detail =
                     change > 0
                         ? `Sale completed. Return ${change.toFixed(2)} change to the customer.`
@@ -408,18 +1063,17 @@ export class PosComponent implements OnInit {
                 this.paymentDialogVisible = false;
                 this.clearCart();
                 this.loadTopProducts();
-            })
-            .catch((error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error?.message || 'Failed to complete sale',
-                });
-            })
-            .finally(() => {
-                this.saving = false;
-                this.focusSearch();
+            }
+        } catch (error: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Failed to complete sale',
             });
+        } finally {
+            this.saving = false;
+            this.focusSearch();
+        }
     }
 
     private loadSuggestions(keyword: string): void {

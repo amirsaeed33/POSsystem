@@ -7,4 +7,8 @@ export interface PosCartLine {
     retailPrice: number;
     wholesalePrice: number;
     stockQuantity: number;
+    id?: number;
+    kitchenNotes?: string;
+    selectedModifiers?: string;
+    isSentToKitchen?: boolean;
 }

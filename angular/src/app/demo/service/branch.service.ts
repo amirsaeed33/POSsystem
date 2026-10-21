@@ -245,6 +245,8 @@ export class BranchService {
             taxPercent: item.taxPercent ?? item.TaxPercent ?? 0,
             discountPercent: item.discountPercent ?? item.DiscountPercent ?? 0,
             discountAmount: item.discountAmount ?? item.DiscountAmount ?? 0,
+            businessType: item.businessType ?? item.BusinessType ?? 1,
+            serviceChargePercent: item.serviceChargePercent ?? item.ServiceChargePercent ?? 0,
             dateFormat: item.dateFormat ?? item.DateFormat ?? 'dd/MM/yyyy',
             currencyFormat: item.currencyFormat ?? item.CurrencyFormat ?? 'PKR',
         };

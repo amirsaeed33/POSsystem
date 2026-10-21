@@ -6,6 +6,13 @@ export const BranchStatuses = {
 
 export type BranchStatus = (typeof BranchStatuses)[keyof typeof BranchStatuses];
 
+export const BusinessTypes = {
+    Retail: 1,
+    Restaurant: 2,
+} as const;
+
+export type BusinessType = (typeof BusinessTypes)[keyof typeof BusinessTypes];
+
 export interface BranchDto {
     id: number;
     name: string;
@@ -29,6 +36,8 @@ export interface BranchDto {
     taxPercent?: number;
     discountPercent?: number;
     discountAmount?: number;
+    businessType?: BusinessType;
+    serviceChargePercent?: number;
     dateFormat?: string;
     currencyFormat?: string;
 }
@@ -47,6 +56,8 @@ export interface CreateBranchDto {
     taxPercent?: number;
     discountPercent?: number;
     discountAmount?: number;
+    businessType?: BusinessType;
+    serviceChargePercent?: number;
     companyTypeId?: number;
     hostCatalogItemIds?: number[];
     dateFormat?: string;

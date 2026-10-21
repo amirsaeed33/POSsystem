@@ -63,6 +63,33 @@
                             [disabled]="saving"
                         />
                     </div>
+                    <div class="field col-12 md:col-6 flex flex-column gap-2 mb-3">
+                        <label for="branchBusinessType" class="font-medium">Business / Store Type <span class="p-error">*</span></label>
+                        <p-dropdown
+                            inputId="branchBusinessType"
+                            [options]="businessTypeOptions"
+                            [(ngModel)]="branch.businessType"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Select Type"
+                            styleClass="w-full"
+                            [disabled]="saving"
+                        ></p-dropdown>
+                    </div>
+                    <div class="field col-12 md:col-6 flex flex-column gap-2 mb-3" *ngIf="branch.businessType === 2">
+                        <label for="branchServiceCharge" class="font-medium">Dine-In Service Charge %</label>
+                        <p-inputNumber
+                            inputId="branchServiceCharge"
+                            [(ngModel)]="branch.serviceChargePercent"
+                            [min]="0"
+                            [max]="100"
+                            [minFractionDigits]="0"
+                            [maxFractionDigits]="2"
+                            suffix="%"
+                            styleClass="w-full"
+                            [disabled]="saving"
+                        ></p-inputNumber>
+                    </div>
                 </div>
 
                 <div class="branch-create__actions">

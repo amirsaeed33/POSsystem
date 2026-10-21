@@ -190,6 +190,191 @@
         </div>
     </p-dialog>
 
+    <!-- Product Modifiers Management Dialog -->
+    <p-dialog
+        [header]="'🍕 Manage Modifiers & Options - ' + (modifierTargetProduct?.name || '')"
+        [(visible)]="modifierDialogVisible"
+        [modal]="true"
+        appendTo="body"
+        [style]="{ width: '42rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="surface-50 p-3 border-round">
+                <div class="font-semibold text-900 mb-1">Product Modifiers (Sizes, Crusts, Add-ons, Toppings)</div>
+                <div class="text-xs text-600">
+                    Define custom groups and options that cashiers or waiters can pick when ordering this product in Restaurant Mode.
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div *ngIf="loadingModifiers" class="text-center py-4 text-500">
+                <i class="pi pi-spin pi-spinner text-2xl mr-2"></i> Loading modifiers...
+            </div>
+
+            <!-- Groups List -->
+            <div *ngIf="!loadingModifiers && modifierGroups.length" class="flex flex-column gap-3 max-h-24rem overflow-y-auto pr-1">
+                <div
+                    *ngFor="let group of modifierGroups"
+                    class="surface-card border-1 surface-border border-round-xl p-3 shadow-1"
+                >
+                    <div class="flex align-items-center justify-content-between mb-2">
+                        <div class="flex align-items-center gap-2">
+                            <span class="font-bold text-900 text-base">{{ group.name }}</span>
+                            <span
+                                class="text-xs px-2 py-0.5 border-round font-medium"
+                                [style.background]="group.isRequired ? '#fee2e2' : '#f1f5f9'"
+                                [style.color]="group.isRequired ? '#b91c1c' : '#475569'"
+                            >
+                                {{ group.isRequired ? 'Required' : 'Optional' }}
+                            </span>
+                            <span class="text-xs text-500" *ngIf="group.maxSelection > 1">
+                                (Multiple allowed)
+                            </span>
+                        </div>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-trash"
+                            class="p-button-text p-button-danger p-button-sm p-0"
+                            style="width: 2rem; height: 2rem;"
+                            title="Delete this modifier group"
+                            (click)="deleteModifierGroup(group.id)"
+                        ></button>
+                    </div>
+
+                    <!-- Options list in group -->
+                    <div class="flex flex-column gap-2 mb-3">
+                        <div
+                            *ngFor="let opt of group.options"
+                            class="surface-50 border-round p-2 flex justify-content-between align-items-center text-sm"
+                        >
+                            <span class="font-medium text-800">{{ opt.name }}</span>
+                            <div class="flex align-items-center gap-2">
+                                <span class="text-xs font-semibold text-primary">
+                                    {{ opt.price > 0 ? '+ ' + (opt.price | number: '1.2-2') : 'Free' }}
+                                </span>
+                                <button
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    icon="pi pi-times"
+                                    class="p-button-text p-button-danger p-button-xs p-0"
+                                    style="width: 1.5rem; height: 1.5rem;"
+                                    title="Delete option"
+                                    (click)="deleteModifierOption(opt.id)"
+                                ></button>
+                            </div>
+                        </div>
+                        <div *ngIf="!group.options?.length" class="text-xs text-500 italic p-1">
+                            No options added yet for this group.
+                        </div>
+                    </div>
+
+                    <!-- Add Option Form -->
+                    <div class="surface-100 p-2 border-round flex flex-wrap align-items-center gap-2">
+                        <input
+                            pInputText
+                            type="text"
+                            placeholder="New option (e.g. Large, Extra Cheese)"
+                            [(ngModel)]="newOptionName[group.id]"
+                            class="p-inputtext-sm flex-grow-1"
+                        />
+                        <p-inputNumber
+                            placeholder="Extra Price"
+                            [(ngModel)]="newOptionPrice[group.id]"
+                            [min]="0"
+                            mode="decimal"
+                            [minFractionDigits]="0"
+                            [maxFractionDigits]="2"
+                            styleClass="p-inputtext-sm"
+                            [style]="{ width: '7rem' }"
+                        ></p-inputNumber>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-plus"
+                            label="Add Option"
+                            class="p-button-sm p-button-secondary"
+                            [disabled]="!newOptionName[group.id] || addingOption[group.id]"
+                            [loading]="addingOption[group.id]"
+                            (click)="addModifierOption(group.id)"
+                        ></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty Modifiers state -->
+            <div *ngIf="!loadingModifiers && !modifierGroups.length" class="text-center py-4 surface-50 border-round">
+                <i class="pi pi-list text-3xl text-400 mb-2 block"></i>
+                <div class="font-medium text-700">No modifier groups configured for this product.</div>
+                <div class="text-xs text-500 mt-1">Use the form below to create groups like "Size" or "Add-ons".</div>
+            </div>
+
+            <!-- Create New Modifier Group Form -->
+            <div class="surface-card border-1 surface-border border-round-xl p-3">
+                <div class="font-semibold text-800 mb-2 flex align-items-center gap-2 text-sm">
+                    <i class="pi pi-plus-circle text-primary"></i> Create Modifier Group
+                </div>
+                <div class="grid formgrid p-fluid">
+                    <div class="field col-12 sm:col-5 mb-2">
+                        <label class="text-xs font-medium">Group Name *</label>
+                        <input
+                            pInputText
+                            type="text"
+                            placeholder="e.g. Size, Crust, Spice Level"
+                            [(ngModel)]="newGroupName"
+                            class="p-inputtext-sm"
+                        />
+                    </div>
+                    <div class="field col-6 sm:col-3 mb-2 flex align-items-center pt-3">
+                        <p-checkbox
+                            [(ngModel)]="newGroupIsRequired"
+                            [binary]="true"
+                            label="Required"
+                            labelStyleClass="text-xs font-medium ml-1"
+                        ></p-checkbox>
+                    </div>
+                    <div class="field col-6 sm:col-2 mb-2 flex align-items-center pt-3">
+                        <p-checkbox
+                            [(ngModel)]="newGroupAllowMultiple"
+                            [binary]="true"
+                            label="Multi-select"
+                            labelStyleClass="text-xs font-medium ml-1"
+                        ></p-checkbox>
+                    </div>
+                    <div class="field col-12 sm:col-2 mb-2 flex align-items-end">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            label="Create"
+                            icon="pi pi-check"
+                            class="p-button-sm w-full"
+                            [disabled]="!newGroupName || creatingGroup"
+                            [loading]="creatingGroup"
+                            (click)="createModifierGroup()"
+                        ></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                class="p-button-text"
+                (click)="modifierDialogVisible = false"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
 </div>

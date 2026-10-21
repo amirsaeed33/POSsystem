@@ -52,6 +52,11 @@ export class BranchEditComponent implements OnInit {
         { label: 'CNY - Chinese Yuan', value: 'CNY' }
     ];
 
+    businessTypeOptions = [
+        { label: '🛒 Retail & Supermarket', value: 1 },
+        { label: '🍽️ Restaurant & Cafe', value: 2 },
+    ];
+
     imagePreview = '';
     saving = false;
     loading = false;
@@ -163,6 +168,8 @@ export class BranchEditComponent implements OnInit {
             taxPercent: this.branch.taxPercent ?? 0,
             discountPercent: this.branch.discountPercent ?? 0,
             discountAmount: this.branch.discountAmount ?? 0,
+            businessType: this.branch.businessType ?? 1,
+            serviceChargePercent: this.branch.serviceChargePercent ?? 0,
             dateFormat: this.branch.dateFormat || 'dd/MM/yyyy',
             currencyFormat: this.branch.currencyFormat || 'PKR',
         };
@@ -273,6 +280,8 @@ export class BranchEditComponent implements OnInit {
 
                 this.branch = {
                     ...branch,
+                    businessType: branch.businessType ?? 1,
+                    serviceChargePercent: branch.serviceChargePercent ?? 0,
                     imageBase64: undefined
                 };
                 this.originalStatusId = branch.statusId || 0;
@@ -322,6 +331,8 @@ export class BranchEditComponent implements OnInit {
             taxPercent: 0,
             discountPercent: 0,
             discountAmount: 0,
+            businessType: 1,
+            serviceChargePercent: 0,
             dateFormat: 'dd/MM/yyyy',
             currencyFormat: 'PKR',
         };

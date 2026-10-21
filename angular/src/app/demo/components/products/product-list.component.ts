@@ -8,6 +8,9 @@ import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
+import { ProductModifierGroupDto } from 'src/app/demo/api/product-modifier';
+import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
+
 @Component({
     templateUrl: './product-list.component.html',
     styleUrls: ['./product-list.component.scss'],
@@ -30,12 +33,26 @@ export class ProductListComponent implements OnInit {
     barcodeTargetProduct: ProductDto | null = null;
     selectedProducts: ProductDto[] = [];
 
+    // Product Modifiers management
+    modifierDialogVisible = false;
+    modifierTargetProduct: ProductDto | null = null;
+    loadingModifiers = false;
+    modifierGroups: ProductModifierGroupDto[] = [];
+    newGroupName = '';
+    newGroupIsRequired = false;
+    newGroupAllowMultiple = false;
+    creatingGroup = false;
+    newOptionName: Record<number, string> = {};
+    newOptionPrice: Record<number, number> = {};
+    addingOption: Record<number, boolean> = {};
+
     canCreate = false;
     canEdit = false;
     canDelete = false;
 
     constructor(
         private productService: ProductService,
+        private productModifierService: ProductModifierService,
         private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
@@ -66,6 +83,12 @@ export class ProductListComponent implements OnInit {
                 icon: 'pi pi-print',
                 color: 'blue',
                 action: () => this.openBarcodeDialog(product)
+            },
+            {
+                label: 'Modifiers & Add-ons',
+                icon: 'pi pi-list',
+                color: 'blue',
+                action: () => this.openModifierDialog(product)
             }
         ];
         if (this.canEdit) {
@@ -85,6 +108,130 @@ export class ProductListComponent implements OnInit {
             });
         }
         return actions;
+    }
+
+    async openModifierDialog(product: ProductDto): Promise<void> {
+        this.modifierTargetProduct = product;
+        this.modifierDialogVisible = true;
+        this.newGroupName = '';
+        this.newGroupIsRequired = false;
+        this.newGroupAllowMultiple = false;
+        await this.loadModifiers(product.id);
+    }
+
+    async loadModifiers(productId: number): Promise<void> {
+        this.loadingModifiers = true;
+        try {
+            this.modifierGroups = await this.productModifierService.getByProduct(productId);
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to load modifiers',
+            });
+        } finally {
+            this.loadingModifiers = false;
+        }
+    }
+
+    async createModifierGroup(): Promise<void> {
+        if (!this.modifierTargetProduct || !this.newGroupName?.trim()) return;
+        this.creatingGroup = true;
+        try {
+            await this.productModifierService.createGroup({
+                productId: this.modifierTargetProduct.id,
+                name: this.newGroupName.trim(),
+                isRequired: this.newGroupIsRequired,
+                minSelection: this.newGroupIsRequired ? 1 : 0,
+                maxSelection: this.newGroupAllowMultiple ? 10 : 1,
+                options: [],
+            });
+            this.newGroupName = '';
+            this.newGroupIsRequired = false;
+            this.newGroupAllowMultiple = false;
+            await this.loadModifiers(this.modifierTargetProduct.id);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Created',
+                detail: 'Modifier group added',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to create group',
+            });
+        } finally {
+            this.creatingGroup = false;
+        }
+    }
+
+    async deleteModifierGroup(groupId: number): Promise<void> {
+        if (!this.modifierTargetProduct) return;
+        try {
+            await this.productModifierService.deleteGroup(groupId);
+            await this.loadModifiers(this.modifierTargetProduct.id);
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Deleted',
+                detail: 'Modifier group deleted',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to delete group',
+            });
+        }
+    }
+
+    async addModifierOption(groupId: number): Promise<void> {
+        const name = (this.newOptionName[groupId] || '').trim();
+        const price = Number(this.newOptionPrice[groupId]) || 0;
+        if (!name || !this.modifierTargetProduct) return;
+
+        this.addingOption[groupId] = true;
+        try {
+            await this.productModifierService.addOption(groupId, {
+                name,
+                price,
+            });
+            this.newOptionName[groupId] = '';
+            this.newOptionPrice[groupId] = 0;
+            await this.loadModifiers(this.modifierTargetProduct.id);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Added',
+                detail: 'Option added',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to add option',
+            });
+        } finally {
+            this.addingOption[groupId] = false;
+        }
+    }
+
+    async deleteModifierOption(optionId: number): Promise<void> {
+        if (!this.modifierTargetProduct) return;
+        try {
+            await this.productModifierService.deleteOption(optionId);
+            await this.loadModifiers(this.modifierTargetProduct.id);
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Deleted',
+                detail: 'Option removed',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to delete option',
+            });
+        }
     }
 
     ngOnInit(): void {

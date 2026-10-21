@@ -25,6 +25,81 @@
         </div>
     </div>
 
+    <!-- Restaurant Mode Order Bar -->
+    <div
+        *ngIf="isRestaurantMode"
+        class="card surface-card border-1 border-primary-200 border-round-xl p-3 mb-3 flex flex-wrap align-items-center justify-content-between gap-3 shadow-1"
+    >
+        <div class="flex align-items-center gap-3">
+            <div
+                class="border-circle bg-primary-50 p-2 flex align-items-center justify-content-center"
+                style="width: 2.75rem; height: 2.75rem;"
+            >
+                <span class="text-2xl">🍽️</span>
+            </div>
+            <div>
+                <div class="font-bold text-900 flex align-items-center gap-2">
+                    Restaurant Mode
+                    <span
+                        class="text-xs px-2 py-1 border-round font-medium"
+                        [style.background]="orderType === 'dineIn' ? '#e0f2fe' : '#fef3c7'"
+                        [style.color]="orderType === 'dineIn' ? '#0369a1' : '#b45309'"
+                    >
+                        {{ orderType === 'dineIn' ? 'Dine-In Table' : 'Takeaway / Counter' }}
+                    </span>
+                </div>
+                <div class="text-sm text-500 mt-1">
+                    <ng-container *ngIf="orderType === 'dineIn'">
+                        <span *ngIf="selectedTable" class="text-primary font-semibold">
+                            <i class="pi pi-table mr-1"></i>Active: <strong>{{ selectedTable.tableNo }}</strong> ({{ selectedTable.area || 'Main Hall' }} &bull; {{ selectedTable.capacity }} seats)
+                        </span>
+                        <span *ngIf="!selectedTable" class="text-orange-600 font-medium">
+                            <i class="pi pi-exclamation-triangle mr-1"></i>No table selected. Click "Select Table" to assign.
+                        </span>
+                    </ng-container>
+                    <ng-container *ngIf="orderType === 'takeaway'">
+                        <span class="text-600">Quick counter takeaway order</span>
+                    </ng-container>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap align-items-center gap-2">
+            <p-selectButton
+                [options]="[
+                    { label: '🍽️ Dine-In', value: 'dineIn' },
+                    { label: '🛍️ Takeaway', value: 'takeaway' }
+                ]"
+                [(ngModel)]="orderType"
+                optionLabel="label"
+                optionValue="value"
+            ></p-selectButton>
+
+            <button
+                *ngIf="orderType === 'dineIn'"
+                pButton
+                pRipple
+                type="button"
+                [icon]="selectedTable ? 'pi pi-refresh' : 'pi pi-table'"
+                [label]="selectedTable ? 'Change Table' : 'Select Table'"
+                [class]="selectedTable ? 'p-button-outlined p-button-primary' : 'p-button-primary'"
+                (click)="tableDialogVisible = true"
+            ></button>
+
+            <button
+                *ngIf="orderType === 'dineIn' && selectedTable && (selectedTable.status === 1 || selectedTable.status === 2)"
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-arrows-h"
+                label="Shift Table"
+                class="p-button-outlined p-button-warning"
+                title="Transfer active order to another table"
+                (click)="openTransferDialog()"
+            ></button>
+        </div>
+    </div>
+
     <div class="grid">
         <div class="col-12 lg:col-8">
             <div class="card pos-scan-card mb-3">
@@ -124,8 +199,51 @@
                         <ng-template pTemplate="body" let-line>
                             <tr>
                                 <td>
-                                    <div class="font-medium">{{ line.productName }}</div>
-                                    <small class="text-500">Stock: {{ line.stockQuantity }}</small>
+                                    <div class="font-medium flex align-items-center gap-2">
+                                        <span>{{ line.productName }}</span>
+                                        <button
+                                            *ngIf="isRestaurantMode"
+                                            pButton
+                                            pRipple
+                                            type="button"
+                                            icon="pi pi-pencil"
+                                            class="p-button-text p-button-secondary p-button-xs p-0"
+                                            style="width: 1.5rem; height: 1.5rem;"
+                                            title="Add / edit cooking instruction"
+                                            (click)="openEditLineNote(line)"
+                                        ></button>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1 mt-1" *ngIf="line.selectedModifiers">
+                                        <span
+                                            class="surface-200 text-700 text-xs px-2 py-0.5 border-round font-medium"
+                                            *ngFor="let m of parseModifiers(line.selectedModifiers)"
+                                        >
+                                            {{ m }}
+                                        </span>
+                                    </div>
+                                    <div
+                                        class="text-xs text-orange-600 font-medium italic mt-1 flex align-items-center gap-1 cursor-pointer"
+                                        *ngIf="line.kitchenNotes"
+                                        (click)="openEditLineNote(line)"
+                                    >
+                                        <i class="pi pi-comment"></i>
+                                        <span>{{ line.kitchenNotes }}</span>
+                                    </div>
+                                    <div class="mt-1 flex align-items-center gap-2">
+                                        <small class="text-500">Stock: {{ line.stockQuantity }}</small>
+                                        <span
+                                            *ngIf="isRestaurantMode && line.isSentToKitchen"
+                                            class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                        >
+                                            <i class="pi pi-check-circle"></i> In Kitchen
+                                        </span>
+                                        <span
+                                            *ngIf="isRestaurantMode && !line.isSentToKitchen"
+                                            class="text-xs text-amber-600 font-semibold flex align-items-center gap-1"
+                                        >
+                                            <i class="pi pi-clock"></i> New / Not Sent
+                                        </span>
+                                    </div>
                                 </td>
                                 <td>
                                     <p-inputNumber
@@ -172,8 +290,49 @@
                     <div *ngFor="let line of cart" class="pos-cart-item">
                         <div class="flex justify-content-between align-items-start">
                             <div class="pr-2">
-                                <div class="font-medium">{{ line.productName }}</div>
-                                <small class="text-500">Stock: {{ line.stockQuantity }}</small>
+                                <div class="font-medium flex align-items-center gap-2">
+                                    <span>{{ line.productName }}</span>
+                                    <button
+                                        *ngIf="isRestaurantMode"
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-pencil"
+                                        class="p-button-text p-button-secondary p-button-xs p-0"
+                                        (click)="openEditLineNote(line)"
+                                    ></button>
+                                </div>
+                                <div class="flex flex-wrap gap-1 mt-1" *ngIf="line.selectedModifiers">
+                                    <span
+                                        class="surface-200 text-700 text-xs px-2 py-0.5 border-round font-medium"
+                                        *ngFor="let m of parseModifiers(line.selectedModifiers)"
+                                    >
+                                        {{ m }}
+                                    </span>
+                                </div>
+                                <div
+                                    class="text-xs text-orange-600 font-medium italic mt-1 flex align-items-center gap-1"
+                                    *ngIf="line.kitchenNotes"
+                                    (click)="openEditLineNote(line)"
+                                >
+                                    <i class="pi pi-comment"></i>
+                                    <span>{{ line.kitchenNotes }}</span>
+                                </div>
+                                <div class="mt-1 flex align-items-center gap-2">
+                                    <small class="text-500">Stock: {{ line.stockQuantity }}</small>
+                                    <span
+                                        *ngIf="isRestaurantMode && line.isSentToKitchen"
+                                        class="text-xs text-green-600 font-semibold"
+                                    >
+                                        &bull; In Kitchen
+                                    </span>
+                                    <span
+                                        *ngIf="isRestaurantMode && !line.isSentToKitchen"
+                                        class="text-xs text-amber-600 font-semibold"
+                                    >
+                                        &bull; New Item
+                                    </span>
+                                </div>
                             </div>
                             <button
                                 pButton
@@ -258,9 +417,73 @@
                         <span>Tax</span>
                         <strong>{{ taxAmount | number: '1.2-2' }}</strong>
                     </div>
+                    <div
+                        class="flex justify-content-between mb-2 text-primary"
+                        *ngIf="isRestaurantMode && orderType === 'dineIn' && serviceChargePercent > 0"
+                    >
+                        <span>Service Charge ({{ serviceChargePercent }}%)</span>
+                        <strong>+{{ serviceChargeAmount | number: '1.2-2' }}</strong>
+                    </div>
                     <div class="flex justify-content-between pos-grand">
                         <span>Total Amount</span>
                         <strong>{{ grandTotal | number: '1.2-2' }}</strong>
+                    </div>
+                </div>
+
+                <!-- Restaurant Actions Bar -->
+                <div class="flex flex-column gap-2 mt-3" *ngIf="isRestaurantMode">
+                    <div class="grid formgrid p-fluid">
+                        <div class="col-6 pr-1 pb-1">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="🍳 Send KOT"
+                                class="p-button-warning p-button-outlined w-full p-button-sm font-semibold"
+                                [disabled]="!cart.length || sendingKOT"
+                                [loading]="sendingKOT"
+                                (click)="sendToKitchen()"
+                                title="Send new unprinted dishes to Kitchen"
+                            ></button>
+                        </div>
+                        <div class="col-6 pl-1 pb-1">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="💾 Save Tab"
+                                class="p-button-secondary p-button-outlined w-full p-button-sm font-semibold"
+                                [disabled]="!cart.length || savingOrder"
+                                [loading]="savingOrder"
+                                (click)="saveRunningTab()"
+                                title="Hold running order for this table"
+                            ></button>
+                        </div>
+                        <div class="col-6 pr-1 pt-1">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="🧾 Guest Bill"
+                                class="p-button-info p-button-outlined w-full p-button-sm font-semibold"
+                                [disabled]="!cart.length || printingBill"
+                                [loading]="printingBill"
+                                (click)="printGuestBill()"
+                                title="Print customer guest check / bill preview"
+                            ></button>
+                        </div>
+                        <div class="col-6 pl-1 pt-1">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="➗ Split Bill"
+                                class="p-button-help p-button-outlined w-full p-button-sm font-semibold"
+                                [disabled]="!cart.length"
+                                (click)="openSplitBill()"
+                                title="Calculate or split bill among guests"
+                            ></button>
+                        </div>
                     </div>
                 </div>
 
@@ -268,7 +491,7 @@
                     pButton
                     pRipple
                     type="button"
-                    label="Complete Sale"
+                    [label]="isRestaurantMode ? 'Settle & Close Table' : 'Complete Sale'"
                     icon="pi pi-check"
                     class="w-full mt-3 hidden md:flex"
                     [disabled]="!canSave()"
@@ -279,21 +502,61 @@
         </div>
     </div>
 
-    <div class="pos-mobile-bar md:hidden">
-        <div class="pos-mobile-bar-total">
-            <small class="text-500 block">Total Amount</small>
-            <strong>{{ grandTotal | number: '1.2-2' }}</strong>
+    <div class="pos-mobile-bar md:hidden flex-column gap-2">
+        <div class="flex justify-content-between align-items-center w-full gap-1" *ngIf="isRestaurantMode">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="🍳 KOT"
+                class="p-button-warning p-button-outlined p-button-xs flex-grow-1"
+                [disabled]="!cart.length || sendingKOT"
+                (click)="sendToKitchen()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="💾 Tab"
+                class="p-button-secondary p-button-outlined p-button-xs flex-grow-1"
+                [disabled]="!cart.length || savingOrder"
+                (click)="saveRunningTab()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="🧾 Bill"
+                class="p-button-info p-button-outlined p-button-xs flex-grow-1"
+                [disabled]="!cart.length || printingBill"
+                (click)="printGuestBill()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="➗ Split"
+                class="p-button-help p-button-outlined p-button-xs flex-grow-1"
+                [disabled]="!cart.length"
+                (click)="openSplitBill()"
+            ></button>
         </div>
-        <button
-            pButton
-            pRipple
-            type="button"
-            label="Complete Sale"
-            class="flex-grow-1"
-            [disabled]="!canSave()"
-            [loading]="saving"
-            (click)="completeSale()"
-        ></button>
+        <div class="flex align-items-center gap-2 w-full">
+            <div class="pos-mobile-bar-total">
+                <small class="text-500 block">Total Amount</small>
+                <strong>{{ grandTotal | number: '1.2-2' }}</strong>
+            </div>
+            <button
+                pButton
+                pRipple
+                type="button"
+                [label]="isRestaurantMode ? 'Settle & Close' : 'Complete Sale'"
+                class="flex-grow-1"
+                [disabled]="!canSave()"
+                [loading]="saving"
+                (click)="completeSale()"
+            ></button>
+        </div>
     </div>
 
     <p-dialog
@@ -391,6 +654,700 @@
                 icon="pi pi-check"
                 [loading]="saving"
                 (click)="confirmPaymentAndSave()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Restaurant Table Selection Dialog -->
+    <p-dialog
+        header="🍽️ Select Dining Table"
+        [(visible)]="tableDialogVisible"
+        [modal]="true"
+        [style]="{ width: '56rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <!-- Table Status Legend -->
+            <div class="flex flex-wrap align-items-center justify-content-between gap-2 p-2 surface-50 border-round">
+                <div class="flex align-items-center gap-3 text-sm">
+                    <span class="flex align-items-center gap-1">
+                        <span class="border-circle bg-green-500" style="width: 10px; height: 10px;"></span> Available
+                    </span>
+                    <span class="flex align-items-center gap-1">
+                        <span class="border-circle bg-red-500" style="width: 10px; height: 10px;"></span> Occupied
+                    </span>
+                    <span class="flex align-items-center gap-1">
+                        <span class="border-circle bg-yellow-500" style="width: 10px; height: 10px;"></span> Billed
+                    </span>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-refresh"
+                    label="Refresh"
+                    class="p-button-text p-button-sm"
+                    [loading]="loadingTables"
+                    (click)="loadTables()"
+                ></button>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div *ngIf="loadingTables" class="text-center py-5 text-500">
+                <i class="pi pi-spin pi-spinner text-2xl mr-2"></i> Loading tables...
+            </div>
+
+            <!-- Tables Grid -->
+            <div *ngIf="!loadingTables && tables.length" class="grid">
+                <div
+                    class="col-6 sm:col-4 md:col-3"
+                    *ngFor="let table of tables"
+                >
+                    <div
+                        class="p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column align-items-center text-center shadow-1 hover:shadow-3"
+                        [style.background]="
+                            selectedTable?.id === table.id
+                                ? '#e0f2fe'
+                                : table.status === 0
+                                  ? '#f0fdf4'
+                                  : table.status === 1
+                                    ? '#fef2f2'
+                                    : '#fefce8'
+                        "
+                        [style.borderColor]="
+                            selectedTable?.id === table.id
+                                ? '#0284c7'
+                                : table.status === 0
+                                  ? '#86efac'
+                                  : table.status === 1
+                                    ? '#fca5a5'
+                                    : '#fde047'
+                        "
+                        (click)="selectTable(table)"
+                    >
+                        <i
+                            class="pi pi-table text-2xl mb-2"
+                            [style.color]="
+                                selectedTable?.id === table.id
+                                    ? '#0284c7'
+                                    : table.status === 0
+                                      ? '#16a34a'
+                                      : table.status === 1
+                                        ? '#dc2626'
+                                        : '#ca8a04'
+                            "
+                        ></i>
+                        <div class="font-bold text-900 text-lg">{{ table.tableNo }}</div>
+                        <div class="text-xs text-500 mb-2">{{ table.area || 'Main Hall' }} &bull; {{ table.capacity }} Seats</div>
+                        <span
+                            class="text-xs px-2 py-1 border-round font-medium"
+                            [style.background]="
+                                table.status === 0
+                                    ? '#dcfce7'
+                                    : table.status === 1
+                                      ? '#fee2e2'
+                                      : '#fef9c3'
+                            "
+                            [style.color]="
+                                table.status === 0
+                                    ? '#15803d'
+                                    : table.status === 1
+                                      ? '#b91c1c'
+                                      : '#a16207'
+                            "
+                        >
+                            {{ table.statusName || (table.status === 0 ? 'Available' : table.status === 1 ? 'Occupied' : 'Billed') }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty Tables State -->
+            <div *ngIf="!loadingTables && !tables.length" class="text-center py-4 surface-50 border-round">
+                <i class="pi pi-table text-3xl text-400 mb-2 block"></i>
+                <div class="font-medium text-700">No tables configured yet for this branch.</div>
+                <div class="text-sm text-500 mt-1">Use the quick form below to add your first tables (e.g. Table 1, Table 2).</div>
+            </div>
+
+            <!-- Quick Add Table Form -->
+            <div class="surface-50 border-round-xl p-3 border-1 border-200 mt-2">
+                <div class="font-semibold text-800 mb-2 flex align-items-center gap-2">
+                    <i class="pi pi-plus-circle text-primary"></i> Quick Add Table
+                </div>
+                <div class="grid formgrid p-fluid">
+                    <div class="field col-12 sm:col-4 mb-2">
+                        <label class="text-xs font-medium">Table No / Name *</label>
+                        <input
+                            pInputText
+                            type="text"
+                            placeholder="e.g. Table 1"
+                            [(ngModel)]="newTableNo"
+                            class="p-inputtext-sm"
+                        />
+                    </div>
+                    <div class="field col-12 sm:col-4 mb-2">
+                        <label class="text-xs font-medium">Area / Floor</label>
+                        <input
+                            pInputText
+                            type="text"
+                            placeholder="e.g. Main Hall"
+                            [(ngModel)]="newTableArea"
+                            class="p-inputtext-sm"
+                        />
+                    </div>
+                    <div class="field col-8 sm:col-2 mb-2">
+                        <label class="text-xs font-medium">Seats</label>
+                        <p-inputNumber
+                            [(ngModel)]="newTableCapacity"
+                            [min]="1"
+                            [max]="50"
+                            styleClass="p-inputtext-sm"
+                        ></p-inputNumber>
+                    </div>
+                    <div class="field col-4 sm:col-2 mb-2 flex align-items-end">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            label="Add"
+                            icon="pi pi-check"
+                            class="p-button-sm w-full"
+                            [disabled]="!newTableNo.trim() || creatingTable"
+                            [loading]="creatingTable"
+                            (click)="createQuickTable()"
+                        ></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                *ngIf="selectedTable"
+                pButton
+                pRipple
+                type="button"
+                label="Clear Table"
+                icon="pi pi-times"
+                class="p-button-text p-button-danger mr-auto"
+                (click)="clearTableSelection(); tableDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                class="p-button-text"
+                (click)="tableDialogVisible = false"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🔄 Shift / Transfer Table Dialog -->
+    <p-dialog
+        header="🔄 Shift / Transfer Table"
+        [(visible)]="transferDialogVisible"
+        [modal]="true"
+        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="surface-50 border-round p-3">
+                <div class="text-xs text-500 uppercase font-semibold">Current Table</div>
+                <div class="font-bold text-lg text-900 mt-1">
+                    Table {{ selectedTable?.tableNo }} ({{ selectedTable?.area || 'Main Hall' }})
+                </div>
+                <div class="text-xs text-600 mt-1" *ngIf="activeOrderNo">
+                    Active Order: #{{ activeOrderNo }}
+                </div>
+            </div>
+
+            <div>
+                <label class="font-semibold block mb-2">Select Destination Table</label>
+                <div *ngIf="!availableTransferTables.length" class="text-center py-3 text-500 text-sm surface-100 border-round">
+                    No available tables to transfer to. Create or free a table first.
+                </div>
+                <div class="grid" *ngIf="availableTransferTables.length">
+                    <div
+                        class="col-4"
+                        *ngFor="let t of availableTransferTables"
+                    >
+                        <div
+                            class="p-2 border-round-xl border-1 text-center cursor-pointer transition-all surface-hover"
+                            [style.background]="selectedTargetTableId === t.id ? '#e0f2fe' : '#f0fdf4'"
+                            [style.borderColor]="selectedTargetTableId === t.id ? '#0284c7' : '#86efac'"
+                            (click)="selectedTargetTableId = t.id"
+                        >
+                            <i class="pi pi-table text-xl text-green-600 mb-1"></i>
+                            <div class="font-bold text-sm">{{ t.tableNo }}</div>
+                            <div class="text-xs text-500">{{ t.area || 'Main Hall' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="transferDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Transfer Order"
+                icon="pi pi-check"
+                class="p-button-warning"
+                [disabled]="!selectedTargetTableId || transferringTable"
+                [loading]="transferringTable"
+                (click)="confirmTransfer()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🍳 Kitchen Order Ticket (KOT) Dialog -->
+    <p-dialog
+        header="🍳 Kitchen Order Ticket (KOT)"
+        [(visible)]="kotDialogVisible"
+        [modal]="true"
+        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="p-3 surface-50 border-round text-center">
+                <i class="pi pi-check-circle text-green-500 text-3xl mb-1 block"></i>
+                <div class="font-bold text-900">Sent to Kitchen Successfully</div>
+                <div class="text-xs text-500 mt-1">Ticket dispatched to kitchen printer</div>
+            </div>
+
+            <!-- Thermal KOT Ticket Preview Container -->
+            <div
+                id="kotThermalPrint"
+                class="surface-0 p-3 border-1 border-dashed surface-border border-round font-monospace shadow-1"
+                style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.4;"
+            >
+                <div class="text-center pb-2 border-bottom-1 border-dashed border-400 mb-2">
+                    <div class="font-bold text-base">*** KITCHEN ORDER TICKET ***</div>
+                    <div class="text-xs font-semibold mt-1">
+                        Table: <strong>{{ kotResult?.tableNo || selectedTable?.tableNo || 'Takeaway' }}</strong>
+                    </div>
+                    <div class="text-xs text-600">Order: #{{ kotResult?.orderNo || activeOrderNo }}</div>
+                    <div class="text-xs text-600">Time: {{ kotResult?.printTime | date: 'medium' }}</div>
+                    <div class="text-xs text-600" *ngIf="waiterName">Server: {{ waiterName }}</div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
+                    <thead>
+                        <tr style="border-bottom: 1px dashed #666;">
+                            <th style="text-align: left; padding: 4px 0;">Qty</th>
+                            <th style="text-align: left; padding: 4px 0;">Item &amp; Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let item of kotResult?.newItems" style="border-bottom: 1px dotted #ccc;">
+                            <td style="vertical-align: top; font-weight: bold; padding: 4px 0; width: 2.5rem;">
+                                {{ item.quantity }}x
+                            </td>
+                            <td style="padding: 4px 0;">
+                                <div style="font-weight: bold;">{{ item.productName }}</div>
+                                <div *ngIf="item.selectedModifiers" style="font-size: 11px; color: #444;">
+                                    Mod: {{ parseModifiers(item.selectedModifiers).join(', ') }}
+                                </div>
+                                <div *ngIf="item.kitchenNotes" style="font-size: 11px; font-weight: bold; color: #b91c1c; font-style: italic;">
+                                    &bull; Note: {{ item.kitchenNotes }}
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="text-center pt-2 border-top-1 border-dashed border-400 text-xs text-600">
+                    * * * End of KOT * * *
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                class="p-button-text"
+                (click)="kotDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Print KOT Slip"
+                icon="pi pi-print"
+                class="p-button-warning"
+                (click)="printCurrentModal('kotThermalPrint')"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🧾 Guest Check / Pre-Bill Dialog -->
+    <p-dialog
+        header="🧾 Guest Check / Bill Preview"
+        [(visible)]="guestBillDialogVisible"
+        [modal]="true"
+        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div
+                id="guestCheckPrint"
+                class="surface-0 p-3 border-1 border-dashed surface-border border-round font-monospace shadow-1"
+                style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.4;"
+            >
+                <div class="text-center pb-2 border-bottom-1 border-dashed border-400 mb-2">
+                    <div class="font-bold text-base uppercase">SmartPOS Restaurant</div>
+                    <div class="text-xs font-semibold mt-1">*** GUEST CHECK ***</div>
+                    <div class="text-xs">
+                        Table: <strong>{{ selectedTable?.tableNo || 'Takeaway' }}</strong> &bull; Order: #{{ activeOrderNo || 'N/A' }}
+                    </div>
+                    <div class="text-xs text-600">Server: {{ waiterName || 'Staff' }} &bull; {{ todayDate | date: 'short' }}</div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
+                    <thead>
+                        <tr style="border-bottom: 1px dashed #666;">
+                            <th style="text-align: left; padding: 4px 0;">Item</th>
+                            <th style="text-align: center; padding: 4px 0;">Qty</th>
+                            <th style="text-align: right; padding: 4px 0;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let line of cart" style="border-bottom: 1px dotted #eee;">
+                            <td style="padding: 4px 0;">
+                                <div>{{ line.productName }}</div>
+                                <small *ngIf="line.selectedModifiers" style="color: #666; font-size: 10px;">
+                                    {{ parseModifiers(line.selectedModifiers).join(', ') }}
+                                </small>
+                            </td>
+                            <td style="text-align: center; padding: 4px 0;">{{ line.quantity }}</td>
+                            <td style="text-align: right; padding: 4px 0;">{{ line.quantity * line.unitPrice | number: '1.2-2' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="pt-2 border-top-1 border-dashed border-400 flex flex-column gap-1 text-xs">
+                    <div class="flex justify-content-between">
+                        <span>Subtotal:</span>
+                        <span>{{ subTotal | number: '1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-content-between" *ngIf="computedDiscount > 0">
+                        <span>Discount:</span>
+                        <span>-{{ computedDiscount | number: '1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-content-between" *ngIf="taxAmount > 0">
+                        <span>Tax ({{ taxPercent }}%):</span>
+                        <span>{{ taxAmount | number: '1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-content-between" *ngIf="serviceChargeAmount > 0">
+                        <span>Service Charge ({{ serviceChargePercent }}%):</span>
+                        <span>+{{ serviceChargeAmount | number: '1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-content-between font-bold text-sm pt-1 border-top-1 border-dashed border-400 mt-1">
+                        <span>TOTAL AMOUNT:</span>
+                        <span>{{ grandTotal | number: '1.2-2' }}</span>
+                    </div>
+                </div>
+
+                <div class="text-center pt-3 border-top-1 border-dashed border-400 text-xs text-600 mt-2">
+                    Thank you for dining with us!<br />
+                    * Please present this check at payment *
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                class="p-button-text"
+                (click)="guestBillDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Print Check"
+                icon="pi pi-print"
+                class="p-button-info"
+                (click)="printCurrentModal('guestCheckPrint')"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Settle Payment"
+                icon="pi pi-check"
+                class="p-button-success"
+                (click)="guestBillDialogVisible = false; completeSale()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- ➗ Split Bill Dialog -->
+    <p-dialog
+        header="➗ Split Bill Calculator"
+        [(visible)]="splitBillDialogVisible"
+        [modal]="true"
+        [style]="{ width: '32rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="surface-50 border-round p-3 text-center">
+                <div class="text-xs text-500 font-medium uppercase mb-1">Total Bill to Split</div>
+                <div class="text-3xl font-bold text-primary">{{ grandTotal | number: '1.2-2' }}</div>
+            </div>
+
+            <div class="p-fluid">
+                <label class="font-semibold block mb-2">Number of Guests / Paying Persons</label>
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-minus"
+                        class="p-button-outlined"
+                        (click)="splitCount = (splitCount > 2 ? splitCount - 1 : 1)"
+                    ></button>
+                    <p-inputNumber
+                        [(ngModel)]="splitCount"
+                        [min]="1"
+                        [max]="50"
+                        styleClass="w-full text-center"
+                        inputStyleClass="text-center font-bold text-lg"
+                    ></p-inputNumber>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        class="p-button-outlined"
+                        (click)="splitCount = splitCount + 1"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- Equal Split Results Card -->
+            <div class="surface-card border-1 border-primary-200 border-round-xl p-3 shadow-1">
+                <div class="flex align-items-center justify-content-between mb-2">
+                    <span class="font-bold text-900">Each Person Pays</span>
+                    <span class="text-2xl font-bold text-green-600">
+                        {{ splitAmountPerPerson | number: '1.2-2' }}
+                    </span>
+                </div>
+                <div class="text-xs text-500">
+                    Divided equally among {{ splitCount }} person(s).
+                </div>
+            </div>
+
+            <!-- Guest Breakdown Chips -->
+            <div class="flex flex-column gap-2 max-h-12rem overflow-y-auto">
+                <div
+                    *ngFor="let idx of [].constructor(splitCount > 10 ? 10 : splitCount); let i = index"
+                    class="surface-50 border-round p-2 flex justify-content-between align-items-center text-sm"
+                >
+                    <span class="font-medium text-700">Guest #{{ i + 1 }}</span>
+                    <span class="font-bold text-900">{{ splitAmountPerPerson | number: '1.2-2' }}</span>
+                </div>
+                <div *ngIf="splitCount > 10" class="text-center text-xs text-500 italic">
+                    ... and {{ splitCount - 10 }} more guests
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                class="p-button-text"
+                (click)="splitBillDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Done"
+                icon="pi pi-check"
+                (click)="splitBillDialogVisible = false"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🍕 Product Modifiers & Options Dialog -->
+    <p-dialog
+        [header]="'Customise ' + (selectedProductForModifiers?.name || 'Item')"
+        [(visible)]="modifierDialogVisible"
+        [modal]="true"
+        [style]="{ width: '32rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        (onHide)="cancelModifiers()"
+    >
+        <div class="flex flex-column gap-3" *ngIf="selectedProductForModifiers">
+            <div class="surface-50 border-round p-3 flex justify-content-between align-items-center">
+                <div>
+                    <div class="font-bold text-900 text-lg">{{ selectedProductForModifiers.name }}</div>
+                    <div class="text-xs text-500">Select options and kitchen preferences</div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-500 block">Base Price</span>
+                    <span class="font-bold text-lg text-primary">
+                        {{ getUnitPrice(selectedProductForModifiers) | number: '1.2-2' }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Modifier Groups -->
+            <div class="flex flex-column gap-3 max-h-20rem overflow-y-auto pr-1">
+                <div
+                    *ngFor="let group of availableModifierGroups"
+                    class="surface-card border-1 surface-border border-round-xl p-3"
+                >
+                    <div class="flex align-items-center justify-content-between mb-2">
+                        <span class="font-bold text-900">{{ group.name }}</span>
+                        <span
+                            class="text-xs px-2 py-0.5 border-round font-medium"
+                            [style.background]="group.isRequired ? '#fee2e2' : '#f1f5f9'"
+                            [style.color]="group.isRequired ? '#b91c1c' : '#475569'"
+                        >
+                            {{ group.isRequired ? 'Required' : 'Optional' }}
+                        </span>
+                    </div>
+
+                    <div class="flex flex-column gap-2">
+                        <div
+                            *ngFor="let opt of group.options"
+                            class="flex align-items-center justify-content-between p-2 border-round surface-hover cursor-pointer"
+                            (click)="selectedModifierOptions[group.id] = opt.id"
+                        >
+                            <div class="flex align-items-center gap-2">
+                                <p-radioButton
+                                    [name]="'group_' + group.id"
+                                    [value]="opt.id"
+                                    [(ngModel)]="selectedModifierOptions[group.id]"
+                                ></p-radioButton>
+                                <label class="cursor-pointer font-medium text-sm m-0">{{ opt.name }}</label>
+                            </div>
+                            <span class="text-xs font-semibold" [class.text-primary]="opt.price > 0" [class.text-500]="!opt.price">
+                                {{ opt.price > 0 ? '+ ' + (opt.price | number: '1.2-2') : 'Free' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Special Cooking Instructions -->
+                <div class="surface-card border-1 surface-border border-round-xl p-3">
+                    <label class="font-bold text-900 block mb-1">Kitchen / Cooking Note</label>
+                    <input
+                        pInputText
+                        type="text"
+                        placeholder="e.g. Extra crispy, less spice, no onion"
+                        [(ngModel)]="pendingKitchenNote"
+                        class="w-full p-inputtext-sm"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="cancelModifiers()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Add to Order"
+                icon="pi pi-check"
+                class="p-button-primary"
+                (click)="confirmModifiersAndAddToCart()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 📝 Line Cooking Note Dialog -->
+    <p-dialog
+        header="📝 Cooking Instruction / Kitchen Note"
+        [(visible)]="lineNoteDialogVisible"
+        [modal]="true"
+        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3" *ngIf="editingLineForNote">
+            <div>
+                <div class="font-bold text-900">{{ editingLineForNote.productName }}</div>
+                <div class="text-xs text-500 mt-1">This note will appear on the Kitchen Order Ticket (KOT).</div>
+            </div>
+
+            <div class="p-fluid">
+                <input
+                    pInputText
+                    type="text"
+                    [(ngModel)]="tempLineNote"
+                    placeholder="Enter instructions (e.g. Less spicy, well done)"
+                    autofocus
+                    (keyup.enter)="saveLineNote()"
+                />
+            </div>
+
+            <!-- Quick Preset Chips -->
+            <div>
+                <div class="text-xs text-500 font-medium mb-2">Quick Presets</div>
+                <div class="flex flex-wrap gap-2">
+                    <span
+                        *ngFor="let preset of ['Less Spicy', 'Extra Spicy', 'No Onion', 'No Sugar', 'Well Done', 'Pack Separately', 'Extra Sauce']"
+                        class="surface-200 hover:surface-300 text-700 text-xs px-2.5 py-1 border-round-pill cursor-pointer transition-colors"
+                        (click)="tempLineNote = tempLineNote ? tempLineNote + ', ' + preset : preset"
+                    >
+                        + {{ preset }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="lineNoteDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Save Note"
+                icon="pi pi-check"
+                (click)="saveLineNote()"
             ></button>
         </ng-template>
     </p-dialog>
