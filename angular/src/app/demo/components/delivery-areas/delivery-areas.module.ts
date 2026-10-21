@@ -14,6 +14,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
+import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { DeliveryAreasRoutingModule } from './delivery-areas-routing.module';
 import { DeliveryAreasComponent } from './delivery-areas.component';
 
@@ -35,6 +36,7 @@ import { DeliveryAreasComponent } from './delivery-areas.component';
         ConfirmDialogModule,
         DropdownModule,
         TagModule,
+        AppRowActionsComponent,
     ],
     declarations: [DeliveryAreasComponent],
 })

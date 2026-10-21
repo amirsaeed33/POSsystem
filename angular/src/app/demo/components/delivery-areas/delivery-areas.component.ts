@@ -8,6 +8,8 @@ import {
 } from '../../service/delivery-area.service';
 import { BranchContextService } from '../../service/branch-context.service';
 import { PermissionService } from '../../service/permission.service';
+import { Table } from 'primeng/table';
+import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 import { PermissionNames } from '../../api/permission-names';
 
 @Component({
@@ -103,6 +105,34 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
 
     onFilterChange(): void {
         this.loadAreas();
+    }
+
+    onGlobalFilter(table: Table, event: Event): void {
+        table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
+    }
+
+    getRowActions(area: DeliveryAreaDto): RowActionItem[] {
+        return [
+            {
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                visible: this.canManage,
+                action: () => this.openEditDialog(area),
+            },
+            {
+                label: area.isActive ? 'Deactivate' : 'Activate',
+                icon: area.isActive ? 'pi pi-times-circle' : 'pi pi-check-circle',
+                visible: this.canManage,
+                action: () => this.toggleStatus(area),
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                danger: true,
+                visible: this.canManage,
+                action: () => this.confirmDelete(area),
+            },
+        ];
     }
 
     openCreateDialog(): void {
