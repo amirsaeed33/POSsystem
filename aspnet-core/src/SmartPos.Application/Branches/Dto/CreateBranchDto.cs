@@ -51,6 +51,11 @@ namespace SmartPos.Branches.Dto
         [Range(0, double.MaxValue)]
         public decimal DiscountAmount { get; set; }
 
+        public BusinessType BusinessType { get; set; } = BusinessType.Retail;
+
+        [Range(0, 100)]
+        public decimal ServiceChargePercent { get; set; }
+
         /// <summary>Host catalog CompanyType id for initial seed selection.</summary>
         [Range(1, int.MaxValue)]
         public int CompanyTypeId { get; set; }

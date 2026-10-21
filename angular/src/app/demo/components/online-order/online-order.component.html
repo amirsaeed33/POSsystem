@@ -1,12 +1,13 @@
 <div class="fp-store-wrapper min-h-screen">
-    <!-- 1. Top Sticky Navbar & Authentication -->
+    <!-- 1. Top Sticky Mobile & Desktop Navbar -->
     <header class="fp-store-navbar" [class.fp-navbar-scrolled]="isScrolled">
-        <div class="flex align-items-center justify-content-between gap-2 max-w-7xl mx-auto w-full">
+        <!-- DESKTOP NAVBAR (>= 768px) -->
+        <div class="hidden md:flex align-items-center justify-content-between gap-2 max-w-7xl mx-auto w-full">
             <!-- Left: Brand Logo, Name & Location Selector -->
             <div class="flex align-items-center gap-2 sm:gap-3 overflow-hidden">
                 <div class="fp-brand-group cursor-pointer" (click)="loadCatalog(branchId || undefined)">
                     <div class="brand-logo-sq">
-                        <i class="pi pi-bolt"></i>
+                        <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
                     </div>
                     <div class="brand-text-col">
                         <div class="brand-name">
@@ -16,22 +17,12 @@
                                 Open
                             </span>
                         </div>
-                        <div class="brand-sub hidden sm:block">{{ isSolarStore() ? 'Solar Energy & Power Systems' : 'Online Store & Ordering' }}</div>
-                        <!-- Mobile Location / Branch Switcher Pill -->
-                        <div
-                            class="fp-mobile-branch-btn md:hidden"
-                            *ngIf="availableBranches.length > 1"
-                            (click)="$event.stopPropagation(); mobileBranchModal = true"
-                        >
-                            <i class="pi pi-map-marker text-red-500"></i>
-                            <span class="branch-pill-name">{{ branchName || 'Change Branch' }}</span>
-                            <i class="pi pi-chevron-down text-400" style="font-size: 0.65rem;"></i>
-                        </div>
+                        <div class="brand-sub">{{ isRestaurantStore() ? 'Fresh Food & Online Dining Menu' : isSolarStore() ? 'Solar Energy & Power Systems' : 'Online Store & Delivery' }}</div>
                     </div>
                 </div>
 
                 <!-- Desktop Branch Selector -->
-                <div class="hidden md:flex align-items-center" *ngIf="availableBranches.length > 0">
+                <div class="flex align-items-center" *ngIf="availableBranches.length > 0">
                     <p-dropdown
                         [options]="availableBranches"
                         [(ngModel)]="branchId"
@@ -52,7 +43,7 @@
             </div>
 
             <!-- Center: Search Input Bar (Desktop) -->
-            <div class="flex-grow-1 max-w-26rem hidden md:block">
+            <div class="flex-grow-1 max-w-26rem">
                 <span class="p-input-icon-left p-input-icon-right w-full">
                     <i class="pi pi-search text-500"></i>
                     <input
@@ -72,7 +63,7 @@
             </div>
 
             <!-- Right: View Mode Toggle, Sign In / Profile, and Cart Drawer -->
-            <div class="flex align-items-center gap-1 sm:gap-2 flex-shrink-0">
+            <div class="flex align-items-center gap-2 flex-shrink-0">
                 <!-- View Mode Toggle (Carousel vs Grid) -->
                 <button
                     pButton
@@ -89,20 +80,10 @@
                 <a
                     *ngIf="!isLoggedIn"
                     routerLink="/auth/login"
-                    class="fp-auth-pill hidden sm:inline-flex cursor-pointer hover:surface-200 transition-colors"
+                    class="fp-auth-pill inline-flex cursor-pointer hover:surface-200 transition-colors"
                 >
                     <i class="pi pi-user text-600"></i>
                     <span class="font-bold text-xs">Sign In</span>
-                </a>
-
-                <!-- Mobile Auth Icon (Guest) -->
-                <a
-                    *ngIf="!isLoggedIn"
-                    routerLink="/auth/login"
-                    class="fp-nav-icon-btn flex sm:hidden align-items-center justify-content-center text-700 hover:surface-200 transition-colors"
-                    pTooltip="Sign In"
-                >
-                    <i class="pi pi-user text-base"></i>
                 </a>
 
                 <!-- Authentication: Logged in Avatar -->
@@ -113,7 +94,7 @@
                     tooltipPosition="bottom"
                 >
                     <div class="avatar-circle">{{ userInitials }}</div>
-                    <span class="font-bold text-xs hidden lg:inline">{{ userName }}</span>
+                    <span class="font-bold text-xs">{{ userName }}</span>
                 </div>
 
                 <!-- Cart Trigger Button -->
@@ -124,7 +105,7 @@
                     [attr.aria-label]="'Shopping cart with ' + cartService.totalItemsCount + ' items'"
                 >
                     <i class="pi pi-shopping-bag text-base"></i>
-                    <span class="hidden sm:inline">Cart</span>
+                    <span>Cart</span>
                     <span class="cart-badge" *ngIf="cartService.totalItemsCount > 0">
                         {{ cartService.totalItemsCount }}
                     </span>
@@ -132,11 +113,79 @@
             </div>
         </div>
 
-        <!-- Mobile Dedicated Search Bar (Visible on mobile for fast shopping) -->
-        <div class="mt-2 block md:hidden max-w-7xl mx-auto w-full">
+        <!-- MOBILE COMPACT APP HEADER (< 768px, Foodies Pakistan Exact Architecture) -->
+        <div class="flex md:hidden align-items-center justify-content-between gap-2 w-full fp-mobile-top-bar">
+            <!-- Left: Brand Logo + Branch / City Selector -->
+            <div class="flex align-items-center gap-2 overflow-hidden flex-grow-1 min-w-0">
+                <div class="brand-logo-sq flex-shrink-0" (click)="loadCatalog(branchId || undefined)">
+                    <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
+                </div>
+                <div class="fp-mobile-header-info min-w-0 flex-grow-1">
+                    <div class="flex align-items-center gap-1">
+                        <span class="mobile-store-title text-900 font-extrabold">{{ branchName || 'Online Store' }}</span>
+                        <span class="fp-live-pill-mini">
+                            <span class="pulse-dot"></span>
+                        </span>
+                    </div>
+                    <!-- City / Branch Selector Dropdown Pill -->
+                    <div
+                        class="fp-mobile-city-selector cursor-pointer"
+                        (click)="$event.stopPropagation(); mobileBranchModal = true"
+                        role="button"
+                        aria-label="Change city or branch"
+                    >
+                        <i class="pi pi-map-marker text-red-500 text-xs"></i>
+                        <span class="city-name-text">{{ branchName ? (branchName + ', PK') : 'Select Branch / City' }}</span>
+                        <i class="pi pi-chevron-down text-500 text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Search Icon Button & Cart Icon with Live Badge -->
+            <div class="flex align-items-center gap-2 flex-shrink-0">
+                <!-- Search Toggle Button -->
+                <button
+                    type="button"
+                    class="fp-mobile-action-btn"
+                    [class.active]="mobileSearchOpen"
+                    (click)="toggleMobileSearch()"
+                    aria-label="Search"
+                >
+                    <i class="pi pi-search"></i>
+                </button>
+
+                <!-- Grid / Carousel View Switcher -->
+                <button
+                    type="button"
+                    class="fp-mobile-action-btn"
+                    (click)="viewMode = viewMode === 'carousel' ? 'grid' : 'carousel'"
+                    [title]="viewMode === 'carousel' ? 'Grid view' : 'Slider view'"
+                    aria-label="Toggle view"
+                >
+                    <i [class]="viewMode === 'carousel' ? 'pi pi-th-large' : 'pi pi-list'"></i>
+                </button>
+
+                <!-- Mobile Cart Button -->
+                <button
+                    type="button"
+                    class="fp-mobile-action-btn fp-mobile-cart-action-btn"
+                    (click)="cartService.sidebarVisible = true"
+                    aria-label="Shopping Cart"
+                >
+                    <i class="pi pi-shopping-bag"></i>
+                    <span class="mobile-cart-badge" *ngIf="cartService.totalItemsCount > 0">
+                        {{ cartService.totalItemsCount }}
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Expandable Search Bar (Zero horizontal scroll bug) -->
+        <div class="fp-mobile-search-row md:hidden" *ngIf="mobileSearchOpen || searchKeyword">
             <span class="p-input-icon-left p-input-icon-right w-full">
                 <i class="pi pi-search text-500"></i>
                 <input
+                    id="fpMobileSearchInput"
                     pInputText
                     type="text"
                     class="w-full border-round-3xl border-none font-medium fp-search-input fp-mobile-search-input"
@@ -153,11 +202,13 @@
         </div>
     </header>
 
-    <!-- 2. Horizontal Scrollable Category & Brand Filter Carousel -->
-    <div class="fp-category-bar">
+    <!-- 2. CATEGORY & FILTER BARS -->
+
+    <!-- 2A. Desktop Filter Bar (>= 768px, Intact) -->
+    <div class="fp-category-bar hidden md:flex">
         <button
             type="button"
-            class="fp-scroll-arrow hidden md:flex mr-2"
+            class="fp-scroll-arrow mr-2"
             (click)="scrollFilterBar('left')"
             pTooltip="Scroll Left"
         >
@@ -177,12 +228,55 @@
 
         <button
             type="button"
-            class="fp-scroll-arrow hidden md:flex ml-2"
+            class="fp-scroll-arrow ml-2"
             (click)="scrollFilterBar('right')"
             pTooltip="Scroll Right"
         >
             <i class="pi pi-chevron-right text-xs"></i>
         </button>
+    </div>
+
+    <!-- 2B. FOODIES PAKISTAN EXACT MOBILE FILTER & CATEGORY BAR (< 768px) -->
+    <div class="fp-mobile-filter-container md:hidden">
+        <!-- Part A: Circular Category Icons Track (~55px circular container + category text underneath) -->
+        <div class="fp-circle-category-track" id="fpMobileCircleTrack">
+            <div
+                *ngFor="let cat of categories"
+                class="fp-circle-cat-item"
+                [class.active]="selectedCategory === cat"
+                (click)="selectCategory(cat)"
+            >
+                <div class="circle-avatar-box">
+                    <img
+                        *ngIf="getCategoryVisual(cat).image"
+                        [src]="getCategoryVisual(cat).image"
+                        [alt]="cat"
+                        class="circle-cat-img"
+                        loading="lazy"
+                    />
+                    <div *ngIf="!getCategoryVisual(cat).image" class="circle-cat-icon-fallback" [style.background-color]="getCategoryVisual(cat).color">
+                        <i [class]="getCategoryVisual(cat).icon"></i>
+                    </div>
+                    <span class="active-check-badge" *ngIf="selectedCategory === cat">
+                        <i class="pi pi-check text-xs"></i>
+                    </span>
+                </div>
+                <span class="circle-cat-name">{{ cat }}</span>
+            </div>
+        </div>
+
+        <!-- Part B: Pill Badges Track (Capsule buttons: 📍 Near Me, 🔥 Top Deals, ⭐ Highly Rated, etc.) -->
+        <div class="fp-pill-badge-track" id="fpMobilePillTrack">
+            <button
+                type="button"
+                *ngFor="let pill of pillFilters"
+                class="fp-pill-badge"
+                [class.active]="selectedPill === pill"
+                (click)="selectPill(pill)"
+            >
+                <span>{{ pill }}</span>
+            </button>
+        </div>
     </div>
 
     <!-- MAIN BODY: CAROUSEL VIEW OR GRID VIEW -->
@@ -242,6 +336,15 @@
                             <i class="pi pi-star-fill text-yellow-400"></i>
                             {{ getProductRating(product) }}
                         </span>
+                        <button
+                            type="button"
+                            class="badge-fav-btn"
+                            [class.active]="isFavorite(product.id)"
+                            (click)="toggleFavorite(product.id, $event)"
+                            aria-label="Add to favorites"
+                        >
+                            <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                        </button>
                         <span class="badge-category">
                             <i class="pi pi-tag"></i>
                             {{ product.categoryName || 'Featured' }}
@@ -324,6 +427,15 @@
                             <i class="pi pi-star-fill text-yellow-400"></i>
                             {{ getProductRating(product) }}
                         </span>
+                        <button
+                            type="button"
+                            class="badge-fav-btn"
+                            [class.active]="isFavorite(product.id)"
+                            (click)="toggleFavorite(product.id, $event)"
+                            aria-label="Add to favorites"
+                        >
+                            <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                        </button>
                         <span class="badge-category">
                             <i class="pi pi-tag"></i>
                             {{ product.categoryName || 'Popular' }}
@@ -409,6 +521,15 @@
                             <i class="pi pi-star-fill text-yellow-400"></i>
                             {{ getProductRating(product) }}
                         </span>
+                        <button
+                            type="button"
+                            class="badge-fav-btn"
+                            [class.active]="isFavorite(product.id)"
+                            (click)="toggleFavorite(product.id, $event)"
+                            aria-label="Add to favorites"
+                        >
+                            <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                        </button>
                         <span class="badge-category">
                             <i class="pi pi-tag"></i>
                             {{ sec.category }}
@@ -491,6 +612,15 @@
                             <i class="pi pi-star-fill text-yellow-400"></i>
                             {{ getProductRating(product) }}
                         </span>
+                        <button
+                            type="button"
+                            class="badge-fav-btn"
+                            [class.active]="isFavorite(product.id)"
+                            (click)="toggleFavorite(product.id, $event)"
+                            aria-label="Add to favorites"
+                        >
+                            <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                        </button>
                         <span class="badge-category">
                             <i class="pi pi-tag"></i>
                             {{ product.categoryName || 'Catalog' }}
@@ -925,6 +1055,70 @@
             ></button>
         </div>
     </p-dialog>
+
+    <!-- 11. Fixed Bottom Navigation Dock (Foodies Pakistan 5-Tab Bar) -->
+    <nav class="fp-mobile-bottom-dock md:hidden" aria-label="Bottom Navigation">
+        <button
+            type="button"
+            class="dock-tab-btn"
+            [class.active]="activeMobileTab === 'home'"
+            (click)="onMobileTabSelect('home')"
+        >
+            <i class="pi pi-home"></i>
+            <span class="dock-label">Home</span>
+            <span class="dock-active-dot" *ngIf="activeMobileTab === 'home'"></span>
+        </button>
+
+        <button
+            type="button"
+            class="dock-tab-btn"
+            [class.active]="activeMobileTab === 'deals'"
+            (click)="onMobileTabSelect('deals')"
+        >
+            <i class="pi pi-tags"></i>
+            <span class="dock-label">Deals</span>
+            <span class="dock-active-dot" *ngIf="activeMobileTab === 'deals'"></span>
+        </button>
+
+        <button
+            type="button"
+            class="dock-tab-btn"
+            [class.active]="activeMobileTab === 'cart'"
+            (click)="onMobileTabSelect('cart')"
+        >
+            <div class="dock-icon-wrap">
+                <i class="pi pi-shopping-bag"></i>
+                <span class="dock-counter-badge" *ngIf="cartService.totalItemsCount > 0">{{ cartService.totalItemsCount }}</span>
+            </div>
+            <span class="dock-label">Cart</span>
+            <span class="dock-active-dot" *ngIf="activeMobileTab === 'cart'"></span>
+        </button>
+
+        <button
+            type="button"
+            class="dock-tab-btn"
+            [class.active]="activeMobileTab === 'favorites'"
+            (click)="onMobileTabSelect('favorites')"
+        >
+            <div class="dock-icon-wrap">
+                <i [class]="favorites.size > 0 ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                <span class="dock-counter-badge" *ngIf="favoriteCount > 0">{{ favoriteCount }}</span>
+            </div>
+            <span class="dock-label">Saved</span>
+            <span class="dock-active-dot" *ngIf="activeMobileTab === 'favorites'"></span>
+        </button>
+
+        <button
+            type="button"
+            class="dock-tab-btn"
+            [class.active]="activeMobileTab === 'account'"
+            (click)="onMobileTabSelect('account')"
+        >
+            <i class="pi pi-user"></i>
+            <span class="dock-label">Account</span>
+            <span class="dock-active-dot" *ngIf="activeMobileTab === 'account'"></span>
+        </button>
+    </nav>
 
     <p-toast></p-toast>
 </div>

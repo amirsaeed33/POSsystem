@@ -89,6 +89,8 @@ namespace SmartPos.Branches
             var branch = ObjectMapper.Map<Branch>(input);
             branch.DateFormat = string.IsNullOrWhiteSpace(input.DateFormat) ? "dd/MM/yyyy" : input.DateFormat.Trim();
             branch.CurrencyFormat = string.IsNullOrWhiteSpace(input.CurrencyFormat) ? "PKR" : input.CurrencyFormat.Trim();
+            branch.BusinessType = input.BusinessType;
+            branch.ServiceChargePercent = Math.Max(0, input.ServiceChargePercent);
             branch.TenantId = AbpSession.TenantId;
             // New branches always start as Pending until host admin approves.
             branch.StatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
@@ -141,6 +143,8 @@ namespace SmartPos.Branches
             branch.TaxPercent = Math.Max(0, input.TaxPercent);
             branch.DiscountPercent = Math.Max(0, input.DiscountPercent);
             branch.DiscountAmount = Math.Max(0, input.DiscountAmount);
+            branch.BusinessType = input.BusinessType;
+            branch.ServiceChargePercent = Math.Max(0, input.ServiceChargePercent);
             branch.DateFormat = string.IsNullOrWhiteSpace(input.DateFormat) ? "dd/MM/yyyy" : input.DateFormat.Trim();
             branch.CurrencyFormat = string.IsNullOrWhiteSpace(input.CurrencyFormat) ? "PKR" : input.CurrencyFormat.Trim();
 

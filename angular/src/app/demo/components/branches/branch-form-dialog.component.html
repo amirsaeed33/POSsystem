@@ -56,6 +56,39 @@
             </div>
         </div>
 
+        <div class="flex flex-column gap-2 mb-3">
+            <label for="branchBusinessType" class="font-medium">Business / Store Type</label>
+            <p-dropdown
+                inputId="branchBusinessType"
+                [options]="businessTypeOptions"
+                [(ngModel)]="branch.businessType"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select Type"
+                styleClass="w-full"
+                [disabled]="saving"
+            ></p-dropdown>
+            <small class="text-500">
+                Switch to <strong>🍽️ Restaurant & Cafe</strong> to enable Dining Tables, Kitchen Order Tickets (KOT), Table Bills, and Waiter Tabs.
+            </small>
+        </div>
+
+        <div class="flex flex-column gap-2 mb-3" *ngIf="branch.businessType === 2">
+            <label for="branchServiceCharge" class="font-medium">Dine-In Service Charge %</label>
+            <p-inputNumber
+                inputId="branchServiceCharge"
+                [(ngModel)]="branch.serviceChargePercent"
+                [min]="0"
+                [max]="100"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+                suffix="%"
+                styleClass="w-full"
+                [disabled]="saving"
+            ></p-inputNumber>
+            <small class="text-500">Default service fee automatically applied to dine-in orders at this branch.</small>
+        </div>
+
             <div class="flex flex-column gap-3 surface-50 border-round p-3" *ngIf="isCreateMode">
             <div class="flex flex-column gap-2">
                 <label for="companyType" class="font-medium">
