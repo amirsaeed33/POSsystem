@@ -36,6 +36,13 @@ export class OnlineOrderComponent implements OnInit {
     categories: string[] = [];
     selectedCategory = 'All';
 
+    // FoodiesPakistan Mobile Tab Bar & Filter Pills State
+    activeMobileTab: 'home' | 'deals' | 'cart' | 'favorites' | 'account' = 'home';
+    selectedPill = '';
+    pillFilters: string[] = ['📍 Near Me', '🔥 Top Deals', '⭐ Highly Rated', '⚡ Fast Delivery', '🏷️ Budget Picks'];
+    favorites: Set<number> = new Set<number>();
+    mobileSearchOpen = false;
+
     // FoodiesPakistan Curated Section Carousels
     trendingDeals: any[] = [];
     popularItems: any[] = [];
@@ -130,6 +137,7 @@ export class OnlineOrderComponent implements OnInit {
     ngOnInit(): void {
         this.checkScreenSize();
         this.checkAuthSession();
+        this.loadFavorites();
 
         this.route.queryParams.subscribe((params) => {
             const paramBranchId = params['branchId'];
@@ -313,30 +321,76 @@ export class OnlineOrderComponent implements OnInit {
         } else {
             this.selectedCategory = cat;
         }
+        if (this.activeMobileTab === 'favorites') {
+            this.activeMobileTab = 'home';
+        }
         this.applyFilter();
         setTimeout(() => {
-            const activeChip = document.querySelector('.fp-cat-chip.active');
+            const activeChip = document.querySelector('.fp-cat-chip.active, .fp-circle-cat-item.active');
             if (activeChip) {
                 activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             }
         }, 60);
     }
 
+    selectPill(pill: string): void {
+        if (this.selectedPill === pill) {
+            this.selectedPill = '';
+        } else {
+            this.selectedPill = pill;
+        }
+        if (this.activeMobileTab === 'favorites') {
+            this.activeMobileTab = 'home';
+        }
+        this.applyFilter();
+        setTimeout(() => {
+            const activePill = document.querySelector('.fp-pill-badge.active');
+            if (activePill) {
+                activePill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+        }, 60);
+    }
+
     clearFilter(): void {
         this.selectedCategory = 'All';
+        this.selectedPill = '';
         this.searchKeyword = '';
+        if (this.activeMobileTab === 'favorites') {
+            this.activeMobileTab = 'home';
+        }
         this.applyFilter();
+    }
+
+    toggleMobileSearch(): void {
+        this.mobileSearchOpen = !this.mobileSearchOpen;
+        if (this.mobileSearchOpen) {
+            setTimeout(() => {
+                const input = document.getElementById('fpMobileSearchInput') as HTMLInputElement;
+                if (input) {
+                    input.focus();
+                }
+            }, 100);
+        }
     }
 
     applyFilter(): void {
         const query = (this.searchKeyword || '').toLowerCase().trim();
         const selectedCat = (this.selectedCategory || 'All').trim();
         const targetCatLower = selectedCat.toLowerCase();
+        const pill = this.selectedPill;
 
         const dealIds = new Set((this.trendingDeals || []).map((d) => d.id));
         const popIds = new Set((this.popularItems || []).map((d) => d.id));
 
         this.filteredProducts = (this.products || []).filter((p) => {
+            // Favorites tab restriction
+            if (this.activeMobileTab === 'favorites') {
+                if (!this.favorites.has(p.id)) {
+                    return false;
+                }
+            }
+
+            // Category filtering
             let matchesCat = true;
             if (selectedCat === 'All') {
                 matchesCat = true;
@@ -349,6 +403,22 @@ export class OnlineOrderComponent implements OnInit {
                 matchesCat = pCatLower === targetCatLower;
             }
 
+            // Pill filtering (Foodies Pakistan pills)
+            let matchesPill = true;
+            if (pill === '🔥 Top Deals') {
+                matchesPill = dealIds.has(p.id) || (p.discountPercent && p.discountPercent > 0);
+            } else if (pill === '⭐ Highly Rated') {
+                const rating = parseFloat(this.getProductRating(p));
+                matchesPill = rating >= 4.8;
+            } else if (pill === '🏷️ Budget Picks') {
+                matchesPill = !p.price || p.price <= 25000;
+            } else if (pill === '⚡ Fast Delivery') {
+                matchesPill = true;
+            } else if (pill === '📍 Near Me') {
+                matchesPill = true;
+            }
+
+            // Keyword search
             const matchesSearch =
                 !query ||
                 (p.name || '').toLowerCase().includes(query) ||
@@ -356,8 +426,207 @@ export class OnlineOrderComponent implements OnInit {
                 (p.brandName || '').toLowerCase().includes(query) ||
                 (p.code || '').toLowerCase().includes(query);
 
-            return matchesCat && matchesSearch;
+            return matchesCat && matchesPill && matchesSearch;
         });
+    }
+
+    // 5-Tab Navigation Dock Actions
+    onMobileTabSelect(tab: 'home' | 'deals' | 'cart' | 'favorites' | 'account'): void {
+        this.activeMobileTab = tab;
+        if (tab === 'home') {
+            this.selectedCategory = 'All';
+            this.selectedPill = '';
+            this.searchKeyword = '';
+            this.applyFilter();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (tab === 'deals') {
+            this.selectedCategory = '🔥 Deals';
+            this.selectedPill = '🔥 Top Deals';
+            this.applyFilter();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (tab === 'cart') {
+            this.cartService.sidebarVisible = true;
+        } else if (tab === 'favorites') {
+            this.selectedCategory = 'All';
+            this.selectedPill = '';
+            this.applyFilter();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (tab === 'account') {
+            if (this.isLoggedIn) {
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Profile',
+                    detail: `Signed in as ${this.userName}`,
+                    life: 2500,
+                });
+            } else {
+                this.router.navigate(['/auth/login']);
+            }
+        }
+    }
+
+    // Favorites persistence & toggling
+    loadFavorites(): void {
+        try {
+            const raw = localStorage.getItem('smartpos_store_favorites');
+            if (raw) {
+                const arr = JSON.parse(raw);
+                if (Array.isArray(arr)) {
+                    this.favorites = new Set(arr);
+                }
+            }
+        } catch {}
+    }
+
+    saveFavorites(): void {
+        try {
+            localStorage.setItem('smartpos_store_favorites', JSON.stringify(Array.from(this.favorites)));
+        } catch {}
+    }
+
+    toggleFavorite(productId: number, event?: Event): void {
+        if (event) {
+            event.stopPropagation();
+        }
+        if (this.favorites.has(productId)) {
+            this.favorites.delete(productId);
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Removed',
+                detail: 'Item removed from favorites',
+                life: 1400,
+            });
+        } else {
+            this.favorites.add(productId);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Saved',
+                detail: 'Item added to your favorites',
+                life: 1400,
+            });
+        }
+        this.saveFavorites();
+        if (this.activeMobileTab === 'favorites') {
+            this.applyFilter();
+        }
+    }
+
+    isFavorite(productId: number): boolean {
+        return this.favorites.has(productId);
+    }
+
+    get favoriteCount(): number {
+        return this.favorites.size;
+    }
+
+    // Circular Category Visual Resolver
+    getCategoryVisual(cat: string): { icon: string; image?: string; color: string; label: string } {
+        const c = cat.toLowerCase();
+        if (c === 'all') {
+            return { icon: 'pi pi-compass', color: '#e23744', label: 'All' };
+        }
+        if (c.includes('deal') || c.includes('🔥')) {
+            return {
+                icon: 'pi pi-bolt',
+                color: '#ef4444',
+                label: 'Deals',
+                image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('popular') || c.includes('✨') || c.includes('top')) {
+            return {
+                icon: 'pi pi-star-fill',
+                color: '#f59e0b',
+                label: 'Popular',
+                image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('burger') || c.includes('fast')) {
+            return {
+                icon: 'pi pi-check',
+                color: '#f97316',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('pizza')) {
+            return {
+                icon: 'pi pi-circle',
+                color: '#ea580c',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('desi') || c.includes('karahi') || c.includes('handi') || c.includes('biryani')) {
+            return {
+                icon: 'pi pi-sun',
+                color: '#b91c1c',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('chinese') || c.includes('soup') || c.includes('noodle')) {
+            return {
+                icon: 'pi pi-th-large',
+                color: '#dc2626',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('cafe') || c.includes('coffee') || c.includes('tea') || c.includes('drink')) {
+            return {
+                icon: 'pi pi-heart',
+                color: '#78350f',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('sweet') || c.includes('mithai') || c.includes('cake') || c.includes('bakery')) {
+            return {
+                icon: 'pi pi-heart-fill',
+                color: '#db2777',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('panel') || c.includes('solar') || c.includes('mono') || c.includes('bifacial')) {
+            return {
+                icon: 'pi pi-sun',
+                color: '#2563eb',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('inverter') || c.includes('ups') || c.includes('hybrid')) {
+            return {
+                icon: 'pi pi-bolt',
+                color: '#059669',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('battery') || c.includes('lithium') || c.includes('tubular')) {
+            return {
+                icon: 'pi pi-box',
+                color: '#7c3aed',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('accessory') || c.includes('cable') || c.includes('wire') || c.includes('structure')) {
+            return {
+                icon: 'pi pi-cog',
+                color: '#4b5563',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        return {
+            icon: 'pi pi-tag',
+            color: '#e23744',
+            label: cat,
+            image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80',
+        };
     }
 
     // Horizontal Scrolling Controls

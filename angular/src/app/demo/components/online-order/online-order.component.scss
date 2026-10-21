@@ -530,7 +530,7 @@
     .badge-rating {
       position: absolute;
       top: 0.75rem;
-      right: 0.75rem;
+      right: 3rem;
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
@@ -545,6 +545,42 @@
 
       i.pi-star-fill {
         color: #fbbf24;
+      }
+    }
+
+    .badge-fav-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      font-size: 0.9rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(8px);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 3;
+
+      &:hover {
+        transform: scale(1.1);
+        color: #e23744;
+        background: #ffffff;
+      }
+
+      &:active {
+        transform: scale(0.9);
+      }
+
+      &.active {
+        color: #e23744;
+        background: #ffffff;
       }
     }
 
@@ -908,16 +944,789 @@
 }
 
 /* ==========================================================================
-   Comprehensive Mobile & Tablet Responsiveness Enhancements
+   Comprehensive FoodiesPakistan Full Mobile View Architecture (< 768px)
    ========================================================================== */
 
-/* 1. Mobile Floating Bottom Cart Bar */
+/* Main Mobile Wrapper containment to prevent any horizontal scroll */
+.fp-store-wrapper {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+
+  @media (max-width: 767px) {
+    /* Crucial: Prevents content from ever being clipped behind fixed bottom dock */
+    padding-bottom: 75px !important;
+  }
+}
+
+/* 1. Mobile App Top Sticky Header (< 768px) */
+.fp-mobile-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 44px;
+
+  .brand-logo-sq {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 10px rgba(226, 55, 68, 0.35);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .fp-mobile-header-info {
+    line-height: 1.15;
+    min-width: 0;
+
+    .mobile-store-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 155px;
+      display: inline-block;
+    }
+
+    .fp-live-pill-mini {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 12px;
+      height: 12px;
+      margin-left: 2px;
+
+      .pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #10b981;
+        animation: livePulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+    }
+  }
+
+  /* City / Branch Selector Pill */
+  .fp-mobile-city-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: var(--surface-100, #f1f5f9);
+    border: 1px solid var(--surface-border, #e2e8f0);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #475569;
+    margin-top: 2px;
+    cursor: pointer;
+    max-width: 170px;
+    transition: all 0.2s ease;
+
+    &:active {
+      transform: scale(0.96);
+      background: #e2e8f0;
+    }
+
+    .city-name-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 125px;
+      color: #0f172a;
+      font-weight: 700;
+    }
+  }
+
+  /* Action Buttons in Header */
+  .fp-mobile-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--surface-border, #e2e8f0);
+    background: #ffffff;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:active {
+      transform: scale(0.92);
+      background: #f1f5f9;
+    }
+
+    &.active {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #e23744;
+    }
+
+    &.fp-mobile-cart-action-btn {
+      background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 3px 10px rgba(226, 55, 68, 0.35);
+
+      .mobile-cart-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background: #ffffff;
+        color: #e23744;
+        font-size: 0.65rem;
+        font-weight: 800;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      }
+    }
+  }
+}
+
+/* Expandable Mobile Search Row */
+.fp-mobile-search-row {
+  width: 100%;
+  margin-top: 0.5rem;
+  animation: searchSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes searchSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 2. FoodiesPakistan Exact Filter & Category Bar (< 768px) */
+.fp-mobile-filter-container {
+  width: 100%;
+  background: var(--surface-card, #ffffff);
+  border-bottom: 1px solid var(--surface-border, #e2e8f0);
+  padding-bottom: 0.45rem;
+  overflow-x: hidden;
+
+  /* Part A: Circular Category Icons Track */
+  .fp-circle-category-track {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    padding: 0.75rem 0.85rem 0.35rem 0.85rem;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .fp-circle-cat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+      width: 64px;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+
+      &:active {
+        transform: scale(0.93);
+      }
+
+      .circle-avatar-box {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        overflow: hidden;
+        position: relative;
+        background: #f8fafc;
+        border: 2.5px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+        .circle-cat-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .circle-cat-icon-fallback {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          font-size: 1.25rem;
+        }
+
+        .active-check-badge {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          width: 17px;
+          height: 17px;
+          border-radius: 50%;
+          background: #e23744;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1.5px solid #ffffff;
+          font-size: 0.55rem;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+        }
+      }
+
+      .circle-cat-name {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 64px;
+        line-height: 1.2;
+        transition: color 0.2s ease;
+      }
+
+      &.active {
+        .circle-avatar-box {
+          border-color: #e23744;
+          box-shadow: 0 0 0 3px rgba(226, 55, 68, 0.25), 0 4px 12px rgba(226, 55, 68, 0.2);
+          transform: translateY(-2px);
+        }
+
+        .circle-cat-name {
+          color: #e23744;
+          font-weight: 800;
+        }
+      }
+    }
+  }
+
+  /* Part B: Pill Badges Track */
+  .fp-pill-badge-track {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    padding: 0.35rem 0.85rem 0.35rem 0.85rem;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .fp-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0.42rem 0.9rem;
+      border-radius: 9999px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      font-size: 0.76rem;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+
+      &:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+
+      &.active {
+        background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
+        border-color: #e23744;
+        color: #ffffff;
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(226, 55, 68, 0.35);
+      }
+    }
+  }
+}
+
+/* 3. Mobile Card Sliders & Responsiveness (< 768px) */
+@media (max-width: 767px) {
+  /* Section headers on mobile */
+  .fp-store-section {
+    margin-top: 1.25rem;
+    padding: 0 0.85rem;
+
+    .section-header-row {
+      margin-bottom: 0.75rem;
+
+      .section-title {
+        font-size: 1.05rem;
+        gap: 0.35rem;
+
+        .badge {
+          font-size: 0.65rem !important;
+          padding: 0.15rem 0.45rem !important;
+        }
+      }
+    }
+  }
+
+  /* Carousel Product Track: Horizontally Swipeable with Peek Effect */
+  .fp-product-carousel-track {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    padding: 0.3rem 0.85rem 1.1rem 0.85rem;
+    margin: 0 -0.85rem;
+    scroll-padding: 0 0.85rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  /* Foodies Pakistan Mobile Card Architecture */
+  .fp-food-card {
+    /* 78vw width lets the next card peek clearly from the right edge */
+    flex: 0 0 78vw !important;
+    max-width: 78vw !important;
+    min-width: 270px !important;
+    scroll-snap-align: start;
+    border-radius: 16px;
+    border: 1px solid var(--surface-border, #e2e8f0);
+    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.07);
+    background: #ffffff;
+    overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+
+    /* Touch active feedback */
+    &:active {
+      transform: scale(0.97) !important;
+    }
+
+    /* Card Top: Aspect ratio media box with floating badges */
+    .card-media-box {
+      height: 155px;
+      aspect-ratio: unset;
+      position: relative;
+      overflow: hidden;
+
+      .badge-deal {
+        top: 8px;
+        left: 8px;
+        font-size: 0.68rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 9999px;
+        background: rgba(226, 55, 68, 0.95);
+        color: #ffffff;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(6px);
+      }
+
+      .badge-rating {
+        top: 8px;
+        right: 44px; /* Placed cleanly beside the favorite button */
+        font-size: 0.68rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.85);
+        color: #ffffff;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(6px);
+
+        i.pi-star-fill {
+          color: #fbbf24;
+        }
+      }
+
+      .badge-fav-btn {
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        font-size: 0.85rem;
+      }
+
+      .badge-category {
+        bottom: 8px;
+        left: 8px;
+        font-size: 0.68rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.8);
+        color: #ffffff;
+        backdrop-filter: blur(6px);
+      }
+    }
+
+    /* Card Body */
+    .card-body-box {
+      padding: 0.75rem 0.85rem;
+
+      .product-title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        line-height: 1.25;
+        height: 2.5em;
+        margin-bottom: 0.2rem;
+        color: #0f172a;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .product-subtitle {
+        font-size: 0.72rem;
+        color: #64748b;
+        margin-bottom: 0.55rem;
+      }
+
+      .card-footer-row {
+        padding-top: 0.55rem;
+        border-top: 1px solid #f1f5f9;
+
+        .price-col {
+          .strike-price {
+            font-size: 0.65rem;
+            color: #94a3b8;
+          }
+          .main-price {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #e23744;
+          }
+        }
+
+        .btn-add-cart {
+          padding: 0.4rem 0.85rem;
+          font-size: 0.78rem;
+          min-height: 32px;
+          border-radius: 9999px;
+          background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
+          color: #ffffff;
+          font-weight: 700;
+          border: none;
+          box-shadow: 0 2px 8px rgba(226, 55, 68, 0.32);
+
+          &:active {
+            transform: scale(0.94);
+          }
+        }
+      }
+    }
+  }
+
+  /* 4. Mobile Bottom Sheet Drawer Architecture (< 768px) */
+  .fp-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 10000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeInBackdrop 0.25s ease;
+  }
+
+  @keyframes fadeInBackdrop {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .fp-modal-sheet {
+    width: 100%;
+    max-height: 88vh;
+    border-radius: 24px 24px 0 0;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.25);
+    animation: slideUpBottomSheet 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideUpBottomSheet {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* Native Drag-Handle Pill at top of bottom sheet */
+  .fp-grab-handle {
+    width: 44px;
+    height: 5px;
+    border-radius: 9999px;
+    background: #cbd5e1;
+    margin: 10px auto 4px auto;
+    flex-shrink: 0;
+  }
+
+  .fp-modal-hero {
+    height: 175px;
+    position: relative;
+    width: 100%;
+    flex-shrink: 0;
+    overflow: hidden;
+
+    .hero-info-pinned {
+      bottom: 0.75rem;
+      left: 1rem;
+      right: 1rem;
+
+      .hero-main-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+      }
+    }
+  }
+
+  .fp-modal-scroll {
+    padding: 1rem;
+    overflow-y: auto;
+    flex-grow: 1;
+  }
+
+  /* Sticky Bottom Action Bar inside Drawer */
+  .fp-modal-bottom-bar {
+    position: sticky;
+    bottom: 0;
+    background: #ffffff;
+    border-top: 1px solid var(--surface-border, #e2e8f0);
+    padding: 0.75rem 1rem;
+    padding-bottom: max(0.85rem, env(safe-area-inset-bottom, 16px));
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 10;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+
+    .qty-stepper {
+      display: flex;
+      align-items: center;
+      background: var(--surface-100, #f1f5f9);
+      border-radius: 9999px;
+      padding: 2px;
+      border: 1px solid var(--surface-border, #e2e8f0);
+
+      .btn-step {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: #ffffff;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+        &:active {
+          transform: scale(0.92);
+        }
+      }
+
+      .qty-display {
+        min-width: 28px;
+        text-align: center;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #0f172a;
+      }
+    }
+
+    .btn-submit-cart {
+      flex: 1;
+      min-height: 46px;
+      padding: 0.75rem 1.15rem;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
+      color: #ffffff;
+      font-size: 0.92rem;
+      font-weight: 800;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 14px rgba(226, 55, 68, 0.35);
+      cursor: pointer;
+
+      &:active {
+        transform: scale(0.97);
+      }
+    }
+  }
+}
+
+/* 5. Fixed Bottom Navigation Dock (Foodies Pakistan 5-Tab Bar) */
+.fp-mobile-bottom-dock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  height: 62px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--surface-border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 4px max(0px, env(safe-area-inset-bottom, 0px)) 4px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+
+  .dock-tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 100%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 600;
+    position: relative;
+    padding: 4px 0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+
+    i {
+      font-size: 1.25rem;
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    .dock-label {
+      line-height: 1;
+      letter-spacing: -0.01em;
+    }
+
+    .dock-icon-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      .dock-counter-badge {
+        position: absolute;
+        top: -5px;
+        right: -9px;
+        background: #e23744;
+        color: #ffffff;
+        font-size: 0.6rem;
+        font-weight: 800;
+        min-width: 16px;
+        height: 16px;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 3px;
+        box-shadow: 0 2px 4px rgba(226, 55, 68, 0.4);
+      }
+    }
+
+    .dock-active-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #e23744;
+      position: absolute;
+      bottom: 3px;
+      animation: dotPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    &:active {
+      transform: scale(0.92);
+    }
+
+    &.active {
+      color: #e23744;
+      font-weight: 800;
+
+      i {
+        transform: translateY(-1px);
+        color: #e23744;
+      }
+    }
+  }
+}
+
+@keyframes dotPop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Floating Cart Bar adjusted to float right above the 5-Tab Bar */
 .fp-mobile-bottom-cart-bar {
   position: fixed;
-  bottom: max(14px, env(safe-area-inset-bottom, 14px));
+  bottom: calc(64px + max(8px, env(safe-area-inset-bottom, 8px)));
   left: 14px;
   right: 14px;
-  z-index: 990;
+  z-index: 998;
   border-radius: 18px;
   background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
   color: #ffffff;
@@ -934,7 +1743,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 1.15rem;
+    padding: 0.7rem 1.1rem;
   }
 
   .cart-bar-left {
@@ -1012,13 +1821,13 @@
   }
 }
 
-/* 2. Mobile Dialogs, Forms & Inputs (iOS Safari Friendly) */
+/* Mobile Dialogs, Forms & Inputs (iOS Safari Friendly) */
 .fp-mobile-dialog,
 .fp-checkout-dialog,
 .p-dialog {
   .p-inputtext,
   textarea.p-inputtextarea {
-    font-size: 16px !important; /* Critical: Stops iOS Safari auto-zoom on input focus */
+    font-size: 16px !important; /* Stops iOS Safari auto-zoom on input focus */
   }
 
   .p-dialog-footer {
@@ -1034,180 +1843,13 @@
   }
 }
 
-/* 3. Mobile Cart Drawer / Sidebar */
-.fp-cart-sidebar {
-  .p-sidebar-header {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--surface-border, #e2e8f0);
-  }
-
-  .p-sidebar-content {
-    display: flex;
-    flex-direction: column;
-    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 16px)) !important;
-  }
-}
-
-/* 4. Global Responsive Rules for Mobile Viewports (< 768px) */
-@media (max-width: 767px) {
-  /* Sticky category bar */
-  .fp-category-bar {
-    padding: 0.45rem 0.85rem;
-  }
-
-  .fp-cat-chip {
-    padding: 0.4rem 0.85rem;
-    font-size: 0.8rem;
-    height: 34px;
-    min-height: 34px;
-  }
-
-  /* Carousel Section Spacing */
-  .fp-store-section {
-    margin-top: 1.25rem;
-    padding: 0 0.85rem;
-
-    .section-header-row {
-      margin-bottom: 0.75rem;
-
-      .section-title {
-        font-size: 1.05rem;
-        gap: 0.35rem;
-
-        .badge {
-          font-size: 0.65rem !important;
-          padding: 0.15rem 0.45rem !important;
-        }
-      }
-    }
-  }
-
-  /* Carousel Product Track & Card */
-  .fp-product-carousel-track {
-    gap: 0.75rem;
-    padding: 0.2rem 0.85rem 1rem 0.85rem;
-    margin: 0 -0.85rem;
-    scroll-padding: 0 0.85rem;
-  }
-
-  .fp-food-card {
-    flex: 0 0 220px;
-    max-width: 220px;
-    min-width: 195px;
-    border-radius: 16px;
-
-    .card-media-box {
-      height: 125px;
-      aspect-ratio: unset;
-
-      .badge-deal,
-      .badge-rating {
-        font-size: 0.65rem;
-        padding: 0.2rem 0.45rem;
-        top: 0.5rem;
-      }
-      .badge-deal {
-        left: 0.5rem;
-      }
-      .badge-rating {
-        right: 0.5rem;
-      }
-      .badge-category {
-        font-size: 0.68rem;
-        bottom: 0.45rem;
-        left: 0.5rem;
-      }
-    }
-
-    .card-body-box {
-      padding: 0.7rem;
-
-      .product-title {
-        font-size: 0.88rem;
-        height: 2.3em;
-        line-height: 1.25;
-        margin-bottom: 0.2rem;
-      }
-
-      .product-subtitle {
-        font-size: 0.72rem;
-        margin-bottom: 0.45rem;
-      }
-
-      .card-footer-row {
-        padding-top: 0.5rem;
-
-        .price-col {
-          .strike-price {
-            font-size: 0.65rem;
-          }
-          .main-price {
-            font-size: 1rem;
-          }
-        }
-
-        .btn-add-cart {
-          padding: 0.35rem 0.7rem;
-          font-size: 0.75rem;
-          min-height: 32px;
-        }
-      }
-    }
-  }
-
-  /* Product Detail Sheet on Mobile */
-  .fp-modal-sheet {
-    max-height: 90vh;
-  }
-
-  .fp-modal-hero {
-    height: 175px;
-
-    .hero-info-pinned {
-      bottom: 0.75rem;
-      left: 1rem;
-      right: 1rem;
-
-      .hero-main-title {
-        font-size: 1.15rem;
-      }
-    }
-  }
-
-  .fp-modal-scroll {
-    padding: 1rem;
-  }
-
-  .fp-modal-bottom-bar {
-    padding: 0.75rem 1rem;
-    padding-bottom: max(0.85rem, env(safe-area-inset-bottom, 16px));
-
-    .qty-stepper {
-      .btn-step {
-        width: 36px;
-        height: 36px;
-      }
-      .qty-display {
-        min-width: 28px;
-        font-size: 0.9rem;
-      }
-    }
-
-    .btn-submit-cart {
-      padding: 0.75rem 1rem;
-      font-size: 0.9rem;
-      min-height: 44px;
-    }
-  }
-}
-
-/* 5. Mobile 2-Column Grid Layout (< 640px) */
+/* Mobile 2-Column Grid Layout (< 640px) */
 @media (max-width: 639px) {
   .fp-food-card.grid-mode {
     border-radius: 14px;
 
     .card-media-box {
-      height: 115px;
+      height: 120px;
       aspect-ratio: unset;
 
       .badge-deal {
@@ -1219,13 +1861,21 @@
 
       .badge-rating {
         top: 0.35rem;
-        right: 0.35rem;
+        right: 2.2rem;
         font-size: 0.6rem;
         padding: 0.15rem 0.35rem;
       }
 
+      .badge-fav-btn {
+        top: 0.35rem;
+        right: 0.35rem;
+        width: 24px;
+        height: 24px;
+        font-size: 0.75rem;
+      }
+
       .badge-category {
-        display: none; /* Keep image clean in 2-column mobile layout */
+        display: none; /* Keep clean in 2-column mobile layout */
       }
     }
 
