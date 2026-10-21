@@ -33,6 +33,7 @@ namespace SmartPos.Purchases
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
         private readonly IBranchStockManager _branchStockManager;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly SystemAccountManager _systemAccountManager;
         private readonly IBranchNotificationService _branchNotificationService;
 
@@ -47,6 +48,7 @@ namespace SmartPos.Purchases
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
             IBranchStockManager branchStockManager,
+            IRepository<Branch> branchRepository,
             SystemAccountManager systemAccountManager,
             IBranchNotificationService branchNotificationService)
             : base(repository)
@@ -60,6 +62,7 @@ namespace SmartPos.Purchases
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _branchStockManager = branchStockManager;
+            _branchRepository = branchRepository;
             _systemAccountManager = systemAccountManager;
             _branchNotificationService = branchNotificationService;
             CreatePermissionName = PermissionNames.Pages_Purchases_Create;
@@ -263,10 +266,14 @@ namespace SmartPos.Purchases
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(purchase.BranchId);
 
+            var branch = await _branchRepository.FirstOrDefaultAsync(purchase.BranchId);
             foreach (var line in purchase.Lines.ToList())
             {
                 var product = await _productRepository.GetAsync(line.ProductId);
-                await _branchStockManager.DecreaseAsync(purchase.BranchId, line.ProductId, line.Quantity, product.Name);
+                if (branch == null || branch.BusinessType != BusinessType.Restaurant)
+                {
+                    await _branchStockManager.DecreaseAsync(purchase.BranchId, line.ProductId, line.Quantity, product.Name);
+                }
                 await _lineRepository.DeleteAsync(line);
             }
 
@@ -284,8 +291,19 @@ namespace SmartPos.Purchases
         {
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
 
-            return Repository.GetAllIncluding(x => x.Supplier, x => x.Lines)
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+            var query = Repository.GetAllIncluding(x => x.Supplier, x => x.Lines, x => x.Lines.Select(l => l.Product));
+
+            if (branchId.HasValue)
+            {
+                query = query.Where(x => x.BranchId == branchId.Value);
+                var branch = _branchRepository.FirstOrDefault(branchId.Value);
+                if (branch != null && branch.BusinessType == BusinessType.Restaurant)
+                {
+                    query = query.Where(x => x.Lines.Any(l => (l.Product.Barcode != null && l.Product.Barcode.StartsWith("GROCERY-")) || l.Product.Name == "Grocery"));
+                }
+            }
+
+            return query
                 .WhereIf(input.SupplierId.HasValue, x => x.SupplierId == input.SupplierId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))

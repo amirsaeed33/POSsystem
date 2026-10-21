@@ -108,8 +108,8 @@
                 <th pSortableColumn="price">Price <p-sortIcon field="price"></p-sortIcon></th>
                 <th pSortableColumn="wholesalePrice">Wholesale <p-sortIcon field="wholesalePrice"></p-sortIcon></th>
                 <th pSortableColumn="costPrice">Purchase Price <p-sortIcon field="costPrice"></p-sortIcon></th>
-                <th pSortableColumn="stockQuantity">Stock <p-sortIcon field="stockQuantity"></p-sortIcon></th>
-                <th pSortableColumn="alertQuantityLimit">Alert <p-sortIcon field="alertQuantityLimit"></p-sortIcon></th>
+                <th *ngIf="!isRestaurant" pSortableColumn="stockQuantity">Stock <p-sortIcon field="stockQuantity"></p-sortIcon></th>
+                <th *ngIf="!isRestaurant" pSortableColumn="alertQuantityLimit">Alert <p-sortIcon field="alertQuantityLimit"></p-sortIcon></th>
                 <th style="width: 4.5rem; text-align: center;">Actions</th>
             </tr>
         </ng-template>
@@ -136,9 +136,15 @@
                     </ng-template>
                 </td>
                 <td>
-                    <a href="javascript:void(0)" class="text-primary hover:underline font-medium cursor-pointer" style="text-decoration: none;" (click)="openEditDialog(product)">
-                        {{ product.name }}
-                    </a>
+                    <ng-container *ngIf="!isGroceryProduct(product)">
+                        <a href="javascript:void(0)" class="text-primary hover:underline font-medium cursor-pointer" style="text-decoration: none;" (click)="openEditDialog(product)">
+                            {{ product.name }}
+                        </a>
+                    </ng-container>
+                    <ng-container *ngIf="isGroceryProduct(product)">
+                        <span class="font-medium text-900">{{ product.name }}</span>
+                        <span class="p-tag p-tag-info text-xs ml-2">Permanent Grocery</span>
+                    </ng-container>
                     <span *ngIf="product.isShared" class="ml-2 text-xs text-primary font-medium">All locations</span>
                 </td>
                 <td>{{ product.barcode || '—' }}</td>
@@ -148,8 +154,8 @@
                 <td>{{ product.price | number: '1.2-2' }}</td>
                 <td>{{ product.wholesalePrice | number: '1.2-2' }}</td>
                 <td>{{ product.costPrice | number: '1.2-2' }}</td>
-                <td>{{ product.stockQuantity }}</td>
-                <td>{{ product.alertQuantityLimit }}</td>
+                <td *ngIf="!isRestaurant">{{ product.stockQuantity }}</td>
+                <td *ngIf="!isRestaurant">{{ product.alertQuantityLimit }}</td>
                 <td class="text-center">
                     <app-row-actions [items]="getRowActions(product)"></app-row-actions>
                 </td>
@@ -158,7 +164,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="12" class="text-center p-4">
+                <td [attr.colspan]="isRestaurant ? 11 : 13" class="text-center p-4">
                     <div class="text-500">No products found</div>
                 </td>
             </tr>

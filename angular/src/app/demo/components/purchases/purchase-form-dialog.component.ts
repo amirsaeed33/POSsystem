@@ -17,6 +17,8 @@ import { ProductService } from 'src/app/demo/service/product.service';
 import { SupplierService } from 'src/app/demo/service/supplier.service';
 import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
 
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+
 @Component({
     selector: 'app-purchase-form-dialog',
     templateUrl: './purchase-form-dialog.component.html',
@@ -37,11 +39,16 @@ export class PurchaseFormDialogComponent implements OnChanges {
     printingPurchaseId: number | null = null;
     printAutoPrint = false;
 
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
+
     constructor(
         private purchaseService: PurchaseService,
         private productService: ProductService,
         private supplierService: SupplierService,
         private businessAccountService: BusinessAccountService,
+        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -89,7 +96,12 @@ export class PurchaseFormDialogComponent implements OnChanges {
     }
 
     addLine(): void {
-        this.purchase.lines.push(this.emptyLine());
+        const line = this.emptyLine();
+        if (this.isRestaurant && this.products.length > 0) {
+            line.productId = this.products[0].id;
+            line.quantity = 1;
+        }
+        this.purchase.lines.push(line);
     }
 
     removeLine(index: number): void {
@@ -314,7 +326,27 @@ export class PurchaseFormDialogComponent implements OnChanges {
             this.businessAccountService.getAll({ skipCount: 0, maxResultCount: 1000 }),
         ])
             .then(([products, suppliers, accounts]) => {
-                this.products = products.items;
+                if (this.isRestaurant) {
+                    this.products = (products.items || []).filter(
+                        (p) =>
+                            (p.barcode || '').startsWith('GROCERY-') ||
+                            (p.name || '').trim().toLowerCase() === 'grocery'
+                    );
+                    if (this.products.length > 0) {
+                        for (const line of this.purchase.lines) {
+                            if (!line.productId) {
+                                line.productId = this.products[0].id;
+                                line.quantity = 1;
+                            }
+                        }
+                    }
+                } else {
+                    this.products = (products.items || []).filter(
+                        (p) =>
+                            !(p.barcode || '').startsWith('GROCERY-') &&
+                            (p.name || '').trim().toLowerCase() !== 'grocery'
+                    );
+                }
                 this.suppliers = suppliers;
                 const items = accounts.items || [];
                 const allowedTypes = ['Cash', 'Bank', 'Mobile Wallet'];

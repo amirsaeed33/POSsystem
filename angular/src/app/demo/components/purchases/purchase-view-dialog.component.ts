@@ -13,6 +13,8 @@ import { PurchaseReturnDto } from 'src/app/demo/api/purchase-return';
 import { PurchaseService } from 'src/app/demo/service/purchase.service';
 import { PurchaseReturnService } from 'src/app/demo/service/purchase-return.service';
 
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+
 @Component({
     selector: 'app-purchase-view-dialog',
     templateUrl: './purchase-view-dialog.component.html',
@@ -29,9 +31,14 @@ export class PurchaseViewDialogComponent implements OnChanges {
     returns: PurchaseReturnDto[] = [];
     loading = false;
 
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
+
     constructor(public formatService: AppFormatService, 
         private purchaseService: PurchaseService,
         private purchaseReturnService: PurchaseReturnService,
+        private branchContext: BranchContextService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}

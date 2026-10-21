@@ -19,27 +19,31 @@ export class ActivateBranchComponent implements OnInit {
     ) {}
 
     ngOnInit(): void {
-        const token = (this.route.snapshot.queryParamMap.get('token') || '').trim();
-        if (!token) {
-            this.loading = false;
-            this.errorMessage = 'Activation token is missing.';
-            return;
-        }
-
-        this.branchService
-            .activateBranch(token)
-            .then((result) => {
-                this.success = true;
-                this.branchName = result.branchName || '';
-                this.tenantName = result.tenantName || result.tenancyName || '';
-            })
-            .catch((error) => {
-                this.errorMessage =
-                    error?.message || 'Failed to activate branch.';
-            })
-            .finally(() => {
+        this.route.queryParamMap.subscribe((params) => {
+            const token = (params.get('token') || '').trim();
+            if (!token) {
                 this.loading = false;
-            });
+                this.errorMessage = 'Activation token is missing.';
+                return;
+            }
+
+            this.loading = true;
+            this.errorMessage = '';
+            this.branchService
+                .activateBranch(token)
+                .then((result) => {
+                    this.success = true;
+                    this.branchName = result.branchName || '';
+                    this.tenantName = result.tenantName || result.tenancyName || '';
+                })
+                .catch((error) => {
+                    this.errorMessage =
+                        error?.message || 'Failed to activate branch.';
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        });
     }
 
     goToLogin(): void {

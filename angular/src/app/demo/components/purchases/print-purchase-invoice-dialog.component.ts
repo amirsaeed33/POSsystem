@@ -14,6 +14,8 @@ import { PurchaseDto } from 'src/app/demo/api/purchase';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { PurchaseService } from 'src/app/demo/service/purchase.service';
 
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+
 @Component({
     selector: 'app-print-purchase-invoice-dialog',
     templateUrl: './print-purchase-invoice-dialog.component.html',
@@ -30,9 +32,14 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
     loading = false;
     today = new Date().toLocaleString();
 
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
+
     constructor(public formatService: AppFormatService, 
         private purchaseService: PurchaseService,
         private branchService: BranchService,
+        private branchContext: BranchContextService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef
     ) {}

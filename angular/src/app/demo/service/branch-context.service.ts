@@ -31,6 +31,14 @@ export class BranchContextService {
         return this.allowedBranches;
     }
 
+    isRestaurant(): boolean {
+        const branch = this.currentBranchSubject.value;
+        if (!branch) {
+            return false;
+        }
+        return Number(branch.businessType) === 2;
+    }
+
     /** True when the selected branch is Approved (or none selected). */
     isCurrentBranchApproved(): boolean {
         const branch = this.currentBranchSubject.value;
