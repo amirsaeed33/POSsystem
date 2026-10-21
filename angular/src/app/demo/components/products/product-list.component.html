@@ -38,6 +38,7 @@
                         (click)="onSearch()"
                     ></button>
                     <button
+                        *ngIf="!isRestaurant"
                         pButton
                         pRipple
                         type="button"
@@ -101,13 +102,13 @@
                 </th>
                 <th style="width: 5rem">Image</th>
                 <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
-                <th pSortableColumn="barcode">Barcode <p-sortIcon field="barcode"></p-sortIcon></th>
+                <th *ngIf="!isRestaurant" pSortableColumn="barcode">Barcode <p-sortIcon field="barcode"></p-sortIcon></th>
                 <th pSortableColumn="categoryName">Category <p-sortIcon field="categoryName"></p-sortIcon></th>
-                <th pSortableColumn="brandName">Brand <p-sortIcon field="brandName"></p-sortIcon></th>
+                <th *ngIf="!isRestaurant" pSortableColumn="brandName">Brand <p-sortIcon field="brandName"></p-sortIcon></th>
                 <th pSortableColumn="unitName">Unit <p-sortIcon field="unitName"></p-sortIcon></th>
                 <th pSortableColumn="price">Price <p-sortIcon field="price"></p-sortIcon></th>
-                <th pSortableColumn="wholesalePrice">Wholesale <p-sortIcon field="wholesalePrice"></p-sortIcon></th>
-                <th pSortableColumn="costPrice">Purchase Price <p-sortIcon field="costPrice"></p-sortIcon></th>
+                <th *ngIf="!isRestaurant" pSortableColumn="wholesalePrice">Wholesale <p-sortIcon field="wholesalePrice"></p-sortIcon></th>
+                <th *ngIf="!isRestaurant" pSortableColumn="costPrice">Purchase Price <p-sortIcon field="costPrice"></p-sortIcon></th>
                 <th *ngIf="!isRestaurant" pSortableColumn="stockQuantity">Stock <p-sortIcon field="stockQuantity"></p-sortIcon></th>
                 <th *ngIf="!isRestaurant" pSortableColumn="alertQuantityLimit">Alert <p-sortIcon field="alertQuantityLimit"></p-sortIcon></th>
                 <th style="width: 4.5rem; text-align: center;">Actions</th>
@@ -147,13 +148,13 @@
                     </ng-container>
                     <span *ngIf="product.isShared" class="ml-2 text-xs text-primary font-medium">All locations</span>
                 </td>
-                <td>{{ product.barcode || '—' }}</td>
+                <td *ngIf="!isRestaurant">{{ product.barcode || '—' }}</td>
                 <td>{{ product.categoryName || '—' }}</td>
-                <td>{{ product.brandName || '—' }}</td>
+                <td *ngIf="!isRestaurant">{{ product.brandName || '—' }}</td>
                 <td>{{ product.unitName || '—' }}</td>
                 <td>{{ product.price | number: '1.2-2' }}</td>
-                <td>{{ product.wholesalePrice | number: '1.2-2' }}</td>
-                <td>{{ product.costPrice | number: '1.2-2' }}</td>
+                <td *ngIf="!isRestaurant">{{ product.wholesalePrice | number: '1.2-2' }}</td>
+                <td *ngIf="!isRestaurant">{{ product.costPrice | number: '1.2-2' }}</td>
                 <td *ngIf="!isRestaurant">{{ product.stockQuantity }}</td>
                 <td *ngIf="!isRestaurant">{{ product.alertQuantityLimit }}</td>
                 <td class="text-center">
@@ -164,7 +165,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td [attr.colspan]="isRestaurant ? 11 : 13" class="text-center p-4">
+                <td [attr.colspan]="isRestaurant ? 7 : 13" class="text-center p-4">
                     <div class="text-500">No products found</div>
                 </td>
             </tr>

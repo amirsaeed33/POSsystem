@@ -96,20 +96,25 @@ export class ProductListComponent implements OnInit {
             return []; // Permanent grocery entry: non-editable, non-deletable
         }
 
-        const actions: RowActionItem[] = [
-            {
+        const actions: RowActionItem[] = [];
+
+        if (!this.isRestaurant) {
+            actions.push({
                 label: 'Print barcode',
                 icon: 'pi pi-print',
                 color: 'blue',
                 action: () => this.openBarcodeDialog(product)
-            },
-            {
+            });
+        }
+
+        if (this.isRestaurant) {
+            actions.push({
                 label: 'Modifiers & Add-ons',
                 icon: 'pi pi-list',
                 color: 'blue',
                 action: () => this.openModifierDialog(product)
-            }
-        ];
+            });
+        }
         if (this.canEdit) {
             actions.push({
                 label: 'Edit',
@@ -364,6 +369,45 @@ export class ProductListComponent implements OnInit {
     }
 
     downloadExcelTemplate(): void {
+        if (this.isRestaurant) {
+            const restaurantSampleData = [
+                {
+                    'Product Name': 'Chicken Biryani Special',
+                    'Category Name': 'Main Course',
+                    'Unit Name': 'Plate',
+                    'Price (PKR)': 450,
+                    'Description': 'Aromatic basmati rice cooked with tender spiced chicken'
+                },
+                {
+                    'Product Name': 'Zinger Burger Meal',
+                    'Category Name': 'Fast Food',
+                    'Unit Name': 'Pcs',
+                    'Price (PKR)': 550,
+                    'Description': 'Crispy fried chicken fillet with fries and coleslaw'
+                },
+                {
+                    'Product Name': 'Chicken Karahi Half',
+                    'Category Name': 'Main Course',
+                    'Unit Name': 'Serving',
+                    'Price (PKR)': 1100,
+                    'Description': 'Desi ghee cooked fresh chicken karahi'
+                },
+                {
+                    'Product Name': 'Mint Margarita',
+                    'Category Name': 'Beverages',
+                    'Unit Name': 'Glass',
+                    'Price (PKR)': 220,
+                    'Description': 'Fresh mint, lemon, and soda blended drink'
+                }
+            ];
+
+            const worksheet = XLSX.utils.json_to_sheet(restaurantSampleData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Restaurant_Menu');
+            XLSX.writeFile(workbook, 'Restaurant_Menu_Template.xlsx');
+            return;
+        }
+
         const sampleData = [
             {
                 'Product Name': 'Sample Shampoo 200ml',
@@ -427,14 +471,14 @@ export class ProductListComponent implements OnInit {
                     Name: r['Product Name'] || r['Name'] || r['name'] || '',
                     Barcode: String(r['Barcode'] || r['barcode'] || ''),
                     Price: Number(r['Price (PKR)'] || r['Price'] || r['price'] || 0),
-                    WholesalePrice: Number(r['Wholesale Price (PKR)'] || r['WholesalePrice'] || r['wholesalePrice'] || 0),
-                    CostPrice: Number(r['Purchase Price (PKR)'] || r['Cost Price (PKR)'] || r['CostPrice'] || r['costPrice'] || 0),
-                    StockQuantity: Number(r['Stock Quantity'] || r['StockQuantity'] || r['stockQuantity'] || 0),
-                    AlertQuantityLimit: Number(r['Alert Limit'] || r['AlertQuantityLimit'] || r['alertQuantityLimit'] || 10),
+                    WholesalePrice: this.isRestaurant ? 0 : Number(r['Wholesale Price (PKR)'] || r['WholesalePrice'] || r['wholesalePrice'] || 0),
+                    CostPrice: this.isRestaurant ? 0 : Number(r['Purchase Price (PKR)'] || r['Cost Price (PKR)'] || r['CostPrice'] || r['costPrice'] || 0),
+                    StockQuantity: this.isRestaurant ? 0 : Number(r['Stock Quantity'] || r['StockQuantity'] || r['stockQuantity'] || 0),
+                    AlertQuantityLimit: this.isRestaurant ? 0 : Number(r['Alert Limit'] || r['AlertQuantityLimit'] || r['alertQuantityLimit'] || 10),
                     CategoryName: r['Category Name'] || r['Category'] || r['category'] || '',
-                    BrandName: r['Brand Name'] || r['Brand'] || r['brand'] || '',
+                    BrandName: this.isRestaurant ? '' : (r['Brand Name'] || r['Brand'] || r['brand'] || ''),
                     UnitName: r['Unit Name'] || r['Unit'] || r['unit'] || '',
-                    Location: r['Location'] || r['location'] || '',
+                    Location: this.isRestaurant ? '' : (r['Location'] || r['location'] || ''),
                     Description: r['Description'] || r['description'] || ''
                 }));
 

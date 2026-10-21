@@ -696,6 +696,12 @@ namespace SmartPos.Products
             }
 
             var activeBranchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+            Branch branch;
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                branch = await _branchRepository.FirstOrDefaultAsync(activeBranchId);
+            }
+            var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
 
             // Cache or find Categories, Brands, Units
             var categories = await _categoryRepository.GetAllListAsync();
@@ -703,9 +709,9 @@ namespace SmartPos.Products
             var units = await _unitRepository.GetAllListAsync();
 
             // Default fallback or matching category
-            var defaultCategory = categories.FirstOrDefault() ?? await _categoryRepository.InsertAsync(new SmartPos.Categories.Category { Name = "General", BranchId = activeBranchId });
-            var defaultBrand = brands.FirstOrDefault() ?? await _brandRepository.InsertAsync(new SmartPos.Brands.Brand { Name = "General", BranchId = activeBranchId });
-            var defaultUnit = units.FirstOrDefault() ?? await _unitRepository.InsertAsync(new SmartPos.Units.Unit { Name = "Pcs", Symbol = "pcs", BranchId = activeBranchId });
+            var defaultCategory = categories.FirstOrDefault() ?? await _categoryRepository.InsertAsync(new SmartPos.Categories.Category { Name = isRestaurant ? "Food" : "General", BranchId = activeBranchId });
+            var defaultBrand = brands.FirstOrDefault() ?? await _brandRepository.InsertAsync(new SmartPos.Brands.Brand { Name = isRestaurant ? "Kitchen" : "General", BranchId = activeBranchId });
+            var defaultUnit = units.FirstOrDefault() ?? await _unitRepository.InsertAsync(new SmartPos.Units.Unit { Name = isRestaurant ? "Serving" : "Pcs", Symbol = isRestaurant ? "srv" : "pcs", BranchId = activeBranchId });
 
             int rowIndex = 1;
             foreach (var row in inputs)
@@ -720,14 +726,17 @@ namespace SmartPos.Products
                         continue;
                     }
 
-                    if (row.Barcode.IsNullOrWhiteSpace())
+                    var cleanBarcode = !row.Barcode.IsNullOrWhiteSpace()
+                        ? row.Barcode.Trim()
+                        : (isRestaurant ? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper() : null);
+
+                    if (cleanBarcode.IsNullOrWhiteSpace())
                     {
                         result.ErrorCount++;
                         result.ErrorMessages.Add($"Row {rowIndex}: Barcode is required for product '{row.Name}'.");
                         continue;
                     }
 
-                    var cleanBarcode = row.Barcode.Trim();
                     var existingWithBarcode = await Repository.FirstOrDefaultAsync(x => x.Barcode == cleanBarcode);
                     if (existingWithBarcode != null)
                     {
@@ -795,15 +804,15 @@ namespace SmartPos.Products
                         Name = row.Name.Trim(),
                         Barcode = cleanBarcode,
                         Price = row.Price > 0 ? row.Price : 1,
-                        WholesalePrice = row.WholesalePrice >= 0 ? row.WholesalePrice : 0,
-                        CostPrice = row.CostPrice >= 0 ? row.CostPrice : 0,
-                        StockQuantity = row.StockQuantity >= 0 ? row.StockQuantity : 0,
-                        AlertQuantityLimit = row.AlertQuantityLimit >= 0 ? row.AlertQuantityLimit : 10,
+                        WholesalePrice = isRestaurant ? 0 : (row.WholesalePrice >= 0 ? row.WholesalePrice : 0),
+                        CostPrice = isRestaurant ? 0 : (row.CostPrice >= 0 ? row.CostPrice : 0),
+                        StockQuantity = isRestaurant ? 0 : (row.StockQuantity >= 0 ? row.StockQuantity : 0),
+                        AlertQuantityLimit = isRestaurant ? 0 : (row.AlertQuantityLimit >= 0 ? row.AlertQuantityLimit : 10),
                         CategoryId = categoryId,
                         BrandId = brandId,
                         UnitId = unitId,
                         BranchId = activeBranchId,
-                        Location = row.Location?.Trim(),
+                        Location = isRestaurant ? null : row.Location?.Trim(),
                         Description = row.Description?.Trim()
                     };
 
