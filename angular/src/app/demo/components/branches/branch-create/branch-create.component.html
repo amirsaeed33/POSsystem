@@ -63,7 +63,7 @@
                             [disabled]="saving"
                         />
                     </div>
-                    <div class="field col-12 md:col-6 flex flex-column gap-2 mb-3">
+                    <div class="field col-12 flex flex-column gap-2 mb-3">
                         <label for="branchBusinessType" class="font-medium">Business / Store Type <span class="p-error">*</span></label>
                         <p-dropdown
                             inputId="branchBusinessType"
@@ -75,8 +75,11 @@
                             styleClass="w-full"
                             [disabled]="saving"
                         ></p-dropdown>
+                        <small class="text-500">
+                            Switch to <strong>🍽️ Restaurant & Cafe</strong> to enable Dining Tables, Kitchen Order Tickets (KOT), and Table Bills.
+                        </small>
                     </div>
-                    <div class="field col-12 md:col-6 flex flex-column gap-2 mb-3" *ngIf="branch.businessType === 2">
+                    <div class="field col-12 flex flex-column gap-2 mb-3" *ngIf="branch.businessType === 2">
                         <label for="branchServiceCharge" class="font-medium">Dine-In Service Charge %</label>
                         <p-inputNumber
                             inputId="branchServiceCharge"
@@ -89,6 +92,7 @@
                             styleClass="w-full"
                             [disabled]="saving"
                         ></p-inputNumber>
+                        <small class="text-500">Default service fee automatically applied to dine-in orders at this branch.</small>
                     </div>
                 </div>
 

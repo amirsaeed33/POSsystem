@@ -78,6 +78,8 @@ export class BranchService {
             discountAmount: input.discountAmount ?? 0,
             companyTypeId: input.companyTypeId,
             hostCatalogItemIds: input.hostCatalogItemIds || [],
+            businessType: input.businessType ?? 1,
+            serviceChargePercent: input.serviceChargePercent ?? 0,
             dateFormat: input.dateFormat || 'dd/MM/yyyy',
             currencyFormat: input.currencyFormat || 'PKR',
         };
@@ -123,6 +125,8 @@ export class BranchService {
                 taxPercent: input.taxPercent ?? 0,
                 discountPercent: input.discountPercent ?? 0,
                 discountAmount: input.discountAmount ?? 0,
+                businessType: input.businessType ?? 1,
+                serviceChargePercent: input.serviceChargePercent ?? 0,
                 dateFormat: input.dateFormat || 'dd/MM/yyyy',
                 currencyFormat: input.currencyFormat || 'PKR',
             })

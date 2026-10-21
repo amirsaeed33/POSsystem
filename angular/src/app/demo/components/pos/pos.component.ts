@@ -1,9 +1,11 @@
 import {
     Component,
     ElementRef,
+    OnDestroy,
     OnInit,
     ViewChild,
 } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { PosCartLine } from 'src/app/demo/api/pos';
 import { PaymentType } from 'src/app/demo/api/sale';
@@ -30,8 +32,10 @@ import { SaleService } from 'src/app/demo/service/sale.service';
     styleUrls: ['./pos.component.scss'],
     providers: [MessageService],
 })
-export class PosComponent implements OnInit {
+export class PosComponent implements OnInit, OnDestroy {
     @ViewChild('barcodeInput') barcodeInput?: ElementRef<HTMLInputElement>;
+
+    private branchSub?: Subscription;
 
     saving = false;
     scanning = false;
@@ -174,6 +178,11 @@ export class PosComponent implements OnInit {
 
     ngOnInit(): void {
         this.applyBranchPricing();
+        this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
+            if (branch) {
+                this.applyBranchPricing();
+            }
+        });
         this.loadTopProducts();
         this.saleService
             .getPosCustomers()
@@ -1095,5 +1104,9 @@ export class PosComponent implements OnInit {
         const month = `${date.getMonth() + 1}`.padStart(2, '0');
         const day = `${date.getDate()}`.padStart(2, '0');
         return `${year}-${month}-${day}`;
+    }
+
+    ngOnDestroy(): void {
+        this.branchSub?.unsubscribe();
     }
 }
