@@ -10,34 +10,12 @@ export interface CartItem {
     imagePath?: string;
 }
 
-export interface DeliveryAreaZone {
-    id: string;
-    name: string;
-    fee: number;
-    estimatedTime: string;
-    badge?: string;
-}
-
-export const DEFAULT_DELIVERY_AREAS: DeliveryAreaZone[] = [
-    { id: 'standard', name: 'Nearby Area / Standard (within 5 km)', fee: 100, estimatedTime: '20-35 mins', badge: 'Popular' },
-    { id: 'city_center', name: 'City Center / Commercial Area (5 - 10 km)', fee: 150, estimatedTime: '30-45 mins' },
-    { id: 'outskirts', name: 'Outskirts / Suburbs (10 - 15 km)', fee: 220, estimatedTime: '45-60 mins' },
-    { id: 'express', name: '⚡ Priority / Express Rush Delivery', fee: 280, estimatedTime: '15-25 mins', badge: 'Fastest' },
-];
-
 @Injectable({ providedIn: 'root' })
 export class OnlineCartService {
     private readonly STORAGE_KEY = 'pos_online_cart_items';
-    private readonly ZONE_KEY = 'pos_online_delivery_zone';
     private cartSubject = new BehaviorSubject<CartItem[]>(this.loadCart());
     cart$ = this.cartSubject.asObservable();
     sidebarVisible = false;
-
-    // Delivery Fee Configuration
-    freeDeliveryThreshold = 1500; // Free delivery for orders >= PKR 1,500
-    baseDeliveryFee = 100;
-    deliveryAreas: DeliveryAreaZone[] = DEFAULT_DELIVERY_AREAS;
-    selectedAreaZoneId: string = this.loadSelectedZone();
 
     get items(): CartItem[] {
         return this.cartSubject.value;
@@ -49,50 +27,6 @@ export class OnlineCartService {
 
     get cartSubtotal(): number {
         return this.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
-    }
-
-    get selectedAreaZone(): DeliveryAreaZone {
-        return this.deliveryAreas.find((z) => z.id === this.selectedAreaZoneId) || this.deliveryAreas[0];
-    }
-
-    get isFreeDeliveryEligible(): boolean {
-        return this.items.length > 0 && this.cartSubtotal >= this.freeDeliveryThreshold;
-    }
-
-    get amountNeededForFreeDelivery(): number {
-        return Math.max(0, this.freeDeliveryThreshold - this.cartSubtotal);
-    }
-
-    get freeDeliveryProgressPercent(): number {
-        if (this.freeDeliveryThreshold <= 0) return 100;
-        return Math.min(100, Math.round((this.cartSubtotal / this.freeDeliveryThreshold) * 100));
-    }
-
-    get deliveryFee(): number {
-        if (this.items.length === 0) return 0;
-        if (this.isFreeDeliveryEligible) return 0;
-        return this.selectedAreaZone ? this.selectedAreaZone.fee : this.baseDeliveryFee;
-    }
-
-    get cartGrandTotal(): number {
-        return this.cartSubtotal + this.deliveryFee;
-    }
-
-    setDeliveryArea(zoneId: string): void {
-        this.selectedAreaZoneId = zoneId;
-        try {
-            localStorage.setItem(this.ZONE_KEY, zoneId);
-        } catch {}
-    }
-
-    private loadSelectedZone(): string {
-        try {
-            const saved = localStorage.getItem(this.ZONE_KEY);
-            if (saved && this.deliveryAreas.some((a) => a.id === saved)) {
-                return saved;
-            }
-        } catch {}
-        return 'standard';
     }
 
     getItemQuantity(productId: number): number {

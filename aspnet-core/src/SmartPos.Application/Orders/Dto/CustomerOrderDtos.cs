@@ -27,14 +27,6 @@ namespace SmartPos.Orders.Dto
 
         public string GoogleMapsLink { get; set; }
 
-        public decimal? Subtotal { get; set; }
-
-        public decimal? DeliveryCharges { get; set; }
-
-        public decimal? GrandTotal { get; set; }
-
-        public string DeliveryArea { get; set; }
-
         [Required]
         [MinLength(1)]
         public List<CreateCustomerOrderLineDto> Lines { get; set; }
@@ -109,14 +101,6 @@ namespace SmartPos.Orders.Dto
         public string StatusName { get; set; }
 
         public decimal TotalAmount { get; set; }
- 
-        public decimal Subtotal { get; set; }
-
-        public decimal DeliveryCharges { get; set; }
-
-        public decimal GrandTotal { get; set; }
-
-        public string DeliveryArea { get; set; }
 
         public string Notes { get; set; }
 

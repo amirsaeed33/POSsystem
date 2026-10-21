@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -296,24 +295,6 @@ namespace SmartPos.Orders
                     }
                 }
 
-                var deliveryFee = input.DeliveryCharges ?? 0m;
-                var feeSnippet = deliveryFee > 0 ? $"🛵 Delivery: PKR {deliveryFee:N0}" : "🛵 Delivery: FREE";
-                if (!string.IsNullOrWhiteSpace(input.DeliveryArea))
-                {
-                    feeSnippet += $" ({input.DeliveryArea})";
-                }
-                if (!finalNotes.Contains("Delivery:"))
-                {
-                    if (string.IsNullOrWhiteSpace(finalNotes))
-                    {
-                        finalNotes = feeSnippet;
-                    }
-                    else if (finalNotes.Length + feeSnippet.Length + 3 <= CustomerOrder.MaxNotesLength)
-                    {
-                        finalNotes = $"{finalNotes} | {feeSnippet}";
-                    }
-                }
-
                 if (finalNotes.Length > CustomerOrder.MaxNotesLength)
                 {
                     finalNotes = finalNotes.Substring(0, CustomerOrder.MaxNotesLength);
@@ -353,7 +334,7 @@ namespace SmartPos.Orders
                     });
                 }
 
-                order.TotalAmount = total + deliveryFee;
+                order.TotalAmount = total;
                 var insertedId = await Repository.InsertAndGetIdAsync(order);
                 await CurrentUnitOfWork.SaveChangesAsync();
 
@@ -406,11 +387,7 @@ namespace SmartPos.Orders
                     CustomerName = input.CustomerName,
                     OrderDate = order.OrderDate,
                     Status = order.Status,
-                    Subtotal = total,
-                    DeliveryCharges = deliveryFee,
-                    GrandTotal = order.TotalAmount,
                     TotalAmount = order.TotalAmount,
-                    DeliveryArea = input.DeliveryArea,
                     Notes = order.Notes
                 };
             }
@@ -612,8 +589,6 @@ namespace SmartPos.Orders
 
         protected override CustomerOrderDto MapToEntityDto(CustomerOrder entity)
         {
-            var subtotal = entity.Lines != null ? entity.Lines.Sum(l => l.LineTotal) : 0m;
-            var deliveryCharges = Math.Max(0m, entity.TotalAmount - subtotal);
             var dto = new CustomerOrderDto
             {
                 Id = entity.Id,
@@ -623,9 +598,6 @@ namespace SmartPos.Orders
                 OrderNo = entity.OrderNo,
                 Status = entity.Status,
                 StatusName = entity.Status.ToString(),
-                Subtotal = subtotal,
-                DeliveryCharges = deliveryCharges,
-                GrandTotal = entity.TotalAmount,
                 TotalAmount = entity.TotalAmount,
                 Notes = entity.Notes,
                 SaleId = entity.SaleId,
