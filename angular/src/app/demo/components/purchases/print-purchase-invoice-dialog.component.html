@@ -70,7 +70,7 @@
                 <tr>
                     <th>#</th>
                     <th>Product</th>
-                    <th class="text-right">Quantity</th>
+                    <th class="text-right" *ngIf="!isRestaurant">Quantity</th>
                     <th class="text-right">Purchase Price</th>
                     <th class="text-right">Line Total</th>
                 </tr>
@@ -79,12 +79,12 @@
                 <tr *ngFor="let line of purchase.lines || []; let i = index">
                     <td>{{ i + 1 }}</td>
                     <td>{{ line.productName || ('#' + line.productId) }}</td>
-                    <td class="text-right">{{ line.quantity }}</td>
+                    <td class="text-right" *ngIf="!isRestaurant">{{ line.quantity }}</td>
                     <td class="text-right">{{ line.unitCost }}</td>
                     <td class="text-right">{{ line.lineTotal }}</td>
                 </tr>
                 <tr *ngIf="!(purchase.lines || []).length">
-                    <td colspan="5" class="text-center">No line items</td>
+                    <td [attr.colspan]="isRestaurant ? 4 : 5" class="text-center">No line items</td>
                 </tr>
             </tbody>
             <tfoot>

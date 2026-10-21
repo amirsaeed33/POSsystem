@@ -308,8 +308,16 @@ namespace SmartPos.Sales
                 }
 
                 var product = await _productRepository.GetAsync(lineInput.ProductId);
-                await _branchStockManager.EnsureCanUseProductAtBranchAsync(branchId, lineInput.ProductId);
-                await _branchStockManager.DecreaseAsync(branchId, lineInput.ProductId, lineInput.Quantity, product.Name);
+                if ((product.Barcode != null && product.Barcode.StartsWith("GROCERY-")) || product.Name == "Grocery")
+                {
+                    throw new UserFriendlyException("Grocery items cannot be sold in Sales.");
+                }
+
+                if (branch.BusinessType != BusinessType.Restaurant)
+                {
+                    await _branchStockManager.EnsureCanUseProductAtBranchAsync(branchId, lineInput.ProductId);
+                    await _branchStockManager.DecreaseAsync(branchId, lineInput.ProductId, lineInput.Quantity, product.Name);
+                }
 
                 var lineTotal = lineInput.Quantity * lineInput.UnitPrice;
                 subTotal += lineTotal;
@@ -399,9 +407,13 @@ namespace SmartPos.Sales
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(sale.BranchId);
 
+            var branch = await _branchRepository.FirstOrDefaultAsync(sale.BranchId);
             foreach (var line in sale.Lines.ToList())
             {
-                await _branchStockManager.IncreaseAsync(sale.BranchId, line.ProductId, line.Quantity);
+                if (branch == null || branch.BusinessType != BusinessType.Restaurant)
+                {
+                    await _branchStockManager.IncreaseAsync(sale.BranchId, line.ProductId, line.Quantity);
+                }
                 await _lineRepository.DeleteAsync(line);
             }
 
@@ -432,6 +444,7 @@ namespace SmartPos.Sales
         {
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
             return _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
+                .Where(p => (p.Barcode == null || !p.Barcode.StartsWith("GROCERY-")) && p.Name != "Grocery")
                 .WhereVisibleToBranch(_branchStockRepository.GetAll(), branchId);
         }
 

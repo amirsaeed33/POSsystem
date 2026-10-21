@@ -207,12 +207,20 @@ export class PosComponent implements OnInit, OnDestroy {
             });
     }
 
+    isGroceryProduct(product?: ProductDto | null): boolean {
+        if (!product) return false;
+        return (
+            (product.barcode || '').startsWith('GROCERY-') ||
+            (product.name || '').trim().toLowerCase() === 'grocery'
+        );
+    }
+
     loadTopProducts(): void {
         this.loadingTopProducts = true;
         this.saleService
             .getTopSellingProducts(5)
             .then((products) => {
-                this.topProducts = products || [];
+                this.topProducts = (products || []).filter((p) => !this.isGroceryProduct(p));
             })
             .catch((err) => {
                 console.error('Failed to load top products:', err);
@@ -687,6 +695,14 @@ export class PosComponent implements OnInit, OnDestroy {
         this.saleService
             .findPosProduct(code)
             .then((product) => {
+                if (this.isGroceryProduct(product)) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Not found',
+                        detail: 'Product not found',
+                    });
+                    return;
+                }
                 this.addProduct(product);
                 this.searchText = '';
                 this.suggestions = [];
@@ -804,7 +820,7 @@ export class PosComponent implements OnInit, OnDestroy {
             : null;
 
         if (existing) {
-            if (existing.quantity + 1 > (product.stockQuantity || 0)) {
+            if (!this.isRestaurantMode && existing.quantity + 1 > (product.stockQuantity || 0)) {
                 this.messageService.add({
                     severity: 'warn',
                     summary: 'Stock',
@@ -820,7 +836,7 @@ export class PosComponent implements OnInit, OnDestroy {
             return;
         }
 
-        if ((product.stockQuantity || 0) < 1) {
+        if (!this.isRestaurantMode && (product.stockQuantity || 0) < 1) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Stock',
@@ -887,7 +903,7 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     private applyQty(line: PosCartLine, qty: number): void {
-        if (qty > line.stockQuantity) {
+        if (!this.isRestaurantMode && qty > line.stockQuantity) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Stock',
@@ -1013,6 +1029,36 @@ export class PosComponent implements OnInit, OnDestroy {
                     this.activeOrderId = saved.id;
                 }
 
+                const branch = this.branchContext.getCurrentBranch();
+                const settledReceipt = {
+                    branchName: branch?.name || 'SmartPOS Restaurant',
+                    branchAddress: branch?.invoiceAddress,
+                    branchPhone: branch?.invoiceContactPhone,
+                    orderNo: this.activeOrderNo || `ORD-${Date.now().toString().slice(-6)}`,
+                    tableNo: this.orderType === 'dineIn' ? (this.selectedTable?.tableNo || 'Dine-In') : 'Takeaway',
+                    serverName: this.waiterName || 'Staff',
+                    date: new Date(),
+                    lines: this.cart.map((l) => ({
+                        productName: l.productName,
+                        quantity: l.quantity,
+                        unitPrice: l.unitPrice,
+                        lineTotal: l.quantity * l.unitPrice,
+                        modifiers: l.selectedModifiers ? this.parseModifiers(l.selectedModifiers) : [],
+                        notes: l.kitchenNotes
+                    })),
+                    subTotal: this.subTotal,
+                    discountPercent: this.discountPercent,
+                    discountAmount: this.computedDiscount,
+                    taxPercent: this.taxPercent,
+                    taxAmount: this.taxAmount,
+                    serviceChargePercent: this.serviceChargePercent,
+                    serviceChargeAmount: this.serviceChargeAmount,
+                    grandTotal: total,
+                    paidAmount: paid,
+                    changeAmount: change,
+                    paymentType: paymentType === PaymentType.Cash ? 'CASH' : 'MIXED / CARD',
+                };
+
                 await this.restaurantOrderService.settleOrder({
                     orderId: this.activeOrderId!,
                     customerId: this.customerId as number,
@@ -1034,6 +1080,9 @@ export class PosComponent implements OnInit, OnDestroy {
                     summary: '🍽️ Order Completed',
                     detail,
                 });
+
+                // Automatically print sales receipt
+                this.printReceiptSnapshot(settledReceipt);
 
                 this.paymentDialogVisible = false;
                 this.clearCart();
@@ -1085,6 +1134,188 @@ export class PosComponent implements OnInit, OnDestroy {
         }
     }
 
+    printReceiptSnapshot(receipt: any): void {
+        const win = window.open('', '', 'height=650,width=420');
+        if (!win) {
+            window.print();
+            return;
+        }
+
+        const linesHtml = (receipt.lines || [])
+            .map((line: any) => {
+                const mods = line.modifiers?.length ? `<div style="font-size:10px; color:#555;">${line.modifiers.join(', ')}</div>` : '';
+                const note = line.notes ? `<div style="font-size:10px; color:#666; font-style:italic;">Note: ${line.notes}</div>` : '';
+                return `
+                    <tr style="border-bottom: 1px dotted #ccc;">
+                        <td style="padding: 4px 0;">
+                            <div style="font-weight: 500;">${line.productName}</div>
+                            ${mods}
+                            ${note}
+                        </td>
+                        <td style="text-align: center; padding: 4px 0;">${line.quantity}</td>
+                        <td style="text-align: right; padding: 4px 0;">${Number(line.unitPrice).toFixed(2)}</td>
+                        <td style="text-align: right; padding: 4px 0; font-weight: 500;">${Number(line.lineTotal).toFixed(2)}</td>
+                    </tr>
+                `;
+            })
+            .join('');
+
+        const discountRow = receipt.discountAmount > 0
+            ? `<div class="row"><span>Discount${receipt.discountPercent > 0 ? ' (' + receipt.discountPercent + '%)' : ''}:</span><span>-${Number(receipt.discountAmount).toFixed(2)}</span></div>`
+            : '';
+        const taxRow = receipt.taxAmount > 0
+            ? `<div class="row"><span>Tax (${receipt.taxPercent}%):</span><span>+${Number(receipt.taxAmount).toFixed(2)}</span></div>`
+            : '';
+        const serviceRow = receipt.serviceChargeAmount > 0
+            ? `<div class="row"><span>Service Charge (${receipt.serviceChargePercent}%):</span><span>+${Number(receipt.serviceChargeAmount).toFixed(2)}</span></div>`
+            : '';
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Receipt #${receipt.orderNo}</title>
+                <style>
+                    body {
+                        font-family: 'Courier New', Courier, monospace;
+                        font-size: 13px;
+                        color: #000;
+                        padding: 10px;
+                        margin: 0;
+                        width: 78mm;
+                        box-sizing: border-box;
+                    }
+                    .header {
+                        text-align: center;
+                        border-bottom: 1px dashed #000;
+                        padding-bottom: 8px;
+                        margin-bottom: 8px;
+                    }
+                    .title {
+                        font-size: 16px;
+                        font-weight: bold;
+                        text-transform: uppercase;
+                    }
+                    .subtitle {
+                        font-size: 12px;
+                        font-weight: bold;
+                        margin-top: 4px;
+                    }
+                    .meta {
+                        font-size: 11px;
+                        margin: 2px 0;
+                        color: #222;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 8px;
+                        font-size: 12px;
+                    }
+                    th {
+                        border-bottom: 1px dashed #000;
+                        padding: 4px 0;
+                        text-align: left;
+                    }
+                    th.text-center, td.text-center { text-align: center; }
+                    th.text-right, td.text-right { text-align: right; }
+                    .totals {
+                        border-top: 1px dashed #000;
+                        padding-top: 6px;
+                        font-size: 12px;
+                    }
+                    .row {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 3px;
+                    }
+                    .grand-total {
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: 15px;
+                        font-weight: bold;
+                        border-top: 1px dashed #000;
+                        border-bottom: 1px dashed #000;
+                        padding: 6px 0;
+                        margin: 6px 0;
+                    }
+                    .footer {
+                        text-align: center;
+                        font-size: 11px;
+                        margin-top: 10px;
+                        padding-top: 6px;
+                        border-top: 1px dashed #000;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="title">${receipt.branchName}</div>
+                    ${receipt.branchAddress ? `<div class="meta">${receipt.branchAddress}</div>` : ''}
+                    ${receipt.branchPhone ? `<div class="meta">Tel: ${receipt.branchPhone}</div>` : ''}
+                    <div class="subtitle">*** SALES RECEIPT ***</div>
+                    <div class="meta">Table: <strong>${receipt.tableNo}</strong> &bull; Order: #${receipt.orderNo}</div>
+                    <div class="meta">Server: ${receipt.serverName} &bull; ${new Date(receipt.date).toLocaleString()}</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dish / Item</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-right">Price</th>
+                            <th class="text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${linesHtml}
+                    </tbody>
+                </table>
+
+                <div class="totals">
+                    <div class="row">
+                        <span>Subtotal:</span>
+                        <span>${Number(receipt.subTotal).toFixed(2)}</span>
+                    </div>
+                    ${discountRow}
+                    ${taxRow}
+                    ${serviceRow}
+                    <div class="grand-total">
+                        <span>TOTAL AMOUNT:</span>
+                        <span>${Number(receipt.grandTotal).toFixed(2)}</span>
+                    </div>
+                    <div class="row">
+                        <span>Paid (${receipt.paymentType}):</span>
+                        <span>${Number(receipt.paidAmount).toFixed(2)}</span>
+                    </div>
+                    <div class="row">
+                        <span>Change:</span>
+                        <span>${Number(receipt.changeAmount).toFixed(2)}</span>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    Thank you for dining with us!<br/>
+                    Please visit again!
+                </div>
+            </body>
+            </html>
+        `;
+
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        setTimeout(() => {
+            try {
+                win.print();
+                win.close();
+            } catch (e) {
+                console.error('Print error:', e);
+            }
+        }, 250);
+    }
+
     private loadSuggestions(keyword: string): void {
         this.saleService
             .searchPosProducts(keyword)
@@ -1092,7 +1323,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 if ((this.searchText || '').trim() !== keyword) {
                     return;
                 }
-                this.suggestions = items;
+                this.suggestions = (items || []).filter((p) => !this.isGroceryProduct(p));
             })
             .catch(() => {
                 this.suggestions = [];

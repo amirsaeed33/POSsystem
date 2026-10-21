@@ -117,11 +117,16 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                         label: 'Settings',
                         icon: 'pi pi-cog',
                         routerLink: ['/product-settings'],
-                        anyPermission: [
-                            PermissionNames.Brands,
-                            PermissionNames.Units,
-                            PermissionNames.Categories,
-                        ],
+                        anyPermission: isRestaurant
+                            ? [
+                                  PermissionNames.Units,
+                                  PermissionNames.Categories,
+                              ]
+                            : [
+                                  PermissionNames.Brands,
+                                  PermissionNames.Units,
+                                  PermissionNames.Categories,
+                              ],
                     },
                     { label: 'Products', icon: 'pi pi-box', routerLink: ['/products'], permission: PermissionNames.Products },
                     { label: 'Suppliers', icon: 'pi pi-truck', routerLink: ['/suppliers'], permission: PermissionNames.Suppliers },

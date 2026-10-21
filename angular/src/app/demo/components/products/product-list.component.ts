@@ -11,6 +11,8 @@ import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions
 import { ProductModifierGroupDto } from 'src/app/demo/api/product-modifier';
 import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
 
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+
 @Component({
     templateUrl: './product-list.component.html',
     styleUrls: ['./product-list.component.scss'],
@@ -50,10 +52,23 @@ export class ProductListComponent implements OnInit {
     canEdit = false;
     canDelete = false;
 
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
+
+    isGroceryProduct(product: ProductDto): boolean {
+        if (!product) return false;
+        return (
+            (product.barcode || '').startsWith('GROCERY-') ||
+            (product.name || '').trim().toLowerCase() === 'grocery'
+        );
+    }
+
     constructor(
         private productService: ProductService,
         private productModifierService: ProductModifierService,
         private permissionService: PermissionService,
+        private branchContext: BranchContextService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -77,6 +92,10 @@ export class ProductListComponent implements OnInit {
     }
 
     getRowActions(product: ProductDto): RowActionItem[] {
+        if (this.isGroceryProduct(product)) {
+            return []; // Permanent grocery entry: non-editable, non-deletable
+        }
+
         const actions: RowActionItem[] = [
             {
                 label: 'Print barcode',

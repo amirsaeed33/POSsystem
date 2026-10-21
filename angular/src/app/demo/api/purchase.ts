@@ -3,6 +3,7 @@ export interface PurchaseLineDto {
     purchaseId: number;
     productId: number;
     productName?: string;
+    productBarcode?: string;
     quantity: number;
     unitCost: number;
     lineTotal: number;

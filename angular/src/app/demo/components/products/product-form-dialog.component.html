@@ -62,12 +62,12 @@
         </style>
 
         <div class="formgrid grid">
-            <div class="field col-12 md:col-6 flex flex-column gap-2 mb-0">
+            <div class="field flex flex-column gap-2 mb-0" [ngClass]="isRestaurant ? 'col-12' : 'col-12 md:col-6'">
                 <label for="productName" class="font-medium">Name <span class="p-error">*</span></label>
                 <input id="productName" type="text" pInputText class="w-full" maxlength="256"
                     [(ngModel)]="product.name" [disabled]="saving" />
             </div>
-            <div class="field col-12 md:col-6 flex flex-column gap-2 mb-0">
+            <div class="field col-12 md:col-6 flex flex-column gap-2 mb-0" *ngIf="!isRestaurant">
                 <label for="productLocation" class="font-medium">Location</label>
                 <input id="productLocation" type="text" pInputText class="w-full" maxlength="256"
                     [(ngModel)]="product.location" [disabled]="saving" />
@@ -80,15 +80,13 @@
                 [(ngModel)]="product.description" [disabled]="saving"></textarea>
         </div>
 
-        <div class="flex flex-column gap-2">
+        <div class="flex flex-column gap-2" *ngIf="!isRestaurant">
             <label for="productBarcode" class="font-medium">Barcode <span class="p-error">*</span></label>
             <input id="productBarcode" type="text" pInputText class="w-full" maxlength="64"
                 [(ngModel)]="product.barcode" [disabled]="saving" />
         </div>
 
-
-
-        <div class="formgrid grid">
+        <div class="formgrid grid" *ngIf="!isRestaurant">
             <div class="field col-12 md:col-4 flex flex-column gap-2">
                 <label for="productCost" class="font-medium">Purchase Price <span class="p-error">*</span></label>
                 <p-inputNumber inputId="productCost" [(ngModel)]="product.costPrice" mode="decimal"
@@ -109,14 +107,21 @@
             </div>
         </div>
 
-        <small class="text-color-secondary" *ngIf="productId">
+        <div class="field col-12 flex flex-column gap-2 px-0 mb-0" *ngIf="isRestaurant">
+            <label for="productPriceRestaurant" class="font-medium">Price <span class="p-error">*</span></label>
+            <p-inputNumber inputId="productPriceRestaurant" [(ngModel)]="product.price" mode="decimal"
+                [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
+                [disabled]="saving"></p-inputNumber>
+        </div>
+
+        <small class="text-color-secondary" *ngIf="productId && !isRestaurant">
             Profit/unit: {{ profitPerUnit | number: '1.2-2' }}
             <span *ngIf="profitMarginPercent !== null">
                 ({{ profitMarginPercent | number: '1.1-1' }}%)
             </span>
         </small>
 
-        <div class="flex flex-column gap-2" *ngIf="productId">
+        <div class="flex flex-column gap-2" *ngIf="productId && !isRestaurant">
             <label for="alertLimit" class="font-medium">Alert Quantity Limit <span class="p-error">*</span></label>
             <p-inputNumber inputId="alertLimit" [(ngModel)]="product.alertQuantityLimit"
                 [min]="0" [useGrouping]="false" styleClass="w-full" inputStyleClass="w-full"
@@ -124,19 +129,19 @@
         </div>
 
         <div class="formgrid grid">
-            <div class="field col-12 md:col-4 flex flex-column gap-2">
+            <div class="field flex flex-column gap-2" [ngClass]="isRestaurant ? 'col-12 md:col-6' : 'col-12 md:col-4'">
                 <label for="categoryId" class="font-medium">Category <span class="p-error">*</span></label>
                 <p-dropdown inputId="categoryId" [options]="categories" [(ngModel)]="product.categoryId" (onChange)="onCategoryChange($event.value)"
                     optionLabel="name" optionValue="id" placeholder="Select category"
                     [filter]="true" styleClass="w-full" [disabled]="saving" appendTo="body"></p-dropdown>
             </div>
-            <div class="field col-12 md:col-4 flex flex-column gap-2">
+            <div class="field col-12 md:col-4 flex flex-column gap-2" *ngIf="!isRestaurant">
                 <label for="brandId" class="font-medium">Brand <span class="p-error">*</span></label>
                 <p-dropdown inputId="brandId" [options]="brands" [(ngModel)]="product.brandId"
                     optionLabel="name" optionValue="id" placeholder="Select brand"
                     [filter]="true" styleClass="w-full" [disabled]="saving" appendTo="body"></p-dropdown>
             </div>
-            <div class="field col-12 md:col-4 flex flex-column gap-2">
+            <div class="field flex flex-column gap-2" [ngClass]="isRestaurant ? 'col-12 md:col-6' : 'col-12 md:col-4'">
                 <label for="unitId" class="font-medium">Unit <span class="p-error">*</span></label>
                 <p-dropdown inputId="unitId" [options]="units" [(ngModel)]="product.unitId"
                     optionLabel="name" optionValue="id" placeholder="Select unit"

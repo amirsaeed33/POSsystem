@@ -10,6 +10,8 @@ import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+
 @Component({
     templateUrl: './purchase-list.component.html',
     providers: [MessageService, ConfirmationService],
@@ -36,9 +38,14 @@ export class PurchaseListComponent implements OnInit {
     canEdit = false;
     canDelete = false;
 
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
+
     constructor(public formatService: AppFormatService, 
         private purchaseService: PurchaseService,
         private permissionService: PermissionService,
+        private branchContext: BranchContextService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -59,8 +66,21 @@ export class PurchaseListComponent implements OnInit {
                 maxResultCount: 1000,
             })
             .then((result) => {
-                this.purchases = result.items;
-                this.totalRecords = result.totalCount;
+                let items = result.items || [];
+                if (this.isRestaurant) {
+                    items = items.filter(
+                        (p) =>
+                            !p.lines ||
+                            !p.lines.length ||
+                            p.lines.some(
+                                (l) =>
+                                    l.productName?.trim().toLowerCase() === 'grocery' ||
+                                    l.productBarcode?.startsWith('GROCERY-')
+                            )
+                    );
+                }
+                this.purchases = items;
+                this.totalRecords = items.length;
             })
             .catch((error) => {
                 this.messageService.add({

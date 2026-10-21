@@ -145,7 +145,7 @@
                         <span class="pos-suggestion-name">{{ product.name }}</span>
                         <span class="pos-suggestion-meta text-500">
                             <span *ngIf="product.barcode">{{ product.barcode }} · </span>
-                            Stock: {{ product.stockQuantity || 0 }} ·
+                            <span *ngIf="!isRestaurantMode">Stock: {{ product.stockQuantity || 0 }} · </span>
                             {{ product.price | number: '1.2-2' }}
                         </span>
                     </button>
@@ -230,7 +230,7 @@
                                         <span>{{ line.kitchenNotes }}</span>
                                     </div>
                                     <div class="mt-1 flex align-items-center gap-2">
-                                        <small class="text-500">Stock: {{ line.stockQuantity }}</small>
+                                        <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
                                         <span
                                             *ngIf="isRestaurantMode && line.isSentToKitchen"
                                             class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
@@ -319,7 +319,7 @@
                                     <span>{{ line.kitchenNotes }}</span>
                                 </div>
                                 <div class="mt-1 flex align-items-center gap-2">
-                                    <small class="text-500">Stock: {{ line.stockQuantity }}</small>
+                                    <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
                                     <span
                                         *ngIf="isRestaurantMode && line.isSentToKitchen"
                                         class="text-xs text-green-600 font-semibold"
@@ -1025,6 +1025,7 @@
                         <tr style="border-bottom: 1px dashed #666;">
                             <th style="text-align: left; padding: 4px 0;">Item</th>
                             <th style="text-align: center; padding: 4px 0;">Qty</th>
+                            <th style="text-align: right; padding: 4px 0;">Price</th>
                             <th style="text-align: right; padding: 4px 0;">Total</th>
                         </tr>
                     </thead>
@@ -1037,6 +1038,7 @@
                                 </small>
                             </td>
                             <td style="text-align: center; padding: 4px 0;">{{ line.quantity }}</td>
+                            <td style="text-align: right; padding: 4px 0;">{{ line.unitPrice | number: '1.2-2' }}</td>
                             <td style="text-align: right; padding: 4px 0;">{{ line.quantity * line.unitPrice | number: '1.2-2' }}</td>
                         </tr>
                     </tbody>

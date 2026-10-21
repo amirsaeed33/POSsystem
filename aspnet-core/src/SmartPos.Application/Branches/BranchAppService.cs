@@ -22,6 +22,9 @@ using SmartPos.Inventory;
 using SmartPos.Lookups;
 using SmartPos.MultiTenancy;
 using SmartPos.Products;
+using SmartPos.Categories;
+using SmartPos.Brands;
+using SmartPos.Units;
 
 namespace SmartPos.Branches
 {
@@ -41,6 +44,9 @@ namespace SmartPos.Branches
         private readonly IConfiguration _configuration;
         private readonly BranchCatalogSeedService _branchCatalogSeedService;
         private readonly ICacheManager _cacheManager;
+        private readonly IRepository<Category> _categoryRepository;
+        private readonly IRepository<Brand> _brandRepository;
+        private readonly IRepository<Unit> _unitRepository;
 
         public BranchAppService(
             IRepository<Branch> repository,
@@ -53,7 +59,10 @@ namespace SmartPos.Branches
             ISmtpMailSender smtpMailSender,
             IConfiguration configuration,
             BranchCatalogSeedService branchCatalogSeedService,
-            ICacheManager cacheManager)
+            ICacheManager cacheManager,
+            IRepository<Category> categoryRepository,
+            IRepository<Brand> brandRepository,
+            IRepository<Unit> unitRepository)
             : base(repository)
         {
             _productRepository = productRepository;
@@ -66,6 +75,9 @@ namespace SmartPos.Branches
             _configuration = configuration;
             _branchCatalogSeedService = branchCatalogSeedService;
             _cacheManager = cacheManager;
+            _categoryRepository = categoryRepository;
+            _brandRepository = brandRepository;
+            _unitRepository = unitRepository;
             CreatePermissionName = PermissionNames.Pages_Branches_Create;
             UpdatePermissionName = PermissionNames.Pages_Branches_Edit;
             DeletePermissionName = PermissionNames.Pages_Branches_Delete;
@@ -111,6 +123,11 @@ namespace SmartPos.Branches
                 AbpSession.UserId.Value);
 
             await SeedSharedProductsAsync(branch.Id);
+
+            if (branch.BusinessType == BusinessType.Restaurant)
+            {
+                await EnsureRestaurantGroceryProductAsync(branch);
+            }
 
             // First branch after signup: bind the creating user so session/context have a location.
             var currentUser = await UserManager.GetUserByIdAsync(AbpSession.UserId.Value);
@@ -184,6 +201,11 @@ namespace SmartPos.Branches
             }
 
             await CurrentUnitOfWork.SaveChangesAsync();
+
+            if (branch.BusinessType == BusinessType.Restaurant)
+            {
+                await EnsureRestaurantGroceryProductAsync(branch);
+            }
 
             if (sendActivationEmail)
             {
@@ -310,6 +332,10 @@ namespace SmartPos.Branches
                             .Where(x => x.IsActive && x.TenantId != null)
                             .OrderBy(x => x.Name)
                             .ToListAsync();
+                        foreach (var b in allLocations.Where(x => x.BusinessType == BusinessType.Restaurant))
+                        {
+                            await EnsureRestaurantGroceryProductAsync(b);
+                        }
                         var allDtos = ObjectMapper.Map<List<BranchDto>>(allLocations);
                         for (var i = 0; i < allLocations.Count; i++)
                         {
@@ -340,6 +366,10 @@ namespace SmartPos.Branches
                 }
 
                 var branches = await query.OrderBy(x => x.Name).ToListAsync();
+                foreach (var b in branches.Where(x => x.BusinessType == BusinessType.Restaurant))
+                {
+                    await EnsureRestaurantGroceryProductAsync(b);
+                }
                 var dtos = ObjectMapper.Map<List<BranchDto>>(branches);
                 for (var i = 0; i < branches.Count; i++)
                 {
@@ -526,6 +556,7 @@ namespace SmartPos.Branches
                 branch.IsActive = true;
                 ClearActivationToken(branch);
                 await CurrentUnitOfWork.SaveChangesAsync();
+                await ClearLookupCacheAsync();
 
                 var tenant = await _tenantRepository.FirstOrDefaultAsync(branch.TenantId.Value);
                 return new ActivateBranchResultDto
@@ -830,6 +861,93 @@ namespace SmartPos.Branches
                     product.Price,
                     product.WholesalePrice,
                     product.CostPrice);
+            }
+        }
+
+        private async Task EnsureRestaurantGroceryProductAsync(Branch branch)
+        {
+            if (branch == null || branch.BusinessType != BusinessType.Restaurant)
+            {
+                return;
+            }
+
+            var barcode = $"GROCERY-{branch.Id}";
+            var filterDisposable = branch.TenantId.HasValue
+                ? CurrentUnitOfWork.SetTenantId(branch.TenantId)
+                : CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant);
+
+            using (filterDisposable)
+            {
+                var existing = await _productRepository.FirstOrDefaultAsync(p =>
+                    p.BranchId == branch.Id && (p.Barcode == barcode || p.Name == "Grocery"));
+
+                if (existing != null)
+                {
+                    if (existing.Barcode != barcode)
+                    {
+                        existing.Barcode = barcode;
+                        await _productRepository.UpdateAsync(existing);
+                    }
+                    return;
+                }
+
+                var category = await _categoryRepository.FirstOrDefaultAsync(c => c.BranchId == branch.Id)
+                               ?? await _categoryRepository.FirstOrDefaultAsync(c => true)
+                               ?? await _categoryRepository.InsertAsync(new Category
+                               {
+                                   TenantId = branch.TenantId,
+                                   BranchId = branch.Id,
+                                   Name = "General",
+                                   IsActive = true
+                               });
+
+                var brand = await _brandRepository.FirstOrDefaultAsync(b => b.BranchId == branch.Id)
+                            ?? await _brandRepository.FirstOrDefaultAsync(b => true)
+                            ?? await _brandRepository.InsertAsync(new Brand
+                            {
+                                TenantId = branch.TenantId,
+                                BranchId = branch.Id,
+                                Name = "General",
+                                IsActive = true
+                            });
+
+                var unit = await _unitRepository.FirstOrDefaultAsync(u => u.BranchId == branch.Id)
+                           ?? await _unitRepository.FirstOrDefaultAsync(u => true)
+                           ?? await _unitRepository.InsertAsync(new Unit
+                           {
+                               TenantId = branch.TenantId,
+                               BranchId = branch.Id,
+                               Name = "Piece",
+                               Symbol = "pcs",
+                               IsActive = true
+                           });
+
+                var groceryProduct = new Product
+                {
+                    TenantId = branch.TenantId,
+                    BranchId = branch.Id,
+                    Name = "Grocery",
+                    Barcode = barcode,
+                    Description = "Permanent Grocery Item for Restaurant Purchases",
+                    Price = 0,
+                    CostPrice = 0,
+                    WholesalePrice = 0,
+                    AlertQuantityLimit = 0,
+                    CategoryId = category.Id,
+                    BrandId = brand.Id,
+                    UnitId = unit.Id
+                };
+
+                await _productRepository.InsertAsync(groceryProduct);
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                await _branchStockManager.UpsertStockAndPricesAsync(
+                    branch.Id,
+                    groceryProduct.Id,
+                    0,
+                    0,
+                    0,
+                    0);
             }
         }
     }

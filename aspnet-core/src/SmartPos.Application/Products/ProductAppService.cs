@@ -65,6 +65,33 @@ namespace SmartPos.Products
         {
             CheckCreatePermission();
 
+            var effectiveBranchId = input.BranchId > 0
+                ? input.BranchId
+                : (await _branchAccessChecker.GetEffectiveBranchIdAsync() ?? 0);
+            var branch = effectiveBranchId > 0 ? await _branchRepository.FirstOrDefaultAsync(effectiveBranchId) : null;
+            var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
+
+            if (isRestaurant)
+            {
+                if (string.IsNullOrWhiteSpace(input.Barcode))
+                {
+                    input.Barcode = $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
+                }
+                if (input.BrandId <= 0)
+                {
+                    var defaultBrand = await _brandRepository.FirstOrDefaultAsync(b => b.BranchId == branch.Id)
+                                       ?? await _brandRepository.FirstOrDefaultAsync(b => true);
+                    if (defaultBrand != null)
+                    {
+                        input.BrandId = defaultBrand.Id;
+                    }
+                }
+                input.CostPrice = Math.Max(0, input.CostPrice);
+                input.WholesalePrice = Math.Max(0, input.WholesalePrice);
+                input.AlertQuantityLimit = Math.Max(0, input.AlertQuantityLimit);
+                input.StockQuantity = 0;
+            }
+
             EnsureRequiredFields(
                 input.Name,
                 input.Barcode,
@@ -100,10 +127,9 @@ namespace SmartPos.Products
             int resolvedBranchId = input.BranchId;
             if (resolvedBranchId <= 0)
             {
-                var effectiveBranchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
-                if (effectiveBranchId.HasValue && effectiveBranchId.Value > 0)
+                if (effectiveBranchId > 0)
                 {
-                    resolvedBranchId = effectiveBranchId.Value;
+                    resolvedBranchId = effectiveBranchId;
                 }
                 else if (targetBranchIds != null && targetBranchIds.Any())
                 {
@@ -158,6 +184,28 @@ namespace SmartPos.Products
 
             var product = await GetEntityByIdAsync(input.Id);
             await EnsureProductVisibleAsync(product);
+
+            if (IsPermanentGrocery(product))
+            {
+                throw new UserFriendlyException("The default Grocery entry cannot be edited.");
+            }
+
+            var branch = product.BranchId > 0 ? await _branchRepository.FirstOrDefaultAsync(product.BranchId) : null;
+            var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
+            if (isRestaurant)
+            {
+                if (string.IsNullOrWhiteSpace(input.Barcode))
+                {
+                    input.Barcode = product.Barcode ?? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
+                }
+                if (input.BrandId <= 0)
+                {
+                    input.BrandId = product.BrandId;
+                }
+                input.CostPrice = Math.Max(0, input.CostPrice);
+                input.WholesalePrice = Math.Max(0, input.WholesalePrice);
+                input.AlertQuantityLimit = Math.Max(0, input.AlertQuantityLimit);
+            }
 
             EnsureRequiredFields(
                 input.Name,
@@ -243,6 +291,12 @@ namespace SmartPos.Products
 
             var product = await Repository.GetAsync(input.Id);
             await EnsureProductVisibleAsync(product);
+
+            if (IsPermanentGrocery(product))
+            {
+                throw new UserFriendlyException("The default Grocery entry cannot be deleted.");
+            }
+
             ProductImageStore.DeleteIfExists(product.ImagePath);
             await Repository.DeleteAsync(product);
         }
@@ -311,9 +365,22 @@ namespace SmartPos.Products
                 return query;
             }
 
+            var currentBranch = _branchRepository.FirstOrDefault(_effectiveBranchIdForQuery.Value);
+            if (currentBranch != null && currentBranch.BusinessType != BusinessType.Restaurant)
+            {
+                query = query.Where(p => (p.Barcode == null || !p.Barcode.StartsWith("GROCERY-")) && p.Name != "Grocery");
+            }
+
             return query.WhereVisibleToBranch(
                 _branchStockRepository.GetAll(),
                 _effectiveBranchIdForQuery.Value);
+        }
+
+        private static bool IsPermanentGrocery(Product product)
+        {
+            if (product == null) return false;
+            return (product.Barcode != null && product.Barcode.StartsWith("GROCERY-", StringComparison.OrdinalIgnoreCase))
+                   || string.Equals(product.Name, "Grocery", StringComparison.OrdinalIgnoreCase);
         }
 
         protected override async Task<Product> GetEntityByIdAsync(int id)
