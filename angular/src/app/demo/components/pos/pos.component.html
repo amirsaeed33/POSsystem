@@ -15,12 +15,13 @@
                 pButton
                 pRipple
                 type="button"
-                label="Complete Sale"
+                [label]="isRestaurantMode ? 'Settle & Close Table' : 'Complete Sale'"
                 icon="pi pi-check"
                 class="hidden md:inline-flex"
                 [disabled]="!canSave()"
                 [loading]="saving"
                 (click)="completeSale()"
+                [title]="settleButtonTooltip"
             ></button>
         </div>
     </div>
@@ -83,7 +84,7 @@
                 [icon]="selectedTable ? 'pi pi-refresh' : 'pi pi-table'"
                 [label]="selectedTable ? 'Change Table' : 'Select Table'"
                 [class]="selectedTable ? 'p-button-outlined p-button-primary' : 'p-button-primary'"
-                (click)="tableDialogVisible = true"
+                (click)="openTableDialog(false)"
             ></button>
 
             <button
@@ -232,16 +233,22 @@
                                     <div class="mt-1 flex align-items-center gap-2">
                                         <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
                                         <span
-                                            *ngIf="isRestaurantMode && line.isSentToKitchen"
+                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen"
                                             class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
                                         >
-                                            <i class="pi pi-check-circle"></i> In Kitchen
+                                            <i class="pi pi-check-circle"></i> Sent to Table
                                         </span>
                                         <span
-                                            *ngIf="isRestaurantMode && !line.isSentToKitchen"
+                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && !line.isSentToKitchen"
                                             class="text-xs text-amber-600 font-semibold flex align-items-center gap-1"
                                         >
-                                            <i class="pi pi-clock"></i> New / Not Sent
+                                            <i class="pi pi-clock"></i> Not Sent to Table
+                                        </span>
+                                        <span
+                                            *ngIf="isRestaurantMode && orderType === 'takeaway'"
+                                            class="text-xs text-blue-600 font-semibold flex align-items-center gap-1"
+                                        >
+                                            <i class="pi pi-shopping-bag"></i> Takeaway
                                         </span>
                                     </div>
                                 </td>
@@ -321,16 +328,22 @@
                                 <div class="mt-1 flex align-items-center gap-2">
                                     <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
                                     <span
-                                        *ngIf="isRestaurantMode && line.isSentToKitchen"
-                                        class="text-xs text-green-600 font-semibold"
+                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen"
+                                        class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
                                     >
-                                        &bull; In Kitchen
+                                        <i class="pi pi-check-circle"></i> Sent to Table
                                     </span>
                                     <span
-                                        *ngIf="isRestaurantMode && !line.isSentToKitchen"
-                                        class="text-xs text-amber-600 font-semibold"
+                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && !line.isSentToKitchen"
+                                        class="text-xs text-amber-600 font-semibold flex align-items-center gap-1"
                                     >
-                                        &bull; New Item
+                                        <i class="pi pi-clock"></i> Not Sent to Table
+                                    </span>
+                                    <span
+                                        *ngIf="isRestaurantMode && orderType === 'takeaway'"
+                                        class="text-xs text-blue-600 font-semibold flex align-items-center gap-1"
+                                    >
+                                        <i class="pi pi-shopping-bag"></i> Takeaway
                                     </span>
                                 </div>
                             </div>
@@ -438,12 +451,12 @@
                                 pButton
                                 pRipple
                                 type="button"
-                                label="🍳 Send KOT"
+                                label="🍽️ Send to Table"
                                 class="p-button-warning p-button-outlined w-full p-button-sm font-semibold"
-                                [disabled]="!cart.length || sendingKOT"
+                                [disabled]="!cart.length || sendingKOT || orderType === 'takeaway'"
                                 [loading]="sendingKOT"
-                                (click)="sendToKitchen()"
-                                title="Send new unprinted dishes to Kitchen"
+                                (click)="sendToTable()"
+                                [title]="orderType === 'takeaway' ? 'Send to Table is disabled for Takeaway' : 'Send order to Table'"
                             ></button>
                         </div>
                         <div class="col-6 pl-1 pb-1">
@@ -497,7 +510,14 @@
                     [disabled]="!canSave()"
                     [loading]="saving"
                     (click)="completeSale()"
+                    [title]="settleButtonTooltip"
                 ></button>
+                <small
+                    class="text-xs text-amber-700 font-medium block text-center mt-2"
+                    *ngIf="isRestaurantMode && orderType === 'dineIn' && cart.length && hasUnsentItems"
+                >
+                    <i class="pi pi-info-circle mr-1"></i> Send order to table first to enable settlement
+                </small>
             </div>
         </div>
     </div>
@@ -508,10 +528,11 @@
                 pButton
                 pRipple
                 type="button"
-                label="🍳 KOT"
+                label="🍽️ Send to Table"
                 class="p-button-warning p-button-outlined p-button-xs flex-grow-1"
-                [disabled]="!cart.length || sendingKOT"
-                (click)="sendToKitchen()"
+                [disabled]="!cart.length || sendingKOT || orderType === 'takeaway'"
+                (click)="sendToTable()"
+                [title]="orderType === 'takeaway' ? 'Send to Table is disabled for Takeaway' : 'Send order to Table'"
             ></button>
             <button
                 pButton
@@ -555,6 +576,7 @@
                 [disabled]="!canSave()"
                 [loading]="saving"
                 (click)="completeSale()"
+                [title]="settleButtonTooltip"
             ></button>
         </div>
     </div>
@@ -662,12 +684,23 @@
     <p-dialog
         header="🍽️ Select Dining Table"
         [(visible)]="tableDialogVisible"
+        (onHide)="onTableDialogHide()"
         [modal]="true"
         [style]="{ width: '56rem', maxWidth: '95vw' }"
         [draggable]="false"
         [resizable]="false"
     >
         <div class="flex flex-column gap-3">
+            <!-- Notice when triggered from 'Send to Table' -->
+            <div
+                *ngIf="pendingSendToTable"
+                class="p-3 border-round-lg bg-orange-50 border-1 border-orange-200 text-orange-900 font-medium text-sm flex align-items-center gap-2"
+            >
+                <i class="pi pi-send text-orange-600 text-lg"></i>
+                <div>
+                    <strong>Select a table:</strong> Click any table below to send this order directly to that table.
+                </div>
+            </div>
             <!-- Table Status Legend -->
             <div class="flex flex-wrap align-items-center justify-content-between gap-2 p-2 surface-50 border-round">
                 <div class="flex align-items-center gap-3 text-sm">
@@ -912,9 +945,9 @@
         </ng-template>
     </p-dialog>
 
-    <!-- 🍳 Kitchen Order Ticket (KOT) Dialog -->
+    <!-- 🍽️ Table Order Ticket / KOT Dialog -->
     <p-dialog
-        header="🍳 Kitchen Order Ticket (KOT)"
+        header="🍽️ Table Order Ticket"
         [(visible)]="kotDialogVisible"
         [modal]="true"
         [style]="{ width: '28rem', maxWidth: '95vw' }"
@@ -924,8 +957,8 @@
         <div class="flex flex-column gap-3">
             <div class="p-3 surface-50 border-round text-center">
                 <i class="pi pi-check-circle text-green-500 text-3xl mb-1 block"></i>
-                <div class="font-bold text-900">Sent to Kitchen Successfully</div>
-                <div class="text-xs text-500 mt-1">Ticket dispatched to kitchen printer</div>
+                <div class="font-bold text-900">Sent to Table Successfully</div>
+                <div class="text-xs text-500 mt-1">Ticket dispatched for Table {{ kotResult?.tableNo || selectedTable?.tableNo || 'Takeaway' }}</div>
             </div>
 
             <!-- Thermal KOT Ticket Preview Container -->
@@ -1237,7 +1270,10 @@
                     class="surface-card border-1 surface-border border-round-xl p-3"
                 >
                     <div class="flex align-items-center justify-content-between mb-2">
-                        <span class="font-bold text-900">{{ group.name }}</span>
+                        <div class="flex align-items-center gap-2">
+                            <span class="font-bold text-900">{{ group.name }}</span>
+                            <small class="text-500 font-normal" *ngIf="group.allowMultiple">(Multiple allowed)</small>
+                        </div>
                         <span
                             class="text-xs px-2 py-0.5 border-round font-medium"
                             [style.background]="group.isRequired ? '#fee2e2' : '#f1f5f9'"
@@ -1251,13 +1287,22 @@
                         <div
                             *ngFor="let opt of group.options"
                             class="flex align-items-center justify-content-between p-2 border-round surface-hover cursor-pointer"
-                            (click)="selectedModifierOptions[group.id] = opt.id"
+                            [class.surface-100]="isOptionSelected(group.id, opt.id)"
+                            (click)="toggleModifierOption(group, opt)"
                         >
                             <div class="flex align-items-center gap-2">
+                                <p-checkbox
+                                    *ngIf="group.allowMultiple"
+                                    [binary]="true"
+                                    [ngModel]="isOptionSelected(group.id, opt.id)"
+                                    (click)="$event.stopPropagation(); toggleModifierOption(group, opt)"
+                                ></p-checkbox>
                                 <p-radioButton
+                                    *ngIf="!group.allowMultiple"
                                     [name]="'group_' + group.id"
                                     [value]="opt.id"
-                                    [(ngModel)]="selectedModifierOptions[group.id]"
+                                    [ngModel]="selectedModifierOptions[group.id] ? selectedModifierOptions[group.id][0] : null"
+                                    (click)="$event.stopPropagation(); toggleModifierOption(group, opt)"
                                 ></p-radioButton>
                                 <label class="cursor-pointer font-medium text-sm m-0">{{ opt.name }}</label>
                             </div>

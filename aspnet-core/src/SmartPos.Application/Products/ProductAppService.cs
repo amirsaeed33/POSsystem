@@ -81,9 +81,27 @@ namespace SmartPos.Products
                 {
                     var defaultBrand = await _brandRepository.FirstOrDefaultAsync(b => b.BranchId == branch.Id)
                                        ?? await _brandRepository.FirstOrDefaultAsync(b => true);
-                    if (defaultBrand != null)
+                    if (defaultBrand == null)
+                    {
+                        using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                        {
+                            defaultBrand = await _brandRepository.FirstOrDefaultAsync(b => true);
+                        }
+                    }
+
+                    if (defaultBrand != null && defaultBrand.Id > 0)
                     {
                         input.BrandId = defaultBrand.Id;
+                    }
+                    else
+                    {
+                        input.BrandId = await _brandRepository.InsertAndGetIdAsync(new SmartPos.Brands.Brand
+                        {
+                            TenantId = branch.TenantId,
+                            BranchId = branch.Id,
+                            Name = "General",
+                            IsActive = true
+                        });
                     }
                 }
                 input.CostPrice = Math.Max(0, input.CostPrice);

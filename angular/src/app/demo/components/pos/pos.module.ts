@@ -12,6 +12,7 @@ import { DialogModule } from 'primeng/dialog';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { BadgeModule } from 'primeng/badge';
 import { RadioButtonModule } from 'primeng/radiobutton';
+import { CheckboxModule } from 'primeng/checkbox';
 import { TooltipModule } from 'primeng/tooltip';
 import { PosRoutingModule } from './pos-routing.module';
 import { PosComponent } from './pos.component';
@@ -32,6 +33,7 @@ import { PosComponent } from './pos.component';
         SelectButtonModule,
         BadgeModule,
         RadioButtonModule,
+        CheckboxModule,
         TooltipModule,
     ],
     declarations: [PosComponent],

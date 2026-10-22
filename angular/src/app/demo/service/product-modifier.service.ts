@@ -92,27 +92,29 @@ export class ProductModifierService {
     }
 
     private mapGroup(g: any): ProductModifierGroupDto {
+        const maxSel = g.maxSelection ?? g.MaxSelection ?? 1;
+        const allowMulti = g.allowMultiple ?? g.AllowMultiple ?? (maxSel > 1);
         return {
-            id: g.id,
-            productId: g.productId,
-            name: g.name,
-            minSelection: g.minSelection ?? 0,
-            maxSelection: g.maxSelection ?? 1,
-            isRequired: !!g.isRequired,
-            allowMultiple: (g.maxSelection ?? 1) > 1,
-            options: (g.options || []).map((o: any) => this.mapOption(o)),
+            id: g.id ?? g.Id,
+            productId: g.productId ?? g.ProductId,
+            name: g.name ?? g.Name,
+            minSelection: g.minSelection ?? g.MinSelection ?? 0,
+            maxSelection: maxSel,
+            isRequired: !!(g.isRequired ?? g.IsRequired),
+            allowMultiple: !!allowMulti,
+            options: (g.options || g.Options || []).map((o: any) => this.mapOption(o)),
         };
     }
 
     private mapOption(o: any): ProductModifierOptionDto {
-        const price = o.price ?? o.extraPrice ?? 0;
+        const price = o.price ?? o.Price ?? o.extraPrice ?? o.ExtraPrice ?? 0;
         return {
-            id: o.id,
-            modifierGroupId: o.modifierGroupId,
-            name: o.name,
+            id: o.id ?? o.Id,
+            modifierGroupId: o.modifierGroupId ?? o.ModifierGroupId,
+            name: o.name ?? o.Name,
             price: price,
             extraPrice: price,
-            isDefault: !!o.isDefault,
+            isDefault: !!(o.isDefault ?? o.IsDefault),
         };
     }
 }

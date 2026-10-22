@@ -69,6 +69,9 @@ BEGIN
     CREATE INDEX [IX_AppDeliveryPromotions_IsActive] ON [AppDeliveryPromotions] ([IsActive]);
 END;
 
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppProducts]') AND name = N'IsFreeDelivery')
+    ALTER TABLE [AppProducts] ADD [IsFreeDelivery] bit NOT NULL CONSTRAINT [DF_AppProducts_IsFreeDelivery] DEFAULT 0;
+
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppCustomerOrders]') AND name = N'SubTotal')
     ALTER TABLE [AppCustomerOrders] ADD [SubTotal] decimal(18,2) NOT NULL CONSTRAINT [DF_AppCustomerOrders_SubTotal] DEFAULT 0;
 
