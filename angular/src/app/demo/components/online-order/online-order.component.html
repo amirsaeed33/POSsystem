@@ -76,6 +76,17 @@
                     (click)="viewMode = viewMode === 'carousel' ? 'grid' : 'carousel'"
                 ></button>
 
+                <!-- Track Order Button (Desktop) -->
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Track Order"
+                    icon="pi pi-compass"
+                    class="p-button-outlined p-button-sm border-round-3xl font-bold text-xs text-700"
+                    (click)="goToTracking()"
+                ></button>
+
                 <!-- Authentication: Sign In (Desktop) -->
                 <a
                     *ngIf="!isLoggedIn"
@@ -163,6 +174,17 @@
                     aria-label="Toggle view"
                 >
                     <i [class]="viewMode === 'carousel' ? 'pi pi-th-large' : 'pi pi-list'"></i>
+                </button>
+
+                <!-- Track Order Button (Mobile) -->
+                <button
+                    type="button"
+                    class="fp-mobile-action-btn"
+                    (click)="goToTracking()"
+                    title="Track Order"
+                    aria-label="Track Order"
+                >
+                    <i class="pi pi-compass"></i>
                 </button>
 
                 <!-- Mobile Cart Button -->
@@ -1189,9 +1211,18 @@
             </div>
             <button
                 pButton
+                pRipple
+                type="button"
+                label="Track My Order (Live Status)"
+                icon="pi pi-compass"
+                class="p-button-primary border-round-xl font-bold w-full py-2 mb-2 shadow-2"
+                (click)="goToTracking(confirmedOrderNo)"
+            ></button>
+            <button
+                pButton
                 type="button"
                 label="Continue Shopping"
-                class="p-button-danger border-round-xl font-bold w-full py-2 shadow-2"
+                class="p-button-outlined border-round-xl font-bold w-full py-2"
                 (click)="successModalVisible = false"
             ></button>
         </div>

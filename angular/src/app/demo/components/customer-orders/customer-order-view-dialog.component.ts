@@ -82,7 +82,8 @@ export class CustomerOrderViewDialogComponent implements OnInit, OnChanges {
             case CustomerOrderStatus.Pending:
                 return 'Pending';
             case CustomerOrderStatus.Approved:
-                return 'Approved';
+            case CustomerOrderStatus.InProgress:
+                return 'In Progress';
             case CustomerOrderStatus.Rejected:
                 return 'Rejected';
             default:

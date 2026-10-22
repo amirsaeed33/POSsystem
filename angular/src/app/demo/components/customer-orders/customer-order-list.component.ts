@@ -29,6 +29,7 @@ export class CustomerOrderListComponent implements OnInit {
 
     statusOptions = [
         { label: 'Pending', value: CustomerOrderStatus.Pending },
+        { label: 'In Progress', value: CustomerOrderStatus.Approved },
         { label: 'Approved', value: CustomerOrderStatus.Approved },
         { label: 'Rejected', value: CustomerOrderStatus.Rejected },
     ];
@@ -110,7 +111,8 @@ export class CustomerOrderListComponent implements OnInit {
             case CustomerOrderStatus.Pending:
                 return 'Pending';
             case CustomerOrderStatus.Approved:
-                return 'Approved';
+            case CustomerOrderStatus.InProgress:
+                return 'In Progress';
             case CustomerOrderStatus.Rejected:
                 return 'Rejected';
             default:
@@ -125,7 +127,8 @@ export class CustomerOrderListComponent implements OnInit {
             case CustomerOrderStatus.Pending:
                 return 'warning';
             case CustomerOrderStatus.Approved:
-                return 'success';
+            case CustomerOrderStatus.InProgress:
+                return 'info';
             case CustomerOrderStatus.Rejected:
                 return 'danger';
             default:

@@ -1402,4 +1402,17 @@ export class OnlineOrderComponent implements OnInit {
             // Ignore
         }
     }
+
+    goToTracking(orderNo?: string): void {
+        this.successModalVisible = false;
+        if (orderNo) {
+            this.router.navigate(['/online-order/track', orderNo], {
+                queryParams: this.branchId ? { branchId: this.branchId } : {}
+            });
+        } else {
+            this.router.navigate(['/online-order/track'], {
+                queryParams: this.branchId ? { branchId: this.branchId } : {}
+            });
+        }
+    }
 }

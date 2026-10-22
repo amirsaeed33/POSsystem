@@ -37,7 +37,7 @@
                         class="p-badge"
                         [ngClass]="{
                             'p-badge-warning': order.status === 0,
-                            'p-badge-success': order.status === 1,
+                            'p-badge-info': order.status === 1 || order.status === 3,
                             'p-badge-danger': order.status === 2
                         }"
                     >

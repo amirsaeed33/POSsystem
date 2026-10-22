@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { OnlineOrderRoutingModule } from './online-order-routing.module';
 import { OnlineOrderComponent } from './online-order.component';
 import { OnlineProductDetailComponent } from './online-product-detail.component';
+import { OnlineOrderTrackingComponent } from './online-order-tracking.component';
 
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -36,6 +37,10 @@ import { DividerModule } from 'primeng/divider';
         BadgeModule,
         DividerModule,
     ],
-    declarations: [OnlineOrderComponent, OnlineProductDetailComponent],
+    declarations: [
+        OnlineOrderComponent,
+        OnlineProductDetailComponent,
+        OnlineOrderTrackingComponent,
+    ],
 })
 export class OnlineOrderModule {}

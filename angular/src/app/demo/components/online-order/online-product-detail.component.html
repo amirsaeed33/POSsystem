@@ -641,9 +641,18 @@
 
             <button
                 pButton
+                pRipple
+                type="button"
+                label="Track My Order (Live Status)"
+                icon="pi pi-compass"
+                class="w-full p-button-primary border-round-xl font-bold mb-2 shadow-2"
+                (click)="goToTracking(confirmedOrderNo)"
+            ></button>
+            <button
+                pButton
                 type="button"
                 label="Continue Shopping"
-                class="w-full p-button-primary border-round-xl font-bold"
+                class="w-full p-button-outlined border-round-xl font-bold"
                 (click)="successModalVisible = false; backToStore()"
             ></button>
         </div>

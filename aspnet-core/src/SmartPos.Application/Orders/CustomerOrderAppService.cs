@@ -829,7 +829,9 @@ namespace SmartPos.Orders
                 OrderDate = entity.OrderDate,
                 OrderNo = entity.OrderNo,
                 Status = entity.Status,
-                StatusName = entity.Status.ToString(),
+                StatusName = (entity.Status == CustomerOrderStatus.Approved || entity.Status == CustomerOrderStatus.InProgress)
+                    ? "In Progress"
+                    : entity.Status.ToString(),
                 SubTotal = entity.SubTotal,
                 DeliveryFee = entity.DeliveryFee,
                 DeliveryAreaId = entity.DeliveryAreaId,
@@ -868,6 +870,75 @@ namespace SmartPos.Orders
             }
 
             return dto;
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<CustomerOrderDto> TrackOrderAsync(string orderNo)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                if (string.IsNullOrWhiteSpace(orderNo))
+                {
+                    throw new UserFriendlyException("Please provide a valid Order Number.");
+                }
+
+                var clean = orderNo.Trim();
+                var query = Repository.GetAllIncluding(
+                    x => x.Customer,
+                    x => x.Sale,
+                    x => x.Lines,
+                    x => x.Branch
+                ).AsNoTracking();
+
+                CustomerOrder order = await query.FirstOrDefaultAsync(x => x.OrderNo == clean);
+
+                if (order == null)
+                {
+                    order = await query.FirstOrDefaultAsync(x => x.OrderNo.ToLower() == clean.ToLower());
+                }
+
+                if (order == null)
+                {
+                    var numericPart = clean.Replace("#", "").Replace("ORD-", "").Replace("ord-", "").Trim();
+                    if (int.TryParse(numericPart, out int orderId))
+                    {
+                        order = await query.FirstOrDefaultAsync(x => x.Id == orderId || x.OrderNo == $"ORD-{orderId:D5}" || x.OrderNo == $"ORD-{orderId:D6}");
+                    }
+                }
+
+                if (order == null && clean.Length >= 7)
+                {
+                    order = await query.OrderByDescending(x => x.CreationTime)
+                        .FirstOrDefaultAsync(x => x.Customer != null && x.Customer.Phone == clean);
+                }
+
+                if (order == null)
+                {
+                    throw new UserFriendlyException($"No order found matching '{clean}'. Please verify your Order Number and try again.");
+                }
+
+                var dto = MapToEntityDto(order);
+
+                // Populate product names if missing
+                if (dto.Lines != null && dto.Lines.Any())
+                {
+                    var productIds = dto.Lines.Select(l => l.ProductId).Distinct().ToList();
+                    var products = await _productRepository.GetAll()
+                        .Where(p => productIds.Contains(p.Id))
+                        .Select(p => new { p.Id, p.Name })
+                        .ToDictionaryAsync(p => p.Id, p => p.Name);
+
+                    foreach (var line in dto.Lines)
+                    {
+                        if (string.IsNullOrEmpty(line.ProductName) && products.TryGetValue(line.ProductId, out var pName))
+                        {
+                            line.ProductName = pName;
+                        }
+                    }
+                }
+
+                return dto;
+            }
         }
     }
 }

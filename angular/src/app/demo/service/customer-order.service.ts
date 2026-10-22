@@ -110,6 +110,15 @@ export class CustomerOrderService {
         return this.map(this.unwrap(res, 'Failed to place online order'));
     }
 
+    async trackOrder(orderNo: string): Promise<CustomerOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/TrackOrder`, null, {
+                params: { orderNo },
+            })
+        );
+        return this.map(this.unwrap(res, 'Order not found'));
+    }
+
     async overrideDeliveryFee(
         input: OverrideDeliveryFeeInput
     ): Promise<CustomerOrderDto> {
