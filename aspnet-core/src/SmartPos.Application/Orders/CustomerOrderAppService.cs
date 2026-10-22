@@ -765,6 +765,28 @@ namespace SmartPos.Orders
             }
         }
 
+        public async Task DeliverAsync(EntityDto<int> input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var order = await GetEntityByIdAsync(input.Id);
+                if (order == null)
+                {
+                    throw new UserFriendlyException("Order not found.");
+                }
+
+                if (order.Status != CustomerOrderStatus.Approved && order.Status != CustomerOrderStatus.InProgress)
+                {
+                    throw new UserFriendlyException("Only approved or in-progress orders can be marked as delivered.");
+                }
+
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+                order.Status = CustomerOrderStatus.Delivered;
+                await CurrentUnitOfWork.SaveChangesAsync();
+            }
+        }
+
         protected override IQueryable<CustomerOrder> CreateFilteredQuery(PagedCustomerOrderResultRequestDto input)
         {
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);

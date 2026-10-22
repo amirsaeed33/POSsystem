@@ -91,13 +91,20 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
                 return;
             }
 
-            // Check if status changed to In Progress
+            // Check if status changed to In Progress or Delivered
             if (this.previousStatus !== null && this.previousStatus === CustomerOrderStatus.Pending && this.isInProgress(result)) {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Order Accepted!',
                     detail: 'Great news! The store has accepted your order and it is now In Progress.',
                     life: 6000
+                });
+            } else if (this.previousStatus !== null && this.previousStatus !== CustomerOrderStatus.Delivered && this.isDelivered(result)) {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Order Delivered!',
+                    detail: 'Your order has been successfully delivered. Enjoy your meal!',
+                    life: 8000
                 });
             }
 
@@ -177,6 +184,12 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
         return order.status === CustomerOrderStatus.Approved
             || order.status === CustomerOrderStatus.InProgress
             || Boolean(order.statusName?.toLowerCase().includes('progress'));
+    }
+
+    isDelivered(order?: CustomerOrderDto | null): boolean {
+        if (!order) return false;
+        return order.status === CustomerOrderStatus.Delivered
+            || Boolean(order.statusName?.toLowerCase().includes('deliver'));
     }
 
     isRejected(order?: CustomerOrderDto | null): boolean {

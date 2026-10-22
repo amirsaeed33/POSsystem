@@ -176,6 +176,14 @@ export class CustomerOrderService {
         this.unwrap(res, 'Failed to reject order');
     }
 
+    async deliver(id: number): Promise<void> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/Deliver`, { id })
+        );
+        if (res == null) return;
+        this.unwrap(res, 'Failed to mark order as delivered');
+    }
+
     private toApiDate(value?: string | Date): string | undefined {
         if (!value) return undefined;
         if (value instanceof Date) return value.toISOString();

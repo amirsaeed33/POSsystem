@@ -16,6 +16,8 @@ namespace SmartPos.Orders
     {
         Task<SaleDto> ApproveAsync(EntityDto<int> input);
 
+        Task DeliverAsync(EntityDto<int> input);
+
         Task RejectAsync(EntityDto<int> input);
 
         Task<CustomerOrderDto> CreateOnlineOrderAsync(CreateCustomerOrderDto input);

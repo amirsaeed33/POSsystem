@@ -1,366 +1,359 @@
-<div class="fp-tracking-page min-h-screen">
-    <!-- Top Sticky Header -->
-    <header class="fp-tracking-header shadow-1">
-        <div class="max-w-6xl mx-auto px-3 py-3 flex align-items-center justify-content-between">
+<div class="fp-track-dashboard">
+    <!-- 1. COMPACT TOP NAVBAR -->
+    <header class="fp-track-navbar">
+        <div class="navbar-content">
+            <!-- Left: Back to Store -->
             <button
                 pButton
                 pRipple
                 type="button"
                 icon="pi pi-arrow-left"
                 label="Back to Store"
-                class="p-button-text p-button-sm font-bold text-700 hover:surface-200 border-round-xl"
+                class="p-button-text p-button-sm compact-nav-btn text-700"
                 (click)="backToStore()"
             ></button>
 
-            <div class="flex align-items-center gap-2">
-                <div class="w-2rem h-2rem border-round-lg bg-primary-50 text-primary flex align-items-center justify-content-center">
-                    <i class="pi pi-compass text-base font-bold"></i>
-                </div>
-                <span class="font-bold text-900 text-base md:text-lg">Live Order Tracking</span>
+            <!-- Center: Title -->
+            <div class="navbar-center-title">
+                <span class="pulse-indicator-dot"></span>
+                <span class="title-text">Live Order Tracking</span>
             </div>
 
-            <button
-                *ngIf="order"
-                pButton
-                pRipple
-                type="button"
-                icon="pi pi-refresh"
-                [loading]="refreshing"
-                [pTooltip]="'Refresh Status Now (Auto-updates every ' + autoRefreshSeconds + 's)'"
-                tooltipPosition="bottom"
-                class="p-button-rounded p-button-text p-button-sm text-700"
-                (click)="manualRefresh()"
-            ></button>
-            <div *ngIf="!order" style="width: 2rem;"></div>
+            <!-- Right: Auto-Refresh Indicator / Manual Refresh -->
+            <div class="navbar-actions">
+                <div *ngIf="order && (isPending(order) || isInProgress(order))" class="live-status-pill hidden sm:inline-flex">
+                    <span class="pulse-green-dot"></span>
+                    <span>Live &bull; {{ countdown }}s</span>
+                </div>
+                <button
+                    *ngIf="order"
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-refresh"
+                    [loading]="refreshing"
+                    [pTooltip]="'Refresh now (Auto-refresh every ' + autoRefreshSeconds + 's)'"
+                    tooltipPosition="bottom"
+                    class="p-button-rounded p-button-text p-button-sm text-600 hover:surface-200"
+                    (click)="manualRefresh()"
+                    aria-label="Refresh Order"
+                ></button>
+            </div>
         </div>
     </header>
 
-    <!-- Main Container -->
-    <main class="max-w-4xl mx-auto px-3 py-4 md:py-6">
-        <!-- Search Card (When not loaded or searching another order) -->
-        <div class="surface-card p-4 border-round-2xl shadow-2 mb-4 border-1 surface-border">
-            <div class="text-center mb-3">
-                <h2 class="text-900 font-extrabold m-0 mb-2 text-xl md:text-2xl">Track Your Customer Order</h2>
-                <p class="text-600 text-sm m-0">Enter your order number or phone number to check live processing status</p>
-            </div>
-
-            <div class="flex flex-column sm:flex-row gap-2 max-w-28rem mx-auto">
-                <span class="p-input-icon-left flex-grow-1">
-                    <i class="pi pi-search text-500"></i>
+    <!-- 2. MAIN VIEWPORT WRAPPER -->
+    <main class="fp-track-body">
+        <!-- SEARCH & ORDER QUICK BAR (Compact inline bar) -->
+        <div class="search-quick-bar">
+            <!-- Input group -->
+            <div class="search-input-group">
+                <span class="p-input-icon-left search-input-wrapper">
+                    <i class="pi pi-search text-400"></i>
                     <input
                         pInputText
                         type="text"
                         [(ngModel)]="orderNoInput"
                         (keyup.enter)="onSearchSubmit()"
-                        placeholder="e.g. ORD-00008 or phone..."
-                        class="w-full border-round-xl p-inputtext-lg font-mono font-medium"
+                        placeholder="Enter Order # (e.g. ORD-00008) or Phone"
+                        class="compact-input font-mono"
                     />
                 </span>
                 <button
                     pButton
                     pRipple
                     type="button"
-                    label="Track Order"
+                    label="Track"
                     icon="pi pi-compass"
-                    class="p-button-primary border-round-xl font-bold px-4 p-button-lg shadow-2"
+                    class="compact-track-btn"
                     [loading]="loading"
                     (click)="onSearchSubmit()"
                 ></button>
             </div>
 
-            <!-- Error message if any -->
-            <div *ngIf="errorMessage" class="mt-3 p-3 bg-red-50 text-red-700 border-round-xl text-center text-sm font-medium border-1 border-red-200 max-w-28rem mx-auto">
-                <i class="pi pi-exclamation-circle mr-2"></i>{{ errorMessage }}
-            </div>
-        </div>
-
-        <!-- Loading Skeleton / Spinner -->
-        <div *ngIf="loading" class="surface-card p-6 border-round-2xl shadow-1 text-center border-1 surface-border">
-            <i class="pi pi-spin pi-spinner text-4xl text-primary mb-3"></i>
-            <div class="font-bold text-900 text-lg">Locating your order...</div>
-            <div class="text-500 text-sm mt-1">Connecting to live store tracking system</div>
-        </div>
-
-        <!-- ORDER FOUND & DISPLAY TRACKING SCREEN -->
-        <div *ngIf="!loading && order" class="order-tracking-card flex flex-column gap-4">
-
-            <!-- 1. Live Auto-Refresh Status Banner -->
-            <div class="flex flex-wrap align-items-center justify-content-between p-3 border-round-xl bg-surface-50 surface-border border-1 text-xs text-600">
-                <div class="flex align-items-center gap-2">
-                    <span class="live-pulse-dot" [class.pulse-active]="isPending(order) || isInProgress(order)"></span>
-                    <span class="font-semibold text-900">
-                        {{ (isPending(order) || isInProgress(order)) ? 'Live Status Active' : 'Order Finished' }}
-                    </span>
-                    <span *ngIf="isPending(order) || isInProgress(order)" class="text-500">
-                        • Auto-refreshing in {{ countdown }}s
-                    </span>
-                    <i *ngIf="refreshing" class="pi pi-spin pi-spinner text-primary ml-1"></i>
-                </div>
-
-                <div class="flex align-items-center gap-2 mt-2 sm:mt-0">
-                    <span *ngIf="lastUpdated" class="text-500">Updated: {{ lastUpdated | date: 'HH:mm:ss' }}</span>
+            <!-- Order Badge & Copy (when order loaded) -->
+            <div *ngIf="order && !loading" class="order-quick-info">
+                <div class="order-no-pill">
+                    <span class="label">Order:</span>
+                    <span class="number font-mono">{{ order.orderNo || ('#' + order.id) }}</span>
                     <button
                         pButton
                         type="button"
-                        label="Refresh"
-                        icon="pi pi-refresh"
-                        class="p-button-text p-button-xs text-primary p-0"
-                        (click)="manualRefresh()"
-                    ></button>
-                </div>
-            </div>
-
-            <!-- 2. STATUS HERO CARD (Highlighted In Progress state) -->
-            <div
-                class="status-hero-card p-4 md:p-5 border-round-2xl shadow-3 text-center border-2 transition-all"
-                [ngClass]="{
-                    'status-card-pending': isPending(order),
-                    'status-card-inprogress': isInProgress(order),
-                    'status-card-rejected': isRejected(order)
-                }"
-            >
-                <!-- Pending State Hero -->
-                <div *ngIf="isPending(order)">
-                    <div class="status-icon-circle bg-yellow-100 text-yellow-700 mx-auto mb-3">
-                        <i class="pi pi-clock text-3xl"></i>
-                    </div>
-                    <div class="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 border-round-2xl font-bold text-xs uppercase tracking-wider mb-2">
-                        ⏳ Order Placed &bull; Pending Store Confirmation
-                    </div>
-                    <h1 class="text-900 font-extrabold text-2xl md:text-3xl m-0 mb-2">We've Received Your Order!</h1>
-                    <p class="text-700 text-sm md:text-base max-w-28rem mx-auto mb-3">
-                        Your order is waiting for the store manager to accept it. As soon as the admin approves your order, this screen will update to <strong>In Progress</strong>.
-                    </p>
-                </div>
-
-                <!-- IN PROGRESS State Hero (NEW / Core Requirement) -->
-                <div *ngIf="isInProgress(order)" class="in-progress-hero">
-                    <div class="status-icon-circle bg-blue-100 text-primary mx-auto mb-3 in-progress-pulse">
-                        <i class="pi pi-cog pi-spin text-3xl text-primary"></i>
-                    </div>
-                    <div class="inline-flex align-items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 border-1 border-blue-200 border-round-2xl font-extrabold text-xs uppercase tracking-wider mb-2 shadow-1">
-                        <span class="live-dot-blue"></span>
-                        Order Status: In Progress
-                    </div>
-                    <h1 class="text-900 font-black text-2xl md:text-4xl m-0 mb-2 text-primary">
-                        Your Order is In Progress!
-                    </h1>
-                    <p class="text-800 text-sm md:text-base max-w-30rem mx-auto font-medium mb-3">
-                        Great news! The store has accepted your order and it is now <strong>In Progress</strong>. Our kitchen & packaging team are currently preparing your items.
-                    </p>
-                    <div class="inline-flex align-items-center gap-2 py-2 px-3 bg-white border-round-xl border-1 surface-border shadow-1 text-xs text-700 font-medium">
-                        <i class="pi pi-check-circle text-green-600 font-bold"></i>
-                        <span>Order Accepted by Admin &bull; Preparing Fresh</span>
-                    </div>
-                </div>
-
-                <!-- Rejected State Hero -->
-                <div *ngIf="isRejected(order)">
-                    <div class="status-icon-circle bg-red-100 text-red-600 mx-auto mb-3">
-                        <i class="pi pi-times-circle text-3xl"></i>
-                    </div>
-                    <div class="inline-block px-3 py-1 bg-red-100 text-red-800 border-round-2xl font-bold text-xs uppercase tracking-wider mb-2">
-                        ❌ Order Rejected / Cancelled
-                    </div>
-                    <h1 class="text-900 font-extrabold text-2xl md:text-3xl m-0 mb-2 text-red-600">Order Could Not Be Fulfilled</h1>
-                    <p class="text-700 text-sm md:text-base max-w-28rem mx-auto mb-0">
-                        Unfortunately, the store could not accept this order at this time. Please contact the branch directly for assistance.
-                    </p>
-                </div>
-
-                <!-- Order Number & Copy Button Pill -->
-                <div class="surface-card border-1 surface-border border-round-xl py-2 px-3 inline-flex align-items-center gap-3 mt-4 shadow-1">
-                    <span class="text-xs text-600 font-medium">Tracking Number:</span>
-                    <span class="text-lg font-bold font-mono text-900">{{ order.orderNo || ('#' + order.id) }}</span>
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        [icon]="copied ? 'pi pi-check text-green-600' : 'pi pi-copy text-700'"
-                        class="p-button-rounded p-button-text p-button-sm w-2rem h-2rem hover:surface-200"
-                        [pTooltip]="copied ? 'Copied!' : 'Copy Order Number'"
+                        [icon]="copied ? 'pi pi-check text-green-600' : 'pi pi-copy text-500'"
+                        class="p-button-rounded p-button-text p-button-xs copy-btn"
+                        [pTooltip]="copied ? 'Copied!' : 'Copy Order #'"
                         tooltipPosition="top"
                         (click)="copyOrderNo(order.orderNo || ('#' + order.id))"
                     ></button>
                 </div>
+
+                <!-- Status Badge -->
+                <div
+                    class="status-pill"
+                    [ngClass]="{
+                        'status-pill-pending': isPending(order),
+                        'status-pill-inprogress': isInProgress(order),
+                        'status-pill-delivered': isDelivered(order),
+                        'status-pill-rejected': isRejected(order)
+                    }"
+                >
+                    <i [class]="isPending(order) ? 'pi pi-clock' : isInProgress(order) ? 'pi pi-spin pi-cog' : isDelivered(order) ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
+                    <span class="font-bold">
+                        {{ isPending(order) ? 'Pending Confirmation' : isInProgress(order) ? 'In Progress' : isDelivered(order) ? 'Delivered' : 'Rejected' }}
+                    </span>
+                </div>
             </div>
+        </div>
 
-            <!-- 3. VISUAL PROGRESS STEPPER -->
-            <div class="surface-card p-4 border-round-2xl shadow-1 border-1 surface-border" *ngIf="!isRejected(order)">
-                <h3 class="text-900 font-bold text-base mb-4 flex align-items-center gap-2">
-                    <i class="pi pi-sliders-h text-primary"></i>
-                    <span>Order Progress Tracker</span>
-                </h3>
+        <!-- Error Alert -->
+        <div *ngIf="errorMessage" class="compact-error-alert">
+            <i class="pi pi-exclamation-circle text-red-600"></i>
+            <span>{{ errorMessage }}</span>
+        </div>
 
-                <div class="tracker-steps flex flex-column sm:flex-row justify-content-between align-items-start sm:align-items-center gap-4 relative">
-                    <!-- Step 1: Order Placed -->
-                    <div class="tracker-step step-completed flex sm:flex-column align-items-center gap-3 sm:gap-2 text-left sm:text-center w-full sm:w-auto">
-                        <div class="step-circle bg-green-500 text-white shadow-1">
-                            <i class="pi pi-check font-bold"></i>
+        <!-- Loading State -->
+        <div *ngIf="loading" class="loading-state-card">
+            <i class="pi pi-spin pi-spinner text-3xl text-teal-600 mb-2"></i>
+            <div class="font-bold text-slate-800 text-sm">Locating your order...</div>
+            <div class="text-xs text-slate-500">Checking live status with store server</div>
+        </div>
+
+        <!-- Empty / Initial Search State -->
+        <div *ngIf="!loading && !order && !errorMessage" class="empty-state-card">
+            <div class="empty-icon-box">
+                <i class="pi pi-compass text-2xl text-teal-600"></i>
+            </div>
+            <h3 class="text-slate-800 font-bold text-base m-0 mb-1">Track Live Order Status</h3>
+            <p class="text-slate-500 text-xs m-0">Enter your order tracking number above to see real-time updates.</p>
+        </div>
+
+        <!-- MAIN DASHBOARD (When order is found) -->
+        <div *ngIf="!loading && order" class="tracking-dashboard-content">
+
+            <!-- 3. COMPACT HORIZONTAL STEPPER / TIMELINE (3 STEPS: Received -> In Progress -> Delivered) -->
+            <section class="stepper-section">
+                <!-- Rejected Banner if rejected -->
+                <div *ngIf="isRejected(order)" class="rejected-banner">
+                    <i class="pi pi-times-circle text-red-600 text-lg"></i>
+                    <div>
+                        <div class="font-bold text-red-900 text-sm">Order Cancelled / Rejected</div>
+                        <div class="text-red-700 text-xs">The store could not process this order. Please reach out to the branch for details.</div>
+                    </div>
+                </div>
+
+                <!-- 3-Step Stepper (when not rejected) -->
+                <div *ngIf="!isRejected(order)" class="stepper-container">
+                    <!-- Step 1: Received -->
+                    <div class="stepper-item step-completed">
+                        <div class="step-dot completed">
+                            <i class="pi pi-check"></i>
                         </div>
-                        <div>
-                            <div class="font-bold text-sm text-900">Order Received</div>
-                            <div class="text-xs text-500">{{ order.orderDate | date: 'dd MMM, hh:mm a' }}</div>
+                        <div class="step-text">
+                            <span class="step-title">Received</span>
+                            <span class="step-subtitle">{{ order.orderDate | date: 'hh:mm a' }}</span>
                         </div>
                     </div>
 
-                    <div class="step-connector hidden sm:block flex-grow-1" [class.connector-active]="isInProgress(order)"></div>
+                    <div class="stepper-line" [class.line-active]="isInProgress(order) || isDelivered(order)"></div>
 
                     <!-- Step 2: In Progress -->
                     <div
-                        class="tracker-step flex sm:flex-column align-items-center gap-3 sm:gap-2 text-left sm:text-center w-full sm:w-auto"
+                        class="stepper-item"
+                        [class.step-completed]="isDelivered(order)"
                         [class.step-active]="isInProgress(order)"
                         [class.step-waiting]="isPending(order)"
                     >
                         <div
-                            class="step-circle shadow-1"
+                            class="step-dot"
                             [ngClass]="{
-                                'bg-primary text-white in-progress-ring': isInProgress(order),
-                                'surface-200 text-500': isPending(order)
+                                'completed': isDelivered(order),
+                                'active in-progress-glow': isInProgress(order),
+                                'waiting': isPending(order)
                             }"
                         >
-                            <i [class]="isInProgress(order) ? 'pi pi-cog pi-spin font-bold' : 'pi pi-clock'"></i>
+                            <i [class]="isDelivered(order) ? 'pi pi-check' : isInProgress(order) ? 'pi pi-spin pi-cog' : 'pi pi-clock'"></i>
                         </div>
-                        <div>
-                            <div class="font-bold text-sm" [class.text-primary]="isInProgress(order)" [class.text-600]="isPending(order)">
-                                In Progress
-                            </div>
-                            <div class="text-xs" [class.text-blue-700]="isInProgress(order)" [class.text-500]="isPending(order)">
-                                {{ isInProgress(order) ? 'Accepted & Processing' : 'Awaiting Store' }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="step-connector hidden sm:block flex-grow-1"></div>
-
-                    <!-- Step 3: Out for Delivery / Ready -->
-                    <div class="tracker-step step-waiting flex sm:flex-column align-items-center gap-3 sm:gap-2 text-left sm:text-center w-full sm:w-auto">
-                        <div class="step-circle surface-200 text-500 shadow-1">
-                            <i class="pi pi-truck"></i>
-                        </div>
-                        <div>
-                            <div class="font-bold text-sm text-600">Dispatched / Ready</div>
-                            <div class="text-xs text-500">On the way</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. ORDER DETAILS & STORE INFO CARDS (2 Columns on Desktop) -->
-            <div class="grid">
-                <!-- Left Column: Itemized Products -->
-                <div class="col-12 md:col-7">
-                    <div class="surface-card p-4 border-round-2xl shadow-1 border-1 surface-border h-full">
-                        <h3 class="text-900 font-bold text-base mb-3 flex align-items-center justify-content-between">
-                            <span class="flex align-items-center gap-2">
-                                <i class="pi pi-shopping-bag text-primary"></i>
-                                <span>Order Summary</span>
+                        <div class="step-text">
+                            <span class="step-title" [class.text-teal-700]="isInProgress(order)" [class.text-green-700]="isDelivered(order)">In Progress</span>
+                            <span class="step-subtitle">
+                                {{ isDelivered(order) ? 'Prepared & Packed' : isInProgress(order) ? 'Accepted & Preparing' : 'Awaiting Store' }}
                             </span>
-                            <span class="text-xs text-500 font-normal">{{ (order.lines || []).length }} item(s)</span>
-                        </h3>
+                        </div>
+                    </div>
 
-                        <div class="order-items-list flex flex-column gap-3 mb-4">
-                            <div
-                                *ngFor="let line of order.lines || []"
-                                class="flex align-items-center justify-content-between p-2 surface-50 border-round-xl border-1 surface-border"
-                            >
-                                <div class="flex align-items-center gap-3">
-                                    <div class="w-2rem h-2rem border-round-lg bg-primary-100 text-primary font-bold flex align-items-center justify-content-center text-xs">
-                                        {{ line.quantity }}x
-                                    </div>
-                                    <div>
-                                        <div class="font-bold text-900 text-sm">{{ line.productName || ('Product #' + line.productId) }}</div>
-                                        <div class="text-xs text-500">PKR {{ line.unitPrice | number: '1.2-2' }} each</div>
-                                    </div>
-                                </div>
-                                <div class="font-bold text-900 text-sm">
-                                    PKR {{ line.lineTotal | number: '1.2-2' }}
-                                </div>
+                    <div class="stepper-line" [class.line-active]="isDelivered(order)"></div>
+
+                    <!-- Step 3: Delivered -->
+                    <div
+                        class="stepper-item"
+                        [class.step-active]="isDelivered(order)"
+                        [class.step-completed]="isDelivered(order)"
+                        [class.step-waiting]="!isDelivered(order)"
+                    >
+                        <div
+                            class="step-dot"
+                            [ngClass]="{
+                                'completed delivered-glow': isDelivered(order),
+                                'waiting': !isDelivered(order)
+                            }"
+                        >
+                            <i [class]="isDelivered(order) ? 'pi pi-check' : 'pi pi-home'"></i>
+                        </div>
+                        <div class="step-text">
+                            <span class="step-title" [class.text-green-700]="isDelivered(order)">Delivered</span>
+                            <span class="step-subtitle">
+                                {{ isDelivered(order) ? 'Order Completed' : 'Awaiting Delivery' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- In Progress Notification Bar -->
+                <div *ngIf="isInProgress(order)" class="in-progress-info-strip">
+                    <i class="pi pi-info-circle text-teal-600 font-bold"></i>
+                    <span><strong>Accepted by Store:</strong> Your order is currently being prepared and packed.</span>
+                </div>
+
+                <!-- Delivered Notification Bar -->
+                <div *ngIf="isDelivered(order)" class="delivered-info-strip">
+                    <i class="pi pi-check-circle text-green-600 font-bold"></i>
+                    <span><strong>Order Delivered:</strong> Your order has been delivered successfully. Thank you for choosing us!</span>
+                </div>
+            </section>
+
+            <!-- 4. TWO-COLUMN DASHBOARD GRID -->
+            <div class="dashboard-columns-grid">
+                <!-- LEFT COLUMN (~60%): ORDER SUMMARY -->
+                <div class="dashboard-col left-col">
+                    <div class="dashboard-card order-summary-card">
+                        <!-- Card Header -->
+                        <div class="card-header">
+                            <div class="flex align-items-center gap-2">
+                                <i class="pi pi-shopping-bag text-teal-600 text-sm"></i>
+                                <span class="font-bold text-slate-800 text-sm">Order Summary</span>
                             </div>
+                            <span class="text-xs text-slate-500 font-medium">{{ (order.lines || []).length }} item(s)</span>
                         </div>
 
-                        <!-- Price Breakdown -->
-                        <div class="border-top-1 surface-border pt-3 flex flex-column gap-2 text-sm">
-                            <div class="flex justify-content-between text-600">
-                                <span>Cart Subtotal</span>
-                                <span class="font-semibold text-900">PKR {{ (order.subTotal || 0) | number: '1.2-2' }}</span>
+                        <!-- Scrollable Items List (fits view without whole page scroll) -->
+                        <div class="items-scroll-area">
+                            <table class="compact-items-table">
+                                <thead>
+                                    <tr>
+                                        <th class="text-left">Item</th>
+                                        <th class="text-center" style="width: 50px;">Qty</th>
+                                        <th class="text-right" style="width: 85px;">Price</th>
+                                        <th class="text-right" style="width: 90px;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let line of order.lines || []">
+                                        <td class="font-medium text-slate-800">
+                                            {{ line.productName || ('Product #' + line.productId) }}
+                                        </td>
+                                        <td class="text-center font-bold text-slate-700">
+                                            {{ line.quantity }}
+                                        </td>
+                                        <td class="text-right text-slate-600 font-mono text-xs">
+                                            PKR {{ line.unitPrice | number: '1.0-0' }}
+                                        </td>
+                                        <td class="text-right font-bold text-slate-900 font-mono text-xs">
+                                            PKR {{ line.lineTotal | number: '1.0-0' }}
+                                        </td>
+                                    </tr>
+                                    <tr *ngIf="!(order.lines || []).length">
+                                        <td colspan="4" class="text-center text-slate-400 py-3 text-xs">No items found</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Compact Financials Footer -->
+                        <div class="card-financials-footer">
+                            <div class="financial-row">
+                                <span class="text-slate-500">Cart Subtotal</span>
+                                <span class="font-medium text-slate-800 font-mono">PKR {{ (order.subTotal || 0) | number: '1.0-0' }}</span>
                             </div>
-                            <div class="flex justify-content-between text-600 align-items-center">
-                                <span>Delivery Fee</span>
+                            <div class="financial-row">
+                                <span class="text-slate-500">Delivery Fee</span>
                                 <div class="text-right">
-                                    <span *ngIf="(order.deliveryFee ?? 0) === 0 || order.isFreeDelivery" class="p-badge p-badge-success text-xs font-bold">
-                                        FREE DELIVERY
+                                    <span *ngIf="(order.deliveryFee ?? 0) === 0 || order.isFreeDelivery" class="free-delivery-badge">
+                                        FREE
                                     </span>
-                                    <span *ngIf="(order.deliveryFee ?? 0) > 0" class="font-semibold text-900">
-                                        PKR {{ order.deliveryFee | number: '1.2-2' }}
+                                    <span *ngIf="(order.deliveryFee ?? 0) > 0" class="font-medium text-slate-800 font-mono">
+                                        PKR {{ order.deliveryFee | number: '1.0-0' }}
                                     </span>
                                 </div>
                             </div>
-                            <div class="border-top-1 surface-border pt-2 flex justify-content-between align-items-center font-bold text-base">
-                                <span class="text-900">Grand Total</span>
-                                <span class="text-primary text-xl font-extrabold">PKR {{ order.totalAmount | number: '1.2-2' }}</span>
+                            <div class="financial-row grand-total-row">
+                                <span class="font-bold text-slate-900">Grand Total</span>
+                                <span class="grand-total-amount font-mono">PKR {{ order.totalAmount | number: '1.0-0' }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column: Delivery & Store Details -->
-                <div class="col-12 md:col-5">
-                    <div class="flex flex-column gap-3 h-full">
-                        <!-- Store Info -->
-                        <div class="surface-card p-4 border-round-2xl shadow-1 border-1 surface-border">
-                            <h4 class="font-bold text-900 text-sm mb-3 flex align-items-center gap-2">
-                                <i class="pi pi-building text-primary"></i>
+                <!-- RIGHT COLUMN (~40%): STORE, DELIVERY, & ACTION -->
+                <div class="dashboard-col right-col">
+                    <div class="dashboard-card info-card">
+                        <!-- Store Branch Details -->
+                        <div class="info-section">
+                            <div class="section-label">
+                                <i class="pi pi-building text-teal-600"></i>
                                 <span>Store Branch</span>
-                            </h4>
-                            <div class="font-bold text-base text-900">{{ order.branchName || 'Main Store Branch' }}</div>
-                            <div class="text-xs text-600 mt-1" *ngIf="order.deliveryAreaName">
-                                Serving: <strong>{{ order.deliveryAreaName }}</strong>
+                            </div>
+                            <div class="font-bold text-slate-800 text-sm">{{ order.branchName || 'Main Store Branch' }}</div>
+                            <div *ngIf="order.deliveryAreaName" class="text-xs text-slate-600 mt-1 flex align-items-center gap-1">
+                                <i class="pi pi-map text-slate-400 text-xs"></i>
+                                <span>Area: <strong>{{ order.deliveryAreaName }}</strong></span>
                             </div>
                         </div>
 
-                        <!-- Customer & Delivery Address -->
-                        <div class="surface-card p-4 border-round-2xl shadow-1 border-1 surface-border flex-grow-1">
-                            <h4 class="font-bold text-900 text-sm mb-3 flex align-items-center gap-2">
-                                <i class="pi pi-map-marker text-red-500"></i>
-                                <span>Delivery Information</span>
-                            </h4>
-                            <div class="text-xs text-500 mb-1">Customer Name:</div>
-                            <div class="font-bold text-900 text-sm mb-3">{{ order.customerName || 'Online Customer' }}</div>
+                        <div class="section-divider"></div>
 
-                            <div class="text-xs text-500 mb-1">Delivery Address & Instructions:</div>
-                            <div class="text-sm text-800 font-medium surface-50 p-2 border-round-lg border-1 surface-border mb-2">
+                        <!-- Customer & Delivery Details -->
+                        <div class="info-section">
+                            <div class="section-label">
+                                <i class="pi pi-map-marker text-rose-500"></i>
+                                <span>Delivery Information</span>
+                            </div>
+                            <div class="text-xs text-slate-500">Customer:</div>
+                            <div class="font-bold text-slate-800 text-sm mb-2">{{ order.customerName || 'Online Customer' }}</div>
+
+                            <div class="text-xs text-slate-500">Address / Instructions:</div>
+                            <div class="delivery-address-box">
                                 {{ order.notes || 'Standard Delivery' }}
                             </div>
 
+                            <!-- Live Maps Link if present -->
                             <div *ngIf="getGoogleMapsLink(order.notes)" class="mt-2">
                                 <a
                                     [href]="getGoogleMapsLink(order.notes)"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="p-button p-button-sm p-button-outlined p-button-danger border-round-xl inline-flex align-items-center gap-2 font-bold no-underline w-full justify-content-center"
+                                    class="maps-link-btn"
                                 >
                                     <i class="pi pi-map-marker text-red-500"></i>
-                                    <span>Open Live Pin in Maps</span>
+                                    <span>Open Live Pin in Google Maps</span>
                                     <i class="pi pi-external-link text-xs"></i>
                                 </a>
                             </div>
                         </div>
+
+                        <!-- Secondary Action Button -->
+                        <div class="card-action-box">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Continue Shopping"
+                                icon="pi pi-arrow-left"
+                                class="continue-shopping-btn"
+                                (click)="backToStore()"
+                            ></button>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Bottom Back Button -->
-            <div class="text-center mt-2">
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    label="Continue Shopping"
-                    icon="pi pi-shopping-bag"
-                    class="p-button-outlined border-round-xl font-bold px-5 py-3 shadow-1"
-                    (click)="backToStore()"
-                ></button>
             </div>
         </div>
     </main>

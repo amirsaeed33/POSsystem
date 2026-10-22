@@ -5,6 +5,7 @@ namespace SmartPos.Orders
         Pending = 0,
         Approved = 1,
         Rejected = 2,
-        InProgress = 3
+        InProgress = 3,
+        Delivered = 4
     }
 }

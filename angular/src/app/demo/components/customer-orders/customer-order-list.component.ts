@@ -113,6 +113,8 @@ export class CustomerOrderListComponent implements OnInit {
             case CustomerOrderStatus.Approved:
             case CustomerOrderStatus.InProgress:
                 return 'In Progress';
+            case CustomerOrderStatus.Delivered:
+                return 'Delivered';
             case CustomerOrderStatus.Rejected:
                 return 'Rejected';
             default:
@@ -129,6 +131,8 @@ export class CustomerOrderListComponent implements OnInit {
             case CustomerOrderStatus.Approved:
             case CustomerOrderStatus.InProgress:
                 return 'info';
+            case CustomerOrderStatus.Delivered:
+                return 'success';
             case CustomerOrderStatus.Rejected:
                 return 'danger';
             default:
@@ -138,6 +142,14 @@ export class CustomerOrderListComponent implements OnInit {
 
     isPending(order: CustomerOrderDto): boolean {
         return order.status === CustomerOrderStatus.Pending;
+    }
+
+    isInProgress(order: CustomerOrderDto): boolean {
+        return order.status === CustomerOrderStatus.Approved || order.status === CustomerOrderStatus.InProgress;
+    }
+
+    isDelivered(order: CustomerOrderDto): boolean {
+        return order.status === CustomerOrderStatus.Delivered;
     }
 
     onApprove(order: CustomerOrderDto): void {
@@ -212,6 +224,40 @@ export class CustomerOrderListComponent implements OnInit {
         });
     }
 
+    onDeliver(order: CustomerOrderDto): void {
+        const label = order.orderNo || `#${order.id}`;
+        this.confirmationService.confirm({
+            message: `Mark customer order "${label}" as Delivered?`,
+            header: 'Deliver Confirmation',
+            icon: 'pi pi-check-circle',
+            accept: () => {
+                this.customerOrderService
+                    .deliver(order.id)
+                    .then(() => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: 'Delivered',
+                            detail: `Order ${label} marked as Delivered successfully.`,
+                        });
+                        this.loadOrders();
+                    })
+                    .catch((error) => {
+                        const message =
+                            error?.error?.error?.message ||
+                            error?.error?.message ||
+                            error?.message ||
+                            'Failed to mark order as delivered';
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Action Failed',
+                            detail: message,
+                            life: 6000,
+                        });
+                    });
+            },
+        });
+    }
+
     onDelete(order: CustomerOrderDto): void {
         const label = order.orderNo || `#${order.id}`;
         this.confirmationService.confirm({
@@ -260,6 +306,12 @@ export class CustomerOrderListComponent implements OnInit {
                 icon: 'pi pi-check',
                 visible: this.isPending(order),
                 action: () => this.onApprove(order),
+            },
+            {
+                label: 'Mark Delivered',
+                icon: 'pi pi-check-circle',
+                visible: this.isInProgress(order),
+                action: () => this.onDeliver(order),
             },
             {
                 label: 'Reject',
