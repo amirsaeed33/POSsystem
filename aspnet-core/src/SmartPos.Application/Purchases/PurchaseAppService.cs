@@ -18,6 +18,7 @@ using SmartPos.Products;
 using SmartPos.Purchases.Dto;
 using SmartPos.Suppliers;
 using SmartPos.BranchNotificationSettings;
+using Microsoft.EntityFrameworkCore;
 
 namespace SmartPos.Purchases
 {
@@ -291,7 +292,10 @@ namespace SmartPos.Purchases
         {
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
 
-            var query = Repository.GetAllIncluding(x => x.Supplier, x => x.Lines, x => x.Lines.Select(l => l.Product));
+            IQueryable<Purchase> query = Repository.GetAll()
+                .Include(x => x.Supplier)
+                .Include(x => x.Lines)
+                    .ThenInclude(l => l.Product);
 
             if (branchId.HasValue)
             {
@@ -314,7 +318,10 @@ namespace SmartPos.Purchases
         protected override async Task<Purchase> GetEntityByIdAsync(int id)
         {
             return await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.Supplier, x => x.Lines)
+                Repository.GetAll()
+                    .Include(x => x.Supplier)
+                    .Include(x => x.Lines)
+                        .ThenInclude(l => l.Product)
                     .Where(x => x.Id == id));
         }
 

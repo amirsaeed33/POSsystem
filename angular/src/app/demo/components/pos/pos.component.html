@@ -976,23 +976,26 @@
         </div>
 
         <ng-template pTemplate="footer">
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="Close"
-                class="p-button-text"
-                (click)="kotDialogVisible = false"
-            ></button>
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="Print KOT Slip"
-                icon="pi pi-print"
-                class="p-button-warning"
-                (click)="printCurrentModal('kotThermalPrint')"
-            ></button>
+            <div class="flex align-items-center justify-content-between gap-2 w-full pt-2">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Close"
+                    icon="pi pi-times"
+                    class="p-button-outlined p-button-secondary border-round-lg px-3"
+                    (click)="kotDialogVisible = false"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Print KOT Slip"
+                    icon="pi pi-print"
+                    class="p-button-warning border-round-lg px-3 font-semibold shadow-2"
+                    (click)="printCurrentModal('kotThermalPrint')"
+                ></button>
+            </div>
         </ng-template>
     </p-dialog>
 
@@ -1001,7 +1004,7 @@
         header="🧾 Guest Check / Bill Preview"
         [(visible)]="guestBillDialogVisible"
         [modal]="true"
-        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [style]="{ width: '32rem', maxWidth: '95vw' }"
         [draggable]="false"
         [resizable]="false"
     >
@@ -1075,32 +1078,37 @@
         </div>
 
         <ng-template pTemplate="footer">
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="Close"
-                class="p-button-text"
-                (click)="guestBillDialogVisible = false"
-            ></button>
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="Print Check"
-                icon="pi pi-print"
-                class="p-button-info"
-                (click)="printCurrentModal('guestCheckPrint')"
-            ></button>
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="Settle Payment"
-                icon="pi pi-check"
-                class="p-button-success"
-                (click)="guestBillDialogVisible = false; completeSale()"
-            ></button>
+            <div class="flex align-items-center justify-content-between gap-2 w-full pt-2">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Close"
+                    icon="pi pi-times"
+                    class="p-button-outlined p-button-secondary border-round-lg px-3"
+                    (click)="guestBillDialogVisible = false"
+                ></button>
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Print Check"
+                        icon="pi pi-print"
+                        class="p-button-outlined p-button-info border-round-lg px-3"
+                        (click)="printCurrentModal('guestCheckPrint')"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Settle Payment"
+                        icon="pi pi-check"
+                        class="p-button-success border-round-lg px-3 font-semibold shadow-2"
+                        (click)="guestBillDialogVisible = false; completeSale()"
+                    ></button>
+                </div>
+            </div>
         </ng-template>
     </p-dialog>
 
@@ -1182,7 +1190,8 @@
                 pRipple
                 type="button"
                 label="Close"
-                class="p-button-text"
+                icon="pi pi-times"
+                class="p-button-outlined p-button-secondary border-round-lg px-3"
                 (click)="splitBillDialogVisible = false"
             ></button>
             <button
@@ -1191,6 +1200,7 @@
                 type="button"
                 label="Done"
                 icon="pi pi-check"
+                class="p-button-primary border-round-lg px-3 font-semibold shadow-2"
                 (click)="splitBillDialogVisible = false"
             ></button>
         </ng-template>
