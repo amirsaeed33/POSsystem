@@ -58,6 +58,7 @@ export class PosComponent implements OnInit, OnDestroy {
     selectedTable: RestaurantTableDto | null = null;
     tableDialogVisible = false;
     loadingTables = false;
+    pendingSendToTable = false;
 
     // Active Running Order (Hold & Tabs)
     activeOrderId: number | null = null;
@@ -82,7 +83,7 @@ export class PosComponent implements OnInit, OnDestroy {
     modifierDialogVisible = false;
     selectedProductForModifiers: ProductDto | null = null;
     availableModifierGroups: ProductModifierGroupDto[] = [];
-    selectedModifierOptions: Record<number, number> = {};
+    selectedModifierOptions: Record<number, number[]> = {};
     pendingKitchenNote = '';
     todayDate = new Date();
 
@@ -261,10 +262,23 @@ export class PosComponent implements OnInit, OnDestroy {
             });
     }
 
+    openTableDialog(forSend: boolean = false): void {
+        this.pendingSendToTable = forSend;
+        this.loadTables();
+        this.tableDialogVisible = true;
+    }
+
+    onTableDialogHide(): void {
+        this.pendingSendToTable = false;
+    }
+
     async selectTable(table: RestaurantTableDto): Promise<void> {
         this.selectedTable = table;
         this.orderType = 'dineIn';
         this.tableDialogVisible = false;
+
+        const isDirectSend = this.pendingSendToTable;
+        this.pendingSendToTable = false;
 
         if (table.status === 1 || table.status === 2) {
             try {
@@ -277,7 +291,7 @@ export class PosComponent implements OnInit, OnDestroy {
                     if (order.customerId) {
                         this.customerId = order.customerId;
                     }
-                    this.cart = order.lines.map((l) => ({
+                    const existingLines = order.lines.map((l) => ({
                         id: l.id,
                         productId: l.productId,
                         productName: l.productName,
@@ -290,34 +304,48 @@ export class PosComponent implements OnInit, OnDestroy {
                         selectedModifiers: l.selectedModifiers,
                         isSentToKitchen: l.isSentToKitchen,
                     }));
-                    this.messageService.add({
-                        severity: 'info',
-                        summary: 'Order Resumed',
-                        detail: `Loaded active order #${order.orderNo} for Table ${table.tableNo}`,
-                        life: 3000,
-                    });
-                    return;
+
+                    if (isDirectSend) {
+                        const newCartItems = this.cart.filter((c) => !c.id);
+                        this.cart = [...existingLines, ...newCartItems];
+                    } else {
+                        this.cart = existingLines;
+                        this.messageService.add({
+                            severity: 'info',
+                            summary: 'Order Resumed',
+                            detail: `Loaded active order #${order.orderNo} for Table ${table.tableNo}`,
+                            life: 3000,
+                        });
+                        return;
+                    }
                 }
             } catch (err) {
                 console.error('Failed to load table order', err);
             }
+        } else {
+            // Available table: new running order
+            this.activeOrderId = null;
+            this.activeOrderNo = '';
+            if (!isDirectSend) {
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Table Selected',
+                    detail: `Table ${table.tableNo} (${table.area || 'Main Hall'}) selected`,
+                    life: 2500,
+                });
+            }
         }
 
-        // Available table: new running order
-        this.activeOrderId = null;
-        this.activeOrderNo = '';
-        this.messageService.add({
-            severity: 'info',
-            summary: 'Table Selected',
-            detail: `Table ${table.tableNo} (${table.area || 'Main Hall'}) selected`,
-            life: 2500,
-        });
+        if (isDirectSend) {
+            await this.sendToTable();
+        }
     }
 
     clearTableSelection(): void {
         this.selectedTable = null;
         this.activeOrderId = null;
         this.activeOrderNo = '';
+        this.pendingSendToTable = false;
     }
 
     // Shift / Transfer Table
@@ -376,12 +404,32 @@ export class PosComponent implements OnInit, OnDestroy {
         }
     }
 
-    async sendToKitchen(): Promise<void> {
+    async sendToTable(): Promise<void> {
+        if (this.orderType === 'takeaway') {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Takeaway Order',
+                detail: 'Send to Table is not available for Takeaway orders.',
+            });
+            return;
+        }
+
         if (!this.cart.length) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Cart Empty',
-                detail: 'Add food items before sending to the kitchen.',
+                detail: 'Add food items before sending to the table.',
+            });
+            return;
+        }
+
+        if (this.orderType === 'dineIn' && !this.selectedTable) {
+            this.openTableDialog(true);
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Select Table',
+                detail: 'Please select a table to send this order to.',
+                life: 3000,
             });
             return;
         }
@@ -425,23 +473,27 @@ export class PosComponent implements OnInit, OnDestroy {
             this.kotDialogVisible = true;
 
             this.cart.forEach((l) => (l.isSentToKitchen = true));
-            this.loadTables();
+            await this.loadTables();
 
             this.messageService.add({
                 severity: 'success',
-                summary: '🍳 KOT Printed',
-                detail: `Kitchen Order Ticket printed for ${kotResult.tableNo} (Order #${kotResult.orderNo})`,
+                summary: '🍽️ Sent to Table',
+                detail: `Order sent to Table ${kotResult.tableNo} (Order #${kotResult.orderNo})`,
                 life: 3500,
             });
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: err?.message || 'Failed to send order to kitchen',
+                detail: err?.message || 'Failed to send order to table',
             });
         } finally {
             this.sendingKOT = false;
         }
+    }
+
+    sendToKitchen(): Promise<void> {
+        return this.sendToTable();
     }
 
     async printGuestBill(): Promise<void> {
@@ -730,6 +782,34 @@ export class PosComponent implements OnInit, OnDestroy {
         this.focusSearch();
     }
 
+    isOptionSelected(groupId: number, optionId: number): boolean {
+        const list = this.selectedModifierOptions[groupId];
+        return !!list && list.includes(optionId);
+    }
+
+    toggleModifierOption(group: ProductModifierGroupDto, option: ProductModifierOptionDto): void {
+        if (!this.selectedModifierOptions[group.id]) {
+            this.selectedModifierOptions[group.id] = [];
+        }
+
+        if (group.allowMultiple) {
+            const index = this.selectedModifierOptions[group.id].indexOf(option.id);
+            if (index > -1) {
+                this.selectedModifierOptions[group.id].splice(index, 1);
+            } else {
+                this.selectedModifierOptions[group.id].push(option.id);
+            }
+        } else {
+            if (this.selectedModifierOptions[group.id].includes(option.id)) {
+                if (!group.isRequired) {
+                    this.selectedModifierOptions[group.id] = [];
+                }
+            } else {
+                this.selectedModifierOptions[group.id] = [option.id];
+            }
+        }
+    }
+
     async addProduct(product: ProductDto): Promise<void> {
         if (this.isRestaurantMode) {
             try {
@@ -740,8 +820,9 @@ export class PosComponent implements OnInit, OnDestroy {
                     this.selectedModifierOptions = {};
                     this.pendingKitchenNote = '';
                     for (const g of groups) {
+                        this.selectedModifierOptions[g.id] = [];
                         if (g.isRequired && g.options?.length) {
-                            this.selectedModifierOptions[g.id] = g.options[0].id;
+                            this.selectedModifierOptions[g.id] = [g.options[0].id];
                         }
                     }
                     this.modifierDialogVisible = true;
@@ -758,7 +839,8 @@ export class PosComponent implements OnInit, OnDestroy {
         if (!this.selectedProductForModifiers) return;
 
         for (const group of this.availableModifierGroups) {
-            if (group.isRequired && !this.selectedModifierOptions[group.id]) {
+            const selectedIds = this.selectedModifierOptions[group.id] || [];
+            if (group.isRequired && selectedIds.length === 0) {
                 this.messageService.add({
                     severity: 'warn',
                     summary: 'Required Selection',
@@ -772,9 +854,9 @@ export class PosComponent implements OnInit, OnDestroy {
         const modifierNames: string[] = [];
 
         for (const group of this.availableModifierGroups) {
-            const selectedOptId = this.selectedModifierOptions[group.id];
-            if (selectedOptId) {
-                const opt = group.options?.find((o) => o.id === selectedOptId);
+            const selectedIds = this.selectedModifierOptions[group.id] || [];
+            for (const optId of selectedIds) {
+                const opt = group.options?.find((o) => o.id === optId);
                 if (opt) {
                     extraPrice += opt.price || 0;
                     modifierNames.push(`${opt.name}${opt.price > 0 ? ' (+' + opt.price.toFixed(2) + ')' : ''}`);
@@ -932,8 +1014,38 @@ export class PosComponent implements OnInit, OnDestroy {
         this.focusSearch();
     }
 
+    get hasUnsentItems(): boolean {
+        return this.cart.some((line) => !line.isSentToKitchen);
+    }
+
+    get settleButtonTooltip(): string {
+        if (this.isRestaurantMode && this.orderType === 'dineIn') {
+            if (!this.selectedTable) {
+                return 'Please select a table and send order first.';
+            }
+            if (this.hasUnsentItems) {
+                return 'Send dishes to table first before settling & closing.';
+            }
+        }
+        return '';
+    }
+
     canSave(): boolean {
-        return !!this.customerId && this.cart.length > 0 && !this.saving;
+        if (!this.customerId || this.cart.length === 0 || this.saving) {
+            return false;
+        }
+
+        // Restaurant Dine-In mode: cannot settle/close table until items are sent to the table
+        if (this.isRestaurantMode && this.orderType === 'dineIn') {
+            if (!this.selectedTable) {
+                return false;
+            }
+            if (this.hasUnsentItems) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     onPaidAmountFocus(event: any): void {
@@ -1080,9 +1192,6 @@ export class PosComponent implements OnInit, OnDestroy {
                     summary: '🍽️ Order Completed',
                     detail,
                 });
-
-                // Automatically print sales receipt
-                this.printReceiptSnapshot(settledReceipt);
 
                 this.paymentDialogVisible = false;
                 this.clearCart();

@@ -891,36 +891,87 @@ namespace SmartPos.Branches
                     return;
                 }
 
+                // Resolve or create Category with valid non-zero ID
+                int categoryId;
                 var category = await _categoryRepository.FirstOrDefaultAsync(c => c.BranchId == branch.Id)
-                               ?? await _categoryRepository.FirstOrDefaultAsync(c => true)
-                               ?? await _categoryRepository.InsertAsync(new Category
-                               {
-                                   TenantId = branch.TenantId,
-                                   BranchId = branch.Id,
-                                   Name = "General",
-                                   IsActive = true
-                               });
+                               ?? await _categoryRepository.FirstOrDefaultAsync(c => true);
+                if (category == null)
+                {
+                    using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                    {
+                        category = await _categoryRepository.FirstOrDefaultAsync(c => true);
+                    }
+                }
 
+                if (category != null && category.Id > 0)
+                {
+                    categoryId = category.Id;
+                }
+                else
+                {
+                    categoryId = await _categoryRepository.InsertAndGetIdAsync(new Category
+                    {
+                        TenantId = branch.TenantId,
+                        BranchId = branch.Id,
+                        Name = "General",
+                        IsActive = true
+                    });
+                }
+
+                // Resolve or create Brand with valid non-zero ID
+                int brandId;
                 var brand = await _brandRepository.FirstOrDefaultAsync(b => b.BranchId == branch.Id)
-                            ?? await _brandRepository.FirstOrDefaultAsync(b => true)
-                            ?? await _brandRepository.InsertAsync(new Brand
-                            {
-                                TenantId = branch.TenantId,
-                                BranchId = branch.Id,
-                                Name = "General",
-                                IsActive = true
-                            });
+                            ?? await _brandRepository.FirstOrDefaultAsync(b => true);
+                if (brand == null)
+                {
+                    using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                    {
+                        brand = await _brandRepository.FirstOrDefaultAsync(b => true);
+                    }
+                }
 
+                if (brand != null && brand.Id > 0)
+                {
+                    brandId = brand.Id;
+                }
+                else
+                {
+                    brandId = await _brandRepository.InsertAndGetIdAsync(new Brand
+                    {
+                        TenantId = branch.TenantId,
+                        BranchId = branch.Id,
+                        Name = "General",
+                        IsActive = true
+                    });
+                }
+
+                // Resolve or create Unit with valid non-zero ID
+                int unitId;
                 var unit = await _unitRepository.FirstOrDefaultAsync(u => u.BranchId == branch.Id)
-                           ?? await _unitRepository.FirstOrDefaultAsync(u => true)
-                           ?? await _unitRepository.InsertAsync(new Unit
-                           {
-                               TenantId = branch.TenantId,
-                               BranchId = branch.Id,
-                               Name = "Piece",
-                               Symbol = "pcs",
-                               IsActive = true
-                           });
+                           ?? await _unitRepository.FirstOrDefaultAsync(u => true);
+                if (unit == null)
+                {
+                    using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+                    {
+                        unit = await _unitRepository.FirstOrDefaultAsync(u => true);
+                    }
+                }
+
+                if (unit != null && unit.Id > 0)
+                {
+                    unitId = unit.Id;
+                }
+                else
+                {
+                    unitId = await _unitRepository.InsertAndGetIdAsync(new Unit
+                    {
+                        TenantId = branch.TenantId,
+                        BranchId = branch.Id,
+                        Name = "Piece",
+                        Symbol = "pcs",
+                        IsActive = true
+                    });
+                }
 
                 var groceryProduct = new Product
                 {
@@ -933,9 +984,9 @@ namespace SmartPos.Branches
                     CostPrice = 0,
                     WholesalePrice = 0,
                     AlertQuantityLimit = 0,
-                    CategoryId = category.Id,
-                    BrandId = brand.Id,
-                    UnitId = unit.Id
+                    CategoryId = categoryId,
+                    BrandId = brandId,
+                    UnitId = unitId
                 };
 
                 await _productRepository.InsertAsync(groceryProduct);
