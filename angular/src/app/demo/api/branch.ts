@@ -40,6 +40,8 @@ export interface BranchDto {
     serviceChargePercent?: number;
     dateFormat?: string;
     currencyFormat?: string;
+    latitude?: number | null;
+    longitude?: number | null;
 }
 
 export interface CreateBranchDto {
@@ -62,6 +64,8 @@ export interface CreateBranchDto {
     hostCatalogItemIds?: number[];
     dateFormat?: string;
     currencyFormat?: string;
+    latitude?: number | null;
+    longitude?: number | null;
 }
 
 export interface PagedBranchResultRequestDto {

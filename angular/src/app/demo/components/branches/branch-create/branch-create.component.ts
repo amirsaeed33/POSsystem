@@ -254,6 +254,8 @@ export class BranchCreateComponent implements OnInit {
             serviceChargePercent: this.branch.serviceChargePercent ?? 0,
             companyTypeId: this.selectedCompanyTypeId,
             hostCatalogItemIds: this.selectedHostItemIds,
+            latitude: this.branch.latitude ?? null,
+            longitude: this.branch.longitude ?? null,
         };
 
         this.saving = true;
@@ -313,6 +315,53 @@ export class BranchCreateComponent implements OnInit {
             });
     }
 
+    locating = false;
+
+    detectCurrentLocation(): void {
+        if (!navigator.geolocation) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS Not Supported',
+                detail: 'Geolocation is not supported by your browser.',
+            });
+            return;
+        }
+        this.locating = true;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                this.branch.latitude = Number(pos.coords.latitude.toFixed(6));
+                this.branch.longitude = Number(pos.coords.longitude.toFixed(6));
+                this.locating = false;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Location Captured',
+                    detail: `Store coordinates set to: (${this.branch.latitude}, ${this.branch.longitude})`,
+                });
+            },
+            () => {
+                this.locating = false;
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'GPS Detection',
+                    detail: 'Unable to detect coordinates automatically. Please enter latitude & longitude manually.',
+                });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    clearShopLocation(): void {
+        this.branch.latitude = null;
+        this.branch.longitude = null;
+    }
+
+    get googleMapsShopLink(): string | null {
+        if (this.branch.latitude != null && this.branch.longitude != null) {
+            return `https://maps.google.com/?q=${this.branch.latitude},${this.branch.longitude}`;
+        }
+        return null;
+    }
+
     private emptyBranch(): BranchDto {
         return {
             id: 0,
@@ -332,6 +381,8 @@ export class BranchCreateComponent implements OnInit {
             discountAmount: 0,
             businessType: 1,
             serviceChargePercent: 0,
+            latitude: null,
+            longitude: null,
         };
     }
 }

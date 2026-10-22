@@ -34,6 +34,9 @@ export interface CustomerOrderDto {
     deliveryFeeOverrideTime?: string | Date;
     totalAmount: number;
     notes?: string;
+    latitude?: number;
+    longitude?: number;
+    distanceKm?: number;
     saleId?: number;
     saleInvoiceNo?: string;
     branchId?: number;
@@ -62,6 +65,7 @@ export interface CreateCustomerOrderDto {
     notes?: string;
     latitude?: number;
     longitude?: number;
+    distanceKm?: number;
     googleMapsLink?: string;
     google_maps_link?: string;
     deliveryAddress?: string;

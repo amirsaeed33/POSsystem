@@ -82,6 +82,8 @@ export class BranchService {
             serviceChargePercent: input.serviceChargePercent ?? 0,
             dateFormat: input.dateFormat || 'dd/MM/yyyy',
             currencyFormat: input.currencyFormat || 'PKR',
+            latitude: input.latitude != null ? Number(input.latitude) : null,
+            longitude: input.longitude != null ? Number(input.longitude) : null,
         };
 
         if (input.imageBase64) body.imageBase64 = input.imageBase64;
@@ -129,6 +131,8 @@ export class BranchService {
                 serviceChargePercent: input.serviceChargePercent ?? 0,
                 dateFormat: input.dateFormat || 'dd/MM/yyyy',
                 currencyFormat: input.currencyFormat || 'PKR',
+                latitude: input.latitude != null ? Number(input.latitude) : null,
+                longitude: input.longitude != null ? Number(input.longitude) : null,
             })
         );
         return this.map(this.unwrap(res, 'Failed to update branch'));
@@ -253,6 +257,8 @@ export class BranchService {
             serviceChargePercent: item.serviceChargePercent ?? item.ServiceChargePercent ?? 0,
             dateFormat: item.dateFormat ?? item.DateFormat ?? 'dd/MM/yyyy',
             currencyFormat: item.currencyFormat ?? item.CurrencyFormat ?? 'PKR',
+            latitude: item.latitude != null ? Number(item.latitude) : (item.Latitude != null ? Number(item.Latitude) : null),
+            longitude: item.longitude != null ? Number(item.longitude) : (item.Longitude != null ? Number(item.Longitude) : null),
         };
     }
 }

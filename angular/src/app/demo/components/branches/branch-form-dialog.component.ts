@@ -40,6 +40,7 @@ export class BranchFormDialogComponent implements OnChanges {
     imagePreview = '';
     saving = false;
     loading = false;
+    locating = false;
     private originalStatusId = 0;
 
     companyTypes: HostCatalogItemDto[] = [];
@@ -252,6 +253,8 @@ export class BranchFormDialogComponent implements OnChanges {
             serviceChargePercent: this.branch.serviceChargePercent ?? 0,
             companyTypeId: this.selectedCompanyTypeId || undefined,
             hostCatalogItemIds: this.selectedHostItemIds,
+            latitude: this.branch.latitude != null ? Number(this.branch.latitude) : null,
+            longitude: this.branch.longitude != null ? Number(this.branch.longitude) : null,
         };
 
         const selectedStatus = this.statusOptions.find(
@@ -267,6 +270,8 @@ export class BranchFormDialogComponent implements OnChanges {
             ? this.branchService.update({
                   id: this.branchId,
                   ...createPayload,
+                  latitude: this.branch.latitude != null ? Number(this.branch.latitude) : null,
+                  longitude: this.branch.longitude != null ? Number(this.branch.longitude) : null,
                   statusId: this.canEditStatus
                       ? this.branch.statusId
                       : undefined,
@@ -331,7 +336,54 @@ export class BranchFormDialogComponent implements OnChanges {
             discountAmount: 0,
             businessType: 1,
             serviceChargePercent: 0,
+            latitude: null,
+            longitude: null,
         };
+    }
+
+    detectCurrentLocation(): void {
+        if (!navigator.geolocation) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS Not Supported',
+                detail: 'Geolocation is not supported by your browser.',
+            });
+            return;
+        }
+        this.locating = true;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                this.branch.latitude = Number(pos.coords.latitude.toFixed(6));
+                this.branch.longitude = Number(pos.coords.longitude.toFixed(6));
+                this.locating = false;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Location Captured',
+                    detail: `Store coordinates set to: (${this.branch.latitude}, ${this.branch.longitude})`,
+                });
+            },
+            () => {
+                this.locating = false;
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'GPS Detection',
+                    detail: 'Unable to detect coordinates automatically. Please enter latitude & longitude manually.',
+                });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    clearShopLocation(): void {
+        this.branch.latitude = null;
+        this.branch.longitude = null;
+    }
+
+    get googleMapsShopLink(): string | null {
+        if (this.branch.latitude != null && this.branch.longitude != null) {
+            return `https://maps.google.com/?q=${this.branch.latitude},${this.branch.longitude}`;
+        }
+        return null;
     }
 
     private resetForm(): void {
@@ -378,7 +430,12 @@ export class BranchFormDialogComponent implements OnChanges {
         this.branchService
             .get(id)
             .then((branch) => {
-                this.branch = { ...branch, imageBase64: undefined };
+                this.branch = {
+                    ...branch,
+                    latitude: branch.latitude ?? null,
+                    longitude: branch.longitude ?? null,
+                    imageBase64: undefined
+                };
                 this.originalStatusId = branch.statusId || 0;
                 this.imagePreview = this.branchService.getImageUrl(
                     branch.imagePath

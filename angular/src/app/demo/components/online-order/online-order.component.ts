@@ -90,6 +90,12 @@ export class OnlineOrderComponent implements OnInit {
     locationAccuracy: number | null = null;
     locationError: string | null = null;
 
+    // Branch GPS Coordinates & Distance Calculation State
+    branchLatitude: number | null = null;
+    branchLongitude: number | null = null;
+    distanceKm: number | null = null;
+    estimatedDeliveryMins: string | null = null;
+
     // Delivery Areas & Free Delivery Engine
     deliveryAreas: DeliveryAreaDto[] = [];
     selectedDeliveryAreaId: number | null = null;
@@ -229,6 +235,11 @@ export class OnlineOrderComponent implements OnInit {
                 if (info.currencyFormat) this.currencyFormat = info.currencyFormat;
                 if (info.dateFormat) this.dateFormat = info.dateFormat;
                 this.isRestaurant = !!info.isRestaurant || info.businessType === 2;
+                if (info.latitude != null) this.branchLatitude = Number(info.latitude);
+                if (info.longitude != null) this.branchLongitude = Number(info.longitude);
+                if (this.locationCaptured) {
+                    this.calculateDistance();
+                }
                 return;
             }
         } catch {
@@ -236,6 +247,8 @@ export class OnlineOrderComponent implements OnInit {
         }
         this.branchName = '';
         this.isRestaurant = false;
+        this.branchLatitude = null;
+        this.branchLongitude = null;
     }
 
     async handleMissingBranchId(): Promise<void> {
@@ -1057,6 +1070,7 @@ export class OnlineOrderComponent implements OnInit {
                 });
 
                 this.reverseGeocode(this.latitude, this.longitude);
+                this.calculateDistance();
             },
             (err) => {
                 this.locating = false;
@@ -1089,6 +1103,56 @@ export class OnlineOrderComponent implements OnInit {
         this.googleMapsLink = null;
         this.locationAccuracy = null;
         this.locationError = null;
+        this.distanceKm = null;
+        this.estimatedDeliveryMins = null;
+    }
+
+    calculateDistance(): void {
+        if (
+            this.latitude != null &&
+            this.longitude != null &&
+            this.branchLatitude != null &&
+            this.branchLongitude != null
+        ) {
+            const R = 6371; // Earth radius in km
+            const lat1 = (this.branchLatitude * Math.PI) / 180;
+            const lat2 = (this.latitude * Math.PI) / 180;
+            const dLat = ((this.latitude - this.branchLatitude) * Math.PI) / 180;
+            const dLon = ((this.longitude - this.branchLongitude) * Math.PI) / 180;
+
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const km = R * c;
+
+            this.distanceKm = Number(km.toFixed(1));
+
+            if (this.distanceKm <= 3) {
+                this.estimatedDeliveryMins = '20 - 30 mins';
+            } else if (this.distanceKm <= 7) {
+                this.estimatedDeliveryMins = '30 - 45 mins';
+            } else if (this.distanceKm <= 15) {
+                this.estimatedDeliveryMins = '45 - 60 mins';
+            } else {
+                this.estimatedDeliveryMins = '60 - 90 mins';
+            }
+        } else {
+            this.distanceKm = null;
+            this.estimatedDeliveryMins = null;
+        }
+    }
+
+    get routeDirectionsLink(): string | null {
+        if (
+            this.latitude != null &&
+            this.longitude != null &&
+            this.branchLatitude != null &&
+            this.branchLongitude != null
+        ) {
+            return `https://www.google.com/maps/dir/?api=1&origin=${this.branchLatitude},${this.branchLongitude}&destination=${this.latitude},${this.longitude}`;
+        }
+        return this.googleMapsLink;
     }
 
     private async reverseGeocode(lat: number, lng: number): Promise<void> {
@@ -1200,6 +1264,9 @@ export class OnlineOrderComponent implements OnInit {
             if (this.googleMapsLink) {
                 addressParts.push(`🗺️ Maps: ${this.googleMapsLink}`);
             }
+            if (this.distanceKm != null) {
+                addressParts.push(`📏 Distance: ${this.distanceKm} km from store`);
+            }
             if (this.notes.trim()) {
                 addressParts.push(`📝 Notes: ${this.notes.trim()}`);
             }
@@ -1213,6 +1280,7 @@ export class OnlineOrderComponent implements OnInit {
                 notes: formattedNotes,
                 latitude: this.latitude ?? undefined,
                 longitude: this.longitude ?? undefined,
+                distanceKm: this.distanceKm ?? undefined,
                 googleMapsLink: this.googleMapsLink ?? undefined,
                 google_maps_link: this.googleMapsLink ?? undefined,
                 deliveryAddress: this.deliveryAddress.trim() || undefined,

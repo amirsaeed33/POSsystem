@@ -75,5 +75,9 @@ namespace SmartPos.Branches.Dto
 
         [Range(0, 100)]
         public decimal ServiceChargePercent { get; set; }
+
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
     }
 }

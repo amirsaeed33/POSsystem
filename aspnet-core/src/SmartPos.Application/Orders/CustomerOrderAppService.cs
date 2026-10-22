@@ -249,7 +249,9 @@ namespace SmartPos.Orders
                     FreeDeliveryThreshold = freeThreshold,
                     DeliveryAreaNote = areas.Any() ? $"{areas.Count} active delivery areas" : "Standard Delivery",
                     IsRestaurant = isRestaurant,
-                    BusinessType = branch != null ? (int)branch.BusinessType : 1
+                    BusinessType = branch != null ? (int)branch.BusinessType : 1,
+                    Latitude = branch?.Latitude,
+                    Longitude = branch?.Longitude
                 };
             }
         }
@@ -328,6 +330,10 @@ namespace SmartPos.Orders
                 {
                     noteParts.Add($"🗺️ {input.GoogleMapsLink.Trim()}");
                 }
+                if (input.DistanceKm.HasValue && input.DistanceKm.Value > 0)
+                {
+                    noteParts.Add($"📏 Distance: {input.DistanceKm.Value:F1} km");
+                }
 
                 var finalNotes = string.Join(" | ", noteParts);
                 if (finalNotes.Length > CustomerOrder.MaxNotesLength)
@@ -343,6 +349,9 @@ namespace SmartPos.Orders
                     OrderDate = input.OrderDate == default ? Abp.Timing.Clock.Now : input.OrderDate,
                     Notes = finalNotes,
                     Status = CustomerOrderStatus.Pending,
+                    Latitude = input.Latitude,
+                    Longitude = input.Longitude,
+                    DistanceKm = input.DistanceKm,
                     Lines = new List<CustomerOrderLine>()
                 };
 
@@ -835,6 +844,9 @@ namespace SmartPos.Orders
                 Notes = entity.Notes,
                 SaleId = entity.SaleId,
                 SaleInvoiceNo = entity.Sale?.InvoiceNo,
+                Latitude = entity.Latitude,
+                Longitude = entity.Longitude,
+                DistanceKm = entity.DistanceKm,
                 Lines = new List<CustomerOrderLineDto>()
             };
 

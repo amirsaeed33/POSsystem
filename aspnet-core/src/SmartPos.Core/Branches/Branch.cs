@@ -90,5 +90,11 @@ namespace SmartPos.Branches
         public virtual string ActivationTokenHash { get; set; }
 
         public virtual DateTime? ActivationTokenExpiresAt { get; set; }
+
+        /// <summary>Optional GPS Latitude of this store / branch location.</summary>
+        public virtual double? Latitude { get; set; }
+
+        /// <summary>Optional GPS Longitude of this store / branch location.</summary>
+        public virtual double? Longitude { get; set; }
     }
 }

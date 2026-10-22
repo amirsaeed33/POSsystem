@@ -77,6 +77,12 @@ namespace SmartPos.Orders
         [ForeignKey(nameof(SaleId))]
         public virtual Sale Sale { get; set; }
 
+        public virtual double? Latitude { get; set; }
+
+        public virtual double? Longitude { get; set; }
+
+        public virtual double? DistanceKm { get; set; }
+
         public virtual ICollection<CustomerOrderLine> Lines { get; set; }
     }
 }

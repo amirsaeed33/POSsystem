@@ -25,6 +25,8 @@ namespace SmartPos.Orders.Dto
 
         public double? Longitude { get; set; }
 
+        public double? DistanceKm { get; set; }
+
         public string GoogleMapsLink { get; set; }
 
         public string DeliveryAddress { get; set; }
@@ -73,6 +75,8 @@ namespace SmartPos.Orders.Dto
         public string DeliveryAreaNote { get; set; }
         public bool IsRestaurant { get; set; }
         public int BusinessType { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
     }
 
     public class OnlineProductDto
@@ -165,6 +169,12 @@ namespace SmartPos.Orders.Dto
         public int? SaleId { get; set; }
 
         public string SaleInvoiceNo { get; set; }
+
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
+        public double? DistanceKm { get; set; }
 
         public List<CustomerOrderLineDto> Lines { get; set; }
     }

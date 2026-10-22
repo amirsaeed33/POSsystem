@@ -56,6 +56,10 @@ namespace SmartPos.Branches.Dto
         [Range(0, 100)]
         public decimal ServiceChargePercent { get; set; }
 
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
         /// <summary>Host catalog CompanyType id for initial seed selection.</summary>
         [Range(1, int.MaxValue)]
         public int CompanyTypeId { get; set; }

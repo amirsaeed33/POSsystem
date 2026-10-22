@@ -107,6 +107,8 @@ namespace SmartPos.Branches
             // New branches always start as Pending until host admin approves.
             branch.StatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
             branch.ImagePath = BranchImageStore.SaveBase64Image(input.ImageBase64);
+            branch.Latitude = input.Latitude;
+            branch.Longitude = input.Longitude;
 
             await Repository.InsertAsync(branch);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -164,6 +166,8 @@ namespace SmartPos.Branches
             branch.ServiceChargePercent = Math.Max(0, input.ServiceChargePercent);
             branch.DateFormat = string.IsNullOrWhiteSpace(input.DateFormat) ? "dd/MM/yyyy" : input.DateFormat.Trim();
             branch.CurrencyFormat = string.IsNullOrWhiteSpace(input.CurrencyFormat) ? "PKR" : input.CurrencyFormat.Trim();
+            branch.Latitude = input.Latitude;
+            branch.Longitude = input.Longitude;
 
             // Only host admin with approve permission may change StatusId.
             // Selecting Approved sends an activation email and keeps Pending.

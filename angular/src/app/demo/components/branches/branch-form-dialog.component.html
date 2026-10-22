@@ -200,6 +200,88 @@
             ></textarea>
         </div>
 
+        <!-- 📍 Shop Location / GPS Coordinates -->
+        <div class="surface-50 border-1 surface-border border-round-xl p-3 flex flex-column gap-3 mb-2">
+            <div class="flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="flex align-items-center gap-2">
+                    <div class="w-2rem h-2rem border-round bg-primary-50 text-primary flex align-items-center justify-content-center">
+                        <i class="pi pi-map-marker text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-900 block">Shop / Store GPS Location</span>
+                        <small class="text-500">Defines store coordinates to calculate customer distance (km) on online orders</small>
+                    </div>
+                </div>
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-compass"
+                        [label]="locating ? 'Detecting...' : 'Pin Current Location'"
+                        class="p-button-outlined p-button-sm p-button-success"
+                        [disabled]="locating || saving"
+                        (click)="detectCurrentLocation()"
+                        title="Detect this device's GPS coordinates as shop location"
+                    ></button>
+                    <a
+                        *ngIf="googleMapsShopLink"
+                        [href]="googleMapsShopLink"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="p-button p-button-outlined p-button-sm p-button-info text-decoration-none flex align-items-center gap-1"
+                        title="Open store pin on Google Maps"
+                    >
+                        <i class="pi pi-external-link"></i>
+                        <span>View Map</span>
+                    </a>
+                    <button
+                        *ngIf="branch.latitude != null || branch.longitude != null"
+                        pButton
+                        type="button"
+                        icon="pi pi-times"
+                        class="p-button-text p-button-danger p-button-sm"
+                        (click)="clearShopLocation()"
+                        title="Clear coordinates"
+                    ></button>
+                </div>
+            </div>
+
+            <div class="formgrid grid mb-0">
+                <div class="field col-12 md:col-6 mb-0 flex flex-column gap-2">
+                    <label for="dialogBranchLatitude" class="font-medium text-sm">Store Latitude</label>
+                    <p-inputNumber
+                        inputId="dialogBranchLatitude"
+                        [(ngModel)]="branch.latitude"
+                        mode="decimal"
+                        [minFractionDigits]="2"
+                        [maxFractionDigits]="8"
+                        placeholder="e.g. 31.4869"
+                        styleClass="w-full"
+                        [disabled]="saving"
+                    ></p-inputNumber>
+                </div>
+                <div class="field col-12 md:col-6 mb-0 flex flex-column gap-2">
+                    <label for="dialogBranchLongitude" class="font-medium text-sm">Store Longitude</label>
+                    <p-inputNumber
+                        inputId="dialogBranchLongitude"
+                        [(ngModel)]="branch.longitude"
+                        mode="decimal"
+                        [minFractionDigits]="2"
+                        [maxFractionDigits]="8"
+                        placeholder="e.g. 74.2316"
+                        styleClass="w-full"
+                        [disabled]="saving"
+                    ></p-inputNumber>
+                </div>
+            </div>
+
+            <div *ngIf="branch.latitude != null && branch.longitude != null" class="text-xs text-green-700 bg-green-50 border-round p-2 flex align-items-center gap-2">
+                <i class="pi pi-check-circle"></i>
+                <span>Store pin active: <strong>{{ branch.latitude | number: '1.4-6' }}, {{ branch.longitude | number: '1.4-6' }}</strong> &bull; Distance calculation enabled</span>
+            </div>
+        </div>
+
         <div class="flex flex-column gap-2">
             <label for="invoiceContactEmail" class="font-medium">Invoice Contact Email</label>
             <input
