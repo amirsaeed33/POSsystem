@@ -1256,10 +1256,13 @@
                     <div class="text-xs text-500">Select options and kitchen preferences</div>
                 </div>
                 <div class="text-right">
-                    <span class="text-xs text-500 block">Base Price</span>
+                    <span class="text-xs text-500 block">Total Price</span>
                     <span class="font-bold text-lg text-primary">
-                        {{ getUnitPrice(selectedProductForModifiers) | number: '1.2-2' }}
+                        {{ currentCustomisedTotal | number: '1.2-2' }}
                     </span>
+                    <small class="text-xs text-500 block" *ngIf="currentCustomisedTotal !== getUnitPrice(selectedProductForModifiers)">
+                        (Base: {{ getUnitPrice(selectedProductForModifiers) | number: '1.2-2' }})
+                    </small>
                 </div>
             </div>
 
@@ -1272,7 +1275,7 @@
                     <div class="flex align-items-center justify-content-between mb-2">
                         <div class="flex align-items-center gap-2">
                             <span class="font-bold text-900">{{ group.name }}</span>
-                            <small class="text-500 font-normal" *ngIf="group.allowMultiple">(Multiple allowed)</small>
+                            <small class="text-500 font-normal">(Multi-select)</small>
                         </div>
                         <span
                             class="text-xs px-2 py-0.5 border-round font-medium"
@@ -1292,18 +1295,10 @@
                         >
                             <div class="flex align-items-center gap-2">
                                 <p-checkbox
-                                    *ngIf="group.allowMultiple"
                                     [binary]="true"
                                     [ngModel]="isOptionSelected(group.id, opt.id)"
                                     (click)="$event.stopPropagation(); toggleModifierOption(group, opt)"
                                 ></p-checkbox>
-                                <p-radioButton
-                                    *ngIf="!group.allowMultiple"
-                                    [name]="'group_' + group.id"
-                                    [value]="opt.id"
-                                    [ngModel]="selectedModifierOptions[group.id] ? selectedModifierOptions[group.id][0] : null"
-                                    (click)="$event.stopPropagation(); toggleModifierOption(group, opt)"
-                                ></p-radioButton>
                                 <label class="cursor-pointer font-medium text-sm m-0">{{ opt.name }}</label>
                             </div>
                             <span class="text-xs font-semibold" [class.text-primary]="opt.price > 0" [class.text-500]="!opt.price">

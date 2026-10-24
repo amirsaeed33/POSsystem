@@ -1,5 +1,5 @@
 <div class="grid dashboard-grid">
-    <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-1">
+    <div [ngClass]="isRestaurant ? 'col-12 md:col-6 xl:col-4' : 'col-12 lg:col-6 xl:col-3'" class="anim-card anim-delay-1">
         <div class="card kpi-card sales-card p-0 overflow-hidden flex flex-column h-full">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-users text-6xl text-blue-500"></i>
@@ -13,7 +13,7 @@
                 class="w-full mt-auto" alt="users">
         </div>
     </div>
-    <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-2">
+    <div [ngClass]="isRestaurant ? 'col-12 md:col-6 xl:col-4' : 'col-12 lg:col-6 xl:col-3'" class="anim-card anim-delay-2">
         <div class="card kpi-card purchases-card p-0 overflow-hidden flex flex-column h-full">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-map text-6xl text-orange-500"></i>
@@ -27,7 +27,7 @@
                 class="w-full mt-auto" alt="locations">
         </div>
     </div>
-    <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-3">
+    <div [ngClass]="isRestaurant ? 'col-12 md:col-6 xl:col-4' : 'col-12 lg:col-6 xl:col-3'" class="anim-card anim-delay-3">
         <div class="card kpi-card expenses-card p-0 overflow-hidden flex flex-column h-full">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-directions text-6xl text-green-500"></i>
@@ -41,7 +41,7 @@
                 class="w-full mt-auto" alt="conversion">
         </div>
     </div>
-    <div class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-4">
+    <div *ngIf="!isRestaurant" class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-4">
         <div class="card kpi-card profit-card p-0 overflow-hidden flex flex-column h-full">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-comments text-6xl text-purple-500"></i>

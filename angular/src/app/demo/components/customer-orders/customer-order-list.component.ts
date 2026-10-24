@@ -11,6 +11,8 @@ import { CustomerOrderService } from 'src/app/demo/service/customer-order.servic
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 
 @Component({
     templateUrl: './customer-order-list.component.html',
@@ -41,8 +43,14 @@ export class CustomerOrderListComponent implements OnInit {
         private messageService: MessageService,
         private confirmationService: ConfirmationService,
         private route: ActivatedRoute,
-        private permissionService: PermissionService
+        private permissionService: PermissionService,
+        private thermalPrintService: ThermalPrintService,
+        private branchContext: BranchContextService
     ) {}
+
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
 
     ngOnInit(): void {
         this.canOverrideDeliveryFee = this.permissionService.isGranted(
@@ -154,39 +162,69 @@ export class CustomerOrderListComponent implements OnInit {
 
     onApprove(order: CustomerOrderDto): void {
         const label = order.orderNo || `#${order.id}`;
+        const confirmMsg = this.isRestaurant
+            ? `Approve customer order "${label}"? This will create a sale invoice and print the receipt.`
+            : `Approve customer order "${label}"? This will create a sale invoice.`;
+
         this.confirmationService.confirm({
-            message: `Approve customer order "${label}"? This will create a sale invoice.`,
+            message: confirmMsg,
             header: 'Approve Confirmation',
             icon: 'pi pi-check-circle',
-            accept: () => {
-                this.customerOrderService
-                    .approve(order.id)
-                    .then((sale) => {
-                        const invoice = sale?.invoiceNo
-                            ? ` Sale invoice: ${sale.invoiceNo}.`
-                            : '';
-                        this.messageService.add({
-                            severity: 'success',
-                            summary: 'Success',
-                            detail: `Order approved successfully.${invoice}`,
-                        });
-                        this.loadOrders();
-                    })
-                    .catch((error) => {
-                        const message =
-                            error?.error?.error?.message ||
-                            error?.error?.message ||
-                            error?.message ||
-                            'Failed to approve order';
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: 'Approve Failed',
-                            detail: message,
-                            life: 6000,
-                        });
+            accept: async () => {
+                try {
+                    const sale = await this.customerOrderService.approve(order.id);
+                    const invoice = sale?.invoiceNo
+                        ? ` Sale invoice: ${sale.invoiceNo}.`
+                        : '';
+                    const detailMsg = this.isRestaurant
+                        ? `Order approved successfully.${invoice} Printing thermal receipt...`
+                        : `Order approved successfully.${invoice}`;
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Success',
+                        detail: detailMsg,
                     });
+                    this.loadOrders();
+
+                    // Print thermal receipt automatically ONLY for restaurant branches
+                    if (this.isRestaurant) {
+                        try {
+                            const fullOrder = await this.customerOrderService.get(order.id);
+                            if (sale?.invoiceNo) {
+                                fullOrder.saleInvoiceNo = sale.invoiceNo;
+                            }
+                            this.thermalPrintService.printCustomerOrder(fullOrder, sale?.invoiceNo);
+                        } catch (err) {
+                            console.warn('Auto print failed, falling back to cached order', err);
+                            this.thermalPrintService.printCustomerOrder(order, sale?.invoiceNo);
+                        }
+                    }
+                } catch (error: any) {
+                    const message =
+                        error?.error?.error?.message ||
+                        error?.error?.message ||
+                        error?.message ||
+                        'Failed to approve order';
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Approve Failed',
+                        detail: message,
+                        life: 6000,
+                    });
+                }
             },
         });
+    }
+
+    printThermalReceipt(order: CustomerOrderDto): void {
+        this.customerOrderService
+            .get(order.id)
+            .then((fullOrder) => {
+                this.thermalPrintService.printCustomerOrder(fullOrder, order.saleInvoiceNo);
+            })
+            .catch(() => {
+                this.thermalPrintService.printCustomerOrder(order, order.saleInvoiceNo);
+            });
     }
 
     onReject(order: CustomerOrderDto): void {
@@ -300,6 +338,12 @@ export class CustomerOrderListComponent implements OnInit {
                 icon: 'pi pi-dollar',
                 visible: this.isPending(order) && this.canOverrideDeliveryFee,
                 action: () => this.openViewDialog(order),
+            },
+            {
+                label: 'Print Thermal Receipt',
+                icon: 'pi pi-print',
+                visible: this.isRestaurant,
+                action: () => this.printThermalReceipt(order),
             },
             {
                 label: 'Approve',

@@ -16,6 +16,8 @@ import {
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 
 @Component({
     selector: 'app-customer-order-view-dialog',
@@ -49,8 +51,19 @@ export class CustomerOrderViewDialogComponent implements OnInit, OnChanges {
         public formatService: AppFormatService,
         private customerOrderService: CustomerOrderService,
         private messageService: MessageService,
-        private permissionService: PermissionService
+        private permissionService: PermissionService,
+        private thermalPrintService: ThermalPrintService,
+        private branchContext: BranchContextService
     ) {}
+
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
+
+    printThermalReceipt(): void {
+        if (!this.order) return;
+        this.thermalPrintService.printCustomerOrder(this.order, this.order.saleInvoiceNo);
+    }
 
     ngOnInit(): void {
         this.canOverrideDeliveryFee = this.permissionService.isGranted(

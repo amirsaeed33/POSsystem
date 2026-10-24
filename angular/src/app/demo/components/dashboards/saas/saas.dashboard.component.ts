@@ -4,6 +4,7 @@ import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { DashboardService } from 'src/app/demo/service/dashboard.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import {
     MonthlyCashFlowDto,
     DailyOverviewDto,
@@ -111,10 +112,13 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
 
     get trendChartSubtitle(): string {
         const periodUnit = this.selectedTrendPeriod === 'hour' ? 'hourly' : this.selectedTrendPeriod === 'month' ? 'monthly' : this.selectedTrendPeriod === 'year' ? 'yearly' : 'daily';
-        return `Compare ${periodUnit} Sales, Purchases, Expenses & Profit (click legend items to toggle visibility)`;
+        return this.isRestaurant
+            ? `Compare ${periodUnit} Sales, Purchases & Expenses (click legend items to toggle visibility)`
+            : `Compare ${periodUnit} Sales, Purchases, Expenses & Profit (click legend items to toggle visibility)`;
     }
 
     subscription: Subscription;
+    private branchSubscription?: Subscription;
 
     todaySales = 0;
     todayPurchases = 0;
@@ -171,13 +175,23 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     constructor(
         public layoutService: LayoutService,
         private dashboardService: DashboardService,
-        private permissionService: PermissionService
+        private permissionService: PermissionService,
+        private branchContext: BranchContextService
     ) {
         this.subscription = this.layoutService.configUpdate$
             .pipe(debounceTime(25))
             .subscribe((config) => {
                 this.initCharts();
             });
+
+        this.branchSubscription = this.branchContext.currentBranch$.subscribe(() => {
+            this.initCharts();
+            this.loadDashboard();
+        });
+    }
+
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
     }
 
     canOpenPos(): boolean {
@@ -998,7 +1012,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     tension: 0.4,
                     hidden: hiddenDatasetIndexes.includes(2)
                 },
-                {
+                ...(!this.isRestaurant ? [{
                     label: 'Profit',
                     data: labels.length ? profitValues : [0],
                     borderColor: '#9333ea',
@@ -1017,7 +1031,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
                     fill: !isBar,
                     tension: 0.4,
                     hidden: hiddenDatasetIndexes.includes(3)
-                }
+                }] : [])
             ]
         };
 
@@ -1235,6 +1249,9 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         if (this.subscription) {
             this.subscription.unsubscribe();
+        }
+        if (this.branchSubscription) {
+            this.branchSubscription.unsubscribe();
         }
         if (this.counterAnimationId) {
             cancelAnimationFrame(this.counterAnimationId);

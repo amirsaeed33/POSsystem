@@ -17,7 +17,6 @@ namespace SmartPos.Products.Dto
         [StringLength(Product.MaxLocationLength)]
         public string Location { get; set; }
 
-        [Required(ErrorMessage = "Barcode is required.")]
         [StringLength(Product.MaxBarcodeLength)]
         public string Barcode { get; set; }
 
@@ -49,8 +48,7 @@ namespace SmartPos.Products.Dto
 
         public string CategoryName { get; set; }
 
-        [Required(ErrorMessage = "Brand is required.")]
-        public int BrandId { get; set; }
+        public int? BrandId { get; set; }
 
         public string BrandName { get; set; }
 

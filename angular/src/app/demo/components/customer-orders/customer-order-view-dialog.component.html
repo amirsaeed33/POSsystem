@@ -173,6 +173,16 @@
 
     <ng-template pTemplate="footer">
         <button
+            *ngIf="isRestaurant && order"
+            pButton
+            pRipple
+            type="button"
+            label="Print Thermal Receipt"
+            icon="pi pi-print"
+            class="p-button-outlined p-button-secondary mr-auto"
+            (click)="printThermalReceipt()"
+        ></button>
+        <button
             pButton
             pRipple
             type="button"

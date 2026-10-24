@@ -782,6 +782,22 @@ export class PosComponent implements OnInit, OnDestroy {
         this.focusSearch();
     }
 
+    get currentCustomisedTotal(): number {
+        if (!this.selectedProductForModifiers) return 0;
+        const base = this.getUnitPrice(this.selectedProductForModifiers) || 0;
+        let extra = 0;
+        for (const group of this.availableModifierGroups) {
+            const selectedIds = this.selectedModifierOptions[group.id] || [];
+            for (const optId of selectedIds) {
+                const opt = group.options?.find((o) => o.id === optId);
+                if (opt) {
+                    extra += opt.price || 0;
+                }
+            }
+        }
+        return base + extra;
+    }
+
     isOptionSelected(groupId: number, optionId: number): boolean {
         const list = this.selectedModifierOptions[groupId];
         return !!list && list.includes(optionId);
@@ -792,21 +808,11 @@ export class PosComponent implements OnInit, OnDestroy {
             this.selectedModifierOptions[group.id] = [];
         }
 
-        if (group.allowMultiple) {
-            const index = this.selectedModifierOptions[group.id].indexOf(option.id);
-            if (index > -1) {
-                this.selectedModifierOptions[group.id].splice(index, 1);
-            } else {
-                this.selectedModifierOptions[group.id].push(option.id);
-            }
+        const index = this.selectedModifierOptions[group.id].indexOf(option.id);
+        if (index > -1) {
+            this.selectedModifierOptions[group.id].splice(index, 1);
         } else {
-            if (this.selectedModifierOptions[group.id].includes(option.id)) {
-                if (!group.isRequired) {
-                    this.selectedModifierOptions[group.id] = [];
-                }
-            } else {
-                this.selectedModifierOptions[group.id] = [option.id];
-            }
+            this.selectedModifierOptions[group.id].push(option.id);
         }
     }
 

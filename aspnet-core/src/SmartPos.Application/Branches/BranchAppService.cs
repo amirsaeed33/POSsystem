@@ -118,11 +118,16 @@ namespace SmartPos.Branches
                 throw new UserFriendlyException("User session is required to create a branch seed request.");
             }
 
-            await _branchCatalogSeedService.CreateRequestAsync(
-                branch,
-                input.CompanyTypeId,
-                input.HostCatalogItemIds,
-                AbpSession.UserId.Value);
+            if (input.CompanyTypeId > 0 && input.HostCatalogItemIds != null && input.HostCatalogItemIds.Count > 0)
+            {
+                await _branchCatalogSeedService.CreateRequestAsync(
+                    branch,
+                    input.CompanyTypeId,
+                    input.HostCatalogItemIds,
+                    AbpSession.UserId.Value);
+
+                await _branchCatalogSeedService.ApproveAndCopyAsync(branch, AbpSession.UserId);
+            }
 
             await SeedSharedProductsAsync(branch.Id);
 

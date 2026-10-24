@@ -92,8 +92,7 @@ export class ProductModifierService {
     }
 
     private mapGroup(g: any): ProductModifierGroupDto {
-        const maxSel = g.maxSelection ?? g.MaxSelection ?? 1;
-        const allowMulti = g.allowMultiple ?? g.AllowMultiple ?? (maxSel > 1);
+        const maxSel = g.maxSelection ?? g.MaxSelection ?? 10;
         return {
             id: g.id ?? g.Id,
             productId: g.productId ?? g.ProductId,
@@ -101,7 +100,7 @@ export class ProductModifierService {
             minSelection: g.minSelection ?? g.MinSelection ?? 0,
             maxSelection: maxSel,
             isRequired: !!(g.isRequired ?? g.IsRequired),
-            allowMultiple: !!allowMulti,
+            allowMultiple: true,
             options: (g.options || g.Options || []).map((o: any) => this.mapOption(o)),
         };
     }

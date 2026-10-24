@@ -77,9 +77,9 @@ namespace SmartPos.Products
                 {
                     input.Barcode = $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
                 }
-                if (input.BrandId <= 0)
+                if (!input.BrandId.HasValue || input.BrandId.Value <= 0)
                 {
-                    var defaultBrand = await _brandRepository.FirstOrDefaultAsync(b => b.BranchId == branch.Id)
+                    var defaultBrand = (branch != null ? await _brandRepository.FirstOrDefaultAsync(b => b.BranchId == branch.Id) : null)
                                        ?? await _brandRepository.FirstOrDefaultAsync(b => true);
                     if (defaultBrand == null)
                     {
@@ -97,8 +97,8 @@ namespace SmartPos.Products
                     {
                         input.BrandId = await _brandRepository.InsertAndGetIdAsync(new SmartPos.Brands.Brand
                         {
-                            TenantId = branch.TenantId,
-                            BranchId = branch.Id,
+                            TenantId = branch?.TenantId ?? AbpSession.TenantId,
+                            BranchId = branch?.Id ?? 0,
                             Name = "General",
                             IsActive = true
                         });
@@ -118,9 +118,10 @@ namespace SmartPos.Products
                 input.CostPrice,
                 input.AlertQuantityLimit,
                 input.CategoryId,
-                input.BrandId,
-                input.UnitId);
-            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice);
+                input.BrandId.GetValueOrDefault(),
+                input.UnitId,
+                isRestaurant);
+            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice, isRestaurant);
 
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: null);
@@ -137,6 +138,7 @@ namespace SmartPos.Products
 
             var initialStock = input.StockQuantity > 0 ? input.StockQuantity : 0;
             var product = ObjectMapper.Map<Product>(input);
+            product.BrandId = input.BrandId.GetValueOrDefault();
             product.TenantId = AbpSession.TenantId;
             product.Barcode = barcode;
             product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
@@ -216,7 +218,7 @@ namespace SmartPos.Products
                 {
                     input.Barcode = product.Barcode ?? $"REST-{Guid.NewGuid():N}".Substring(0, 16).ToUpper();
                 }
-                if (input.BrandId <= 0)
+                if (!input.BrandId.HasValue || input.BrandId.Value <= 0)
                 {
                     input.BrandId = product.BrandId;
                 }
@@ -233,9 +235,10 @@ namespace SmartPos.Products
                 input.CostPrice,
                 input.AlertQuantityLimit,
                 input.CategoryId,
-                input.BrandId,
-                input.UnitId);
-            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice);
+                input.BrandId.GetValueOrDefault(),
+                input.UnitId,
+                isRestaurant);
+            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice, isRestaurant);
 
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: product.Id);
@@ -249,7 +252,7 @@ namespace SmartPos.Products
             product.CostPrice = input.CostPrice;
             product.AlertQuantityLimit = input.AlertQuantityLimit;
             product.CategoryId = input.CategoryId;
-            product.BrandId = input.BrandId;
+            product.BrandId = input.BrandId.GetValueOrDefault();
             product.UnitId = input.UnitId;
             product.Specifications = input.Specifications;
 
@@ -608,14 +611,15 @@ namespace SmartPos.Products
             decimal alertQuantityLimit,
             int categoryId,
             int brandId,
-            int unitId)
+            int unitId,
+            bool isRestaurant = false)
         {
             if (name.IsNullOrWhiteSpace())
             {
                 throw new UserFriendlyException("Name is required.");
             }
 
-            if (barcode.IsNullOrWhiteSpace())
+            if (!isRestaurant && barcode.IsNullOrWhiteSpace())
             {
                 throw new UserFriendlyException("Barcode is required.");
             }
@@ -625,17 +629,17 @@ namespace SmartPos.Products
                 throw new UserFriendlyException("Price is required.");
             }
 
-            if (wholesalePrice < 0)
+            if (!isRestaurant && wholesalePrice < 0)
             {
                 throw new UserFriendlyException("Wholesale price is required.");
             }
 
-            if (costPrice < 0)
+            if (!isRestaurant && costPrice < 0)
             {
                 throw new UserFriendlyException("Cost price is required.");
             }
 
-            if (alertQuantityLimit < 0)
+            if (!isRestaurant && alertQuantityLimit < 0)
             {
                 throw new UserFriendlyException("Alert quantity limit is required.");
             }
@@ -645,7 +649,7 @@ namespace SmartPos.Products
                 throw new UserFriendlyException("Category is required.");
             }
 
-            if (brandId <= 0)
+            if (!isRestaurant && brandId <= 0)
             {
                 throw new UserFriendlyException("Brand is required.");
             }
@@ -656,8 +660,13 @@ namespace SmartPos.Products
             }
         }
 
-        private static void EnsureValidPricing(decimal price, decimal wholesalePrice, decimal costPrice)
+        private static void EnsureValidPricing(decimal price, decimal wholesalePrice, decimal costPrice, bool isRestaurant = false)
         {
+            if (isRestaurant)
+            {
+                return;
+            }
+
             if (price < costPrice)
             {
                 throw new UserFriendlyException(

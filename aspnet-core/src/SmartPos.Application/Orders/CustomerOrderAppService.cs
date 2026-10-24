@@ -848,6 +848,8 @@ namespace SmartPos.Orders
                 BranchName = entity.Branch?.Name,
                 CustomerId = entity.CustomerId,
                 CustomerName = entity.Customer?.Name,
+                CustomerPhone = entity.Customer?.Phone,
+                CustomerAddress = entity.Customer?.Address,
                 OrderDate = entity.OrderDate,
                 OrderNo = entity.OrderNo,
                 Status = entity.Status,

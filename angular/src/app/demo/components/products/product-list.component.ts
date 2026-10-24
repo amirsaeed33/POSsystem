@@ -42,7 +42,7 @@ export class ProductListComponent implements OnInit {
     modifierGroups: ProductModifierGroupDto[] = [];
     newGroupName = '';
     newGroupIsRequired = false;
-    newGroupAllowMultiple = false;
+    newGroupAllowMultiple = true;
     creatingGroup = false;
     newOptionName: Record<number, string> = {};
     newOptionPrice: Record<number, number> = {};
@@ -139,7 +139,7 @@ export class ProductListComponent implements OnInit {
         this.modifierDialogVisible = true;
         this.newGroupName = '';
         this.newGroupIsRequired = false;
-        this.newGroupAllowMultiple = false;
+        this.newGroupAllowMultiple = true;
         await this.loadModifiers(product.id);
     }
 
@@ -172,7 +172,7 @@ export class ProductListComponent implements OnInit {
             });
             this.newGroupName = '';
             this.newGroupIsRequired = false;
-            this.newGroupAllowMultiple = false;
+            this.newGroupAllowMultiple = true;
             await this.loadModifiers(this.modifierTargetProduct.id);
             this.messageService.add({
                 severity: 'success',

@@ -207,6 +207,8 @@ export class CustomerOrderService {
             id: item.id ?? item.Id,
             customerId: item.customerId ?? item.CustomerId,
             customerName: item.customerName ?? item.CustomerName,
+            customerPhone: item.customerPhone ?? item.CustomerPhone,
+            customerAddress: item.customerAddress ?? item.CustomerAddress,
             orderDate: item.orderDate ?? item.OrderDate,
             orderNo: item.orderNo ?? item.OrderNo,
             status: item.status ?? item.Status ?? 0,

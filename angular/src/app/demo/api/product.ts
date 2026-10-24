@@ -34,7 +34,7 @@ export interface ProductDto {
     alertQuantityLimit: number;
     categoryId: number;
     categoryName?: string;
-    brandId: number;
+    brandId?: number;
     brandName?: string;
     unitId: number;
     unitName?: string;
@@ -52,14 +52,14 @@ export interface CreateProductDto {
     name: string;
     description?: string;
     location?: string;
-    barcode: string;
+    barcode?: string;
     price: number;
     wholesalePrice: number;
     costPrice: number;
     alertQuantityLimit: number;
     stockQuantity?: number;
     categoryId: number;
-    brandId: number;
+    brandId?: number;
     unitId: number;
     branchId?: number;
     imageBase64?: string;

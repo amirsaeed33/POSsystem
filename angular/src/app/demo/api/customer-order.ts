@@ -20,6 +20,8 @@ export interface CustomerOrderDto {
     id: number;
     customerId: number;
     customerName?: string;
+    customerPhone?: string;
+    customerAddress?: string;
     orderDate: string | Date;
     orderNo?: string;
     status: number;
