@@ -12,6 +12,8 @@ import { ProductModifierGroupDto } from 'src/app/demo/api/product-modifier';
 import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
 
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { DealService } from 'src/app/demo/service/deal.service';
+import { CreateDealDto, DealDto } from 'src/app/demo/api/deal';
 
 @Component({
     templateUrl: './product-list.component.html',
@@ -48,6 +50,21 @@ export class ProductListComponent implements OnInit {
     newOptionPrice: Record<number, number> = {};
     addingOption: Record<number, boolean> = {};
 
+    // Deal Management (Restaurant only)
+    dealDialogVisible = false;
+    dealName = '';
+    dealPrice: number | null = null;
+    dealExpiryDate = '';
+    dealCategoryType = 'Deals';
+    dealDescription = '';
+    dealProductSearch = '';
+    availableDealProducts: { product: ProductDto; selected: boolean; quantity: number }[] = [];
+    savingDeal = false;
+
+    viewDealDialogVisible = false;
+    selectedDealDetails: DealDto | null = null;
+    loadingDealDetails = false;
+
     canCreate = false;
     canEdit = false;
     canDelete = false;
@@ -67,6 +84,7 @@ export class ProductListComponent implements OnInit {
     constructor(
         private productService: ProductService,
         private productModifierService: ProductModifierService,
+        private dealService: DealService,
         private permissionService: PermissionService,
         private branchContext: BranchContextService,
         private messageService: MessageService,
@@ -107,7 +125,16 @@ export class ProductListComponent implements OnInit {
             });
         }
 
-        if (this.isRestaurant) {
+        if (this.isDealProduct(product)) {
+            actions.push({
+                label: 'View Deal Items',
+                icon: 'pi pi-bolt',
+                color: 'blue',
+                action: () => this.openViewDealDialog(product)
+            });
+        }
+
+        if (this.isRestaurant && !this.isDealProduct(product)) {
             actions.push({
                 label: 'Modifiers & Add-ons',
                 icon: 'pi pi-list',
@@ -512,5 +539,167 @@ export class ProductListComponent implements OnInit {
             }
         };
         reader.readAsArrayBuffer(file);
+    }
+
+    isDealProduct(product?: ProductDto | null): boolean {
+        if (!product) return false;
+        return !!(
+            product.isDeal ||
+            product.dealId ||
+            (product.categoryName || '').trim().toLowerCase() === 'deals' ||
+            (product.barcode || '').startsWith('DEAL-')
+        );
+    }
+
+    openCreateDealDialog(): void {
+        this.dealName = '';
+        this.dealPrice = null;
+        this.dealExpiryDate = '';
+        this.dealCategoryType = 'Deals';
+        this.dealDescription = '';
+        this.dealProductSearch = '';
+        this.availableDealProducts = this.products
+            .filter((p) => !this.isGroceryProduct(p) && !this.isDealProduct(p))
+            .map((p) => ({
+                product: p,
+                selected: false,
+                quantity: 1,
+            }));
+        this.dealDialogVisible = true;
+    }
+
+    onDealProductCheckboxChange(item: { product: ProductDto; selected: boolean; quantity: number }): void {
+        if (item.selected && (!item.quantity || item.quantity < 1)) {
+            item.quantity = 1;
+        }
+    }
+
+    incrementDealQuantity(item: { product: ProductDto; selected: boolean; quantity: number }): void {
+        if (!item.selected) {
+            item.selected = true;
+        }
+        item.quantity = (item.quantity || 0) + 1;
+    }
+
+    decrementDealQuantity(item: { product: ProductDto; selected: boolean; quantity: number }): void {
+        if (item.quantity > 1) {
+            item.quantity--;
+        } else {
+            item.quantity = 1;
+            item.selected = false;
+        }
+    }
+
+    onDealQuantityChange(item: { product: ProductDto; selected: boolean; quantity: number }): void {
+        if (!item.quantity || item.quantity < 1) {
+            item.quantity = 1;
+        }
+        if (!item.selected) {
+            item.selected = true;
+        }
+    }
+
+    get selectedDealItems(): { product: ProductDto; selected: boolean; quantity: number }[] {
+        return (this.availableDealProducts || []).filter((x) => x.selected && x.quantity > 0);
+    }
+
+    get totalDealOriginalPrice(): number {
+        return this.selectedDealItems.reduce(
+            (sum, x) => sum + (x.product.price || 0) * x.quantity,
+            0
+        );
+    }
+
+    get filteredAvailableProducts(): { product: ProductDto; selected: boolean; quantity: number }[] {
+        if (!this.dealProductSearch?.trim()) {
+            return this.availableDealProducts || [];
+        }
+        const q = this.dealProductSearch.trim().toLowerCase();
+        return (this.availableDealProducts || []).filter(
+            (x) =>
+                (x.product.name || '').toLowerCase().includes(q) ||
+                (x.product.categoryName || '').toLowerCase().includes(q)
+        );
+    }
+
+    async saveDeal(): Promise<void> {
+        if (!this.dealName?.trim()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Deal name is required.',
+            });
+            return;
+        }
+
+        if (this.dealPrice === null || this.dealPrice === undefined || this.dealPrice <= 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Deal price must be greater than zero.',
+            });
+            return;
+        }
+
+        const selectedItems = this.selectedDealItems;
+        if (!selectedItems.length) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Validation',
+                detail: 'Please select at least one product for this deal.',
+            });
+            return;
+        }
+
+        this.savingDeal = true;
+        try {
+            const payload: CreateDealDto = {
+                name: this.dealName.trim(),
+                dealPrice: Number(this.dealPrice),
+                expiryDate: this.dealExpiryDate ? new Date(this.dealExpiryDate).toISOString() : undefined,
+                categoryType: this.dealCategoryType?.trim() || 'Deal',
+                description: this.dealDescription?.trim() || undefined,
+                items: selectedItems.map((x) => ({
+                    productId: x.product.id,
+                    quantity: x.quantity,
+                    unitPrice: x.product.price,
+                })),
+            };
+
+            await this.dealService.create(payload);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Deal Created',
+                detail: `Deal "${this.dealName}" saved successfully.`,
+            });
+            this.dealDialogVisible = false;
+            this.loadProducts();
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to save deal.',
+            });
+        } finally {
+            this.savingDeal = false;
+        }
+    }
+
+    async openViewDealDialog(product: ProductDto): Promise<void> {
+        this.selectedDealDetails = null;
+        this.viewDealDialogVisible = true;
+        this.loadingDealDetails = true;
+        try {
+            this.selectedDealDetails = await this.dealService.getByProductId(product.id);
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to load deal details.',
+            });
+            this.viewDealDialogVisible = false;
+        } finally {
+            this.loadingDealDetails = false;
+        }
     }
 }

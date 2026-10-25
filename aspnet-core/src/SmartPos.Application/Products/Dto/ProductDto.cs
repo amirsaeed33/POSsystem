@@ -77,5 +77,9 @@ namespace SmartPos.Products.Dto
         /// Assigned branch ids (from BranchStock rows). Empty when tenant-level (all locations).
         /// </summary>
         public List<int> BranchIds { get; set; }
+
+        public int? DealId { get; set; }
+
+        public bool IsDeal { get; set; }
     }
 }

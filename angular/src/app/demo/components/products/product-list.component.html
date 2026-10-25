@@ -80,18 +80,33 @@
                         (change)="onExcelFileSelected($event)"
                     />
                 </div>
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-plus"
-                    label="Create"
-                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
-                    (click)="openCreateDialog()"
-                    [disabled]="!canCreate"
-                    [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
-                    tooltipPosition="top"
-                ></button>
+                <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-order-0 sm:flex-order-1">
+                    <button
+                        *ngIf="isRestaurant"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-bolt"
+                        label="Create Deal"
+                        class="p-button-outlined p-button-warning font-semibold"
+                        (click)="openCreateDealDialog()"
+                        [disabled]="!canCreate"
+                        pTooltip="Create a combo deal or meal bundle"
+                        tooltipPosition="top"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        label="Create"
+                        class="p-button-primary font-semibold"
+                        (click)="openCreateDialog()"
+                        [disabled]="!canCreate"
+                        [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
+                        tooltipPosition="top"
+                    ></button>
+                </div>
             </div>
         </ng-template>
 
@@ -146,6 +161,15 @@
                         <span class="font-medium text-900">{{ product.name }}</span>
                         <span class="p-tag p-tag-info text-xs ml-2">Permanent Grocery</span>
                     </ng-container>
+                    <span
+                        *ngIf="isDealProduct(product)"
+                        class="p-tag p-tag-warning text-xs ml-2 cursor-pointer font-bold"
+                        (click)="openViewDealDialog(product)"
+                        pTooltip="Click to view deal items"
+                        tooltipPosition="top"
+                    >
+                        <i class="pi pi-bolt mr-1"></i>Deal
+                    </span>
                     <span *ngIf="product.isShared" class="ml-2 text-xs text-primary font-medium">All locations</span>
                 </td>
                 <td *ngIf="!isRestaurant">{{ product.barcode || '—' }}</td>
@@ -378,6 +402,310 @@
                 label="Close"
                 class="p-button-text"
                 (click)="modifierDialogVisible = false"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Create Deal Modal (Restaurant only) -->
+    <p-dialog
+        [(visible)]="dealDialogVisible"
+        [modal]="true"
+        [style]="{ width: '850px', maxWidth: '95vw' }"
+        header="Create Restaurant Deal"
+        [draggable]="false"
+        [resizable]="false"
+        styleClass="p-fluid"
+    >
+        <ng-template pTemplate="content">
+            <div class="grid p-fluid mt-1">
+                <!-- Deal Name -->
+                <div class="col-12 md:col-6 field">
+                    <label class="font-semibold text-900">
+                        Deal Name <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        pInputText
+                        type="text"
+                        placeholder="e.g. Midnight Feast, Combo 1"
+                        [(ngModel)]="dealName"
+                    />
+                </div>
+
+                <!-- Deal Price -->
+                <div class="col-12 md:col-3 field">
+                    <label class="font-semibold text-900">
+                        Deal Price <span class="text-red-500">*</span>
+                    </label>
+                    <p-inputNumber
+                        [(ngModel)]="dealPrice"
+                        mode="decimal"
+                        [minFractionDigits]="2"
+                        [maxFractionDigits]="2"
+                        placeholder="0.00"
+                    ></p-inputNumber>
+                </div>
+
+                <!-- Expiry Date -->
+                <div class="col-12 md:col-3 field">
+                    <label class="font-semibold text-900">
+                        Expiry Date <span class="text-500 text-xs">(Optional)</span>
+                    </label>
+                    <input
+                        pInputText
+                        type="date"
+                        [(ngModel)]="dealExpiryDate"
+                    />
+                </div>
+
+                <!-- Category (Fixed to Deals, uneditable) -->
+                <div class="col-12 md:col-6 field">
+                    <label class="font-semibold text-900">
+                        Category
+                    </label>
+                    <input
+                        pInputText
+                        type="text"
+                        [value]="'Deals'"
+                        [disabled]="true"
+                        class="p-disabled font-bold"
+                    />
+                </div>
+
+                <!-- Description -->
+                <div class="col-12 md:col-6 field">
+                    <label class="font-semibold text-900">
+                        Description <span class="text-500 text-xs">(Optional)</span>
+                    </label>
+                    <input
+                        pInputText
+                        type="text"
+                        placeholder="e.g. Includes 2 Zinger Burgers and 2 Drinks"
+                        [(ngModel)]="dealDescription"
+                    />
+                </div>
+            </div>
+
+            <!-- Products Selection Section -->
+            <div class="mt-3 border-top-1 surface-border pt-3">
+                <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <div>
+                        <span class="font-bold text-900 text-base">Select Products for Deal</span>
+                        <div class="text-500 text-xs">Choose items and adjust quantities for this bundle</div>
+                    </div>
+                    <span class="p-input-icon-left w-full sm:w-18rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            placeholder="Filter products..."
+                            [(ngModel)]="dealProductSearch"
+                            class="p-inputtext-sm w-full"
+                        />
+                    </span>
+                </div>
+
+                <!-- Table of available products -->
+                <div class="border-1 surface-border border-round overflow-hidden" style="max-height: 280px; overflow-y: auto;">
+                    <table class="w-full text-sm" style="border-collapse: collapse;">
+                        <thead class="bg-surface-50 text-700 sticky top-0" style="z-index: 1;">
+                            <tr>
+                                <th style="width: 3.5rem; padding: 0.5rem; text-align: center;">Select</th>
+                                <th style="padding: 0.5rem; text-align: left;">Product</th>
+                                <th style="width: 9rem; padding: 0.5rem; text-align: left;">Category</th>
+                                <th style="width: 7rem; padding: 0.5rem; text-align: right;">Unit Price</th>
+                                <th style="width: 10rem; padding: 0.5rem; text-align: center;">Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                *ngFor="let item of filteredAvailableProducts"
+                                [class.surface-hover]="item.selected"
+                                class="border-bottom-1 surface-border"
+                            >
+                                <td style="padding: 0.5rem; text-align: center;">
+                                    <p-checkbox
+                                        [binary]="true"
+                                        [(ngModel)]="item.selected"
+                                        (onChange)="onDealProductCheckboxChange(item)"
+                                    ></p-checkbox>
+                                </td>
+                                <td style="padding: 0.5rem; font-weight: 500;">
+                                    {{ item.product.name }}
+                                </td>
+                                <td style="padding: 0.5rem; color: #64748b;">
+                                    {{ item.product.categoryName || '—' }}
+                                </td>
+                                <td style="padding: 0.5rem; text-align: right; font-weight: 600;">
+                                    {{ item.product.price | number: '1.2-2' }}
+                                </td>
+                                <td style="padding: 0.5rem;">
+                                    <div class="flex align-items-center justify-content-center gap-1">
+                                        <button
+                                            pButton
+                                            type="button"
+                                            icon="pi pi-minus"
+                                            class="p-button-outlined p-button-sm p-button-secondary p-0"
+                                            style="width: 1.75rem; height: 1.75rem;"
+                                            [disabled]="!item.selected || item.quantity <= 1"
+                                            (click)="decrementDealQuantity(item)"
+                                        ></button>
+                                        <input
+                                            pInputText
+                                            type="number"
+                                            min="1"
+                                            class="text-center p-inputtext-sm"
+                                            style="width: 3.5rem; padding: 0.25rem;"
+                                            [(ngModel)]="item.quantity"
+                                            [disabled]="!item.selected"
+                                            (change)="onDealQuantityChange(item)"
+                                        />
+                                        <button
+                                            pButton
+                                            type="button"
+                                            icon="pi pi-plus"
+                                            class="p-button-outlined p-button-sm p-button-secondary p-0"
+                                            style="width: 1.75rem; height: 1.75rem;"
+                                            [disabled]="!item.selected"
+                                            (click)="incrementDealQuantity(item)"
+                                        ></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr *ngIf="!filteredAvailableProducts.length">
+                                <td colspan="5" class="text-center p-3 text-500">
+                                    No products found matching filter.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Bar -->
+                <div class="surface-100 border-round p-3 mt-3 flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div class="flex align-items-center gap-2">
+                        <span class="p-tag p-tag-info font-bold">
+                            {{ selectedDealItems.length }} Product(s) Selected
+                        </span>
+                        <span class="text-sm text-700">
+                            Original Items Value: <strong>{{ totalDealOriginalPrice | number: '1.2-2' }}</strong>
+                        </span>
+                    </div>
+                    <div class="flex align-items-center gap-2">
+                        <span class="text-sm font-semibold text-900">Deal Price:</span>
+                        <span class="text-lg font-bold text-primary">{{ (dealPrice || 0) | number: '1.2-2' }}</span>
+                        <span
+                            *ngIf="(dealPrice || 0) > 0 && totalDealOriginalPrice > (dealPrice || 0)"
+                            class="p-tag p-tag-success text-xs font-bold"
+                        >
+                            Save {{ (totalDealOriginalPrice - (dealPrice || 0)) | number: '1.2-2' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-times"
+                label="Cancel"
+                class="p-button-text p-button-secondary"
+                (click)="dealDialogVisible = false"
+                [disabled]="savingDeal"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-check"
+                label="Done / Save"
+                class="p-button-primary font-semibold"
+                (click)="saveDeal()"
+                [loading]="savingDeal"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- View Deal Items Modal -->
+    <p-dialog
+        [(visible)]="viewDealDialogVisible"
+        [modal]="true"
+        [style]="{ width: '600px', maxWidth: '95vw' }"
+        header="Deal Details"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div *ngIf="loadingDealDetails" class="p-4 text-center">
+            <i class="pi pi-spin pi-spinner text-3xl text-primary"></i>
+            <div class="mt-2 text-500">Loading deal details...</div>
+        </div>
+
+        <div *ngIf="!loadingDealDetails && selectedDealDetails">
+            <div class="surface-card border-1 surface-border border-round p-3 mb-3">
+                <div class="flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h4 class="m-0 font-bold text-900">{{ selectedDealDetails.name }}</h4>
+                        <div class="text-500 text-xs mt-1" *ngIf="selectedDealDetails.description">
+                            {{ selectedDealDetails.description }}
+                        </div>
+                    </div>
+                    <span class="p-tag p-tag-warning font-bold">
+                        <i class="pi pi-bolt mr-1"></i>{{ selectedDealDetails.categoryType || 'Deal' }}
+                    </span>
+                </div>
+                <div class="grid text-sm mt-2">
+                    <div class="col-6">
+                        <span class="text-500">Deal Price:</span>
+                        <div class="text-xl font-bold text-primary">{{ selectedDealDetails.dealPrice | number: '1.2-2' }}</div>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-500">Expiry Date:</span>
+                        <div class="font-medium text-900">
+                            {{ selectedDealDetails.expiryDate ? (selectedDealDetails.expiryDate | date: 'dd/MM/yyyy') : 'No Expiry' }}
+                            <span *ngIf="selectedDealDetails.isExpired" class="p-tag p-tag-danger text-xs ml-1 font-bold">Expired</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h5 class="text-sm font-bold text-700 uppercase mb-2">Items included in this deal:</h5>
+            <div class="border-1 surface-border border-round overflow-hidden">
+                <table class="w-full text-sm" style="border-collapse: collapse;">
+                    <thead class="bg-surface-50 text-700">
+                        <tr>
+                            <th style="padding: 0.5rem; text-align: left;">Product</th>
+                            <th style="width: 5rem; padding: 0.5rem; text-align: center;">Qty</th>
+                            <th style="width: 6rem; padding: 0.5rem; text-align: right;">Unit Price</th>
+                            <th style="width: 6rem; padding: 0.5rem; text-align: right;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let item of selectedDealDetails.items" class="border-bottom-1 surface-border">
+                            <td style="padding: 0.5rem; font-weight: 500;">{{ item.productName }}</td>
+                            <td style="padding: 0.5rem; text-align: center;" class="font-bold">{{ item.quantity }}</td>
+                            <td style="padding: 0.5rem; text-align: right;">{{ item.unitPrice | number: '1.2-2' }}</td>
+                            <td style="padding: 0.5rem; text-align: right; font-weight: 600;">{{ item.subTotal | number: '1.2-2' }}</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="bg-surface-50">
+                        <tr>
+                            <td colspan="3" style="padding: 0.5rem; text-align: right; font-weight: bold;">Regular Total:</td>
+                            <td style="padding: 0.5rem; text-align: right; font-weight: bold;">{{ selectedDealDetails.totalOriginalPrice | number: '1.2-2' }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                type="button"
+                label="Close"
+                class="p-button-secondary font-semibold"
+                (click)="viewDealDialogVisible = false"
             ></button>
         </ng-template>
     </p-dialog>

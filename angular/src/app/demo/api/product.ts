@@ -46,6 +46,8 @@ export interface ProductDto {
     isShared?: boolean;
     branchIds?: number[];
     specifications?: string;
+    dealId?: number;
+    isDeal?: boolean;
 }
 
 export interface CreateProductDto {

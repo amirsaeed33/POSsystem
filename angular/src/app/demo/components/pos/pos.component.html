@@ -180,8 +180,63 @@
                     </button>
                 </div>
 
-                <!-- Default Top 5 Selling Products Badges -->
-                <div class="mt-3" *ngIf="!suggestions.length && topProducts.length">
+                <!-- Restaurant Category Filter Dropdown (Restaurant only) -->
+                <div class="mt-3 mb-2" *ngIf="isRestaurantMode">
+                    <div class="flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div class="flex align-items-center gap-2">
+                            <span class="text-xs font-bold text-700 uppercase tracking-wider flex align-items-center gap-1">
+                                <i class="pi pi-th-large text-primary"></i> Category:
+                            </span>
+                            <p-dropdown
+                                [options]="posCategories"
+                                [(ngModel)]="selectedCategoryId"
+                                (onChange)="onCategoryChange()"
+                                placeholder="All Categories"
+                                styleClass="p-inputtext-sm w-14rem"
+                                [showClear]="true"
+                            ></p-dropdown>
+                        </div>
+                        <span *ngIf="selectedCategoryId && categoryProducts.length" class="text-xs text-500 font-medium">
+                            {{ categoryProducts.length }} product(s) available
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Products for Selected Category (Restaurant only) -->
+                <div class="mt-2" *ngIf="isRestaurantMode && selectedCategoryId && !suggestions.length">
+                    <div class="flex align-items-center justify-content-between mb-2">
+                        <span class="text-xs font-bold text-700 uppercase tracking-wider flex align-items-center gap-1">
+                            <i class="pi pi-list text-primary"></i> Category Products
+                        </span>
+                        <span class="text-xs text-500 font-medium">Click badge to quick-add</span>
+                    </div>
+                    <div *ngIf="loadingCategoryProducts" class="text-500 text-xs py-2">
+                        <i class="pi pi-spin pi-spinner mr-1"></i> Loading products...
+                    </div>
+                    <div class="flex flex-wrap gap-2" *ngIf="!loadingCategoryProducts && categoryProducts.length">
+                        <div
+                            *ngFor="let product of categoryProducts"
+                            class="surface-card border-1 surface-border border-round-pill px-3 py-1.5 flex align-items-center gap-2 cursor-pointer hover:border-primary hover:surface-hover transition-colors transition-duration-150 shadow-1"
+                            (click)="selectSuggestion(product)"
+                            [title]="'Quick add ' + product.name + ' (' + (getUnitPrice(product) | number: '1.2-2') + ')'"
+                        >
+                            <i *ngIf="isDealProduct(product)" class="pi pi-bolt text-amber-500 text-xs font-bold"></i>
+                            <i *ngIf="!isDealProduct(product)" class="pi pi-tag text-primary text-xs"></i>
+                            <span class="font-semibold text-sm text-900 line-clamp-1" style="max-width: 170px;">
+                                {{ product.name }}
+                            </span>
+                            <span class="text-xs font-bold text-primary bg-primary-50 px-2 py-0.5 border-round-pill">
+                                {{ getUnitPrice(product) | number: '1.2-2' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div *ngIf="!loadingCategoryProducts && !categoryProducts.length" class="text-500 text-xs py-2">
+                        No products found in this category.
+                    </div>
+                </div>
+
+                <!-- Default Top 5 Selling Products Badges (when All Categories or non-restaurant) -->
+                <div class="mt-3" *ngIf="(!isRestaurantMode || !selectedCategoryId) && !suggestions.length && topProducts.length">
                     <div class="flex align-items-center justify-content-between mb-2">
                         <span class="text-xs font-bold text-700 uppercase tracking-wider flex align-items-center gap-1">
                             <i class="pi pi-bolt text-amber-500"></i> Top Sale Products
@@ -229,7 +284,21 @@
                             <tr>
                                 <td>
                                     <div class="font-medium flex align-items-center gap-2">
+                                        <span *ngIf="isDealCartLine(line)" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 border-round font-bold flex align-items-center gap-1">
+                                            <i class="pi pi-bolt"></i> DEAL
+                                        </span>
                                         <span>{{ line.productName }}</span>
+                                        <button
+                                            *ngIf="isRestaurantMode && isDealCartLine(line)"
+                                            pButton
+                                            pRipple
+                                            type="button"
+                                            icon="pi pi-eye"
+                                            class="p-button-text p-button-info p-button-xs p-0"
+                                            style="width: 1.5rem; height: 1.5rem;"
+                                            title="View Deal items & details"
+                                            (click)="viewCartDealDetails(line)"
+                                        ></button>
                                         <button
                                             *ngIf="isRestaurantMode"
                                             pButton
@@ -241,6 +310,10 @@
                                             title="Add / edit cooking instruction"
                                             (click)="openEditLineNote(line)"
                                         ></button>
+                                    </div>
+                                    <div class="text-xs text-600 mt-1" *ngIf="line.dealSummary">
+                                        <i class="pi pi-info-circle text-xs text-primary mr-1"></i>
+                                        <span>{{ line.dealSummary }}</span>
                                     </div>
                                     <div class="flex flex-wrap gap-1 mt-1" *ngIf="line.selectedModifiers">
                                         <span
@@ -326,7 +399,21 @@
                         <div class="flex justify-content-between align-items-start">
                             <div class="pr-2">
                                 <div class="font-medium flex align-items-center gap-2">
+                                    <span *ngIf="isDealCartLine(line)" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 border-round font-bold flex align-items-center gap-1">
+                                        <i class="pi pi-bolt"></i> DEAL
+                                    </span>
                                     <span>{{ line.productName }}</span>
+                                    <button
+                                        *ngIf="isRestaurantMode && isDealCartLine(line)"
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-eye"
+                                        class="p-button-text p-button-info p-button-xs p-0"
+                                        style="width: 1.5rem; height: 1.5rem;"
+                                        title="View Deal items & details"
+                                        (click)="viewCartDealDetails(line)"
+                                    ></button>
                                     <button
                                         *ngIf="isRestaurantMode"
                                         pButton
@@ -336,6 +423,10 @@
                                         class="p-button-text p-button-secondary p-button-xs p-0"
                                         (click)="openEditLineNote(line)"
                                     ></button>
+                                </div>
+                                <div class="text-xs text-600 mt-1" *ngIf="line.dealSummary">
+                                    <i class="pi pi-info-circle text-xs text-primary mr-1"></i>
+                                    <span>{{ line.dealSummary }}</span>
                                 </div>
                                 <div class="flex flex-wrap gap-1 mt-1" *ngIf="line.selectedModifiers">
                                     <span
@@ -1385,6 +1476,205 @@
                 icon="pi pi-check"
                 class="p-button-primary"
                 (click)="confirmModifiersAndAddToCart()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🎁 Deal Customisation & Item Options Dialog -->
+    <p-dialog
+        [header]="'Customise Deal: ' + (selectedDealProduct?.name || currentDeal?.name || 'Deal')"
+        [(visible)]="dealCustomiseDialogVisible"
+        [modal]="true"
+        [style]="{ width: '38rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        (onHide)="cancelDealCustomise()"
+    >
+        <div class="flex flex-column gap-3" *ngIf="selectedDealProduct">
+            <div class="surface-50 border-round p-3 flex justify-content-between align-items-center">
+                <div>
+                    <div class="font-bold text-900 text-lg flex align-items-center gap-2">
+                        <i class="pi pi-bolt text-amber-500"></i>
+                        <span>{{ selectedDealProduct.name }}</span>
+                    </div>
+                    <div class="text-xs text-500 mt-1">Select options for items in this deal and kitchen preferences</div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-500 block">Total Deal Price</span>
+                    <span class="font-bold text-lg text-primary">
+                        {{ currentDealCustomisedTotal | number: '1.2-2' }}
+                    </span>
+                    <small class="text-xs text-500 block" *ngIf="currentDeal?.dealPrice">
+                        (Base: {{ currentDeal?.dealPrice | number: '1.2-2' }})
+                    </small>
+                </div>
+            </div>
+
+            <!-- Items inside the Deal -->
+            <div class="flex flex-column gap-3 max-h-24rem overflow-y-auto pr-1">
+                <div
+                    *ngFor="let item of dealCustomiseItems"
+                    class="surface-card border-1 surface-border border-round-xl p-3"
+                >
+                    <!-- Item Header -->
+                    <div class="flex align-items-center justify-content-between mb-2 pb-2 border-bottom-1 surface-border">
+                        <div class="flex align-items-center gap-2">
+                            <span class="bg-primary-100 text-primary-700 text-xs px-2 py-0.5 border-round font-bold">
+                                {{ item.quantity }}x
+                            </span>
+                            <span class="font-bold text-900 text-base">{{ item.productName }}</span>
+                        </div>
+                        <span class="text-xs text-500 font-medium">Included in Deal</span>
+                    </div>
+
+                    <!-- Item Modifier Groups (Options) -->
+                    <div *ngIf="item.modifierGroups && item.modifierGroups.length > 0" class="flex flex-column gap-3 mt-2">
+                        <div
+                            *ngFor="let group of item.modifierGroups"
+                            class="surface-50 border-round-lg p-2"
+                        >
+                            <div class="flex align-items-center justify-content-between mb-2">
+                                <div class="flex align-items-center gap-2">
+                                    <span class="font-semibold text-800 text-sm">{{ group.name }}</span>
+                                    <small class="text-500 font-normal">({{ group.allowMultiple ? 'Multi-select' : 'Single-select' }})</small>
+                                </div>
+                                <span
+                                    class="text-xs px-2 py-0.5 border-round font-medium"
+                                    [style.background]="group.isRequired ? '#fee2e2' : '#f1f5f9'"
+                                    [style.color]="group.isRequired ? '#b91c1c' : '#475569'"
+                                >
+                                    {{ group.isRequired ? 'Required' : 'Optional' }}
+                                </span>
+                            </div>
+
+                            <div class="flex flex-column gap-1">
+                                <div
+                                    *ngFor="let opt of group.options"
+                                    class="flex align-items-center justify-content-between p-2 border-round surface-hover cursor-pointer"
+                                    [class.surface-200]="isDealOptionSelected(item, group.id, opt.id)"
+                                    (click)="toggleDealModifierOption(item, group, opt)"
+                                >
+                                    <div class="flex align-items-center gap-2">
+                                        <p-checkbox
+                                            [binary]="true"
+                                            [ngModel]="isDealOptionSelected(item, group.id, opt.id)"
+                                            (click)="$event.stopPropagation(); toggleDealModifierOption(item, group, opt)"
+                                        ></p-checkbox>
+                                        <label class="cursor-pointer font-medium text-sm m-0">{{ opt.name }}</label>
+                                    </div>
+                                    <span class="text-xs font-semibold" [class.text-primary]="opt.price > 0" [class.text-500]="!opt.price">
+                                        {{ opt.price > 0 ? '+ ' + (opt.price | number: '1.2-2') : 'Free' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No Modifiers fallback -->
+                    <div *ngIf="!item.modifierGroups || item.modifierGroups.length === 0" class="text-xs text-500 italic py-1">
+                        <i class="pi pi-check text-xs text-green-500 mr-1"></i> Standard preparation (no options needed)
+                    </div>
+                </div>
+
+                <!-- Special Cooking Instructions for the Deal -->
+                <div class="surface-card border-1 surface-border border-round-xl p-3">
+                    <label class="font-bold text-900 block mb-1">Kitchen / Cooking Note</label>
+                    <input
+                        pInputText
+                        type="text"
+                        placeholder="e.g. Extra crispy, less spice, no onion"
+                        [(ngModel)]="dealKitchenNote"
+                        class="w-full p-inputtext-sm"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="cancelDealCustomise()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Add Deal to Order"
+                icon="pi pi-check"
+                class="p-button-success"
+                (click)="confirmDealAndAddToCart()"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🔍 Deal View Details Modal for Cart -->
+    <p-dialog
+        header="Deal Breakdown & Details"
+        [(visible)]="viewCartDealDialogVisible"
+        [modal]="true"
+        [style]="{ width: '32rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3" *ngIf="selectedCartDealLine">
+            <div class="surface-50 border-round p-3 flex justify-content-between align-items-center">
+                <div>
+                    <div class="font-bold text-900 text-lg flex align-items-center gap-2">
+                        <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 border-round font-bold">DEAL</span>
+                        <span>{{ selectedCartDealLine.productName }}</span>
+                    </div>
+                    <div class="text-xs text-500 mt-1">Quantity in Order: {{ selectedCartDealLine.quantity }}</div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-500 block">Line Total</span>
+                    <span class="font-bold text-lg text-primary">
+                        {{ selectedCartDealLine.quantity * selectedCartDealLine.unitPrice | number: '1.2-2' }}
+                    </span>
+                    <small class="text-xs text-500 block">({{ selectedCartDealLine.unitPrice | number: '1.2-2' }} / deal)</small>
+                </div>
+            </div>
+
+            <!-- Items breakdown -->
+            <div class="surface-card border-1 surface-border border-round-xl p-3" *ngIf="selectedCartDealLine.dealSummary">
+                <label class="font-bold text-900 block mb-2">Included Products & Selected Options</label>
+                <div class="text-sm text-700 line-height-3">
+                    {{ selectedCartDealLine.dealSummary }}
+                </div>
+            </div>
+
+            <!-- Modifiers Chips -->
+            <div *ngIf="selectedCartDealLine.selectedModifiers">
+                <label class="font-bold text-900 block mb-1">Customised Modifiers</label>
+                <div class="flex flex-wrap gap-1">
+                    <span
+                        class="surface-200 text-700 text-xs px-2 py-1 border-round font-medium"
+                        *ngFor="let m of parseModifiers(selectedCartDealLine.selectedModifiers)"
+                    >
+                        {{ m }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Kitchen note -->
+            <div *ngIf="selectedCartDealLine.kitchenNotes">
+                <label class="font-bold text-900 block mb-1">Kitchen / Cooking Note</label>
+                <div class="text-sm text-orange-600 font-medium italic">
+                    <i class="pi pi-comment mr-1"></i> {{ selectedCartDealLine.kitchenNotes }}
+                </div>
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                class="p-button-text"
+                (click)="viewCartDealDialogVisible = false"
             ></button>
         </ng-template>
     </p-dialog>

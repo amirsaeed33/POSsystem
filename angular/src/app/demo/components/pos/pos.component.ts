@@ -28,6 +28,18 @@ import { ProductModifierService } from 'src/app/demo/service/product-modifier.se
 import { SaleService } from 'src/app/demo/service/sale.service';
 import { StaffDto } from 'src/app/demo/api/staff';
 import { StaffService } from 'src/app/demo/service/staff.service';
+import { CategoryService } from 'src/app/demo/service/category.service';
+import { DealService } from 'src/app/demo/service/deal.service';
+import { DealDto } from 'src/app/demo/api/deal';
+
+export interface DealCustomiseItem {
+    productId: number;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    modifierGroups: ProductModifierGroupDto[];
+    selectedOptions: Record<number, number[]>;
+}
 
 @Component({
     templateUrl: './pos.component.html',
@@ -62,6 +74,12 @@ export class PosComponent implements OnInit, OnDestroy {
     loadingTables = false;
     pendingSendToTable = false;
 
+    // Restaurant POS Category Filtering
+    posCategories: { label: string; value: number | null }[] = [];
+    selectedCategoryId: number | null = null;
+    categoryProducts: ProductDto[] = [];
+    loadingCategoryProducts = false;
+
     // Active Running Order (Hold & Tabs)
     activeOrderId: number | null = null;
     activeOrderNo = '';
@@ -89,6 +107,18 @@ export class PosComponent implements OnInit, OnDestroy {
     pendingKitchenNote = '';
     todayDate = new Date();
 
+    // Deal Selection & Customization (Restaurant only)
+    dealCustomiseDialogVisible = false;
+    loadingDealCustomise = false;
+    selectedDealProduct: ProductDto | null = null;
+    currentDeal: DealDto | null = null;
+    dealCustomiseItems: DealCustomiseItem[] = [];
+    dealKitchenNote = '';
+
+    // Cart Deal Details modal
+    viewCartDealDialogVisible = false;
+    selectedCartDealLine: PosCartLine | null = null;
+
     // Dine-In Waiter Assignment (Restaurant only)
     waiters: StaffDto[] = [];
     assignWaiterDialogVisible = false;
@@ -115,6 +145,8 @@ export class PosComponent implements OnInit, OnDestroy {
         private productModifierService: ProductModifierService,
         private branchContext: BranchContextService,
         private staffService: StaffService,
+        private categoryService: CategoryService,
+        private dealService: DealService,
         private messageService: MessageService
     ) {}
 
@@ -227,6 +259,26 @@ export class PosComponent implements OnInit, OnDestroy {
         );
     }
 
+    isDealProduct(product?: ProductDto | null): boolean {
+        if (!product) return false;
+        return !!(
+            product.isDeal ||
+            product.dealId ||
+            (product.categoryName || '').trim().toLowerCase() === 'deals' ||
+            (product.barcode || '').startsWith('DEAL-')
+        );
+    }
+
+    isDealCartLine(line?: PosCartLine | null): boolean {
+        if (!line) return false;
+        return !!(
+            line.isDeal ||
+            line.dealId ||
+            (line.productName || '').toLowerCase().startsWith('[deal]') ||
+            (line.dealSummary && line.dealSummary.length > 0)
+        );
+    }
+
     loadTopProducts(): void {
         this.loadingTopProducts = true;
         this.saleService
@@ -254,6 +306,42 @@ export class PosComponent implements OnInit, OnDestroy {
         if (this.isRestaurantMode && branch?.id) {
             this.loadTables(branch.id);
             this.loadWaiters(branch.id);
+            this.loadPosCategories();
+        }
+    }
+
+    async loadPosCategories(): Promise<void> {
+        try {
+            const categories = await this.categoryService.getLookup();
+            this.posCategories = [
+                { label: 'All Categories', value: null },
+                ...(categories || []).map((c) => ({ label: c.name, value: c.id })),
+            ];
+        } catch (err) {
+            console.error('Failed to load POS categories:', err);
+            this.posCategories = [{ label: 'All Categories', value: null }];
+        }
+    }
+
+    async onCategoryChange(): Promise<void> {
+        if (this.selectedCategoryId) {
+            this.loadingCategoryProducts = true;
+            try {
+                const res = await this.saleService.getPosProducts(this.selectedCategoryId);
+                this.categoryProducts = (res || []).filter((p) => !this.isGroceryProduct(p));
+            } catch (err) {
+                console.error('Failed to load products for category:', err);
+                this.categoryProducts = [];
+            } finally {
+                this.loadingCategoryProducts = false;
+            }
+        } else {
+            this.categoryProducts = [];
+        }
+
+        const q = (this.searchText || '').trim();
+        if (q) {
+            this.loadSuggestions(q);
         }
     }
 
@@ -964,6 +1052,10 @@ export class PosComponent implements OnInit, OnDestroy {
 
     async addProduct(product: ProductDto): Promise<void> {
         if (this.isRestaurantMode) {
+            if (this.isDealProduct(product)) {
+                await this.openDealCustomiseDialog(product);
+                return;
+            }
             try {
                 const groups = await this.productModifierService.getByProduct(product.id);
                 if (groups && groups.length > 0) {
@@ -985,6 +1077,229 @@ export class PosComponent implements OnInit, OnDestroy {
             }
         }
         this.pushToCart(product);
+    }
+
+    async openDealCustomiseDialog(product: ProductDto): Promise<void> {
+        try {
+            this.loadingDealCustomise = true;
+            let deal: DealDto | null = null;
+            if (product.dealId) {
+                deal = await this.dealService.get(product.dealId);
+            } else {
+                deal = await this.dealService.getByProductId(product.id);
+            }
+
+            if (!deal || !deal.items?.length) {
+                this.pushToCart(product);
+                return;
+            }
+
+            this.selectedDealProduct = product;
+            this.currentDeal = deal;
+            this.dealKitchenNote = '';
+
+            const itemsWithModifiers: DealCustomiseItem[] = [];
+            for (const item of deal.items) {
+                let groups: ProductModifierGroupDto[] = [];
+                try {
+                    groups = await this.productModifierService.getByProduct(item.productId);
+                } catch (e) {
+                    console.warn('Could not load modifiers for deal item:', item.productId, e);
+                }
+
+                const selectedOptions: Record<number, number[]> = {};
+                for (const g of groups || []) {
+                    selectedOptions[g.id] = [];
+                    if (g.isRequired && g.options?.length) {
+                        selectedOptions[g.id] = [g.options[0].id];
+                    }
+                }
+
+                itemsWithModifiers.push({
+                    productId: item.productId,
+                    productName: item.productName || 'Product #' + item.productId,
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    modifierGroups: groups || [],
+                    selectedOptions,
+                });
+            }
+
+            this.dealCustomiseItems = itemsWithModifiers;
+            this.dealCustomiseDialogVisible = true;
+        } catch (err: any) {
+            console.error('Failed to load deal details:', err);
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Deal Info',
+                detail: 'Could not load deal options. Adding deal to cart.',
+            });
+            this.pushToCart(product);
+        } finally {
+            this.loadingDealCustomise = false;
+        }
+    }
+
+    isDealOptionSelected(item: DealCustomiseItem, groupId: number, optionId: number): boolean {
+        return (item.selectedOptions[groupId] || []).includes(optionId);
+    }
+
+    toggleDealModifierOption(
+        item: DealCustomiseItem,
+        group: ProductModifierGroupDto,
+        option: ProductModifierOptionDto
+    ): void {
+        if (!item.selectedOptions[group.id]) {
+            item.selectedOptions[group.id] = [];
+        }
+        const list = item.selectedOptions[group.id];
+        const index = list.indexOf(option.id);
+        if (index > -1) {
+            list.splice(index, 1);
+        } else {
+            if (!group.allowMultiple) {
+                item.selectedOptions[group.id] = [option.id];
+            } else {
+                list.push(option.id);
+            }
+        }
+    }
+
+    get currentDealCustomisedTotal(): number {
+        if (!this.selectedDealProduct) return 0;
+        const base = this.currentDeal?.dealPrice ?? this.getUnitPrice(this.selectedDealProduct) ?? 0;
+        let extra = 0;
+        for (const item of this.dealCustomiseItems) {
+            for (const group of item.modifierGroups) {
+                const sel = item.selectedOptions[group.id] || [];
+                for (const optId of sel) {
+                    const opt = group.options?.find((o) => o.id === optId);
+                    if (opt && opt.price > 0) {
+                        extra += opt.price;
+                    }
+                }
+            }
+        }
+        return base + extra;
+    }
+
+    confirmDealAndAddToCart(): void {
+        if (!this.selectedDealProduct || !this.currentDeal) return;
+
+        for (const item of this.dealCustomiseItems) {
+            for (const group of item.modifierGroups) {
+                const sel = item.selectedOptions[group.id] || [];
+                if (group.isRequired && sel.length === 0) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Required Selection',
+                        detail: `Please select an option for "${group.name}" in ${item.productName}.`,
+                    });
+                    return;
+                }
+            }
+        }
+
+        const modifierNames: string[] = [];
+        let extraPrice = 0;
+        for (const item of this.dealCustomiseItems) {
+            const itemOpts: string[] = [];
+            for (const group of item.modifierGroups) {
+                const sel = item.selectedOptions[group.id] || [];
+                for (const optId of sel) {
+                    const opt = group.options?.find((o) => o.id === optId);
+                    if (opt) {
+                        if (opt.price > 0) extraPrice += opt.price;
+                        itemOpts.push(`${opt.name}${opt.price > 0 ? ' (+' + opt.price.toFixed(2) + ')' : ''}`);
+                    }
+                }
+            }
+            if (itemOpts.length > 0) {
+                modifierNames.push(`${item.quantity > 1 ? item.quantity + 'x ' : ''}${item.productName}: ${itemOpts.join(', ')}`);
+            }
+        }
+
+        const dealItemsSummary = this.dealCustomiseItems
+            .map((item) => {
+                const chosen: string[] = [];
+                for (const group of item.modifierGroups) {
+                    const sel = item.selectedOptions[group.id] || [];
+                    for (const optId of sel) {
+                        const opt = group.options?.find((o) => o.id === optId);
+                        if (opt) chosen.push(opt.name);
+                    }
+                }
+                return `${item.quantity}x ${item.productName}${chosen.length ? ' (' + chosen.join(', ') + ')' : ''}`;
+            })
+            .join(' • ');
+
+        this.pushDealToCart(
+            this.selectedDealProduct,
+            this.currentDeal,
+            { names: modifierNames, extraPrice },
+            this.dealKitchenNote?.trim() || undefined,
+            dealItemsSummary
+        );
+
+        this.dealCustomiseDialogVisible = false;
+        this.selectedDealProduct = null;
+        this.currentDeal = null;
+        this.dealCustomiseItems = [];
+        this.dealKitchenNote = '';
+        this.focusSearch();
+    }
+
+    cancelDealCustomise(): void {
+        this.dealCustomiseDialogVisible = false;
+        this.selectedDealProduct = null;
+        this.currentDeal = null;
+        this.dealCustomiseItems = [];
+        this.dealKitchenNote = '';
+        this.focusSearch();
+    }
+
+    pushDealToCart(
+        product: ProductDto,
+        deal: DealDto,
+        extraModifiers?: { names: string[]; extraPrice: number },
+        kitchenNote?: string,
+        dealSummary?: string
+    ): void {
+        const basePrice = deal.dealPrice || product.price || 0;
+        const retailPrice = basePrice + (extraModifiers?.extraPrice || 0);
+        const wholesalePrice = basePrice + (extraModifiers?.extraPrice || 0);
+        const unitPrice = this.resolveUnitPrice(retailPrice, wholesalePrice);
+
+        const modJson = extraModifiers?.names?.length
+            ? JSON.stringify(extraModifiers.names)
+            : undefined;
+
+        this.cart.push({
+            productId: product.id,
+            productName: product.name,
+            quantity: 1,
+            unitPrice,
+            retailPrice,
+            wholesalePrice,
+            stockQuantity: 9999,
+            kitchenNotes: kitchenNote,
+            selectedModifiers: modJson,
+            isDeal: true,
+            dealId: deal.id,
+            dealSummary: dealSummary,
+            isSentToKitchen: false,
+        });
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Deal Added',
+            detail: `Added "${product.name}" to order.`,
+        });
+    }
+
+    viewCartDealDetails(line: PosCartLine): void {
+        this.selectedCartDealLine = line;
+        this.viewCartDealDialogVisible = true;
     }
 
     confirmModifiersAndAddToCart(): void {
@@ -1578,8 +1893,9 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     private loadSuggestions(keyword: string): void {
+        const categoryId = this.isRestaurantMode ? this.selectedCategoryId : null;
         this.saleService
-            .searchPosProducts(keyword)
+            .searchPosProducts(keyword, categoryId)
             .then((items) => {
                 if ((this.searchText || '').trim() !== keyword) {
                     return;

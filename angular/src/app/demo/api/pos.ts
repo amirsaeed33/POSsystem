@@ -11,4 +11,7 @@ export interface PosCartLine {
     kitchenNotes?: string;
     selectedModifiers?: string;
     isSentToKitchen?: boolean;
+    isDeal?: boolean;
+    dealId?: number;
+    dealSummary?: string;
 }

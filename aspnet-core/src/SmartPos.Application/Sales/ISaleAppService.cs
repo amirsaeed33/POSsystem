@@ -17,7 +17,7 @@ namespace SmartPos.Sales
         /// </summary>
         Task<ProductDto> GetPosProductAsync(string keyword);
 
-        Task<ListResultDto<ProductDto>> GetPosProductSuggestionsAsync(string keyword);
+        Task<ListResultDto<ProductDto>> GetPosProductSuggestionsAsync(string keyword, int? categoryId = null);
 
         /// <summary>
         /// Customers for POS / sale entry. Requires Pages.Sales only (not Pages.Customers).
@@ -27,7 +27,7 @@ namespace SmartPos.Sales
         /// <summary>
         /// Products for sale entry forms. Requires Pages.Sales only (not Pages.Products).
         /// </summary>
-        Task<ListResultDto<ProductDto>> GetPosProductsAsync();
+        Task<ListResultDto<ProductDto>> GetPosProductsAsync(int? categoryId = null);
 
         Task<ListResultDto<ProductDto>> GetTopSellingProductsAsync(int maxCount = 5);
 

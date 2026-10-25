@@ -19,6 +19,7 @@ using SmartPos.Products;
 using SmartPos.Purchases;
 using SmartPos.Sales;
 using SmartPos.Restaurant;
+using SmartPos.Deals;
 using SmartPos.Staffs;
 using SmartPos.Suppliers;
 using SmartPos.Units;
@@ -108,6 +109,10 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
 
         public virtual DbSet<ProductModifierOption> ProductModifierOptions { get; set; }
+
+        public virtual DbSet<Deal> Deals { get; set; }
+
+        public virtual DbSet<DealDetail> DealDetails { get; set; }
 
         public SmartPosDbContext(DbContextOptions<SmartPosDbContext> options)
             : base(options)
@@ -733,6 +738,39 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany(x => x.Options)
                     .HasForeignKey(x => x.ModifierGroupId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Deal>(b =>
+            {
+                b.Property(x => x.DealPrice).HasPrecision(18, 2);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                b.HasIndex(x => new { x.TenantId, x.BranchId });
+            });
+
+            modelBuilder.Entity<DealDetail>(b =>
+            {
+                b.Property(x => x.Quantity).HasPrecision(18, 2);
+                b.Property(x => x.UnitPrice).HasPrecision(18, 2);
+                b.HasOne(x => x.Deal)
+                    .WithMany(x => x.DealDetails)
+                    .HasForeignKey(x => x.DealId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasIndex(x => x.DealId);
             });
         }
     }

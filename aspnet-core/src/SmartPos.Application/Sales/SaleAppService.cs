@@ -130,10 +130,15 @@ namespace SmartPos.Sales
                 "Multiple products match \"" + normalized + "\". Pick a more specific name or use the barcode.");
         }
 
-        public async Task<ListResultDto<ProductDto>> GetPosProductSuggestionsAsync(string keyword)
+        public async Task<ListResultDto<ProductDto>> GetPosProductSuggestionsAsync(string keyword, int? categoryId = null)
         {
             var normalized = keyword.IsNullOrWhiteSpace() ? null : keyword.Trim();
             var query = await GetVisibleProductsQueryAsync();
+
+            if (categoryId.HasValue && categoryId.Value > 0)
+            {
+                query = query.Where(x => x.CategoryId == categoryId.Value);
+            }
 
             if (!normalized.IsNullOrWhiteSpace())
             {
@@ -169,9 +174,15 @@ namespace SmartPos.Sales
             return new ListResultDto<CustomerDto>(ObjectMapper.Map<List<CustomerDto>>(customers));
         }
 
-        public async Task<ListResultDto<ProductDto>> GetPosProductsAsync()
+        public async Task<ListResultDto<ProductDto>> GetPosProductsAsync(int? categoryId = null)
         {
-            var products = await (await GetVisibleProductsQueryAsync())
+            var query = await GetVisibleProductsQueryAsync();
+            if (categoryId.HasValue && categoryId.Value > 0)
+            {
+                query = query.Where(x => x.CategoryId == categoryId.Value);
+            }
+
+            var products = await query
                 .OrderBy(x => x.Name)
                 .Take(1000)
                 .ToListAsync();

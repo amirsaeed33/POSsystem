@@ -114,11 +114,14 @@ export class SaleService {
         }
     }
 
-    async searchPosProducts(keyword: string): Promise<ProductDto[]> {
+    async searchPosProducts(keyword: string, categoryId?: number | null): Promise<ProductDto[]> {
         try {
             const params: any = {};
             if (keyword?.trim()) {
                 params.keyword = keyword.trim();
+            }
+            if (categoryId) {
+                params.categoryId = categoryId;
             }
             const res: any = await firstValueFrom(
                 this.http.get<any>(`${this.apiUrl}/GetPosProductSuggestions`, {
@@ -133,6 +136,29 @@ export class SaleService {
         } catch (error) {
             throw new Error(
                 this.extractErrorMessage(error, 'Failed to search products')
+            );
+        }
+    }
+
+    async getPosProducts(categoryId?: number | null): Promise<ProductDto[]> {
+        try {
+            const params: any = {};
+            if (categoryId) {
+                params.categoryId = categoryId;
+            }
+            const res: any = await firstValueFrom(
+                this.http.get<any>(`${this.apiUrl}/GetPosProducts`, {
+                    params,
+                })
+            );
+            const result = this.unwrap(res, 'Failed to load POS products');
+            const items = result.items || result.Items || result || [];
+            return (Array.isArray(items) ? items : []).map((item: any) =>
+                this.mapProduct(item)
+            );
+        } catch (error) {
+            throw new Error(
+                this.extractErrorMessage(error, 'Failed to load POS products')
             );
         }
     }
@@ -195,16 +221,6 @@ export class SaleService {
         return mapped;
     }
 
-    async getPosProducts(): Promise<ProductDto[]> {
-        const res: any = await firstValueFrom(
-            this.http.get<any>(`${this.apiUrl}/GetPosProducts`)
-        );
-        const result = this.unwrap(res, 'Failed to load products');
-        const items = result.items || result.Items || result || [];
-        return (Array.isArray(items) ? items : []).map((item: any) =>
-            this.mapProduct(item)
-        );
-    }
 
     private mapProduct(item: any): ProductDto {
         return {

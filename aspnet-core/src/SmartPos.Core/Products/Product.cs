@@ -85,5 +85,15 @@ namespace SmartPos.Products
         /// Indicates if this specific product qualifies for free delivery.
         /// </summary>
         public virtual bool IsFreeDelivery { get; set; }
+
+        /// <summary>
+        /// Links this product to a Deal if it represents a Deal item.
+        /// </summary>
+        public virtual int? DealId { get; set; }
+
+        /// <summary>
+        /// Indicates if this product is a Deal bundle.
+        /// </summary>
+        public virtual bool IsDeal { get; set; }
     }
 }
