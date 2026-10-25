@@ -23,6 +23,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DropdownModule } from 'primeng/dropdown';
 import { MenuModule } from 'primeng/menu';
 import { ToastModule } from 'primeng/toast';
+import { DialogModule } from 'primeng/dialog';
+import { OrderChatComponent } from '../shared/components/order-chat/order-chat.component';
 
 @NgModule({
     declarations: [
@@ -53,6 +55,8 @@ import { ToastModule } from 'primeng/toast';
         RouterModule,
         TooltipModule,
         ToastModule,
+        DialogModule,
+        OrderChatComponent,
         AppConfigModule
     ],
     exports: [AppLayoutComponent]

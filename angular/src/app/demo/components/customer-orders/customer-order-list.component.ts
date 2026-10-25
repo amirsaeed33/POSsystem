@@ -1,5 +1,5 @@
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -8,17 +8,19 @@ import {
     CustomerOrderStatus,
 } from 'src/app/demo/api/customer-order';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
+import { CustomerChatService } from 'src/app/demo/service/customer-chat.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { Subscription } from 'rxjs';
 
 @Component({
     templateUrl: './customer-order-list.component.html',
     providers: [MessageService, ConfirmationService],
 })
-export class CustomerOrderListComponent implements OnInit {
+export class CustomerOrderListComponent implements OnInit, OnDestroy {
     orders: CustomerOrderDto[] = [];
     loading = false;
     totalRecords = 0;
@@ -30,6 +32,8 @@ export class CustomerOrderListComponent implements OnInit {
     viewingOrderId: number | null = null;
     chatDialogVisible = false;
     selectedOrderForChat: CustomerOrderDto | null = null;
+    unreadOrderNos: Set<string> = new Set<string>();
+    private chatSub?: Subscription;
 
     statusOptions = [
         { label: 'Pending', value: CustomerOrderStatus.Pending },
@@ -42,6 +46,7 @@ export class CustomerOrderListComponent implements OnInit {
 
     constructor(public formatService: AppFormatService, 
         private customerOrderService: CustomerOrderService,
+        private customerChatService: CustomerChatService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService,
         private route: ActivatedRoute,
@@ -65,10 +70,45 @@ export class CustomerOrderListComponent implements OnInit {
                 this.viewDialogVisible = true;
             }
         });
+
+        const branchId = this.branchContext.getBranchId();
+        if (branchId) {
+            this.customerChatService.joinBranchChat(branchId);
+        }
+
+        this.chatSub = this.customerChatService.notificationReceived$.subscribe(msg => {
+            if (msg.orderNo) {
+                this.unreadOrderNos.add(msg.orderNo.trim().toUpperCase());
+            }
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.chatSub?.unsubscribe();
+    }
+
+    async loadUnreadChatOrders(): Promise<void> {
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId) return;
+        try {
+            const convs = await this.customerChatService.getBranchConversations(branchId);
+            this.unreadOrderNos.clear();
+            for (const c of convs) {
+                if (c.orderNo && c.unreadCount > 0) {
+                    this.unreadOrderNos.add(c.orderNo.trim().toUpperCase());
+                }
+            }
+        } catch {}
+    }
+
+    hasUnreadChat(order: CustomerOrderDto): boolean {
+        if (!order?.orderNo) return false;
+        return this.unreadOrderNos.has(order.orderNo.trim().toUpperCase());
     }
 
     loadOrders(): void {
         this.loading = true;
+        this.loadUnreadChatOrders();
         this.customerOrderService
             .getAll({
                 keyword: this.keyword?.trim() || undefined,
@@ -112,6 +152,9 @@ export class CustomerOrderListComponent implements OnInit {
     openChatDialog(order: CustomerOrderDto): void {
         this.selectedOrderForChat = order;
         this.chatDialogVisible = true;
+        if (order?.orderNo) {
+            this.unreadOrderNos.delete(order.orderNo.trim().toUpperCase());
+        }
     }
 
     onDialogSaved(): void {

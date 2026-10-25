@@ -203,6 +203,14 @@ export class CustomerChatService implements OnDestroy {
         );
     }
 
+    public async markSessionMessagesAsRead(sessionId: string, branchId?: number, isStore: boolean = true): Promise<void> {
+        const params: any = { sessionId, isCustomer: !isStore };
+        if (branchId) params.branchId = branchId;
+        await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/MarkSessionMessagesAsRead`, null, { params })
+        );
+    }
+
     public async getBranchConversations(branchId: number): Promise<CustomerOrderConversationDto[]> {
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetBranchConversations`, {

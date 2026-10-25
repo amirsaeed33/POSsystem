@@ -93,12 +93,14 @@
                             pButton
                             type="button"
                             icon="pi pi-comments"
-                            class="p-button-rounded p-button-text p-button-xs text-teal-600 hover:surface-200"
-                            pTooltip="Chat with customer"
+                            [ngClass]="hasUnreadChat(order) ? 'p-button-rounded p-button-danger p-button-sm relative' : 'p-button-rounded p-button-text p-button-xs text-teal-600 hover:surface-200'"
+                            [pTooltip]="hasUnreadChat(order) ? 'New customer message received!' : 'Chat with customer'"
                             tooltipPosition="top"
                             (click)="openChatDialog(order)"
                             aria-label="Chat with customer"
-                        ></button>
+                        >
+                            <span *ngIf="hasUnreadChat(order)" class="ml-1 text-xs font-bold">New</span>
+                        </button>
                     </div>
                 </td>
                 <td>{{ order.orderDate | date: formatService.dateFormat }}</td>

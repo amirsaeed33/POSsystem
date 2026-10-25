@@ -43,6 +43,7 @@ import {
 })
 export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterViewChecked {
     @Input() orderNo?: string;
+    @Input() sessionId?: string;
     @Input() branchId?: number;
     @Input() customerMobile?: string;
     @Input() customerName?: string;
@@ -66,6 +67,10 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     private shouldScrollToBottom: boolean = false;
     private subscriptions: Subscription[] = [];
     private guestSessionId: string = '';
+
+    get effectiveSessionId(): string {
+        return this.sessionId || this.guestSessionId;
+    }
 
     // Quick canned chips
     customerQuickChips = [
@@ -122,7 +127,7 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     }
 
     ngOnChanges(changes: SimpleChanges): void {
-        if (changes['orderNo'] || changes['branchId']) {
+        if (changes['orderNo'] || changes['branchId'] || changes['sessionId']) {
             this.initChat();
         }
     }
@@ -145,8 +150,8 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
         if (this.orderNo && msg.orderNo) {
             return msg.orderNo.trim().toUpperCase() === this.orderNo.trim().toUpperCase();
         }
-        if (!this.orderNo && msg.sessionId && this.guestSessionId) {
-            return msg.sessionId === this.guestSessionId;
+        if (!this.orderNo && msg.sessionId && this.effectiveSessionId) {
+            return msg.sessionId === this.effectiveSessionId;
         }
         return false;
     }
@@ -159,9 +164,10 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
                 await this.chatService.joinOrderChat(cleanNo);
                 this.messages = await this.chatService.getMessagesByOrderNo(cleanNo);
                 await this.markAsRead();
-            } else {
-                await this.chatService.joinSessionChat(this.guestSessionId);
-                this.messages = await this.chatService.getMessagesBySession(this.guestSessionId);
+            } else if (this.effectiveSessionId) {
+                await this.chatService.joinSessionChat(this.effectiveSessionId);
+                this.messages = await this.chatService.getMessagesBySession(this.effectiveSessionId);
+                await this.markAsRead();
             }
             this.shouldScrollToBottom = true;
         } catch (err) {
@@ -188,7 +194,7 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
             const input: SendCustomerChatMessageInput = {
                 orderNo: this.orderNo ? this.orderNo.trim().toUpperCase() : undefined,
                 branchId: this.branchId,
-                sessionId: !this.orderNo ? this.guestSessionId : undefined,
+                sessionId: !this.orderNo ? this.effectiveSessionId : undefined,
                 senderName: senderName,
                 customerMobile: this.customerMobile,
                 senderType: senderType,
@@ -216,10 +222,13 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     }
 
     async markAsRead(): Promise<void> {
-        if (!this.orderNo) return;
         try {
             const isStore = this.mode === 'store';
-            await this.chatService.markOrderMessagesAsRead(this.orderNo, isStore);
+            if (this.orderNo) {
+                await this.chatService.markOrderMessagesAsRead(this.orderNo, isStore);
+            } else if (this.effectiveSessionId) {
+                await this.chatService.markSessionMessagesAsRead(this.effectiveSessionId, this.branchId, isStore);
+            }
             this.unreadCount = 0;
             this.unreadCountChange.emit(0);
         } catch (err) {

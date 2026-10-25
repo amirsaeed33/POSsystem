@@ -13,6 +13,7 @@
                     <span class="pulse-dot" [class.connected]="isConnected"></span>
                     <span class="status-label">{{ isConnected ? 'Real-time Live' : 'Connecting...' }}</span>
                     <span *ngIf="orderNo" class="order-tag">#{{ orderNo }}</span>
+                    <span *ngIf="!orderNo" class="order-tag">Online Inquiry</span>
                 </div>
             </div>
         </div>

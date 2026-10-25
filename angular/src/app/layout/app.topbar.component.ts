@@ -13,6 +13,8 @@ import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { UserLoginInfoDto } from 'src/app/demo/api/session';
+import { CustomerChatService } from 'src/app/demo/service/customer-chat.service';
+import { CustomerChatMessageDto, CustomerOrderConversationDto } from 'src/app/demo/api/customer-chat';
 import { environment } from 'src/environments/environment';
 import { Subscription } from 'rxjs';
 
@@ -60,6 +62,14 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     loadingOrders = false;
     private orderPollTimer: any;
 
+    // Real-Time Customer Chat State
+    unreadChatCount = 0;
+    chatConversations: CustomerOrderConversationDto[] = [];
+    loadingChats = false;
+    chatDialogVisible = false;
+    selectedConversationForChat: CustomerOrderConversationDto | null = null;
+    private chatNotificationSub?: Subscription;
+
     readonly BranchStatuses = BranchStatuses;
 
     constructor(
@@ -71,6 +81,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         private branchService: BranchService,
         private permissionService: PermissionService,
         private customerOrderService: CustomerOrderService,
+        private customerChatService: CustomerChatService,
         private messageService: MessageService,
         private router: Router
     ) {}
@@ -104,6 +115,10 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                 this.currentBranch = b;
                 this.branchLogoFailed = false;
                 this.loadTodayOrders();
+                if (b.id) {
+                    this.customerChatService.joinBranchChat(b.id);
+                    this.loadUnreadChatCount();
+                }
             }
         });
 
@@ -114,6 +129,8 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
 
         this.loadTodayOrders();
         this.orderPollTimer = setInterval(() => this.loadTodayOrders(), 30000);
+
+        this.initChatListener();
     }
 
     ngOnDestroy(): void {
@@ -123,6 +140,79 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         if (this.branchSubscription) {
             this.branchSubscription.unsubscribe();
         }
+        if (this.chatNotificationSub) {
+            this.chatNotificationSub.unsubscribe();
+        }
+    }
+
+    private initChatListener(): void {
+        if (this.currentBranch?.id) {
+            this.customerChatService.joinBranchChat(this.currentBranch.id);
+            this.loadUnreadChatCount();
+        }
+
+        this.chatNotificationSub = this.customerChatService.notificationReceived$.subscribe((msg) => {
+            this.unreadChatCount++;
+            this.playChatChime();
+
+            const isOrder = Boolean(msg.orderNo);
+            const title = isOrder ? `Order #${msg.orderNo}` : 'Storefront Customer Inquiry';
+            this.messageService.add({
+                severity: 'info',
+                summary: `💬 ${msg.senderName || 'Customer'} (${title})`,
+                detail: msg.message,
+                life: 8000
+            });
+
+            this.loadChatConversations(false);
+        });
+    }
+
+    async loadUnreadChatCount(): Promise<void> {
+        if (!this.currentBranch?.id) return;
+        try {
+            this.unreadChatCount = await this.customerChatService.getBranchUnreadCount(this.currentBranch.id);
+        } catch {}
+    }
+
+    async loadChatConversations(showLoading = true): Promise<void> {
+        if (!this.currentBranch?.id) return;
+        if (showLoading) this.loadingChats = true;
+        try {
+            this.chatConversations = await this.customerChatService.getBranchConversations(this.currentBranch.id);
+            this.unreadChatCount = this.chatConversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+        } catch (err) {
+            console.warn('Failed to load chat conversations:', err);
+        } finally {
+            if (showLoading) this.loadingChats = false;
+        }
+    }
+
+    openChatFromConversation(conv: CustomerOrderConversationDto): void {
+        this.selectedConversationForChat = conv;
+        this.chatDialogVisible = true;
+    }
+
+    private playChatChime(): void {
+        try {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContextClass) return;
+            const ctx = new AudioContextClass();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
+            osc.frequency.exponentialRampToValueAtTime(987.77, ctx.currentTime + 0.18); // B5
+
+            gain.gain.setValueAtTime(0.18, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+        } catch {}
     }
 
     async loadTodayOrders(): Promise<void> {

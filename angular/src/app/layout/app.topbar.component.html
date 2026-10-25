@@ -198,6 +198,87 @@
             </div>
         </div>
 
+        <!-- Customer Messages & Live Inquiries Notification -->
+        <div class="topbar-notifications relative">
+            <button
+                class="p-link flex align-items-center justify-content-center w-2rem h-2rem md:w-3rem md:h-3rem border-circle hover:surface-hover relative transition-colors"
+                type="button"
+                pStyleClass="@next"
+                enterClass="hidden"
+                enterActiveClass="scalein"
+                leaveToClass="hidden"
+                leaveActiveClass="fadeout"
+                [hideOnOutsideClick]="true"
+                title="Customer Messages & Inquiries"
+                (click)="loadChatConversations()"
+            >
+                <i class="pi pi-comments p-overlay-badge text-xl text-700" style="font-size: 1.25rem;">
+                    <p-badge *ngIf="unreadChatCount > 0" [value]="unreadChatCount.toString()" severity="success" styleClass="text-xs"></p-badge>
+                </i>
+            </button>
+
+            <!-- Conversations Overlay Dropdown -->
+            <div
+                class="list-none p-3 m-0 border-round shadow-4 hidden absolute surface-overlay origin-top-right mt-2 right-0 top-auto z-5"
+                style="width: 23rem; max-height: 28rem; overflow-y: auto;"
+            >
+                <div class="flex align-items-center justify-content-between pb-2 mb-2 border-bottom-1 surface-border">
+                    <span class="font-bold text-900 text-base flex align-items-center gap-2">
+                        <i class="pi pi-comments text-primary"></i>
+                        Customer Messages
+                    </span>
+                    <span class="badge bg-teal-50 text-teal-700 px-2 py-1 border-round text-xs font-bold" *ngIf="unreadChatCount > 0">
+                        {{ unreadChatCount }} Unread
+                    </span>
+                </div>
+
+                <div *ngIf="loadingChats" class="p-3 text-center text-500">
+                    <i class="pi pi-spin pi-spinner text-xl mr-2"></i> Loading messages...
+                </div>
+
+                <div *ngIf="!loadingChats && chatConversations.length === 0" class="p-4 text-center">
+                    <i class="pi pi-check-circle text-teal-600 text-3xl mb-2 block"></i>
+                    <span class="text-600 font-medium block">No customer inquiries</span>
+                    <span class="text-500 text-xs">Customer messages and order chats will appear here.</span>
+                </div>
+
+                <ul *ngIf="!loadingChats && chatConversations.length > 0" class="list-none p-0 m-0">
+                    <li
+                        *ngFor="let conv of chatConversations"
+                        class="p-2 mb-2 border-round surface-hover transition-colors cursor-pointer border-1 surface-border hover:border-primary"
+                        (click)="openChatFromConversation(conv)"
+                    >
+                        <div class="flex align-items-center justify-content-between mb-1">
+                            <div class="flex align-items-center gap-2">
+                                <span class="font-bold text-900 text-sm">
+                                    {{ conv.customerName || 'Online Customer' }}
+                                </span>
+                                <span
+                                    class="badge px-1 border-round text-xs font-medium"
+                                    [ngClass]="conv.orderNo ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'"
+                                >
+                                    {{ conv.orderNo ? ('#' + conv.orderNo) : 'Storefront Inquiry' }}
+                                </span>
+                            </div>
+                            <span class="text-xs text-500">{{ formatOrderTime(conv.lastMessageTime) }}</span>
+                        </div>
+                        <div class="text-xs text-600 text-overflow-ellipsis white-space-nowrap overflow-hidden mb-1">
+                            {{ conv.lastMessage }}
+                        </div>
+                        <div class="flex align-items-center justify-content-between pt-1 border-top-1 surface-border text-xs">
+                            <span *ngIf="conv.unreadCount > 0" class="badge bg-red-100 text-red-700 px-2 py-0 border-round font-bold text-xs">
+                                {{ conv.unreadCount }} new
+                            </span>
+                            <span *ngIf="!conv.unreadCount" class="text-400 text-xs">Read</span>
+                            <span class="text-primary font-bold hover:underline flex align-items-center gap-1">
+                                Reply <i class="pi pi-arrow-right text-xs"></i>
+                            </span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
         <div class="topbar-profile">
             <button
                 class="topbar-profile-button p-link"
@@ -258,4 +339,31 @@
         </div>
     </div>
 </div>
+
+<!-- Real-Time Customer Chat Dialog -->
+<p-dialog
+    header="Customer Conversation"
+    [(visible)]="chatDialogVisible"
+    [modal]="true"
+    appendTo="body"
+    [style]="{ width: '38rem' }"
+    [breakpoints]="{ '960px': '92vw' }"
+    [draggable]="false"
+    [resizable]="false"
+>
+    <app-order-chat
+        *ngIf="chatDialogVisible && selectedConversationForChat"
+        [orderNo]="selectedConversationForChat.orderNo"
+        [sessionId]="selectedConversationForChat.sessionId"
+        [branchId]="selectedConversationForChat.branchId"
+        [customerName]="selectedConversationForChat.customerName"
+        [customerMobile]="selectedConversationForChat.customerMobile"
+        mode="store"
+        height="340px"
+        [title]="selectedConversationForChat.orderNo ? ('Chat - #' + selectedConversationForChat.orderNo) : ('Inquiry - ' + (selectedConversationForChat.customerName || 'Customer'))"
+        [subtitle]="selectedConversationForChat.orderNo ? selectedConversationForChat.customerName : 'Generic Storefront Inquiry'"
+        (unreadCountChange)="loadChatConversations(false)"
+    ></app-order-chat>
+</p-dialog>
+
 <p-toast></p-toast>

@@ -32,7 +32,8 @@ export interface SendCustomerChatMessageInput {
 
 export interface CustomerOrderConversationDto {
     orderId?: number;
-    orderNo: string;
+    orderNo?: string;
+    sessionId?: string;
     branchId: number;
     customerName: string;
     customerMobile?: string;
