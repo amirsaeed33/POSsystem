@@ -164,18 +164,32 @@
                     ></p-tag>
                 </td>
                 <td *ngIf="isRestaurant">
-                    <div *ngIf="order.riderName" class="flex flex-column gap-1">
-                        <span class="font-bold text-teal-800 flex align-items-center gap-1 text-sm">
-                            <i class="pi pi-compass text-teal-600"></i>{{ order.riderName }}
-                        </span>
-                        <span *ngIf="order.riderPhone" class="text-xs text-500">
-                            {{ order.riderPhone }}
-                        </span>
+                    <div *ngIf="order.riderName" class="flex align-items-center justify-content-between gap-1">
+                        <div class="flex flex-column gap-1">
+                            <span class="font-bold text-teal-800 flex align-items-center gap-1 text-sm">
+                                <i class="pi pi-compass text-teal-600"></i>{{ order.riderName }}
+                            </span>
+                            <span *ngIf="order.riderPhone" class="text-xs text-500">
+                                {{ order.riderPhone }}
+                            </span>
+                        </div>
+                        <button
+                            *ngIf="!isDelivered(order) && order.status !== 4"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-pencil"
+                            class="p-button-rounded p-button-text p-button-sm text-teal-700 hover:surface-100 p-0"
+                            style="width: 1.85rem; height: 1.85rem;"
+                            (click)="openAssignRiderDialog(order)"
+                            pTooltip="Change / Reassign Rider"
+                            tooltipPosition="top"
+                        ></button>
                     </div>
                     <div *ngIf="!order.riderName">
                         <span
                             *ngIf="order.status === 1 || order.status === 3"
-                            class="text-xs px-2 py-0.5 border-round font-medium bg-yellow-100 text-yellow-800 cursor-pointer"
+                            class="text-xs px-2 py-0.5 border-round font-medium bg-yellow-100 text-yellow-800 cursor-pointer hover:bg-yellow-200 transition-colors"
                             (click)="openAssignRiderDialog(order)"
                             title="Click to assign delivery rider"
                         >
@@ -238,9 +252,9 @@
         ></app-order-chat>
     </p-dialog>
 
-    <!-- 🛵 Assign Delivery Rider Dialog (Restaurant Only) -->
+    <!-- 🛵 Assign / Reassign Delivery Rider Dialog (Restaurant Only) -->
     <p-dialog
-        [header]="'🛵 Assign Delivery Rider - Order #' + (selectedOrderForRider?.orderNo || selectedOrderForRider?.id)"
+        [header]="selectedOrderForRider?.riderName ? ('🛵 Reassign Delivery Rider - Order #' + (selectedOrderForRider?.orderNo || selectedOrderForRider?.id)) : ('🛵 Assign Delivery Rider - Order #' + (selectedOrderForRider?.orderNo || selectedOrderForRider?.id))"
         [(visible)]="assignRiderDialogVisible"
         [modal]="true"
         appendTo="body"
@@ -313,9 +327,32 @@
                                 <div class="font-bold text-900 text-base flex align-items-center gap-2">
                                     {{ rider.riderName }}
                                     <span *ngIf="rider.employeeCode" class="text-xs text-500 font-normal">({{ rider.employeeCode }})</span>
+                                    <span *ngIf="selectedOrderForRider?.riderId === rider.riderId" class="px-2 py-0.5 border-round text-xs font-semibold bg-teal-100 text-teal-800 border-1 border-teal-300">
+                                        Current Rider
+                                    </span>
                                 </div>
                                 <div class="text-xs text-600 mt-1">
                                     <i class="pi pi-phone mr-1" *ngIf="rider.riderPhone"></i>{{ rider.riderPhone || 'No contact phone' }}
+                                </div>
+                                <!-- Rider Statistics: Last Order Time & Today Delivered Count -->
+                                <div class="mt-2 flex flex-wrap align-items-center gap-2">
+                                    <!-- Last Order Time Badge -->
+                                    <span
+                                        class="inline-flex align-items-center gap-1 px-2 py-0.5 border-round text-xs font-medium"
+                                        [ngClass]="rider.lastOrderTime ? 'bg-indigo-50 text-indigo-700 border-1 border-indigo-200' : 'bg-gray-100 text-gray-600 border-1 border-gray-200'"
+                                    >
+                                        <i class="pi pi-clock text-xs"></i>
+                                        {{ rider.lastOrderTimeText || 'No previous orders' }}
+                                    </span>
+
+                                    <!-- Today's Delivered Orders Badge -->
+                                    <span
+                                        class="inline-flex align-items-center gap-1 px-2 py-0.5 border-round text-xs font-medium"
+                                        [ngClass]="(rider.todayDeliveredCount || 0) > 0 ? 'bg-green-50 text-green-700 border-1 border-green-200' : 'bg-orange-50 text-orange-700 border-1 border-orange-200'"
+                                    >
+                                        <i [class]="(rider.todayDeliveredCount || 0) > 0 ? 'pi pi-check-circle text-xs' : 'pi pi-info-circle text-xs'"></i>
+                                        {{ rider.todayDeliveredText || 'No order delivered today' }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -365,30 +402,17 @@
                     (click)="assignRiderDialogVisible = false"
                 ></button>
 
-                <div class="flex align-items-center gap-2">
-                    <button
-                        *ngIf="selectedOrderForRider && isPending(selectedOrderForRider)"
-                        pButton
-                        pRipple
-                        type="button"
-                        label="Approve Without Rider"
-                        class="p-button-outlined p-button-secondary border-round-lg px-3 text-sm font-semibold"
-                        [disabled]="assigningRider"
-                        (click)="confirmApproveAndAssignRider(false)"
-                    ></button>
-
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        [label]="(selectedOrderForRider && isPending(selectedOrderForRider)) ? 'Approve & Assign Rider' : 'Assign Rider'"
-                        icon="pi pi-check"
-                        class="p-button-success border-round-lg px-4 font-semibold shadow-2"
-                        [disabled]="!selectedRider || selectedRider.isBusy || assigningRider"
-                        [loading]="assigningRider"
-                        (click)="confirmApproveAndAssignRider(true)"
-                    ></button>
-                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    [label]="selectedOrderForRider?.riderName ? 'Reassign Rider' : 'Assign Rider'"
+                    icon="pi pi-check"
+                    class="p-button-success border-round-lg px-4 font-semibold shadow-2"
+                    [disabled]="!selectedRider || selectedRider.isBusy || assigningRider || (selectedOrderForRider?.riderId === selectedRider.riderId)"
+                    [loading]="assigningRider"
+                    (click)="confirmAssignOrReassignRider()"
+                ></button>
             </div>
         </ng-template>
     </p-dialog>

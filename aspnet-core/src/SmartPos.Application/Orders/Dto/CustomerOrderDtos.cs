@@ -208,6 +208,11 @@ namespace SmartPos.Orders.Dto
         public bool IsBusy { get; set; }
         public string BusyOrderNo { get; set; }
         public int? BusyOrderId { get; set; }
+        public DateTime? LastOrderTime { get; set; }
+        public string LastOrderTimeText { get; set; }
+        public int IdleMinutes { get; set; }
+        public int TodayDeliveredCount { get; set; }
+        public string TodayDeliveredText { get; set; }
     }
 
     public class PagedCustomerOrderResultRequestDto : PagedResultRequestDto

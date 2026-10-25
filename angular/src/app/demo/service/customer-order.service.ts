@@ -186,14 +186,29 @@ export class CustomerOrderService {
         this.unwrap(res, 'Failed to mark order as delivered');
     }
 
-    async getAvailableRiders(branchId?: number): Promise<DeliveryRiderStatusDto[]> {
+    async getAvailableRiders(branchId?: number, currentOrderId?: number): Promise<DeliveryRiderStatusDto[]> {
         const params: any = {};
         if (branchId) params.branchId = branchId;
+        if (currentOrderId) params.currentOrderId = currentOrderId;
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetAvailableRiders`, { params })
         );
         const result = this.unwrap(res, 'Failed to load delivery riders');
-        return Array.isArray(result) ? result : result?.items || [];
+        const list = Array.isArray(result) ? result : result?.items || [];
+        return list.map((r: any) => ({
+            riderId: r.riderId ?? r.RiderId,
+            riderName: r.riderName ?? r.RiderName,
+            riderPhone: r.riderPhone ?? r.RiderPhone,
+            employeeCode: r.employeeCode ?? r.EmployeeCode,
+            isBusy: Boolean(r.isBusy ?? r.IsBusy),
+            busyOrderNo: r.busyOrderNo ?? r.BusyOrderNo,
+            busyOrderId: r.busyOrderId ?? r.BusyOrderId,
+            lastOrderTime: r.lastOrderTime ?? r.LastOrderTime,
+            lastOrderTimeText: r.lastOrderTimeText ?? r.LastOrderTimeText,
+            idleMinutes: r.idleMinutes ?? r.IdleMinutes ?? 0,
+            todayDeliveredCount: r.todayDeliveredCount ?? r.TodayDeliveredCount ?? 0,
+            todayDeliveredText: r.todayDeliveredText ?? r.TodayDeliveredText ?? 'No order delivered today',
+        }));
     }
 
     async assignRider(input: AssignRiderDto): Promise<CustomerOrderDto> {

@@ -67,6 +67,11 @@ export interface DeliveryRiderStatusDto {
     isBusy: boolean;
     busyOrderNo?: string;
     busyOrderId?: number | null;
+    lastOrderTime?: string | Date | null;
+    lastOrderTimeText?: string;
+    idleMinutes?: number;
+    todayDeliveredCount: number;
+    todayDeliveredText: string;
 }
 
 export interface OverrideDeliveryFeeInput {

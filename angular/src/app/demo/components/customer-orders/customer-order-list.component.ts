@@ -347,7 +347,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         this.loadingRiders = true;
         try {
             const branchId = (order.branchId || this.branchContext.getBranchId()) ?? undefined;
-            this.availableRiders = await this.customerOrderService.getAvailableRiders(branchId);
+            this.availableRiders = await this.customerOrderService.getAvailableRiders(branchId, order.id);
             if (order.riderId) {
                 this.selectedRider = this.availableRiders.find((r) => r.riderId === order.riderId) || null;
             }
@@ -363,10 +363,10 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         }
     }
 
-    async confirmApproveAndAssignRider(assignSelectedRider: boolean): Promise<void> {
+    async confirmAssignOrReassignRider(): Promise<void> {
         if (!this.selectedOrderForRider) return;
 
-        if (assignSelectedRider && !this.selectedRider) {
+        if (!this.selectedRider) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Select Rider',
@@ -375,7 +375,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
             return;
         }
 
-        if (assignSelectedRider && this.selectedRider?.isBusy) {
+        if (this.selectedRider.isBusy) {
             this.messageService.add({
                 severity: 'error',
                 summary: 'Rider Busy',
@@ -387,52 +387,31 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
 
         this.assigningRider = true;
         const order = this.selectedOrderForRider;
+        const isReassign = !!order.riderId;
         try {
-            let sale: any = null;
-            if (this.isPending(order)) {
-                sale = await this.customerOrderService.approve(order.id);
-            }
+            await this.customerOrderService.assignRider({
+                orderId: order.id,
+                riderId: this.selectedRider.riderId,
+                riderName: this.selectedRider.riderName,
+                riderPhone: this.selectedRider.riderPhone,
+            });
 
-            if (assignSelectedRider && this.selectedRider) {
-                await this.customerOrderService.assignRider({
-                    orderId: order.id,
-                    riderId: this.selectedRider.riderId,
-                    riderName: this.selectedRider.riderName,
-                    riderPhone: this.selectedRider.riderPhone,
-                });
-            }
-
-            const invoiceMsg = sale?.invoiceNo ? ` Sale invoice: ${sale.invoiceNo}.` : '';
             this.messageService.add({
                 severity: 'success',
-                summary: 'Order Processed',
-                detail: assignSelectedRider && this.selectedRider
-                    ? `Order ${order.orderNo || '#' + order.id} approved and assigned to rider ${this.selectedRider.riderName}.${invoiceMsg}`
-                    : `Order ${order.orderNo || '#' + order.id} approved successfully.${invoiceMsg}`,
+                summary: isReassign ? 'Rider Reassigned' : 'Rider Assigned',
+                detail: isReassign
+                    ? `Order ${order.orderNo || '#' + order.id} reassigned to rider ${this.selectedRider.riderName}.`
+                    : `Order ${order.orderNo || '#' + order.id} assigned to rider ${this.selectedRider.riderName}.`,
             });
 
             this.assignRiderDialogVisible = false;
             this.loadOrders();
-
-            // Auto print thermal receipt for restaurant
-            if (this.isRestaurant) {
-                try {
-                    const fullOrder = await this.customerOrderService.get(order.id);
-                    if (sale?.invoiceNo) {
-                        fullOrder.saleInvoiceNo = sale.invoiceNo;
-                    }
-                    this.thermalPrintService.printCustomerOrder(fullOrder, sale?.invoiceNo);
-                } catch (err) {
-                    console.warn('Auto print failed, falling back to cached order', err);
-                    this.thermalPrintService.printCustomerOrder(order, sale?.invoiceNo);
-                }
-            }
         } catch (error: any) {
             const message =
                 error?.error?.error?.message ||
                 error?.error?.message ||
                 error?.message ||
-                'Failed to process order';
+                'Failed to assign rider';
             this.messageService.add({
                 severity: 'error',
                 summary: 'Action Failed',
@@ -445,13 +424,10 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
     }
 
     onApprove(order: CustomerOrderDto): void {
-        if (this.isRestaurant) {
-            this.openAssignRiderDialog(order);
-            return;
-        }
-
         const label = order.orderNo || `#${order.id}`;
-        const confirmMsg = `Approve customer order "${label}"? This will create a sale invoice.`;
+        const confirmMsg = this.isRestaurant
+            ? `Approve customer order "${label}"? An available delivery rider will be automatically assigned.`
+            : `Approve customer order "${label}"? This will create a sale invoice.`;
 
         this.confirmationService.confirm({
             message: confirmMsg,
@@ -463,12 +439,49 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
                     const invoice = sale?.invoiceNo
                         ? ` Sale invoice: ${sale.invoiceNo}.`
                         : '';
-                    const detailMsg = `Order approved successfully.${invoice}`;
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Success',
-                        detail: detailMsg,
-                    });
+
+                    let assignedRiderName: string | null = null;
+                    let fullOrder: CustomerOrderDto = order;
+
+                    // For restaurant branches, fetch updated order to get the auto-assigned rider & print receipt
+                    if (this.isRestaurant) {
+                        try {
+                            fullOrder = await this.customerOrderService.get(order.id);
+                            assignedRiderName = fullOrder.riderName || null;
+                            if (sale?.invoiceNo) {
+                                fullOrder.saleInvoiceNo = sale.invoiceNo;
+                            }
+                            // Auto print thermal receipt
+                            this.thermalPrintService.printCustomerOrder(fullOrder, sale?.invoiceNo);
+                        } catch (err) {
+                            console.warn('Post-approval order fetch or print failed', err);
+                        }
+                    }
+
+                    if (this.isRestaurant) {
+                        if (assignedRiderName) {
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Order Approved & Rider Assigned',
+                                detail: `Order "${label}" approved! Automatically assigned to rider ${assignedRiderName} (longest idle rider).${invoice}`,
+                                life: 6000,
+                            });
+                        } else {
+                            this.messageService.add({
+                                severity: 'warn',
+                                summary: 'Order Approved (No Rider Available)',
+                                detail: `Order "${label}" approved.${invoice} No delivery rider is currently available — you can assign one later.`,
+                                life: 7000,
+                            });
+                        }
+                    } else {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: 'Success',
+                            detail: `Order approved successfully.${invoice}`,
+                        });
+                    }
+
                     this.loadOrders();
                 } catch (error: any) {
                     const message =

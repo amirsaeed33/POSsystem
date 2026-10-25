@@ -757,7 +757,39 @@ namespace SmartPos.Orders
                     }).ToList()
                 });
 
-                order.Status = CustomerOrderStatus.Approved;
+                var branch = await _branchRepository.FirstOrDefaultAsync(order.BranchId);
+                var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
+
+                if (isRestaurant)
+                {
+                    // Automatic Dynamic Rider Assignment ONLY for Restaurant branches
+                    // Select the available rider who has been free for the longest time
+                    var availableRiders = await GetAvailableRidersAsync(order.BranchId, order.Id);
+                    var longestIdleRider = availableRiders
+                        .Where(r => !r.IsBusy)
+                        .OrderByDescending(r => r.IdleMinutes)
+                        .ThenBy(r => r.TodayDeliveredCount)
+                        .ThenBy(r => r.RiderId)
+                        .FirstOrDefault();
+
+                    if (longestIdleRider != null)
+                    {
+                        order.RiderId = longestIdleRider.RiderId;
+                        order.RiderName = longestIdleRider.RiderName;
+                        order.RiderPhone = longestIdleRider.RiderPhone;
+                        order.RiderAssignedTime = DateTime.UtcNow;
+                        order.Status = CustomerOrderStatus.InProgress; // Out for delivery
+                    }
+                    else
+                    {
+                        order.Status = CustomerOrderStatus.Approved;
+                    }
+                }
+                else
+                {
+                    order.Status = CustomerOrderStatus.Approved;
+                }
+
                 order.SaleId = sale.Id;
                 await CurrentUnitOfWork.SaveChangesAsync();
 
@@ -765,7 +797,7 @@ namespace SmartPos.Orders
                     order.Id,
                     order.OrderNo,
                     order.BranchId,
-                    CustomerOrderStatus.Approved));
+                    order.Status));
 
                 return sale;
             }
@@ -1009,7 +1041,7 @@ namespace SmartPos.Orders
             }
         }
 
-        public async Task<List<DeliveryRiderStatusDto>> GetAvailableRidersAsync(int? branchId)
+        public async Task<List<DeliveryRiderStatusDto>> GetAvailableRidersAsync(int? branchId, int? currentOrderId = null)
         {
             var targetBranchId = branchId ?? await _branchAccessChecker.GetEffectiveBranchIdAsync();
 
@@ -1022,17 +1054,19 @@ namespace SmartPos.Orders
             // Find staff whose Designation is "Delivery Rider" (or contains "rider" or "delivery")
             var riders = await _staffRepository.GetAll()
                 .Where(s => s.IsActive && !s.IsDeleted)
-                .WhereIf(targetBranchId.HasValue, s => s.BranchId == null || s.BranchId == targetBranchId.Value)
+                .WhereIf(targetBranchId.HasValue, s => s.BranchId == targetBranchId.Value)
                 .Where(s => s.Designation != null &&
                             (s.Designation.ToLower().Contains("rider") || s.Designation.ToLower().Contains("delivery")))
                 .OrderBy(s => s.Name)
                 .ToListAsync();
 
             // Find all active orders currently assigned to a rider that are not yet Delivered or Rejected
+            // Exclude currentOrderId so reassignment doesn't treat the rider as busy on the very order being edited
             var activeOrders = await Repository.GetAll()
                 .Where(o => o.RiderId.HasValue &&
                             o.Status != CustomerOrderStatus.Delivered &&
                             o.Status != CustomerOrderStatus.Rejected)
+                .WhereIf(currentOrderId.HasValue, o => o.Id != currentOrderId.Value)
                 .Select(o => new { o.Id, o.OrderNo, RiderId = o.RiderId.Value })
                 .ToListAsync();
 
@@ -1040,9 +1074,93 @@ namespace SmartPos.Orders
                 .GroupBy(o => o.RiderId)
                 .ToDictionary(g => g.Key, g => g.First());
 
+            var todayLocal = DateTime.Today;
+            var todayUtc = DateTime.UtcNow.Date;
+
+            // Query previous order times for each rider to determine idle time and today's delivered count
+            var riderIds = riders.Select(r => r.Id).ToList();
+            var riderOrders = await Repository.GetAll()
+                .Where(o => o.RiderId.HasValue && riderIds.Contains(o.RiderId.Value))
+                .WhereIf(currentOrderId.HasValue, o => o.Id != currentOrderId.Value)
+                .Select(o => new
+                {
+                    RiderId = o.RiderId.Value,
+                    Status = o.Status,
+                    DeliveryTime = o.Status == CustomerOrderStatus.Delivered && o.LastModificationTime.HasValue
+                        ? o.LastModificationTime.Value
+                        : (o.RiderAssignedTime ?? o.OrderDate),
+                    OrderTime = o.Status == CustomerOrderStatus.Delivered && o.LastModificationTime.HasValue
+                        ? o.LastModificationTime.Value
+                        : (o.RiderAssignedTime ?? o.OrderDate)
+                })
+                .ToListAsync();
+
+            var lastOrderTimes = riderOrders
+                .GroupBy(o => o.RiderId)
+                .ToDictionary(g => g.Key, g => g.Max(x => x.OrderTime));
+
+            var todayDeliveredByRider = riderOrders
+                .Where(o => o.Status == CustomerOrderStatus.Delivered &&
+                            (o.DeliveryTime.Date == todayLocal || o.DeliveryTime.Date == todayUtc))
+                .GroupBy(o => o.RiderId)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var nowUtc = DateTime.UtcNow;
+
             return riders.Select(r =>
             {
                 var isBusy = activeByRider.TryGetValue(r.Id, out var busyOrder);
+                var hasLastOrder = lastOrderTimes.TryGetValue(r.Id, out var lastTime);
+                DateTime? lastOrderTime = hasLastOrder ? (DateTime?)lastTime : null;
+                string lastOrderText = "No previous orders";
+                int idleMins = int.MaxValue;
+
+                if (lastOrderTime.HasValue)
+                {
+                    var diff = nowUtc - lastOrderTime.Value.ToUniversalTime();
+                    if (diff.TotalMinutes < 0) diff = TimeSpan.Zero;
+                    idleMins = (int)diff.TotalMinutes;
+
+                    if (diff.TotalMinutes < 1)
+                    {
+                        lastOrderText = "Last order: Just now";
+                    }
+                    else if (diff.TotalMinutes < 60)
+                    {
+                        int mins = Math.Max(1, (int)diff.TotalMinutes);
+                        lastOrderText = $"Last order: {mins} minute{(mins == 1 ? "" : "s")} ago";
+                    }
+                    else if (diff.TotalHours < 24)
+                    {
+                        int hours = (int)diff.TotalHours;
+                        lastOrderText = $"Last order: {hours} hour{(hours == 1 ? "" : "s")} ago";
+                    }
+                    else if (diff.TotalDays < 2)
+                    {
+                        lastOrderText = "Last order: Yesterday";
+                    }
+                    else
+                    {
+                        int days = (int)diff.TotalDays;
+                        lastOrderText = $"Last order: {days} days ago";
+                    }
+                }
+
+                int todayDelivered = todayDeliveredByRider.TryGetValue(r.Id, out var count) ? count : 0;
+                string todayDeliveredText;
+                if (todayDelivered == 0)
+                {
+                    todayDeliveredText = "No order delivered today";
+                }
+                else if (todayDelivered == 1)
+                {
+                    todayDeliveredText = "1 order delivered today";
+                }
+                else
+                {
+                    todayDeliveredText = $"{todayDelivered} orders delivered today";
+                }
+
                 return new DeliveryRiderStatusDto
                 {
                     RiderId = r.Id,
@@ -1051,9 +1169,19 @@ namespace SmartPos.Orders
                     EmployeeCode = r.EmployeeCode,
                     IsBusy = isBusy,
                     BusyOrderId = isBusy ? busyOrder.Id : null,
-                    BusyOrderNo = isBusy ? (!string.IsNullOrWhiteSpace(busyOrder.OrderNo) ? busyOrder.OrderNo : $"#{busyOrder.Id}") : null
+                    BusyOrderNo = isBusy ? (!string.IsNullOrWhiteSpace(busyOrder.OrderNo) ? busyOrder.OrderNo : $"#{busyOrder.Id}") : null,
+                    LastOrderTime = lastOrderTime,
+                    LastOrderTimeText = lastOrderText,
+                    IdleMinutes = idleMins,
+                    TodayDeliveredCount = todayDelivered,
+                    TodayDeliveredText = todayDeliveredText
                 };
-            }).ToList();
+            })
+            .OrderBy(r => r.IsBusy ? 1 : 0) // Available riders first
+            .ThenByDescending(r => r.IdleMinutes) // Longest free / idle rider first
+            .ThenBy(r => r.TodayDeliveredCount) // Fewer orders delivered today as tie breaker
+            .ThenBy(r => r.RiderName)
+            .ToList();
         }
 
         public async Task<CustomerOrderDto> AssignRiderAsync(AssignRiderDto input)

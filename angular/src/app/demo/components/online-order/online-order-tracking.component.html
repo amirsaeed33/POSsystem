@@ -311,6 +311,23 @@
 
                         <div class="section-divider"></div>
 
+                        <!-- Assigned Delivery Rider (if dispatched) -->
+                        <div class="info-section" *ngIf="order.riderName">
+                            <div class="section-label">
+                                <i class="pi pi-compass text-teal-600"></i>
+                                <span>Delivery Rider</span>
+                            </div>
+                            <div class="font-bold text-slate-800 text-sm flex align-items-center gap-1">
+                                🛵 {{ order.riderName }}
+                            </div>
+                            <div *ngIf="order.riderPhone" class="text-xs text-slate-600 mt-1 flex align-items-center gap-1">
+                                <i class="pi pi-phone text-slate-400 text-xs"></i>
+                                <span>Contact: <strong>{{ order.riderPhone }}</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="section-divider" *ngIf="order.riderName"></div>
+
                         <!-- Customer & Delivery Details -->
                         <div class="info-section">
                             <div class="section-label">
