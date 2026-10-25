@@ -69,6 +69,8 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     chatDialogVisible = false;
     selectedConversationForChat: CustomerOrderConversationDto | null = null;
     private chatNotificationSub?: Subscription;
+    private newOrderSub?: Subscription;
+    private orderStatusSub?: Subscription;
 
     readonly BranchStatuses = BranchStatuses;
 
@@ -143,6 +145,12 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         if (this.chatNotificationSub) {
             this.chatNotificationSub.unsubscribe();
         }
+        if (this.newOrderSub) {
+            this.newOrderSub.unsubscribe();
+        }
+        if (this.orderStatusSub) {
+            this.orderStatusSub.unsubscribe();
+        }
     }
 
     private initChatListener(): void {
@@ -165,6 +173,27 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             });
 
             this.loadChatConversations(false);
+        });
+
+        this.newOrderSub = this.customerChatService.newOrderReceived$.subscribe((order) => {
+            if (!this.isHostAdmin && this.currentBranch?.id && order.branchId && order.branchId !== this.currentBranch.id) {
+                return;
+            }
+            this.playOrderChime();
+            this.messageService.add({
+                severity: 'success',
+                summary: `🛒 New Online Order! #${order.orderNo || order.orderId}`,
+                detail: `${order.customerName || 'Online Customer'} placed an order of PKR ${order.totalAmount || 0}`,
+                life: 9000
+            });
+            this.loadTodayOrders();
+        });
+
+        this.orderStatusSub = this.customerChatService.orderStatusChanged$.subscribe((evt) => {
+            if (!this.isHostAdmin && this.currentBranch?.id && evt.branchId && evt.branchId !== this.currentBranch.id) {
+                return;
+            }
+            this.loadTodayOrders();
         });
     }
 
@@ -212,6 +241,37 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             gain.connect(ctx.destination);
             osc.start();
             osc.stop(ctx.currentTime + 0.35);
+        } catch {}
+    }
+
+    private playOrderChime(): void {
+        try {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContextClass) return;
+            const ctx = new AudioContextClass();
+            const now = ctx.currentTime;
+
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = 'triangle';
+            osc1.frequency.setValueAtTime(587.33, now); // D5
+            gain1.gain.setValueAtTime(0.25, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.22);
+
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(880.00, now + 0.16); // A5
+            gain2.gain.setValueAtTime(0.28, now + 0.16);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(now + 0.16);
+            osc2.stop(now + 0.45);
         } catch {}
     }
 

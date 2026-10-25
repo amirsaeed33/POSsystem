@@ -12,7 +12,7 @@
         [globalFilterFields]="['orderNo', 'customerName', 'deliveryAreaName', 'statusName', 'saleInvoiceNo', 'notes']"
     >
         <ng-template pTemplate="caption">
-            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+            <div class="flex flex-wrap gap-3 align-items-center justify-content-between">
                 <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
                     <span class="p-input-icon-left w-full sm:w-20rem">
                         <i class="pi pi-search"></i>
@@ -46,15 +46,49 @@
                         (click)="onSearch()"
                     ></button>
                 </div>
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-plus"
-                    label="Create"
-                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
-                    (click)="openCreateDialog()"
-                ></button>
+
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-0 sm:flex-order-1">
+                    <!-- Live Auto-Sync Pill -->
+                    <div
+                        class="inline-flex align-items-center gap-2 px-3 py-2 border-round surface-100 hover:surface-200 cursor-pointer border-1 surface-border transition-colors select-none"
+                        (click)="toggleAutoSync()"
+                        [pTooltip]="autoSyncEnabled ? 'Real-time auto-sync is active. Click to pause.' : 'Auto-sync is paused. Click to resume.'"
+                        tooltipPosition="bottom"
+                    >
+                        <span
+                            class="pulse-dot"
+                            [ngClass]="autoSyncEnabled ? 'pulse-dot-active' : 'pulse-dot-paused'"
+                        ></span>
+                        <span class="text-xs font-semibold" [ngClass]="autoSyncEnabled ? 'text-green-700' : 'text-500'">
+                            {{ autoSyncEnabled ? ('Live Auto-Sync (' + autoSyncCountdown + 's)') : 'Auto-Sync Paused' }}
+                        </span>
+                        <i
+                            *ngIf="isSilentSyncing"
+                            class="pi pi-spin pi-spinner text-xs text-primary ml-1"
+                        ></i>
+                    </div>
+
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        [icon]="isSilentSyncing || loading ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
+                        class="p-button-outlined p-button-secondary"
+                        pTooltip="Refresh orders list now"
+                        tooltipPosition="bottom"
+                        (click)="manualRefresh()"
+                    ></button>
+
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        label="Create"
+                        class="p-button-primary w-full sm:w-auto font-semibold"
+                        (click)="openCreateDialog()"
+                    ></button>
+                </div>
             </div>
         </ng-template>
 
@@ -185,3 +219,34 @@
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
 </div>
+
+<style>
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.pulse-dot-active {
+    background-color: #22c55e;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    animation: pulse-green 1.8s infinite;
+}
+.pulse-dot-paused {
+    background-color: #94a3b8;
+}
+@keyframes pulse-green {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+}
+</style>

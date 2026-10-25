@@ -23,9 +23,20 @@ import { Subscription } from 'rxjs';
 export class CustomerOrderListComponent implements OnInit, OnDestroy {
     orders: CustomerOrderDto[] = [];
     loading = false;
+    isSilentSyncing = false;
     totalRecords = 0;
     keyword = '';
     statusFilter: number | null = null;
+
+    // Real-Time Auto-Sync State
+    autoSyncEnabled = true;
+    autoSyncIntervalSeconds = 8;
+    autoSyncCountdown = 8;
+    lastUpdated = new Date();
+    private autoSyncTimer: any;
+    private orderCreatedSub?: Subscription;
+    private orderStatusSub?: Subscription;
+    private branchSub?: Subscription;
 
     createDialogVisible = false;
     viewDialogVisible = false;
@@ -44,7 +55,8 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
 
     canOverrideDeliveryFee = false;
 
-    constructor(public formatService: AppFormatService, 
+    constructor(
+        public formatService: AppFormatService,
         private customerOrderService: CustomerOrderService,
         private customerChatService: CustomerChatService,
         private messageService: MessageService,
@@ -76,15 +88,116 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
             this.customerChatService.joinBranchChat(branchId);
         }
 
-        this.chatSub = this.customerChatService.notificationReceived$.subscribe(msg => {
+        // Reconnect/re-join if user switches branch
+        this.branchSub = this.branchContext.currentBranch$.subscribe((b) => {
+            if (b?.id) {
+                this.customerChatService.joinBranchChat(b.id);
+                this.loadOrders(true);
+            }
+        });
+
+        // 1. Real-time Customer Inquiries & Chat Notifications
+        this.chatSub = this.customerChatService.notificationReceived$.subscribe((msg) => {
             if (msg.orderNo) {
                 this.unreadOrderNos.add(msg.orderNo.trim().toUpperCase());
             }
         });
+
+        // 2. Real-time New Online Order Placed
+        this.orderCreatedSub = this.customerChatService.newOrderReceived$.subscribe((order) => {
+            const currentBranchId = this.branchContext.getBranchId();
+            if (!order.branchId || !currentBranchId || order.branchId === currentBranchId) {
+                this.playOrderAlertSound();
+                this.messageService.add({
+                    severity: 'success',
+                    summary: `🛒 New Customer Order! #${order.orderNo || order.orderId}`,
+                    detail: `${order.customerName || 'Online Customer'} placed an order of PKR ${order.totalAmount || 0}`,
+                    life: 9000
+                });
+                this.autoSyncCountdown = this.autoSyncIntervalSeconds;
+                this.loadOrders(true);
+            }
+        });
+
+        // 3. Real-time Order Status Updated (Approved/Rejected/Delivered)
+        this.orderStatusSub = this.customerChatService.orderStatusChanged$.subscribe((evt) => {
+            const currentBranchId = this.branchContext.getBranchId();
+            if (!evt.branchId || !currentBranchId || evt.branchId === currentBranchId) {
+                this.loadOrders(true);
+            }
+        });
+
+        // 4. Start automatic silent refresh countdown loop
+        this.startAutoSyncTimer();
     }
 
     ngOnDestroy(): void {
+        if (this.autoSyncTimer) {
+            clearInterval(this.autoSyncTimer);
+        }
         this.chatSub?.unsubscribe();
+        this.orderCreatedSub?.unsubscribe();
+        this.orderStatusSub?.unsubscribe();
+        this.branchSub?.unsubscribe();
+    }
+
+    startAutoSyncTimer(): void {
+        if (this.autoSyncTimer) {
+            clearInterval(this.autoSyncTimer);
+        }
+        this.autoSyncTimer = setInterval(() => {
+            if (this.autoSyncEnabled && !this.loading && !this.isSilentSyncing) {
+                this.autoSyncCountdown--;
+                if (this.autoSyncCountdown <= 0) {
+                    this.autoSyncCountdown = this.autoSyncIntervalSeconds;
+                    this.loadOrders(true);
+                }
+            }
+        }, 1000);
+    }
+
+    toggleAutoSync(): void {
+        this.autoSyncEnabled = !this.autoSyncEnabled;
+        if (this.autoSyncEnabled) {
+            this.autoSyncCountdown = this.autoSyncIntervalSeconds;
+            this.loadOrders(true);
+        }
+    }
+
+    manualRefresh(): void {
+        this.autoSyncCountdown = this.autoSyncIntervalSeconds;
+        this.loadOrders(false);
+    }
+
+    playOrderAlertSound(): void {
+        try {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContextClass) return;
+            const ctx = new AudioContextClass();
+            const now = ctx.currentTime;
+
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = 'triangle';
+            osc1.frequency.setValueAtTime(587.33, now); // D5
+            gain1.gain.setValueAtTime(0.25, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.22);
+
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(880.00, now + 0.16); // A5
+            gain2.gain.setValueAtTime(0.28, now + 0.16);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(now + 0.16);
+            osc2.stop(now + 0.45);
+        } catch {}
     }
 
     async loadUnreadChatOrders(): Promise<void> {
@@ -106,8 +219,12 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         return this.unreadOrderNos.has(order.orderNo.trim().toUpperCase());
     }
 
-    loadOrders(): void {
-        this.loading = true;
+    loadOrders(silent = false): void {
+        if (!silent) {
+            this.loading = true;
+        } else {
+            this.isSilentSyncing = true;
+        }
         this.loadUnreadChatOrders();
         this.customerOrderService
             .getAll({
@@ -119,16 +236,20 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
             .then((result) => {
                 this.orders = result.items;
                 this.totalRecords = result.totalCount;
+                this.lastUpdated = new Date();
             })
             .catch((error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error?.message || 'Failed to load customer orders',
-                });
+                if (!silent) {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: error?.message || 'Failed to load customer orders',
+                    });
+                }
             })
             .finally(() => {
                 this.loading = false;
+                this.isSilentSyncing = false;
             });
     }
 
