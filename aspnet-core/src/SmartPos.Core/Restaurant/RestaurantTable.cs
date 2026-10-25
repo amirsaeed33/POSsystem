@@ -32,6 +32,11 @@ namespace SmartPos.Restaurant
 
         public virtual int? CurrentOrderId { get; set; }
 
+        public virtual int? WaiterId { get; set; }
+
+        [StringLength(128)]
+        public virtual string WaiterName { get; set; }
+
         public virtual bool IsActive { get; set; } = true;
     }
 }

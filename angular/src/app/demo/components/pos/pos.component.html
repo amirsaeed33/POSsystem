@@ -51,8 +51,24 @@
                 </div>
                 <div class="text-sm text-500 mt-1">
                     <ng-container *ngIf="orderType === 'dineIn'">
-                        <span *ngIf="selectedTable" class="text-primary font-semibold">
-                            <i class="pi pi-table mr-1"></i>Active: <strong>{{ selectedTable.tableNo }}</strong> ({{ selectedTable.area || 'Main Hall' }} &bull; {{ selectedTable.capacity }} seats)
+                        <span *ngIf="selectedTable" class="text-primary font-semibold flex flex-wrap align-items-center gap-2">
+                            <span><i class="pi pi-table mr-1"></i>Active: <strong>{{ selectedTable.tableNo }}</strong> ({{ selectedTable.area || 'Main Hall' }} &bull; {{ selectedTable.capacity }} seats)</span>
+                            <span
+                                *ngIf="waiterName"
+                                class="inline-flex align-items-center px-2 py-0.5 bg-green-100 text-green-800 border-round text-xs font-semibold cursor-pointer"
+                                (click)="openAssignWaiterDialog()"
+                                title="Assigned Waiter (Click to change)"
+                            >
+                                <i class="pi pi-user mr-1"></i>Waiter: {{ waiterName }}
+                            </span>
+                            <span
+                                *ngIf="!waiterName"
+                                class="inline-flex align-items-center px-2 py-0.5 bg-yellow-100 text-yellow-800 border-round text-xs font-semibold cursor-pointer"
+                                (click)="openAssignWaiterDialog()"
+                                title="Click to assign waiter"
+                            >
+                                <i class="pi pi-user-plus mr-1"></i>Assign Waiter
+                            </span>
                         </span>
                         <span *ngIf="!selectedTable" class="text-orange-600 font-medium">
                             <i class="pi pi-exclamation-triangle mr-1"></i>No table selected. Click "Select Table" to assign.
@@ -85,6 +101,18 @@
                 [label]="selectedTable ? 'Change Table' : 'Select Table'"
                 [class]="selectedTable ? 'p-button-outlined p-button-primary' : 'p-button-primary'"
                 (click)="openTableDialog(false)"
+            ></button>
+
+            <button
+                *ngIf="orderType === 'dineIn' && selectedTable"
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-user"
+                [label]="waiterName ? 'Waiter: ' + waiterName : 'Assign Waiter'"
+                [class]="waiterName ? 'p-button-outlined p-button-success' : 'p-button-outlined p-button-warning'"
+                (click)="openAssignWaiterDialog()"
+                title="Assign or change waiter for this table"
             ></button>
 
             <button
@@ -500,6 +528,17 @@
                     </div>
                 </div>
 
+                <div
+                    *ngIf="isRestaurantMode && orderType === 'dineIn' && selectedTable"
+                    class="p-2 surface-100 border-round mt-3 flex justify-content-between align-items-center text-sm"
+                >
+                    <span class="text-600 font-medium"><i class="pi pi-user mr-1 text-primary"></i>Assigned Waiter:</span>
+                    <span class="font-bold text-900" *ngIf="waiterName">{{ waiterName }}</span>
+                    <span class="text-primary font-semibold cursor-pointer" *ngIf="!waiterName" (click)="openAssignWaiterDialog()">
+                        <i class="pi pi-plus mr-1"></i>Assign Waiter
+                    </span>
+                </div>
+
                 <button
                     pButton
                     pRipple
@@ -597,6 +636,10 @@
             <div class="surface-ground border-round p-3">
                 <div class="text-500 text-sm mb-1">Total bill</div>
                 <div class="text-2xl font-bold">{{ grandTotal | number: '1.2-2' }}</div>
+                <div *ngIf="isRestaurantMode && orderType === 'dineIn'" class="flex justify-content-between align-items-center mt-2 pt-2 border-top-1 surface-border">
+                    <span class="text-sm text-600 font-medium"><i class="pi pi-user mr-1 text-primary"></i>Assigned Waiter:</span>
+                    <span class="font-bold text-sm text-900">{{ waiterName || 'Not Assigned' }}</span>
+                </div>
             </div>
 
             <div class="field mb-0">
@@ -757,7 +800,7 @@
                                     ? '#fca5a5'
                                     : '#fde047'
                         "
-                        (click)="selectTable(table)"
+                        (click)="onTableClicked(table)"
                     >
                         <i
                             class="pi pi-table text-2xl mb-2"
@@ -792,6 +835,9 @@
                         >
                             {{ table.statusName || (table.status === 0 ? 'Available' : table.status === 1 ? 'Occupied' : 'Billed') }}
                         </span>
+                        <div *ngIf="table.waiterName" class="text-xs text-primary font-semibold mt-1">
+                            <i class="pi pi-user mr-1"></i>{{ table.waiterName }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1401,6 +1447,121 @@
                 icon="pi pi-check"
                 (click)="saveLineNote()"
             ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🍽️ Assign Waiter Dialog (Restaurant) -->
+    <p-dialog
+        [header]="'🍽️ Assign Waiter - Table ' + (pendingSelectedTable?.tableNo || '')"
+        [(visible)]="assignWaiterDialogVisible"
+        [modal]="true"
+        [style]="{ width: '38rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="surface-50 border-round p-3 flex align-items-center justify-content-between">
+                <div>
+                    <div class="font-bold text-900 text-base">Table {{ pendingSelectedTable?.tableNo }}</div>
+                    <div class="text-xs text-500">
+                        {{ pendingSelectedTable?.area || 'Main Hall' }} &bull; {{ pendingSelectedTable?.capacity || 4 }} Seats
+                    </div>
+                </div>
+                <div *ngIf="pendingSelectedTable?.waiterName" class="text-right">
+                    <span class="text-xs text-500 block">Current Waiter</span>
+                    <span class="font-semibold text-green-700 text-sm">
+                        <i class="pi pi-check-circle mr-1"></i>{{ pendingSelectedTable?.waiterName }}
+                    </span>
+                </div>
+            </div>
+
+            <div>
+                <label class="font-bold text-900 block mb-2">Staff (Designation: Waiter)</label>
+                <div *ngIf="loadingWaiters" class="text-center py-4 text-500">
+                    <i class="pi pi-spin pi-spinner text-xl mr-2"></i>Loading waiters...
+                </div>
+
+                <div *ngIf="!loadingWaiters && !waiters.length" class="text-center py-4 surface-50 border-round">
+                    <i class="pi pi-user-times text-400 text-3xl mb-2 block"></i>
+                    <div class="font-bold text-700">No Waiters Found</div>
+                    <div class="text-xs text-500 mt-1">
+                        No active staff members with designation <strong>"Waiter"</strong> were found for this branch.
+                    </div>
+                </div>
+
+                <div *ngIf="!loadingWaiters && waiters.length" class="grid">
+                    <div class="col-12 sm:col-6" *ngFor="let waiter of waiters">
+                        <div
+                            class="p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex align-items-center gap-3 shadow-1 hover:shadow-3"
+                            [style.background]="pendingSelectedTable?.waiterId === waiter.id ? '#e0f2fe' : '#ffffff'"
+                            [style.borderColor]="pendingSelectedTable?.waiterId === waiter.id ? '#0284c7' : '#e2e8f0'"
+                            (click)="confirmAssignWaiter(waiter)"
+                        >
+                            <div
+                                class="border-circle flex align-items-center justify-content-center text-lg font-bold"
+                                [style.background]="pendingSelectedTable?.waiterId === waiter.id ? '#0284c7' : '#f1f5f9'"
+                                [style.color]="pendingSelectedTable?.waiterId === waiter.id ? '#ffffff' : '#334155'"
+                                style="width: 2.75rem; height: 2.75rem; flex-shrink: 0;"
+                            >
+                                <i class="pi pi-user"></i>
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="font-bold text-900 text-base text-overflow-ellipsis overflow-hidden white-space-nowrap">
+                                    {{ waiter.name }}
+                                </div>
+                                <div class="text-xs text-500">
+                                    Code: {{ waiter.employeeCode || ('#' + waiter.id) }}
+                                    <span *ngIf="waiter.phone"> &bull; {{ waiter.phone }}</span>
+                                </div>
+                                <span
+                                    *ngIf="pendingSelectedTable?.waiterId === waiter.id"
+                                    class="text-xs px-2 py-0.5 border-round font-semibold bg-green-100 text-green-800 mt-1 inline-block"
+                                >
+                                    Assigned
+                                </span>
+                            </div>
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                [icon]="pendingSelectedTable?.waiterId === waiter.id ? 'pi pi-check' : 'pi pi-plus'"
+                                [class]="pendingSelectedTable?.waiterId === waiter.id ? 'p-button-success p-button-sm' : 'p-button-outlined p-button-primary p-button-sm'"
+                                [loading]="assigningWaiter"
+                                (click)="$event.stopPropagation(); confirmAssignWaiter(waiter)"
+                            ></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="flex flex-wrap align-items-center justify-content-between gap-2 w-full">
+                <div>
+                    <button
+                        *ngIf="pendingSelectedTable?.waiterName"
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Unassign Waiter"
+                        icon="pi pi-trash"
+                        class="p-button-outlined p-button-danger p-button-sm"
+                        [disabled]="assigningWaiter"
+                        (click)="unassignWaiter()"
+                    ></button>
+                </div>
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Continue / Skip"
+                        class="p-button-text p-button-secondary p-button-sm"
+                        [disabled]="assigningWaiter"
+                        (click)="skipAssignWaiter()"
+                    ></button>
+                </div>
+            </div>
         </ng-template>
     </p-dialog>
 

@@ -19,6 +19,17 @@ namespace SmartPos.Restaurant.Dto
 
         public int? CurrentOrderId { get; set; }
 
+        public int? WaiterId { get; set; }
+
+        public string WaiterName { get; set; }
+
         public bool IsActive { get; set; }
+    }
+
+    public class AssignWaiterDto
+    {
+        public int TableId { get; set; }
+        public int? WaiterId { get; set; }
+        public string WaiterName { get; set; }
     }
 }

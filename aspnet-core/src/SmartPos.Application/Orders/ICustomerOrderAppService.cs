@@ -31,5 +31,9 @@ namespace SmartPos.Orders
         Task<CustomerOrderDto> OverrideDeliveryFeeAsync(OverrideDeliveryFeeInput input);
 
         Task<CustomerOrderDto> TrackOrderAsync(string orderNo);
+
+        Task<List<DeliveryRiderStatusDto>> GetAvailableRidersAsync(int? branchId);
+
+        Task<CustomerOrderDto> AssignRiderAsync(AssignRiderDto input);
     }
 }

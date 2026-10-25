@@ -26,6 +26,8 @@ import { RestaurantTableService } from 'src/app/demo/service/restaurant-table.se
 import { RestaurantOrderService } from 'src/app/demo/service/restaurant-order.service';
 import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
+import { StaffDto } from 'src/app/demo/api/staff';
+import { StaffService } from 'src/app/demo/service/staff.service';
 
 @Component({
     templateUrl: './pos.component.html',
@@ -87,6 +89,14 @@ export class PosComponent implements OnInit, OnDestroy {
     pendingKitchenNote = '';
     todayDate = new Date();
 
+    // Dine-In Waiter Assignment (Restaurant only)
+    waiters: StaffDto[] = [];
+    assignWaiterDialogVisible = false;
+    pendingSelectedTable: RestaurantTableDto | null = null;
+    selectedWaiterId: number | null = null;
+    assigningWaiter = false;
+    loadingWaiters = false;
+
     // Quick Add Table form
     newTableNo = '';
     newTableArea = 'Main Hall';
@@ -104,6 +114,7 @@ export class PosComponent implements OnInit, OnDestroy {
         private restaurantOrderService: RestaurantOrderService,
         private productModifierService: ProductModifierService,
         private branchContext: BranchContextService,
+        private staffService: StaffService,
         private messageService: MessageService
     ) {}
 
@@ -242,6 +253,29 @@ export class PosComponent implements OnInit, OnDestroy {
 
         if (this.isRestaurantMode && branch?.id) {
             this.loadTables(branch.id);
+            this.loadWaiters(branch.id);
+        }
+    }
+
+    async loadWaiters(branchId?: number): Promise<void> {
+        const bId = branchId || this.branchContext.getBranchId();
+        if (!bId) return;
+        this.loadingWaiters = true;
+        try {
+            const res = await this.staffService.getAll({
+                branchId: bId,
+                isActive: true,
+                maxResultCount: 100,
+            });
+            this.waiters = (res.items || []).filter(
+                (s) =>
+                    s.designation &&
+                    s.designation.trim().toLowerCase() === 'waiter'
+            );
+        } catch (err) {
+            console.error('Failed to load waiters', err);
+        } finally {
+            this.loadingWaiters = false;
         }
     }
 
@@ -272,6 +306,116 @@ export class PosComponent implements OnInit, OnDestroy {
         this.pendingSendToTable = false;
     }
 
+    onTableClicked(table: RestaurantTableDto): void {
+        this.pendingSelectedTable = table;
+        this.selectedWaiterId = table.waiterId || null;
+        this.tableDialogVisible = false;
+        if (!this.waiters.length) {
+            this.loadWaiters();
+        }
+        this.assignWaiterDialogVisible = true;
+    }
+
+    openAssignWaiterDialog(): void {
+        if (!this.selectedTable) return;
+        this.pendingSelectedTable = this.selectedTable;
+        this.selectedWaiterId = this.selectedTable.waiterId || null;
+        if (!this.waiters.length) {
+            this.loadWaiters();
+        }
+        this.assignWaiterDialogVisible = true;
+    }
+
+    async confirmAssignWaiter(waiter: StaffDto): Promise<void> {
+        if (!this.pendingSelectedTable) return;
+        this.assigningWaiter = true;
+        try {
+            await this.restaurantTableService.assignWaiter({
+                tableId: this.pendingSelectedTable.id,
+                waiterId: waiter.id,
+                waiterName: waiter.name,
+            });
+            this.pendingSelectedTable.waiterId = waiter.id;
+            this.pendingSelectedTable.waiterName = waiter.name;
+            this.waiterName = waiter.name;
+
+            const t = this.tables.find((x) => x.id === this.pendingSelectedTable?.id);
+            if (t) {
+                t.waiterId = waiter.id;
+                t.waiterName = waiter.name;
+            }
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Waiter Assigned',
+                detail: `Waiter "${waiter.name}" assigned to Table ${this.pendingSelectedTable.tableNo}`,
+                life: 2500,
+            });
+
+            this.assignWaiterDialogVisible = false;
+            await this.selectTable(this.pendingSelectedTable);
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to assign waiter',
+            });
+        } finally {
+            this.assigningWaiter = false;
+        }
+    }
+
+    async unassignWaiter(): Promise<void> {
+        if (!this.pendingSelectedTable) return;
+        this.assigningWaiter = true;
+        try {
+            await this.restaurantTableService.assignWaiter({
+                tableId: this.pendingSelectedTable.id,
+                waiterId: 0 as any,
+                waiterName: '',
+            });
+            this.pendingSelectedTable.waiterId = null;
+            this.pendingSelectedTable.waiterName = undefined;
+            this.waiterName = '';
+
+            const t = this.tables.find((x) => x.id === this.pendingSelectedTable?.id);
+            if (t) {
+                t.waiterId = null;
+                t.waiterName = undefined;
+            }
+
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Waiter Removed',
+                detail: `Waiter removed from Table ${this.pendingSelectedTable.tableNo}`,
+                life: 2500,
+            });
+
+            this.assignWaiterDialogVisible = false;
+            await this.selectTable(this.pendingSelectedTable);
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to remove waiter',
+            });
+        } finally {
+            this.assigningWaiter = false;
+        }
+    }
+
+    skipAssignWaiter(): void {
+        if (this.pendingSelectedTable) {
+            if (this.pendingSelectedTable.waiterName) {
+                this.waiterName = this.pendingSelectedTable.waiterName;
+            }
+            this.assignWaiterDialogVisible = false;
+            this.selectTable(this.pendingSelectedTable);
+        } else {
+            this.assignWaiterDialogVisible = false;
+        }
+    }
+
     async selectTable(table: RestaurantTableDto): Promise<void> {
         this.selectedTable = table;
         this.orderType = 'dineIn';
@@ -286,7 +430,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 if (order && order.lines?.length) {
                     this.activeOrderId = order.id;
                     this.activeOrderNo = order.orderNo;
-                    this.waiterName = order.waiterName || '';
+                    this.waiterName = order.waiterName || table.waiterName || this.waiterName || '';
                     this.notes = order.notes || '';
                     if (order.customerId) {
                         this.customerId = order.customerId;
@@ -326,6 +470,7 @@ export class PosComponent implements OnInit, OnDestroy {
             // Available table: new running order
             this.activeOrderId = null;
             this.activeOrderNo = '';
+            this.waiterName = table.waiterName || this.waiterName || '';
             if (!isDirectSend) {
                 this.messageService.add({
                     severity: 'info',
@@ -345,6 +490,7 @@ export class PosComponent implements OnInit, OnDestroy {
         this.selectedTable = null;
         this.activeOrderId = null;
         this.activeOrderNo = '';
+        this.waiterName = '';
         this.pendingSendToTable = false;
     }
 

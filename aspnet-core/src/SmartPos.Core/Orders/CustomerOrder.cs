@@ -83,6 +83,16 @@ namespace SmartPos.Orders
 
         public virtual double? DistanceKm { get; set; }
 
+        public virtual int? RiderId { get; set; }
+
+        [StringLength(128)]
+        public virtual string RiderName { get; set; }
+
+        [StringLength(32)]
+        public virtual string RiderPhone { get; set; }
+
+        public virtual DateTime? RiderAssignedTime { get; set; }
+
         public virtual ICollection<CustomerOrderLine> Lines { get; set; }
     }
 }

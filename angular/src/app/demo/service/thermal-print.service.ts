@@ -129,6 +129,15 @@ export class ThermalPrintService {
                     <span>Status:</span>
                     <span class="bold" style="color: #15803d;">APPROVED</span>
                 </div>
+                ${
+                    order.riderName
+                        ? `
+                <div class="row" style="background: #f1f5f9; padding: 2px 4px; border-radius: 3px;">
+                    <span class="bold">Delivery Rider:</span>
+                    <span class="bold">${order.riderName}${order.riderPhone ? ' (' + order.riderPhone + ')' : ''}</span>
+                </div>`
+                        : ''
+                }
 
                 ${customerInfoHtml}
 

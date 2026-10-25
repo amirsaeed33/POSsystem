@@ -180,7 +180,34 @@ namespace SmartPos.Orders.Dto
 
         public double? DistanceKm { get; set; }
 
+        public int? RiderId { get; set; }
+
+        public string RiderName { get; set; }
+
+        public string RiderPhone { get; set; }
+
+        public DateTime? RiderAssignedTime { get; set; }
+
         public List<CustomerOrderLineDto> Lines { get; set; }
+    }
+
+    public class AssignRiderDto
+    {
+        public int OrderId { get; set; }
+        public int RiderId { get; set; }
+        public string RiderName { get; set; }
+        public string RiderPhone { get; set; }
+    }
+
+    public class DeliveryRiderStatusDto
+    {
+        public int RiderId { get; set; }
+        public string RiderName { get; set; }
+        public string RiderPhone { get; set; }
+        public string EmployeeCode { get; set; }
+        public bool IsBusy { get; set; }
+        public string BusyOrderNo { get; set; }
+        public int? BusyOrderId { get; set; }
     }
 
     public class PagedCustomerOrderResultRequestDto : PagedResultRequestDto

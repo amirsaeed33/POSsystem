@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+    AssignWaiterDto,
     ChangeTableStatusDto,
     CreateRestaurantTableDto,
     RestaurantTableDto,
@@ -70,6 +71,13 @@ export class RestaurantTableService {
         this.unwrap(res, 'Failed to transfer table');
     }
 
+    async assignWaiter(dto: AssignWaiterDto): Promise<RestaurantTableDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/AssignWaiter`, dto)
+        );
+        return this.map(this.unwrap(res, 'Failed to assign waiter to table'));
+    }
+
     private unwrap(res: any, fallback: string): any {
         if (!res) throw new Error('No response from server');
         if (res.success === false || res.error) {
@@ -88,6 +96,8 @@ export class RestaurantTableService {
             status: item.status ?? item.Status ?? 0,
             statusName: item.statusName ?? item.StatusName ?? 'Available',
             currentOrderId: item.currentOrderId ?? item.CurrentOrderId ?? null,
+            waiterId: item.waiterId ?? item.WaiterId ?? null,
+            waiterName: item.waiterName ?? item.WaiterName ?? '',
             isActive: item.isActive ?? item.IsActive ?? true,
         };
     }

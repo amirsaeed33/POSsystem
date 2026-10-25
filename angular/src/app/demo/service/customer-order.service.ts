@@ -2,9 +2,11 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+    AssignRiderDto,
     CreateCustomerOrderDto,
     CustomerOrderDto,
     CustomerOrderLineDto,
+    DeliveryRiderStatusDto,
     OverrideDeliveryFeeInput,
     PagedCustomerOrderResultRequestDto,
     PagedResultDto,
@@ -184,6 +186,23 @@ export class CustomerOrderService {
         this.unwrap(res, 'Failed to mark order as delivered');
     }
 
+    async getAvailableRiders(branchId?: number): Promise<DeliveryRiderStatusDto[]> {
+        const params: any = {};
+        if (branchId) params.branchId = branchId;
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetAvailableRiders`, { params })
+        );
+        const result = this.unwrap(res, 'Failed to load delivery riders');
+        return Array.isArray(result) ? result : result?.items || [];
+    }
+
+    async assignRider(input: AssignRiderDto): Promise<CustomerOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/AssignRider`, input)
+        );
+        return this.map(this.unwrap(res, 'Failed to assign rider'));
+    }
+
     private toApiDate(value?: string | Date): string | undefined {
         if (!value) return undefined;
         if (value instanceof Date) return value.toISOString();
@@ -227,6 +246,12 @@ export class CustomerOrderService {
             notes: item.notes ?? item.Notes,
             saleId: item.saleId ?? item.SaleId,
             saleInvoiceNo: item.saleInvoiceNo ?? item.SaleInvoiceNo,
+            branchId: item.branchId ?? item.BranchId,
+            branchName: item.branchName ?? item.BranchName,
+            riderId: item.riderId ?? item.RiderId,
+            riderName: item.riderName ?? item.RiderName,
+            riderPhone: item.riderPhone ?? item.RiderPhone,
+            riderAssignedTime: item.riderAssignedTime ?? item.RiderAssignedTime,
             lines: (Array.isArray(lines) ? lines : []).map(
                 (line: any): CustomerOrderLineDto => ({
                     id: line.id ?? line.Id,

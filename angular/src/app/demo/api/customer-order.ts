@@ -45,7 +45,28 @@ export interface CustomerOrderDto {
     saleInvoiceNo?: string;
     branchId?: number;
     branchName?: string;
+    riderId?: number | null;
+    riderName?: string;
+    riderPhone?: string;
+    riderAssignedTime?: string | Date;
     lines?: CustomerOrderLineDto[];
+}
+
+export interface AssignRiderDto {
+    orderId: number;
+    riderId: number;
+    riderName: string;
+    riderPhone?: string;
+}
+
+export interface DeliveryRiderStatusDto {
+    riderId: number;
+    riderName: string;
+    riderPhone?: string;
+    employeeCode?: string;
+    isBusy: boolean;
+    busyOrderNo?: string;
+    busyOrderId?: number | null;
 }
 
 export interface OverrideDeliveryFeeInput {

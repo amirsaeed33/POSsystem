@@ -192,7 +192,7 @@ export class CustomerChatService implements OnDestroy {
 
         if (this.hubConnection && this.hubConnection.state === HubConnectionState.Connected) {
             try {
-                const message = await this.hubConnection.invoke<CustomerChatMessageDto>('SendMessage', input);
+                const message = (await this.hubConnection.invoke('SendMessage', input)) as CustomerChatMessageDto;
                 if (message) {
                     return message;
                 }

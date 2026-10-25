@@ -13,6 +13,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { TagModule } from 'primeng/tag';
 import { StyleClassModule } from 'primeng/styleclass';
+import { RadioButtonModule } from 'primeng/radiobutton';
 import { CustomerOrdersRoutingModule } from './customer-orders-routing.module';
 import { CustomerOrderListComponent } from './customer-order-list.component';
 import { CustomerOrderFormDialogComponent } from './customer-order-form-dialog.component';
@@ -37,6 +38,7 @@ import { OrderChatComponent } from 'src/app/shared/components/order-chat/order-c
         DropdownModule,
         TagModule,
         StyleClassModule,
+        RadioButtonModule,
         AppRowActionsComponent,
         OrderChatComponent,
     ],
@@ -46,4 +48,4 @@ import { OrderChatComponent } from 'src/app/shared/components/order-chat/order-c
         CustomerOrderViewDialogComponent,
     ],
 })
-export class CustomerOrdersModule {}
+export class CustomerOrdersModule { }

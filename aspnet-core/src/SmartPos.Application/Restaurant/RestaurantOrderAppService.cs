@@ -140,6 +140,14 @@ namespace SmartPos.Restaurant
 
             order.CustomerId = input.CustomerId;
             order.WaiterName = input.WaiterName;
+            if (string.IsNullOrWhiteSpace(order.WaiterName) && order.TableId.HasValue)
+            {
+                var tbl = await _tableRepository.FirstOrDefaultAsync(order.TableId.Value);
+                if (!string.IsNullOrWhiteSpace(tbl?.WaiterName))
+                {
+                    order.WaiterName = tbl.WaiterName;
+                }
+            }
             order.Notes = input.Notes;
             order.OrderType = input.OrderType;
             if (!string.IsNullOrWhiteSpace(input.TableNo))
@@ -225,6 +233,10 @@ namespace SmartPos.Restaurant
                 var table = await _tableRepository.GetAsync(order.TableId.Value);
                 table.Status = TableStatus.Occupied;
                 table.CurrentOrderId = order.Id;
+                if (!string.IsNullOrWhiteSpace(order.WaiterName))
+                {
+                    table.WaiterName = order.WaiterName;
+                }
                 await _tableRepository.UpdateAsync(table);
             }
 
@@ -317,8 +329,9 @@ namespace SmartPos.Restaurant
                 throw new UserFriendlyException("Order is already settled.");
             }
 
+            string waiterTag = !string.IsNullOrWhiteSpace(order.WaiterName) ? $" [Waiter: {order.WaiterName}]" : "";
             string tableTag = order.OrderType == OrderType.DineIn
-                ? $"[Dine-In - Table {order.TableNo}]"
+                ? $"[Dine-In - Table {order.TableNo}]{waiterTag}"
                 : "[Takeaway]";
             string finalNotes = string.IsNullOrWhiteSpace(input.Notes)
                 ? tableTag
@@ -357,6 +370,8 @@ namespace SmartPos.Restaurant
                 var table = await _tableRepository.GetAsync(order.TableId.Value);
                 table.Status = TableStatus.Available;
                 table.CurrentOrderId = null;
+                table.WaiterId = null;
+                table.WaiterName = null;
                 await _tableRepository.UpdateAsync(table);
             }
 

@@ -124,6 +124,8 @@ namespace SmartPos.Restaurant
 
             dest.Status = source.Status;
             dest.CurrentOrderId = source.CurrentOrderId;
+            dest.WaiterId = source.WaiterId;
+            dest.WaiterName = source.WaiterName;
 
             if (source.CurrentOrderId.HasValue)
             {
@@ -132,15 +134,41 @@ namespace SmartPos.Restaurant
                 {
                     order.TableId = dest.Id;
                     order.TableNo = dest.TableNo;
+                    if (!string.IsNullOrWhiteSpace(dest.WaiterName))
+                    {
+                        order.WaiterName = dest.WaiterName;
+                    }
                     await _orderRepository.UpdateAsync(order);
                 }
             }
 
             source.Status = TableStatus.Available;
             source.CurrentOrderId = null;
+            source.WaiterId = null;
+            source.WaiterName = null;
 
             await _tableRepository.UpdateAsync(source);
             await _tableRepository.UpdateAsync(dest);
+        }
+
+        public async Task<RestaurantTableDto> AssignWaiterAsync(AssignWaiterDto input)
+        {
+            var table = await _tableRepository.GetAsync(input.TableId);
+            table.WaiterId = input.WaiterId;
+            table.WaiterName = input.WaiterName?.Trim();
+            await _tableRepository.UpdateAsync(table);
+
+            if (table.CurrentOrderId.HasValue)
+            {
+                var order = await _orderRepository.FirstOrDefaultAsync(table.CurrentOrderId.Value);
+                if (order != null)
+                {
+                    order.WaiterName = table.WaiterName;
+                    await _orderRepository.UpdateAsync(order);
+                }
+            }
+
+            return ObjectMapper.Map<RestaurantTableDto>(table);
         }
     }
 }

@@ -127,6 +127,31 @@
             </div>
         </div>
 
+        <!-- Assigned Delivery Rider Card (Restaurant) -->
+        <div class="surface-card border-1 surface-border border-round p-3 mb-3 bg-teal-50 border-teal-200" *ngIf="order.riderName">
+            <div class="flex justify-content-between align-items-center mb-2">
+                <span class="font-bold text-teal-900 flex align-items-center gap-2">
+                    <i class="pi pi-compass text-teal-700"></i>
+                    Assigned Delivery Rider
+                </span>
+                <span class="p-badge p-badge-info">Active Rider</span>
+            </div>
+            <div class="grid text-sm m-0">
+                <div class="col-12 sm:col-4 p-2">
+                    <span class="text-600 block mb-1">Rider Name:</span>
+                    <span class="font-bold text-900">{{ order.riderName }}</span>
+                </div>
+                <div class="col-12 sm:col-4 p-2" *ngIf="order.riderPhone">
+                    <span class="text-600 block mb-1">Contact Phone:</span>
+                    <span class="font-semibold text-900">{{ order.riderPhone }}</span>
+                </div>
+                <div class="col-12 sm:col-4 p-2" *ngIf="order.riderAssignedTime">
+                    <span class="text-600 block mb-1">Assigned At:</span>
+                    <span class="font-semibold text-900">{{ order.riderAssignedTime | date: 'short' }}</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Notes / Delivery Location -->
         <div class="surface-50 border-round p-3 mb-3 text-sm">
             <div class="text-500 font-semibold mb-1">Delivery Address & Instructions:</div>

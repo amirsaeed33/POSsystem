@@ -16,7 +16,15 @@ export interface RestaurantTableDto {
     status: TableStatus;
     statusName: string;
     currentOrderId?: number | null;
+    waiterId?: number | null;
+    waiterName?: string;
     isActive: boolean;
+}
+
+export interface AssignWaiterDto {
+    tableId: number;
+    waiterId?: number | null;
+    waiterName?: string;
 }
 
 export interface CreateRestaurantTableDto {

@@ -23,6 +23,7 @@ using SmartPos.Sales.Dto;
 using Abp.Net.Mail;
 using Abp.Events.Bus;
 using SmartPos.Emailing;
+using SmartPos.Staffs;
 
 namespace SmartPos.Orders
 {
@@ -47,6 +48,7 @@ namespace SmartPos.Orders
         private readonly IRepository<EmailTemplate> _emailTemplateRepository;
         private readonly IRepository<DeliveryArea> _deliveryAreaRepository;
         private readonly IRepository<DeliveryPromotion> _deliveryPromotionRepository;
+        private readonly IRepository<Staff> _staffRepository;
 
         public CustomerOrderAppService(
             IRepository<CustomerOrder> repository,
@@ -63,7 +65,8 @@ namespace SmartPos.Orders
             IRepository<BranchNotificationSetting> notificationSettingRepository,
             IRepository<EmailTemplate> emailTemplateRepository,
             IRepository<DeliveryArea> deliveryAreaRepository,
-            IRepository<DeliveryPromotion> deliveryPromotionRepository)
+            IRepository<DeliveryPromotion> deliveryPromotionRepository,
+            IRepository<Staff> staffRepository)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -80,6 +83,7 @@ namespace SmartPos.Orders
             _emailTemplateRepository = emailTemplateRepository;
             _deliveryAreaRepository = deliveryAreaRepository;
             _deliveryPromotionRepository = deliveryPromotionRepository;
+            _staffRepository = staffRepository;
             
             CreatePermissionName = PermissionNames.Pages_CustomerOrders_Create;
             UpdatePermissionName = PermissionNames.Pages_CustomerOrders_Edit;
@@ -909,6 +913,10 @@ namespace SmartPos.Orders
                 Latitude = entity.Latitude,
                 Longitude = entity.Longitude,
                 DistanceKm = entity.DistanceKm,
+                RiderId = entity.RiderId,
+                RiderName = entity.RiderName,
+                RiderPhone = entity.RiderPhone,
+                RiderAssignedTime = entity.RiderAssignedTime,
                 Lines = new List<CustomerOrderLineDto>()
             };
 
@@ -998,6 +1006,104 @@ namespace SmartPos.Orders
                 }
 
                 return dto;
+            }
+        }
+
+        public async Task<List<DeliveryRiderStatusDto>> GetAvailableRidersAsync(int? branchId)
+        {
+            var targetBranchId = branchId ?? await _branchAccessChecker.GetEffectiveBranchIdAsync();
+
+            var branch = targetBranchId.HasValue ? await _branchRepository.FirstOrDefaultAsync(targetBranchId.Value) : null;
+            if (branch != null && branch.BusinessType != BusinessType.Restaurant)
+            {
+                return new List<DeliveryRiderStatusDto>();
+            }
+
+            // Find staff whose Designation is "Delivery Rider" (or contains "rider" or "delivery")
+            var riders = await _staffRepository.GetAll()
+                .Where(s => s.IsActive && !s.IsDeleted)
+                .WhereIf(targetBranchId.HasValue, s => s.BranchId == null || s.BranchId == targetBranchId.Value)
+                .Where(s => s.Designation != null &&
+                            (s.Designation.ToLower().Contains("rider") || s.Designation.ToLower().Contains("delivery")))
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+
+            // Find all active orders currently assigned to a rider that are not yet Delivered or Rejected
+            var activeOrders = await Repository.GetAll()
+                .Where(o => o.RiderId.HasValue &&
+                            o.Status != CustomerOrderStatus.Delivered &&
+                            o.Status != CustomerOrderStatus.Rejected)
+                .Select(o => new { o.Id, o.OrderNo, RiderId = o.RiderId.Value })
+                .ToListAsync();
+
+            var activeByRider = activeOrders
+                .GroupBy(o => o.RiderId)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            return riders.Select(r =>
+            {
+                var isBusy = activeByRider.TryGetValue(r.Id, out var busyOrder);
+                return new DeliveryRiderStatusDto
+                {
+                    RiderId = r.Id,
+                    RiderName = r.Name,
+                    RiderPhone = r.Phone,
+                    EmployeeCode = r.EmployeeCode,
+                    IsBusy = isBusy,
+                    BusyOrderId = isBusy ? busyOrder.Id : null,
+                    BusyOrderNo = isBusy ? (!string.IsNullOrWhiteSpace(busyOrder.OrderNo) ? busyOrder.OrderNo : $"#{busyOrder.Id}") : null
+                };
+            }).ToList();
+        }
+
+        public async Task<CustomerOrderDto> AssignRiderAsync(AssignRiderDto input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var order = await GetEntityByIdAsync(input.OrderId);
+                if (order == null)
+                {
+                    throw new UserFriendlyException("Order not found.");
+                }
+
+                var branch = await _branchRepository.FirstOrDefaultAsync(order.BranchId);
+                if (branch != null && branch.BusinessType != BusinessType.Restaurant)
+                {
+                    throw new UserFriendlyException("Rider assignment is only available for Restaurant branches.");
+                }
+
+                var rider = await _staffRepository.FirstOrDefaultAsync(input.RiderId);
+                if (rider == null || !rider.IsActive)
+                {
+                    throw new UserFriendlyException("Selected delivery rider is invalid or inactive.");
+                }
+
+                // Check if this rider is already busy delivering another order that is not finished
+                var busyOrder = await Repository.FirstOrDefaultAsync(o =>
+                    o.RiderId == input.RiderId &&
+                    o.Id != input.OrderId &&
+                    o.Status != CustomerOrderStatus.Delivered &&
+                    o.Status != CustomerOrderStatus.Rejected);
+
+                if (busyOrder != null)
+                {
+                    var busyNo = !string.IsNullOrWhiteSpace(busyOrder.OrderNo) ? busyOrder.OrderNo : $"#{busyOrder.Id}";
+                    throw new UserFriendlyException($"Rider '{rider.Name}' is already delivering Order #{busyNo}. Cannot assign until that delivery is completed or cancelled.");
+                }
+
+                order.RiderId = rider.Id;
+                order.RiderName = rider.Name;
+                order.RiderPhone = rider.Phone;
+                order.RiderAssignedTime = DateTime.UtcNow;
+
+                // Advance status to InProgress (Out for delivery) if not already delivered/rejected
+                if (order.Status == CustomerOrderStatus.Approved || order.Status == CustomerOrderStatus.Pending)
+                {
+                    order.Status = CustomerOrderStatus.InProgress;
+                }
+
+                await CurrentUnitOfWork.SaveChangesAsync();
+                return MapToEntityDto(order);
             }
         }
     }

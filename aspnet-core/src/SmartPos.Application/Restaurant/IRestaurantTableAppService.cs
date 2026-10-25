@@ -21,5 +21,7 @@ namespace SmartPos.Restaurant
         Task<RestaurantTableDto> ChangeStatusAsync(ChangeTableStatusDto input);
 
         Task TransferTableAsync(int fromTableId, int toTableId);
+
+        Task<RestaurantTableDto> AssignWaiterAsync(AssignWaiterDto input);
     }
 }
