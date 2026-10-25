@@ -86,7 +86,21 @@
 
         <ng-template pTemplate="body" let-order>
             <tr>
-                <td class="font-bold">{{ order.orderNo || ('#' + order.id) }}</td>
+                <td class="font-bold">
+                    <div class="flex align-items-center gap-2">
+                        <span>{{ order.orderNo || ('#' + order.id) }}</span>
+                        <button
+                            pButton
+                            type="button"
+                            icon="pi pi-comments"
+                            class="p-button-rounded p-button-text p-button-xs text-teal-600 hover:surface-200"
+                            pTooltip="Chat with customer"
+                            tooltipPosition="top"
+                            (click)="openChatDialog(order)"
+                            aria-label="Chat with customer"
+                        ></button>
+                    </div>
+                </td>
                 <td>{{ order.orderDate | date: formatService.dateFormat }}</td>
                 <td>{{ order.customerName || '—' }}</td>
                 <td>
@@ -141,6 +155,30 @@
         [orderId]="viewingOrderId"
         (orderUpdated)="loadOrders()"
     ></app-customer-order-view-dialog>
+
+    <!-- Dedicated Quick Chat Dialog with Customer -->
+    <p-dialog
+        header="Customer Order Chat"
+        [(visible)]="chatDialogVisible"
+        [modal]="true"
+        appendTo="body"
+        [style]="{ width: '38rem' }"
+        [breakpoints]="{ '960px': '92vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <app-order-chat
+            *ngIf="chatDialogVisible && selectedOrderForChat"
+            [orderNo]="selectedOrderForChat.orderNo || ('#' + selectedOrderForChat.id)"
+            [branchId]="selectedOrderForChat.branchId"
+            [customerName]="selectedOrderForChat.customerName"
+            [customerMobile]="selectedOrderForChat.customerPhone"
+            mode="store"
+            height="340px"
+            [title]="'Chat - ' + (selectedOrderForChat.orderNo || ('#' + selectedOrderForChat.id))"
+            [subtitle]="selectedOrderForChat.customerName || 'Customer'"
+        ></app-order-chat>
+    </p-dialog>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>

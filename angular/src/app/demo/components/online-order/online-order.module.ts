@@ -18,6 +18,7 @@ import { ImageModule } from 'primeng/image';
 import { TooltipModule } from 'primeng/tooltip';
 import { BadgeModule } from 'primeng/badge';
 import { DividerModule } from 'primeng/divider';
+import { OrderChatComponent } from 'src/app/shared/components/order-chat/order-chat.component';
 
 @NgModule({
     imports: [
@@ -36,6 +37,7 @@ import { DividerModule } from 'primeng/divider';
         TooltipModule,
         BadgeModule,
         DividerModule,
+        OrderChatComponent,
     ],
     declarations: [
         OnlineOrderComponent,

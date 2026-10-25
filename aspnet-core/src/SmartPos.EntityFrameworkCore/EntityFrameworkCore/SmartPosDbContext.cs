@@ -89,6 +89,8 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<CustomerOrderLine> CustomerOrderLines { get; set; }
 
+        public virtual DbSet<CustomerChatMessage> CustomerChatMessages { get; set; }
+
         public virtual DbSet<DeliveryArea> DeliveryAreas { get; set; }
 
         public virtual DbSet<DeliveryPromotion> DeliveryPromotions { get; set; }
@@ -640,6 +642,23 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.ProductId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CustomerChatMessage>(b =>
+            {
+                b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.OrderId);
+                b.HasIndex(x => x.OrderNo);
+                b.HasIndex(x => x.SessionId);
+                b.HasIndex(x => x.CreationTime);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Order)
+                    .WithMany()
+                    .HasForeignKey(x => x.OrderId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<StockAdjustment>(b =>

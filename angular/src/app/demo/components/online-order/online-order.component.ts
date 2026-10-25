@@ -72,6 +72,9 @@ export class OnlineOrderComponent implements OnInit {
     detailSelectedOption = 'Standard';
     detailOptions = ['Standard', 'Large / Deal Pack', 'Double Delight'];
 
+    // Store Chat Floating Drawer
+    storeChatOpen = false;
+
     // Checkout modal & state
     checkoutModalVisible = false;
     customerName = '';

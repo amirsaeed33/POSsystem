@@ -1,0 +1,119 @@
+<div class="order-chat-container">
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <div class="header-left">
+            <div class="avatar-badge" [ngClass]="mode === 'customer' ? 'store-avatar' : 'customer-avatar'">
+                <i [class]="mode === 'customer' ? 'pi pi-building' : 'pi pi-user'"></i>
+            </div>
+            <div class="header-info">
+                <div class="header-title">
+                    <span>{{ title || (mode === 'customer' ? 'Chat with Branch' : ('Customer Chat - ' + (customerName || orderNo || 'Order'))) }}</span>
+                </div>
+                <div class="header-subtitle">
+                    <span class="pulse-dot" [class.connected]="isConnected"></span>
+                    <span class="status-label">{{ isConnected ? 'Real-time Live' : 'Connecting...' }}</span>
+                    <span *ngIf="orderNo" class="order-tag">#{{ orderNo }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-refresh"
+                class="p-button-rounded p-button-text p-button-sm text-500 hover:surface-200"
+                pTooltip="Reload chat history"
+                tooltipPosition="bottom"
+                [loading]="loading"
+                (click)="initChat()"
+                aria-label="Reload messages"
+            ></button>
+        </div>
+    </div>
+
+    <!-- Quick Chips Strip -->
+    <div class="quick-chips-wrapper" *ngIf="mode === 'customer' ? customerQuickChips.length : storeQuickChips.length">
+        <div class="quick-chips-scroll">
+            <button
+                *ngFor="let chip of (mode === 'customer' ? customerQuickChips : storeQuickChips)"
+                type="button"
+                class="quick-chip-btn"
+                (click)="applyQuickChip(chip)"
+                [disabled]="sending"
+            >
+                {{ chip }}
+            </button>
+        </div>
+    </div>
+
+    <!-- Messages Body -->
+    <div class="chat-messages-body" #messageScroll [style.height]="height">
+        <!-- Loading State -->
+        <div *ngIf="loading && !messages.length" class="chat-loading-state">
+            <i class="pi pi-spin pi-spinner text-2xl text-teal-600 mb-2"></i>
+            <span class="text-xs text-500 font-medium">Connecting to conversation...</span>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loading && !messages.length" class="chat-empty-state">
+            <div class="empty-icon-circle">
+                <i [class]="mode === 'customer' ? 'pi pi-comments' : 'pi pi-comment'"></i>
+            </div>
+            <div class="empty-title">
+                {{ mode === 'customer' ? 'Have a question about your order?' : 'No messages yet from customer' }}
+            </div>
+            <div class="empty-desc">
+                {{ mode === 'customer'
+                    ? 'Send special requests, gate codes, or delivery instructions directly to the store team.'
+                    : 'Customer messages and inquiries regarding this order will appear here in real-time.' }}
+            </div>
+        </div>
+
+        <!-- Messages Stream -->
+        <div *ngFor="let msg of messages" class="chat-message-row" [class.outgoing]="isMyMessage(msg)" [class.incoming]="!isMyMessage(msg)">
+            <div class="message-bubble" [class.bubble-out]="isMyMessage(msg)" [class.bubble-in]="!isMyMessage(msg)">
+                <!-- Sender label for incoming -->
+                <div class="bubble-sender" *ngIf="!isMyMessage(msg)">
+                    <i [class]="msg.senderType === 1 ? 'pi pi-building' : 'pi pi-user'"></i>
+                    <span>{{ msg.senderName || (msg.senderType === 1 ? 'Store Staff' : 'Customer') }}</span>
+                </div>
+
+                <div class="bubble-text">{{ msg.message }}</div>
+
+                <div class="bubble-meta">
+                    <span class="bubble-time">{{ formatTime(msg.creationTime) }}</span>
+                    <span class="bubble-read" *ngIf="isMyMessage(msg)">
+                        <i [class]="(mode === 'customer' ? msg.isReadByStore : msg.isReadByCustomer) ? 'pi pi-check text-teal-300' : 'pi pi-check text-400'"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Footer Input -->
+    <div class="chat-footer">
+        <input
+            pInputText
+            type="text"
+            [(ngModel)]="newMessage"
+            (keyup.enter)="sendMessage()"
+            [placeholder]="mode === 'customer' ? 'Write a message to store staff...' : 'Reply to customer...'"
+            class="chat-input font-sans"
+            [disabled]="sending"
+        />
+        <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-send"
+            class="chat-send-btn"
+            [loading]="sending"
+            [disabled]="!newMessage.trim() || sending"
+            (click)="sendMessage()"
+            pTooltip="Send message"
+            tooltipPosition="top"
+            aria-label="Send message"
+        ></button>
+    </div>
+</div>

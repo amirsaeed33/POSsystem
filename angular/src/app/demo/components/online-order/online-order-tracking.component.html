@@ -353,6 +353,19 @@
                             ></button>
                         </div>
                     </div>
+
+                    <!-- Direct Live Chat with Store Card -->
+                    <div class="mt-3">
+                        <app-order-chat
+                            [orderNo]="order.orderNo || ('#' + order.id)"
+                            [branchId]="order.branchId"
+                            [customerName]="order.customerName"
+                            [customerMobile]="order.customerPhone"
+                            mode="customer"
+                            height="260px"
+                            title="Direct Chat with Store"
+                        ></app-order-chat>
+                    </div>
                 </div>
             </div>
         </div>

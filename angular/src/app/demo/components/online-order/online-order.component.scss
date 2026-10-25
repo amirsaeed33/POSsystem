@@ -2040,3 +2040,48 @@
   border: 1px solid #fecaca;
 }
 
+/* Floating Store Chat Widget Button */
+.store-chat-fab-wrap {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  z-index: 1050;
+
+  .store-chat-fab {
+    background: linear-gradient(135deg, #0d9488 0%, #047857 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.86rem !important;
+    padding: 10px 18px !important;
+    box-shadow: 0 6px 22px rgba(13, 148, 136, 0.45) !important;
+    cursor: pointer;
+    transition: all 0.25s ease;
+
+    &:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 8px 26px rgba(13, 148, 136, 0.55) !important;
+    }
+  }
+}
+
+:host ::ng-deep .store-chat-popup-dialog {
+  .p-dialog-content {
+    padding: 0 !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .store-chat-fab-wrap {
+    bottom: 74px;
+    right: 14px;
+
+    .store-chat-fab {
+      padding: 8px 14px !important;
+      font-size: 0.78rem !important;
+    }
+  }
+}
+

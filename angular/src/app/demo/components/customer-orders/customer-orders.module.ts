@@ -18,6 +18,7 @@ import { CustomerOrderListComponent } from './customer-order-list.component';
 import { CustomerOrderFormDialogComponent } from './customer-order-form-dialog.component';
 import { CustomerOrderViewDialogComponent } from './customer-order-view-dialog.component';
 import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
+import { OrderChatComponent } from 'src/app/shared/components/order-chat/order-chat.component';
 
 @NgModule({
     imports: [
@@ -37,6 +38,7 @@ import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/ro
         TagModule,
         StyleClassModule,
         AppRowActionsComponent,
+        OrderChatComponent,
     ],
     declarations: [
         CustomerOrderListComponent,

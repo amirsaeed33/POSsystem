@@ -28,6 +28,8 @@ export class CustomerOrderListComponent implements OnInit {
     createDialogVisible = false;
     viewDialogVisible = false;
     viewingOrderId: number | null = null;
+    chatDialogVisible = false;
+    selectedOrderForChat: CustomerOrderDto | null = null;
 
     statusOptions = [
         { label: 'Pending', value: CustomerOrderStatus.Pending },
@@ -105,6 +107,11 @@ export class CustomerOrderListComponent implements OnInit {
     openViewDialog(order: CustomerOrderDto): void {
         this.viewingOrderId = order.id;
         this.viewDialogVisible = true;
+    }
+
+    openChatDialog(order: CustomerOrderDto): void {
+        this.selectedOrderForChat = order;
+        this.chatDialogVisible = true;
     }
 
     onDialogSaved(): void {
@@ -332,6 +339,11 @@ export class CustomerOrderListComponent implements OnInit {
                 label: 'View details',
                 icon: 'pi pi-eye',
                 action: () => this.openViewDialog(order),
+            },
+            {
+                label: 'Chat with Customer',
+                icon: 'pi pi-comments',
+                action: () => this.openChatDialog(order),
             },
             {
                 label: 'Adjust Delivery Fee',

@@ -1380,5 +1380,52 @@
         </button>
     </nav>
 
+    <!-- Floating Store Chat Widget Button -->
+    <div class="store-chat-fab-wrap">
+        <button
+            pButton
+            pRipple
+            type="button"
+            [icon]="storeChatOpen ? 'pi pi-times' : 'pi pi-comments'"
+            [label]="storeChatOpen ? '' : 'Chat with Branch'"
+            class="store-chat-fab p-button-rounded shadow-4"
+            (click)="storeChatOpen = !storeChatOpen"
+            [pTooltip]="storeChatOpen ? 'Close chat' : 'Need help? Ask branch owner'"
+            tooltipPosition="left"
+            aria-label="Chat with branch"
+        ></button>
+    </div>
+
+    <!-- Store Chat Popup Drawer / Dialog -->
+    <p-dialog
+        [(visible)]="storeChatOpen"
+        [modal]="false"
+        [draggable]="false"
+        [resizable]="false"
+        [style]="{ width: '23rem', maxWidth: '92vw', position: 'fixed', bottom: '80px', right: '16px', zIndex: 1100 }"
+        styleClass="store-chat-popup-dialog"
+        [showHeader]="false"
+    >
+        <div class="relative pt-2">
+            <button
+                pButton
+                type="button"
+                icon="pi pi-times"
+                class="p-button-rounded p-button-text p-button-xs absolute top-0 right-0 z-5 m-1 text-500 hover:surface-200"
+                (click)="storeChatOpen = false"
+                aria-label="Close"
+            ></button>
+            <app-order-chat
+                *ngIf="storeChatOpen"
+                [branchId]="branchId || undefined"
+                [customerName]="userName !== 'Guest' ? userName : 'Online Customer'"
+                mode="customer"
+                height="320px"
+                [title]="'Chat with ' + (branchName || 'Branch')"
+                subtitle="Ask about items, specials, or delivery"
+            ></app-order-chat>
+        </div>
+    </p-dialog>
+
     <p-toast></p-toast>
 </div>

@@ -169,6 +169,19 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Live Customer Chat Section -->
+        <div class="mt-3">
+            <app-order-chat
+                [orderNo]="order.orderNo || ('#' + order.id)"
+                [branchId]="order.branchId"
+                [customerName]="order.customerName"
+                [customerMobile]="order.customerPhone"
+                mode="store"
+                height="240px"
+                title="Direct Chat with Customer"
+            ></app-order-chat>
+        </div>
     </div>
 
     <ng-template pTemplate="footer">
