@@ -24,6 +24,12 @@ export class CustomerChatService implements OnDestroy {
     private notificationReceivedSubject = new Subject<CustomerChatMessageDto>();
     public notificationReceived$: Observable<CustomerChatMessageDto> = this.notificationReceivedSubject.asObservable();
 
+    private newOrderReceivedSubject = new Subject<any>();
+    public newOrderReceived$: Observable<any> = this.newOrderReceivedSubject.asObservable();
+
+    private orderStatusChangedSubject = new Subject<any>();
+    public orderStatusChanged$: Observable<any> = this.orderStatusChangedSubject.asObservable();
+
     private isConnectedSubject = new BehaviorSubject<boolean>(false);
     public isConnected$: Observable<boolean> = this.isConnectedSubject.asObservable();
 
@@ -65,6 +71,14 @@ export class CustomerChatService implements OnDestroy {
 
                 this.hubConnection.on('OrderMessageNotification', (message: CustomerChatMessageDto) => {
                     this.notificationReceivedSubject.next(message);
+                });
+
+                this.hubConnection.on('NewOrderReceived', (order: any) => {
+                    this.newOrderReceivedSubject.next(order);
+                });
+
+                this.hubConnection.on('OrderStatusChanged', (order: any) => {
+                    this.orderStatusChangedSubject.next(order);
                 });
 
                 this.hubConnection.onreconnected(() => {

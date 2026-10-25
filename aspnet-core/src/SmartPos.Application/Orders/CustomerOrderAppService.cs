@@ -21,6 +21,7 @@ using SmartPos.Products;
 using SmartPos.Sales;
 using SmartPos.Sales.Dto;
 using Abp.Net.Mail;
+using Abp.Events.Bus;
 using SmartPos.Emailing;
 
 namespace SmartPos.Orders
@@ -30,6 +31,8 @@ namespace SmartPos.Orders
         AsyncCrudAppService<CustomerOrder, CustomerOrderDto, int, PagedCustomerOrderResultRequestDto, CreateCustomerOrderDto, CustomerOrderDto>,
         ICustomerOrderAppService
     {
+        public IEventBus EventBus { get; set; } = NullEventBus.Instance;
+
         private readonly IRepository<CustomerOrderLine> _lineRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Customer> _customerRepository;
@@ -482,6 +485,13 @@ namespace SmartPos.Orders
                 order.OrderNo = "ORD-" + insertedId.ToString("D5");
                 await CurrentUnitOfWork.SaveChangesAsync();
 
+                await EventBus.TriggerAsync(new CustomerOrderCreatedEventData(
+                    insertedId,
+                    order.OrderNo,
+                    branchId,
+                    input.CustomerName ?? "Online Customer",
+                    order.TotalAmount));
+
                 var settings = await _notificationSettingRepository.FirstOrDefaultAsync(
                     s => s.BranchId == branchId && s.TenantId == tenantId);
 
@@ -591,6 +601,14 @@ namespace SmartPos.Orders
             await CurrentUnitOfWork.SaveChangesAsync();
 
             order.OrderNo = "ORD-" + order.Id.ToString("D6");
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            await EventBus.TriggerAsync(new CustomerOrderCreatedEventData(
+                order.Id,
+                order.OrderNo,
+                branchId,
+                customer.Name,
+                order.TotalAmount));
 
             return await GetAsync(new EntityDto<int>(order.Id));
         }
@@ -739,6 +757,12 @@ namespace SmartPos.Orders
                 order.SaleId = sale.Id;
                 await CurrentUnitOfWork.SaveChangesAsync();
 
+                await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
+                    order.Id,
+                    order.OrderNo,
+                    order.BranchId,
+                    CustomerOrderStatus.Approved));
+
                 return sale;
             }
         }
@@ -762,6 +786,12 @@ namespace SmartPos.Orders
 
                 order.Status = CustomerOrderStatus.Rejected;
                 await CurrentUnitOfWork.SaveChangesAsync();
+
+                await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
+                    order.Id,
+                    order.OrderNo,
+                    order.BranchId,
+                    CustomerOrderStatus.Rejected));
             }
         }
 
@@ -784,6 +814,12 @@ namespace SmartPos.Orders
 
                 order.Status = CustomerOrderStatus.Delivered;
                 await CurrentUnitOfWork.SaveChangesAsync();
+
+                await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
+                    order.Id,
+                    order.OrderNo,
+                    order.BranchId,
+                    CustomerOrderStatus.Delivered));
             }
         }
 
