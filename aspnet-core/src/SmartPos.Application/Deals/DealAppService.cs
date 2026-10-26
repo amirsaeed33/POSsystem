@@ -235,6 +235,94 @@ namespace SmartPos.Deals
             }
         }
 
+        public async Task<DealDto> UpdateAsync(UpdateDealDto input)
+        {
+            try
+            {
+                var deal = await _dealRepository.GetAllIncluding(d => d.Product)
+                    .FirstOrDefaultAsync(d => d.Id == input.Id);
+                if (deal == null)
+                {
+                    throw new UserFriendlyException("Deal not found.");
+                }
+
+                deal.Name = input.Name.Trim();
+                deal.Description = input.Description;
+                deal.DealPrice = input.DealPrice;
+                deal.ExpiryDate = input.ExpiryDate;
+                if (!string.IsNullOrWhiteSpace(input.CategoryType))
+                {
+                    deal.CategoryType = input.CategoryType.Trim();
+                }
+
+                // Sync linked Product
+                Product product = null;
+                if (deal.ProductId.HasValue)
+                {
+                    product = await _productRepository.FirstOrDefaultAsync(deal.ProductId.Value);
+                }
+                if (product == null)
+                {
+                    product = await _productRepository.FirstOrDefaultAsync(p => p.DealId == deal.Id);
+                }
+
+                if (product != null)
+                {
+                    product.Name = input.Name.Trim();
+                    product.Price = input.DealPrice;
+                    product.Description = input.Description;
+                    product.IsDeal = true;
+                    product.DealId = deal.Id;
+                    await _productRepository.UpdateAsync(product);
+                }
+
+                await _dealRepository.UpdateAsync(deal);
+
+                // Update DealDetails
+                var existingDetails = await _dealDetailRepository.GetAllListAsync(dd => dd.DealId == deal.Id);
+                foreach (var detail in existingDetails)
+                {
+                    await _dealDetailRepository.DeleteAsync(detail);
+                }
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                if (input.Items != null && input.Items.Count > 0)
+                {
+                    var productIds = input.Items.Select(x => x.ProductId).Distinct().ToList();
+                    var products = await _productRepository.GetAllListAsync(p => productIds.Contains(p.Id));
+
+                    foreach (var item in input.Items)
+                    {
+                        var prod = products.FirstOrDefault(x => x.Id == item.ProductId);
+                        var unitPrice = item.UnitPrice > 0
+                            ? item.UnitPrice
+                            : (prod?.Price ?? 0);
+
+                        await _dealDetailRepository.InsertAsync(new DealDetail
+                        {
+                            TenantId = AbpSession.TenantId,
+                            DealId = deal.Id,
+                            ProductId = item.ProductId,
+                            Quantity = item.Quantity > 0 ? item.Quantity : 1,
+                            UnitPrice = unitPrice
+                        });
+                    }
+                    await CurrentUnitOfWork.SaveChangesAsync();
+                }
+
+                return await GetAsync(new EntityDto<int>(deal.Id));
+            }
+            catch (UserFriendlyException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Error updating deal: " + ex);
+                throw new UserFriendlyException("Failed to update deal: " + ex.Message);
+            }
+        }
+
         public async Task<DealDto> GetAsync(EntityDto<int> input)
         {
             var deal = await _dealRepository.GetAllIncluding(d => d.Branch, d => d.Category, d => d.Product)

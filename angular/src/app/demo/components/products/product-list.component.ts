@@ -13,7 +13,7 @@ import { ProductModifierService } from 'src/app/demo/service/product-modifier.se
 
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { DealService } from 'src/app/demo/service/deal.service';
-import { CreateDealDto, DealDto } from 'src/app/demo/api/deal';
+import { CreateDealDto, UpdateDealDto, DealDto } from 'src/app/demo/api/deal';
 
 @Component({
     templateUrl: './product-list.component.html',
@@ -52,6 +52,7 @@ export class ProductListComponent implements OnInit {
 
     // Deal Management (Restaurant only)
     dealDialogVisible = false;
+    editingDealId: number | null = null;
     dealName = '';
     dealPrice: number | null = null;
     dealExpiryDate = '';
@@ -127,6 +128,12 @@ export class ProductListComponent implements OnInit {
 
         if (this.isDealProduct(product)) {
             actions.push({
+                label: 'Edit Deal & Products',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDealDialog(product)
+            });
+            actions.push({
                 label: 'View Deal Items',
                 icon: 'pi pi-bolt',
                 color: 'blue',
@@ -144,10 +151,13 @@ export class ProductListComponent implements OnInit {
         }
         if (this.canEdit) {
             actions.push({
-                label: 'Edit',
+                label: this.isDealProduct(product) ? 'Edit Product Details' : 'Edit',
                 icon: 'pi pi-pencil',
                 color: 'blue',
-                action: () => this.openEditDialog(product)
+                action: () => {
+                    this.editingProductId = product.id;
+                    this.dialogVisible = true;
+                }
             });
         }
         if (this.canDelete) {
@@ -359,6 +369,10 @@ export class ProductListComponent implements OnInit {
     }
 
     openEditDialog(product: ProductDto): void {
+        if (this.isRestaurant && this.isDealProduct(product)) {
+            this.openEditDealDialog(product);
+            return;
+        }
         this.editingProductId = product.id;
         this.dialogVisible = true;
     }
@@ -552,6 +566,7 @@ export class ProductListComponent implements OnInit {
     }
 
     openCreateDealDialog(): void {
+        this.editingDealId = null;
         this.dealName = '';
         this.dealPrice = null;
         this.dealExpiryDate = '';
@@ -566,6 +581,96 @@ export class ProductListComponent implements OnInit {
                 quantity: 1,
             }));
         this.dealDialogVisible = true;
+    }
+
+    async openEditDealDialog(product: ProductDto): Promise<void> {
+        this.dealProductSearch = '';
+        this.savingDeal = false;
+        try {
+            let deal: DealDto | null = null;
+            if (product.dealId) {
+                deal = await this.dealService.get(product.dealId);
+            } else {
+                deal = await this.dealService.getByProductId(product.id);
+            }
+
+            if (!deal) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Deal details could not be found.',
+                });
+                return;
+            }
+
+            this.editingDealId = deal.id;
+            this.dealName = deal.name || product.name || '';
+            this.dealPrice = deal.dealPrice ?? product.price ?? 0;
+            this.dealExpiryDate = deal.expiryDate ? this.toDateInputValue(deal.expiryDate) : '';
+            this.dealCategoryType = deal.categoryType || 'Deals';
+            this.dealDescription = deal.description || product.description || '';
+
+            const dealItemsMap = new Map<number, number>();
+            for (const it of deal.items || []) {
+                dealItemsMap.set(it.productId, it.quantity);
+            }
+
+            this.availableDealProducts = this.products
+                .filter((p) => !this.isGroceryProduct(p) && p.id !== product.id && (!this.isDealProduct(p) || dealItemsMap.has(p.id)))
+                .map((p) => {
+                    const isSelected = dealItemsMap.has(p.id);
+                    const qty = isSelected ? (dealItemsMap.get(p.id) || 1) : 1;
+                    return {
+                        product: p,
+                        selected: isSelected,
+                        quantity: qty,
+                    };
+                })
+                .sort((a, b) => (b.selected ? 1 : 0) - (a.selected ? 1 : 0));
+
+            this.dealDialogVisible = true;
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to open deal for editing.',
+            });
+        }
+    }
+
+    editCurrentDealFromView(): void {
+        if (!this.selectedDealDetails) return;
+        const deal = this.selectedDealDetails;
+        this.viewDealDialogVisible = false;
+        const matchingProduct = this.products.find(
+            (p) => p.id === deal.productId || p.dealId === deal.id
+        );
+        if (matchingProduct) {
+            this.openEditDealDialog(matchingProduct);
+        } else {
+            const pseudo: any = {
+                id: deal.productId || 0,
+                dealId: deal.id,
+                name: deal.name,
+                price: deal.dealPrice,
+                description: deal.description,
+                isDeal: true,
+            };
+            this.openEditDealDialog(pseudo);
+        }
+    }
+
+    private toDateInputValue(dateVal: any): string {
+        try {
+            const d = new Date(dateVal);
+            if (isNaN(d.getTime())) return '';
+            const year = d.getFullYear();
+            const month = `${d.getMonth() + 1}`.padStart(2, '0');
+            const day = `${d.getDate()}`.padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        } catch {
+            return '';
+        }
     }
 
     onDealProductCheckboxChange(item: { product: ProductDto; selected: boolean; quantity: number }): void {
@@ -653,26 +758,49 @@ export class ProductListComponent implements OnInit {
 
         this.savingDeal = true;
         try {
-            const payload: CreateDealDto = {
-                name: this.dealName.trim(),
-                dealPrice: Number(this.dealPrice),
-                expiryDate: this.dealExpiryDate ? new Date(this.dealExpiryDate).toISOString() : undefined,
-                categoryType: this.dealCategoryType?.trim() || 'Deal',
-                description: this.dealDescription?.trim() || undefined,
-                items: selectedItems.map((x) => ({
-                    productId: x.product.id,
-                    quantity: x.quantity,
-                    unitPrice: x.product.price,
-                })),
-            };
+            const itemsPayload = selectedItems.map((x) => ({
+                productId: x.product.id,
+                quantity: x.quantity,
+                unitPrice: x.product.price,
+            }));
 
-            await this.dealService.create(payload);
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Deal Created',
-                detail: `Deal "${this.dealName}" saved successfully.`,
-            });
+            if (this.editingDealId) {
+                const payload: UpdateDealDto = {
+                    id: this.editingDealId,
+                    name: this.dealName.trim(),
+                    dealPrice: Number(this.dealPrice),
+                    expiryDate: this.dealExpiryDate ? new Date(this.dealExpiryDate).toISOString() : undefined,
+                    categoryType: this.dealCategoryType?.trim() || 'Deals',
+                    description: this.dealDescription?.trim() || undefined,
+                    items: itemsPayload,
+                };
+
+                await this.dealService.update(payload);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Deal Updated',
+                    detail: `Deal "${this.dealName}" updated successfully with ${selectedItems.length} product(s).`,
+                });
+            } else {
+                const payload: CreateDealDto = {
+                    name: this.dealName.trim(),
+                    dealPrice: Number(this.dealPrice),
+                    expiryDate: this.dealExpiryDate ? new Date(this.dealExpiryDate).toISOString() : undefined,
+                    categoryType: this.dealCategoryType?.trim() || 'Deals',
+                    description: this.dealDescription?.trim() || undefined,
+                    items: itemsPayload,
+                };
+
+                await this.dealService.create(payload);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Deal Created',
+                    detail: `Deal "${this.dealName}" saved successfully with ${selectedItems.length} product(s).`,
+                });
+            }
+
             this.dealDialogVisible = false;
+            this.editingDealId = null;
             this.loadProducts();
         } catch (err: any) {
             this.messageService.add({

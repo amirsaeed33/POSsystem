@@ -44,6 +44,10 @@ export interface CreateDealDto {
     items: CreateDealDetailDto[];
 }
 
+export interface UpdateDealDto extends CreateDealDto {
+    id: number;
+}
+
 export interface PagedDealResultRequestDto {
     keyword?: string;
     branchId?: number;

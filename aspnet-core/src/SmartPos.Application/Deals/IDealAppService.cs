@@ -9,6 +9,8 @@ namespace SmartPos.Deals
     {
         Task<DealDto> CreateAsync(CreateDealDto input);
 
+        Task<DealDto> UpdateAsync(UpdateDealDto input);
+
         Task<DealDto> GetAsync(EntityDto<int> input);
 
         Task<DealDto> GetByProductIdAsync(int productId);

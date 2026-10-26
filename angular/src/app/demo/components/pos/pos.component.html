@@ -311,14 +311,14 @@
                                             (click)="openEditLineNote(line)"
                                         ></button>
                                     </div>
-                                    <div class="text-xs text-600 mt-1" *ngIf="line.dealSummary">
-                                        <i class="pi pi-info-circle text-xs text-primary mr-1"></i>
-                                        <span>{{ line.dealSummary }}</span>
+                                    <div class="text-xs text-purple-700 mt-1 flex align-items-center gap-1" *ngIf="getDealItemsFromLine(line)?.length">
+                                        <i class="pi pi-box text-xs text-purple-600"></i>
+                                        <span class="font-medium">{{ getDealItemsFromLine(line).join(' • ') }}</span>
                                     </div>
-                                    <div class="flex flex-wrap gap-1 mt-1" *ngIf="line.selectedModifiers">
+                                    <div class="flex flex-wrap gap-1 mt-1" *ngIf="getExtraModifiersFromLine(line)?.length">
                                         <span
                                             class="surface-200 text-700 text-xs px-2 py-0.5 border-round font-medium"
-                                            *ngFor="let m of parseModifiers(line.selectedModifiers)"
+                                            *ngFor="let m of getExtraModifiersFromLine(line)"
                                         >
                                             {{ m }}
                                         </span>
@@ -424,14 +424,14 @@
                                         (click)="openEditLineNote(line)"
                                     ></button>
                                 </div>
-                                <div class="text-xs text-600 mt-1" *ngIf="line.dealSummary">
-                                    <i class="pi pi-info-circle text-xs text-primary mr-1"></i>
-                                    <span>{{ line.dealSummary }}</span>
+                                <div class="text-xs text-purple-700 mt-1 flex align-items-center gap-1" *ngIf="getDealItemsFromLine(line)?.length">
+                                    <i class="pi pi-box text-xs text-purple-600"></i>
+                                    <span class="font-medium">{{ getDealItemsFromLine(line).join(' • ') }}</span>
                                 </div>
-                                <div class="flex flex-wrap gap-1 mt-1" *ngIf="line.selectedModifiers">
+                                <div class="flex flex-wrap gap-1 mt-1" *ngIf="getExtraModifiersFromLine(line)?.length">
                                     <span
                                         class="surface-200 text-700 text-xs px-2 py-0.5 border-round font-medium"
-                                        *ngFor="let m of parseModifiers(line.selectedModifiers)"
+                                        *ngFor="let m of getExtraModifiersFromLine(line)"
                                     >
                                         {{ m }}
                                     </span>
@@ -1127,11 +1127,21 @@
                                 {{ item.quantity }}x
                             </td>
                             <td style="padding: 4px 0;">
-                                <div style="font-weight: bold;">{{ item.productName }}</div>
-                                <div *ngIf="item.selectedModifiers" style="font-size: 11px; color: #444;">
-                                    Mod: {{ parseModifiers(item.selectedModifiers).join(', ') }}
+                                <div style="font-weight: bold;" class="flex align-items-center gap-1">
+                                    <span *ngIf="isDealItemOrModifiers(item)" style="background: #000; color: #fff; font-size: 10px; padding: 1px 4px; border-radius: 2px; font-weight: bold;">DEAL</span>
+                                    <span>{{ item.productName }}</span>
                                 </div>
-                                <div *ngIf="item.kitchenNotes" style="font-size: 11px; font-weight: bold; color: #b91c1c; font-style: italic;">
+                                <!-- Deal Constituent Items for Kitchen -->
+                                <div *ngIf="getDealItemsFromLine(item)?.length" style="margin: 3px 0; padding-left: 6px; border-left: 2px solid #333; font-size: 12px; color: #111;">
+                                    <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #555;">Includes:</div>
+                                    <div *ngFor="let dItem of getDealItemsFromLine(item)" style="font-weight: 600;">
+                                        &bull; {{ dItem }}
+                                    </div>
+                                </div>
+                                <div *ngIf="getExtraModifiersFromLine(item)?.length" style="font-size: 11px; color: #444; margin-top: 2px;">
+                                    Options: {{ getExtraModifiersFromLine(item).join(', ') }}
+                                </div>
+                                <div *ngIf="item.kitchenNotes" style="font-size: 11px; font-weight: bold; color: #b91c1c; font-style: italic; margin-top: 2px;">
                                     &bull; Note: {{ item.kitchenNotes }}
                                 </div>
                             </td>
@@ -1205,10 +1215,22 @@
                     <tbody>
                         <tr *ngFor="let line of cart" style="border-bottom: 1px dotted #eee;">
                             <td style="padding: 4px 0;">
-                                <div>{{ line.productName }}</div>
-                                <small *ngIf="line.selectedModifiers" style="color: #666; font-size: 10px;">
-                                    {{ parseModifiers(line.selectedModifiers).join(', ') }}
-                                </small>
+                                <div style="font-weight: 500;">
+                                    <span *ngIf="isDealCartLine(line)" style="background: #000; color: #fff; font-size: 9px; padding: 1px 3px; border-radius: 2px; font-weight: bold; margin-right: 3px;">DEAL</span>
+                                    <span>{{ line.productName }}</span>
+                                </div>
+                                <div *ngIf="getDealItemsFromLine(line)?.length" style="margin: 2px 0; padding-left: 6px; border-left: 2px solid #555; font-size: 11px; color: #222;">
+                                    <div style="font-size: 9.5px; font-weight: bold; color: #555;">INCLUDES:</div>
+                                    <div *ngFor="let dItem of getDealItemsFromLine(line)">
+                                        &bull; {{ dItem }}
+                                    </div>
+                                </div>
+                                <div *ngIf="getExtraModifiersFromLine(line)?.length" style="font-size: 10px; color: #555; margin-top: 1px;">
+                                    Options: {{ getExtraModifiersFromLine(line).join(', ') }}
+                                </div>
+                                <div *ngIf="line.kitchenNotes" style="font-size: 10px; color: #b91c1c; font-style: italic;">
+                                    Note: {{ line.kitchenNotes }}
+                                </div>
                             </td>
                             <td style="text-align: center; padding: 4px 0;">{{ line.quantity }}</td>
                             <td style="text-align: right; padding: 4px 0;">{{ line.unitPrice | number: '1.2-2' }}</td>
@@ -1639,20 +1661,26 @@
             </div>
 
             <!-- Items breakdown -->
-            <div class="surface-card border-1 surface-border border-round-xl p-3" *ngIf="selectedCartDealLine.dealSummary">
-                <label class="font-bold text-900 block mb-2">Included Products & Selected Options</label>
-                <div class="text-sm text-700 line-height-3">
-                    {{ selectedCartDealLine.dealSummary }}
+            <div class="surface-card border-1 surface-border border-round-xl p-3" *ngIf="getDealItemsFromLine(selectedCartDealLine).length > 0 || selectedCartDealLine.dealSummary">
+                <label class="font-bold text-900 block mb-2">Included Products</label>
+                <div class="flex flex-column gap-2">
+                    <div
+                        *ngFor="let item of (getDealItemsFromLine(selectedCartDealLine).length ? getDealItemsFromLine(selectedCartDealLine) : [selectedCartDealLine.dealSummary])"
+                        class="flex align-items-center gap-2 p-2 border-round surface-100"
+                    >
+                        <i class="pi pi-check-circle text-primary"></i>
+                        <span class="font-medium text-800">{{ item }}</span>
+                    </div>
                 </div>
             </div>
 
             <!-- Modifiers Chips -->
-            <div *ngIf="selectedCartDealLine.selectedModifiers">
-                <label class="font-bold text-900 block mb-1">Customised Modifiers</label>
+            <div *ngIf="getExtraModifiersFromLine(selectedCartDealLine).length > 0">
+                <label class="font-bold text-900 block mb-1">Customised Modifiers & Options</label>
                 <div class="flex flex-wrap gap-1">
                     <span
                         class="surface-200 text-700 text-xs px-2 py-1 border-round font-medium"
-                        *ngFor="let m of parseModifiers(selectedCartDealLine.selectedModifiers)"
+                        *ngFor="let m of getExtraModifiersFromLine(selectedCartDealLine)"
                     >
                         {{ m }}
                     </span>

@@ -200,6 +200,7 @@
         [(visible)]="dialogVisible"
         [productId]="editingProductId"
         (saved)="onDialogSaved()"
+        (manageDeal)="openEditDealDialog($event)"
     ></app-product-form-dialog>
 
     <app-barcode-print-dialog
@@ -406,12 +407,12 @@
         </ng-template>
     </p-dialog>
 
-    <!-- Create Deal Modal (Restaurant only) -->
+    <!-- Create / Edit Deal Modal (Restaurant only) -->
     <p-dialog
         [(visible)]="dealDialogVisible"
         [modal]="true"
         [style]="{ width: '850px', maxWidth: '95vw' }"
-        header="Create Restaurant Deal"
+        [header]="editingDealId ? 'Edit Restaurant Deal' : 'Create Restaurant Deal'"
         [draggable]="false"
         [resizable]="false"
         styleClass="p-fluid"
@@ -619,8 +620,8 @@
                 pButton
                 pRipple
                 type="button"
-                icon="pi pi-check"
-                label="Done / Save"
+                [icon]="editingDealId ? 'pi pi-save' : 'pi pi-check'"
+                [label]="editingDealId ? 'Update Deal' : 'Done / Save'"
                 class="p-button-primary font-semibold"
                 (click)="saveDeal()"
                 [loading]="savingDeal"
@@ -700,6 +701,14 @@
         </div>
 
         <ng-template pTemplate="footer">
+            <button
+                pButton
+                type="button"
+                icon="pi pi-pencil"
+                label="Edit Deal & Products"
+                class="p-button-warning font-semibold mr-auto"
+                (click)="editCurrentDealFromView()"
+            ></button>
             <button
                 pButton
                 type="button"

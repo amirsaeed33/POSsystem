@@ -27,18 +27,52 @@ export class ThermalPrintService {
         const itemsHtml =
             lines.length > 0
                 ? lines
-                      .map(
-                          (l) => `
-                <tr style="border-bottom: 1px dotted #ccc;">
-                    <td style="vertical-align: top; padding: 4px 0; font-weight: bold; width: 14%;">${l.quantity}x</td>
-                    <td style="vertical-align: top; padding: 4px 0; width: 50%;">
-                        <div style="font-weight: 500;">${l.productName || 'Product #' + l.productId}</div>
-                    </td>
-                    <td style="vertical-align: top; text-align: right; padding: 4px 0; width: 16%;">${Number(l.unitPrice).toFixed(2)}</td>
-                    <td style="vertical-align: top; text-align: right; padding: 4px 0; font-weight: 600; width: 20%;">${Number(l.lineTotal || l.quantity * l.unitPrice).toFixed(2)}</td>
-                </tr>
-            `
-                      )
+                      .map((l: any) => {
+                          let dealHtml = '';
+                          let modsHtml = '';
+                          const modsRaw = l.selectedModifiers || l.modifiers;
+                          let parsedMods: string[] = [];
+                          if (modsRaw) {
+                              try {
+                                  const p = JSON.parse(modsRaw);
+                                  parsedMods = Array.isArray(p) ? p : [modsRaw];
+                              } catch {
+                                  parsedMods = [modsRaw];
+                              }
+                          }
+                          const dealMod = parsedMods.find((m) => typeof m === 'string' && m.startsWith('DEAL:'));
+                          const dealSummary = (l.dealSummary || (dealMod ? dealMod.substring(5).trim() : '')) as string;
+                          if (dealSummary) {
+                              const items = dealSummary.includes(' • ') ? dealSummary.split(' • ') : dealSummary.split(',');
+                              dealHtml = `
+                                <div style="margin: 2px 0; padding-left: 4px; border-left: 2px solid #555; font-size: 10.5px; color: #222;">
+                                    <div style="font-size: 9px; font-weight: bold; color: #555;">INCLUDES:</div>
+                                    ${items.map((i: string) => `<div>&bull; ${i.trim()}</div>`).join('')}
+                                </div>
+                              `;
+                          }
+                          const extraMods = parsedMods.filter((m) => typeof m === 'string' && !m.startsWith('DEAL:'));
+                          if (extraMods.length) {
+                              modsHtml = `<div style="font-size: 10px; color: #555;">Options: ${extraMods.join(', ')}</div>`;
+                          }
+                          const isDeal = !!dealSummary || (l.productName || '').toLowerCase().includes('deal');
+                          const dealBadge = isDeal
+                              ? `<span style="background: #000; color: #fff; font-size: 8.5px; padding: 1px 3px; border-radius: 2px; font-weight: bold; margin-right: 3px;">DEAL</span>`
+                              : '';
+                          return `
+                            <tr style="border-bottom: 1px dotted #ccc;">
+                                <td style="vertical-align: top; padding: 4px 0; font-weight: bold; width: 14%;">${l.quantity}x</td>
+                                <td style="vertical-align: top; padding: 4px 0; width: 50%;">
+                                    <div style="font-weight: 500;">${dealBadge}${l.productName || 'Product #' + l.productId}</div>
+                                    ${dealHtml}
+                                    ${modsHtml}
+                                    ${l.notes ? `<div style="font-size: 10px; color: #b91c1c; font-style: italic;">Note: ${l.notes}</div>` : ''}
+                                </td>
+                                <td style="vertical-align: top; text-align: right; padding: 4px 0; width: 16%;">${Number(l.unitPrice).toFixed(2)}</td>
+                                <td style="vertical-align: top; text-align: right; padding: 4px 0; font-weight: 600; width: 20%;">${Number(l.lineTotal || l.quantity * l.unitPrice).toFixed(2)}</td>
+                            </tr>
+                          `;
+                      })
                       .join('')
                 : `<tr><td colspan="4" style="text-align: center; padding: 6px 0; color: #666;">No items listed</td></tr>`;
 

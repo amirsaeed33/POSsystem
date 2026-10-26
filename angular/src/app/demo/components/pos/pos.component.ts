@@ -265,18 +265,64 @@ export class PosComponent implements OnInit, OnDestroy {
             product.isDeal ||
             product.dealId ||
             (product.categoryName || '').trim().toLowerCase() === 'deals' ||
+            (product.name || '').trim().toLowerCase().startsWith('[deal]') ||
             (product.barcode || '').startsWith('DEAL-')
         );
     }
 
-    isDealCartLine(line?: PosCartLine | null): boolean {
-        if (!line) return false;
-        return !!(
-            line.isDeal ||
-            line.dealId ||
-            (line.productName || '').toLowerCase().startsWith('[deal]') ||
-            (line.dealSummary && line.dealSummary.length > 0)
-        );
+    isDealCartLine(line?: any): boolean {
+        return this.isDealItemOrModifiers(line);
+    }
+
+    isDealItemOrModifiers(item?: any): boolean {
+        if (!item) return false;
+        if (item.isDeal || item.dealId || item.dealSummary) return true;
+        const name = (item.productName || item.name || '').toLowerCase();
+        if (name.startsWith('[deal]') || name.includes('deal')) return true;
+        const mods = this.parseModifiers(item.selectedModifiers);
+        if (mods.some((m: string) => typeof m === 'string' && m.startsWith('DEAL:'))) return true;
+        if (item.productId || item.productName) {
+            const cartMatch = this.cart.find(
+                (c) =>
+                    (item.productId && c.productId === item.productId) ||
+                    (item.productName && c.productName === item.productName)
+            );
+            if (cartMatch && (cartMatch.isDeal || cartMatch.dealId || cartMatch.dealSummary)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    getDealItemsFromLine(line: any): string[] {
+        if (!line) return [];
+        let summary: string | undefined = line.dealSummary;
+        if (!summary) {
+            const mods = this.parseModifiers(line.selectedModifiers);
+            const dealMod = mods.find((m: string) => typeof m === 'string' && m.startsWith('DEAL:'));
+            if (dealMod) {
+                summary = dealMod.substring(5).trim();
+            }
+        }
+        if (!summary && (line.productId || line.productName)) {
+            const cartMatch = this.cart.find(
+                (c) =>
+                    (line.productId && c.productId === line.productId) ||
+                    (line.productName && c.productName === line.productName)
+            );
+            if (cartMatch && cartMatch.dealSummary) {
+                summary = cartMatch.dealSummary;
+            }
+        }
+        if (!summary) return [];
+        const parts = summary.includes(' • ') ? summary.split(' • ') : summary.split(',');
+        return parts.map((s: string) => s.trim()).filter(Boolean);
+    }
+
+    getExtraModifiersFromLine(line: any): string[] {
+        if (!line || !line.selectedModifiers) return [];
+        const mods = this.parseModifiers(line.selectedModifiers);
+        return mods.filter((m: string) => typeof m === 'string' && !m.startsWith('DEAL:'));
     }
 
     loadTopProducts(): void {
@@ -398,6 +444,11 @@ export class PosComponent implements OnInit, OnDestroy {
         this.pendingSelectedTable = table;
         this.selectedWaiterId = table.waiterId || null;
         this.tableDialogVisible = false;
+        if (table.status === 1 || table.status === 2) {
+            // Already occupied / billed: directly open table and load order items into cart!
+            this.selectTable(table);
+            return;
+        }
         if (!this.waiters.length) {
             this.loadWaiters();
         }
@@ -523,19 +574,57 @@ export class PosComponent implements OnInit, OnDestroy {
                     if (order.customerId) {
                         this.customerId = order.customerId;
                     }
-                    const existingLines = order.lines.map((l) => ({
-                        id: l.id,
-                        productId: l.productId,
-                        productName: l.productName,
-                        quantity: l.quantity,
-                        unitPrice: l.unitPrice,
-                        retailPrice: l.unitPrice,
-                        wholesalePrice: l.unitPrice,
-                        stockQuantity: 999,
-                        kitchenNotes: l.kitchenNotes,
-                        selectedModifiers: l.selectedModifiers,
-                        isSentToKitchen: l.isSentToKitchen,
-                    }));
+                    const existingLines: PosCartLine[] = [];
+                    for (const l of order.lines) {
+                        let isDeal = false;
+                        let dealSummary: string | undefined = undefined;
+                        let dealId: number | undefined = undefined;
+                        let selectedModifiers = l.selectedModifiers;
+
+                        const mods = this.parseModifiers(selectedModifiers);
+                        const dealMod = mods.find((m: string) => typeof m === 'string' && m.startsWith('DEAL:'));
+                        if (dealMod) {
+                            isDeal = true;
+                            dealSummary = dealMod.substring(5).trim();
+                        }
+
+                        // Always check with DealService to resolve deal constituent items for this product
+                        try {
+                            const dealInfo = await this.dealService.getByProductId(l.productId);
+                            if (dealInfo && dealInfo.items?.length) {
+                                isDeal = true;
+                                dealId = dealInfo.id;
+                                if (!dealSummary) {
+                                    dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' • ');
+                                }
+                                if (!selectedModifiers || !selectedModifiers.includes('DEAL:')) {
+                                    const extra = this.parseModifiers(selectedModifiers).filter(
+                                        (m: string) => typeof m === 'string' && !m.startsWith('DEAL:')
+                                    );
+                                    selectedModifiers = JSON.stringify([`DEAL: ${dealSummary}`, ...extra]);
+                                }
+                            }
+                        } catch {
+                            // Regular non-deal product
+                        }
+
+                        existingLines.push({
+                            id: l.id,
+                            productId: l.productId,
+                            productName: l.productName,
+                            quantity: l.quantity,
+                            unitPrice: l.unitPrice,
+                            retailPrice: l.unitPrice,
+                            wholesalePrice: l.unitPrice,
+                            stockQuantity: 999,
+                            kitchenNotes: l.kitchenNotes,
+                            selectedModifiers,
+                            isSentToKitchen: l.isSentToKitchen,
+                            isDeal,
+                            dealId,
+                            dealSummary,
+                        });
+                    }
 
                     if (isDirectSend) {
                         const newCartItems = this.cart.filter((c) => !c.id);
@@ -1052,7 +1141,20 @@ export class PosComponent implements OnInit, OnDestroy {
 
     async addProduct(product: ProductDto): Promise<void> {
         if (this.isRestaurantMode) {
-            if (this.isDealProduct(product)) {
+            let isDeal = this.isDealProduct(product);
+            if (!isDeal) {
+                try {
+                    const d = await this.dealService.getByProductId(product.id);
+                    if (d && d.items?.length) {
+                        isDeal = true;
+                        product.isDeal = true;
+                        product.dealId = d.id;
+                    }
+                } catch {
+                    // Not a deal
+                }
+            }
+            if (isDeal) {
                 await this.openDealCustomiseDialog(product);
                 return;
             }
@@ -1270,9 +1372,12 @@ export class PosComponent implements OnInit, OnDestroy {
         const wholesalePrice = basePrice + (extraModifiers?.extraPrice || 0);
         const unitPrice = this.resolveUnitPrice(retailPrice, wholesalePrice);
 
-        const modJson = extraModifiers?.names?.length
-            ? JSON.stringify(extraModifiers.names)
-            : undefined;
+        // Always include DEAL: summary so Kitchen Order Ticket (KOT), Guest Check, and Table reload know all items!
+        const allModifiers = [
+            `DEAL: ${dealSummary || product.name}`,
+            ...(extraModifiers?.names || [])
+        ];
+        const modJson = JSON.stringify(allModifiers);
 
         this.cart.push({
             productId: product.id,
@@ -1297,8 +1402,18 @@ export class PosComponent implements OnInit, OnDestroy {
         });
     }
 
-    viewCartDealDetails(line: PosCartLine): void {
+    async viewCartDealDetails(line: PosCartLine): Promise<void> {
         this.selectedCartDealLine = line;
+        if (!line.dealSummary && !this.getDealItemsFromLine(line).length) {
+            try {
+                const dealInfo = await this.dealService.getByProductId(line.productId);
+                if (dealInfo && dealInfo.items?.length) {
+                    line.dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' • ');
+                }
+            } catch (err) {
+                console.warn('Could not load deal details for dialog:', err);
+            }
+        }
         this.viewCartDealDialogVisible = true;
     }
 
@@ -1622,7 +1737,9 @@ export class PosComponent implements OnInit, OnDestroy {
                         quantity: l.quantity,
                         unitPrice: l.unitPrice,
                         lineTotal: l.quantity * l.unitPrice,
-                        modifiers: l.selectedModifiers ? this.parseModifiers(l.selectedModifiers) : [],
+                        isDeal: this.isDealItemOrModifiers(l),
+                        dealItems: this.getDealItemsFromLine(l),
+                        modifiers: this.getExtraModifiersFromLine(l),
                         notes: l.kitchenNotes
                     })),
                     subTotal: this.subTotal,
@@ -1719,12 +1836,26 @@ export class PosComponent implements OnInit, OnDestroy {
 
         const linesHtml = (receipt.lines || [])
             .map((line: any) => {
-                const mods = line.modifiers?.length ? `<div style="font-size:10px; color:#555;">${line.modifiers.join(', ')}</div>` : '';
-                const note = line.notes ? `<div style="font-size:10px; color:#666; font-style:italic;">Note: ${line.notes}</div>` : '';
+                const dealBadge = line.isDeal
+                    ? `<span style="font-size:9px; background:#000; color:#fff; padding:1px 3px; font-weight:bold; margin-right:3px; border-radius:2px;">DEAL</span>`
+                    : '';
+                const dealHtml = line.dealItems?.length
+                    ? `<div style="font-size:11px; color:#222; margin-top:2px; padding-left:4px; border-left:2px solid #555;">
+                        <div style="font-size:9.5px; font-weight:bold; color:#555;">INCLUDES:</div>
+                        ${line.dealItems.map((d: string) => `<div>&bull; ${d}</div>`).join('')}
+                       </div>`
+                    : '';
+                const mods = line.modifiers?.length
+                    ? `<div style="font-size:10px; color:#555;">Options: ${line.modifiers.join(', ')}</div>`
+                    : '';
+                const note = line.notes
+                    ? `<div style="font-size:10px; color:#b91c1c; font-style:italic;">Note: ${line.notes}</div>`
+                    : '';
                 return `
                     <tr style="border-bottom: 1px dotted #ccc;">
                         <td style="padding: 4px 0;">
-                            <div style="font-weight: 500;">${line.productName}</div>
+                            <div style="font-weight: 500;">${dealBadge}${line.productName}</div>
+                            ${dealHtml}
                             ${mods}
                             ${note}
                         </td>

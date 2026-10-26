@@ -35,6 +35,13 @@ export class ProductFormDialogComponent implements OnChanges {
     @Input() productId: number | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
+    @Output() manageDeal = new EventEmitter<ProductDto>();
+
+    onManageDealProducts(): void {
+        this.visible = false;
+        this.visibleChange.emit(false);
+        this.manageDeal.emit(this.product);
+    }
 
     product: ProductDto = this.emptyProduct();
     specItems: ProductSpecItem[] = [];

@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
     CreateDealDto,
+    UpdateDealDto,
     DealDto,
     PagedDealResultRequestDto,
 } from '../api/deal';
@@ -25,6 +26,19 @@ export class DealService {
         } catch (error) {
             throw new Error(
                 this.extractErrorMessage(error, 'Failed to create deal')
+            );
+        }
+    }
+
+    async update(input: UpdateDealDto): Promise<DealDto> {
+        try {
+            const res: any = await firstValueFrom(
+                this.http.put<any>(`${this.apiUrl}/Update`, input)
+            );
+            return this.unwrap(res, 'Failed to update deal');
+        } catch (error) {
+            throw new Error(
+                this.extractErrorMessage(error, 'Failed to update deal')
             );
         }
     }

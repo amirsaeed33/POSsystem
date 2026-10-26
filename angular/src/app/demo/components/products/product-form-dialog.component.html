@@ -11,6 +11,26 @@
     (visibleChange)="onVisibleChange($event)"
 >
     <div class="flex flex-column gap-3" *ngIf="!loading; else loadingTpl">
+        <!-- Deal Notice Banner -->
+        <div *ngIf="product.isDeal || product.dealId" class="p-3 border-round bg-yellow-50 border-1 border-yellow-300 flex flex-wrap align-items-center justify-content-between gap-2 shadow-1">
+            <div class="flex align-items-center gap-2">
+                <i class="pi pi-bolt text-yellow-700 text-2xl"></i>
+                <div>
+                    <div class="font-bold text-yellow-900 text-sm">Restaurant Deal Bundle</div>
+                    <div class="text-xs text-yellow-800">Manage constituent products, quantities, and options for this deal.</div>
+                </div>
+            </div>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-pencil"
+                label="Manage Deal Products"
+                class="p-button-sm p-button-warning font-semibold"
+                (click)="onManageDealProducts()"
+            ></button>
+        </div>
+
         <!-- Circular Product Image at Top (Edit Mode Only) -->
         <div class="flex justify-content-center align-items-center mb-1" *ngIf="productId">
             <div
