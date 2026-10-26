@@ -9,6 +9,7 @@ import {
 } from '@angular/router';
 import { AuthService } from './auth.service';
 import { PermissionService } from './permission.service';
+import { SessionService } from './session.service';
 
 @Injectable({
     providedIn: 'root',
@@ -16,28 +17,58 @@ import { PermissionService } from './permission.service';
 export class PermissionGuard implements CanActivate, CanActivateChild {
     constructor(
         private authService: AuthService,
+        private sessionService: SessionService,
         private permissionService: PermissionService,
         private router: Router
     ) {}
 
     canActivate(
         route: ActivatedRouteSnapshot,
-        _state: RouterStateSnapshot
+        state: RouterStateSnapshot
     ): Promise<boolean | UrlTree> {
-        return this.check(route);
+        return this.check(route, state);
     }
 
     canActivateChild(
         childRoute: ActivatedRouteSnapshot,
-        _state: RouterStateSnapshot
+        state: RouterStateSnapshot
     ): Promise<boolean | UrlTree> {
-        return this.check(childRoute);
+        return this.check(childRoute, state);
     }
 
     private async check(
-        route: ActivatedRouteSnapshot
+        route: ActivatedRouteSnapshot,
+        state?: RouterStateSnapshot
     ): Promise<boolean | UrlTree> {
         if (!this.authService.isAuthenticated()) {
+            return true;
+        }
+
+        const url = state?.url || '';
+
+        // If user info is not cached yet, load it from session
+        if (!this.authService.getUserInfo()) {
+            try {
+                const sessionInfo = await this.sessionService.getCurrentLoginInformations();
+                if (sessionInfo?.user) {
+                    this.authService.setUserInfo(sessionInfo.user);
+                }
+            } catch {
+                // Ignore session load error
+            }
+        }
+
+        // Delivery Rider Portal URL restriction:
+        // Riders must see only My Dashboard and Order History.
+        // They must not be able to access admin pages or other modules by changing URLs.
+        if (this.authService.isDeliveryRider()) {
+            const isRiderRoute = url.startsWith('/rider') ||
+                url.startsWith('/auth/changepassword') ||
+                url.startsWith('/notfound');
+
+            if (!isRiderRoute) {
+                return this.router.createUrlTree(['/rider/dashboard']);
+            }
             return true;
         }
 

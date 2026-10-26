@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using SmartPos.Authorization.Users;
 
 namespace SmartPos.Users.Dto
@@ -20,6 +20,8 @@ namespace SmartPos.Users.Dto
             CreateMap<CreateUserDto, User>()
                 .ForMember(x => x.Roles, opt => opt.Ignore())
                 .ForMember(x => x.UserImageUrl, opt => opt.Ignore());
+
+            CreateMap<User, SmartPos.Sessions.Dto.UserLoginInfoDto>();
         }
     }
 }

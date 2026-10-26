@@ -1,0 +1,375 @@
+<p-toast></p-toast>
+<p-confirmDialog [style]="{ width: '90vw', maxWidth: '450px' }"></p-confirmDialog>
+
+<div class="rider-dashboard-container">
+    <!-- Top Header Banner -->
+    <div class="surface-card p-3 md:p-4 border-round-xl shadow-2 mb-3">
+        <div class="flex flex-column sm:flex-row align-items-start sm:align-items-center justify-content-between gap-3">
+            <div>
+                <div class="flex align-items-center gap-2 mb-1">
+                    <span class="inline-flex align-items-center justify-content-center bg-primary-100 text-primary border-circle w-2rem h-2rem">
+                        <i class="pi pi-compass text-lg"></i>
+                    </span>
+                    <h2 class="text-xl md:text-2xl font-bold text-900 m-0">Rider Delivery Portal</h2>
+                    <span class="badge-status online">On Duty</span>
+                </div>
+                <p class="text-600 text-sm m-0">
+                    Welcome back, <span class="font-semibold text-900">{{ stats?.riderName || 'Rider' }}</span>
+                    <span *ngIf="stats?.branchName" class="text-500 font-normal"> &bull; {{ stats?.branchName }}</span>
+                </p>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="flex align-items-center gap-2 w-full sm:w-auto justify-content-end">
+                <button
+                    pButton
+                    type="button"
+                    icon="pi pi-refresh"
+                    label="Refresh"
+                    [loading]="loading"
+                    (click)="loadData()"
+                    class="p-button-outlined p-button-sm border-round-lg"
+                ></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Summary Cards -->
+    <div class="grid mb-3">
+        <!-- Active Deliveries -->
+        <div class="col-12 sm:col-4">
+            <div class="stat-card active-stat">
+                <div class="flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-500 font-medium text-xs uppercase block mb-1">Active Deliveries</span>
+                        <div class="text-3xl font-extrabold text-900">{{ stats?.activeAssignedCount || 0 }}</div>
+                        <span class="text-xs text-orange-600 font-semibold" *ngIf="(stats?.activeAssignedCount || 0) > 0">
+                            Needs delivery action
+                        </span>
+                        <span class="text-xs text-500" *ngIf="(stats?.activeAssignedCount || 0) === 0">
+                            No pending tasks
+                        </span>
+                    </div>
+                    <div class="stat-icon-wrap bg-orange-100 text-orange-600">
+                        <i class="pi pi-send text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delivered Today -->
+        <div class="col-12 sm:col-4">
+            <div class="stat-card delivered-stat">
+                <div class="flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-500 font-medium text-xs uppercase block mb-1">Delivered Today</span>
+                        <div class="text-3xl font-extrabold text-green-600">{{ stats?.todayDeliveredCount || 0 }}</div>
+                        <span class="text-xs text-green-700 font-semibold">Completed today</span>
+                    </div>
+                    <div class="stat-icon-wrap bg-green-100 text-green-600">
+                        <i class="pi pi-check-circle text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cash Collected Today -->
+        <div class="col-12 sm:col-4">
+            <div class="stat-card cash-stat">
+                <div class="flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-500 font-medium text-xs uppercase block mb-1">Delivered Amount</span>
+                        <div class="text-2xl font-extrabold text-primary">Rs. {{ (stats?.todayDeliveredAmount || 0) | number:'1.2-2' }}</div>
+                        <span class="text-xs text-500">Total delivered today</span>
+                    </div>
+                    <div class="stat-icon-wrap bg-primary-100 text-primary">
+                        <i class="pi pi-wallet text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Orders Section Header -->
+    <div class="flex align-items-center justify-content-between mb-3 px-1">
+        <h3 class="text-lg font-bold text-900 m-0 flex align-items-center gap-2">
+            <span>Assigned Deliveries</span>
+            <span class="orders-count-badge" [class.has-orders]="orders.length > 0">
+                {{ orders.length }}
+            </span>
+        </h3>
+        <span class="text-xs text-500 hidden sm:inline">Auto-refresh every 25s</span>
+    </div>
+
+    <!-- Loading Skeleton -->
+    <div *ngIf="loading && orders.length === 0" class="surface-card p-5 border-round-xl shadow-1 text-center">
+        <i class="pi pi-spin pi-spinner text-3xl text-primary mb-2"></i>
+        <p class="text-600 m-0">Checking assigned orders...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && orders.length === 0" class="empty-state surface-card p-5 border-round-xl shadow-1 text-center mb-4">
+        <div class="empty-icon-box mb-3">
+            <i class="pi pi-truck text-4xl text-primary"></i>
+        </div>
+        <h4 class="text-xl font-bold text-900 mb-1">No Active Orders Assigned</h4>
+        <p class="text-600 text-sm max-w-20rem mx-auto mb-4">
+            You're all caught up! New delivery orders assigned by the admin or system will appear right here automatically.
+        </p>
+        <button
+            pButton
+            type="button"
+            icon="pi pi-refresh"
+            label="Check Now"
+            (click)="loadData()"
+            class="p-button-outlined p-button-sm border-round-lg"
+        ></button>
+    </div>
+
+    <!-- Order Cards List -->
+    <div *ngIf="orders.length > 0" class="orders-list">
+        <div *ngFor="let order of orders" class="order-card surface-card border-round-xl shadow-2 mb-3 overflow-hidden">
+            <!-- Order Header -->
+            <div class="order-card-header p-3 flex align-items-center justify-content-between border-bottom-1 surface-border">
+                <div class="flex align-items-center gap-2">
+                    <span class="order-number font-bold text-lg text-900">#{{ order.orderNo }}</span>
+                    <span *ngIf="order.distanceKm" class="distance-pill">
+                        <i class="pi pi-compass mr-1"></i>{{ order.distanceKm | number:'1.1-1' }} km
+                    </span>
+                </div>
+
+                <div class="flex align-items-center gap-2">
+                    <span
+                        class="status-chip"
+                        [ngClass]="{
+                            'status-assigned': !order.isAcceptedByRider,
+                            'status-transit': order.isAcceptedByRider
+                        }"
+                    >
+                        <i class="pi mr-1 text-xs" [ngClass]="order.isAcceptedByRider ? 'pi-send' : 'pi-bell'"></i>
+                        {{ order.isAcceptedByRider ? 'In Transit' : 'Assigned (New)' }}
+                    </span>
+                    <span class="text-xs text-500 font-medium">{{ order.riderAssignedTimeText }}</span>
+                </div>
+            </div>
+
+            <!-- Order Body -->
+            <div class="p-3 md:p-4">
+                <!-- Customer Details Row -->
+                <div class="customer-section p-3 border-round-lg bg-surface-50 mb-3">
+                    <div class="flex flex-column sm:flex-row justify-content-between align-items-start sm:align-items-center gap-2 mb-2">
+                        <div>
+                            <span class="text-xs text-500 uppercase font-bold block mb-1">Customer</span>
+                            <span class="font-bold text-base text-900">{{ order.customerName }}</span>
+                        </div>
+
+                        <!-- Direct Call Button -->
+                        <a
+                            *ngIf="order.customerPhone"
+                            [href]="'tel:' + order.customerPhone"
+                            class="call-btn p-button p-button-sm p-button-success border-round-lg text-decoration-none"
+                        >
+                            <i class="pi pi-phone mr-1"></i>
+                            <span>Call {{ order.customerPhone }}</span>
+                        </a>
+                    </div>
+
+                    <!-- Delivery Address & Navigation -->
+                    <div class="address-box mt-2 pt-2 border-top-1 surface-border">
+                        <div class="flex align-items-start justify-content-between gap-2">
+                            <div class="flex align-items-start gap-2">
+                                <i class="pi pi-map-marker text-red-500 text-lg mt-1 flex-shrink-0"></i>
+                                <div>
+                                    <span class="font-medium text-sm text-800 block">
+                                        {{ order.customerAddress || 'Address not specified' }}
+                                    </span>
+                                    <span *ngIf="order.deliveryAreaName" class="text-xs text-500 block mt-1">
+                                        Area: <strong>{{ order.deliveryAreaName }}</strong>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Navigate Button -->
+                            <button
+                                pButton
+                                type="button"
+                                icon="pi pi-directions"
+                                label="Navigate"
+                                (click)="navigateToLocation(order)"
+                                class="navigate-btn p-button-sm p-button-info border-round-lg flex-shrink-0"
+                                title="Open Google Maps with turn-by-turn directions"
+                            ></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Special Notes / Instructions -->
+                <div *ngIf="order.notes" class="notes-alert p-2 border-round-lg bg-yellow-50 text-yellow-900 border-1 border-yellow-200 mb-3 flex align-items-center gap-2 text-xs">
+                    <i class="pi pi-info-circle text-yellow-700 flex-shrink-0"></i>
+                    <div>
+                        <span class="font-bold">Instructions: </span>
+                        <span>{{ order.notes }}</span>
+                    </div>
+                </div>
+
+                <!-- Items Breakdown -->
+                <div class="items-section mb-3">
+                    <span class="text-xs text-500 uppercase font-bold block mb-2">Ordered Food Items ({{ order.items.length }})</span>
+                    <div class="items-list bg-white border-round-lg border-1 surface-border p-2">
+                        <div *ngFor="let item of order.items; let last = last" class="item-row py-2" [class.border-bottom-1]="!last" [class.surface-border]="!last">
+                            <div class="flex justify-content-between align-items-center">
+                                <div class="flex align-items-center gap-2">
+                                    <span class="qty-badge font-bold text-sm bg-primary-100 text-primary px-2 py-1 border-round">
+                                        {{ item.quantity }}x
+                                    </span>
+                                    <span class="font-semibold text-900 text-sm">{{ item.productName }}</span>
+                                    <span *ngIf="item.isDeal" class="deal-pill text-xs bg-orange-100 text-orange-800 font-bold px-2 py-1 border-round">
+                                        Deal Bundle
+                                    </span>
+                                </div>
+                                <span class="font-medium text-sm text-700">Rs. {{ item.lineTotal | number:'1.2-2' }}</span>
+                            </div>
+
+                            <!-- Deal constituent food items breakdown -->
+                            <div *ngIf="getDealDescriptions(item).length > 0" class="deal-breakdown mt-1 pl-4 text-xs text-600">
+                                <div *ngFor="let desc of getDealDescriptions(item)" class="flex align-items-center gap-1">
+                                    <i class="pi pi-check text-green-600 text-xs"></i>
+                                    <span>{{ desc }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment & Total Summary -->
+                <div class="payment-summary p-3 border-round-lg bg-surface-100 flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span class="text-xs text-500 uppercase block font-semibold">Payment</span>
+                        <span class="font-bold text-sm text-900">{{ order.paymentMethod }}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-500 uppercase block font-semibold">Total to Collect</span>
+                        <span class="font-extrabold text-xl text-green-700">Rs. {{ order.totalAmount | number:'1.2-2' }}</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons Footer -->
+                <div class="actions-row mt-3 pt-2">
+                    <!-- Unaccepted Flow: Accept vs Reject -->
+                    <div *ngIf="!order.isAcceptedByRider" class="grid p-0 m-0">
+                        <div class="col-8 pl-0 pr-1 py-0">
+                            <button
+                                pButton
+                                type="button"
+                                icon="pi pi-check"
+                                label="Accept Order"
+                                [loading]="actionInProgress[order.id]"
+                                (click)="acceptOrder(order)"
+                                class="p-button-success p-button-lg w-full font-bold border-round-xl h-3rem"
+                            ></button>
+                        </div>
+                        <div class="col-4 pl-1 pr-0 py-0">
+                            <button
+                                pButton
+                                type="button"
+                                icon="pi pi-times"
+                                label="Decline"
+                                [disabled]="actionInProgress[order.id]"
+                                (click)="openRejectDialog(order)"
+                                class="p-button-outlined p-button-danger p-button-lg w-full font-semibold border-round-xl h-3rem"
+                            ></button>
+                        </div>
+                    </div>
+
+                    <!-- Accepted Flow: In Transit -> Navigate & Deliver -->
+                    <div *ngIf="order.isAcceptedByRider" class="grid p-0 m-0">
+                        <div class="col-6 pl-0 pr-1 py-0">
+                            <button
+                                pButton
+                                type="button"
+                                icon="pi pi-directions"
+                                label="Directions"
+                                (click)="navigateToLocation(order)"
+                                class="p-button-outlined p-button-info p-button-lg w-full font-bold border-round-xl h-3rem"
+                            ></button>
+                        </div>
+                        <div class="col-6 pl-1 pr-0 py-0">
+                            <button
+                                pButton
+                                type="button"
+                                icon="pi pi-check-circle"
+                                label="Delivered"
+                                [loading]="actionInProgress[order.id]"
+                                (click)="confirmCompleteDelivery(order)"
+                                class="p-button-success p-button-lg w-full font-bold border-round-xl h-3rem"
+                            ></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Order Dialog -->
+<p-dialog
+    header="Decline Order Assignment"
+    [(visible)]="rejectDialogVisible"
+    [modal]="true"
+    [style]="{ width: '92vw', maxWidth: '440px' }"
+    [draggable]="false"
+    [resizable]="false"
+>
+    <div class="p-fluid">
+        <p class="text-sm text-600 mb-3">
+            Please specify why you cannot accept Order <strong>#{{ selectedOrderForReject?.orderNo }}</strong>. The order will be unassigned so another rider or the admin can handle it.
+        </p>
+
+        <!-- Quick Presets -->
+        <div class="mb-3">
+            <span class="text-xs text-500 font-bold uppercase block mb-2">Quick Reasons</span>
+            <div class="flex flex-wrap gap-2">
+                <button
+                    *ngFor="let preset of rejectPresets"
+                    type="button"
+                    class="p-button p-button-outlined p-button-sm text-xs border-round-lg"
+                    [class.p-button-primary]="rejectReason === preset"
+                    (click)="selectPresetReason(preset)"
+                >
+                    {{ preset }}
+                </button>
+            </div>
+        </div>
+
+        <div class="field mb-3">
+            <label for="reasonInput" class="text-xs font-bold text-700">Reason Details</label>
+            <textarea
+                id="reasonInput"
+                pInputTextarea
+                [(ngModel)]="rejectReason"
+                rows="3"
+                placeholder="Describe reason (e.g. flat tyre, emergency)..."
+                class="w-full border-round-lg p-2"
+            ></textarea>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-content-end gap-2">
+            <button
+                pButton
+                label="Cancel"
+                icon="pi pi-times"
+                class="p-button-text p-button-sm"
+                (click)="rejectDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                label="Confirm Decline"
+                icon="pi pi-check"
+                class="p-button-danger p-button-sm"
+                (click)="confirmReject()"
+            ></button>
+        </div>
+    </ng-template>
+</p-dialog>

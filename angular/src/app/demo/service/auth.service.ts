@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, BehaviorSubject, Observable } from 'rxjs';
 import { AuthenticateModel, AuthenticateResultModel } from '../api/auth';
 import { environment } from '../../../environments/environment';
 import { PermissionService } from './permission.service';
@@ -32,6 +32,9 @@ export class AuthService {
     private readonly externalProvidersUrl = `${environment.apiUrl}/api/TokenAuth/GetExternalAuthenticationProviders`;
     private readonly sendEmailLoginCodeUrl = `${environment.apiUrl}/api/TokenAuth/SendEmailLoginCode`;
     private readonly authenticateWithEmailCodeUrl = `${environment.apiUrl}/api/TokenAuth/AuthenticateWithEmailCode`;
+
+    private readonly currentUserSubject = new BehaviorSubject<any>(this.getUserInfo());
+    public readonly currentUser$: Observable<any> = this.currentUserSubject.asObservable();
 
     constructor(
         private http: HttpClient,
@@ -173,15 +176,34 @@ export class AuthService {
         localStorage.removeItem('SmartPos.IsHostAdmin');
         this.tenantContext.setTenantId(undefined);
         this.permissionService.clear();
+        this.currentUserSubject.next(null);
     }
 
     setUserInfo(userInfo: any): void {
         localStorage.setItem(USER_INFO_KEY, JSON.stringify(userInfo));
+        this.currentUserSubject.next(userInfo);
     }
 
     getUserInfo(): any {
         const userInfo = localStorage.getItem(USER_INFO_KEY);
         return userInfo ? JSON.parse(userInfo) : null;
+    }
+
+    isDeliveryRider(): boolean {
+        const user = this.getUserInfo();
+        if (!user) {
+            return false;
+        }
+        if (user.isDeliveryRider) {
+            return true;
+        }
+        if (user.roleNames && Array.isArray(user.roleNames) && user.roleNames.some((r: string) => r && r.toLowerCase().includes('rider'))) {
+            return true;
+        }
+        if (user.designation && (user.designation.toLowerCase().includes('rider') || user.designation.toLowerCase().includes('delivery'))) {
+            return true;
+        }
+        return false;
     }
 
     private persistAuthResult(res: any, fallbackMessage: string): AuthenticateResultModel {

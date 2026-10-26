@@ -131,5 +131,9 @@ namespace SmartPos.Authorization
 
         public const string Pages_NotificationSettings = "Pages.NotificationSettings";
         public const string Pages_NotificationSettings_Edit = "Pages.NotificationSettings.Edit";
+
+        public const string Pages_Rider = "Pages.Rider";
+        public const string Pages_Rider_Dashboard = "Pages.Rider.Dashboard";
+        public const string Pages_Rider_OrderHistory = "Pages.Rider.OrderHistory";
     }
 }

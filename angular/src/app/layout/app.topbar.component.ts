@@ -57,6 +57,10 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         return this.currentBranch?.id ? { branchId: this.currentBranch.id } : undefined;
     }
 
+    get isDeliveryRider(): boolean {
+        return this.authService.isDeliveryRider();
+    }
+
     todayPendingOrders: CustomerOrderDto[] = [];
     pendingOrdersCount = 0;
     loadingOrders = false;
@@ -116,10 +120,12 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             if (b) {
                 this.currentBranch = b;
                 this.branchLogoFailed = false;
-                this.loadTodayOrders();
-                if (b.id) {
-                    this.customerChatService.joinBranchChat(b.id);
-                    this.loadUnreadChatCount();
+                if (!this.isDeliveryRider) {
+                    this.loadTodayOrders();
+                    if (b.id) {
+                        this.customerChatService.joinBranchChat(b.id);
+                        this.loadUnreadChatCount();
+                    }
                 }
             }
         });
@@ -129,10 +135,11 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             .catch(() => undefined)
             .finally(() => this.loadUserInfo());
 
-        this.loadTodayOrders();
-        this.orderPollTimer = setInterval(() => this.loadTodayOrders(), 30000);
-
-        this.initChatListener();
+        if (!this.isDeliveryRider) {
+            this.loadTodayOrders();
+            this.orderPollTimer = setInterval(() => this.loadTodayOrders(), 30000);
+            this.initChatListener();
+        }
     }
 
     ngOnDestroy(): void {
@@ -154,6 +161,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     private initChatListener(): void {
+        if (this.isDeliveryRider) return;
         if (this.currentBranch?.id) {
             this.customerChatService.joinBranchChat(this.currentBranch.id);
             this.loadUnreadChatCount();
@@ -198,7 +206,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     async loadUnreadChatCount(): Promise<void> {
-        if (!this.currentBranch?.id) return;
+        if (this.isDeliveryRider || !this.currentBranch?.id) return;
         try {
             this.unreadChatCount = await this.customerChatService.getBranchUnreadCount(this.currentBranch.id);
         } catch {}
@@ -276,6 +284,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     async loadTodayOrders(): Promise<void> {
+        if (this.isDeliveryRider) return;
         try {
             this.loadingOrders = true;
             const res = await this.customerOrderService.getAll({ maxResultCount: 100 });
@@ -335,6 +344,13 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                 if (sessionInfo?.user) {
                     this.authService.setUserInfo(sessionInfo.user);
                     this.setUserInfo(sessionInfo.user);
+
+                    if (this.authService.isDeliveryRider()) {
+                        const currentUrl = this.router.url || '';
+                        if (!currentUrl.startsWith('/rider') && !currentUrl.startsWith('/auth')) {
+                            this.router.navigateByUrl('/rider/dashboard');
+                        }
+                    }
                 }
 
                 if (this.isHostAdmin) {
@@ -484,6 +500,8 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                       firstRole.slice(1).toLowerCase()
                     : 'User';
             }
+        } else if (user.isDeliveryRider || (user.designation && user.designation.toLowerCase().includes('rider'))) {
+            this.userRole = 'Delivery Rider';
         } else {
             this.userRole = 'User';
         }

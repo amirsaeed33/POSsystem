@@ -1,0 +1,29 @@
+.rider-history-container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0.5rem;
+}
+
+.badge-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    text-transform: uppercase;
+
+    &.delivered {
+        background-color: #dcfce7;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+}
+
+.history-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+    }
+}

@@ -1,4 +1,4 @@
-﻿using Abp.Application.Services.Dto;
+using Abp.Application.Services.Dto;
 using Abp.AutoMapper;
 using SmartPos.Authorization.Users;
 
@@ -20,5 +20,13 @@ namespace SmartPos.Sessions.Dto
         public int? BranchId { get; set; }
 
         public string BranchName { get; set; }
+
+        public int? BranchBusinessType { get; set; }
+
+        public bool IsDeliveryRider { get; set; }
+
+        public int? RiderStaffId { get; set; }
+
+        public string Designation { get; set; }
     }
 }

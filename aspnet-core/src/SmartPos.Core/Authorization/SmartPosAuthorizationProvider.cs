@@ -141,6 +141,10 @@ namespace SmartPos.Authorization
 
             var notificationSettings = context.CreatePermission(PermissionNames.Pages_NotificationSettings, L("NotificationSettings"));
             notificationSettings.CreateChildPermission(PermissionNames.Pages_NotificationSettings_Edit, L("EditNotificationSettings"));
+
+            var rider = context.CreatePermission(PermissionNames.Pages_Rider, L("RiderPortal"));
+            rider.CreateChildPermission(PermissionNames.Pages_Rider_Dashboard, L("RiderDashboard"));
+            rider.CreateChildPermission(PermissionNames.Pages_Rider_OrderHistory, L("RiderOrderHistory"));
         }
 
         private static ILocalizableString L(string name)

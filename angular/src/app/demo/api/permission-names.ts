@@ -127,4 +127,8 @@ export const PermissionNames = {
 
     NotificationSettings: 'Pages.NotificationSettings',
     NotificationSettingsEdit: 'Pages.NotificationSettings.Edit',
+
+    Rider: 'Pages.Rider',
+    RiderDashboard: 'Pages.Rider.Dashboard',
+    RiderOrderHistory: 'Pages.Rider.OrderHistory',
 } as const;

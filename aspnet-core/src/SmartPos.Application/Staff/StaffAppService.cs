@@ -12,9 +12,11 @@ using Abp.UI;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
+using SmartPos.Authorization.Roles;
 using SmartPos.Branches;
 using SmartPos.Authorization.Users;
 using SmartPos.Staffs.Dto;
+using RoleManager = SmartPos.Authorization.Roles.RoleManager;
 
 namespace SmartPos.Staffs
 {
@@ -23,24 +25,30 @@ namespace SmartPos.Staffs
     {
         private readonly StaffHistoryWriter _staffHistoryWriter;
         private readonly UserManager _userManager;
+        private readonly RoleManager _roleManager;
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly IBranchContext _branchContext;
         private readonly IRepository<User, long> _userRepository;
+        private readonly IRepository<Branch> _branchRepository;
 
         public StaffAppService(
             IRepository<Staff> repository,
             StaffHistoryWriter staffHistoryWriter,
             UserManager userManager,
+            RoleManager roleManager,
             IPasswordHasher<User> passwordHasher,
             IBranchContext branchContext,
-            IRepository<User, long> userRepository)
+            IRepository<User, long> userRepository,
+            IRepository<Branch> branchRepository)
             : base(repository)
         {
             _staffHistoryWriter = staffHistoryWriter;
             _userManager = userManager;
+            _roleManager = roleManager;
             _passwordHasher = passwordHasher;
             _branchContext = branchContext;
             _userRepository = userRepository;
+            _branchRepository = branchRepository;
         }
 
         public override async Task<StaffDto> CreateAsync(CreateStaffDto input)
@@ -184,6 +192,34 @@ namespace SmartPos.Staffs
 
             await _userManager.InitializeOptionsAsync(AbpSession.TenantId);
             CheckErrors(await _userManager.CreateAsync(user, password));
+
+            var isRider = staff.Designation != null &&
+                (staff.Designation.ToLower().Contains("rider") || staff.Designation.ToLower().Contains("delivery"));
+
+            if (isRider && staff.BranchId.HasValue)
+            {
+                var branch = await _branchRepository.FirstOrDefaultAsync(staff.BranchId.Value);
+                if (branch != null && branch.BusinessType == BusinessType.Restaurant)
+                {
+                    var roleName = StaticRoleNames.Tenants.DeliveryRider;
+                    var role = await _roleManager.Roles.FirstOrDefaultAsync(r => r.TenantId == user.TenantId && r.Name == roleName);
+                    if (role == null)
+                    {
+                        role = new SmartPos.Authorization.Roles.Role(user.TenantId, roleName, roleName)
+                        {
+                            IsStatic = false
+                        };
+                        CheckErrors(await _roleManager.CreateAsync(role));
+                        await _roleManager.SetGrantedPermissionsAsync(role, new[]
+                        {
+                            new Permission(PermissionNames.Pages_Rider),
+                            new Permission(PermissionNames.Pages_Rider_Dashboard),
+                            new Permission(PermissionNames.Pages_Rider_OrderHistory)
+                        });
+                    }
+                    CheckErrors(await _userManager.AddToRoleAsync(user, role.Name));
+                }
+            }
 
             staff.UserId = user.Id;
             staff.Email = email;

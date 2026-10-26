@@ -4,6 +4,7 @@ import { filter, Subscription } from 'rxjs';
 import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
+import { AuthService } from 'src/app/demo/service/auth.service';
 import { TabCloseEvent } from './api/tabcloseevent';
 import { MenuService } from './app.menu.service';
 import { AppSidebarComponent } from './app.sidebar.component';
@@ -34,7 +35,7 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
     showBranchLockOverlay = false;
     lockedBranch: BranchDto | null = null;
     readonly BranchStatuses = BranchStatuses;
-    private readonly unlockedRoutes = ['/branches'];
+    private readonly unlockedRoutes = ['/branches', '/rider'];
 
     @ViewChild(AppSidebarComponent) appSidebar!: AppSidebarComponent;
 
@@ -46,7 +47,8 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
         public renderer: Renderer2,
         public router: Router,
         private branchContext: BranchContextService,
-        private tenantContext: TenantContextService
+        private tenantContext: TenantContextService,
+        private authService: AuthService
     ) {
         this.overlayMenuOpenSubscription = this.layoutService.overlayOpen$.subscribe(() => {
             if (!this.menuOutsideClickListener) {
@@ -110,6 +112,11 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
     }
 
     private refreshBranchLock(branch: BranchDto | null): void {
+        if (this.authService.isDeliveryRider()) {
+            this.branchOpsLocked = false;
+            this.showBranchLockOverlay = false;
+            return;
+        }
         const isTenant = this.tenantContext.getTenantId() != null;
         this.lockedBranch = branch;
         this.branchOpsLocked =

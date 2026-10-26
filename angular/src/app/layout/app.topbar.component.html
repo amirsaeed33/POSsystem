@@ -1,6 +1,6 @@
 <div class="layout-topbar">
     <div class="topbar-start">
-        <a class="app-logo" routerLink="/" [title]="branchDisplayName">
+        <a class="app-logo" [routerLink]="isDeliveryRider ? '/rider/dashboard' : '/'" [title]="branchDisplayName">
             <img alt="app logo" [src]="logo" (error)="onLogoError()" style="max-height: 2.75rem; max-width: 3.5rem; width: auto; object-fit: contain; border-radius: 4px;">
             <span class="app-name" style="font-size: 1.5rem; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ branchDisplayName }}</span>
         </a>
@@ -11,9 +11,9 @@
 
         <a
             class="p-link hidden sm:flex align-items-center px-3 py-2 border-round hover:surface-hover font-medium white-space-nowrap"
-            routerLink="/"
+            [routerLink]="isDeliveryRider ? '/rider/dashboard' : '/'"
         >
-            Home
+            {{ isDeliveryRider ? 'Dashboard' : 'Home' }}
         </a>
 
         <ul class="topbar-menu">
@@ -107,6 +107,7 @@
     <div class="topbar-end flex align-items-center gap-2">
         <!-- Customer Storefront Launch Button -->
         <a
+            *ngIf="!isDeliveryRider"
             class="p-button p-button-sm p-button-outlined p-button-rounded flex align-items-center gap-2 text-sm font-semibold text-primary border-primary hover:surface-100 no-underline px-3 py-2 cursor-pointer"
             [routerLink]="['/online-order']"
             [queryParams]="storefrontQueryParams"
@@ -118,7 +119,7 @@
         </a>
 
         <!-- Online Orders Bell Notification -->
-        <div class="topbar-notifications relative">
+        <div class="topbar-notifications relative" *ngIf="!isDeliveryRider">
             <button
                 class="p-link flex align-items-center justify-content-center w-2rem h-2rem md:w-3rem md:h-3rem border-circle hover:surface-hover relative transition-colors"
                 type="button"
@@ -199,7 +200,7 @@
         </div>
 
         <!-- Customer Messages & Live Inquiries Notification -->
-        <div class="topbar-notifications relative">
+        <div class="topbar-notifications relative" *ngIf="!isDeliveryRider">
             <button
                 class="p-link flex align-items-center justify-content-center w-2rem h-2rem md:w-3rem md:h-3rem border-circle hover:surface-hover relative transition-colors"
                 type="button"

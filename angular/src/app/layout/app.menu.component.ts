@@ -5,6 +5,8 @@ import { PermissionService } from '../demo/service/permission.service';
 import { LayoutService } from './service/app.layout.service';
 import { BranchContextService } from '../demo/service/branch-context.service';
 
+import { AuthService } from '../demo/service/auth.service';
+
 @Component({
     selector: 'app-menu',
     templateUrl: './app.menu.component.html'
@@ -13,11 +15,13 @@ export class AppMenuComponent implements OnInit, OnDestroy {
 
     model: any[] = [];
     private branchSub?: Subscription;
+    private userSub?: Subscription;
 
     constructor(
         public layoutService: LayoutService,
         private permissionService: PermissionService,
-        private branchContext: BranchContextService
+        private branchContext: BranchContextService,
+        private authService: AuthService
     ) { }
 
     async ngOnInit() {
@@ -31,13 +35,39 @@ export class AppMenuComponent implements OnInit, OnDestroy {
         this.branchSub = this.branchContext.currentBranch$.subscribe(() => {
             this.buildMenu();
         });
+        this.userSub = this.authService.currentUser$.subscribe(() => {
+            this.buildMenu();
+        });
     }
 
     ngOnDestroy(): void {
         this.branchSub?.unsubscribe();
+        this.userSub?.unsubscribe();
     }
 
     private buildMenu(): void {
+        if (this.authService.isDeliveryRider()) {
+            this.model = [
+                {
+                    label: 'Delivery Portal',
+                    icon: 'pi pi-compass',
+                    items: [
+                        {
+                            label: 'My Dashboard',
+                            icon: 'pi pi-home',
+                            routerLink: ['/rider/dashboard'],
+                        },
+                        {
+                            label: 'Order History',
+                            icon: 'pi pi-history',
+                            routerLink: ['/rider/history'],
+                        },
+                    ]
+                }
+            ];
+            return;
+        }
+
         const currentBranch = this.branchContext.getCurrentBranch();
         const currentBranchId = currentBranch?.id ?? this.branchContext.getBranchId();
         const isRestaurant = currentBranch?.businessType === 2;

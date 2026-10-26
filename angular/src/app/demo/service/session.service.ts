@@ -44,6 +44,9 @@ export class SessionService {
                             if (userWithRoles) {
                                 if (userWithRoles.roleNames && userWithRoles.roleNames.length > 0) {
                                     currentUser.roleNames = userWithRoles.roleNames;
+                                    if (userWithRoles.roleNames.some((r: string) => r && r.toLowerCase().includes('rider'))) {
+                                        currentUser.isDeliveryRider = true;
+                                    }
                                 }
                                 if (userWithRoles.profilePictureUrl) {
                                     currentUser.profilePictureUrl = userWithRoles.profilePictureUrl;
@@ -81,6 +84,11 @@ export class SessionService {
         }
 
         const branchId = rawUser.branchId ?? rawUser.BranchId;
+        const branchBusinessType = rawUser.branchBusinessType ?? rawUser.BranchBusinessType;
+        const isDeliveryRider = rawUser.isDeliveryRider ?? rawUser.IsDeliveryRider ?? false;
+        const riderStaffId = rawUser.riderStaffId ?? rawUser.RiderStaffId ?? null;
+        const designation = rawUser.designation ?? rawUser.Designation ?? null;
+
         return {
             id: rawUser.id ?? rawUser.Id,
             name: rawUser.name ?? rawUser.Name,
@@ -91,6 +99,10 @@ export class SessionService {
             profilePictureUrl: this.resolveProfilePictureUrl(rawUser) || undefined,
             branchId: branchId != null ? Number(branchId) : null,
             branchName: rawUser.branchName ?? rawUser.BranchName,
+            branchBusinessType: branchBusinessType != null ? Number(branchBusinessType) : null,
+            isDeliveryRider: !!isDeliveryRider,
+            riderStaffId: riderStaffId != null ? Number(riderStaffId) : null,
+            designation: designation || undefined,
         };
     }
 

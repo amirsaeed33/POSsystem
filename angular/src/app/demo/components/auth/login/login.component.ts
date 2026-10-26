@@ -464,6 +464,16 @@ export class LoginComponent implements OnInit, OnDestroy {
 			}
 		}
 
+		if (sessionInfo?.user?.isDeliveryRider || this.authService.isDeliveryRider()) {
+			this.messageService.add({
+				severity: 'success',
+				summary: 'Welcome',
+				detail: 'Welcome to Delivery Rider Portal',
+			});
+			this.router.navigateByUrl('/rider/dashboard');
+			return;
+		}
+
 		this.messageService.add({
 			severity: 'success',
 			summary: 'Success',

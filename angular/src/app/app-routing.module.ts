@@ -80,6 +80,20 @@ const routes: Routes = [
             { path: 'tenants', data: { breadcrumb: 'Tenants', permission: PermissionNames.Tenants }, loadChildren: () => import('./demo/components/tenants/tenants.module').then(m => m.TenantsModule) },
             { path: 'reports', data: { breadcrumb: 'Reports', permission: PermissionNames.Reports }, loadChildren: () => import('./demo/components/reports/reports.module').then(m => m.ReportsModule) },
             { path: 'profile', data: { breadcrumb: 'User Management' }, loadChildren: () => import('./demo/components/profile/profile.module').then(m => m.ProfileModule) },
+            {
+                path: 'rider',
+                data: {
+                    breadcrumb: 'Rider Portal',
+                    anyPermission: [
+                        PermissionNames.Rider,
+                        PermissionNames.RiderDashboard,
+                    ],
+                },
+                loadChildren: () =>
+                    import('./demo/components/rider/rider.module').then(
+                        (m) => m.RiderModule
+                    ),
+            },
         ]
     },
     { path: 'auth', data: { breadcrumb: 'Auth' }, loadChildren: () => import('./demo/components/auth/auth.module').then(m => m.AuthModule) },
