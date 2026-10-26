@@ -159,6 +159,11 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     async initChat(): Promise<void> {
         this.loading = true;
         try {
+            // Ensure store clients are in the branch group for notifications + cross-session messages
+            if (this.mode === 'store' && this.branchId && this.branchId > 0) {
+                await this.chatService.joinBranchChat(this.branchId);
+            }
+
             if (this.orderNo) {
                 const cleanNo = this.orderNo.trim();
                 await this.chatService.joinOrderChat(cleanNo);
@@ -166,7 +171,13 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
                 await this.markAsRead();
             } else if (this.effectiveSessionId) {
                 await this.chatService.joinSessionChat(this.effectiveSessionId);
-                this.messages = await this.chatService.getMessagesBySession(this.effectiveSessionId);
+                if (this.branchId && this.branchId > 0) {
+                    await this.chatService.joinBranchChat(this.branchId);
+                }
+                this.messages = await this.chatService.getMessagesBySession(
+                    this.effectiveSessionId,
+                    this.branchId
+                );
                 await this.markAsRead();
             }
             this.shouldScrollToBottom = true;
@@ -193,7 +204,7 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
 
             const input: SendCustomerChatMessageInput = {
                 orderNo: this.orderNo ? this.orderNo.trim().toUpperCase() : undefined,
-                branchId: this.branchId,
+                branchId: this.branchId && this.branchId > 0 ? this.branchId : 0,
                 sessionId: !this.orderNo ? this.effectiveSessionId : undefined,
                 senderName: senderName,
                 customerMobile: this.customerMobile,

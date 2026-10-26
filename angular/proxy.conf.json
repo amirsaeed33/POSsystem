@@ -36,6 +36,13 @@
     "secure": false,
     "changeOrigin": true
   },
+  "/signalr-order-chat": {
+    "target": "https://localhost:44311",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true,
+    "logLevel": "warn"
+  },
   "/signalr": {
     "target": "https://localhost:44311",
     "secure": false,

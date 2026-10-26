@@ -113,6 +113,18 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         return this.currentBranch?.name || 'Select location';
     }
 
+    /** First few letters of the shop/branch name for compact mobile topbar. */
+    get locationLabelShort(): string {
+        const name = (this.currentBranch?.name || '').trim();
+        if (!name) {
+            return 'Shop';
+        }
+        if (name.length <= 8) {
+            return name;
+        }
+        return name.substring(0, 8).trimEnd() + '…';
+    }
+
     ngOnInit(): void {
         this.currentBranch = this.branchContext.getCurrentBranch();
         this.branchLogoFailed = false;

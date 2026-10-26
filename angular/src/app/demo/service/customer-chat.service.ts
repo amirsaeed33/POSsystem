@@ -4,11 +4,11 @@ import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } fro
 import { BehaviorSubject, Observable, Subject, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
-    ChatMessageSenderType,
     CustomerChatMessageDto,
     CustomerOrderConversationDto,
     SendCustomerChatMessageInput
 } from '../api/customer-chat';
+import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class CustomerChatService implements OnDestroy {
@@ -35,8 +35,12 @@ export class CustomerChatService implements OnDestroy {
 
     private currentJoinedOrderNo?: string;
     private currentJoinedBranchId?: number;
+    private currentJoinedSessionId?: string;
 
-    constructor(private http: HttpClient) {}
+    constructor(
+        private http: HttpClient,
+        private authService: AuthService
+    ) {}
 
     public getSessionId(): string {
         let sid = localStorage.getItem('pos_guest_chat_session');
@@ -59,36 +63,28 @@ export class CustomerChatService implements OnDestroy {
 
         this.connectionPromise = (async () => {
             try {
+                if (this.hubConnection) {
+                    try {
+                        await this.hubConnection.stop();
+                    } catch {
+                        /* ignore */
+                    }
+                    this.hubConnection = undefined;
+                }
+
                 this.hubConnection = new HubConnectionBuilder()
-                    .withUrl(this.hubUrl)
+                    .withUrl(this.hubUrl, {
+                        accessTokenFactory: () => this.authService.getAccessToken() || ''
+                    })
                     .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
                     .configureLogging(LogLevel.Warning)
                     .build();
 
-                this.hubConnection.on('ReceiveMessage', (message: CustomerChatMessageDto) => {
-                    this.messageReceivedSubject.next(message);
-                });
+                this.registerHubHandlers(this.hubConnection);
 
-                this.hubConnection.on('OrderMessageNotification', (message: CustomerChatMessageDto) => {
-                    this.notificationReceivedSubject.next(message);
-                });
-
-                this.hubConnection.on('NewOrderReceived', (order: any) => {
-                    this.newOrderReceivedSubject.next(order);
-                });
-
-                this.hubConnection.on('OrderStatusChanged', (order: any) => {
-                    this.orderStatusChangedSubject.next(order);
-                });
-
-                this.hubConnection.onreconnected(() => {
+                this.hubConnection.onreconnected(async () => {
                     this.isConnectedSubject.next(true);
-                    if (this.currentJoinedOrderNo) {
-                        this.joinOrderChat(this.currentJoinedOrderNo);
-                    }
-                    if (this.currentJoinedBranchId) {
-                        this.joinBranchChat(this.currentJoinedBranchId);
-                    }
+                    await this.rejoinGroups();
                 });
 
                 this.hubConnection.onclose(() => {
@@ -97,13 +93,7 @@ export class CustomerChatService implements OnDestroy {
 
                 await this.hubConnection.start();
                 this.isConnectedSubject.next(true);
-
-                if (this.currentJoinedOrderNo) {
-                    await this.hubConnection.invoke('JoinOrderChat', this.currentJoinedOrderNo);
-                }
-                if (this.currentJoinedBranchId) {
-                    await this.hubConnection.invoke('JoinBranchChat', this.currentJoinedBranchId);
-                }
+                await this.rejoinGroups();
             } catch (err) {
                 console.warn('SignalR chat connection failed, continuing with HTTP REST fallback:', err);
                 this.isConnectedSubject.next(false);
@@ -113,6 +103,43 @@ export class CustomerChatService implements OnDestroy {
         })();
 
         return this.connectionPromise;
+    }
+
+    private registerHubHandlers(connection: HubConnection): void {
+        connection.on('ReceiveMessage', (message: CustomerChatMessageDto) => {
+            this.messageReceivedSubject.next(message);
+        });
+
+        connection.on('OrderMessageNotification', (message: CustomerChatMessageDto) => {
+            this.notificationReceivedSubject.next(message);
+        });
+
+        connection.on('NewOrderReceived', (order: any) => {
+            this.newOrderReceivedSubject.next(order);
+        });
+
+        connection.on('OrderStatusChanged', (order: any) => {
+            this.orderStatusChangedSubject.next(order);
+        });
+    }
+
+    private async rejoinGroups(): Promise<void> {
+        if (!this.hubConnection || this.hubConnection.state !== HubConnectionState.Connected) {
+            return;
+        }
+        try {
+            if (this.currentJoinedOrderNo) {
+                await this.hubConnection.invoke('JoinOrderChat', this.currentJoinedOrderNo);
+            }
+            if (this.currentJoinedSessionId) {
+                await this.hubConnection.invoke('JoinSessionChat', this.currentJoinedSessionId);
+            }
+            if (this.currentJoinedBranchId) {
+                await this.hubConnection.invoke('JoinBranchChat', this.currentJoinedBranchId);
+            }
+        } catch (err) {
+            console.warn('Failed to rejoin SignalR chat groups:', err);
+        }
     }
 
     public async joinOrderChat(orderNo: string): Promise<void> {
@@ -157,10 +184,11 @@ export class CustomerChatService implements OnDestroy {
 
     public async joinSessionChat(sessionId: string): Promise<void> {
         if (!sessionId) return;
+        this.currentJoinedSessionId = sessionId.trim();
         await this.startConnection();
         if (this.hubConnection && this.hubConnection.state === HubConnectionState.Connected) {
             try {
-                await this.hubConnection.invoke('JoinSessionChat', sessionId.trim());
+                await this.hubConnection.invoke('JoinSessionChat', this.currentJoinedSessionId);
             } catch (err) {
                 console.warn('Failed to join session chat group:', err);
             }
@@ -177,11 +205,13 @@ export class CustomerChatService implements OnDestroy {
         return Array.isArray(result) ? result : [];
     }
 
-    public async getMessagesBySession(sessionId: string): Promise<CustomerChatMessageDto[]> {
+    public async getMessagesBySession(sessionId: string, branchId?: number): Promise<CustomerChatMessageDto[]> {
+        const params: any = { sessionId };
+        if (branchId && branchId > 0) {
+            params.branchId = branchId;
+        }
         const res: any = await firstValueFrom(
-            this.http.get<any>(`${this.apiUrl}/GetMessagesBySession`, {
-                params: { sessionId }
-            })
+            this.http.get<any>(`${this.apiUrl}/GetMessagesBySession`, { params })
         );
         const result = res?.result !== undefined ? res.result : res;
         return Array.isArray(result) ? result : [];
@@ -201,7 +231,7 @@ export class CustomerChatService implements OnDestroy {
             }
         }
 
-        // HTTP REST fallback
+        // HTTP REST fallback — still broadcasts via server-side SignalR event
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/SendMessage`, input)
         );
@@ -212,7 +242,7 @@ export class CustomerChatService implements OnDestroy {
     public async markOrderMessagesAsRead(orderNo: string, isStore: boolean = true): Promise<void> {
         await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/MarkOrderMessagesAsRead`, null, {
-                params: { orderNo, isStore }
+                params: { orderNo, isCustomer: !isStore }
             })
         );
     }

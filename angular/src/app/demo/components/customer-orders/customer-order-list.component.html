@@ -187,14 +187,26 @@
                         ></button>
                     </div>
                     <div *ngIf="!order.riderName">
-                        <span
+                        <button
                             *ngIf="order.status === 1 || order.status === 3"
-                            class="text-xs px-2 py-0.5 border-round font-medium bg-yellow-100 text-yellow-800 cursor-pointer hover:bg-yellow-200 transition-colors"
+                            type="button"
+                            class="inline-flex align-items-center justify-content-center border-circle cursor-pointer border-none text-yellow-800 bg-yellow-100 hover:bg-yellow-200 transition-colors transition-duration-150"
+                            style="width: 2.25rem; height: 2.25rem; padding: 0;"
                             (click)="openAssignRiderDialog(order)"
-                            title="Click to assign delivery rider"
+                            pTooltip="Assign Rider"
+                            tooltipPosition="top"
+                            aria-label="Assign Rider"
                         >
-                            <i class="pi pi-plus mr-1"></i>Assign Rider
-                        </span>
+                            <!-- Delivery rider on bike -->
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+                                <circle cx="5.5" cy="17.5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                                <circle cx="18.5" cy="17.5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                                <circle cx="12" cy="5.2" r="1.7"/>
+                                <path d="M10.8 7.2c.4 1.4 1.2 2.2 2.4 2.6l1.6 3.2h2.2l1.1 2.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M8.2 17.5h4.2l1.4-2.8H10l-.8 1.4H7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M11.2 9.6H8.6L7 12.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
                         <span *ngIf="order.status !== 1 && order.status !== 3" class="text-400 text-xs">—</span>
                     </div>
                 </td>

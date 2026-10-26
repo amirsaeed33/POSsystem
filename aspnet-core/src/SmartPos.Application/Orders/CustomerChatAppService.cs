@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
+using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Domain.Uow;
+using Abp.Events.Bus;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Orders.Dto;
@@ -15,15 +17,19 @@ namespace SmartPos.Orders
     {
         private readonly IRepository<CustomerChatMessage, long> _chatMessageRepository;
         private readonly IRepository<CustomerOrder> _orderRepository;
+        private readonly IEventBus _eventBus;
 
         public CustomerChatAppService(
             IRepository<CustomerChatMessage, long> chatMessageRepository,
-            IRepository<CustomerOrder> orderRepository)
+            IRepository<CustomerOrder> orderRepository,
+            IEventBus eventBus)
         {
             _chatMessageRepository = chatMessageRepository;
             _orderRepository = orderRepository;
+            _eventBus = eventBus;
         }
 
+        [AbpAllowAnonymous]
         public async Task<List<CustomerChatMessageDto>> GetMessagesByOrderNoAsync(string orderNo)
         {
             if (string.IsNullOrWhiteSpace(orderNo))
@@ -36,6 +42,7 @@ namespace SmartPos.Orders
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
             {
                 var messages = await _chatMessageRepository.GetAll()
+                    .AsNoTracking()
                     .Where(x => x.OrderNo == cleanOrderNo)
                     .OrderBy(x => x.CreationTime)
                     .Take(100)
@@ -60,6 +67,7 @@ namespace SmartPos.Orders
             }
         }
 
+        [AbpAllowAnonymous]
         public async Task<List<CustomerChatMessageDto>> GetMessagesBySessionAsync(string sessionId, int branchId)
         {
             if (string.IsNullOrWhiteSpace(sessionId))
@@ -72,6 +80,7 @@ namespace SmartPos.Orders
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
             {
                 var query = _chatMessageRepository.GetAll()
+                    .AsNoTracking()
                     .Where(x => x.SessionId == cleanSessionId);
 
                 if (branchId > 0)
@@ -103,6 +112,7 @@ namespace SmartPos.Orders
             }
         }
 
+        [AbpAllowAnonymous]
         public async Task<CustomerChatMessageDto> SendMessageAsync(SendCustomerChatMessageInput input)
         {
             if (input == null || string.IsNullOrWhiteSpace(input.Message))
@@ -152,7 +162,7 @@ namespace SmartPos.Orders
             await _chatMessageRepository.InsertAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
 
-            return new CustomerChatMessageDto
+            var dto = new CustomerChatMessageDto
             {
                 Id = entity.Id,
                 BranchId = entity.BranchId,
@@ -167,11 +177,30 @@ namespace SmartPos.Orders
                 IsReadByStore = entity.IsReadByStore,
                 CreationTime = entity.CreationTime
             };
+
+            // Push to SignalR groups (order / session / branch) so other clients update live.
+            await _eventBus.TriggerAsync(new CustomerChatMessageSentEventData
+            {
+                Id = dto.Id,
+                BranchId = dto.BranchId,
+                OrderId = dto.OrderId,
+                OrderNo = dto.OrderNo,
+                SessionId = dto.SessionId,
+                SenderName = dto.SenderName,
+                CustomerMobile = dto.CustomerMobile,
+                SenderType = dto.SenderType,
+                Message = dto.Message,
+                IsReadByCustomer = dto.IsReadByCustomer,
+                IsReadByStore = dto.IsReadByStore,
+                CreationTime = dto.CreationTime
+            });
+
+            return dto;
         }
 
         public async Task<List<CustomerOrderConversationDto>> GetBranchConversationsAsync(int branchId)
         {
-            var query = _chatMessageRepository.GetAll();
+            var query = _chatMessageRepository.GetAll().AsNoTracking();
             if (branchId > 0)
             {
                 query = query.Where(x => x.BranchId == branchId);
@@ -221,6 +250,7 @@ namespace SmartPos.Orders
             return await query.CountAsync();
         }
 
+        [AbpAllowAnonymous]
         public async Task MarkOrderMessagesAsReadAsync(string orderNo, bool isCustomer)
         {
             if (string.IsNullOrWhiteSpace(orderNo)) return;
@@ -242,6 +272,7 @@ namespace SmartPos.Orders
             }
         }
 
+        [AbpAllowAnonymous]
         public async Task MarkSessionMessagesAsReadAsync(string sessionId, int branchId, bool isCustomer)
         {
             if (string.IsNullOrWhiteSpace(sessionId)) return;

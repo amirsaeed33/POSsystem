@@ -35,4 +35,23 @@ namespace SmartPos.Orders
             NewStatus = newStatus;
         }
     }
+
+    /// <summary>
+    /// Raised after a customer/store chat message is persisted so SignalR can push it live.
+    /// </summary>
+    public class CustomerChatMessageSentEventData : EventData
+    {
+        public long Id { get; set; }
+        public int BranchId { get; set; }
+        public int? OrderId { get; set; }
+        public string OrderNo { get; set; }
+        public string SessionId { get; set; }
+        public string SenderName { get; set; }
+        public string CustomerMobile { get; set; }
+        public ChatMessageSenderType SenderType { get; set; }
+        public string Message { get; set; }
+        public bool IsReadByCustomer { get; set; }
+        public bool IsReadByStore { get; set; }
+        public System.DateTime CreationTime { get; set; }
+    }
 }

@@ -2,7 +2,8 @@
     <div class="topbar-start">
         <a class="app-logo" [routerLink]="isDeliveryRider ? '/rider/dashboard' : '/'" [title]="branchDisplayName">
             <img alt="app logo" [src]="logo" (error)="onLogoError()" style="max-height: 2.75rem; max-width: 3.5rem; width: auto; object-fit: contain; border-radius: 4px;">
-            <span class="app-name" style="font-size: 1.5rem; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ branchDisplayName }}</span>
+            <!-- Full shop name on tablet/desktop; hidden on mobile to free topbar space -->
+            <span class="app-name hidden sm:inline" style="font-size: 1.5rem; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ branchDisplayName }}</span>
         </a>
 
         <button #menubutton class="topbar-menubutton p-link" type="button" (click)="onMenuButtonClick()">
@@ -52,7 +53,11 @@
             >
                 <i class="pi pi-map-marker text-xl"></i>
                 <span class="hidden sm:inline text-sm text-500 white-space-nowrap">Branch</span>
-                <span class="font-medium white-space-nowrap">
+                <!-- Mobile: short shop name; desktop: full name -->
+                <span class="font-medium white-space-nowrap sm:hidden" [title]="locationLabel">
+                    {{ locationLabelShort }}
+                </span>
+                <span class="font-medium white-space-nowrap hidden sm:inline">
                     {{ locationLabel }}
                 </span>
                 <span

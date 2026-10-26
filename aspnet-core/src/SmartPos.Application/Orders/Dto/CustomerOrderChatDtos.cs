@@ -32,7 +32,6 @@ namespace SmartPos.Orders.Dto
 
     public class SendCustomerChatMessageInput
     {
-        [Range(1, int.MaxValue)]
         public int BranchId { get; set; }
 
         public int? OrderId { get; set; }
