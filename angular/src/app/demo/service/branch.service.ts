@@ -84,6 +84,11 @@ export class BranchService {
             currencyFormat: input.currencyFormat || 'PKR',
             latitude: input.latitude != null ? Number(input.latitude) : null,
             longitude: input.longitude != null ? Number(input.longitude) : null,
+            attendanceAutoCheckInRadiusFeet:
+                input.attendanceAutoCheckInRadiusFeet != null &&
+                input.attendanceAutoCheckInRadiusFeet > 0
+                    ? Number(input.attendanceAutoCheckInRadiusFeet)
+                    : 200,
         };
 
         if (input.imageBase64) body.imageBase64 = input.imageBase64;
@@ -133,6 +138,11 @@ export class BranchService {
                 currencyFormat: input.currencyFormat || 'PKR',
                 latitude: input.latitude != null ? Number(input.latitude) : null,
                 longitude: input.longitude != null ? Number(input.longitude) : null,
+                attendanceAutoCheckInRadiusFeet:
+                    input.attendanceAutoCheckInRadiusFeet != null &&
+                    input.attendanceAutoCheckInRadiusFeet > 0
+                        ? Number(input.attendanceAutoCheckInRadiusFeet)
+                        : 200,
             })
         );
         return this.map(this.unwrap(res, 'Failed to update branch'));
@@ -259,6 +269,12 @@ export class BranchService {
             currencyFormat: item.currencyFormat ?? item.CurrencyFormat ?? 'PKR',
             latitude: item.latitude != null ? Number(item.latitude) : (item.Latitude != null ? Number(item.Latitude) : null),
             longitude: item.longitude != null ? Number(item.longitude) : (item.Longitude != null ? Number(item.Longitude) : null),
+            attendanceAutoCheckInRadiusFeet:
+                item.attendanceAutoCheckInRadiusFeet ??
+                item.AttendanceAutoCheckInRadiusFeet ??
+                item.attendanceAutoCheckInRadiusGaz ??
+                item.AttendanceAutoCheckInRadiusGaz ??
+                200,
         };
     }
 }

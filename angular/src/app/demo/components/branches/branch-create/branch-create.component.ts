@@ -256,6 +256,11 @@ export class BranchCreateComponent implements OnInit {
             hostCatalogItemIds: this.selectedHostItemIds,
             latitude: this.branch.latitude ?? null,
             longitude: this.branch.longitude ?? null,
+            attendanceAutoCheckInRadiusFeet:
+                this.branch.attendanceAutoCheckInRadiusFeet != null &&
+                this.branch.attendanceAutoCheckInRadiusFeet > 0
+                    ? this.branch.attendanceAutoCheckInRadiusFeet
+                    : 200,
         };
 
         this.saving = true;
@@ -383,6 +388,7 @@ export class BranchCreateComponent implements OnInit {
             serviceChargePercent: 0,
             latitude: null,
             longitude: null,
+            attendanceAutoCheckInRadiusFeet: 200,
         };
     }
 }

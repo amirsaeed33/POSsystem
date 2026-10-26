@@ -35,13 +35,18 @@ export class StaffHubComponent implements OnInit {
         }
 
         this.canStaff = this.permissionService.isGranted(PermissionNames.Staff);
-        this.canAttendance = false; // Hidden as per request
+        this.canAttendance = this.permissionService.isGranted(
+            PermissionNames.StaffAttendance
+        );
         this.canPayroll = this.permissionService.isGranted(
             PermissionNames.StaffPayroll
         );
 
         if (this.canStaff) {
             this.tabOrder.push('staff');
+        }
+        if (this.canAttendance) {
+            this.tabOrder.push('attendance');
         }
         if (this.canPayroll) {
             this.tabOrder.push('payroll');

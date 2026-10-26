@@ -42,6 +42,8 @@ export interface BranchDto {
     currencyFormat?: string;
     latitude?: number | null;
     longitude?: number | null;
+    /** Auto attendance check-in radius in feet. Default 200. */
+    attendanceAutoCheckInRadiusFeet?: number;
 }
 
 export interface CreateBranchDto {
@@ -66,6 +68,8 @@ export interface CreateBranchDto {
     currencyFormat?: string;
     latitude?: number | null;
     longitude?: number | null;
+    /** Auto attendance check-in radius in feet. Default 200. */
+    attendanceAutoCheckInRadiusFeet?: number;
 }
 
 export interface PagedBranchResultRequestDto {

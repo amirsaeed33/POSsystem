@@ -22,6 +22,8 @@ import { StaffService } from 'src/app/demo/service/staff.service';
 export class StaffAttendanceFormDialogComponent implements OnChanges {
     @Input() visible = false;
     @Input() attendanceId: number | null = null;
+    @Input() defaultStaffId: number | null = null;
+    @Input() defaultDate: string | null = null;
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
 
@@ -167,8 +169,8 @@ export class StaffAttendanceFormDialogComponent implements OnChanges {
         return {
             id: 0,
             branchId: 0,
-            staffId: null as any,
-            attendanceDate: this.toDateInputValue(),
+            staffId: (this.defaultStaffId as any) || (null as any),
+            attendanceDate: this.toDateInputValue(this.defaultDate),
             checkInTime: null,
             checkOutTime: null,
             status: AttendanceStatus.Present,

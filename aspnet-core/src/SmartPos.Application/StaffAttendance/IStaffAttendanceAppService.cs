@@ -1,4 +1,6 @@
+using System.Threading.Tasks;
 using Abp.Application.Services;
+using Abp.Application.Services.Dto;
 using SmartPos.StaffAttendances.Dto;
 
 namespace SmartPos.StaffAttendances
@@ -10,5 +12,7 @@ namespace SmartPos.StaffAttendances
         CreateStaffAttendanceDto,
         StaffAttendanceDto>
     {
+        Task<ListResultDto<DailyAttendanceSheetItemDto>> GetDailySheetAsync(
+            GetDailyAttendanceSheetInput input);
     }
 }

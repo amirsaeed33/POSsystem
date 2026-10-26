@@ -96,5 +96,18 @@ namespace SmartPos.Branches
 
         /// <summary>Optional GPS Longitude of this store / branch location.</summary>
         public virtual double? Longitude { get; set; }
+
+        /// <summary>
+        /// Radius in feet for waiter/rider auto attendance check-in on login.
+        /// Staff within this distance of the branch pin are marked Present automatically.
+        /// (DB column name remains AttendanceAutoCheckInRadiusGaz for compatibility.)
+        /// </summary>
+        [Column("AttendanceAutoCheckInRadiusGaz")]
+        public virtual int AttendanceAutoCheckInRadiusFeet { get; set; } = DefaultAttendanceAutoCheckInRadiusFeet;
+
+        public const int DefaultAttendanceAutoCheckInRadiusFeet = 200;
+
+        /// <summary>1 foot = 0.3048 meters.</summary>
+        public const double FeetToMeters = 0.3048;
     }
 }

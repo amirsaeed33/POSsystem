@@ -109,6 +109,9 @@ namespace SmartPos.Branches
             branch.ImagePath = BranchImageStore.SaveBase64Image(input.ImageBase64);
             branch.Latitude = input.Latitude;
             branch.Longitude = input.Longitude;
+            branch.AttendanceAutoCheckInRadiusFeet = input.AttendanceAutoCheckInRadiusFeet > 0
+                ? input.AttendanceAutoCheckInRadiusFeet
+                : Branch.DefaultAttendanceAutoCheckInRadiusFeet;
 
             await Repository.InsertAsync(branch);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -173,6 +176,9 @@ namespace SmartPos.Branches
             branch.CurrencyFormat = string.IsNullOrWhiteSpace(input.CurrencyFormat) ? "PKR" : input.CurrencyFormat.Trim();
             branch.Latitude = input.Latitude;
             branch.Longitude = input.Longitude;
+            branch.AttendanceAutoCheckInRadiusFeet = input.AttendanceAutoCheckInRadiusFeet > 0
+                ? input.AttendanceAutoCheckInRadiusFeet
+                : Branch.DefaultAttendanceAutoCheckInRadiusFeet;
 
             // Only host admin with approve permission may change StatusId.
             // Selecting Approved sends an activation email and keeps Pending.

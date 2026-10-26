@@ -255,6 +255,11 @@ export class BranchFormDialogComponent implements OnChanges {
             hostCatalogItemIds: this.selectedHostItemIds,
             latitude: this.branch.latitude != null ? Number(this.branch.latitude) : null,
             longitude: this.branch.longitude != null ? Number(this.branch.longitude) : null,
+            attendanceAutoCheckInRadiusFeet:
+                this.branch.attendanceAutoCheckInRadiusFeet != null &&
+                this.branch.attendanceAutoCheckInRadiusFeet > 0
+                    ? this.branch.attendanceAutoCheckInRadiusFeet
+                    : 200,
         };
 
         const selectedStatus = this.statusOptions.find(
@@ -272,6 +277,11 @@ export class BranchFormDialogComponent implements OnChanges {
                   ...createPayload,
                   latitude: this.branch.latitude != null ? Number(this.branch.latitude) : null,
                   longitude: this.branch.longitude != null ? Number(this.branch.longitude) : null,
+                  attendanceAutoCheckInRadiusFeet:
+                      this.branch.attendanceAutoCheckInRadiusFeet != null &&
+                      this.branch.attendanceAutoCheckInRadiusFeet > 0
+                          ? this.branch.attendanceAutoCheckInRadiusFeet
+                          : 200,
                   statusId: this.canEditStatus
                       ? this.branch.statusId
                       : undefined,
@@ -338,6 +348,7 @@ export class BranchFormDialogComponent implements OnChanges {
             serviceChargePercent: 0,
             latitude: null,
             longitude: null,
+            attendanceAutoCheckInRadiusFeet: 200,
         };
     }
 
@@ -434,6 +445,11 @@ export class BranchFormDialogComponent implements OnChanges {
                     ...branch,
                     latitude: branch.latitude ?? null,
                     longitude: branch.longitude ?? null,
+                    attendanceAutoCheckInRadiusFeet:
+                        branch.attendanceAutoCheckInRadiusFeet != null &&
+                        branch.attendanceAutoCheckInRadiusFeet > 0
+                            ? branch.attendanceAutoCheckInRadiusFeet
+                            : 200,
                     imageBase64: undefined
                 };
                 this.originalStatusId = branch.statusId || 0;

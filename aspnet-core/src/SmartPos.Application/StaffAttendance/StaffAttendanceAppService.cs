@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -60,6 +62,74 @@ namespace SmartPos.StaffAttendances
         protected override void CheckDeletePermission()
         {
             EnsureGranted(PermissionNames.Pages_StaffAttendance_Delete, PermissionNames.Pages_StaffAttendance);
+        }
+
+        /// <summary>
+        /// Active staff for the current branch with that day's attendance (if any).
+        /// </summary>
+        public async Task<ListResultDto<DailyAttendanceSheetItemDto>> GetDailySheetAsync(
+            GetDailyAttendanceSheetInput input)
+        {
+            CheckGetAllPermission();
+
+            var day = ParseDateOnly(input?.Date);
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(
+                _branchContext, _userRepository, AbpSession, PermissionChecker);
+
+            var staffQuery = _staffRepository.GetAll()
+                .AsNoTracking()
+                .Include(x => x.Branch)
+                .Where(x => x.IsActive)
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .WhereIf(input.StaffId.HasValue, x => x.Id == input.StaffId.Value)
+                .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
+                    x => x.Name.Contains(input.Keyword)
+                         || (x.Designation != null && x.Designation.Contains(input.Keyword))
+                         || (x.EmployeeCode != null && x.EmployeeCode.Contains(input.Keyword)));
+
+            var staffList = await staffQuery
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
+            var staffIds = staffList.Select(x => x.Id).ToList();
+            var dayEnd = day.AddDays(1);
+
+            var attendanceList = staffIds.Count == 0
+                ? new List<StaffAttendance>()
+                : await Repository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => staffIds.Contains(x.StaffId)
+                                && x.AttendanceDate >= day
+                                && x.AttendanceDate < dayEnd)
+                    .ToListAsync();
+
+            var attendanceByStaff = attendanceList
+                .GroupBy(x => x.StaffId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.Id).First());
+
+            var items = staffList.Select(staff =>
+            {
+                attendanceByStaff.TryGetValue(staff.Id, out var att);
+                return new DailyAttendanceSheetItemDto
+                {
+                    Id = att?.Id ?? 0,
+                    StaffId = staff.Id,
+                    StaffName = staff.Name,
+                    Designation = staff.Designation,
+                    BranchName = staff.Branch?.Name,
+                    BranchId = att?.BranchId ?? staff.BranchId,
+                    AttendanceDate = day,
+                    HasAttendance = att != null,
+                    AttendanceId = att?.Id,
+                    CheckInTime = att?.CheckInTime,
+                    CheckOutTime = att?.CheckOutTime,
+                    Status = att?.Status,
+                    WorkingHours = att?.WorkingHours,
+                    Remarks = att?.Remarks
+                };
+            }).ToList();
+
+            return new ListResultDto<DailyAttendanceSheetItemDto>(items);
         }
 
         public override async Task<StaffAttendanceDto> CreateAsync(CreateStaffAttendanceDto input)
@@ -124,17 +194,64 @@ namespace SmartPos.StaffAttendances
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(
                 _branchContext, _userRepository, AbpSession, PermissionChecker);
 
+            DateTime? fromDate = input.FromDate.HasValue
+                ? ToLocalDate(input.FromDate.Value)
+                : (DateTime?)null;
+            DateTime? toDateExclusive = input.ToDate.HasValue
+                ? ToLocalDate(input.ToDate.Value).AddDays(1)
+                : (DateTime?)null;
+
             return Repository.GetAll()
                 .Include(x => x.Staff)
                 .Include(x => x.Branch)
-                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .WhereIf(
+                    branchId.HasValue,
+                    x => x.BranchId == branchId.Value
+                         || (x.Staff != null && x.Staff.BranchId == branchId.Value))
                 .WhereIf(input.StaffId.HasValue, x => x.StaffId == input.StaffId.Value)
                 .WhereIf(input.Status.HasValue, x => x.Status == input.Status.Value)
-                .WhereIf(input.FromDate.HasValue, x => x.AttendanceDate >= input.FromDate.Value.Date)
-                .WhereIf(input.ToDate.HasValue, x => x.AttendanceDate <= input.ToDate.Value.Date)
+                .WhereIf(fromDate.HasValue, x => x.AttendanceDate >= fromDate.Value)
+                .WhereIf(toDateExclusive.HasValue, x => x.AttendanceDate < toDateExclusive.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.Staff != null && x.Staff.Name.Contains(input.Keyword))
                          || (x.Remarks != null && x.Remarks.Contains(input.Keyword)));
+        }
+
+        private static DateTime ToLocalDate(DateTime value)
+        {
+            if (value.Kind == DateTimeKind.Utc)
+            {
+                return value.ToLocalTime().Date;
+            }
+
+            return value.Date;
+        }
+
+        private static DateTime ParseDateOnly(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return DateTime.Today;
+            }
+
+            var raw = value.Trim();
+            if (raw.Length >= 10
+                && DateTime.TryParseExact(
+                    raw.Substring(0, 10),
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var dateOnly))
+            {
+                return dateOnly.Date;
+            }
+
+            if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed))
+            {
+                return ToLocalDate(parsed);
+            }
+
+            throw new UserFriendlyException("Invalid attendance date.");
         }
 
         protected override async Task<StaffAttendance> GetEntityByIdAsync(int id)

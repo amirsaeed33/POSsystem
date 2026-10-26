@@ -1,15 +1,16 @@
 <div [ngClass]="{ card: !embedded }">
     <p-table
         #dt
-        [value]="records"
+        [value]="rows"
         [paginator]="true"
         [rows]="10"
         [showCurrentPageReport]="true"
         responsiveLayout="scroll"
         [loading]="loading"
-        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} employees"
         [rowsPerPageOptions]="[10, 25, 50]"
-        [globalFilterFields]="['staffName', 'branchName', 'remarks']"
+        [globalFilterFields]="['staffName', 'branchName']"
+        [totalRecords]="totalRecords"
     >
         <ng-template pTemplate="caption">
             <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
@@ -20,19 +21,28 @@
                             pInputText
                             type="text"
                             class="w-full"
-                            placeholder="Search"
+                            placeholder="Search employee"
                             [(ngModel)]="keyword"
                             (keyup.enter)="onSearch()"
                             (input)="onGlobalFilter(dt, $event)"
                         />
                     </span>
+                    <input
+                        pInputText
+                        type="date"
+                        class="w-10rem"
+                        [(ngModel)]="attendanceDate"
+                        (change)="onSearch()"
+                        title="Attendance date"
+                    />
                     <p-dropdown
                         [options]="staffOptions"
                         [(ngModel)]="staffFilter"
                         optionLabel="name"
                         optionValue="id"
-                        placeholder="Staff"
+                        placeholder="All employees"
                         [showClear]="true"
+                        [filter]="true"
                         styleClass="w-12rem"
                         (onChange)="onSearch()"
                     ></p-dropdown>
@@ -45,20 +55,6 @@
                         styleClass="w-10rem"
                         (onChange)="onSearch()"
                     ></p-dropdown>
-                    <input
-                        pInputText
-                        type="date"
-                        class="w-10rem"
-                        [(ngModel)]="fromDate"
-                        (change)="onSearch()"
-                    />
-                    <input
-                        pInputText
-                        type="date"
-                        class="w-10rem"
-                        [(ngModel)]="toDate"
-                        (change)="onSearch()"
-                    />
                     <button
                         pButton
                         pRipple
@@ -89,50 +85,44 @@
                 <th pSortableColumn="staffName" class="white-space-nowrap">
                     Staff Name <p-sortIcon field="staffName"></p-sortIcon>
                 </th>
-                <th pSortableColumn="date" class="white-space-nowrap">
-                    Date <p-sortIcon field="date"></p-sortIcon>
-                </th>
-                <th pSortableColumn="status" class="white-space-nowrap">
-                    Status <p-sortIcon field="status"></p-sortIcon>
-                </th>
-                <th pSortableColumn="checkInTime" class="white-space-nowrap">
-                    Check In <p-sortIcon field="checkInTime"></p-sortIcon>
-                </th>
-                <th pSortableColumn="checkOutTime" class="white-space-nowrap">
-                    Check Out <p-sortIcon field="checkOutTime"></p-sortIcon>
-                </th>
+                <th class="white-space-nowrap">Date</th>
+                <th class="white-space-nowrap">Status</th>
+                <th class="white-space-nowrap">Check In</th>
+                <th class="white-space-nowrap">Check Out</th>
                 <th class="text-center" style="width: 4.5rem">Actions</th>
             </tr>
         </ng-template>
 
-        <ng-template pTemplate="body" let-att>
+        <ng-template pTemplate="body" let-row>
             <tr>
-                <td>{{ att.staffName || '—' }}</td>
-                <td>{{ att.date | date: formatService.dateFormat }}</td>
+                <td>{{ row.staffName || '—' }}</td>
+                <td>{{ formatDate(row.attendanceDate) }}</td>
                 <td>
                     <span
                         class="px-2 py-1 border-round font-bold text-xs"
                         [ngClass]="{
-                            'bg-green-100 text-green-700': att.status === 'Present',
-                            'bg-red-100 text-red-700': att.status === 'Absent',
-                            'bg-yellow-100 text-yellow-700': att.status === 'Leave' || att.status === 'Late'
+                            'bg-green-100 text-green-700': row.attendance && +row.attendance.status === 0,
+                            'bg-red-100 text-red-700': row.attendance && +row.attendance.status === 1,
+                            'bg-yellow-100 text-yellow-700': row.attendance && +row.attendance.status === 2,
+                            'bg-blue-100 text-blue-700': row.attendance && +row.attendance.status === 3,
+                            'bg-gray-100 text-gray-600': !row.attendance
                         }"
                     >
-                        {{ att.status }}
+                        {{ row.attendance ? statusLabel(row.attendance.status) : 'Not marked' }}
                     </span>
                 </td>
-                <td>{{ att.checkInTime || '—' }}</td>
-                <td>{{ att.checkOutTime || '—' }}</td>
+                <td>{{ formatTime(row.attendance?.checkInTime) }}</td>
+                <td>{{ formatTime(row.attendance?.checkOutTime) }}</td>
                 <td class="text-center">
-                    <app-row-actions [items]="getRowActions(att)"></app-row-actions>
+                    <app-row-actions [items]="getRowActions(row)"></app-row-actions>
                 </td>
             </tr>
         </ng-template>
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="9" class="text-center p-4">
-                    <div class="text-500">No attendance records found</div>
+                <td colspan="6" class="text-center p-4">
+                    <div class="text-500">No employees found</div>
                 </td>
             </tr>
         </ng-template>
@@ -141,6 +131,8 @@
     <app-staff-attendance-form-dialog
         [(visible)]="dialogVisible"
         [attendanceId]="editingId"
+        [defaultStaffId]="dialogStaffId"
+        [defaultDate]="dialogDate"
         (saved)="onDialogSaved()"
     ></app-staff-attendance-form-dialog>
 

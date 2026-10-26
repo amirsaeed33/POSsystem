@@ -241,7 +241,7 @@
             </div>
 
             <div class="formgrid grid mb-0">
-                <div class="field col-12 md:col-6 mb-0 flex flex-column gap-2">
+                <div class="field col-12 md:col-4 mb-0 flex flex-column gap-2">
                     <label for="editBranchLatitude" class="font-medium text-sm">Store Latitude</label>
                     <p-inputNumber
                         inputId="editBranchLatitude"
@@ -254,7 +254,7 @@
                         [disabled]="saving"
                     ></p-inputNumber>
                 </div>
-                <div class="field col-12 md:col-6 mb-0 flex flex-column gap-2">
+                <div class="field col-12 md:col-4 mb-0 flex flex-column gap-2">
                     <label for="editBranchLongitude" class="font-medium text-sm">Store Longitude</label>
                     <p-inputNumber
                         inputId="editBranchLongitude"
@@ -267,11 +267,25 @@
                         [disabled]="saving"
                     ></p-inputNumber>
                 </div>
+                <div class="field col-12 md:col-4 mb-0 flex flex-column gap-2">
+                    <label for="editAttendanceRadius" class="font-medium text-sm">Auto check-in radius (feet)</label>
+                    <p-inputNumber
+                        inputId="editAttendanceRadius"
+                        [(ngModel)]="branch.attendanceAutoCheckInRadiusFeet"
+                        [min]="1"
+                        [max]="100000"
+                        [useGrouping]="false"
+                        placeholder="200"
+                        styleClass="w-full"
+                        [disabled]="saving"
+                    ></p-inputNumber>
+                    <small class="text-500">Waiter/rider marked Present only if within this distance (default 200 feet).</small>
+                </div>
             </div>
 
             <div *ngIf="branch.latitude != null && branch.longitude != null" class="text-xs text-green-700 bg-green-50 border-round p-2 flex align-items-center gap-2">
                 <i class="pi pi-check-circle"></i>
-                <span>Store pin active: <strong>{{ branch.latitude | number: '1.4-6' }}, {{ branch.longitude | number: '1.4-6' }}</strong> &bull; Distance calculation enabled</span>
+                <span>Store pin active: <strong>{{ branch.latitude | number: '1.4-6' }}, {{ branch.longitude | number: '1.4-6' }}</strong> &bull; Auto check-in within <strong>{{ branch.attendanceAutoCheckInRadiusFeet || 200 }} feet</strong></span>
             </div>
         </div>
 

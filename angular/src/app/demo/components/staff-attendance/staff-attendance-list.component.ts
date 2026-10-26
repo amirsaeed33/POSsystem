@@ -3,15 +3,22 @@ import { Component, Input, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Table } from 'primeng/table';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
-import { StaffDto } from 'src/app/demo/api/staff';
 import {
     AttendanceStatus,
+    DailyAttendanceSheetItemDto,
     StaffAttendanceDto,
 } from 'src/app/demo/api/staff-attendance';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { StaffAttendanceService } from 'src/app/demo/service/staff-attendance.service';
-import { StaffService } from 'src/app/demo/service/staff.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
+
+export interface StaffAttendanceRow {
+    staffId: number;
+    staffName: string;
+    branchName?: string;
+    attendanceDate: string;
+    attendance?: StaffAttendanceDto | null;
+}
 
 @Component({
     selector: 'app-staff-attendance-list',
@@ -22,36 +29,19 @@ export class StaffAttendanceListComponent implements OnInit {
     /** When true, omit outer card wrapper (used inside Staff hub tabs). */
     @Input() embedded = false;
 
-    records: StaffAttendanceDto[] = [];
-    staffOptions: StaffDto[] = [];
+    rows: StaffAttendanceRow[] = [];
+    staffOptions: { id: number; name: string }[] = [];
     loading = false;
     totalRecords = 0;
     keyword = '';
     staffFilter: number | null = null;
     statusFilter: AttendanceStatus | null = null;
-    fromDate: string | null = null;
-    toDate: string | null = null;
+    attendanceDate: string = this.toDateInputValue();
 
-    getRowActions(att: StaffAttendanceDto): RowActionItem[] {
-        const actions: RowActionItem[] = [];
-        if (this.canEdit) {
-            actions.push({
-                label: 'Edit',
-                icon: 'pi pi-pencil',
-                color: 'blue',
-                action: () => this.openEditDialog(att)
-            });
-        }
-        if (this.canDelete) {
-            actions.push({
-                label: 'Delete',
-                icon: 'pi pi-trash',
-                color: 'red',
-                action: () => this.onDelete(att)
-            });
-        }
-        return actions;
-    }
+    dialogVisible = false;
+    editingId: number | null = null;
+    dialogStaffId: number | null = null;
+    dialogDate: string | null = null;
 
     statusOptions = [
         { label: 'All', value: null },
@@ -59,10 +49,8 @@ export class StaffAttendanceListComponent implements OnInit {
         { label: 'Absent', value: AttendanceStatus.Absent },
         { label: 'Leave', value: AttendanceStatus.Leave },
         { label: 'Half Day', value: AttendanceStatus.HalfDay },
+        { label: 'Not marked', value: -1 as any },
     ];
-
-    dialogVisible = false;
-    editingId: number | null = null;
 
     readonly canCreate =
         this.permissionService.isGranted(PermissionNames.StaffAttendanceCreate) ||
@@ -74,34 +62,86 @@ export class StaffAttendanceListComponent implements OnInit {
         this.permissionService.isGranted(PermissionNames.StaffAttendanceDelete) ||
         this.permissionService.isGranted(PermissionNames.StaffAttendance);
 
-    constructor(public formatService: AppFormatService, 
+    constructor(
+        public formatService: AppFormatService,
         private attendanceService: StaffAttendanceService,
-        private staffService: StaffService,
         private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
     ngOnInit(): void {
-        this.loadStaffOptions();
-        this.loadRecords();
+        this.loadAllEmployees();
     }
 
-    loadRecords(): void {
+    getRowActions(row: StaffAttendanceRow): RowActionItem[] {
+        const actions: RowActionItem[] = [];
+        const att = row.attendance;
+
+        if (!att) {
+            if (this.canCreate) {
+                actions.push({
+                    label: 'Mark',
+                    icon: 'pi pi-check',
+                    color: 'blue',
+                    action: () => this.openMarkDialog(row),
+                });
+            }
+            return actions;
+        }
+
+        if (this.canEdit) {
+            actions.push({
+                label: 'Edit',
+                icon: 'pi pi-pencil',
+                color: 'blue',
+                action: () => this.openEditDialog(att),
+            });
+        }
+        if (this.canDelete) {
+            actions.push({
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDelete(att),
+            });
+        }
+        return actions;
+    }
+
+    loadAllEmployees(): void {
         this.loading = true;
+        const date = this.attendanceDate || this.toDateInputValue();
+
         this.attendanceService
-            .getAll({
-                keyword: this.keyword?.trim() || undefined,
+            .getDailySheet({
+                date,
                 staffId: this.staffFilter,
-                status: this.statusFilter,
-                fromDate: this.fromDate || undefined,
-                toDate: this.toDate || undefined,
-                skipCount: 0,
-                maxResultCount: 1000,
+                keyword: this.keyword?.trim() || undefined,
             })
-            .then((result) => {
-                this.records = result.items;
-                this.totalRecords = result.totalCount;
+            .then((items) => {
+                this.staffOptions = (items || []).map((x) => ({
+                    id: x.staffId,
+                    name: x.staffName || `Staff #${x.staffId}`,
+                }));
+
+                let rows = (items || []).map((item) =>
+                    this.toRow(item, date)
+                );
+
+                if (this.statusFilter === (-1 as any)) {
+                    rows = rows.filter((r) => !r.attendance);
+                } else if (this.statusFilter != null) {
+                    rows = rows.filter(
+                        (r) =>
+                            r.attendance != null &&
+                            Number(r.attendance.status) ===
+                                Number(this.statusFilter)
+                    );
+                }
+
+                this.rows = rows;
+                this.totalRecords = rows.length;
             })
             .catch((error) => {
                 this.messageService.add({
@@ -109,6 +149,8 @@ export class StaffAttendanceListComponent implements OnInit {
                     summary: 'Error',
                     detail: error?.message || 'Failed to load attendance',
                 });
+                this.rows = [];
+                this.totalRecords = 0;
             })
             .finally(() => {
                 this.loading = false;
@@ -116,7 +158,7 @@ export class StaffAttendanceListComponent implements OnInit {
     }
 
     onSearch(): void {
-        this.loadRecords();
+        this.loadAllEmployees();
     }
 
     onGlobalFilter(table: Table, event: Event): void {
@@ -125,16 +167,27 @@ export class StaffAttendanceListComponent implements OnInit {
 
     openCreateDialog(): void {
         this.editingId = null;
+        this.dialogStaffId = null;
+        this.dialogDate = this.attendanceDate;
+        this.dialogVisible = true;
+    }
+
+    openMarkDialog(row: StaffAttendanceRow): void {
+        this.editingId = null;
+        this.dialogStaffId = row.staffId;
+        this.dialogDate = row.attendanceDate;
         this.dialogVisible = true;
     }
 
     openEditDialog(record: StaffAttendanceDto): void {
         this.editingId = record.id;
+        this.dialogStaffId = record.staffId;
+        this.dialogDate = this.toDateInputValue(record.attendanceDate);
         this.dialogVisible = true;
     }
 
     onDialogSaved(): void {
-        this.loadRecords();
+        this.loadAllEmployees();
     }
 
     onDelete(record: StaffAttendanceDto): void {
@@ -151,21 +204,25 @@ export class StaffAttendanceListComponent implements OnInit {
                             summary: 'Success',
                             detail: 'Attendance deleted',
                         });
-                        this.loadRecords();
+                        this.loadAllEmployees();
                     })
                     .catch((error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: error?.message || 'Failed to delete attendance',
+                            detail:
+                                error?.message || 'Failed to delete attendance',
                         });
                     });
             },
         });
     }
 
-    statusLabel(status: AttendanceStatus): string {
-        switch (status) {
+    statusLabel(status?: AttendanceStatus | null): string {
+        if (status === null || status === undefined) {
+            return 'Not marked';
+        }
+        switch (Number(status)) {
             case AttendanceStatus.Present:
                 return 'Present';
             case AttendanceStatus.Absent:
@@ -176,21 +233,6 @@ export class StaffAttendanceListComponent implements OnInit {
                 return 'Half Day';
             default:
                 return '—';
-        }
-    }
-
-    statusSeverity(status: AttendanceStatus): string {
-        switch (status) {
-            case AttendanceStatus.Present:
-                return 'success';
-            case AttendanceStatus.Absent:
-                return 'danger';
-            case AttendanceStatus.Leave:
-                return 'warning';
-            case AttendanceStatus.HalfDay:
-                return 'info';
-            default:
-                return 'secondary';
         }
     }
 
@@ -206,17 +248,57 @@ export class StaffAttendanceListComponent implements OnInit {
         if (isNaN(date.getTime())) {
             return '—';
         }
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
     }
 
-    private loadStaffOptions(): void {
-        this.staffService
-            .getAll({ isActive: true, skipCount: 0, maxResultCount: 1000 })
-            .then((result) => {
-                this.staffOptions = result.items || [];
-            })
-            .catch(() => {
-                this.staffOptions = [];
-            });
+    private toRow(
+        item: DailyAttendanceSheetItemDto,
+        date: string
+    ): StaffAttendanceRow {
+        const attendance =
+            item.hasAttendance && item.attendanceId
+                ? ({
+                      id: Number(item.attendanceId),
+                      branchId: Number(item.branchId || 0),
+                      branchName: item.branchName,
+                      staffId: Number(item.staffId),
+                      staffName: item.staffName,
+                      attendanceDate: item.attendanceDate || date,
+                      checkInTime: item.checkInTime ?? null,
+                      checkOutTime: item.checkOutTime ?? null,
+                      status: Number(item.status ?? 0) as AttendanceStatus,
+                      workingHours: item.workingHours ?? null,
+                      remarks: item.remarks,
+                  } as StaffAttendanceDto)
+                : null;
+
+        return {
+            staffId: Number(item.staffId),
+            staffName: item.staffName || '—',
+            branchName: item.branchName,
+            attendanceDate: date,
+            attendance,
+        };
+    }
+
+    private toDateInputValue(value?: string | Date | null): string {
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+            return value.trim();
+        }
+        if (typeof value === 'string') {
+            const match = value.trim().match(/^(\d{4}-\d{2}-\d{2})/);
+            if (match && !/[zZ]|[+-]\d{2}:\d{2}/.test(value)) {
+                return match[1];
+            }
+        }
+        const date = value ? new Date(value) : new Date();
+        if (isNaN(date.getTime())) {
+            const now = new Date();
+            return `${now.getFullYear()}-${`${now.getMonth() + 1}`.padStart(2, '0')}-${`${now.getDate()}`.padStart(2, '0')}`;
+        }
+        return `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}-${`${date.getDate()}`.padStart(2, '0')}`;
     }
 }

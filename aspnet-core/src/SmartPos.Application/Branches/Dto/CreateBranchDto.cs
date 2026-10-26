@@ -60,6 +60,10 @@ namespace SmartPos.Branches.Dto
 
         public double? Longitude { get; set; }
 
+        /// <summary>Auto attendance check-in radius in feet. Default 200.</summary>
+        [Range(1, 100000)]
+        public int AttendanceAutoCheckInRadiusFeet { get; set; } = Branch.DefaultAttendanceAutoCheckInRadiusFeet;
+
         /// <summary>Host catalog CompanyType id for initial seed selection.</summary>
         [Range(1, int.MaxValue)]
         public int CompanyTypeId { get; set; }

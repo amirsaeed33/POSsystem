@@ -23,6 +23,7 @@ using SmartPos.Authorization.Users;
 using SmartPos.Emailing;
 using SmartPos.Models.TokenAuth;
 using SmartPos.MultiTenancy;
+using SmartPos.StaffAttendances;
 using Abp.Domain.Repositories;
 
 namespace SmartPos.Controllers
@@ -42,6 +43,7 @@ namespace SmartPos.Controllers
         private readonly EmailLoginCodeStore _emailLoginCodeStore;
         private readonly ISmtpMailSender _smtpMailSender;
         private readonly IRepository<EmailTemplate> _emailTemplateRepository;
+        private readonly IStaffLoginAttendanceAutoCheckInService _staffLoginAttendanceAutoCheckIn;
 
         public TokenAuthController(
             LogInManager logInManager,
@@ -55,7 +57,8 @@ namespace SmartPos.Controllers
             UserClaimsPrincipalFactory claimsPrincipalFactory,
             EmailLoginCodeStore emailLoginCodeStore,
             ISmtpMailSender smtpMailSender,
-            IRepository<EmailTemplate> emailTemplateRepository)
+            IRepository<EmailTemplate> emailTemplateRepository,
+            IStaffLoginAttendanceAutoCheckInService staffLoginAttendanceAutoCheckIn)
         {
             _logInManager = logInManager;
             _tenantCache = tenantCache;
@@ -69,6 +72,7 @@ namespace SmartPos.Controllers
             _emailLoginCodeStore = emailLoginCodeStore;
             _smtpMailSender = smtpMailSender;
             _emailTemplateRepository = emailTemplateRepository;
+            _staffLoginAttendanceAutoCheckIn = staffLoginAttendanceAutoCheckIn;
         }
 
         [HttpPost]
@@ -84,6 +88,20 @@ namespace SmartPos.Controllers
 
             var accessToken = CreateAccessToken(CreateJwtClaims(loginResult.Identity));
 
+            var attendanceAutoCheckedIn = false;
+            try
+            {
+                attendanceAutoCheckedIn = await _staffLoginAttendanceAutoCheckIn.TryAutoCheckInAsync(
+                    loginResult.User.Id,
+                    loginResult.User.TenantId,
+                    model?.Latitude,
+                    model?.Longitude);
+            }
+            catch
+            {
+                // Login must succeed even if geo attendance fails.
+            }
+
             return new AuthenticateResultModel
             {
                 AccessToken = accessToken,
@@ -91,7 +109,8 @@ namespace SmartPos.Controllers
                 ExpireInSeconds = (int)_configuration.Expiration.TotalSeconds,
                 UserId = loginResult.User.Id,
                 TenantId = loginResult.User.TenantId,
-                TenancyName = tenancyName ?? loginResult.Tenant?.TenancyName
+                TenancyName = tenancyName ?? loginResult.Tenant?.TenancyName,
+                AttendanceAutoCheckedIn = attendanceAutoCheckedIn
             };
         }
 

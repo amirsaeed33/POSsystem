@@ -37,3 +37,26 @@ export interface PagedStaffAttendanceResultRequestDto {
     skipCount?: number;
     maxResultCount?: number;
 }
+
+export interface GetDailyAttendanceSheetInput {
+    date: string;
+    staffId?: number | null;
+    keyword?: string;
+}
+
+export interface DailyAttendanceSheetItemDto {
+    id: number;
+    staffId: number;
+    staffName?: string;
+    designation?: string;
+    branchName?: string;
+    branchId?: number | null;
+    attendanceDate: string | Date;
+    hasAttendance: boolean;
+    attendanceId?: number | null;
+    checkInTime?: string | Date | null;
+    checkOutTime?: string | Date | null;
+    status?: AttendanceStatus | null;
+    workingHours?: number | null;
+    remarks?: string;
+}

@@ -245,8 +245,15 @@ export class LoginComponent implements OnInit, OnDestroy {
 		this.loading = true;
 		const model = this.loginForm.value;
 
-		this.authService.authenticate(model)
-			.then(() => this.completeLogin())
+		this.resolveLoginCoordinates()
+			.then((coords) =>
+				this.authService.authenticate({
+					...model,
+					latitude: coords?.latitude ?? null,
+					longitude: coords?.longitude ?? null,
+				})
+			)
+			.then((result) => this.completeLogin(result?.attendanceAutoCheckedIn))
 			.catch((error) => this.showLoginError(error))
 			.finally(() => {
 				this.loading = false;
@@ -428,7 +435,26 @@ export class LoginComponent implements OnInit, OnDestroy {
 		}
 	}
 
-	private async completeLogin(): Promise<void> {
+	private resolveLoginCoordinates(): Promise<{ latitude: number; longitude: number } | null> {
+		if (!navigator?.geolocation) {
+			return Promise.resolve(null);
+		}
+
+		return new Promise((resolve) => {
+			navigator.geolocation.getCurrentPosition(
+				(pos) => {
+					resolve({
+						latitude: Number(pos.coords.latitude.toFixed(6)),
+						longitude: Number(pos.coords.longitude.toFixed(6)),
+					});
+				},
+				() => resolve(null),
+				{ enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+			);
+		});
+	}
+
+	private async completeLogin(attendanceAutoCheckedIn?: boolean): Promise<void> {
 		const sessionInfo = await this.sessionService.getCurrentLoginInformations();
 		if (sessionInfo?.user) {
 			this.authService.setUserInfo(sessionInfo.user);
@@ -468,7 +494,9 @@ export class LoginComponent implements OnInit, OnDestroy {
 			this.messageService.add({
 				severity: 'success',
 				summary: 'Welcome',
-				detail: 'Welcome to Delivery Rider Portal',
+				detail: attendanceAutoCheckedIn
+					? 'Welcome to Delivery Rider Portal. Attendance checked in near branch.'
+					: 'Welcome to Delivery Rider Portal',
 			});
 			this.router.navigateByUrl('/rider/dashboard');
 			return;
@@ -477,7 +505,9 @@ export class LoginComponent implements OnInit, OnDestroy {
 		this.messageService.add({
 			severity: 'success',
 			summary: 'Success',
-			detail: 'Login successful',
+			detail: attendanceAutoCheckedIn
+				? 'Login successful. Attendance checked in near branch.'
+				: 'Login successful',
 		});
 		this.router.navigateByUrl(this.returnUrl);
 	}

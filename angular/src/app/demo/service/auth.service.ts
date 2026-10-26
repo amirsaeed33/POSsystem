@@ -49,6 +49,8 @@ export class AuthService {
                     userNameOrEmailAddress: model.userNameOrEmailAddress,
                     password: model.password,
                     rememberClient: !!model.rememberClient,
+                    latitude: model.latitude ?? null,
+                    longitude: model.longitude ?? null,
                 })
             );
 
@@ -267,6 +269,8 @@ export class AuthService {
             userId,
             tenantId,
             tenancyName,
+            attendanceAutoCheckedIn:
+                !!(result.attendanceAutoCheckedIn ?? result.AttendanceAutoCheckedIn),
         };
     }
 

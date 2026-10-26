@@ -79,5 +79,9 @@ namespace SmartPos.Branches.Dto
         public double? Latitude { get; set; }
 
         public double? Longitude { get; set; }
+
+        /// <summary>Auto attendance check-in radius in feet. Default 200.</summary>
+        [Range(1, 100000)]
+        public int AttendanceAutoCheckInRadiusFeet { get; set; } = Branch.DefaultAttendanceAutoCheckInRadiusFeet;
     }
 }

@@ -175,6 +175,11 @@ export class BranchEditComponent implements OnInit {
             currencyFormat: this.branch.currencyFormat || 'PKR',
             latitude: this.branch.latitude != null ? Number(this.branch.latitude) : null,
             longitude: this.branch.longitude != null ? Number(this.branch.longitude) : null,
+            attendanceAutoCheckInRadiusFeet:
+                this.branch.attendanceAutoCheckInRadiusFeet != null &&
+                this.branch.attendanceAutoCheckInRadiusFeet > 0
+                    ? this.branch.attendanceAutoCheckInRadiusFeet
+                    : 200,
         };
 
 
@@ -193,6 +198,11 @@ export class BranchEditComponent implements OnInit {
                 ...payload,
                 latitude: this.branch.latitude != null ? Number(this.branch.latitude) : null,
                 longitude: this.branch.longitude != null ? Number(this.branch.longitude) : null,
+                attendanceAutoCheckInRadiusFeet:
+                    this.branch.attendanceAutoCheckInRadiusFeet != null &&
+                    this.branch.attendanceAutoCheckInRadiusFeet > 0
+                        ? this.branch.attendanceAutoCheckInRadiusFeet
+                        : 200,
                 statusId: this.canEditStatus
                     ? this.branch.statusId
                     : undefined,
@@ -289,6 +299,11 @@ export class BranchEditComponent implements OnInit {
                     serviceChargePercent: branch.serviceChargePercent ?? 0,
                     latitude: branch.latitude ?? null,
                     longitude: branch.longitude ?? null,
+                    attendanceAutoCheckInRadiusFeet:
+                        branch.attendanceAutoCheckInRadiusFeet != null &&
+                        branch.attendanceAutoCheckInRadiusFeet > 0
+                            ? branch.attendanceAutoCheckInRadiusFeet
+                            : 200,
                     imageBase64: undefined
                 };
                 this.originalStatusId = branch.statusId || 0;
@@ -388,6 +403,7 @@ export class BranchEditComponent implements OnInit {
             currencyFormat: 'PKR',
             latitude: null,
             longitude: null,
+            attendanceAutoCheckInRadiusFeet: 200,
         };
     }
 }
