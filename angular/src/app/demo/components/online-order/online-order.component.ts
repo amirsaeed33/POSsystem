@@ -25,6 +25,8 @@ export interface CategorySection {
 export class OnlineOrderComponent implements OnInit {
     branchId: number | null = null;
     branchName = '';
+    branchAddress = '';
+    branchPhone = '';
     currencyFormat = 'PKR';
     dateFormat = 'dd/MM/yyyy';
     branchMissingError = false;
@@ -32,11 +34,22 @@ export class OnlineOrderComponent implements OnInit {
     availableBranches: any[] = [];
     selectedBranchIdForModal: number | null = null;
     mobileBranchModal = false;
+    mobileNavOpen = false;
+    contactModalVisible = false;
+    activeNav: 'home' | 'menu' | 'deals' | 'contact' = 'home';
 
     products: any[] = [];
     filteredProducts: any[] = [];
     categories: string[] = [];
+    backendCategories: string[] = [];
     selectedCategory = 'All';
+
+    get heroSpotlightItem(): any {
+        if (this.dealsList && this.dealsList.length > 0) {
+            return this.dealsList[0];
+        }
+        return (this.products && this.products.length > 0) ? this.products[0] : null;
+    }
 
     // FoodiesPakistan Mobile Tab Bar & Filter Pills State
     activeMobileTab: 'home' | 'deals' | 'cart' | 'favorites' | 'account' = 'home';
@@ -45,7 +58,8 @@ export class OnlineOrderComponent implements OnInit {
     favorites: Set<number> = new Set<number>();
     mobileSearchOpen = false;
 
-    // FoodiesPakistan Curated Section Carousels
+    // Curated Section Carousels & Deals
+    dealsList: any[] = [];
     trendingDeals: any[] = [];
     popularItems: any[] = [];
     categorySections: CategorySection[] = [];
@@ -235,11 +249,18 @@ export class OnlineOrderComponent implements OnInit {
             const info = await this.customerOrderService.getOnlineStoreHeader(bId);
             if (info) {
                 if (info.branchName) this.branchName = info.branchName;
+                if (info.address) this.branchAddress = info.address;
+                if (info.phone) this.branchPhone = info.phone;
                 if (info.currencyFormat) this.currencyFormat = info.currencyFormat;
                 if (info.dateFormat) this.dateFormat = info.dateFormat;
                 this.isRestaurant = !!info.isRestaurant || info.businessType === 2;
                 if (info.latitude != null) this.branchLatitude = Number(info.latitude);
                 if (info.longitude != null) this.branchLongitude = Number(info.longitude);
+                if (info.categories && Array.isArray(info.categories) && info.categories.length > 0) {
+                    this.backendCategories = info.categories;
+                    this.extractCategories();
+                    this.applyFilter();
+                }
                 if (this.locationCaptured) {
                     this.calculateDistance();
                 }
@@ -249,6 +270,8 @@ export class OnlineOrderComponent implements OnInit {
             // Ignore error
         }
         this.branchName = '';
+        this.branchAddress = '';
+        this.branchPhone = '';
         this.isRestaurant = false;
         this.branchLatitude = null;
         this.branchLongitude = null;
@@ -311,12 +334,23 @@ export class OnlineOrderComponent implements OnInit {
     async loadCatalog(bId?: number, selectProductId?: number): Promise<void> {
         try {
             this.loading = true;
-            this.products = await this.customerOrderService.getOnlineCatalog(bId || undefined);
+            const promises: Promise<any>[] = [
+                this.customerOrderService.getOnlineCatalog(bId || undefined),
+            ];
+            if (bId && (!this.backendCategories || this.backendCategories.length === 0)) {
+                promises.push(this.customerOrderService.getOnlineCategories(bId).catch(() => []));
+            }
+            const results = await Promise.all(promises);
+            this.products = results[0] || [];
+            if (results.length > 1 && Array.isArray(results[1]) && results[1].length > 0) {
+                this.backendCategories = results[1];
+            }
+
             if (this.products && this.products.length > 0 && this.products[0].currencyFormat) {
                 this.currencyFormat = this.products[0].currencyFormat;
             }
-            this.extractCategories();
             this.organizeCarousels();
+            this.extractCategories();
             if (bId) {
                 this.loadDeliveryAreas(bId);
             }
@@ -341,24 +375,45 @@ export class OnlineOrderComponent implements OnInit {
 
     extractCategories(): void {
         const set = new Set<string>();
-        this.products.forEach((p) => {
+
+        // 1. Add all categories configured by admin on backend
+        (this.backendCategories || []).forEach((c) => {
+            if (c && c.trim()) {
+                set.add(c.trim());
+            }
+        });
+
+        // 2. Also add any categories found on loaded products
+        (this.products || []).forEach((p) => {
             if (p.categoryName && p.categoryName.trim()) {
                 set.add(p.categoryName.trim());
             }
         });
-        this.categories = ['All', '🔥 Deals', '✨ Popular', ...Array.from(set)];
+
+        const allCats = Array.from(set);
+        const regularCats = allCats.filter(
+            (c) => c.toLowerCase() !== 'all' && !c.toLowerCase().includes('deal')
+        );
+
+        // Always provide 'All' first, then '🔥 Deals', then all admin-created categories
+        this.categories = ['All', '🔥 Deals', ...regularCats];
     }
 
     private organizeCarousels(): void {
-        // Trending Deals: top 6 items
-        this.trendingDeals = this.products.slice(0, 8);
-        // Popular: items 4 to 12
-        this.popularItems = this.products.length > 4 ? this.products.slice(3, 11) : this.products;
+        // Find items that are deals or have deal category ONLY
+        const explicitDeals = (this.products || []).filter(
+            (p) => p.isDeal === true || (p.categoryName && p.categoryName.trim().toLowerCase().includes('deal'))
+        );
+        this.dealsList = explicitDeals; // Strictly deals only! No regular product fallback!
+        this.trendingDeals = explicitDeals;
+
+        // Popular: items with rating or top items
+        this.popularItems = (this.products || []).length > 4 ? (this.products || []).slice(3, 11) : (this.products || []);
 
         // Group by category for dedicated rows
         const catMap = new Map<string, any[]>();
-        this.products.forEach((p) => {
-            const cat = (p.categoryName && p.categoryName.trim()) || 'Featured Products';
+        (this.products || []).forEach((p) => {
+            const cat = (p.categoryName && p.categoryName.trim()) || 'Featured Menu';
             if (!catMap.has(cat)) {
                 catMap.set(cat, []);
             }
@@ -369,6 +424,38 @@ export class OnlineOrderComponent implements OnInit {
         catMap.forEach((items, category) => {
             this.categorySections.push({ category, items });
         });
+    }
+
+    scrollToSection(sectionId: 'home' | 'menu' | 'deals' | 'contact'): void {
+        this.activeNav = sectionId;
+        this.mobileNavOpen = false;
+
+        if (sectionId === 'home') {
+            this.selectedCategory = 'All';
+            this.applyFilter();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (sectionId === 'menu') {
+            const el = document.getElementById('storeMenuSection');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                window.scrollTo({ top: 520, behavior: 'smooth' });
+            }
+        } else if (sectionId === 'deals') {
+            const el = document.getElementById('storeDealsSection');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                this.selectCategory('🔥 Deals');
+            }
+        } else if (sectionId === 'contact') {
+            const el = document.getElementById('storeContactSection');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                this.contactModalVisible = true;
+            }
+        }
     }
 
     selectCategory(cat: string): void {
@@ -435,9 +522,6 @@ export class OnlineOrderComponent implements OnInit {
         const targetCatLower = selectedCat.toLowerCase();
         const pill = this.selectedPill;
 
-        const dealIds = new Set((this.trendingDeals || []).map((d) => d.id));
-        const popIds = new Set((this.popularItems || []).map((d) => d.id));
-
         this.filteredProducts = (this.products || []).filter((p) => {
             // Favorites tab restriction
             if (this.activeMobileTab === 'favorites') {
@@ -446,14 +530,14 @@ export class OnlineOrderComponent implements OnInit {
                 }
             }
 
-            // Category filtering
+            // Category filtering: Deals only matches items that are deals or have deal category
             let matchesCat = true;
             if (selectedCat === 'All') {
                 matchesCat = true;
-            } else if (selectedCat === '🔥 Deals') {
-                matchesCat = dealIds.has(p.id) || (p.discountPercent && p.discountPercent > 0);
+            } else if (selectedCat === '🔥 Deals' || targetCatLower.includes('deal')) {
+                matchesCat = p.isDeal === true || ((p.categoryName || '').toLowerCase().includes('deal'));
             } else if (selectedCat === '✨ Popular') {
-                matchesCat = popIds.has(p.id);
+                matchesCat = true;
             } else {
                 const pCatLower = (p.categoryName || '').trim().toLowerCase();
                 matchesCat = pCatLower === targetCatLower;
@@ -462,7 +546,7 @@ export class OnlineOrderComponent implements OnInit {
             // Pill filtering (Foodies Pakistan pills)
             let matchesPill = true;
             if (pill === '🔥 Top Deals') {
-                matchesPill = dealIds.has(p.id) || (p.discountPercent && p.discountPercent > 0);
+                matchesPill = p.isDeal === true || ((p.categoryName || '').toLowerCase().includes('deal'));
             } else if (pill === '⭐ Highly Rated') {
                 const rating = parseFloat(this.getProductRating(p));
                 matchesPill = rating >= 4.8;
@@ -480,6 +564,7 @@ export class OnlineOrderComponent implements OnInit {
                 (p.name || '').toLowerCase().includes(query) ||
                 (p.categoryName || '').toLowerCase().includes(query) ||
                 (p.brandName || '').toLowerCase().includes(query) ||
+                (p.barcode || '').toLowerCase().includes(query) ||
                 (p.code || '').toLowerCase().includes(query);
 
             return matchesCat && matchesPill && matchesSearch;
@@ -597,12 +682,28 @@ export class OnlineOrderComponent implements OnInit {
                 image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=150&q=80',
             };
         }
-        if (c.includes('burger') || c.includes('fast')) {
+        if (c.includes('burger') || c.includes('burgur') || c.includes('fast')) {
             return {
                 icon: 'pi pi-check',
                 color: '#f97316',
                 label: cat,
                 image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('showarma') || c.includes('shawarma') || c.includes('roll') || c.includes('wrap')) {
+            return {
+                icon: 'pi pi-bookmark',
+                color: '#d97706',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=150&q=80',
+            };
+        }
+        if (c.includes('drink') || c.includes('beverage') || c.includes('cold drink') || c.includes('juice') || c.includes('soda')) {
+            return {
+                icon: 'pi pi-heart',
+                color: '#0284c7',
+                label: cat,
+                image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=150&q=80',
             };
         }
         if (c.includes('pizza')) {

@@ -86,6 +86,16 @@ export class CustomerOrderService {
         return this.unwrap(res, 'Failed to load store info');
     }
 
+    async getOnlineCategories(branchId?: number): Promise<string[]> {
+        const params: any = {};
+        if (branchId) params.branchId = branchId;
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetOnlineCategories`, { params })
+        );
+        const result = this.unwrap(res, 'Failed to load categories');
+        return Array.isArray(result) ? result : [];
+    }
+
     async createOnlineOrder(input: CreateCustomerOrderDto): Promise<CustomerOrderDto> {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/CreateOnlineOrder`, {

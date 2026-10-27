@@ -77,6 +77,7 @@ namespace SmartPos.Orders.Dto
         public int BusinessType { get; set; }
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
+        public List<string> Categories { get; set; } = new List<string>();
     }
 
     public class OnlineProductDto
@@ -85,6 +86,7 @@ namespace SmartPos.Orders.Dto
         public string Name { get; set; }
         public string Description { get; set; }
         public string CategoryName { get; set; }
+        public int? CategoryId { get; set; }
         public string BrandName { get; set; }
         public string Barcode { get; set; }
         public string UnitName { get; set; }
@@ -95,6 +97,7 @@ namespace SmartPos.Orders.Dto
         public decimal StockQuantity { get; set; }
         public string Specifications { get; set; }
         public bool IsFreeDelivery { get; set; }
+        public bool IsDeal { get; set; }
     }
 
     public class CreateCustomerOrderLineDto

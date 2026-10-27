@@ -2,10 +2,10 @@
     <!-- 1. Top Sticky Mobile & Desktop Navbar -->
     <header class="fp-store-navbar" [class.fp-navbar-scrolled]="isScrolled">
         <!-- DESKTOP NAVBAR (>= 768px) -->
-        <div class="hidden md:flex align-items-center justify-content-between gap-2 max-w-7xl mx-auto w-full">
+        <div class="hidden md:flex align-items-center justify-content-between gap-3 max-w-7xl mx-auto w-full">
             <!-- Left: Brand Logo, Name & Location Selector -->
-            <div class="flex align-items-center gap-2 sm:gap-3 overflow-hidden">
-                <div class="fp-brand-group cursor-pointer" (click)="loadCatalog(branchId || undefined)">
+            <div class="flex align-items-center gap-3 overflow-hidden">
+                <div class="fp-brand-group cursor-pointer" (click)="scrollToSection('home')">
                     <div class="brand-logo-sq">
                         <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
                     </div>
@@ -21,36 +21,81 @@
                     </div>
                 </div>
 
-                <!-- Desktop Branch Selector -->
-                <div class="flex align-items-center" *ngIf="availableBranches.length > 0">
-                    <p-dropdown
-                        [options]="availableBranches"
-                        [(ngModel)]="branchId"
-                        optionLabel="name"
-                        optionValue="id"
-                        placeholder="Select Branch"
-                        (onChange)="setBranchInUrl($event.value)"
-                        styleClass="fp-branch-dropdown"
-                    >
-                        <ng-template pTemplate="selectedItem">
-                            <div class="flex align-items-center gap-2">
-                                <i class="pi pi-map-marker text-red-500"></i>
-                                <span class="font-semibold">{{ branchName || 'Choose Location' }}</span>
-                            </div>
-                        </ng-template>
-                    </p-dropdown>
+                <!-- Desktop Branch / Location Selector Pill -->
+                <div
+                    class="fp-location-picker-pill cursor-pointer"
+                    (click)="mobileBranchModal = true"
+                    *ngIf="availableBranches.length > 0"
+                    pTooltip="Change branch location"
+                    tooltipPosition="bottom"
+                >
+                    <i class="pi pi-map-marker text-red-500 text-sm"></i>
+                    <div class="location-text-col">
+                        <span class="location-label">Location</span>
+                        <span class="location-val">{{ branchName || 'Select Branch' }}</span>
+                    </div>
+                    <i class="pi pi-chevron-down text-400 text-xs"></i>
                 </div>
             </div>
 
-            <!-- Center: Search Input Bar (Desktop) -->
-            <div class="flex-grow-1 max-w-26rem">
+            <!-- Center: Navigation Links (Home, Menu, Deals, Track, Contact) -->
+            <nav class="hidden lg:flex align-items-center gap-1 fp-nav-links">
+                <button
+                    type="button"
+                    class="fp-nav-link-btn"
+                    [class.active]="activeNav === 'home'"
+                    (click)="scrollToSection('home')"
+                >
+                    <i class="pi pi-home text-xs mr-1"></i>
+                    <span>Home</span>
+                </button>
+                <button
+                    type="button"
+                    class="fp-nav-link-btn"
+                    [class.active]="activeNav === 'menu'"
+                    (click)="scrollToSection('menu')"
+                >
+                    <i class="pi pi-th-large text-xs mr-1"></i>
+                    <span>Menu</span>
+                </button>
+                <button
+                    type="button"
+                    class="fp-nav-link-btn"
+                    [class.active]="activeNav === 'deals'"
+                    (click)="scrollToSection('deals')"
+                >
+                    <i class="pi pi-tags text-xs mr-1"></i>
+                    <span>Deals</span>
+                    <span class="fp-nav-badge">Hot</span>
+                </button>
+                <button
+                    type="button"
+                    class="fp-nav-link-btn"
+                    (click)="goToTracking()"
+                >
+                    <i class="pi pi-compass text-xs mr-1"></i>
+                    <span>Track Order</span>
+                </button>
+                <button
+                    type="button"
+                    class="fp-nav-link-btn"
+                    [class.active]="activeNav === 'contact'"
+                    (click)="scrollToSection('contact')"
+                >
+                    <i class="pi pi-phone text-xs mr-1"></i>
+                    <span>Contact</span>
+                </button>
+            </nav>
+
+            <!-- Center Search Bar (Desktop) -->
+            <div class="flex-grow-1 max-w-18rem xl:max-w-22rem">
                 <span class="p-input-icon-left p-input-icon-right w-full">
                     <i class="pi pi-search text-500"></i>
                     <input
                         pInputText
                         type="text"
                         class="w-full border-round-3xl border-none font-medium fp-search-input"
-                        placeholder="Search products, items or brands..."
+                        placeholder="Search food, deals, items..."
                         [(ngModel)]="searchKeyword"
                         (input)="applyFilter()"
                     />
@@ -76,17 +121,6 @@
                     (click)="viewMode = viewMode === 'carousel' ? 'grid' : 'carousel'"
                 ></button>
 
-                <!-- Track Order Button (Desktop) -->
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    label="Track Order"
-                    icon="pi pi-compass"
-                    class="p-button-outlined p-button-sm border-round-3xl font-bold text-xs text-700"
-                    (click)="goToTracking()"
-                ></button>
-
                 <!-- Authentication: Sign In (Desktop) -->
                 <a
                     *ngIf="!isLoggedIn"
@@ -108,27 +142,32 @@
                     <span class="font-bold text-xs">{{ userName }}</span>
                 </div>
 
-                <!-- Cart Trigger Button -->
+                <!-- Cart Trigger Pill Button with Live Count & Subtotal -->
                 <button
                     type="button"
                     class="fp-cart-trigger"
                     (click)="cartService.sidebarVisible = true"
                     [attr.aria-label]="'Shopping cart with ' + cartService.totalItemsCount + ' items'"
                 >
-                    <i class="pi pi-shopping-bag text-base"></i>
-                    <span>Cart</span>
-                    <span class="cart-badge" *ngIf="cartService.totalItemsCount > 0">
-                        {{ cartService.totalItemsCount }}
-                    </span>
+                    <div class="cart-trigger-icon-box">
+                        <i class="pi pi-shopping-bag"></i>
+                        <span class="cart-badge" *ngIf="cartService.totalItemsCount > 0">
+                            {{ cartService.totalItemsCount }}
+                        </span>
+                    </div>
+                    <div class="cart-trigger-text hidden xl:flex flex-column text-left">
+                        <span class="cart-trigger-label">My Cart</span>
+                        <span class="cart-trigger-total">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
+                    </div>
                 </button>
             </div>
         </div>
 
-        <!-- MOBILE COMPACT APP HEADER (< 768px, Foodies Pakistan Exact Architecture) -->
+        <!-- MOBILE COMPACT APP HEADER (< 768px) -->
         <div class="flex md:hidden align-items-center justify-content-between gap-2 w-full fp-mobile-top-bar">
             <!-- Left: Brand Logo + Branch / City Selector -->
             <div class="flex align-items-center gap-2 overflow-hidden flex-grow-1 min-w-0">
-                <div class="brand-logo-sq flex-shrink-0" (click)="loadCatalog(branchId || undefined)">
+                <div class="brand-logo-sq flex-shrink-0" (click)="scrollToSection('home')">
                     <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
                 </div>
                 <div class="fp-mobile-header-info min-w-0 flex-grow-1">
@@ -152,8 +191,8 @@
                 </div>
             </div>
 
-            <!-- Right: Search Icon Button & Cart Icon with Live Badge -->
-            <div class="flex align-items-center gap-2 flex-shrink-0">
+            <!-- Right: Search Icon Button, Track, Cart, Burger Menu -->
+            <div class="flex align-items-center gap-1 flex-shrink-0">
                 <!-- Search Toggle Button -->
                 <button
                     type="button"
@@ -163,17 +202,6 @@
                     aria-label="Search"
                 >
                     <i class="pi pi-search"></i>
-                </button>
-
-                <!-- Grid / Carousel View Switcher -->
-                <button
-                    type="button"
-                    class="fp-mobile-action-btn"
-                    (click)="viewMode = viewMode === 'carousel' ? 'grid' : 'carousel'"
-                    [title]="viewMode === 'carousel' ? 'Grid view' : 'Slider view'"
-                    aria-label="Toggle view"
-                >
-                    <i [class]="viewMode === 'carousel' ? 'pi pi-th-large' : 'pi pi-list'"></i>
                 </button>
 
                 <!-- Track Order Button (Mobile) -->
@@ -199,10 +227,20 @@
                         {{ cartService.totalItemsCount }}
                     </span>
                 </button>
+
+                <!-- Burger Menu Toggle -->
+                <button
+                    type="button"
+                    class="fp-mobile-action-btn"
+                    (click)="mobileNavOpen = !mobileNavOpen"
+                    aria-label="Open navigation menu"
+                >
+                    <i [class]="mobileNavOpen ? 'pi pi-times' : 'pi pi-bars'"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Mobile Expandable Search Bar (Zero horizontal scroll bug) -->
+        <!-- Mobile Expandable Search Bar -->
         <div class="fp-mobile-search-row md:hidden" *ngIf="mobileSearchOpen || searchKeyword">
             <span class="p-input-icon-left p-input-icon-right w-full">
                 <i class="pi pi-search text-500"></i>
@@ -224,92 +262,395 @@
         </div>
     </header>
 
-    <!-- 2. CATEGORY & FILTER BARS -->
-
-    <!-- 2A. Desktop Filter Bar (>= 768px, Intact) -->
-    <div class="fp-category-bar hidden md:flex">
-        <button
-            type="button"
-            class="fp-scroll-arrow mr-2"
-            (click)="scrollFilterBar('left')"
-            pTooltip="Scroll Left"
-        >
-            <i class="pi pi-chevron-left text-xs"></i>
-        </button>
-
-        <div class="fp-category-track" id="fpStoreFilterTrack">
-            <div
-                *ngFor="let cat of categories"
-                class="fp-cat-chip"
-                [class.active]="selectedCategory === cat"
-                (click)="selectCategory(cat)"
-            >
-                <span>{{ cat }}</span>
-            </div>
-        </div>
-
-        <button
-            type="button"
-            class="fp-scroll-arrow ml-2"
-            (click)="scrollFilterBar('right')"
-            pTooltip="Scroll Right"
-        >
-            <i class="pi pi-chevron-right text-xs"></i>
-        </button>
-    </div>
-
-    <!-- 2B. FOODIES PAKISTAN EXACT MOBILE FILTER & CATEGORY BAR (< 768px) -->
-    <div class="fp-mobile-filter-container md:hidden">
-        <!-- Part A: Circular Category Icons Track (~55px circular container + category text underneath) -->
-        <div class="fp-circle-category-track" id="fpMobileCircleTrack">
-            <div
-                *ngFor="let cat of categories"
-                class="fp-circle-cat-item"
-                [class.active]="selectedCategory === cat"
-                (click)="selectCategory(cat)"
-            >
-                <div class="circle-avatar-box">
-                    <img
-                        *ngIf="getCategoryVisual(cat).image"
-                        [src]="getCategoryVisual(cat).image"
-                        [alt]="cat"
-                        class="circle-cat-img"
-                        loading="lazy"
-                    />
-                    <div *ngIf="!getCategoryVisual(cat).image" class="circle-cat-icon-fallback" [style.background-color]="getCategoryVisual(cat).color">
-                        <i [class]="getCategoryVisual(cat).icon"></i>
-                    </div>
-                    <span class="active-check-badge" *ngIf="selectedCategory === cat">
-                        <i class="pi pi-check text-xs"></i>
-                    </span>
+    <!-- Mobile Navigation Drawer / Menu (Toggled via burger) -->
+    <p-sidebar
+        [(visible)]="mobileNavOpen"
+        position="left"
+        [baseZIndex]="10000"
+        styleClass="w-18rem"
+    >
+        <ng-template pTemplate="header">
+            <div class="flex align-items-center gap-2">
+                <div class="brand-logo-sq w-2rem h-2rem font-bold text-sm">
+                    <i class="pi pi-compass"></i>
                 </div>
-                <span class="circle-cat-name">{{ cat }}</span>
+                <span class="font-bold text-900 text-base">{{ branchName || 'Online Menu' }}</span>
             </div>
-        </div>
+        </ng-template>
 
-        <!-- Part B: Pill Badges Track (Capsule buttons: 📍 Near Me, 🔥 Top Deals, ⭐ Highly Rated, etc.) -->
-        <div class="fp-pill-badge-track" id="fpMobilePillTrack">
+        <div class="flex flex-column gap-2 py-3">
             <button
                 type="button"
-                *ngFor="let pill of pillFilters"
-                class="fp-pill-badge"
-                [class.active]="selectedPill === pill"
-                (click)="selectPill(pill)"
+                class="fp-mobile-drawer-link"
+                [class.active]="activeNav === 'home'"
+                (click)="scrollToSection('home')"
             >
-                <span>{{ pill }}</span>
+                <i class="pi pi-home"></i>
+                <span>Home</span>
             </button>
+            <button
+                type="button"
+                class="fp-mobile-drawer-link"
+                [class.active]="activeNav === 'menu'"
+                (click)="scrollToSection('menu')"
+            >
+                <i class="pi pi-th-large"></i>
+                <span>Full Menu</span>
+            </button>
+            <button
+                type="button"
+                class="fp-mobile-drawer-link"
+                [class.active]="activeNav === 'deals'"
+                (click)="scrollToSection('deals')"
+            >
+                <i class="pi pi-tags"></i>
+                <span>Deals & Offers</span>
+                <span class="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-1 border-round-3xl">Hot</span>
+            </button>
+            <button
+                type="button"
+                class="fp-mobile-drawer-link"
+                (click)="mobileNavOpen = false; goToTracking()"
+            >
+                <i class="pi pi-compass"></i>
+                <span>Track Order</span>
+            </button>
+            <button
+                type="button"
+                class="fp-mobile-drawer-link"
+                (click)="mobileNavOpen = false; mobileBranchModal = true"
+            >
+                <i class="pi pi-map-marker text-red-500"></i>
+                <span>Change Branch / City</span>
+            </button>
+            <button
+                type="button"
+                class="fp-mobile-drawer-link"
+                [class.active]="activeNav === 'contact'"
+                (click)="scrollToSection('contact')"
+            >
+                <i class="pi pi-phone"></i>
+                <span>Contact & Hours</span>
+            </button>
+
+            <div class="border-top-1 surface-border my-2"></div>
+
+            <a
+                *ngIf="!isLoggedIn"
+                routerLink="/auth/login"
+                class="fp-mobile-drawer-link"
+                (click)="mobileNavOpen = false"
+            >
+                <i class="pi pi-user text-primary"></i>
+                <span>Customer Login</span>
+            </a>
+            <div *ngIf="isLoggedIn" class="p-3 surface-100 border-round-xl">
+                <div class="text-xs text-500 font-semibold">Signed in as</div>
+                <div class="text-sm font-bold text-900">{{ userName }}</div>
+            </div>
         </div>
-    </div>
+    </p-sidebar>
 
-    <!-- MAIN BODY: CAROUSEL VIEW OR GRID VIEW -->
+    <!-- 2. HERO BANNER SECTION (High Appetite Appeal, Modern Cheezious Aesthetic) -->
+    <section class="fp-hero-banner" id="storeHomeSection" *ngIf="!searchKeyword && selectedCategory === 'All'">
+        <div class="fp-hero-backdrop"></div>
+        <div class="fp-hero-inner max-w-7xl mx-auto">
+            <div class="grid align-items-center">
+                <!-- Left Column: High-Impact Typography & Action CTAs -->
+                <div class="col-12 lg:col-7 fp-hero-text-col">
+                    <div class="fp-hero-badge inline-flex align-items-center gap-2">
+                        <span class="badge-fire-icon">🔥</span>
+                        <span class="font-extrabold uppercase tracking-wider text-xs">Fresh From Kitchen • Delivered In 30-45 Mins</span>
+                    </div>
 
-    <!-- VIEW MODE 1: Horizontal Slider / Carousel Rows (Foodies Pakistan Style) -->
+                    <h1 class="fp-hero-title">
+                        Craving Something <span class="fp-title-gradient">Hot, Cheesy</span> & Delicious?
+                    </h1>
+
+                    <p class="fp-hero-desc">
+                        Explore handcrafted pizzas loaded with mozzarella, sizzling juicy burgers, crispy tenders, and mouth-watering family deals. Cooked fresh on order, delivered lightning-fast to your doorstep.
+                    </p>
+
+                    <!-- Trust / Service Highlights Row -->
+                    <div class="fp-hero-features-row flex flex-wrap gap-2 sm:gap-3 mb-4">
+                        <div class="fp-feature-pill">
+                            <i class="pi pi-bolt text-yellow-400"></i>
+                            <span>30-45 Min Fast Delivery</span>
+                        </div>
+                        <div class="fp-feature-pill">
+                            <i class="pi pi-check-circle text-green-400"></i>
+                            <span>100% Fresh Ingredients</span>
+                        </div>
+                        <div class="fp-feature-pill">
+                            <i class="pi pi-star-fill text-yellow-400"></i>
+                            <span>4.9★ Customer Rating</span>
+                        </div>
+                    </div>
+
+                    <!-- Prominent CTAs -->
+                    <div class="fp-hero-cta-group flex flex-wrap align-items-center gap-3">
+                        <button
+                            type="button"
+                            class="fp-btn-primary-hero"
+                            (click)="scrollToSection('deals')"
+                        >
+                            <span>Order Now</span>
+                            <i class="pi pi-arrow-right text-sm"></i>
+                        </button>
+
+                        <button
+                            type="button"
+                            class="fp-btn-secondary-hero"
+                            (click)="scrollToSection('menu')"
+                        >
+                            <i class="pi pi-book text-sm"></i>
+                            <span>Explore Full Menu</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Appetizing Food Spotlight Presentation Card (Desktop / Tablet) -->
+                <div class="col-12 lg:col-5 hidden lg:flex justify-content-center">
+                    <div class="fp-hero-deal-card shadow-4" *ngIf="heroSpotlightItem">
+                        <div class="deal-card-badge">
+                            {{ (heroSpotlightItem?.isDeal || (heroSpotlightItem?.categoryName || '').toLowerCase().includes('deal')) ? '🔥 SPECIAL COMBO' : '⭐ CHEF\'S TOP PICK' }}
+                        </div>
+                        <div class="deal-card-img-wrap">
+                            <img [src]="getProductImage(heroSpotlightItem, 0)" [alt]="heroSpotlightItem?.name" class="deal-hero-img" />
+                            <div class="deal-card-overlay"></div>
+                        </div>
+                        <div class="deal-card-content">
+                            <div class="flex align-items-center justify-content-between mb-1">
+                                <span class="deal-cat-name">{{ heroSpotlightItem?.categoryName || 'Chef Choice' }}</span>
+                                <span class="deal-rating"><i class="pi pi-star-fill text-yellow-400 mr-1"></i>4.9</span>
+                            </div>
+                            <h3 class="deal-hero-title">{{ heroSpotlightItem?.name }}</h3>
+                            <p class="deal-hero-desc line-clamp-2">{{ getProductDescription(heroSpotlightItem) }}</p>
+                            <div class="deal-card-foot flex align-items-center justify-content-between mt-3">
+                                <div>
+                                    <div class="deal-strike-price" *ngIf="getOriginalPrice(heroSpotlightItem) > heroSpotlightItem?.price">
+                                        PKR {{ getOriginalPrice(heroSpotlightItem) | number: '1.0-0' }}
+                                    </div>
+                                    <div class="deal-main-price">PKR {{ heroSpotlightItem?.price | number: '1.0-0' }}</div>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="fp-btn-add-spotlight"
+                                    (click)="addToCart(heroSpotlightItem, 1, $event)"
+                                >
+                                    <i class="pi pi-plus"></i>
+                                    <span>Add To Order</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. CATEGORY & FILTER BARS (Sticky / Smooth Horizontal Track) -->
+    <section class="fp-categories-nav-section" id="storeMenuSection">
+        <div class="max-w-7xl mx-auto">
+            <!-- Section Header Title -->
+            <div class="flex align-items-center justify-content-between px-3 pt-3 pb-2">
+                <div class="flex align-items-center gap-2">
+                    <span class="cat-sec-icon">🍽️</span>
+                    <div>
+                        <h2 class="cat-sec-heading">Explore Food Menu</h2>
+                        <span class="cat-sec-sub">Select a category to view freshly cooked meals</span>
+                    </div>
+                </div>
+                <!-- View Mode Switcher -->
+                <button
+                    pButton
+                    type="button"
+                    [icon]="viewMode === 'carousel' ? 'pi pi-th-large' : 'pi pi-list'"
+                    [label]="viewMode === 'carousel' ? 'Grid View' : 'Slider View'"
+                    class="p-button-outlined p-button-sm border-round-3xl hidden md:inline-flex"
+                    (click)="viewMode = viewMode === 'carousel' ? 'grid' : 'carousel'"
+                ></button>
+            </div>
+
+            <!-- DESKTOP CATEGORY TRACK (Horizontal Chips) -->
+            <div class="fp-category-bar hidden md:flex">
+                <button
+                    type="button"
+                    class="fp-scroll-arrow mr-2"
+                    (click)="scrollFilterBar('left')"
+                    pTooltip="Scroll Left"
+                >
+                    <i class="pi pi-chevron-left text-xs"></i>
+                </button>
+
+                <div class="fp-category-track" id="fpStoreFilterTrack">
+                    <div
+                        *ngFor="let cat of categories"
+                        class="fp-cat-chip"
+                        [class.active]="selectedCategory === cat"
+                        (click)="selectCategory(cat)"
+                    >
+                        <i [class]="getCategoryVisual(cat).icon" class="mr-1 text-xs"></i>
+                        <span>{{ cat }}</span>
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    class="fp-scroll-arrow ml-2"
+                    (click)="scrollFilterBar('right')"
+                    pTooltip="Scroll Right"
+                >
+                    <i class="pi pi-chevron-right text-xs"></i>
+                </button>
+            </div>
+
+            <!-- MOBILE CIRCULAR CATEGORY & PILL BADGES (< 768px) -->
+            <div class="fp-mobile-filter-container md:hidden">
+                <!-- Circular Category Icons Track -->
+                <div class="fp-circle-category-track" id="fpMobileCircleTrack">
+                    <div
+                        *ngFor="let cat of categories"
+                        class="fp-circle-cat-item"
+                        [class.active]="selectedCategory === cat"
+                        (click)="selectCategory(cat)"
+                    >
+                        <div class="circle-avatar-box">
+                            <img
+                                *ngIf="getCategoryVisual(cat).image"
+                                [src]="getCategoryVisual(cat).image"
+                                [alt]="cat"
+                                class="circle-cat-img"
+                                loading="lazy"
+                            />
+                            <div *ngIf="!getCategoryVisual(cat).image" class="circle-cat-icon-fallback" [style.background-color]="getCategoryVisual(cat).color">
+                                <i [class]="getCategoryVisual(cat).icon"></i>
+                            </div>
+                            <span class="active-check-badge" *ngIf="selectedCategory === cat">
+                                <i class="pi pi-check text-xs"></i>
+                            </span>
+                        </div>
+                        <span class="circle-cat-name">{{ cat }}</span>
+                    </div>
+                </div>
+
+                <!-- Capsule Filter Pills Track -->
+                <div class="fp-pill-badge-track" id="fpMobilePillTrack">
+                    <button
+                        type="button"
+                        *ngFor="let pill of pillFilters"
+                        class="fp-pill-badge"
+                        [class.active]="selectedPill === pill"
+                        (click)="selectPill(pill)"
+                    >
+                        <span>{{ pill }}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. DEDICATED DEALS & SPECIAL OFFERS SECTION -->
+    <section class="fp-deals-showcase-section" id="storeDealsSection" *ngIf="!searchKeyword && selectedCategory === 'All' && dealsList.length > 0">
+        <div class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+            <div class="deals-header-row flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+                <div>
+                    <div class="deal-tag-pill inline-flex align-items-center gap-1 mb-1">
+                        <i class="pi pi-tags text-xs"></i>
+                        <span>VALUE PACKS & COMBOS</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-900 m-0">🔥 Exclusive Deals & Special Offers</h2>
+                    <p class="text-600 text-xs sm:text-sm mt-1 mb-0">Treat your tastebuds with huge savings on our handpicked combos</p>
+                </div>
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        type="button"
+                        label="View All Deals"
+                        icon="pi pi-chevron-right"
+                        iconPos="right"
+                        class="p-button-text p-button-sm text-red-600 font-bold p-0"
+                        (click)="selectCategory('🔥 Deals')"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- Deals Grid (Cards) -->
+            <div class="grid grid-nogutter sm:grid-gutter">
+                <div
+                    *ngFor="let deal of dealsList; let dIdx = index"
+                    class="col-12 sm:col-6 lg:col-4 p-2"
+                >
+                    <div class="fp-deal-bundle-card" (click)="openProductModal(deal)">
+                        <div class="bundle-media-box">
+                            <img [src]="getProductImage(deal, dIdx)" [alt]="deal.name" class="bundle-img" />
+                            <div class="bundle-badge-ribbon">
+                                <span class="ribbon-text">SPECIAL COMBO</span>
+                            </div>
+                            <span class="bundle-savings-pill">
+                                SAVE {{ ((getOriginalPrice(deal) - deal.price) / getOriginalPrice(deal) * 100) | number: '1.0-0' }}%
+                            </span>
+                            <button
+                                type="button"
+                                class="badge-fav-btn"
+                                [class.active]="isFavorite(deal.id)"
+                                (click)="toggleFavorite(deal.id, $event)"
+                                aria-label="Add to favorites"
+                            >
+                                <i [class]="isFavorite(deal.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                            </button>
+                        </div>
+
+                        <div class="bundle-body-box">
+                            <div class="flex align-items-center justify-content-between mb-1">
+                                <span class="bundle-cat-tag">
+                                    <i class="pi pi-star-fill text-yellow-500 mr-1"></i>
+                                    {{ deal.categoryName || 'Special Deal' }}
+                                </span>
+                                <span class="bundle-rating">
+                                    {{ getProductRating(deal) }}★
+                                </span>
+                            </div>
+
+                            <h3 class="bundle-title" [title]="deal.name">{{ deal.name }}</h3>
+                            <p class="bundle-desc line-clamp-2">{{ getProductDescription(deal) }}</p>
+
+                            <!-- Deal included items badge snippet -->
+                            <div class="bundle-items-tag">
+                                <i class="pi pi-check text-green-600 mr-1"></i>
+                                <span>Includes main dish + sides + signature dipping sauce</span>
+                            </div>
+
+                            <div class="bundle-footer-row flex align-items-center justify-content-between mt-3 pt-2 border-top-1 surface-border">
+                                <div class="price-col">
+                                    <div class="bundle-strike">PKR {{ getOriginalPrice(deal) | number: '1.0-0' }}</div>
+                                    <div class="bundle-price">PKR {{ deal.price | number: '1.0-0' }}</div>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="btn-add-deal"
+                                    (click)="addToCart(deal, 1, $event)"
+                                >
+                                    <i class="pi pi-plus"></i>
+                                    <span>Add Deal</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. MAIN MENU CATALOG BODY: CAROUSEL VIEW OR GRID VIEW -->
+
+    <!-- VIEW MODE 1: Horizontal Slider / Carousel Rows (Cheezious & Modern Restaurant Style) -->
     <main class="max-w-7xl mx-auto pb-8" *ngIf="viewMode === 'carousel' && !searchKeyword && selectedCategory === 'All'">
         <!-- Section 1: 🔥 Hot Deals & Trending Items -->
         <section class="fp-store-section" *ngIf="trendingDeals.length > 0">
             <div class="section-header-row">
                 <div class="section-title">
-                    <span>🔥 Hot Deals & Trending</span>
+                    <span>🔥 Hot Trending Items</span>
                     <span class="badge surface-200 text-700 text-xs px-2 py-1 border-round-3xl font-bold">
                         Special Picks
                     </span>
@@ -385,10 +726,11 @@
                             <button
                                 type="button"
                                 class="btn-add-cart"
+                                [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
                                 (click)="addToCart(product, 1, $event)"
                             >
                                 <i class="pi pi-plus text-xs"></i>
-                                <span>Add</span>
+                                <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' in cart') : 'Add' }}</span>
                             </button>
                         </div>
                     </div>
@@ -476,10 +818,11 @@
                             <button
                                 type="button"
                                 class="btn-add-cart"
+                                [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
                                 (click)="addToCart(product, 1, $event)"
                             >
                                 <i class="pi pi-plus text-xs"></i>
-                                <span>Add</span>
+                                <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' in cart') : 'Add' }}</span>
                             </button>
                         </div>
                     </div>
@@ -487,7 +830,7 @@
             </div>
         </section>
 
-        <!-- Section 3: Dynamic Category Rows -->
+        <!-- Section 3: Dynamic Category Rows from Backend -->
         <section
             class="fp-store-section"
             *ngFor="let sec of categorySections; let sIdx = index"
@@ -570,10 +913,11 @@
                             <button
                                 type="button"
                                 class="btn-add-cart"
+                                [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
                                 (click)="addToCart(product, 1, $event)"
                             >
                                 <i class="pi pi-plus text-xs"></i>
-                                <span>Add</span>
+                                <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' in cart') : 'Add' }}</span>
                             </button>
                         </div>
                     </div>
@@ -603,7 +947,7 @@
                     type="button"
                     icon="pi pi-times"
                     label="Clear"
-                    class="p-button-outlined p-button-secondary p-button-sm font-semibold"
+                    class="p-button-outlined p-button-secondary p-button-sm font-semibold border-round-3xl"
                     *ngIf="selectedCategory !== 'All' || searchKeyword"
                     (click)="clearFilter()"
                 ></button>
@@ -661,10 +1005,11 @@
                             <button
                                 type="button"
                                 class="btn-add-cart"
+                                [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
                                 (click)="addToCart(product, 1, $event)"
                             >
                                 <i class="pi pi-plus text-xs"></i>
-                                <span>Add</span>
+                                <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' in cart') : 'Add' }}</span>
                             </button>
                         </div>
                     </div>
@@ -691,7 +1036,7 @@
         </div>
     </main>
 
-    <!-- 4. Card Click Interface (Product Detail View - Foodies Pakistan Modal / Drawer) -->
+    <!-- 6. Card Click Interface (Product Detail View - Modal / Bottom-Sheet) -->
     <div
         class="fp-modal-backdrop"
         *ngIf="detailModalVisible && selectedProduct"
@@ -797,17 +1142,19 @@
         </div>
     </div>
 
-    <!-- 5. Slide-out Cart Drawer (Foodies Style) -->
+    <!-- 7. Slide-out Cart Drawer (Cheezious Style) -->
     <p-sidebar
         [(visible)]="cartService.sidebarVisible"
         position="right"
         [baseZIndex]="10000"
-        styleClass="w-full sm:w-26rem"
+        styleClass="w-full sm:w-26rem fp-cart-sidebar"
     >
         <ng-template pTemplate="header">
             <div class="flex align-items-center gap-2">
-                <i class="pi pi-shopping-bag text-primary text-xl"></i>
-                <h4 class="m-0 font-bold text-900">{{ branchName ? (branchName + ' Cart') : 'Your Cart' }}</h4>
+                <div class="w-2rem h-2rem border-round-circle bg-red-100 text-red-600 flex align-items-center justify-content-center">
+                    <i class="pi pi-shopping-bag text-base"></i>
+                </div>
+                <h4 class="m-0 font-extrabold text-900">{{ branchName ? (branchName + ' Cart') : 'Your Cart' }}</h4>
             </div>
         </ng-template>
 
@@ -815,9 +1162,18 @@
             <!-- Cart Items List -->
             <div class="overflow-y-auto flex-grow-1 pr-1">
                 <div *ngIf="cartService.items.length === 0" class="text-center py-8">
-                    <i class="pi pi-shopping-cart text-5xl text-300 mb-3 block"></i>
-                    <h5 class="text-900 font-bold mb-1">Your cart is empty</h5>
-                    <p class="text-500 text-sm">Add items or products to your cart to begin.</p>
+                    <div class="w-4rem h-4rem border-round-circle bg-orange-50 text-orange-400 mx-auto flex align-items-center justify-content-center text-3xl mb-3">
+                        <i class="pi pi-shopping-cart"></i>
+                    </div>
+                    <h5 class="text-900 font-extrabold mb-1">Your cart is empty</h5>
+                    <p class="text-500 text-sm">Add your favorite meals or deals to start ordering!</p>
+                    <button
+                        pButton
+                        type="button"
+                        label="Explore Menu"
+                        class="p-button-danger p-button-sm border-round-3xl mt-2 font-bold"
+                        (click)="cartService.sidebarVisible = false; scrollToSection('menu')"
+                    ></button>
                 </div>
 
                 <div
@@ -855,6 +1211,14 @@
                         <div class="font-bold text-sm text-900 min-w-4rem text-right">
                             PKR {{ (item.quantity * item.unitPrice) | number: '1.0-0' }}
                         </div>
+                        <button
+                            type="button"
+                            class="p-link text-400 hover:text-red-500 ml-1"
+                            (click)="cartService.removeFromCart(item)"
+                            title="Remove item"
+                        >
+                            <i class="pi pi-trash text-xs"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -880,7 +1244,7 @@
                 </div>
                 <div class="flex align-items-center justify-content-between mb-4 text-lg font-bold text-900">
                     <span>Total Amount</span>
-                    <span class="text-red-500">PKR {{ getGrandTotal() | number: '1.0-0' }}</span>
+                    <span class="text-red-600 font-black">PKR {{ getGrandTotal() | number: '1.0-0' }}</span>
                 </div>
 
                 <button
@@ -890,24 +1254,25 @@
                     label="Proceed to Checkout"
                     icon="pi pi-arrow-right"
                     iconPos="right"
-                    class="p-button-danger w-full py-3 border-round-xl font-bold shadow-2"
+                    class="p-button-danger w-full py-3 border-round-xl font-bold shadow-2 fp-btn-checkout"
                     (click)="openCheckout()"
                 ></button>
             </div>
         </div>
     </p-sidebar>
 
-    <!-- 6. Checkout Dialog -->
+    <!-- 8. Checkout Dialog -->
     <p-dialog
         header="Complete Your Order"
         [(visible)]="checkoutModalVisible"
         [modal]="true"
-        [style]="{ width: '420px', maxWidth: '95vw' }"
+        [style]="{ width: '440px', maxWidth: '95vw' }"
         [closable]="!submitting"
         [draggable]="false"
+        styleClass="fp-checkout-dialog"
     >
         <div class="p-fluid py-2">
-            <!-- 1. Sleek Prominent GPS Live Location Button & Status Card (Top of Drawer/Modal) -->
+            <!-- 1. Sleek GPS Live Location Button & Status Card -->
             <div class="mb-3">
                 <button
                     type="button"
@@ -973,17 +1338,17 @@
                     </div>
                 </div>
 
-                <!-- 📏 Real-Time Distance & Route Difference Calculation -->
+                <!-- Real-Time Distance & Route Difference Calculation -->
                 <div *ngIf="locationCaptured && distanceKm !== null" class="mt-2 p-3 border-round-xl border-1 surface-border surface-50 flex flex-column gap-2 shadow-1">
                     <div class="flex align-items-center justify-content-between">
                         <div class="flex align-items-center gap-2">
-                            <div class="w-2rem h-2rem border-round-circle bg-blue-500 text-white flex align-items-center justify-content-center shadow-1">
+                            <div class="w-2rem h-2rem border-round-circle bg-red-500 text-white flex align-items-center justify-content-center shadow-1">
                                 <i class="pi pi-compass text-sm"></i>
                             </div>
                             <div>
                                 <div class="text-xs text-600 font-semibold uppercase">Total Distance from Store</div>
                                 <div class="text-base font-bold text-900 flex align-items-center gap-2">
-                                    <span class="text-blue-600 font-black text-lg">{{ distanceKm }} km</span>
+                                    <span class="text-red-600 font-black text-lg">{{ distanceKm }} km</span>
                                     <span class="text-xs text-500 font-normal">({{ branchName || 'Shop' }})</span>
                                 </div>
                             </div>
@@ -996,36 +1361,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Coordinates difference / breakdown row -->
-                    <div class="surface-0 border-round-lg p-2 text-xs flex align-items-center justify-content-between border-1 border-200">
-                        <div class="flex align-items-center gap-1 text-600">
-                            <i class="pi pi-building text-xs text-blue-500"></i>
-                            <span>Shop: <strong>{{ branchLatitude | number: '1.4-4' }}, {{ branchLongitude | number: '1.4-4' }}</strong></span>
-                        </div>
-                        <i class="pi pi-arrow-right text-400 text-xs"></i>
-                        <div class="flex align-items-center gap-1 text-600">
-                            <i class="pi pi-user text-xs text-green-500"></i>
-                            <span>You: <strong>{{ latitude | number: '1.4-4' }}, {{ longitude | number: '1.4-4' }}</strong></span>
-                        </div>
-                        <a
-                            *ngIf="routeDirectionsLink"
-                            [href]="routeDirectionsLink"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-xs font-bold text-primary hover:underline flex align-items-center gap-1 ml-1"
-                            title="View driving directions on Google Maps"
-                        >
-                            <i class="pi pi-directions"></i>
-                            <span>Route</span>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Info note if store GPS has not been set yet -->
-                <div *ngIf="locationCaptured && distanceKm === null && (!branchLatitude || !branchLongitude)" class="mt-2 p-2 border-round-lg surface-100 text-xs text-600 flex align-items-center gap-2 border-1 surface-border">
-                    <i class="pi pi-info-circle text-blue-500"></i>
-                    <span>Shop location not yet set in Branch Edit. Live coordinates attached to order.</span>
                 </div>
 
                 <!-- Location Error Alert Notification -->
@@ -1097,7 +1432,7 @@
                 <input
                     pInputText
                     [(ngModel)]="deliveryLandmark"
-                    placeholder="e.g. Near Shell Pump, Gulberg III..."
+                    placeholder="e.g. Near Shell Pump, Main Boulevard..."
                     class="border-round-xl"
                 />
             </div>
@@ -1127,7 +1462,7 @@
                     pInputTextarea
                     rows="2"
                     [(ngModel)]="notes"
-                    placeholder="e.g. Extra napkins, ring bell, deliver fresh..."
+                    placeholder="e.g. Extra ketchup, ring bell, handle with care..."
                     class="border-round-xl"
                 ></textarea>
             </div>
@@ -1142,8 +1477,8 @@
                     <span *ngIf="!isFreeDeliveryEligible() && getDeliveryFee() > 0" class="font-bold text-800">PKR {{ getDeliveryFee() | number: '1.0-0' }}</span>
                 </div>
                 <div class="flex align-items-center justify-content-between pt-2 border-top-1 surface-border">
-                    <span class="font-bold text-base text-900">Total Payable:</span>
-                    <span class="font-bold text-xl text-red-500">PKR {{ getGrandTotal() | number: '1.0-0' }}</span>
+                    <span class="font-bold text-base text-900">Total Payable (COD):</span>
+                    <span class="font-black text-xl text-red-600">PKR {{ getGrandTotal() | number: '1.0-0' }}</span>
                 </div>
             </div>
         </div>
@@ -1169,11 +1504,11 @@
         </ng-template>
     </p-dialog>
 
-    <!-- 7. Order Success Confirmation Modal -->
+    <!-- 9. Order Success Confirmation Modal -->
     <p-dialog
         [(visible)]="successModalVisible"
         [modal]="true"
-        [style]="{ width: '400px', maxWidth: '94vw' }"
+        [style]="{ width: '420px', maxWidth: '94vw' }"
         [closable]="false"
         [draggable]="false"
         styleClass="fp-mobile-dialog"
@@ -1182,9 +1517,9 @@
             <div class="w-5rem h-5rem border-round-circle bg-green-100 text-green-600 inline-flex align-items-center justify-content-center text-3xl mb-3 shadow-1">
                 <i class="pi pi-check"></i>
             </div>
-            <h3 class="text-900 font-extrabold mb-1">Order Placed!</h3>
+            <h3 class="text-900 font-black mb-1 text-2xl">Order Placed!</h3>
             <p class="text-600 text-sm mb-3">
-                Your order has been received by our kitchen and will be ready shortly.
+                Your order has been sent to our kitchen and is being freshly prepared.
             </p>
             <div class="surface-100 p-3 border-round-xl mb-4 text-left">
                 <div class="flex justify-content-between align-items-center text-xs text-600 mb-2">
@@ -1228,7 +1563,7 @@
         </div>
     </p-dialog>
 
-    <!-- 8. Mobile Floating Bottom Cart Bar -->
+    <!-- 10. Mobile Floating Bottom Cart Bar -->
     <aside
         class="fp-mobile-bottom-cart-bar md:hidden"
         *ngIf="cartService.totalItemsCount > 0 && !detailModalVisible"
@@ -1253,7 +1588,7 @@
         </div>
     </aside>
 
-    <!-- 9. Mobile Branch Selector Dialog -->
+    <!-- 11. Mobile Branch Selector Dialog -->
     <p-dialog
         header="Choose Location / Branch"
         [(visible)]="mobileBranchModal"
@@ -1283,7 +1618,7 @@
         </div>
     </p-dialog>
 
-    <!-- 10. Branch Missing Error Selection Dialog -->
+    <!-- 12. Branch Missing Error Selection Dialog -->
     <p-dialog
         header="Select a Branch to View Store"
         [(visible)]="branchMissingError"
@@ -1294,7 +1629,7 @@
         styleClass="fp-mobile-dialog"
     >
         <div class="py-2">
-            <p class="text-600 text-sm mb-3">Please select which branch catalog you would like to order from:</p>
+            <p class="text-600 text-sm mb-3">Please select which restaurant branch you would like to order from:</p>
             <p-dropdown
                 [options]="availableBranches"
                 [(ngModel)]="selectedBranchIdForModal"
@@ -1306,7 +1641,7 @@
             <button
                 pButton
                 type="button"
-                label="Open Storefront"
+                label="Open Menu & Order"
                 icon="pi pi-arrow-right"
                 iconPos="right"
                 class="p-button-danger w-full py-3 border-round-xl font-bold shadow-2"
@@ -1316,7 +1651,7 @@
         </div>
     </p-dialog>
 
-    <!-- 11. Fixed Bottom Navigation Dock (Foodies Pakistan 5-Tab Bar) -->
+    <!-- 13. Fixed Bottom Navigation Dock (5-Tab Bar) -->
     <nav class="fp-mobile-bottom-dock md:hidden" aria-label="Bottom Navigation">
         <button
             type="button"
@@ -1379,6 +1714,76 @@
             <span class="dock-active-dot" *ngIf="activeMobileTab === 'account'"></span>
         </button>
     </nav>
+
+    <!-- 14. MODERN RESTAURANT FOOTER & CONTACT SECTION -->
+    <footer class="fp-restaurant-footer" id="storeContactSection">
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <div class="grid">
+                <!-- Col 1: Brand & Bio -->
+                <div class="col-12 md:col-4 mb-4 md:mb-0">
+                    <div class="flex align-items-center gap-2 mb-3">
+                        <div class="brand-logo-sq w-2.5rem h-2.5rem font-bold text-base">
+                            <i [class]="isRestaurantStore() ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
+                        </div>
+                        <div>
+                            <span class="font-black text-xl text-white">{{ branchName || 'Online Restaurant' }}</span>
+                            <div class="text-xs text-400">Fresh & Hot Online Food Delivery</div>
+                        </div>
+                    </div>
+                    <p class="text-400 text-sm line-height-3 mb-3">
+                        Serving mouthwatering gourmet meals, handcrafted burgers, cheesy pizzas, and crispy sides made fresh to order. Fast, hygienic, and delivered with love.
+                    </p>
+                    <div class="flex align-items-center gap-2">
+                        <span class="fp-badge-trust"><i class="pi pi-shield mr-1"></i>100% Halal</span>
+                        <span class="fp-badge-trust"><i class="pi pi-bolt mr-1"></i>Quick Delivery</span>
+                    </div>
+                </div>
+
+                <!-- Col 2: Quick Links -->
+                <div class="col-6 md:col-2 mb-4 md:mb-0">
+                    <h4 class="text-white font-bold text-sm mb-3">Quick Navigation</h4>
+                    <ul class="list-none p-0 m-0 text-sm text-400 flex flex-column gap-2">
+                        <li><a (click)="scrollToSection('home')" class="cursor-pointer hover:text-white transition-colors">Home</a></li>
+                        <li><a (click)="scrollToSection('menu')" class="cursor-pointer hover:text-white transition-colors">Food Menu</a></li>
+                        <li><a (click)="scrollToSection('deals')" class="cursor-pointer hover:text-white transition-colors">Super Deals</a></li>
+                        <li><a (click)="goToTracking()" class="cursor-pointer hover:text-white transition-colors">Track Order</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 3: Popular Categories -->
+                <div class="col-6 md:col-3 mb-4 md:mb-0">
+                    <h4 class="text-white font-bold text-sm mb-3">Categories</h4>
+                    <ul class="list-none p-0 m-0 text-sm text-400 flex flex-column gap-2">
+                        <li *ngFor="let cat of categories.slice(0, 5)"><a (click)="selectCategory(cat)" class="cursor-pointer hover:text-white transition-colors">{{ cat }}</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 4: Branch Contact & Hours -->
+                <div class="col-12 md:col-3">
+                    <h4 class="text-white font-bold text-sm mb-3">Branch & Contact</h4>
+                    <div class="flex flex-column gap-2 text-sm text-400">
+                        <div class="flex align-items-start gap-2" *ngIf="branchAddress">
+                            <i class="pi pi-map-marker text-red-500 mt-1"></i>
+                            <span>{{ branchAddress }}</span>
+                        </div>
+                        <div class="flex align-items-center gap-2" *ngIf="branchPhone">
+                            <i class="pi pi-phone text-green-500"></i>
+                            <span>{{ branchPhone }}</span>
+                        </div>
+                        <div class="flex align-items-center gap-2">
+                            <i class="pi pi-clock text-yellow-500"></i>
+                            <span>Mon - Sun: 11:00 AM - 02:00 AM</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-top-1 surface-border-dark pt-4 mt-4 flex flex-column sm:flex-row align-items-center justify-content-between gap-2 text-xs text-500">
+                <span>© {{ branchName || 'Online Store' }}. All rights reserved. Powered by SmartPOS SaaS.</span>
+                <span>Designed for modern food ordering & fast delivery.</span>
+            </div>
+        </div>
+    </footer>
 
     <!-- Floating Store Chat Widget Button -->
     <div class="store-chat-fab-wrap">

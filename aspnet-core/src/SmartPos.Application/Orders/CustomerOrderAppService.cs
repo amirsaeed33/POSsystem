@@ -24,6 +24,7 @@ using Abp.Net.Mail;
 using Abp.Events.Bus;
 using SmartPos.Emailing;
 using SmartPos.Staffs;
+using SmartPos.Categories;
 
 namespace SmartPos.Orders
 {
@@ -49,6 +50,7 @@ namespace SmartPos.Orders
         private readonly IRepository<DeliveryArea> _deliveryAreaRepository;
         private readonly IRepository<DeliveryPromotion> _deliveryPromotionRepository;
         private readonly IRepository<Staff> _staffRepository;
+        private readonly IRepository<Category> _categoryRepository;
 
         public CustomerOrderAppService(
             IRepository<CustomerOrder> repository,
@@ -66,7 +68,8 @@ namespace SmartPos.Orders
             IRepository<EmailTemplate> emailTemplateRepository,
             IRepository<DeliveryArea> deliveryAreaRepository,
             IRepository<DeliveryPromotion> deliveryPromotionRepository,
-            IRepository<Staff> staffRepository)
+            IRepository<Staff> staffRepository,
+            IRepository<Category> categoryRepository)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -84,6 +87,7 @@ namespace SmartPos.Orders
             _deliveryAreaRepository = deliveryAreaRepository;
             _deliveryPromotionRepository = deliveryPromotionRepository;
             _staffRepository = staffRepository;
+            _categoryRepository = categoryRepository;
             
             CreatePermissionName = PermissionNames.Pages_CustomerOrders_Create;
             UpdatePermissionName = PermissionNames.Pages_CustomerOrders_Edit;
@@ -144,7 +148,9 @@ namespace SmartPos.Orders
                         InStock = isRestaurant ? true : (branchInfo.TryGetValue(p.Id, out info) ? info.Quantity > 0 : true),
                         StockQuantity = isRestaurant ? 999 : (branchInfo.TryGetValue(p.Id, out info) ? info.Quantity : 0),
                         Specifications = p.Specifications,
-                        IsFreeDelivery = p.IsFreeDelivery
+                        IsFreeDelivery = p.IsFreeDelivery,
+                        CategoryId = p.CategoryId,
+                        IsDeal = p.IsDeal || (p.Category != null && p.Category.Name.ToLower().Contains("deal"))
                     })
                     .ToList();
             }
@@ -212,7 +218,9 @@ namespace SmartPos.Orders
                     InStock = inStock,
                     StockQuantity = stockQty,
                     Specifications = product.Specifications,
-                    IsFreeDelivery = product.IsFreeDelivery
+                    IsFreeDelivery = product.IsFreeDelivery,
+                    CategoryId = product.CategoryId,
+                    IsDeal = product.IsDeal || (product.Category != null && product.Category.Name.ToLower().Contains("deal"))
                 };
             }
         }
@@ -243,6 +251,12 @@ namespace SmartPos.Orders
 
                 var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
 
+                var categories = await _categoryRepository.GetAll()
+                    .Where(c => (c.BranchId == branchId || c.BranchId == 0) && c.IsActive && !c.IsDeleted)
+                    .OrderBy(c => c.Name)
+                    .Select(c => c.Name)
+                    .ToListAsync();
+
                 return new OnlineStoreHeaderDto
                 {
                     BranchId = branch != null ? branch.Id : branchId,
@@ -258,8 +272,24 @@ namespace SmartPos.Orders
                     IsRestaurant = isRestaurant,
                     BusinessType = branch != null ? (int)branch.BusinessType : 1,
                     Latitude = branch?.Latitude,
-                    Longitude = branch?.Longitude
+                    Longitude = branch?.Longitude,
+                    Categories = categories
                 };
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<List<string>> GetOnlineCategoriesAsync(int? branchId)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var targetBranchId = branchId ?? 0;
+                var categories = await _categoryRepository.GetAll()
+                    .Where(c => (targetBranchId <= 0 || c.BranchId == targetBranchId || c.BranchId == 0) && c.IsActive && !c.IsDeleted)
+                    .OrderBy(c => c.Name)
+                    .Select(c => c.Name)
+                    .ToListAsync();
+                return categories;
             }
         }
 
