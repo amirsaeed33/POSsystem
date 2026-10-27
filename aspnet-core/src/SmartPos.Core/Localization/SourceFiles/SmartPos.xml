@@ -366,5 +366,10 @@
     <text name="EditDeliveryArea">Edit Delivery Area</text>
     <text name="DeleteDeliveryArea">Delete Delivery Area</text>
     <text name="OverrideDeliveryFee">Override Delivery Fee</text>
+    <text name="PointOfSale">Point of Sale (POS)</text>
+    <text name="DiningTables">Dining Tables</text>
+    <text name="CreateDiningTable">Create Dining Table</text>
+    <text name="EditDiningTable">Edit Dining Table</text>
+    <text name="DeleteDiningTable">Delete Dining Table</text>
   </texts>
 </localizationDictionary>

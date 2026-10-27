@@ -83,7 +83,11 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                         label: isRestaurant ? 'Restaurant POS' : 'POS Screen',
                         icon: 'pi pi-desktop',
                         routerLink: ['/pos'],
-                        permission: PermissionNames.Sales,
+                        anyPermission: [
+                            PermissionNames.Pos,
+                            PermissionNames.DiningTables,
+                            PermissionNames.Sales,
+                        ],
                     },
                     {
                         label: isRestaurant ? 'Online Food Menu' : 'Online Storefront',
@@ -106,7 +110,11 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                                   label: 'Dining Tables & POS',
                                   icon: 'pi pi-table',
                                   routerLink: ['/pos'],
-                                  permission: PermissionNames.Sales,
+                                  anyPermission: [
+                                      PermissionNames.DiningTables,
+                                      PermissionNames.Pos,
+                                      PermissionNames.Sales,
+                                  ],
                               },
                               {
                                   label: 'Online Orders',

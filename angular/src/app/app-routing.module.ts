@@ -14,7 +14,21 @@ const routes: Routes = [
         canActivateChild: [PermissionGuard],
         children: [
             { path: '', loadChildren: () => import('./demo/components/dashboards/dashboards.module').then(m => m.DashboardsModule) },
-            { path: 'pos', data: { breadcrumb: 'POS', permission: PermissionNames.Sales }, loadChildren: () => import('./demo/components/pos/pos.module').then(m => m.PosModule) },
+            {
+                path: 'pos',
+                data: {
+                    breadcrumb: 'POS',
+                    anyPermission: [
+                        PermissionNames.Pos,
+                        PermissionNames.DiningTables,
+                        PermissionNames.Sales,
+                    ],
+                },
+                loadChildren: () =>
+                    import('./demo/components/pos/pos.module').then(
+                        (m) => m.PosModule
+                    ),
+            },
             { path: 'categories', redirectTo: '/product-settings', pathMatch: 'full' },
             { path: 'brands', redirectTo: '/product-settings', pathMatch: 'full' },
             { path: 'units', redirectTo: '/product-settings', pathMatch: 'full' },

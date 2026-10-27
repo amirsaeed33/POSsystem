@@ -8,11 +8,12 @@ using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
+using SmartPos.Authorization;
 using SmartPos.Restaurant.Dto;
 
 namespace SmartPos.Restaurant
 {
-    [AbpAuthorize]
+    [AbpAuthorize(PermissionNames.Pages_DiningTables, PermissionNames.Pages_Pos, PermissionNames.Pages_Sales)]
     public class RestaurantTableAppService : ApplicationService, IRestaurantTableAppService
     {
         private readonly IRepository<RestaurantTable> _tableRepository;

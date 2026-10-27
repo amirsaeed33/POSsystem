@@ -135,5 +135,15 @@ namespace SmartPos.Authorization
         public const string Pages_Rider = "Pages.Rider";
         public const string Pages_Rider_Dashboard = "Pages.Rider.Dashboard";
         public const string Pages_Rider_OrderHistory = "Pages.Rider.OrderHistory";
+
+        public const string Pages_Pos = "Pages.Pos";
+        public const string Pages_Pos_Create = "Pages.Pos.Create";
+        public const string Pages_Pos_Edit = "Pages.Pos.Edit";
+        public const string Pages_Pos_Delete = "Pages.Pos.Delete";
+
+        public const string Pages_DiningTables = "Pages.DiningTables";
+        public const string Pages_DiningTables_Create = "Pages.DiningTables.Create";
+        public const string Pages_DiningTables_Edit = "Pages.DiningTables.Edit";
+        public const string Pages_DiningTables_Delete = "Pages.DiningTables.Delete";
     }
 }

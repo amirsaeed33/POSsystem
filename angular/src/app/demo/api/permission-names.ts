@@ -131,4 +131,14 @@ export const PermissionNames = {
     Rider: 'Pages.Rider',
     RiderDashboard: 'Pages.Rider.Dashboard',
     RiderOrderHistory: 'Pages.Rider.OrderHistory',
+
+    Pos: 'Pages.Pos',
+    PosCreate: 'Pages.Pos.Create',
+    PosEdit: 'Pages.Pos.Edit',
+    PosDelete: 'Pages.Pos.Delete',
+
+    DiningTables: 'Pages.DiningTables',
+    DiningTablesCreate: 'Pages.DiningTables.Create',
+    DiningTablesEdit: 'Pages.DiningTables.Edit',
+    DiningTablesDelete: 'Pages.DiningTables.Delete',
 } as const;

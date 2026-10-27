@@ -145,6 +145,16 @@ namespace SmartPos.Authorization
             var rider = context.CreatePermission(PermissionNames.Pages_Rider, L("RiderPortal"));
             rider.CreateChildPermission(PermissionNames.Pages_Rider_Dashboard, L("RiderDashboard"));
             rider.CreateChildPermission(PermissionNames.Pages_Rider_OrderHistory, L("RiderOrderHistory"));
+
+            var pos = context.CreatePermission(PermissionNames.Pages_Pos, L("PointOfSale"));
+            pos.CreateChildPermission(PermissionNames.Pages_Pos_Create, L("CreateSale"));
+            pos.CreateChildPermission(PermissionNames.Pages_Pos_Edit, L("EditSale"));
+            pos.CreateChildPermission(PermissionNames.Pages_Pos_Delete, L("DeleteSale"));
+
+            var diningTables = context.CreatePermission(PermissionNames.Pages_DiningTables, L("DiningTables"));
+            diningTables.CreateChildPermission(PermissionNames.Pages_DiningTables_Create, L("CreateDiningTable"));
+            diningTables.CreateChildPermission(PermissionNames.Pages_DiningTables_Edit, L("EditDiningTable"));
+            diningTables.CreateChildPermission(PermissionNames.Pages_DiningTables_Delete, L("DeleteDiningTable"));
         }
 
         private static ILocalizableString L(string name)
