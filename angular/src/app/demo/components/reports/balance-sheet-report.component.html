@@ -2,15 +2,22 @@
     <!-- Screen Header -->
     <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3 no-print">
         <h5 class="m-0 font-bold">Balance Sheet & Financial Summary</h5>
-        <button
-            pButton
-            pRipple
-            type="button"
-            icon="pi pi-print"
-            label="Print Balance Sheet"
-            class="p-button-outlined"
-            (click)="printReport()"
-        ></button>
+        <div class="flex align-items-center gap-2">
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-print"
+                label="Print Balance Sheet"
+                class="p-button-outlined"
+                (click)="printReport()"
+            ></button>
+            <app-share-report-button
+                [fetchPdf]="fetchPdf"
+                fileName="Balance-Sheet-Report.pdf"
+                title="Balance Sheet & Financial Summary"
+            ></app-share-report-button>
+        </div>
     </div>
 
     <!-- Date Range & Search Filters -->

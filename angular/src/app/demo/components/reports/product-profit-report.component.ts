@@ -23,6 +23,13 @@ export class ProductProfitReportComponent implements OnInit {
         items: [],
     };
 
+    fetchPdf = () =>
+        this.reportService.getProductProfitReportPdf({
+            fromDate: this.fromDate || undefined,
+            toDate: this.toDate || undefined,
+            keyword: this.keyword?.trim() || undefined,
+        });
+
     constructor(
         private reportService: ReportService,
         public formatService: AppFormatService,

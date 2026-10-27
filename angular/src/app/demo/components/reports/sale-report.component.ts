@@ -22,6 +22,13 @@ export class SaleReportComponent implements OnInit {
     printDialogVisible = false;
     printingSaleId: number | null = null;
 
+    fetchPdf = () =>
+        this.reportService.getSaleReportPdf({
+            fromDate: this.fromDate || undefined,
+            toDate: this.toDate || undefined,
+            keyword: this.keyword?.trim() || undefined,
+        });
+
     constructor(public formatService: AppFormatService, 
         private reportService: ReportService,
         private notificationEmailService: NotificationEmailService,

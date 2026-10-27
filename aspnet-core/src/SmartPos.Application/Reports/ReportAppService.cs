@@ -7,6 +7,8 @@ using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Abp.Web.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
@@ -17,6 +19,7 @@ using SmartPos.Inventory;
 using SmartPos.Products;
 using SmartPos.Purchases;
 using SmartPos.Reports.Dto;
+using SmartPos.Reports.Pdf;
 using SmartPos.Accounts;
 using SmartPos.Customers;
 using SmartPos.Sales;
@@ -40,6 +43,8 @@ namespace SmartPos.Reports
         private readonly AccountBalanceManager _accountBalanceManager;
         private readonly IRepository<Customer> _customerRepository;
         private readonly IRepository<Supplier> _supplierRepository;
+        private readonly IReportPdfBuilder _reportPdfBuilder;
+        private readonly IRepository<Branch> _branchRepository;
 
         public ReportAppService(
             IRepository<Sale> saleRepository,
@@ -54,7 +59,9 @@ namespace SmartPos.Reports
             IRepository<BusinessAccount> accountRepository,
             AccountBalanceManager accountBalanceManager,
             IRepository<Customer> customerRepository,
-            IRepository<Supplier> supplierRepository)
+            IRepository<Supplier> supplierRepository,
+            IReportPdfBuilder reportPdfBuilder,
+            IRepository<Branch> branchRepository)
         {
             _saleRepository = saleRepository;
             _purchaseRepository = purchaseRepository;
@@ -69,6 +76,8 @@ namespace SmartPos.Reports
             _accountBalanceManager = accountBalanceManager;
             _customerRepository = customerRepository;
             _supplierRepository = supplierRepository;
+            _reportPdfBuilder = reportPdfBuilder;
+            _branchRepository = branchRepository;
         }
 
         public async Task<SaleReportDto> GetSaleReportAsync(ReportDateRangeInput input)
@@ -620,6 +629,98 @@ namespace SmartPos.Reports
             }
 
             return (from, toExclusive);
+        }
+
+        private async Task<string> GetEffectiveBranchNameAsync()
+        {
+            var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            if (!branchId.HasValue) return null;
+            var branch = await _branchRepository.FirstOrDefaultAsync(branchId.Value);
+            return branch?.Name;
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetSaleReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetSaleReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Sale-Report.pdf"
+            };
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetPurchaseReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetPurchaseReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Purchase-Report.pdf"
+            };
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetExpenseReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetExpenseReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Expense-Report.pdf"
+            };
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetStockReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetStockReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Stock-Report.pdf"
+            };
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetProductProfitReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetProductProfitReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Product-Profit-Report.pdf"
+            };
+        }
+
+        [HttpGet]
+        [DontWrapResult]
+        public async Task<FileContentResult> GetBalanceSheetReportPdf(ReportDateRangeInput input)
+        {
+            var report = await GetBalanceSheetReportAsync(input);
+            var branchName = await GetEffectiveBranchNameAsync();
+            var pdfModel = report.ToPdfModel(input, branchName);
+            var bytes = _reportPdfBuilder.Build(pdfModel);
+            return new FileContentResult(bytes, "application/pdf")
+            {
+                FileDownloadName = "Balance-Sheet-Report.pdf"
+            };
         }
     }
 }

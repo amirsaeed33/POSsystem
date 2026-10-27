@@ -21,6 +21,11 @@
                 class="p-button-outlined"
                 (click)="printReport()"
             ></button>
+            <app-share-report-button
+                [fetchPdf]="fetchPdf"
+                fileName="Sale-Report.pdf"
+                title="Sale Report"
+            ></app-share-report-button>
         </div>
     </div>
 

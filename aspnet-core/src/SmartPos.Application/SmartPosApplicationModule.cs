@@ -1,4 +1,4 @@
-﻿using Abp.AutoMapper;
+using Abp.AutoMapper;
 using Abp.Modules;
 using Abp.Reflection.Extensions;
 using SmartPos.Authorization;
@@ -12,6 +12,8 @@ namespace SmartPos
     {
         public override void PreInitialize()
         {
+            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+            QuestPDF.Settings.UseSystemFonts = true;
             Configuration.Authorization.Providers.Add<SmartPosAuthorizationProvider>();
         }
 

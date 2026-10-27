@@ -1,10 +1,14 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using SmartPos.EntityFrameworkCore;
 
 #nullable disable
 
 namespace SmartPos.Migrations
 {
+    [DbContext(typeof(SmartPosDbContext))]
+    [Migration("20261025110000_Added_CustomerChatMessages")]
     public partial class Added_CustomerChatMessages : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

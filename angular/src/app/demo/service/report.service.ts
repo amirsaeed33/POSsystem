@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import {
     ExpenseReportDto,
     ExpenseReportRowDto,
@@ -102,6 +102,50 @@ export class ReportService {
         return this.mapProductProfitReport(
             this.unwrap(res, 'Failed to load product profit report')
         );
+    }
+
+    getSaleReportPdf(input?: ReportDateRangeInput): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/GetSaleReportPdf`, {
+            params: this.toParams(input),
+            responseType: 'blob',
+        });
+    }
+
+    getPurchaseReportPdf(input?: ReportDateRangeInput): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/GetPurchaseReportPdf`, {
+            params: this.toParams(input),
+            responseType: 'blob',
+        });
+    }
+
+    getExpenseReportPdf(input?: ReportDateRangeInput): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/GetExpenseReportPdf`, {
+            params: this.toParams(input),
+            responseType: 'blob',
+        });
+    }
+
+    getStockReportPdf(input?: ReportDateRangeInput | string): Observable<Blob> {
+        const normalizedInput: ReportDateRangeInput =
+            typeof input === 'string' ? { keyword: input } : (input ?? {});
+        return this.http.get(`${this.apiUrl}/GetStockReportPdf`, {
+            params: this.toParams(normalizedInput),
+            responseType: 'blob',
+        });
+    }
+
+    getProductProfitReportPdf(input?: ReportDateRangeInput): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/GetProductProfitReportPdf`, {
+            params: this.toParams(input),
+            responseType: 'blob',
+        });
+    }
+
+    getBalanceSheetReportPdf(input?: ReportDateRangeInput): Observable<Blob> {
+        return this.http.get(`${this.apiUrl}/GetBalanceSheetReportPdf`, {
+            params: this.toParams(input),
+            responseType: 'blob',
+        });
     }
 
     private toParams(input?: ReportDateRangeInput): any {
