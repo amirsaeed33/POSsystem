@@ -2,6 +2,7 @@ export const OrderTypes = {
     DineIn: 1,
     Takeaway: 2,
     Delivery: 3,
+    CarService: 4,
 } as const;
 
 export type OrderType = (typeof OrderTypes)[keyof typeof OrderTypes];
@@ -24,6 +25,9 @@ export interface RestaurantOrderDto {
     tableNo?: string;
     orderType: OrderType;
     orderTypeName: string;
+    carName?: string;
+    carNumber?: string;
+    carLocation?: string;
     status: RestaurantOrderStatus;
     statusName: string;
     customerId?: number | null;
@@ -68,6 +72,9 @@ export interface CreateOrUpdateRestaurantOrderDto {
     tableId?: number | null;
     tableNo?: string;
     orderType: OrderType;
+    carName?: string;
+    carNumber?: string;
+    carLocation?: string;
     customerId?: number | null;
     waiterName?: string;
     notes?: string;
@@ -76,6 +83,15 @@ export interface CreateOrUpdateRestaurantOrderDto {
     taxPercent?: number;
     serviceChargePercent?: number;
     lines: CreateOrUpdateRestaurantOrderLineDto[];
+}
+
+export interface ReserveCarServiceDto {
+    branchId: number;
+    carName: string;
+    carNumber: string;
+    carLocation: string;
+    waiterName?: string;
+    notes?: string;
 }
 
 export interface CreateOrUpdateRestaurantOrderLineDto {
@@ -94,6 +110,9 @@ export interface SendToKitchenResultDto {
     orderId: number;
     orderNo: string;
     tableNo: string;
+    carName?: string;
+    carNumber?: string;
+    carLocation?: string;
     waiterName: string;
     printTime: string;
     printedBy?: string;

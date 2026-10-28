@@ -16,6 +16,10 @@ namespace SmartPos.Restaurant
 
         Task<RestaurantOrderDto> SaveOrderAsync(CreateOrUpdateRestaurantOrderDto input);
 
+        Task<RestaurantOrderDto> ReserveCarServiceAsync(ReserveCarServiceDto input);
+
+        Task<List<RestaurantOrderDto>> GetActiveCarOrdersAsync(int branchId);
+
         Task<SendToKitchenResultDto> SendToKitchenAsync(int orderId);
 
         Task<SendToKitchenResultDto> ConfirmKotPrintAsync(ConfirmKotPrintDto input);

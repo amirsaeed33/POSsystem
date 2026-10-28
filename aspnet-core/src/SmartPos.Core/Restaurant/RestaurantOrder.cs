@@ -17,6 +17,9 @@ namespace SmartPos.Restaurant
         public const int MaxNotesLength = 1024;
         public const int MaxWaiterNameLength = 128;
         public const int MaxTableNoLength = 64;
+        public const int MaxCarNameLength = 128;
+        public const int MaxCarNumberLength = 64;
+        public const int MaxCarLocationLength = 128;
 
         public virtual int? TenantId { get; set; }
 
@@ -37,6 +40,15 @@ namespace SmartPos.Restaurant
         public virtual string TableNo { get; set; }
 
         public virtual OrderType OrderType { get; set; } = OrderType.DineIn;
+
+        [StringLength(MaxCarNameLength)]
+        public virtual string CarName { get; set; }
+
+        [StringLength(MaxCarNumberLength)]
+        public virtual string CarNumber { get; set; }
+
+        [StringLength(MaxCarLocationLength)]
+        public virtual string CarLocation { get; set; }
 
         public virtual RestaurantOrderStatus Status { get; set; } = RestaurantOrderStatus.Open;
 

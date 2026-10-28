@@ -17,6 +17,12 @@ namespace SmartPos.Restaurant.Dto
 
         public OrderType OrderType { get; set; } = OrderType.DineIn;
 
+        public string CarName { get; set; }
+
+        public string CarNumber { get; set; }
+
+        public string CarLocation { get; set; }
+
         public int? CustomerId { get; set; }
 
         public string WaiterName { get; set; }
@@ -31,8 +37,6 @@ namespace SmartPos.Restaurant.Dto
 
         public decimal ServiceChargePercent { get; set; }
 
-        [Required]
-        [MinLength(1)]
         public List<CreateOrUpdateRestaurantOrderLineDto> Lines { get; set; } = new List<CreateOrUpdateRestaurantOrderLineDto>();
     }
 

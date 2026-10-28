@@ -11,6 +11,7 @@ import {
     SettleRestaurantOrderDto,
     SplitBillDto,
     UnpaidTakeawayOrderDto,
+    ReserveCarServiceDto,
 } from '../api/restaurant-order';
 import { environment } from '../../../environments/environment';
 
@@ -53,6 +54,25 @@ export class RestaurantOrderService {
             this.http.post<any>(`${this.apiUrl}/SaveOrder`, dto)
         );
         return this.unwrap(res, 'Failed to save restaurant order');
+    }
+
+    async reserveCarService(
+        dto: ReserveCarServiceDto
+    ): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/ReserveCarService`, dto)
+        );
+        return this.unwrap(res, 'Failed to reserve car service');
+    }
+
+    async getActiveCarOrders(branchId: number): Promise<RestaurantOrderDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetActiveCarOrders`, {
+                params: { branchId },
+            })
+        );
+        const list = this.unwrap(res, 'Failed to load active car orders');
+        return Array.isArray(list) ? list : [];
     }
 
     async sendToKitchen(orderId: number): Promise<SendToKitchenResultDto> {

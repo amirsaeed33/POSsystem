@@ -19,6 +19,12 @@ namespace SmartPos.Restaurant.Dto
 
         public string OrderTypeName => OrderType.ToString();
 
+        public string CarName { get; set; }
+
+        public string CarNumber { get; set; }
+
+        public string CarLocation { get; set; }
+
         public RestaurantOrderStatus Status { get; set; }
 
         public string StatusName => Status.ToString();

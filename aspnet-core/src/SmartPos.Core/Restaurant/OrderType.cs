@@ -4,6 +4,7 @@ namespace SmartPos.Restaurant
     {
         DineIn = 1,
         Takeaway = 2,
-        Delivery = 3
+        Delivery = 3,
+        CarService = 4
     }
 }

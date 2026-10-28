@@ -12,6 +12,12 @@ namespace SmartPos.Restaurant.Dto
 
         public string TableNo { get; set; }
 
+        public string CarName { get; set; }
+
+        public string CarNumber { get; set; }
+
+        public string CarLocation { get; set; }
+
         public string WaiterName { get; set; }
 
         public DateTime PrintTime { get; set; } = DateTime.UtcNow;
@@ -29,6 +35,25 @@ namespace SmartPos.Restaurant.Dto
         public string Message { get; set; }
 
         public List<KitchenSlipItemDto> NewItems { get; set; } = new List<KitchenSlipItemDto>();
+    }
+
+    public class ReserveCarServiceDto
+    {
+        [Required]
+        public int BranchId { get; set; }
+
+        [Required]
+        public string CarName { get; set; }
+
+        [Required]
+        public string CarNumber { get; set; }
+
+        [Required]
+        public string CarLocation { get; set; }
+
+        public string WaiterName { get; set; }
+
+        public string Notes { get; set; }
     }
 
     public class RecordPrintLogDto

@@ -190,14 +190,18 @@ namespace SmartPos.Restaurant
             }
             else
             {
+                var isCar = input.OrderType == OrderType.CarService || !string.IsNullOrWhiteSpace(input.CarNumber);
                 order = new RestaurantOrder
                 {
                     BranchId = input.BranchId,
                     OrderNo = GenerateOrderNumber(),
                     TableId = null,
-                    TableNo = "Takeaway",
+                    TableNo = isCar ? $"Car: {input.CarName} - {input.CarNumber}" : "Takeaway",
+                    CarName = input.CarName,
+                    CarNumber = input.CarNumber,
+                    CarLocation = input.CarLocation,
                     Status = RestaurantOrderStatus.Open,
-                    OrderType = input.OrderType
+                    OrderType = isCar ? OrderType.CarService : input.OrderType
                 };
                 isNew = true;
             }
@@ -223,9 +227,16 @@ namespace SmartPos.Restaurant
             }
             order.Notes = input.Notes;
             order.OrderType = input.OrderType;
+            if (!string.IsNullOrWhiteSpace(input.CarName)) order.CarName = input.CarName;
+            if (!string.IsNullOrWhiteSpace(input.CarNumber)) order.CarNumber = input.CarNumber;
+            if (!string.IsNullOrWhiteSpace(input.CarLocation)) order.CarLocation = input.CarLocation;
             if (!string.IsNullOrWhiteSpace(input.TableNo))
             {
                 order.TableNo = input.TableNo;
+            }
+            else if (order.OrderType == OrderType.CarService && !string.IsNullOrWhiteSpace(order.CarNumber))
+            {
+                order.TableNo = $"Car: {order.CarName} - {order.CarNumber}";
             }
 
             decimal subTotal = 0;
@@ -321,7 +332,7 @@ namespace SmartPos.Restaurant
             order.TaxAmount = input.TaxPercent > 0 ? Math.Round((taxable * input.TaxPercent) / 100m, 2) : 0;
 
             order.ServiceChargePercent = input.ServiceChargePercent;
-            order.ServiceChargeAmount = (input.ServiceChargePercent > 0 && input.OrderType == OrderType.DineIn)
+            order.ServiceChargeAmount = (input.ServiceChargePercent > 0 && (input.OrderType == OrderType.DineIn || input.OrderType == OrderType.CarService))
                 ? Math.Round((taxable * input.ServiceChargePercent) / 100m, 2)
                 : 0;
 
@@ -351,6 +362,68 @@ namespace SmartPos.Restaurant
             }
 
             return ObjectMapper.Map<RestaurantOrderDto>(order);
+        }
+
+        public async Task<RestaurantOrderDto> ReserveCarServiceAsync(ReserveCarServiceDto input)
+        {
+            if (input == null) throw new ArgumentNullException(nameof(input));
+            if (string.IsNullOrWhiteSpace(input.CarName))
+                throw new UserFriendlyException("Car Name is required.");
+            if (string.IsNullOrWhiteSpace(input.CarNumber))
+                throw new UserFriendlyException("Car Number is required.");
+            if (string.IsNullOrWhiteSpace(input.CarLocation))
+                throw new UserFriendlyException("Car Location is required.");
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(input.BranchId);
+
+            var isWaiter = await IsCurrentUserWaiterAsync();
+            string waiter = input.WaiterName;
+            if (isWaiter)
+            {
+                var printer = await GetCurrentPrinterIdentityAsync();
+                waiter = printer.Name;
+            }
+
+            var order = new RestaurantOrder
+            {
+                TenantId = AbpSession.TenantId,
+                BranchId = input.BranchId,
+                OrderNo = GenerateOrderNumber(),
+                TableId = null,
+                TableNo = $"Car: {input.CarName.Trim()} - {input.CarNumber.Trim()}",
+                OrderType = OrderType.CarService,
+                Status = RestaurantOrderStatus.Open,
+                CarName = input.CarName.Trim(),
+                CarNumber = input.CarNumber.Trim(),
+                CarLocation = input.CarLocation.Trim(),
+                WaiterName = string.IsNullOrWhiteSpace(waiter) ? "Staff" : waiter.Trim(),
+                Notes = input.Notes,
+                Lines = new List<RestaurantOrderLine>()
+            };
+
+            var id = await _orderRepository.InsertAndGetIdAsync(order);
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            var saved = await _orderRepository.GetAll()
+                .Include(o => o.Lines)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            return ObjectMapper.Map<RestaurantOrderDto>(saved);
+        }
+
+        public async Task<List<RestaurantOrderDto>> GetActiveCarOrdersAsync(int branchId)
+        {
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(branchId);
+            var orders = await _orderRepository.GetAll()
+                .Include(o => o.Lines)
+                .Include(o => o.Customer)
+                .Where(o => o.BranchId == branchId &&
+                            (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed) &&
+                            (o.OrderType == OrderType.CarService || !string.IsNullOrEmpty(o.CarNumber)))
+                .OrderByDescending(o => o.CreationTime)
+                .ToListAsync();
+
+            return ObjectMapper.Map<List<RestaurantOrderDto>>(orders);
         }
 
         public async Task<SendToKitchenResultDto> SendToKitchenAsync(int orderId)
@@ -394,6 +467,11 @@ namespace SmartPos.Restaurant
                 await _orderRepository.UpdateAsync(order);
             }
 
+            var isCarOrder = order.OrderType == OrderType.CarService || !string.IsNullOrWhiteSpace(order.CarNumber);
+            var displayTableNo = isCarOrder
+                ? $"Car: {order.CarName} - {order.CarNumber} ({order.CarLocation})"
+                : (order.TableNo ?? "Takeaway");
+
             // Never reprint previously sent items, whether admin or waiter
             if (!itemsToPrint.Any())
             {
@@ -401,7 +479,10 @@ namespace SmartPos.Restaurant
                 {
                     OrderId = order.Id,
                     OrderNo = order.OrderNo,
-                    TableNo = order.TableNo ?? "Takeaway",
+                    TableNo = displayTableNo,
+                    CarName = order.CarName,
+                    CarNumber = order.CarNumber,
+                    CarLocation = order.CarLocation,
                     WaiterName = order.WaiterName ?? "Staff",
                     PrintTime = DateTime.UtcNow,
                     PrintedBy = $"{printer.Name} ({printer.Role})",
@@ -420,7 +501,10 @@ namespace SmartPos.Restaurant
             {
                 OrderId = order.Id,
                 OrderNo = order.OrderNo,
-                TableNo = order.TableNo ?? "Takeaway",
+                TableNo = displayTableNo,
+                CarName = order.CarName,
+                CarNumber = order.CarNumber,
+                CarLocation = order.CarLocation,
                 WaiterName = order.WaiterName ?? "Staff",
                 PrintTime = DateTime.UtcNow,
                 PrintedBy = $"{printer.Name} ({printer.Role})",
@@ -478,11 +562,19 @@ namespace SmartPos.Restaurant
 
             await CurrentUnitOfWork.SaveChangesAsync();
 
+            var isCarOrder = order.OrderType == OrderType.CarService || !string.IsNullOrWhiteSpace(order.CarNumber);
+            var displayTableNo = isCarOrder
+                ? $"Car: {order.CarName} - {order.CarNumber} ({order.CarLocation})"
+                : (order.TableNo ?? "Takeaway");
+
             return new SendToKitchenResultDto
             {
                 OrderId = order.Id,
                 OrderNo = order.OrderNo,
-                TableNo = order.TableNo ?? "Takeaway",
+                TableNo = displayTableNo,
+                CarName = order.CarName,
+                CarNumber = order.CarNumber,
+                CarLocation = order.CarLocation,
                 WaiterName = order.WaiterName ?? "Staff",
                 PrintTime = now,
                 PrintedBy = $"{printer.Name} ({printer.Role})",
@@ -577,17 +669,31 @@ namespace SmartPos.Restaurant
             }
 
             string waiterTag = !string.IsNullOrWhiteSpace(order.WaiterName) ? $" [Waiter: {order.WaiterName}]" : "";
-            string tableTag = order.OrderType == OrderType.DineIn
-                ? $"[Dine-In - Table {order.TableNo}]{waiterTag}"
-                : "[Takeaway]";
+            string tableTag;
+            if (order.OrderType == OrderType.CarService || !string.IsNullOrWhiteSpace(order.CarNumber))
+            {
+                tableTag = $"[Car Service - {order.CarName} ({order.CarNumber}) - {order.CarLocation}]{waiterTag}";
+            }
+            else if (order.OrderType == OrderType.DineIn)
+            {
+                tableTag = $"[Dine-In - Table {order.TableNo}]{waiterTag}";
+            }
+            else
+            {
+                tableTag = "[Takeaway]";
+            }
             string finalNotes = string.IsNullOrWhiteSpace(input.Notes)
                 ? tableTag
                 : $"{tableTag} {input.Notes.Trim()}";
 
+            var customerId = input.CustomerId > 0 
+                ? input.CustomerId 
+                : (order.CustomerId.HasValue && order.CustomerId.Value > 0 ? order.CustomerId.Value : 1);
+
             // Settle order via SaleAppService
             var saleDto = new CreateSaleDto
             {
-                CustomerId = input.CustomerId,
+                CustomerId = customerId,
                 SaleDate = DateTime.UtcNow,
                 Notes = finalNotes,
                 DiscountAmount = order.DiscountAmount,
