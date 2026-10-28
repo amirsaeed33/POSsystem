@@ -17,6 +17,8 @@ import { CustomerChatService } from 'src/app/demo/service/customer-chat.service'
 import { CustomerChatMessageDto, CustomerOrderConversationDto } from 'src/app/demo/api/customer-chat';
 import { environment } from 'src/environments/environment';
 import { Subscription } from 'rxjs';
+import { RestaurantTakeawayAlarmService } from 'src/app/demo/service/restaurant-takeaway-alarm.service';
+import { UnpaidTakeawayOrderDto } from 'src/app/demo/api/restaurant-order';
 
 @Component({
     selector: 'app-topbar',
@@ -61,6 +63,10 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         return this.authService.isDeliveryRider();
     }
 
+    get isWaiter(): boolean {
+        return this.authService.isWaiter();
+    }
+
     todayPendingOrders: CustomerOrderDto[] = [];
     pendingOrdersCount = 0;
     loadingOrders = false;
@@ -76,6 +82,13 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     private newOrderSub?: Subscription;
     private orderStatusSub?: Subscription;
 
+    // Restaurant Unpaid Takeaway Alarm State
+    unpaidTakeawayOrders: UnpaidTakeawayOrderDto[] = [];
+    takeawayAudioBlocked = false;
+    takeawayOrdersDialogVisible = false;
+    private takeawayAlarmSub?: Subscription;
+    private takeawayAudioSub?: Subscription;
+
     readonly BranchStatuses = BranchStatuses;
 
     constructor(
@@ -88,6 +101,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         private permissionService: PermissionService,
         private customerOrderService: CustomerOrderService,
         private customerChatService: CustomerChatService,
+        public takeawayAlarmService: RestaurantTakeawayAlarmService,
         private messageService: MessageService,
         private router: Router
     ) {}
@@ -132,7 +146,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             if (b) {
                 this.currentBranch = b;
                 this.branchLogoFailed = false;
-                if (!this.isDeliveryRider) {
+                if (!this.isDeliveryRider && !this.isWaiter) {
                     this.loadTodayOrders();
                     if (b.id) {
                         this.customerChatService.joinBranchChat(b.id);
@@ -147,11 +161,18 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             .catch(() => undefined)
             .finally(() => this.loadUserInfo());
 
-        if (!this.isDeliveryRider) {
+        if (!this.isDeliveryRider && !this.isWaiter) {
             this.loadTodayOrders();
             this.orderPollTimer = setInterval(() => this.loadTodayOrders(), 30000);
             this.initChatListener();
         }
+
+        this.takeawayAlarmSub = this.takeawayAlarmService.unpaidOrders$.subscribe((orders) => {
+            this.unpaidTakeawayOrders = orders || [];
+        });
+        this.takeawayAudioSub = this.takeawayAlarmService.audioBlocked$.subscribe((blocked) => {
+            this.takeawayAudioBlocked = blocked;
+        });
     }
 
     ngOnDestroy(): void {
@@ -170,6 +191,25 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         if (this.orderStatusSub) {
             this.orderStatusSub.unsubscribe();
         }
+        if (this.takeawayAlarmSub) {
+            this.takeawayAlarmSub.unsubscribe();
+        }
+        if (this.takeawayAudioSub) {
+            this.takeawayAudioSub.unsubscribe();
+        }
+    }
+
+    enableTakeawayAudio(): void {
+        this.takeawayAlarmService.enableAudio();
+    }
+
+    toggleTakeawayMute(): void {
+        this.takeawayAlarmService.toggleMute();
+    }
+
+    openTakeawayInPos(order: UnpaidTakeawayOrderDto): void {
+        this.takeawayOrdersDialogVisible = false;
+        this.router.navigate(['/pos'], { queryParams: { restaurantOrderId: order.id } });
     }
 
     private initChatListener(): void {
@@ -218,7 +258,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     async loadUnreadChatCount(): Promise<void> {
-        if (this.isDeliveryRider || !this.currentBranch?.id) return;
+        if (this.isDeliveryRider || this.isWaiter || !this.currentBranch?.id) return;
         try {
             this.unreadChatCount = await this.customerChatService.getBranchUnreadCount(this.currentBranch.id);
         } catch {}
@@ -361,6 +401,11 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                         const currentUrl = this.router.url || '';
                         if (!currentUrl.startsWith('/rider') && !currentUrl.startsWith('/auth')) {
                             this.router.navigateByUrl('/rider/dashboard');
+                        }
+                    } else if (this.authService.isWaiter()) {
+                        const currentUrl = this.router.url || '';
+                        if (!currentUrl.startsWith('/pos') && !currentUrl.startsWith('/auth')) {
+                            this.router.navigateByUrl('/pos');
                         }
                     }
                 }
@@ -514,6 +559,8 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             }
         } else if (user.isDeliveryRider || (user.designation && user.designation.toLowerCase().includes('rider'))) {
             this.userRole = 'Delivery Rider';
+        } else if (user.isWaiter || (user.designation && (user.designation.toLowerCase().includes('waiter') || user.designation.toLowerCase().includes('server')))) {
+            this.userRole = 'Waiter';
         } else {
             this.userRole = 'User';
         }

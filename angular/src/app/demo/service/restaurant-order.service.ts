@@ -3,10 +3,13 @@ import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
     CreateOrUpdateRestaurantOrderDto,
+    RecordPrintLogDto,
     RestaurantOrderDto,
+    RestaurantPrintLogDto,
     SendToKitchenResultDto,
     SettleRestaurantOrderDto,
     SplitBillDto,
+    UnpaidTakeawayOrderDto,
 } from '../api/restaurant-order';
 import { environment } from '../../../environments/environment';
 
@@ -90,6 +93,33 @@ export class RestaurantOrderService {
             this.http.post<any>(`${this.apiUrl}/SplitBill`, dto)
         );
         return this.unwrap(res, 'Failed to split bill');
+    }
+
+    async recordPrintLog(dto: RecordPrintLogDto): Promise<RestaurantPrintLogDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/RecordPrintLog`, dto)
+        );
+        return this.unwrap(res, 'Failed to record print log');
+    }
+
+    async getOrderPrintLogs(orderId: number): Promise<RestaurantPrintLogDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetOrderPrintLogs`, {
+                params: { orderId },
+            })
+        );
+        const list = this.unwrap(res, 'Failed to load order print logs');
+        return Array.isArray(list) ? list : [];
+    }
+
+    async getUnpaidTakeawayOrders(branchId: number): Promise<UnpaidTakeawayOrderDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetUnpaidTakeawayOrders`, {
+                params: { branchId },
+            })
+        );
+        const list = this.unwrap(res, 'Failed to load unpaid takeaway orders');
+        return Array.isArray(list) ? list : [];
     }
 
     private unwrap(res: any, fallback: string): any {

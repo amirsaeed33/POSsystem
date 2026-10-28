@@ -11,6 +11,7 @@ namespace SmartPos.Authorization.Roles
         {
             public const string Admin = "Admin";
             public const string DeliveryRider = "Delivery Rider";
+            public const string Waiter = "Waiter";
         }
     }
 }

@@ -106,6 +106,8 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<RestaurantOrderLine> RestaurantOrderLines { get; set; }
 
+        public virtual DbSet<RestaurantPrintLog> RestaurantPrintLogs { get; set; }
+
         public virtual DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
 
         public virtual DbSet<ProductModifierOption> ProductModifierOptions { get; set; }

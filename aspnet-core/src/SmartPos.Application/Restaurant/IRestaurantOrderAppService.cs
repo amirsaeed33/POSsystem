@@ -25,5 +25,11 @@ namespace SmartPos.Restaurant
         Task CancelOrderAsync(int orderId);
 
         Task<RestaurantOrderDto> SplitBillAsync(SplitBillDto input);
+
+        Task<RestaurantPrintLogDto> RecordPrintLogAsync(RecordPrintLogDto input);
+
+        Task<List<RestaurantPrintLogDto>> GetOrderPrintLogsAsync(int orderId);
+
+        Task<List<UnpaidTakeawayOrderDto>> GetUnpaidTakeawayOrdersAsync(int branchId);
     }
 }

@@ -55,6 +55,10 @@ namespace SmartPos.Restaurant.Dto
 
         public DateTime? SettledTime { get; set; }
 
+        public string LastPrintedBy { get; set; }
+
+        public DateTime? LastPrintedTime { get; set; }
+
         public List<RestaurantOrderLineDto> Lines { get; set; } = new List<RestaurantOrderLineDto>();
     }
 

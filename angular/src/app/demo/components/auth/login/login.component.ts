@@ -94,7 +94,13 @@ export class LoginComponent implements OnInit, OnDestroy {
 		}
 
 		if (this.authService.isAuthenticated()) {
-			this.router.navigateByUrl(this.returnUrl);
+			if (this.authService.isDeliveryRider()) {
+				this.router.navigateByUrl('/rider/dashboard');
+			} else if (this.authService.isWaiter()) {
+				this.router.navigateByUrl('/pos');
+			} else {
+				this.router.navigateByUrl(this.returnUrl);
+			}
 		}
 	}
 
@@ -499,6 +505,18 @@ export class LoginComponent implements OnInit, OnDestroy {
 					: 'Welcome to Delivery Rider Portal',
 			});
 			this.router.navigateByUrl('/rider/dashboard');
+			return;
+		}
+
+		if (sessionInfo?.user?.isWaiter || this.authService.isWaiter()) {
+			this.messageService.add({
+				severity: 'success',
+				summary: 'Welcome',
+				detail: attendanceAutoCheckedIn
+					? 'Welcome to Restaurant POS. Attendance checked in near branch.'
+					: 'Welcome to Restaurant POS',
+			});
+			this.router.navigateByUrl('/pos');
 			return;
 		}
 

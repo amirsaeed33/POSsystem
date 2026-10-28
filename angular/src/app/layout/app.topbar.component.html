@@ -1,6 +1,6 @@
 <div class="layout-topbar">
     <div class="topbar-start">
-        <a class="app-logo" [routerLink]="isDeliveryRider ? '/rider/dashboard' : '/'" [title]="branchDisplayName">
+        <a class="app-logo" [routerLink]="isDeliveryRider ? '/rider/dashboard' : (isWaiter ? '/pos' : '/')" [title]="branchDisplayName">
             <img alt="app logo" [src]="logo" (error)="onLogoError()" style="max-height: 2.75rem; max-width: 3.5rem; width: auto; object-fit: contain; border-radius: 4px;">
             <!-- Full shop name on tablet/desktop; hidden on mobile to free topbar space -->
             <span class="app-name hidden sm:inline" style="font-size: 1.5rem; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ branchDisplayName }}</span>
@@ -12,9 +12,9 @@
 
         <a
             class="p-link hidden sm:flex align-items-center px-3 py-2 border-round hover:surface-hover font-medium white-space-nowrap"
-            [routerLink]="isDeliveryRider ? '/rider/dashboard' : '/'"
+            [routerLink]="isDeliveryRider ? '/rider/dashboard' : (isWaiter ? '/pos' : '/')"
         >
-            {{ isDeliveryRider ? 'Dashboard' : 'Home' }}
+            {{ isDeliveryRider ? 'Dashboard' : (isWaiter ? 'POS' : 'Home') }}
         </a>
 
         <ul class="topbar-menu">
@@ -39,7 +39,14 @@
     </div>
 
     <div class="topbar-center">
-        <div class="topbar-branch relative" *ngIf="branches?.length">
+        <!-- Static Branch Badge for Waiter (No branch switching) -->
+        <div class="flex align-items-center gap-2 px-3 py-2 border-round surface-100 text-sm font-semibold text-700" *ngIf="isWaiter && currentBranch">
+            <i class="pi pi-map-marker text-primary"></i>
+            <span>{{ currentBranch.name }}</span>
+            <span class="text-xs px-2 py-0.5 border-round font-medium bg-yellow-100 text-yellow-900">🍽️ Restaurant</span>
+        </div>
+
+        <div class="topbar-branch relative" *ngIf="branches?.length && !isWaiter">
             <button
                 class="p-link flex align-items-center gap-2 px-3 py-2 border-round hover:surface-hover"
                 type="button"
@@ -112,7 +119,7 @@
     <div class="topbar-end flex align-items-center gap-2">
         <!-- Customer Storefront Launch Button -->
         <a
-            *ngIf="!isDeliveryRider"
+            *ngIf="!isDeliveryRider && !isWaiter"
             class="p-button p-button-sm p-button-outlined p-button-rounded flex align-items-center gap-2 text-sm font-semibold text-primary border-primary hover:surface-100 no-underline px-3 py-2 cursor-pointer"
             [routerLink]="['/online-order']"
             [queryParams]="storefrontQueryParams"
@@ -123,8 +130,116 @@
             <span class="hidden md:inline">{{ currentBranch?.businessType === 2 ? 'Online Food Menu' : 'Online Store' }}</span>
         </a>
 
+        <!-- 🍳 Restaurant Unpaid Takeaway KOT Alarm (Restaurant Only & Admin/Cashier Only) -->
+        <div class="topbar-notifications relative" *ngIf="currentBranch?.businessType === 2 && !isWaiter">
+            <button
+                class="p-link flex align-items-center justify-content-center px-2 py-1 border-round transition-colors"
+                [ngClass]="{
+                    'bg-red-600 text-white shadow-3 animate-pulse': unpaidTakeawayOrders.length > 0,
+                    'hover:surface-hover text-700': unpaidTakeawayOrders.length === 0
+                }"
+                type="button"
+                pStyleClass="@next"
+                enterClass="hidden"
+                enterActiveClass="scalein"
+                leaveToClass="hidden"
+                leaveActiveClass="fadeout"
+                [hideOnOutsideClick]="true"
+                [title]="unpaidTakeawayOrders.length > 0 ? (unpaidTakeawayOrders.length + ' Unpaid Takeaway Orders Sent to Kitchen!') : 'No Unpaid Takeaway Orders'"
+                (click)="takeawayAlarmService.checkImmediately()"
+            >
+                <i class="pi pi-bell p-overlay-badge text-lg" [ngClass]="{ 'text-white': unpaidTakeawayOrders.length > 0, 'text-700': unpaidTakeawayOrders.length === 0 }">
+                    <p-badge *ngIf="unpaidTakeawayOrders.length > 0" [value]="unpaidTakeawayOrders.length.toString()" severity="danger" styleClass="text-xs"></p-badge>
+                </i>
+                <span class="ml-1 font-bold text-xs hidden sm:inline" [ngClass]="{ 'text-white': unpaidTakeawayOrders.length > 0, 'text-700': unpaidTakeawayOrders.length === 0 }">
+                    Takeaway KOT
+                </span>
+            </button>
+
+            <!-- Unpaid Takeaway Alarm Overlay -->
+            <div
+                class="list-none p-3 m-0 border-round shadow-4 hidden absolute surface-overlay origin-top-right mt-2 right-0 top-auto z-5"
+                style="width: 24rem; max-height: 28rem; overflow-y: auto;"
+            >
+                <div class="flex align-items-center justify-content-between pb-2 mb-2 border-bottom-1 surface-border">
+                    <span class="font-bold text-900 text-base flex align-items-center gap-2">
+                        <i class="pi pi-exclamation-triangle text-red-500"></i>
+                        Unpaid Takeaway Orders
+                    </span>
+                    <div class="flex align-items-center gap-1">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            [class]="takeawayAlarmService.isMuted ? 'p-button-danger p-button-text p-button-sm p-button-icon-only' : 'p-button-secondary p-button-text p-button-sm p-button-icon-only'"
+                            [title]="takeawayAlarmService.isMuted ? 'Unmute Takeaway Alarm' : 'Mute Takeaway Alarm'"
+                            (click)="toggleTakeawayMute()"
+                        >
+                            <i [class]="takeawayAlarmService.isMuted ? 'pi pi-volume-off' : 'pi pi-volume-up'"></i>
+                        </button>
+                        <span class="badge bg-red-100 text-red-700 px-2 py-1 border-round text-xs font-bold">
+                            {{ unpaidTakeawayOrders.length }} Unpaid
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Audio Blocked Notice -->
+                <div *ngIf="takeawayAudioBlocked" class="p-2 mb-2 border-round bg-yellow-100 border-1 border-yellow-300 text-yellow-900 text-xs flex align-items-center justify-content-between">
+                    <div class="flex align-items-center gap-1">
+                        <i class="pi pi-volume-off text-base text-yellow-800"></i>
+                        <span>Audio blocked by browser.</span>
+                    </div>
+                    <button pButton pRipple type="button" label="Enable Alarm" class="p-button-xs p-button-warning text-xs font-bold" (click)="enableTakeawayAudio()"></button>
+                </div>
+
+                <div *ngIf="unpaidTakeawayOrders.length === 0" class="p-4 text-center">
+                    <i class="pi pi-check-circle text-green-500 text-3xl mb-2 block"></i>
+                    <span class="text-600 font-medium block">All takeaway orders paid!</span>
+                    <span class="text-500 text-xs">Alarm triggers every 1m when takeaway KOT orders remain unpaid.</span>
+                </div>
+
+                <ul *ngIf="unpaidTakeawayOrders.length > 0" class="list-none p-0 m-0">
+                    <li
+                        *ngFor="let order of unpaidTakeawayOrders"
+                        class="p-2 mb-2 border-round surface-hover transition-colors border-1 surface-border hover:border-red-400"
+                    >
+                        <div class="flex align-items-center justify-content-between mb-1">
+                            <div class="flex align-items-center gap-2">
+                                <span class="font-bold text-900 text-sm">#{{ order.orderNo }}</span>
+                                <span class="badge bg-red-100 text-red-700 px-2 py-0 border-round text-xs font-semibold">Unpaid (KOT Sent)</span>
+                            </div>
+                            <span class="text-xs text-500">{{ order.creationTime | date: 'shortTime' }}</span>
+                        </div>
+                        <div class="flex align-items-center justify-content-between text-xs text-700 my-1">
+                            <span class="text-600">
+                                <i class="pi pi-user mr-1 text-500"></i>{{ order.waiterName || order.customerName || 'Walk-in Customer' }}
+                                <span class="ml-1 text-500">({{ order.itemCount }} items)</span>
+                            </span>
+                            <span class="font-bold text-900 text-sm">{{ order.grandTotal | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                        </div>
+                        <div class="flex align-items-center justify-content-end mt-2 pt-1 border-top-1 surface-border">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Settle in POS"
+                                icon="pi pi-arrow-right"
+                                iconPos="right"
+                                class="p-button-danger p-button-sm p-button-outlined py-1 text-xs font-semibold"
+                                (click)="openTakeawayInPos(order)"
+                            ></button>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="pt-2 border-top-1 surface-border text-center text-xs text-500">
+                    <i class="pi pi-clock mr-1"></i>Repeating alarm rings every 1 min until paid in POS.
+                </div>
+            </div>
+        </div>
+
         <!-- Online Orders Bell Notification -->
-        <div class="topbar-notifications relative" *ngIf="!isDeliveryRider">
+        <div class="topbar-notifications relative" *ngIf="!isDeliveryRider && !isWaiter">
             <button
                 class="p-link flex align-items-center justify-content-center w-2rem h-2rem md:w-3rem md:h-3rem border-circle hover:surface-hover relative transition-colors"
                 type="button"
@@ -205,7 +320,7 @@
         </div>
 
         <!-- Customer Messages & Live Inquiries Notification -->
-        <div class="topbar-notifications relative" *ngIf="!isDeliveryRider">
+        <div class="topbar-notifications relative" *ngIf="!isDeliveryRider && !isWaiter">
             <button
                 class="p-link flex align-items-center justify-content-center w-2rem h-2rem md:w-3rem md:h-3rem border-circle hover:surface-hover relative transition-colors"
                 type="button"

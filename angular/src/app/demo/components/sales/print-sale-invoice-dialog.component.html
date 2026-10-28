@@ -71,6 +71,10 @@
                 <span>PAYMENT:</span>
                 <span class="font-bold">{{ paymentTypeName }}</span>
             </div>
+            <div class="thermal-meta-row" *ngIf="company?.businessType === 2" style="font-weight: bold; margin-top: 3px;">
+                <span>PRINTED BY:</span>
+                <span>{{ printerText }}</span>
+            </div>
         </div>
 
         <div class="thermal-divider-double"></div>
@@ -273,6 +277,7 @@
                 {{ company?.invoiceFooter }}
             </div>
             <div>Printed On: {{ today }}</div>
+            <div *ngIf="company?.businessType === 2" class="font-bold">{{ printerText }}</div>
         </div>
     </div>
 

@@ -16,6 +16,7 @@ import {
     OrderTypes,
     RestaurantOrderDto,
     SendToKitchenResultDto,
+    UnpaidTakeawayOrderDto,
 } from 'src/app/demo/api/restaurant-order';
 import {
     ProductModifierGroupDto,
@@ -31,6 +32,9 @@ import { StaffService } from 'src/app/demo/service/staff.service';
 import { CategoryService } from 'src/app/demo/service/category.service';
 import { DealService } from 'src/app/demo/service/deal.service';
 import { DealDto } from 'src/app/demo/api/deal';
+import { AuthService } from 'src/app/demo/service/auth.service';
+import { ActivatedRoute, Router } from '@angular/router';
+import { RestaurantTakeawayAlarmService } from 'src/app/demo/service/restaurant-takeaway-alarm.service';
 
 export interface DealCustomiseItem {
     productId: number;
@@ -136,6 +140,9 @@ export class PosComponent implements OnInit, OnDestroy {
     paymentDialogVisible = false;
     paidAmount = 0;
 
+    unpaidTakeawayOrders: UnpaidTakeawayOrderDto[] = [];
+    unpaidTakeawayDialogVisible = false;
+
     private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
     constructor(
@@ -147,8 +154,24 @@ export class PosComponent implements OnInit, OnDestroy {
         private staffService: StaffService,
         private categoryService: CategoryService,
         private dealService: DealService,
+        private authService: AuthService,
+        private route: ActivatedRoute,
+        private router: Router,
+        public takeawayAlarmService: RestaurantTakeawayAlarmService,
         private messageService: MessageService
     ) {}
+
+    get isWaiter(): boolean {
+        return this.isRestaurantMode && this.authService.isWaiter();
+    }
+
+    get currentPrinterText(): string {
+        return this.authService.getPrinterIdentity().text;
+    }
+
+    get currentPrinterTime(): Date {
+        return new Date();
+    }
 
     get subTotal(): number {
         return this.cart.reduce(
@@ -225,9 +248,26 @@ export class PosComponent implements OnInit, OnDestroy {
         this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
             if (branch) {
                 this.applyBranchPricing();
+                if (this.isRestaurantMode) {
+                    this.loadUnpaidTakeaways();
+                }
             }
         });
         this.loadTopProducts();
+
+        if (this.isRestaurantMode) {
+            if (this.isWaiter) {
+                this.waiterName = this.authService.getPrinterIdentity().name;
+            }
+            this.loadUnpaidTakeaways();
+            this.route.queryParams.subscribe(async (params) => {
+                const orderId = params['restaurantOrderId'] || params['orderId'];
+                if (orderId) {
+                    await this.loadOrderById(Number(orderId));
+                }
+            });
+        }
+
         this.saleService
             .getPosCustomers()
             .then((customers) => {
@@ -667,7 +707,11 @@ export class PosComponent implements OnInit, OnDestroy {
         this.selectedTable = null;
         this.activeOrderId = null;
         this.activeOrderNo = '';
-        this.waiterName = '';
+        if (this.isWaiter) {
+            this.waiterName = this.authService.getPrinterIdentity().name;
+        } else {
+            this.waiterName = '';
+        }
         this.pendingSendToTable = false;
     }
 
@@ -727,21 +771,125 @@ export class PosComponent implements OnInit, OnDestroy {
         }
     }
 
-    async sendToTable(): Promise<void> {
-        if (this.orderType === 'takeaway') {
-            this.messageService.add({
-                severity: 'info',
-                summary: 'Takeaway Order',
-                detail: 'Send to Table is not available for Takeaway orders.',
-            });
+    async loadUnpaidTakeaways(): Promise<void> {
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId || !this.isRestaurantMode || this.isWaiter) {
+            this.unpaidTakeawayOrders = [];
             return;
         }
+        try {
+            this.unpaidTakeawayOrders = await this.restaurantOrderService.getUnpaidTakeawayOrders(branchId);
+        } catch {
+            this.unpaidTakeawayOrders = [];
+        }
+    }
 
+    openUnpaidTakeawayDialog(): void {
+        if (this.isWaiter) return;
+        this.loadUnpaidTakeaways();
+        this.unpaidTakeawayDialogVisible = true;
+    }
+
+    async selectUnpaidTakeaway(order: UnpaidTakeawayOrderDto): Promise<void> {
+        this.unpaidTakeawayDialogVisible = false;
+        await this.loadOrderById(order.id);
+    }
+
+    async loadOrderById(orderId: number): Promise<void> {
+        try {
+            const order = await this.restaurantOrderService.get(orderId);
+            if (order && order.lines?.length) {
+                this.activeOrderId = order.id;
+                this.activeOrderNo = order.orderNo;
+                this.orderType = order.orderType === OrderTypes.Takeaway ? 'takeaway' : 'dineIn';
+                this.waiterName = order.waiterName || this.waiterName;
+                this.notes = order.notes || '';
+                if (order.customerId) {
+                    this.customerId = order.customerId;
+                }
+                if (order.tableId) {
+                    this.selectedTable = this.tables.find((t) => t.id === order.tableId) || ({
+                        id: order.tableId,
+                        tableNo: order.tableNo || 'Table',
+                        status: 1,
+                    } as any);
+                } else {
+                    this.selectedTable = null;
+                }
+
+                const existingLines: PosCartLine[] = [];
+                for (const l of order.lines) {
+                    let isDeal = false;
+                    let dealSummary: string | undefined = undefined;
+                    let dealId: number | undefined = undefined;
+                    let selectedModifiers = l.selectedModifiers;
+
+                    const mods = this.parseModifiers(selectedModifiers);
+                    const dealMod = mods.find((m: string) => typeof m === 'string' && m.startsWith('DEAL:'));
+                    if (dealMod) {
+                        isDeal = true;
+                        dealSummary = dealMod.substring(5).trim();
+                    }
+
+                    try {
+                        const dealInfo = await this.dealService.getByProductId(l.productId);
+                        if (dealInfo && dealInfo.items?.length) {
+                            isDeal = true;
+                            dealId = dealInfo.id;
+                            if (!dealSummary) {
+                                dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' • ');
+                            }
+                            if (!selectedModifiers || !selectedModifiers.includes('DEAL:')) {
+                                const extra = this.parseModifiers(selectedModifiers).filter(
+                                    (m: string) => typeof m === 'string' && !m.startsWith('DEAL:')
+                                );
+                                selectedModifiers = JSON.stringify([`DEAL: ${dealSummary}`, ...extra]);
+                            }
+                        }
+                    } catch {}
+
+                    existingLines.push({
+                        id: l.id,
+                        productId: l.productId,
+                        productName: l.productName,
+                        quantity: l.quantity,
+                        unitPrice: l.unitPrice,
+                        retailPrice: l.unitPrice,
+                        wholesalePrice: l.unitPrice,
+                        stockQuantity: 999,
+                        kitchenNotes: l.kitchenNotes,
+                        selectedModifiers,
+                        isSentToKitchen: l.isSentToKitchen,
+                        isDeal,
+                        dealId,
+                        dealSummary,
+                    });
+                }
+
+                this.cart = existingLines;
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Order Loaded',
+                    detail: `Loaded order #${order.orderNo} (${this.orderType === 'takeaway' ? 'Takeaway' : 'Table ' + (order.tableNo || '')})`,
+                    life: 3000,
+                });
+            }
+        } catch (err: any) {
+            console.error('Failed to load order', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to load order',
+            });
+        }
+    }
+
+    async sendToTable(): Promise<void> {
         if (!this.cart.length) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Cart Empty',
-                detail: 'Add food items before sending to the table.',
+                detail: this.orderType === 'takeaway' ? 'Add food items before sending to KOT.' : 'Add food items before sending to the table.',
             });
             return;
         }
@@ -762,14 +910,17 @@ export class PosComponent implements OnInit, OnDestroy {
 
         this.sendingKOT = true;
         try {
+            const isTakeaway = this.orderType === 'takeaway';
+            const waiter = this.waiterName || (this.isWaiter ? this.authService.getPrinterIdentity().name : 'Staff');
+
             const payload = {
                 id: this.activeOrderId,
                 branchId,
-                tableId: this.orderType === 'dineIn' ? this.selectedTable?.id : null,
-                tableNo: this.orderType === 'dineIn' ? this.selectedTable?.tableNo : 'Takeaway',
-                orderType: this.orderType === 'dineIn' ? OrderTypes.DineIn : OrderTypes.Takeaway,
+                tableId: !isTakeaway ? this.selectedTable?.id : null,
+                tableNo: !isTakeaway ? (this.selectedTable?.tableNo || 'Table') : 'Takeaway',
+                orderType: isTakeaway ? OrderTypes.Takeaway : OrderTypes.DineIn,
                 customerId: this.customerId,
-                waiterName: this.waiterName || 'Staff',
+                waiterName: waiter,
                 notes: this.notes,
                 discountPercent: this.discountPercent || 0,
                 discountAmount: this.discountAmount || 0,
@@ -796,23 +947,39 @@ export class PosComponent implements OnInit, OnDestroy {
             this.kotDialogVisible = true;
 
             this.cart.forEach((l) => (l.isSentToKitchen = true));
-            await this.loadTables();
+            if (!isTakeaway) {
+                await this.loadTables();
+            } else {
+                if (!this.isWaiter) {
+                    this.loadUnpaidTakeaways();
+                    if (this.takeawayAlarmService) {
+                        this.takeawayAlarmService.checkImmediately();
+                    }
+                }
+            }
 
             this.messageService.add({
                 severity: 'success',
-                summary: '🍽️ Sent to Table',
-                detail: `Order sent to Table ${kotResult.tableNo} (Order #${kotResult.orderNo})`,
+                summary: isTakeaway ? '🍳 Sent to KOT' : '🍽️ Sent to Table',
+                detail: isTakeaway
+                    ? `Takeaway order #${kotResult.orderNo} sent to kitchen KOT (Unpaid)`
+                    : `Order sent to Table ${kotResult.tableNo} (Order #${kotResult.orderNo})`,
                 life: 3500,
             });
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: err?.message || 'Failed to send order to table',
+                detail: err?.message || 'Failed to send order to kitchen',
             });
         } finally {
             this.sendingKOT = false;
         }
+    }
+
+    sendTakeawayToKOT(): Promise<void> {
+        this.orderType = 'takeaway';
+        return this.sendToTable();
     }
 
     sendToKitchen(): Promise<void> {
@@ -820,7 +987,7 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     async printGuestBill(): Promise<void> {
-        if (!this.cart.length) return;
+        if (this.isWaiter || !this.cart.length) return;
         const branchId = this.branchContext.getBranchId();
         if (!branchId) return;
 
@@ -877,7 +1044,7 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     openSplitBill(): void {
-        if (!this.cart.length) return;
+        if (this.isWaiter || !this.cart.length) return;
         this.splitBillDialogVisible = true;
     }
 
@@ -917,6 +1084,7 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     async saveRunningTab(): Promise<void> {
+        if (this.isWaiter) return;
         if (!this.cart.length) {
             this.messageService.add({
                 severity: 'warn',
@@ -979,6 +1147,21 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     printCurrentModal(elementId: string): void {
+        if (this.isRestaurantMode) {
+            const branchId = this.branchContext.getBranchId();
+            if (branchId) {
+                const receiptType = elementId === 'kotThermalPrint' ? 'KitchenOrderTicket' : 'GuestBill';
+                this.restaurantOrderService
+                    .recordPrintLog({
+                        branchId,
+                        orderId: this.activeOrderId,
+                        orderNo: this.activeOrderNo,
+                        receiptType,
+                    })
+                    .catch(() => {});
+            }
+        }
+
         const printContent = document.getElementById(elementId);
         if (!printContent) {
             window.print();
@@ -1601,6 +1784,9 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     get settleButtonTooltip(): string {
+        if (this.isWaiter) {
+            return 'Waiters cannot settle payments. Ask an Admin or Cashier.';
+        }
         if (this.isRestaurantMode && this.orderType === 'dineIn') {
             if (!this.selectedTable) {
                 return 'Please select a table and send order first.';
@@ -1613,6 +1799,11 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     canSave(): boolean {
+        // Waiters in Restaurant mode cannot settle payments or complete sales
+        if (this.isWaiter) {
+            return false;
+        }
+
         if (!this.customerId || this.cart.length === 0 || this.saving) {
             return false;
         }
@@ -1644,6 +1835,15 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     completeSale(): void {
+        if (this.isWaiter) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Access Restricted',
+                detail: 'Waiters are not authorized to settle payments or close bills.',
+            });
+            return;
+        }
+
         if (!this.canSave()) {
             return;
         }
@@ -1665,6 +1865,15 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     async confirmPaymentAndSave(): Promise<void> {
+        if (this.isWaiter) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Access Restricted',
+                detail: 'Waiters are not authorized to settle payments.',
+            });
+            return;
+        }
+
         if (!this.canSave()) {
             return;
         }
@@ -1764,6 +1973,12 @@ export class PosComponent implements OnInit, OnDestroy {
                     notes: saleNote || undefined,
                 });
 
+                this.printReceiptSnapshot(settledReceipt);
+                if (this.takeawayAlarmService) {
+                    this.takeawayAlarmService.checkImmediately();
+                }
+                this.loadUnpaidTakeaways();
+
                 const detail =
                     change > 0
                         ? `Order settled. Return ${change.toFixed(2)} change to customer.`
@@ -1828,6 +2043,20 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     printReceiptSnapshot(receipt: any): void {
+        if (this.isRestaurantMode) {
+            const branchId = this.branchContext.getBranchId();
+            if (branchId) {
+                this.restaurantOrderService
+                    .recordPrintLog({
+                        branchId,
+                        orderId: receipt.orderId || this.activeOrderId,
+                        orderNo: receipt.orderNo,
+                        receiptType: 'SaleReceipt',
+                    })
+                    .catch(() => {});
+            }
+        }
+
         const win = window.open('', '', 'height=650,width=420');
         if (!win) {
             window.print();
@@ -1963,6 +2192,7 @@ export class PosComponent implements OnInit, OnDestroy {
                     <div class="subtitle">*** SALES RECEIPT ***</div>
                     <div class="meta">Table: <strong>${receipt.tableNo}</strong> &bull; Order: #${receipt.orderNo}</div>
                     <div class="meta">Server: ${receipt.serverName} &bull; ${new Date(receipt.date).toLocaleString()}</div>
+                    ${this.isRestaurantMode ? `<div class="meta font-bold" style="font-weight:bold; margin-top:3px;">Printed By: ${this.authService.getPrinterIdentity().name} (${this.authService.getPrinterIdentity().role}) &bull; ${new Date().toLocaleTimeString()}</div>` : ''}
                 </div>
 
                 <table>

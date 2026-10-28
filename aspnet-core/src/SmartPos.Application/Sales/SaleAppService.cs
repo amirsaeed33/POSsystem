@@ -22,9 +22,11 @@ using SmartPos.Products.Dto;
 using SmartPos.Sales.Dto;
 using SmartPos.BranchNotificationSettings;
 
+using SmartPos.Authorization.Roles;
+
 namespace SmartPos.Sales
 {
-    [AbpAuthorize(PermissionNames.Pages_Sales)]
+    [AbpAuthorize(PermissionNames.Pages_Sales, PermissionNames.Pages_Pos)]
     public class SaleAppService : AsyncCrudAppService<Sale, SaleDto, int, PagedSaleResultRequestDto, CreateSaleDto, SaleDto>, ISaleAppService
     {
         private readonly IRepository<SaleLine> _lineRepository;
@@ -33,6 +35,7 @@ namespace SmartPos.Sales
         private readonly IRepository<LedgerEntry> _ledgerRepository;
         private readonly IRepository<SaleReturn> _saleReturnRepository;
         private readonly IRepository<User, long> _userRepository;
+        private readonly IRepository<Role> _roleRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
         private readonly IBranchStockManager _branchStockManager;
@@ -50,6 +53,7 @@ namespace SmartPos.Sales
             IRepository<LedgerEntry> ledgerRepository,
             IRepository<SaleReturn> saleReturnRepository,
             IRepository<User, long> userRepository,
+            IRepository<Role> roleRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
             IBranchStockManager branchStockManager,
@@ -66,6 +70,7 @@ namespace SmartPos.Sales
             _ledgerRepository = ledgerRepository;
             _saleReturnRepository = saleReturnRepository;
             _userRepository = userRepository;
+            _roleRepository = roleRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _branchStockManager = branchStockManager;
@@ -293,6 +298,21 @@ namespace SmartPos.Sales
             }
 
             var branch = await _branchRepository.GetAsync(branchId);
+
+            if (branch.BusinessType == BusinessType.Restaurant && AbpSession.UserId.HasValue)
+            {
+                var user = await _userRepository.GetAllIncluding(u => u.Roles).FirstOrDefaultAsync(u => u.Id == AbpSession.UserId.Value);
+                if (user != null && user.Roles.Any())
+                {
+                    var roleIds = user.Roles.Select(r => r.RoleId).ToList();
+                    var isWaiter = await _roleRepository.GetAll().AnyAsync(r => roleIds.Contains(r.Id) && r.Name == StaticRoleNames.Tenants.Waiter);
+                    if (isWaiter)
+                    {
+                        throw new UserFriendlyException("Waiters are not authorized to settle payments or complete sales.");
+                    }
+                }
+            }
+
             var taxPercent = Math.Max(0, branch.TaxPercent);
             var discountPercent = Math.Max(0, branch.DiscountPercent);
             var discountAmountInput = Math.Max(0, branch.DiscountAmount);

@@ -1,10 +1,14 @@
 import { Injectable } from '@angular/core';
 import { CustomerOrderDto } from '../api/customer-order';
 import { BranchContextService } from './branch-context.service';
+import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class ThermalPrintService {
-    constructor(private branchContext: BranchContextService) {}
+    constructor(
+        private branchContext: BranchContextService,
+        private authService: AuthService
+    ) {}
 
     printCustomerOrder(order: CustomerOrderDto, invoiceNo?: string): void {
         const branch = this.branchContext.getCurrentBranch();
@@ -169,6 +173,19 @@ export class ThermalPrintService {
                 <div class="row" style="background: #f1f5f9; padding: 2px 4px; border-radius: 3px;">
                     <span class="bold">Delivery Rider:</span>
                     <span class="bold">${order.riderName}${order.riderPhone ? ' (' + order.riderPhone + ')' : ''}</span>
+                </div>`
+                        : ''
+                }
+                ${
+                    (branch?.businessType === 2 || (order as any).businessType === 2)
+                        ? `
+                <div class="row" style="margin-top: 4px; font-weight: bold; border-top: 1px dotted #ccc; padding-top: 3px;">
+                    <span>Printed By:</span>
+                    <span>${this.authService.getPrinterIdentity().name} (${this.authService.getPrinterIdentity().role})</span>
+                </div>
+                <div class="row" style="font-size: 11px; color: #555;">
+                    <span>Print Time:</span>
+                    <span>${new Date().toLocaleTimeString()}</span>
                 </div>`
                         : ''
                 }

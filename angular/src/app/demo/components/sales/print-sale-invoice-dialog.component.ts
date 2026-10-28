@@ -13,6 +13,7 @@ import { BranchDto } from 'src/app/demo/api/branch';
 import { SaleDto } from 'src/app/demo/api/sale';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
+import { AuthService } from 'src/app/demo/service/auth.service';
 
 @Component({
     selector: 'app-print-sale-invoice-dialog',
@@ -34,9 +35,14 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
     constructor(public formatService: AppFormatService, 
         private saleService: SaleService,
         private branchService: BranchService,
+        private authService: AuthService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef
     ) {}
+
+    get printerText(): string {
+        return this.authService.getPrinterIdentity().text;
+    }
 
     get companyLogoUrl(): string {
         return this.branchService.getImageUrl(this.company?.imagePath);

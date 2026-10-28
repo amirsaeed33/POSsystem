@@ -28,5 +28,9 @@ namespace SmartPos.Sessions.Dto
         public int? RiderStaffId { get; set; }
 
         public string Designation { get; set; }
+
+        public System.Collections.Generic.List<string> Roles { get; set; } = new System.Collections.Generic.List<string>();
+
+        public bool IsWaiter { get; set; }
     }
 }

@@ -12,6 +12,8 @@ export interface UserLoginInfoDto {
     isDeliveryRider?: boolean;
     riderStaffId?: number | null;
     designation?: string;
+    isWaiter?: boolean;
+    roles?: string[];
 }
 
 export interface TenantLoginInfoDto {

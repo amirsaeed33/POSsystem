@@ -208,6 +208,57 @@ export class AuthService {
         return false;
     }
 
+    isWaiter(): boolean {
+        const user = this.getUserInfo();
+        if (!user) {
+            return false;
+        }
+        if (user.isWaiter) {
+            return true;
+        }
+        if (user.roles && Array.isArray(user.roles) && user.roles.some((r: string) => r && r.toLowerCase().includes('waiter'))) {
+            return true;
+        }
+        if (user.roleNames && Array.isArray(user.roleNames) && user.roleNames.some((r: string) => r && r.toLowerCase().includes('waiter'))) {
+            return true;
+        }
+        if (user.designation && (user.designation.toLowerCase().includes('waiter') || user.designation.toLowerCase().includes('server'))) {
+            return true;
+        }
+        return false;
+    }
+
+    getPrinterIdentity(): { id: number; name: string; role: string; text: string; time: Date } {
+        const user = this.getUserInfo();
+        const id = user?.id || 0;
+        let name = '';
+        if (user?.name) {
+            name = `${user.name} ${user.surname || ''}`.trim();
+        }
+        if (!name) {
+            name = user?.userName || 'Staff';
+        }
+        let role = 'Staff';
+        if (this.isWaiter()) {
+            role = 'Waiter';
+        } else if (
+            (user?.roles && Array.isArray(user.roles) && user.roles.some((r: string) => r && r.toLowerCase().includes('admin'))) ||
+            (user?.roleNames && Array.isArray(user.roleNames) && user.roleNames.some((r: string) => r && r.toLowerCase().includes('admin')))
+        ) {
+            role = 'Admin';
+        } else if (user?.designation) {
+            role = user.designation;
+        }
+        const time = new Date();
+        return {
+            id,
+            name,
+            role,
+            text: `Printed By: ${name} (${role})`,
+            time
+        };
+    }
+
     private persistAuthResult(res: any, fallbackMessage: string): AuthenticateResultModel {
         if (!res) {
             throw new Error('No response from server');

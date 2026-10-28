@@ -3,6 +3,8 @@ import { ActivatedRouteSnapshot, NavigationEnd, Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
+import { AuthService } from '../demo/service/auth.service';
+
 interface Breadcrumb {
     label: string;
     url?: string;
@@ -18,7 +20,15 @@ export class AppBreadcrumbComponent {
 
     readonly breadcrumbs$ = this._breadcrumbs$.asObservable();
 
-    constructor(private router: Router) {
+    get isWaiter(): boolean {
+        return this.authService.isWaiter();
+    }
+
+    get isDeliveryRider(): boolean {
+        return this.authService.isDeliveryRider();
+    }
+
+    constructor(private router: Router, private authService: AuthService) {
         this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(event => {
             const root = this.router.routerState.snapshot.root;
             const breadcrumbs: Breadcrumb[] = [];

@@ -76,6 +76,11 @@ namespace SmartPos.Restaurant
 
         public virtual DateTime? SettledTime { get; set; }
 
+        [StringLength(MaxWaiterNameLength)]
+        public virtual string LastPrintedBy { get; set; }
+
+        public virtual DateTime? LastPrintedTime { get; set; }
+
         public virtual ICollection<RestaurantOrderLine> Lines { get; set; } = new List<RestaurantOrderLine>();
     }
 }

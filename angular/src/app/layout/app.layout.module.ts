@@ -24,6 +24,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { MenuModule } from 'primeng/menu';
 import { ToastModule } from 'primeng/toast';
 import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
 import { OrderChatComponent } from '../shared/components/order-chat/order-chat.component';
 
 @NgModule({
@@ -56,6 +57,7 @@ import { OrderChatComponent } from '../shared/components/order-chat/order-chat.c
         TooltipModule,
         ToastModule,
         DialogModule,
+        ButtonModule,
         OrderChatComponent,
         AppConfigModule
     ],

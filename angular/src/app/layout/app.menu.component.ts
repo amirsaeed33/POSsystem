@@ -68,6 +68,23 @@ export class AppMenuComponent implements OnInit, OnDestroy {
             return;
         }
 
+        if (this.authService.isWaiter()) {
+            this.model = [
+                {
+                    label: 'Restaurant POS',
+                    icon: 'pi pi-desktop',
+                    items: [
+                        {
+                            label: 'Dining Tables & POS',
+                            icon: 'pi pi-table',
+                            routerLink: ['/pos'],
+                        }
+                    ]
+                }
+            ];
+            return;
+        }
+
         const currentBranch = this.branchContext.getCurrentBranch();
         const currentBranchId = currentBranch?.id ?? this.branchContext.getBranchId();
         const isRestaurant = currentBranch?.businessType === 2;

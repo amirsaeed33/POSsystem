@@ -86,8 +86,10 @@ export class SessionService {
         const branchId = rawUser.branchId ?? rawUser.BranchId;
         const branchBusinessType = rawUser.branchBusinessType ?? rawUser.BranchBusinessType;
         const isDeliveryRider = rawUser.isDeliveryRider ?? rawUser.IsDeliveryRider ?? false;
+        const isWaiter = rawUser.isWaiter ?? rawUser.IsWaiter ?? false;
         const riderStaffId = rawUser.riderStaffId ?? rawUser.RiderStaffId ?? null;
         const designation = rawUser.designation ?? rawUser.Designation ?? null;
+        const roles = rawUser.roles || rawUser.Roles || [];
 
         return {
             id: rawUser.id ?? rawUser.Id,
@@ -96,11 +98,13 @@ export class SessionService {
             userName: rawUser.userName ?? rawUser.UserName,
             emailAddress: rawUser.emailAddress ?? rawUser.EmailAddress,
             roleNames: rawUser.roleNames || rawUser.RoleNames || [],
+            roles: Array.isArray(roles) ? roles : [],
             profilePictureUrl: this.resolveProfilePictureUrl(rawUser) || undefined,
             branchId: branchId != null ? Number(branchId) : null,
             branchName: rawUser.branchName ?? rawUser.BranchName,
             branchBusinessType: branchBusinessType != null ? Number(branchBusinessType) : null,
             isDeliveryRider: !!isDeliveryRider,
+            isWaiter: !!isWaiter,
             riderStaffId: riderStaffId != null ? Number(riderStaffId) : null,
             designation: designation || undefined,
         };

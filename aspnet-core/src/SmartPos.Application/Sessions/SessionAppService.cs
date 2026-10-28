@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Abp.Auditing;
 using Abp.Authorization;
@@ -73,6 +74,9 @@ namespace SmartPos.Sessions
                     output.User.BranchBusinessType = branch != null ? (int)branch.BusinessType : null;
                 }
 
+                var userRoles = await UserManager.GetRolesAsync(user);
+                output.User.Roles = userRoles.ToList();
+
                 var staff = await _staffRepository.FirstOrDefaultAsync(s => s.UserId == user.Id && !s.IsDeleted);
                 if (staff != null)
                 {
@@ -82,33 +86,67 @@ namespace SmartPos.Sessions
                     var isRiderDesignation = staff.Designation != null &&
                         (staff.Designation.ToLower().Contains("rider") || staff.Designation.ToLower().Contains("delivery"));
 
-                    // Delivery Rider Portal applies ONLY to Restaurant branches
-                    if (output.User.BranchBusinessType == (int)BusinessType.Restaurant && isRiderDesignation)
-                    {
-                        output.User.IsDeliveryRider = true;
+                    var isWaiterDesignation = staff.Designation != null &&
+                        (staff.Designation.ToLower().Contains("waiter") || staff.Designation.ToLower().Contains("server"));
 
-                        // Ensure Delivery Rider role is assigned to the user
-                        var userRoles = await UserManager.GetRolesAsync(user);
-                        if (!userRoles.Contains(StaticRoleNames.Tenants.DeliveryRider))
+                    // Restaurant branch specific roles
+                    if (output.User.BranchBusinessType == (int)BusinessType.Restaurant)
+                    {
+                        if (isRiderDesignation)
                         {
-                            var role = await _roleManager.Roles.FirstOrDefaultAsync(r => r.TenantId == user.TenantId && r.Name == StaticRoleNames.Tenants.DeliveryRider);
-                            if (role == null)
+                            output.User.IsDeliveryRider = true;
+
+                            // Ensure Delivery Rider role is assigned to the user
+                            if (!userRoles.Contains(StaticRoleNames.Tenants.DeliveryRider))
                             {
-                                role = new Role(user.TenantId, StaticRoleNames.Tenants.DeliveryRider, StaticRoleNames.Tenants.DeliveryRider)
+                                var role = await _roleManager.Roles.FirstOrDefaultAsync(r => r.TenantId == user.TenantId && r.Name == StaticRoleNames.Tenants.DeliveryRider);
+                                if (role == null)
                                 {
-                                    IsStatic = false
-                                };
-                                await _roleManager.CreateAsync(role);
-                                await _roleManager.SetGrantedPermissionsAsync(role, new[]
-                                {
-                                    new Permission(PermissionNames.Pages_Rider),
-                                    new Permission(PermissionNames.Pages_Rider_Dashboard),
-                                    new Permission(PermissionNames.Pages_Rider_OrderHistory)
-                                });
+                                    role = new Role(user.TenantId, StaticRoleNames.Tenants.DeliveryRider, StaticRoleNames.Tenants.DeliveryRider)
+                                    {
+                                        IsStatic = false
+                                    };
+                                    await _roleManager.CreateAsync(role);
+                                    await _roleManager.SetGrantedPermissionsAsync(role, new[]
+                                    {
+                                        new Permission(PermissionNames.Pages_Rider),
+                                        new Permission(PermissionNames.Pages_Rider_Dashboard),
+                                        new Permission(PermissionNames.Pages_Rider_OrderHistory)
+                                    });
+                                }
+                                await UserManager.AddToRoleAsync(user, role.Name);
+                                output.User.Roles.Add(role.Name);
                             }
-                            await UserManager.AddToRoleAsync(user, role.Name);
+                        }
+                        else if (isWaiterDesignation || userRoles.Contains(StaticRoleNames.Tenants.Waiter))
+                        {
+                            output.User.IsWaiter = true;
+
+                            if (!userRoles.Contains(StaticRoleNames.Tenants.Waiter))
+                            {
+                                var role = await _roleManager.Roles.FirstOrDefaultAsync(r => r.TenantId == user.TenantId && r.Name == StaticRoleNames.Tenants.Waiter);
+                                if (role == null)
+                                {
+                                    role = new Role(user.TenantId, StaticRoleNames.Tenants.Waiter, StaticRoleNames.Tenants.Waiter)
+                                    {
+                                        IsStatic = false
+                                    };
+                                    await _roleManager.CreateAsync(role);
+                                    await _roleManager.SetGrantedPermissionsAsync(role, new[]
+                                    {
+                                        new Permission(PermissionNames.Pages_Pos),
+                                        new Permission(PermissionNames.Pages_DiningTables)
+                                    });
+                                }
+                                await UserManager.AddToRoleAsync(user, role.Name);
+                                output.User.Roles.Add(role.Name);
+                            }
                         }
                     }
+                }
+                else if (output.User.BranchBusinessType == (int)BusinessType.Restaurant && userRoles.Contains(StaticRoleNames.Tenants.Waiter))
+                {
+                    output.User.IsWaiter = true;
                 }
             }
 

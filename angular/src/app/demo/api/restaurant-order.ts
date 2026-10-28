@@ -42,6 +42,8 @@ export interface RestaurantOrderDto {
     creationTime: string;
     billedTime?: string | null;
     settledTime?: string | null;
+    lastPrintedBy?: string;
+    lastPrintedTime?: string | null;
     lines: RestaurantOrderLineDto[];
 }
 
@@ -92,6 +94,10 @@ export interface SendToKitchenResultDto {
     tableNo: string;
     waiterName: string;
     printTime: string;
+    printedBy?: string;
+    printedByUserId?: number | null;
+    printedByName?: string;
+    printedByRole?: string;
     newItems: KitchenSlipItemDto[];
 }
 
@@ -120,4 +126,34 @@ export interface SplitBillDto {
     numberOfSplits?: number;
     splitEqually?: boolean;
     moveLineIds?: number[];
+}
+
+export interface RecordPrintLogDto {
+    branchId: number;
+    orderId?: number | null;
+    orderNo?: string;
+    receiptType: string;
+}
+
+export interface RestaurantPrintLogDto {
+    id: number;
+    branchId: number;
+    orderId?: number | null;
+    orderNo?: string;
+    receiptType: string;
+    printedByUserId: number;
+    printedByName?: string;
+    printedByRole?: string;
+    printTime: string;
+}
+
+export interface UnpaidTakeawayOrderDto {
+    id: number;
+    orderNo: string;
+    creationTime: string;
+    status: string;
+    grandTotal: number;
+    waiterName?: string;
+    customerName?: string;
+    itemCount: number;
 }

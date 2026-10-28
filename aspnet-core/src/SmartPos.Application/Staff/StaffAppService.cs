@@ -196,28 +196,53 @@ namespace SmartPos.Staffs
             var isRider = staff.Designation != null &&
                 (staff.Designation.ToLower().Contains("rider") || staff.Designation.ToLower().Contains("delivery"));
 
-            if (isRider && staff.BranchId.HasValue)
+            var isWaiter = staff.Designation != null &&
+                (staff.Designation.ToLower().Contains("waiter") || staff.Designation.ToLower().Contains("server"));
+
+            if (staff.BranchId.HasValue)
             {
                 var branch = await _branchRepository.FirstOrDefaultAsync(staff.BranchId.Value);
                 if (branch != null && branch.BusinessType == BusinessType.Restaurant)
                 {
-                    var roleName = StaticRoleNames.Tenants.DeliveryRider;
-                    var role = await _roleManager.Roles.FirstOrDefaultAsync(r => r.TenantId == user.TenantId && r.Name == roleName);
-                    if (role == null)
+                    if (isRider)
                     {
-                        role = new SmartPos.Authorization.Roles.Role(user.TenantId, roleName, roleName)
+                        var roleName = StaticRoleNames.Tenants.DeliveryRider;
+                        var role = await _roleManager.Roles.FirstOrDefaultAsync(r => r.TenantId == user.TenantId && r.Name == roleName);
+                        if (role == null)
                         {
-                            IsStatic = false
-                        };
-                        CheckErrors(await _roleManager.CreateAsync(role));
-                        await _roleManager.SetGrantedPermissionsAsync(role, new[]
-                        {
-                            new Permission(PermissionNames.Pages_Rider),
-                            new Permission(PermissionNames.Pages_Rider_Dashboard),
-                            new Permission(PermissionNames.Pages_Rider_OrderHistory)
-                        });
+                            role = new SmartPos.Authorization.Roles.Role(user.TenantId, roleName, roleName)
+                            {
+                                IsStatic = false
+                            };
+                            CheckErrors(await _roleManager.CreateAsync(role));
+                            await _roleManager.SetGrantedPermissionsAsync(role, new[]
+                            {
+                                new Permission(PermissionNames.Pages_Rider),
+                                new Permission(PermissionNames.Pages_Rider_Dashboard),
+                                new Permission(PermissionNames.Pages_Rider_OrderHistory)
+                            });
+                        }
+                        CheckErrors(await _userManager.AddToRoleAsync(user, role.Name));
                     }
-                    CheckErrors(await _userManager.AddToRoleAsync(user, role.Name));
+                    else if (isWaiter)
+                    {
+                        var roleName = StaticRoleNames.Tenants.Waiter;
+                        var role = await _roleManager.Roles.FirstOrDefaultAsync(r => r.TenantId == user.TenantId && r.Name == roleName);
+                        if (role == null)
+                        {
+                            role = new SmartPos.Authorization.Roles.Role(user.TenantId, roleName, roleName)
+                            {
+                                IsStatic = false
+                            };
+                            CheckErrors(await _roleManager.CreateAsync(role));
+                            await _roleManager.SetGrantedPermissionsAsync(role, new[]
+                            {
+                                new Permission(PermissionNames.Pages_Pos),
+                                new Permission(PermissionNames.Pages_DiningTables)
+                            });
+                        }
+                        CheckErrors(await _userManager.AddToRoleAsync(user, role.Name));
+                    }
                 }
             }
 

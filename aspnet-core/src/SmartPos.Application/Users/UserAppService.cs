@@ -137,7 +137,35 @@ namespace SmartPos.Users
 
         public async Task<ListResultDto<RoleDto>> GetRoles()
         {
+            var isRestaurantTenant = false;
+            if (AbpSession.TenantId.HasValue)
+            {
+                isRestaurantTenant = await _branchRepository.GetAll().AnyAsync(b => b.BusinessType == BusinessType.Restaurant);
+                if (isRestaurantTenant)
+                {
+                    var waiterRole = await _roleRepository.FirstOrDefaultAsync(r => r.TenantId == AbpSession.TenantId && r.Name == StaticRoleNames.Tenants.Waiter);
+                    if (waiterRole == null)
+                    {
+                        waiterRole = new Role(AbpSession.TenantId, StaticRoleNames.Tenants.Waiter, StaticRoleNames.Tenants.Waiter)
+                        {
+                            IsStatic = false
+                        };
+                        CheckErrors(await _roleManager.CreateAsync(waiterRole));
+                        await _roleManager.SetGrantedPermissionsAsync(waiterRole, new[]
+                        {
+                            new Permission(PermissionNames.Pages_Pos),
+                            new Permission(PermissionNames.Pages_DiningTables)
+                        });
+                    }
+                }
+            }
+
             var roles = await _roleRepository.GetAllListAsync();
+            if (!isRestaurantTenant && AbpSession.TenantId.HasValue)
+            {
+                roles = roles.Where(r => r.Name != StaticRoleNames.Tenants.Waiter && r.Name != StaticRoleNames.Tenants.DeliveryRider).ToList();
+            }
+
             return new ListResultDto<RoleDto>(ObjectMapper.Map<List<RoleDto>>(roles));
         }
 

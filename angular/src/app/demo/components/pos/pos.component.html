@@ -12,6 +12,7 @@
                 (click)="clearCart()"
             ></button>
             <button
+                *ngIf="!isWaiter"
                 pButton
                 pRipple
                 type="button"
@@ -91,6 +92,18 @@
                 optionLabel="label"
                 optionValue="value"
             ></p-selectButton>
+
+            <button
+                *ngIf="orderType === 'takeaway' && !isWaiter"
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-list"
+                [label]="'Unpaid Takeaways (' + unpaidTakeawayOrders.length + ')'"
+                [class]="unpaidTakeawayOrders.length > 0 ? 'p-button-danger font-bold' : 'p-button-outlined p-button-secondary'"
+                (click)="openUnpaidTakeawayDialog()"
+                title="View unpaid takeaway orders sent to kitchen"
+            ></button>
 
             <button
                 *ngIf="orderType === 'dineIn'"
@@ -564,18 +577,34 @@
 
                 <!-- Restaurant Actions Bar -->
                 <div class="flex flex-column gap-2 mt-3" *ngIf="isRestaurantMode">
-                    <div class="grid formgrid p-fluid">
+                    <!-- Waiter Mode: ONLY Send to KOT / Send to Table allowed -->
+                    <div *ngIf="isWaiter" class="w-full">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            [label]="orderType === 'takeaway' ? '🍳 Send to KOT' : '🍽️ Send to Table'"
+                            class="p-button-warning w-full p-button-lg font-bold shadow-1"
+                            [disabled]="!cart.length || sendingKOT"
+                            [loading]="sendingKOT"
+                            (click)="sendToTable()"
+                            [title]="orderType === 'takeaway' ? 'Send Takeaway Order to Kitchen KOT' : 'Send order to Table'"
+                        ></button>
+                    </div>
+
+                    <!-- Admin / Cashier Mode: Full Actions (Send to Kitchen, Save Tab, Guest Bill, Split Bill) -->
+                    <div *ngIf="!isWaiter" class="grid formgrid p-fluid">
                         <div class="col-6 pr-1 pb-1">
                             <button
                                 pButton
                                 pRipple
                                 type="button"
-                                label="🍽️ Send to Table"
+                                [label]="orderType === 'takeaway' ? '🍳 Send to KOT' : '🍽️ Send to Table'"
                                 class="p-button-warning p-button-outlined w-full p-button-sm font-semibold"
-                                [disabled]="!cart.length || sendingKOT || orderType === 'takeaway'"
+                                [disabled]="!cart.length || sendingKOT"
                                 [loading]="sendingKOT"
                                 (click)="sendToTable()"
-                                [title]="orderType === 'takeaway' ? 'Send to Table is disabled for Takeaway' : 'Send order to Table'"
+                                [title]="orderType === 'takeaway' ? 'Send Takeaway Order to Kitchen KOT' : 'Send order to Table'"
                             ></button>
                         </div>
                         <div class="col-6 pl-1 pb-1">
@@ -631,6 +660,7 @@
                 </div>
 
                 <button
+                    *ngIf="!isWaiter"
                     pButton
                     pRipple
                     type="button"
@@ -642,9 +672,12 @@
                     (click)="completeSale()"
                     [title]="settleButtonTooltip"
                 ></button>
+                <div *ngIf="isWaiter" class="p-2 border-round bg-yellow-50 border-1 border-yellow-200 text-center text-xs text-yellow-800 mt-3 font-medium">
+                    <i class="pi pi-lock mr-1"></i> Waiter Account: Orders are sent to KOT / Table. Payments are settled by Cashier or Admin.
+                </div>
                 <small
                     class="text-xs text-amber-700 font-medium block text-center mt-2"
-                    *ngIf="isRestaurantMode && orderType === 'dineIn' && cart.length && hasUnsentItems"
+                    *ngIf="isRestaurantMode && orderType === 'dineIn' && cart.length && hasUnsentItems && !isWaiter"
                 >
                     <i class="pi pi-info-circle mr-1"></i> Send order to table first to enable settlement
                 </small>
@@ -658,39 +691,41 @@
                 pButton
                 pRipple
                 type="button"
-                label="🍽️ Send to Table"
+                [label]="orderType === 'takeaway' ? '🍳 Send to KOT' : '🍽️ Send to Table'"
                 class="p-button-warning p-button-outlined p-button-xs flex-grow-1"
-                [disabled]="!cart.length || sendingKOT || orderType === 'takeaway'"
+                [disabled]="!cart.length || sendingKOT"
                 (click)="sendToTable()"
-                [title]="orderType === 'takeaway' ? 'Send to Table is disabled for Takeaway' : 'Send order to Table'"
+                [title]="orderType === 'takeaway' ? 'Send Takeaway Order to Kitchen KOT' : 'Send order to Table'"
             ></button>
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="💾 Tab"
-                class="p-button-secondary p-button-outlined p-button-xs flex-grow-1"
-                [disabled]="!cart.length || savingOrder"
-                (click)="saveRunningTab()"
-            ></button>
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="🧾 Bill"
-                class="p-button-info p-button-outlined p-button-xs flex-grow-1"
-                [disabled]="!cart.length || printingBill"
-                (click)="printGuestBill()"
-            ></button>
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="➗ Split"
-                class="p-button-help p-button-outlined p-button-xs flex-grow-1"
-                [disabled]="!cart.length"
-                (click)="openSplitBill()"
-            ></button>
+            <ng-container *ngIf="!isWaiter">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="💾 Tab"
+                    class="p-button-secondary p-button-outlined p-button-xs flex-grow-1"
+                    [disabled]="!cart.length || savingOrder"
+                    (click)="saveRunningTab()"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="🧾 Bill"
+                    class="p-button-info p-button-outlined p-button-xs flex-grow-1"
+                    [disabled]="!cart.length || printingBill"
+                    (click)="printGuestBill()"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="➗ Split"
+                    class="p-button-help p-button-outlined p-button-xs flex-grow-1"
+                    [disabled]="!cart.length"
+                    (click)="openSplitBill()"
+                ></button>
+            </ng-container>
         </div>
         <div class="flex align-items-center gap-2 w-full">
             <div class="pos-mobile-bar-total">
@@ -698,6 +733,7 @@
                 <strong>{{ grandTotal | number: '1.2-2' }}</strong>
             </div>
             <button
+                *ngIf="!isWaiter"
                 pButton
                 pRipple
                 type="button"
@@ -707,6 +743,17 @@
                 [loading]="saving"
                 (click)="completeSale()"
                 [title]="settleButtonTooltip"
+            ></button>
+            <button
+                *ngIf="isWaiter"
+                pButton
+                pRipple
+                type="button"
+                [label]="orderType === 'takeaway' ? '🍳 Send to KOT' : '🍽️ Send to Table'"
+                class="p-button-warning flex-grow-1 font-bold"
+                [disabled]="!cart.length || sendingKOT"
+                [loading]="sendingKOT"
+                (click)="sendToTable()"
             ></button>
         </div>
     </div>
@@ -941,7 +988,7 @@
             </div>
 
             <!-- Quick Add Table Form -->
-            <div class="surface-50 border-round-xl p-3 border-1 border-200 mt-2">
+            <div *ngIf="!isWaiter" class="surface-50 border-round-xl p-3 border-1 border-200 mt-2">
                 <div class="font-semibold text-800 mb-2 flex align-items-center gap-2">
                     <i class="pi pi-plus-circle text-primary"></i> Quick Add Table
                 </div>
@@ -1112,6 +1159,7 @@
                     <div class="text-xs text-600">Order: #{{ kotResult?.orderNo || activeOrderNo }}</div>
                     <div class="text-xs text-600">Time: {{ kotResult?.printTime | date: 'medium' }}</div>
                     <div class="text-xs text-600" *ngIf="waiterName">Server: {{ waiterName }}</div>
+                    <div class="text-xs font-bold text-900 mt-1" *ngIf="currentPrinterText">{{ currentPrinterText }}</div>
                 </div>
 
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
@@ -1201,6 +1249,9 @@
                         Table: <strong>{{ selectedTable?.tableNo || 'Takeaway' }}</strong> &bull; Order: #{{ activeOrderNo || 'N/A' }}
                     </div>
                     <div class="text-xs text-600">Server: {{ waiterName || 'Staff' }} &bull; {{ todayDate | date: 'short' }}</div>
+                    <div class="text-xs font-bold text-900 mt-1" *ngIf="currentPrinterText">
+                        {{ currentPrinterText }} &bull; {{ currentPrinterTime | date: 'short' }}
+                    </div>
                 </div>
 
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
@@ -1291,6 +1342,7 @@
                         (click)="printCurrentModal('guestCheckPrint')"
                     ></button>
                     <button
+                        *ngIf="!isWaiter"
                         pButton
                         pRipple
                         type="button"
@@ -1880,6 +1932,85 @@
                     ></button>
                 </div>
             </div>
+        </ng-template>
+    </p-dialog>
+
+    <!-- 🛍️ Unpaid Takeaway Orders Dialog -->
+    <p-dialog
+        header="🛍️ Unpaid Takeaway Orders"
+        [(visible)]="unpaidTakeawayDialogVisible"
+        [modal]="true"
+        [style]="{ width: '42rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="flex align-items-center justify-content-between pb-2 border-bottom-1 surface-border">
+                <span class="text-sm text-600">
+                    Orders sent to kitchen (KOT) awaiting payment settlement.
+                </span>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-refresh"
+                    label="Refresh"
+                    class="p-button-text p-button-sm"
+                    (click)="loadUnpaidTakeaways()"
+                ></button>
+            </div>
+
+            <div *ngIf="unpaidTakeawayOrders.length === 0" class="text-center p-4">
+                <i class="pi pi-check-circle text-green-500 text-3xl mb-2 block"></i>
+                <div class="font-semibold text-900">No unpaid takeaway orders</div>
+                <div class="text-xs text-500 mt-1">All takeaway orders have been settled.</div>
+            </div>
+
+            <div *ngIf="unpaidTakeawayOrders.length > 0" class="flex flex-column gap-2" style="max-height: 24rem; overflow-y: auto;">
+                <div
+                    *ngFor="let order of unpaidTakeawayOrders"
+                    class="p-3 border-round surface-card border-1 surface-border hover:border-primary flex align-items-center justify-content-between gap-3 transition-colors"
+                >
+                    <div class="flex flex-column gap-1">
+                        <div class="flex align-items-center gap-2">
+                            <span class="font-bold text-base text-900">#{{ order.orderNo }}</span>
+                            <span class="badge bg-red-100 text-red-700 px-2 py-0 border-round text-xs font-semibold">Unpaid (KOT Sent)</span>
+                        </div>
+                        <div class="text-xs text-600">
+                            <span><i class="pi pi-clock mr-1"></i>{{ order.creationTime | date: 'shortTime' }}</span>
+                            <span class="mx-2">&bull;</span>
+                            <span><i class="pi pi-user mr-1"></i>{{ order.waiterName || order.customerName || 'Staff' }}</span>
+                            <span class="mx-2">&bull;</span>
+                            <span>{{ order.itemCount }} item(s)</span>
+                        </div>
+                    </div>
+                    <div class="flex align-items-center gap-3">
+                        <span class="font-bold text-lg text-primary">{{ order.grandTotal | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            label="Load & Settle"
+                            icon="pi pi-arrow-right"
+                            iconPos="right"
+                            class="p-button-warning p-button-sm font-semibold"
+                            (click)="selectUnpaidTakeaway(order)"
+                        ></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                icon="pi pi-times"
+                class="p-button-text p-button-secondary"
+                (click)="unpaidTakeawayDialogVisible = false"
+            ></button>
         </ng-template>
     </p-dialog>
 
