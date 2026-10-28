@@ -77,6 +77,9 @@ namespace SmartPos.Orders.Dto
         public int BusinessType { get; set; }
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
+        public string FacebookUrl { get; set; }
+        public string InstagramUrl { get; set; }
+        public string YoutubeUrl { get; set; }
         public List<string> Categories { get; set; } = new List<string>();
     }
 

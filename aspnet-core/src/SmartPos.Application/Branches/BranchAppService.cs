@@ -166,6 +166,9 @@ namespace SmartPos.Branches
             branch.InvoiceContactPhone = input.InvoiceContactPhone;
             branch.TaxNumber = input.TaxNumber;
             branch.Website = input.Website;
+            branch.FacebookUrl = input.FacebookUrl;
+            branch.InstagramUrl = input.InstagramUrl;
+            branch.YoutubeUrl = input.YoutubeUrl;
             branch.InvoiceFooter = input.InvoiceFooter;
             branch.TaxPercent = Math.Max(0, input.TaxPercent);
             branch.DiscountPercent = Math.Max(0, input.DiscountPercent);
@@ -817,6 +820,9 @@ namespace SmartPos.Branches
             input.InvoiceContactPhone = NullIfWhiteSpace(input.InvoiceContactPhone);
             input.TaxNumber = NullIfWhiteSpace(input.TaxNumber);
             input.Website = NullIfWhiteSpace(input.Website);
+            input.FacebookUrl = NullIfWhiteSpace(input.FacebookUrl);
+            input.InstagramUrl = NullIfWhiteSpace(input.InstagramUrl);
+            input.YoutubeUrl = NullIfWhiteSpace(input.YoutubeUrl);
             input.InvoiceFooter = NullIfWhiteSpace(input.InvoiceFooter);
             input.ImageBase64 = NullIfWhiteSpace(input.ImageBase64);
 

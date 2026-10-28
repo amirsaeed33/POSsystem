@@ -1733,9 +1733,47 @@
                     <p class="text-400 text-sm line-height-3 mb-3">
                         Serving mouthwatering gourmet meals, handcrafted burgers, cheesy pizzas, and crispy sides made fresh to order. Fast, hygienic, and delivered with love.
                     </p>
-                    <div class="flex align-items-center gap-2">
+                    <div class="flex align-items-center gap-2 mb-3">
                         <span class="fp-badge-trust"><i class="pi pi-shield mr-1"></i>100% Halal</span>
                         <span class="fp-badge-trust"><i class="pi pi-bolt mr-1"></i>Quick Delivery</span>
+                    </div>
+                    <div class="fp-social-links">
+                        <span class="fp-social-label">Follow us</span>
+                        <div class="fp-social-icons">
+                            <a
+                                class="fp-social-btn facebook"
+                                [href]="socialFacebookHref"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Facebook"
+                                pTooltip="Facebook"
+                                tooltipPosition="top"
+                            >
+                                <i class="pi pi-facebook"></i>
+                            </a>
+                            <a
+                                class="fp-social-btn instagram"
+                                [href]="socialInstagramHref"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Instagram"
+                                pTooltip="Instagram"
+                                tooltipPosition="top"
+                            >
+                                <i class="pi pi-instagram"></i>
+                            </a>
+                            <a
+                                class="fp-social-btn youtube"
+                                [href]="socialYoutubeHref"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="YouTube"
+                                pTooltip="YouTube"
+                                tooltipPosition="top"
+                            >
+                                <i class="pi pi-youtube"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
 
@@ -1778,26 +1816,53 @@
                 </div>
             </div>
 
-            <div class="border-top-1 surface-border-dark pt-4 mt-4 flex flex-column sm:flex-row align-items-center justify-content-between gap-2 text-xs text-500">
+            <div class="border-top-1 surface-border-dark pt-4 mt-4 flex flex-column sm:flex-row align-items-center justify-content-between gap-3 text-xs text-500">
                 <span>© {{ branchName || 'Online Store' }}. All rights reserved. Powered by SmartPOS SaaS.</span>
-                <span>Designed for modern food ordering & fast delivery.</span>
+                <div class="fp-social-icons fp-social-icons--footer">
+                    <a
+                        class="fp-social-btn facebook"
+                        [href]="socialFacebookHref"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Facebook"
+                    >
+                        <i class="pi pi-facebook"></i>
+                    </a>
+                    <a
+                        class="fp-social-btn instagram"
+                        [href]="socialInstagramHref"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Instagram"
+                    >
+                        <i class="pi pi-instagram"></i>
+                    </a>
+                    <a
+                        class="fp-social-btn youtube"
+                        [href]="socialYoutubeHref"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="YouTube"
+                    >
+                        <i class="pi pi-youtube"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </footer>
 
-    <!-- Floating Store Chat Widget Button -->
+    <!-- Floating Store Chat Widget Button (icon only) -->
     <div class="store-chat-fab-wrap">
         <button
             pButton
             pRipple
             type="button"
             [icon]="storeChatOpen ? 'pi pi-times' : 'pi pi-comments'"
-            [label]="storeChatOpen ? '' : 'Chat with Branch'"
-            class="store-chat-fab p-button-rounded shadow-4"
+            class="store-chat-fab p-button-rounded p-button-icon-only shadow-4"
             (click)="storeChatOpen = !storeChatOpen"
-            [pTooltip]="storeChatOpen ? 'Close chat' : 'Need help? Ask branch owner'"
+            [pTooltip]="storeChatOpen ? 'Close chat' : 'Chat with store'"
             tooltipPosition="left"
-            aria-label="Chat with branch"
+            aria-label="Chat with store"
         ></button>
     </div>
 

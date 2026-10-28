@@ -396,6 +396,48 @@
             />
         </div>
 
+        <div class="grid">
+            <div class="col-12 md:col-4 flex flex-column gap-2">
+                <label for="facebookUrl" class="font-medium">Facebook URL</label>
+                <input
+                    id="facebookUrl"
+                    type="url"
+                    pInputText
+                    class="w-full"
+                    maxlength="512"
+                    placeholder="https://facebook.com/..."
+                    [(ngModel)]="branch.facebookUrl"
+                    [disabled]="saving"
+                />
+            </div>
+            <div class="col-12 md:col-4 flex flex-column gap-2">
+                <label for="instagramUrl" class="font-medium">Instagram URL</label>
+                <input
+                    id="instagramUrl"
+                    type="url"
+                    pInputText
+                    class="w-full"
+                    maxlength="512"
+                    placeholder="https://instagram.com/..."
+                    [(ngModel)]="branch.instagramUrl"
+                    [disabled]="saving"
+                />
+            </div>
+            <div class="col-12 md:col-4 flex flex-column gap-2">
+                <label for="youtubeUrl" class="font-medium">YouTube URL</label>
+                <input
+                    id="youtubeUrl"
+                    type="url"
+                    pInputText
+                    class="w-full"
+                    maxlength="512"
+                    placeholder="https://youtube.com/..."
+                    [(ngModel)]="branch.youtubeUrl"
+                    [disabled]="saving"
+                />
+            </div>
+        </div>
+
         <div class="flex flex-column gap-2">
             <label for="invoiceFooter" class="font-medium">Invoice Footer</label>
             <textarea

@@ -99,6 +99,9 @@ export class BranchService {
             body.invoiceContactPhone = input.invoiceContactPhone;
         if (input.taxNumber) body.taxNumber = input.taxNumber;
         if (input.website) body.website = input.website;
+        if (input.facebookUrl) body.facebookUrl = input.facebookUrl;
+        if (input.instagramUrl) body.instagramUrl = input.instagramUrl;
+        if (input.youtubeUrl) body.youtubeUrl = input.youtubeUrl;
         if (input.invoiceFooter) body.invoiceFooter = input.invoiceFooter;
 
         const res: any = await firstValueFrom(
@@ -128,6 +131,9 @@ export class BranchService {
                 invoiceContactPhone: input.invoiceContactPhone,
                 taxNumber: input.taxNumber,
                 website: input.website,
+                facebookUrl: input.facebookUrl,
+                instagramUrl: input.instagramUrl,
+                youtubeUrl: input.youtubeUrl,
                 invoiceFooter: input.invoiceFooter,
                 taxPercent: input.taxPercent ?? 0,
                 discountPercent: input.discountPercent ?? 0,
@@ -259,6 +265,9 @@ export class BranchService {
                 item.invoiceContactPhone ?? item.InvoiceContactPhone,
             taxNumber: item.taxNumber ?? item.TaxNumber,
             website: item.website ?? item.Website,
+            facebookUrl: item.facebookUrl ?? item.FacebookUrl,
+            instagramUrl: item.instagramUrl ?? item.InstagramUrl,
+            youtubeUrl: item.youtubeUrl ?? item.YoutubeUrl,
             invoiceFooter: item.invoiceFooter ?? item.InvoiceFooter,
             taxPercent: item.taxPercent ?? item.TaxPercent ?? 0,
             discountPercent: item.discountPercent ?? item.DiscountPercent ?? 0,

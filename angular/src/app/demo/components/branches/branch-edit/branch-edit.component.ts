@@ -163,6 +163,15 @@ export class BranchEditComponent implements OnInit {
             website:
                 this.branch.website?.trim() || undefined,
 
+            facebookUrl:
+                this.branch.facebookUrl?.trim() || undefined,
+
+            instagramUrl:
+                this.branch.instagramUrl?.trim() || undefined,
+
+            youtubeUrl:
+                this.branch.youtubeUrl?.trim() || undefined,
+
             invoiceFooter:
                 this.branch.invoiceFooter?.trim() || undefined,
 
@@ -393,6 +402,9 @@ export class BranchEditComponent implements OnInit {
             invoiceContactPhone: '',
             taxNumber: '',
             website: '',
+            facebookUrl: '',
+            instagramUrl: '',
+            youtubeUrl: '',
             invoiceFooter: '',
             taxPercent: 0,
             discountPercent: 0,

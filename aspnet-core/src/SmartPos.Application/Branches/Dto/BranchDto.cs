@@ -59,6 +59,15 @@ namespace SmartPos.Branches.Dto
         [StringLength(Branch.MaxWebsiteLength)]
         public string Website { get; set; }
 
+        [StringLength(Branch.MaxWebsiteLength)]
+        public string FacebookUrl { get; set; }
+
+        [StringLength(Branch.MaxWebsiteLength)]
+        public string InstagramUrl { get; set; }
+
+        [StringLength(Branch.MaxWebsiteLength)]
+        public string YoutubeUrl { get; set; }
+
         [StringLength(Branch.MaxInvoiceFooterLength)]
         public string InvoiceFooter { get; set; }
 

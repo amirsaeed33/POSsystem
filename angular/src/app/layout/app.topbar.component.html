@@ -117,19 +117,6 @@
     </div>
 
     <div class="topbar-end flex align-items-center gap-2">
-        <!-- Customer Storefront Launch Button -->
-        <a
-            *ngIf="!isDeliveryRider && !isWaiter"
-            class="p-button p-button-sm p-button-outlined p-button-rounded flex align-items-center gap-2 text-sm font-semibold text-primary border-primary hover:surface-100 no-underline px-3 py-2 cursor-pointer"
-            [routerLink]="['/online-order']"
-            [queryParams]="storefrontQueryParams"
-            target="_blank"
-            [title]="currentBranch?.businessType === 2 ? 'Open Customer Online Food Menu & Ordering' : 'Open Customer Online Storefront'"
-        >
-            <i [class]="currentBranch?.businessType === 2 ? 'pi pi-compass' : 'pi pi-globe'"></i>
-            <span class="hidden md:inline">{{ currentBranch?.businessType === 2 ? 'Online Food Menu' : 'Online Store' }}</span>
-        </a>
-
         <!-- 🍳 Restaurant Unpaid Takeaway KOT Alarm (Restaurant Only & Admin/Cashier Only) -->
         <div class="topbar-notifications relative" *ngIf="currentBranch?.businessType === 2 && !isWaiter">
             <button
@@ -238,7 +225,7 @@
             </div>
         </div>
 
-        <!-- Online Orders Bell Notification -->
+        <!-- Combined Notifications: Online Orders + Customer Chat -->
         <div class="topbar-notifications relative" *ngIf="!isDeliveryRider && !isWaiter">
             <button
                 class="p-link flex align-items-center justify-content-center w-2rem h-2rem md:w-3rem md:h-3rem border-circle hover:surface-hover relative transition-colors"
@@ -249,40 +236,46 @@
                 leaveToClass="hidden"
                 leaveActiveClass="fadeout"
                 [hideOnOutsideClick]="true"
-                title="Today's Online Orders"
-                (click)="loadTodayOrders()"
+                title="Orders & Messages"
+                (click)="openNotificationsPanel()"
             >
                 <i class="pi pi-bell p-overlay-badge text-xl text-700" style="font-size: 1.25rem;">
-                    <p-badge *ngIf="pendingOrdersCount > 0" [value]="pendingOrdersCount.toString()" severity="danger" styleClass="text-xs"></p-badge>
+                    <p-badge *ngIf="totalNotificationCount > 0" [value]="totalNotificationCount.toString()" severity="danger" styleClass="text-xs"></p-badge>
                 </i>
             </button>
 
-            <!-- Notifications Overlay Dropdown -->
             <div
                 class="list-none p-3 m-0 border-round shadow-4 hidden absolute surface-overlay origin-top-right mt-2 right-0 top-auto z-5"
-                style="width: 22rem; max-height: 28rem; overflow-y: auto;"
+                style="width: 23rem; max-height: 32rem; overflow-y: auto;"
             >
                 <div class="flex align-items-center justify-content-between pb-2 mb-2 border-bottom-1 surface-border">
                     <span class="font-bold text-900 text-base flex align-items-center gap-2">
-                        <i class="pi pi-shopping-bag text-primary"></i>
+                        <i class="pi pi-bell text-primary"></i>
+                        Notifications
+                    </span>
+                    <span class="badge bg-primary-100 text-primary px-2 py-1 border-round text-xs font-bold" *ngIf="totalNotificationCount > 0">
+                        {{ totalNotificationCount }} new
+                    </span>
+                </div>
+
+                <!-- Orders section -->
+                <div class="flex align-items-center justify-content-between mb-2">
+                    <span class="font-semibold text-800 text-sm flex align-items-center gap-2">
+                        <i class="pi pi-shopping-bag text-primary text-sm"></i>
                         Today's Online Orders
                     </span>
-                    <span class="badge bg-primary-100 text-primary px-2 py-1 border-round text-xs font-bold">
-                        {{ todayPendingOrders.length }} Pending
-                    </span>
+                    <span class="text-xs text-500 font-medium">{{ todayPendingOrders.length }} pending</span>
                 </div>
 
-                <div *ngIf="loadingOrders" class="p-3 text-center text-500">
-                    <i class="pi pi-spin pi-spinner text-xl mr-2"></i> Loading orders...
+                <div *ngIf="loadingOrders" class="p-2 text-center text-500 text-sm mb-2">
+                    <i class="pi pi-spin pi-spinner mr-1"></i> Loading orders...
                 </div>
 
-                <div *ngIf="!loadingOrders && todayPendingOrders.length === 0" class="p-4 text-center">
-                    <i class="pi pi-check-circle text-green-500 text-3xl mb-2 block"></i>
-                    <span class="text-600 font-medium block">All orders completed!</span>
-                    <span class="text-500 text-xs">No pending online orders for today.</span>
+                <div *ngIf="!loadingOrders && todayPendingOrders.length === 0" class="p-3 text-center mb-2 surface-50 border-round">
+                    <span class="text-600 text-sm block">No pending online orders</span>
                 </div>
 
-                <ul *ngIf="!loadingOrders && todayPendingOrders.length > 0" class="list-none p-0 m-0">
+                <ul *ngIf="!loadingOrders && todayPendingOrders.length > 0" class="list-none p-0 m-0 mb-3">
                     <li
                         *ngFor="let order of todayPendingOrders"
                         class="p-2 mb-2 border-round surface-hover transition-colors cursor-pointer border-1 surface-border hover:border-primary"
@@ -311,56 +304,30 @@
                     </li>
                 </ul>
 
-                <div class="pt-2 border-top-1 surface-border text-center">
+                <div class="pb-2 mb-2 border-bottom-1 surface-border text-center">
                     <a routerLink="/customer-orders" class="text-primary font-medium text-xs hover:underline flex align-items-center justify-content-center gap-1">
                         View All Customer Orders <i class="pi pi-external-link text-xs"></i>
                     </a>
                 </div>
-            </div>
-        </div>
 
-        <!-- Customer Messages & Live Inquiries Notification -->
-        <div class="topbar-notifications relative" *ngIf="!isDeliveryRider && !isWaiter">
-            <button
-                class="p-link flex align-items-center justify-content-center w-2rem h-2rem md:w-3rem md:h-3rem border-circle hover:surface-hover relative transition-colors"
-                type="button"
-                pStyleClass="@next"
-                enterClass="hidden"
-                enterActiveClass="scalein"
-                leaveToClass="hidden"
-                leaveActiveClass="fadeout"
-                [hideOnOutsideClick]="true"
-                title="Customer Messages & Inquiries"
-                (click)="loadChatConversations()"
-            >
-                <i class="pi pi-comments p-overlay-badge text-xl text-700" style="font-size: 1.25rem;">
-                    <p-badge *ngIf="unreadChatCount > 0" [value]="unreadChatCount.toString()" severity="success" styleClass="text-xs"></p-badge>
-                </i>
-            </button>
-
-            <!-- Conversations Overlay Dropdown -->
-            <div
-                class="list-none p-3 m-0 border-round shadow-4 hidden absolute surface-overlay origin-top-right mt-2 right-0 top-auto z-5"
-                style="width: 23rem; max-height: 28rem; overflow-y: auto;"
-            >
-                <div class="flex align-items-center justify-content-between pb-2 mb-2 border-bottom-1 surface-border">
-                    <span class="font-bold text-900 text-base flex align-items-center gap-2">
-                        <i class="pi pi-comments text-primary"></i>
+                <!-- Chat / messages section -->
+                <div class="flex align-items-center justify-content-between mb-2">
+                    <span class="font-semibold text-800 text-sm flex align-items-center gap-2">
+                        <i class="pi pi-comments text-primary text-sm"></i>
                         Customer Messages
                     </span>
-                    <span class="badge bg-teal-50 text-teal-700 px-2 py-1 border-round text-xs font-bold" *ngIf="unreadChatCount > 0">
-                        {{ unreadChatCount }} Unread
+                    <span class="badge bg-teal-50 text-teal-700 px-2 py-0 border-round text-xs font-bold" *ngIf="unreadChatCount > 0">
+                        {{ unreadChatCount }} unread
                     </span>
                 </div>
 
-                <div *ngIf="loadingChats" class="p-3 text-center text-500">
-                    <i class="pi pi-spin pi-spinner text-xl mr-2"></i> Loading messages...
+                <div *ngIf="loadingChats" class="p-2 text-center text-500 text-sm">
+                    <i class="pi pi-spin pi-spinner mr-1"></i> Loading messages...
                 </div>
 
-                <div *ngIf="!loadingChats && chatConversations.length === 0" class="p-4 text-center">
-                    <i class="pi pi-check-circle text-teal-600 text-3xl mb-2 block"></i>
-                    <span class="text-600 font-medium block">No customer inquiries</span>
-                    <span class="text-500 text-xs">Customer messages and order chats will appear here.</span>
+                <div *ngIf="!loadingChats && chatConversations.length === 0" class="p-3 text-center surface-50 border-round">
+                    <span class="text-600 text-sm block">No customer inquiries</span>
+                    <span class="text-500 text-xs">Order chats and storefront messages appear here.</span>
                 </div>
 
                 <ul *ngIf="!loadingChats && chatConversations.length > 0" class="list-none p-0 m-0">

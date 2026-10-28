@@ -55,10 +55,6 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         return null;
     }
 
-    get storefrontQueryParams(): { branchId: number } | undefined {
-        return this.currentBranch?.id ? { branchId: this.currentBranch.id } : undefined;
-    }
-
     get isDeliveryRider(): boolean {
         return this.authService.isDeliveryRider();
     }
@@ -72,7 +68,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     loadingOrders = false;
     private orderPollTimer: any;
 
-    // Real-Time Customer Chat State
+    // Real-Time Customer Chat State (merged into bell notifications)
     unreadChatCount = 0;
     chatConversations: CustomerOrderConversationDto[] = [];
     loadingChats = false;
@@ -255,6 +251,15 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             }
             this.loadTodayOrders();
         });
+    }
+
+    get totalNotificationCount(): number {
+        return (this.pendingOrdersCount || 0) + (this.unreadChatCount || 0);
+    }
+
+    openNotificationsPanel(): void {
+        this.loadTodayOrders();
+        this.loadChatConversations();
     }
 
     async loadUnreadChatCount(): Promise<void> {

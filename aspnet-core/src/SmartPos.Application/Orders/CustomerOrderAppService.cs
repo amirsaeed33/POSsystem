@@ -273,6 +273,9 @@ namespace SmartPos.Orders
                     BusinessType = branch != null ? (int)branch.BusinessType : 1,
                     Latitude = branch?.Latitude,
                     Longitude = branch?.Longitude,
+                    FacebookUrl = branch?.FacebookUrl,
+                    InstagramUrl = branch?.InstagramUrl,
+                    YoutubeUrl = branch?.YoutubeUrl,
                     Categories = categories
                 };
             }

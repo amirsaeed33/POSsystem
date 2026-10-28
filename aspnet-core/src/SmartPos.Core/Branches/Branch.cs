@@ -61,6 +61,15 @@ namespace SmartPos.Branches
         [StringLength(MaxWebsiteLength)]
         public virtual string Website { get; set; }
 
+        [StringLength(MaxWebsiteLength)]
+        public virtual string FacebookUrl { get; set; }
+
+        [StringLength(MaxWebsiteLength)]
+        public virtual string InstagramUrl { get; set; }
+
+        [StringLength(MaxWebsiteLength)]
+        public virtual string YoutubeUrl { get; set; }
+
         [StringLength(MaxDateFormatLength)]
         public virtual string DateFormat { get; set; } = "dd/MM/yyyy";
 

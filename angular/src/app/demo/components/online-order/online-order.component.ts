@@ -27,6 +27,9 @@ export class OnlineOrderComponent implements OnInit {
     branchName = '';
     branchAddress = '';
     branchPhone = '';
+    facebookUrl = '';
+    instagramUrl = '';
+    youtubeUrl = '';
     currencyFormat = 'PKR';
     dateFormat = 'dd/MM/yyyy';
     branchMissingError = false;
@@ -253,6 +256,9 @@ export class OnlineOrderComponent implements OnInit {
                 if (info.phone) this.branchPhone = info.phone;
                 if (info.currencyFormat) this.currencyFormat = info.currencyFormat;
                 if (info.dateFormat) this.dateFormat = info.dateFormat;
+                this.facebookUrl = info.facebookUrl || '';
+                this.instagramUrl = info.instagramUrl || '';
+                this.youtubeUrl = info.youtubeUrl || '';
                 this.isRestaurant = !!info.isRestaurant || info.businessType === 2;
                 if (info.latitude != null) this.branchLatitude = Number(info.latitude);
                 if (info.longitude != null) this.branchLongitude = Number(info.longitude);
@@ -272,9 +278,24 @@ export class OnlineOrderComponent implements OnInit {
         this.branchName = '';
         this.branchAddress = '';
         this.branchPhone = '';
+        this.facebookUrl = '';
+        this.instagramUrl = '';
+        this.youtubeUrl = '';
         this.isRestaurant = false;
         this.branchLatitude = null;
         this.branchLongitude = null;
+    }
+
+    get socialFacebookHref(): string {
+        return this.facebookUrl || 'https://www.facebook.com/';
+    }
+
+    get socialInstagramHref(): string {
+        return this.instagramUrl || 'https://www.instagram.com/';
+    }
+
+    get socialYoutubeHref(): string {
+        return this.youtubeUrl || 'https://www.youtube.com/';
     }
 
     async handleMissingBranchId(): Promise<void> {
