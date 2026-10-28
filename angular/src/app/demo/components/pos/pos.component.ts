@@ -142,6 +142,10 @@ export class PosComponent implements OnInit, OnDestroy {
 
     unpaidTakeawayOrders: UnpaidTakeawayOrderDto[] = [];
     unpaidTakeawayDialogVisible = false;
+    orderToCancel: UnpaidTakeawayOrderDto | null = null;
+    cancelTakeawayDialogVisible = false;
+    cancellingTakeawayOrder = false;
+    private alarmOrdersSub?: Subscription;
 
     private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -258,6 +262,10 @@ export class PosComponent implements OnInit, OnDestroy {
         if (this.isRestaurantMode) {
             if (this.isWaiter) {
                 this.waiterName = this.authService.getPrinterIdentity().name;
+            } else if (this.takeawayAlarmService) {
+                this.alarmOrdersSub = this.takeawayAlarmService.unpaidOrders$.subscribe((orders) => {
+                    this.unpaidTakeawayOrders = orders || [];
+                });
             }
             this.loadUnpaidTakeaways();
             this.route.queryParams.subscribe(async (params) => {
@@ -484,6 +492,11 @@ export class PosComponent implements OnInit, OnDestroy {
         this.pendingSelectedTable = table;
         this.selectedWaiterId = table.waiterId || null;
         this.tableDialogVisible = false;
+        if (this.isWaiter) {
+            this.waiterName = this.authService.getPrinterIdentity().name;
+            this.selectTable(table);
+            return;
+        }
         if (table.status === 1 || table.status === 2) {
             // Already occupied / billed: directly open table and load order items into cart!
             this.selectTable(table);
@@ -496,7 +509,7 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     openAssignWaiterDialog(): void {
-        if (!this.selectedTable) return;
+        if (this.isWaiter || !this.selectedTable) return;
         this.pendingSelectedTable = this.selectedTable;
         this.selectedWaiterId = this.selectedTable.waiterId || null;
         if (!this.waiters.length) {
@@ -609,7 +622,11 @@ export class PosComponent implements OnInit, OnDestroy {
                 if (order && order.lines?.length) {
                     this.activeOrderId = order.id;
                     this.activeOrderNo = order.orderNo;
-                    this.waiterName = order.waiterName || table.waiterName || this.waiterName || '';
+                    if (this.isWaiter) {
+                        this.waiterName = this.authService.getPrinterIdentity().name;
+                    } else {
+                        this.waiterName = order.waiterName || table.waiterName || this.waiterName || '';
+                    }
                     this.notes = order.notes || '';
                     if (order.customerId) {
                         this.customerId = order.customerId;
@@ -659,7 +676,8 @@ export class PosComponent implements OnInit, OnDestroy {
                             stockQuantity: 999,
                             kitchenNotes: l.kitchenNotes,
                             selectedModifiers,
-                            isSentToKitchen: l.isSentToKitchen,
+                            isSentToKitchen: true,
+                            printedQuantity: l.printedQuantity && l.printedQuantity > 0 ? l.printedQuantity : l.quantity,
                             isDeal,
                             dealId,
                             dealSummary,
@@ -687,7 +705,11 @@ export class PosComponent implements OnInit, OnDestroy {
             // Available table: new running order
             this.activeOrderId = null;
             this.activeOrderNo = '';
-            this.waiterName = table.waiterName || this.waiterName || '';
+            if (this.isWaiter) {
+                this.waiterName = this.authService.getPrinterIdentity().name;
+            } else {
+                this.waiterName = table.waiterName || this.waiterName || '';
+            }
             if (!isDirectSend) {
                 this.messageService.add({
                     severity: 'info',
@@ -713,6 +735,81 @@ export class PosComponent implements OnInit, OnDestroy {
             this.waiterName = '';
         }
         this.pendingSendToTable = false;
+    }
+
+    // Cancel Restaurant Order (Admin only)
+    cancelOrderDialogVisible = false;
+    cancellingOrder = false;
+
+    openCancelOrderDialog(): void {
+        if (this.isWaiter || !this.activeOrderId) return;
+        this.cancelOrderDialogVisible = true;
+    }
+
+    async confirmCancelOrder(): Promise<void> {
+        if (this.isWaiter || !this.activeOrderId) return;
+        this.cancellingOrder = true;
+        try {
+            await this.restaurantOrderService.cancelOrder(this.activeOrderId);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Order Cancelled',
+                detail: `Order #${this.activeOrderNo || this.activeOrderId} has been cancelled.`,
+                life: 3000,
+            });
+            this.cancelOrderDialogVisible = false;
+            this.clearCart();
+            await this.loadTables();
+            await this.loadUnpaidTakeaways();
+            if (this.takeawayAlarmService) {
+                this.takeawayAlarmService.checkImmediately();
+            }
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to cancel order',
+            });
+        } finally {
+            this.cancellingOrder = false;
+        }
+    }
+
+    openCancelTakeawayDialog(order: UnpaidTakeawayOrderDto): void {
+        if (this.isWaiter) return;
+        this.orderToCancel = order;
+        this.cancelTakeawayDialogVisible = true;
+    }
+
+    async confirmCancelTakeawayOrder(): Promise<void> {
+        if (this.isWaiter || !this.orderToCancel) return;
+        this.cancellingTakeawayOrder = true;
+        try {
+            await this.restaurantOrderService.cancelOrder(this.orderToCancel.id);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Takeaway KOT Cancelled',
+                detail: `Takeaway order #${this.orderToCancel.orderNo} has been cancelled.`,
+                life: 3000,
+            });
+            if (this.activeOrderId === this.orderToCancel.id) {
+                this.clearCart();
+            }
+            this.cancelTakeawayDialogVisible = false;
+            this.orderToCancel = null;
+            await this.loadUnpaidTakeaways();
+            if (this.takeawayAlarmService) {
+                this.takeawayAlarmService.checkImmediately();
+            }
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to cancel takeaway order',
+            });
+        } finally {
+            this.cancellingTakeawayOrder = false;
+        }
     }
 
     // Shift / Transfer Table
@@ -802,7 +899,11 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.activeOrderId = order.id;
                 this.activeOrderNo = order.orderNo;
                 this.orderType = order.orderType === OrderTypes.Takeaway ? 'takeaway' : 'dineIn';
-                this.waiterName = order.waiterName || this.waiterName;
+                if (this.isWaiter) {
+                    this.waiterName = this.authService.getPrinterIdentity().name;
+                } else {
+                    this.waiterName = order.waiterName || this.waiterName;
+                }
                 this.notes = order.notes || '';
                 if (order.customerId) {
                     this.customerId = order.customerId;
@@ -859,7 +960,8 @@ export class PosComponent implements OnInit, OnDestroy {
                         stockQuantity: 999,
                         kitchenNotes: l.kitchenNotes,
                         selectedModifiers,
-                        isSentToKitchen: l.isSentToKitchen,
+                        isSentToKitchen: true,
+                        printedQuantity: l.printedQuantity && l.printedQuantity > 0 ? l.printedQuantity : l.quantity,
                         isDeal,
                         dealId,
                         dealSummary,
@@ -935,6 +1037,7 @@ export class PosComponent implements OnInit, OnDestroy {
                     kitchenNotes: line.kitchenNotes,
                     selectedModifiers: line.selectedModifiers,
                     isSentToKitchen: line.isSentToKitchen || false,
+                    printedQuantity: line.printedQuantity || 0,
                 })),
             };
 
@@ -942,9 +1045,21 @@ export class PosComponent implements OnInit, OnDestroy {
             this.activeOrderId = savedOrder.id;
             this.activeOrderNo = savedOrder.orderNo;
 
+            // Sync saved line ids and printed quantities back to local cart
+            if (savedOrder.lines?.length) {
+                savedOrder.lines.forEach((sl) => {
+                    const cartLine = this.cart.find(
+                        (cl) => cl.id === sl.id || (!cl.id && cl.productId === sl.productId)
+                    );
+                    if (cartLine) {
+                        cartLine.id = sl.id;
+                        cartLine.printedQuantity = sl.printedQuantity ?? cartLine.printedQuantity ?? 0;
+                    }
+                });
+            }
+
             const kotResult = await this.restaurantOrderService.sendToKitchen(savedOrder.id);
             this.kotResult = kotResult;
-            this.kotDialogVisible = true;
 
             this.cart.forEach((l) => (l.isSentToKitchen = true));
             if (!isTakeaway) {
@@ -958,14 +1073,24 @@ export class PosComponent implements OnInit, OnDestroy {
                 }
             }
 
-            this.messageService.add({
-                severity: 'success',
-                summary: isTakeaway ? '🍳 Sent to KOT' : '🍽️ Sent to Table',
-                detail: isTakeaway
-                    ? `Takeaway order #${kotResult.orderNo} sent to kitchen KOT (Unpaid)`
-                    : `Order sent to Table ${kotResult.tableNo} (Order #${kotResult.orderNo})`,
-                life: 3500,
-            });
+            if (!kotResult.hasNewItems || !kotResult.newItems?.length) {
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Kitchen Up to Date',
+                    detail: kotResult.message || 'All items for this order have already been sent to kitchen.',
+                    life: 3500,
+                });
+            } else {
+                this.kotDialogVisible = true;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: isTakeaway ? '🍳 Sent to KOT' : '🍽️ Sent to Table',
+                    detail: isTakeaway
+                        ? `Takeaway order #${kotResult.orderNo} sent to kitchen KOT (Unpaid)`
+                        : `Order sent to Table ${kotResult.tableNo} (Order #${kotResult.orderNo})`,
+                    life: 3500,
+                });
+            }
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',
@@ -1159,6 +1284,20 @@ export class PosComponent implements OnInit, OnDestroy {
                         receiptType,
                     })
                     .catch(() => {});
+            }
+
+            if (elementId === 'kotThermalPrint' && this.activeOrderId) {
+                this.restaurantOrderService
+                    .confirmKotPrint({ orderId: this.activeOrderId })
+                    .then(() => {
+                        this.cart.forEach((l) => {
+                            if ((l.quantity || 0) > (l.printedQuantity || 0)) {
+                                l.printedQuantity = l.quantity;
+                                l.isSentToKitchen = true;
+                            }
+                        });
+                    })
+                    .catch((err: any) => console.error('Failed to confirm KOT print', err));
             }
         }
 
@@ -1726,9 +1865,43 @@ export class PosComponent implements OnInit, OnDestroy {
         this.focusSearch();
     }
 
+    canRemoveLine(line: PosCartLine): boolean {
+        if (!this.isRestaurantMode || !this.isWaiter) {
+            return true;
+        }
+        return !line.isSentToKitchen && !(line.printedQuantity && line.printedQuantity > 0);
+    }
+
+    getMinQty(line: PosCartLine): number {
+        if (!this.isRestaurantMode || !this.isWaiter) {
+            return 0.01;
+        }
+        if (line.isSentToKitchen || (line.printedQuantity && line.printedQuantity > 0)) {
+            return line.printedQuantity || line.quantity || 1;
+        }
+        return 0.01;
+    }
+
     bumpQty(line: PosCartLine, delta: number): void {
+        const min = this.getMinQty(line);
         const next = Number(((line.quantity || 0) + delta).toFixed(2));
+        if (this.isRestaurantMode && this.isWaiter && delta < 0 && next < min) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Permission Denied',
+                detail: `Waiters cannot reduce quantity below previously sent amount (${min}).`,
+            });
+            return;
+        }
         if (next <= 0) {
+            if (!this.canRemoveLine(line)) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Permission Denied',
+                    detail: 'Waiters cannot remove previously sent items.',
+                });
+                return;
+            }
             this.removeLine(line);
             return;
         }
@@ -1741,6 +1914,17 @@ export class PosComponent implements OnInit, OnDestroy {
         }
 
         const value = Number(qty);
+        const min = this.getMinQty(line);
+        if (this.isRestaurantMode && this.isWaiter && value < min) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Permission Denied',
+                detail: `Waiters cannot reduce quantity below previously sent amount (${min}).`,
+            });
+            line.quantity = min;
+            return;
+        }
+
         if (value <= 0) {
             line.quantity = 1;
             return;
@@ -1763,11 +1947,35 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     removeLine(line: PosCartLine): void {
+        if (!this.canRemoveLine(line)) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Permission Denied',
+                detail: 'Waiters cannot remove previously sent items.',
+            });
+            return;
+        }
         this.cart = this.cart.filter((x) => x !== line);
         this.focusSearch();
     }
 
     clearCart(): void {
+        if (this.isRestaurantMode && this.isWaiter && this.activeOrderId) {
+            const sentLines = this.cart.filter(
+                (l) => l.isSentToKitchen || (l.printedQuantity && l.printedQuantity > 0)
+            );
+            if (sentLines.length === this.cart.length) {
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Clear Cart',
+                    detail: 'Previously sent items cannot be removed by Waiters.',
+                });
+                return;
+            }
+            this.cart = sentLines;
+            this.focusSearch();
+            return;
+        }
         this.cart = [];
         this.applyBranchPricing();
         this.notes = '';

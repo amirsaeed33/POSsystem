@@ -86,6 +86,15 @@ namespace SmartPos.Restaurant
             return (user.Id, fullName, primaryRole);
         }
 
+        private async Task<bool> IsCurrentUserWaiterAsync()
+        {
+            if (!AbpSession.UserId.HasValue) return false;
+            var currentUser = await _userManager.FindByIdAsync(AbpSession.UserId.Value.ToString());
+            if (currentUser == null) return false;
+            var roles = await _userManager.GetRolesAsync(currentUser);
+            return roles.Contains(StaticRoleNames.Tenants.Waiter);
+        }
+
         public async Task<List<RestaurantOrderDto>> GetActiveOrdersAsync(int branchId)
         {
             await _branchAccessChecker.EnsureCanAccessBranchAsync(branchId);
@@ -193,14 +202,23 @@ namespace SmartPos.Restaurant
                 isNew = true;
             }
 
+            var isWaiter = await IsCurrentUserWaiterAsync();
             order.CustomerId = input.CustomerId;
-            order.WaiterName = input.WaiterName;
-            if (string.IsNullOrWhiteSpace(order.WaiterName) && order.TableId.HasValue)
+            if (isWaiter)
             {
-                var tbl = await _tableRepository.FirstOrDefaultAsync(order.TableId.Value);
-                if (!string.IsNullOrWhiteSpace(tbl?.WaiterName))
+                var printer = await GetCurrentPrinterIdentityAsync();
+                order.WaiterName = printer.Name;
+            }
+            else
+            {
+                order.WaiterName = input.WaiterName;
+                if (string.IsNullOrWhiteSpace(order.WaiterName) && order.TableId.HasValue)
                 {
-                    order.WaiterName = tbl.WaiterName;
+                    var tbl = await _tableRepository.FirstOrDefaultAsync(order.TableId.Value);
+                    if (!string.IsNullOrWhiteSpace(tbl?.WaiterName))
+                    {
+                        order.WaiterName = tbl.WaiterName;
+                    }
                 }
             }
             order.Notes = input.Notes;
@@ -212,12 +230,31 @@ namespace SmartPos.Restaurant
 
             decimal subTotal = 0;
 
-            // Remove lines that are no longer in input (only if unprinted)
+            // Handle removal of lines
             var inputLineIds = input.Lines.Where(l => l.Id.HasValue).Select(l => l.Id.Value).ToList();
-            var linesToRemove = order.Lines.Where(l => !l.IsSentToKitchen && !inputLineIds.Contains(l.Id)).ToList();
-            foreach (var rem in linesToRemove)
+            if (isWaiter)
             {
-                order.Lines.Remove(rem);
+                // Waiters cannot remove any previously sent or printed lines!
+                var illegalRemoval = order.Lines.Any(l => (l.IsSentToKitchen || l.PrintedQuantity > 0) && !inputLineIds.Contains(l.Id));
+                if (illegalRemoval)
+                {
+                    throw new UserFriendlyException("Waiters are not authorized to remove previously sent items from table orders.");
+                }
+                // Waiters can only remove unsent lines
+                var unprintedLinesToRemove = order.Lines.Where(l => !l.IsSentToKitchen && l.PrintedQuantity <= 0 && !inputLineIds.Contains(l.Id)).ToList();
+                foreach (var rem in unprintedLinesToRemove)
+                {
+                    order.Lines.Remove(rem);
+                }
+            }
+            else
+            {
+                // Admin can remove any lines
+                var linesToRemove = order.Lines.Where(l => !inputLineIds.Contains(l.Id)).ToList();
+                foreach (var rem in linesToRemove)
+                {
+                    order.Lines.Remove(rem);
+                }
             }
 
             foreach (var lDto in input.Lines)
@@ -230,11 +267,28 @@ namespace SmartPos.Restaurant
                     var existingLine = order.Lines.FirstOrDefault(l => l.Id == lDto.Id.Value);
                     if (existingLine != null)
                     {
+                        if (isWaiter && (existingLine.IsSentToKitchen || existingLine.PrintedQuantity > 0))
+                        {
+                            if (lDto.Quantity < existingLine.PrintedQuantity || lDto.Quantity < existingLine.Quantity)
+                            {
+                                throw new UserFriendlyException($"Waiters cannot deduct or decrease quantity for '{existingLine.ProductName}'.");
+                            }
+                        }
+
                         existingLine.Quantity = lDto.Quantity;
                         existingLine.UnitPrice = lDto.UnitPrice;
                         existingLine.LineTotal = lineTotal;
                         existingLine.KitchenNotes = lDto.KitchenNotes;
                         existingLine.SelectedModifiers = lDto.SelectedModifiers;
+                        existingLine.IsSentToKitchen = existingLine.IsSentToKitchen || lDto.IsSentToKitchen || existingLine.PrintedQuantity > 0;
+                        if (lDto.PrintedQuantity > existingLine.PrintedQuantity)
+                        {
+                            existingLine.PrintedQuantity = lDto.PrintedQuantity;
+                        }
+                        else if (!isWaiter && existingLine.PrintedQuantity > existingLine.Quantity)
+                        {
+                            existingLine.PrintedQuantity = existingLine.Quantity;
+                        }
                         continue;
                     }
                 }
@@ -248,7 +302,8 @@ namespace SmartPos.Restaurant
                     LineTotal = lineTotal,
                     KitchenNotes = lDto.KitchenNotes,
                     SelectedModifiers = lDto.SelectedModifiers,
-                    IsSentToKitchen = lDto.IsSentToKitchen
+                    IsSentToKitchen = lDto.IsSentToKitchen,
+                    PrintedQuantity = lDto.PrintedQuantity
                 });
             }
 
@@ -311,26 +366,101 @@ namespace SmartPos.Restaurant
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
 
-            var unprintedLines = order.Lines.Where(l => !l.IsSentToKitchen).ToList();
-            if (!unprintedLines.Any())
+            var printer = await GetCurrentPrinterIdentityAsync();
+
+            // Smart KOT: Calculate delta items (Quantity - PrintedQuantity)
+            var itemsToPrint = new List<KitchenSlipItemDto>();
+            foreach (var line in order.Lines)
             {
-                // If all are already printed, reprint all for reference
-                unprintedLines = order.Lines.ToList();
-            }
-            else
-            {
-                var now = DateTime.UtcNow;
-                foreach (var line in unprintedLines)
+                var additionalQty = line.Quantity - line.PrintedQuantity;
+                if (additionalQty > 0)
                 {
                     line.IsSentToKitchen = true;
-                    line.SentToKitchenTime = now;
+                    itemsToPrint.Add(new KitchenSlipItemDto
+                    {
+                        LineId = line.Id,
+                        ProductName = line.ProductName,
+                        Quantity = additionalQty,
+                        PreviousQuantity = line.PrintedQuantity,
+                        TotalQuantity = line.Quantity,
+                        KitchenNotes = line.KitchenNotes,
+                        SelectedModifiers = line.SelectedModifiers
+                    });
                 }
-                await CurrentUnitOfWork.SaveChangesAsync();
+            }
+
+            if (itemsToPrint.Any())
+            {
+                await _orderRepository.UpdateAsync(order);
+            }
+
+            // Never reprint previously sent items, whether admin or waiter
+            if (!itemsToPrint.Any())
+            {
+                return new SendToKitchenResultDto
+                {
+                    OrderId = order.Id,
+                    OrderNo = order.OrderNo,
+                    TableNo = order.TableNo ?? "Takeaway",
+                    WaiterName = order.WaiterName ?? "Staff",
+                    PrintTime = DateTime.UtcNow,
+                    PrintedBy = $"{printer.Name} ({printer.Role})",
+                    PrintedByUserId = printer.UserId,
+                    PrintedByName = printer.Name,
+                    PrintedByRole = printer.Role,
+                    HasNewItems = false,
+                    Message = "All items for this order have already been sent to kitchen.",
+                    NewItems = new List<KitchenSlipItemDto>()
+                };
+            }
+
+            // Do not prematurely mark items as printed here.
+            // Items are reliably marked as printed when printing is confirmed via ConfirmKotPrintAsync.
+            return new SendToKitchenResultDto
+            {
+                OrderId = order.Id,
+                OrderNo = order.OrderNo,
+                TableNo = order.TableNo ?? "Takeaway",
+                WaiterName = order.WaiterName ?? "Staff",
+                PrintTime = DateTime.UtcNow,
+                PrintedBy = $"{printer.Name} ({printer.Role})",
+                PrintedByUserId = printer.UserId,
+                PrintedByName = printer.Name,
+                PrintedByRole = printer.Role,
+                HasNewItems = true,
+                Message = "New items ready to send to kitchen.",
+                NewItems = itemsToPrint
+            };
+        }
+
+        public async Task<SendToKitchenResultDto> ConfirmKotPrintAsync(ConfirmKotPrintDto input)
+        {
+            var order = await _orderRepository.GetAll()
+                .Include(o => o.Lines)
+                .FirstOrDefaultAsync(o => o.Id == input.OrderId);
+
+            if (order == null)
+            {
+                throw new UserFriendlyException("Order not found.");
+            }
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+            var now = DateTime.UtcNow;
+            var targetLines = input.LineIds != null && input.LineIds.Any()
+                ? order.Lines.Where(l => input.LineIds.Contains(l.Id)).ToList()
+                : order.Lines.Where(l => l.Quantity > l.PrintedQuantity).ToList();
+
+            foreach (var line in targetLines)
+            {
+                line.PrintedQuantity = line.Quantity;
+                line.IsSentToKitchen = true;
+                line.SentToKitchenTime = now;
             }
 
             var printer = await GetCurrentPrinterIdentityAsync();
             order.LastPrintedBy = $"{printer.Name} ({printer.Role})";
-            order.LastPrintedTime = DateTime.UtcNow;
+            order.LastPrintedTime = now;
             await _orderRepository.UpdateAsync(order);
 
             await _printLogRepository.InsertAsync(new RestaurantPrintLog
@@ -343,8 +473,10 @@ namespace SmartPos.Restaurant
                 PrintedByUserId = printer.UserId,
                 PrintedByName = printer.Name,
                 PrintedByRole = printer.Role,
-                PrintTime = DateTime.UtcNow
+                PrintTime = now
             });
+
+            await CurrentUnitOfWork.SaveChangesAsync();
 
             return new SendToKitchenResultDto
             {
@@ -352,13 +484,15 @@ namespace SmartPos.Restaurant
                 OrderNo = order.OrderNo,
                 TableNo = order.TableNo ?? "Takeaway",
                 WaiterName = order.WaiterName ?? "Staff",
-                PrintTime = DateTime.UtcNow,
+                PrintTime = now,
                 PrintedBy = $"{printer.Name} ({printer.Role})",
                 PrintedByUserId = printer.UserId,
                 PrintedByName = printer.Name,
                 PrintedByRole = printer.Role,
-                NewItems = unprintedLines.Select(l => new KitchenSlipItemDto
+                HasNewItems = true,
+                NewItems = targetLines.Select(l => new KitchenSlipItemDto
                 {
+                    LineId = l.Id,
                     ProductName = l.ProductName,
                     Quantity = l.Quantity,
                     KitchenNotes = l.KitchenNotes,
@@ -594,7 +728,7 @@ namespace SmartPos.Restaurant
                 .Where(o => o.BranchId == branchId &&
                             o.OrderType == OrderType.Takeaway &&
                             (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed) &&
-                            o.Lines.Any(l => l.IsSentToKitchen))
+                            (o.Lines.Any(l => l.IsSentToKitchen || l.PrintedQuantity > 0) || o.LastPrintedTime != null))
                 .OrderByDescending(o => o.CreationTime)
                 .Select(o => new UnpaidTakeawayOrderDto
                 {
@@ -614,8 +748,19 @@ namespace SmartPos.Restaurant
 
         public async Task CancelOrderAsync(int orderId)
         {
+            if (await IsCurrentUserWaiterAsync())
+            {
+                throw new UserFriendlyException("Waiters are not authorized to cancel orders.");
+            }
+
             var order = await _orderRepository.GetAsync(orderId);
             await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+            if (order.Status == RestaurantOrderStatus.Settled)
+            {
+                throw new UserFriendlyException("Paid and settled orders cannot be cancelled.");
+            }
+
             order.Status = RestaurantOrderStatus.Cancelled;
             await _orderRepository.UpdateAsync(order);
 

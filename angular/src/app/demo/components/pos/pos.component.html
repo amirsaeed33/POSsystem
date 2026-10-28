@@ -8,7 +8,7 @@
                 type="button"
                 label="Clear Cart"
                 class="p-button-outlined"
-                [disabled]="!cart.length || saving"
+                [disabled]="!cart.length || saving || (isRestaurantMode && isWaiter && activeOrderId && !hasUnsentItems)"
                 (click)="clearCart()"
             ></button>
             <button
@@ -138,6 +138,18 @@
                 class="p-button-outlined p-button-warning"
                 title="Transfer active order to another table"
                 (click)="openTransferDialog()"
+            ></button>
+
+            <button
+                *ngIf="orderType === 'dineIn' && activeOrderId && !isWaiter"
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-ban"
+                label="Cancel Order (KOT)"
+                class="p-button-outlined p-button-danger"
+                title="Cancel this order and free table (Admin only)"
+                (click)="openCancelOrderDialog()"
             ></button>
         </div>
     </div>
@@ -347,10 +359,16 @@
                                     <div class="mt-1 flex align-items-center gap-2">
                                         <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
                                         <span
-                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen"
+                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && (!line.printedQuantity || line.quantity <= line.printedQuantity)"
                                             class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
                                         >
                                             <i class="pi pi-check-circle"></i> Sent to Table
+                                        </span>
+                                        <span
+                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
+                                            class="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
+                                        >
+                                            <i class="pi pi-plus-circle"></i> Sent: {{ line.printedQuantity }} &bull; New: +{{ line.quantity - line.printedQuantity }}
                                         </span>
                                         <span
                                             *ngIf="isRestaurantMode && orderType === 'dineIn' && !line.isSentToKitchen"
@@ -370,7 +388,7 @@
                                     <p-inputNumber
                                         [ngModel]="line.quantity"
                                         (ngModelChange)="updateQty(line, $event)"
-                                        [min]="0.01"
+                                        [min]="getMinQty(line)"
                                         [showButtons]="false"
                                         styleClass="w-full"
                                     ></p-inputNumber>
@@ -383,13 +401,20 @@
                                 </td>
                                 <td class="text-center">
                                     <button
+                                        *ngIf="canRemoveLine(line)"
                                         pButton
                                         pRipple
                                         type="button"
                                         icon="pi pi-times"
                                         class="p-button-text p-button-danger p-button-sm"
                                         (click)="removeLine(line)"
+                                        title="Remove Item"
                                     ></button>
+                                    <i
+                                        *ngIf="!canRemoveLine(line)"
+                                        class="pi pi-lock text-400 text-sm"
+                                        title="Previously sent item cannot be removed by Waiter"
+                                    ></i>
                                 </td>
                             </tr>
                         </ng-template>
@@ -460,10 +485,16 @@
                                 <div class="mt-1 flex align-items-center gap-2">
                                     <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
                                     <span
-                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen"
+                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && (!line.printedQuantity || line.quantity <= line.printedQuantity)"
                                         class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
                                     >
                                         <i class="pi pi-check-circle"></i> Sent to Table
+                                    </span>
+                                    <span
+                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
+                                        class="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
+                                    >
+                                        <i class="pi pi-plus-circle"></i> Sent: {{ line.printedQuantity }} &bull; New: +{{ line.quantity - line.printedQuantity }}
                                     </span>
                                     <span
                                         *ngIf="isRestaurantMode && orderType === 'dineIn' && !line.isSentToKitchen"
@@ -480,13 +511,20 @@
                                 </div>
                             </div>
                             <button
+                                *ngIf="canRemoveLine(line)"
                                 pButton
                                 pRipple
                                 type="button"
                                 icon="pi pi-trash"
                                 class="p-button-outlined p-button-danger pos-touch-btn"
                                 (click)="removeLine(line)"
+                                title="Remove Item"
                             ></button>
+                            <i
+                                *ngIf="!canRemoveLine(line)"
+                                class="pi pi-lock text-400 text-sm p-2"
+                                title="Previously sent item cannot be removed by Waiter"
+                            ></i>
                         </div>
                         <div class="pos-cart-item-controls mt-2">
                             <div class="pos-qty-control">
@@ -496,12 +534,13 @@
                                     type="button"
                                     label="−"
                                     class="p-button-outlined pos-touch-btn"
+                                    [disabled]="isWaiter && line.quantity <= getMinQty(line)"
                                     (click)="bumpQty(line, -1)"
                                 ></button>
                                 <p-inputNumber
                                     [ngModel]="line.quantity"
                                     (ngModelChange)="updateQty(line, $event)"
-                                    [min]="0.01"
+                                    [min]="getMinQty(line)"
                                     [showButtons]="false"
                                     inputStyleClass="text-center"
                                     styleClass="w-full"
@@ -1172,12 +1211,15 @@
                     <tbody>
                         <tr *ngFor="let item of kotResult?.newItems" style="border-bottom: 1px dotted #ccc;">
                             <td style="vertical-align: top; font-weight: bold; padding: 4px 0; width: 2.5rem;">
-                                {{ item.quantity }}x
+                                {{ item.previousQuantity && item.previousQuantity > 0 ? '+' : '' }}{{ item.quantity }}x
                             </td>
                             <td style="padding: 4px 0;">
                                 <div style="font-weight: bold;" class="flex align-items-center gap-1">
                                     <span *ngIf="isDealItemOrModifiers(item)" style="background: #000; color: #fff; font-size: 10px; padding: 1px 4px; border-radius: 2px; font-weight: bold;">DEAL</span>
                                     <span>{{ item.productName }}</span>
+                                </div>
+                                <div *ngIf="item.previousQuantity && item.previousQuantity > 0" style="font-size: 11px; font-weight: bold; color: #1e40af; margin-top: 1px;">
+                                    (Add-on &bull; Previous: {{ item.previousQuantity }}, Total: {{ item.totalQuantity }})
                                 </div>
                                 <!-- Deal Constituent Items for Kitchen -->
                                 <div *ngIf="getDealItemsFromLine(item)?.length" style="margin: 3px 0; padding-left: 6px; border-left: 2px solid #333; font-size: 12px; color: #111;">
@@ -1940,7 +1982,7 @@
         header="🛍️ Unpaid Takeaway Orders"
         [(visible)]="unpaidTakeawayDialogVisible"
         [modal]="true"
-        [style]="{ width: '42rem', maxWidth: '95vw' }"
+        [style]="{ width: '46rem', maxWidth: '95vw' }"
         [draggable]="false"
         [resizable]="false"
     >
@@ -1984,8 +2026,19 @@
                             <span>{{ order.itemCount }} item(s)</span>
                         </div>
                     </div>
-                    <div class="flex align-items-center gap-3">
-                        <span class="font-bold text-lg text-primary">{{ order.grandTotal | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                    <div class="flex align-items-center gap-2 flex-shrink-0">
+                        <span class="font-bold text-lg text-primary mr-1">{{ order.grandTotal | currency:'PKR ':'symbol':'1.2-2' }}</span>
+                        <button
+                            *ngIf="!isWaiter"
+                            pButton
+                            pRipple
+                            type="button"
+                            label="Cancel"
+                            icon="pi pi-times"
+                            class="p-button-danger p-button-outlined p-button-sm font-semibold"
+                            (click)="openCancelTakeawayDialog(order)"
+                            title="Cancel this takeaway order"
+                        ></button>
                         <button
                             pButton
                             pRipple
@@ -2011,6 +2064,90 @@
                 class="p-button-text p-button-secondary"
                 (click)="unpaidTakeawayDialogVisible = false"
             ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Cancel Order Confirmation Dialog (Admin only) -->
+    <p-dialog
+        [(visible)]="cancelOrderDialogVisible"
+        header="Cancel Order (KOT)"
+        [modal]="true"
+        [style]="{ width: '26rem' }"
+        [closable]="!cancellingOrder"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="flex align-items-center gap-3">
+                <i class="pi pi-exclamation-triangle text-red-500 text-3xl"></i>
+                <div class="text-sm">
+                    Are you sure you want to cancel Order <strong>#{{ activeOrderNo || activeOrderId }}</strong>?
+                    <div class="text-xs text-500 mt-1">
+                        All items on this table will be cancelled and the table will be freed.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <div class="flex justify-content-end gap-2">
+                <button
+                    pButton
+                    type="button"
+                    label="No, Keep"
+                    class="p-button-text p-button-secondary"
+                    [disabled]="cancellingOrder"
+                    (click)="cancelOrderDialogVisible = false"
+                ></button>
+                <button
+                    pButton
+                    type="button"
+                    label="Yes, Cancel Order"
+                    icon="pi pi-trash"
+                    class="p-button-danger"
+                    [loading]="cancellingOrder"
+                    (click)="confirmCancelOrder()"
+                ></button>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Cancel Takeaway Order Confirmation Dialog (Admin only) -->
+    <p-dialog
+        [(visible)]="cancelTakeawayDialogVisible"
+        header="Cancel Takeaway Order"
+        [modal]="true"
+        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [closable]="!cancellingTakeawayOrder"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="flex align-items-center gap-3">
+                <i class="pi pi-exclamation-triangle text-red-500 text-3xl"></i>
+                <div class="text-sm">
+                    Are you sure you want to cancel Takeaway Order <strong *ngIf="orderToCancel">#{{ orderToCancel.orderNo }}</strong>?
+                    <div class="text-xs text-500 mt-1">
+                        This unpaid takeaway order sent to kitchen will be marked as cancelled.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <div class="flex justify-content-end gap-2">
+                <button
+                    pButton
+                    type="button"
+                    label="No, Keep"
+                    class="p-button-text p-button-secondary"
+                    [disabled]="cancellingTakeawayOrder"
+                    (click)="cancelTakeawayDialogVisible = false"
+                ></button>
+                <button
+                    pButton
+                    type="button"
+                    label="Yes, Cancel Order"
+                    icon="pi pi-trash"
+                    class="p-button-danger"
+                    [loading]="cancellingTakeawayOrder"
+                    (click)="confirmCancelTakeawayOrder()"
+                ></button>
+            </div>
         </ng-template>
     </p-dialog>
 

@@ -58,6 +58,7 @@ export interface RestaurantOrderLineDto {
     kitchenNotes?: string;
     selectedModifiers?: string;
     isSentToKitchen: boolean;
+    printedQuantity?: number;
     sentToKitchenTime?: string | null;
 }
 
@@ -86,6 +87,7 @@ export interface CreateOrUpdateRestaurantOrderLineDto {
     kitchenNotes?: string;
     selectedModifiers?: string;
     isSentToKitchen?: boolean;
+    printedQuantity?: number;
 }
 
 export interface SendToKitchenResultDto {
@@ -98,14 +100,24 @@ export interface SendToKitchenResultDto {
     printedByUserId?: number | null;
     printedByName?: string;
     printedByRole?: string;
+    hasNewItems?: boolean;
+    message?: string;
     newItems: KitchenSlipItemDto[];
 }
 
 export interface KitchenSlipItemDto {
+    lineId?: number;
     productName: string;
     quantity: number;
+    previousQuantity?: number;
+    totalQuantity?: number;
     kitchenNotes?: string;
     selectedModifiers?: string;
+}
+
+export interface ConfirmKotPrintDto {
+    orderId: number;
+    lineIds?: number[];
 }
 
 export interface SettleRestaurantOrderDto {

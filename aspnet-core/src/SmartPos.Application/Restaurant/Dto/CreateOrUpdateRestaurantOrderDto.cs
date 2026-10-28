@@ -56,5 +56,7 @@ namespace SmartPos.Restaurant.Dto
         public string SelectedModifiers { get; set; }
 
         public bool IsSentToKitchen { get; set; }
+
+        public decimal PrintedQuantity { get; set; } = 0;
     }
 }

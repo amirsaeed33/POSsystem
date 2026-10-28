@@ -121,7 +121,7 @@ namespace SmartPos.Categories
             await ClearLookupCacheAsync();
         }
 
-        [AbpAuthorize(PermissionNames.Pages_Categories, PermissionNames.Pages_Products)]
+        [AbpAuthorize]
         public async Task<ListResultDto<CategoryDto>> GetLookupAsync()
         {
             var branchId = ResolveBranchId();

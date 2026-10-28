@@ -24,6 +24,10 @@ namespace SmartPos.Restaurant.Dto
 
         public string PrintedByRole { get; set; }
 
+        public bool HasNewItems { get; set; } = true;
+
+        public string Message { get; set; }
+
         public List<KitchenSlipItemDto> NewItems { get; set; } = new List<KitchenSlipItemDto>();
     }
 
@@ -82,13 +86,27 @@ namespace SmartPos.Restaurant.Dto
 
     public class KitchenSlipItemDto
     {
+        public int? LineId { get; set; }
+
         public string ProductName { get; set; }
 
         public decimal Quantity { get; set; }
 
+        public decimal PreviousQuantity { get; set; }
+
+        public decimal TotalQuantity { get; set; }
+
         public string KitchenNotes { get; set; }
 
         public string SelectedModifiers { get; set; }
+    }
+
+    public class ConfirmKotPrintDto
+    {
+        [Required]
+        public int OrderId { get; set; }
+
+        public List<int> LineIds { get; set; } = new List<int>();
     }
 
     public class SettleRestaurantOrderDto

@@ -47,10 +47,10 @@ export class RestaurantTakeawayAlarmService implements OnDestroy {
 
     public startPolling(): void {
         this.stopPolling();
-        // 60,000 ms = 1 minute recurring check
+        // 12,000 ms (12 seconds) recurring check for snappy automatic KOT / reminder refresh
         this.pollTimer = setInterval(() => {
             this.checkImmediately();
-        }, 60000);
+        }, 12000);
     }
 
     public stopPolling(): void {

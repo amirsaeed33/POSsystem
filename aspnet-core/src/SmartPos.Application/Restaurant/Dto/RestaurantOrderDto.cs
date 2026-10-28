@@ -82,6 +82,8 @@ namespace SmartPos.Restaurant.Dto
 
         public bool IsSentToKitchen { get; set; }
 
+        public decimal PrintedQuantity { get; set; } = 0;
+
         public DateTime? SentToKitchenTime { get; set; }
     }
 }

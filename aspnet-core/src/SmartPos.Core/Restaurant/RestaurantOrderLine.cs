@@ -43,6 +43,8 @@ namespace SmartPos.Restaurant
 
         public virtual bool IsSentToKitchen { get; set; } = false;
 
+        public virtual decimal PrintedQuantity { get; set; } = 0;
+
         public virtual DateTime? SentToKitchenTime { get; set; }
     }
 }

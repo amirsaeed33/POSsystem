@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+    ConfirmKotPrintDto,
     CreateOrUpdateRestaurantOrderDto,
     RecordPrintLogDto,
     RestaurantOrderDto,
@@ -61,6 +62,13 @@ export class RestaurantOrderService {
             })
         );
         return this.unwrap(res, 'Failed to send order to kitchen');
+    }
+
+    async confirmKotPrint(dto: ConfirmKotPrintDto): Promise<SendToKitchenResultDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/ConfirmKotPrint`, dto)
+        );
+        return this.unwrap(res, 'Failed to confirm KOT print');
     }
 
     async printBill(orderId: number): Promise<RestaurantOrderDto> {
