@@ -243,15 +243,10 @@ namespace SmartPos.Restaurant
 
             // Handle removal of lines
             var inputLineIds = input.Lines.Where(l => l.Id.HasValue).Select(l => l.Id.Value).ToList();
-            if (isWaiter)
+            if (isWaiter || order.OrderType == OrderType.Takeaway)
             {
-                // Waiters cannot remove any previously sent or printed lines!
-                var illegalRemoval = order.Lines.Any(l => (l.IsSentToKitchen || l.PrintedQuantity > 0) && !inputLineIds.Contains(l.Id));
-                if (illegalRemoval)
-                {
-                    throw new UserFriendlyException("Waiters are not authorized to remove previously sent items from table orders.");
-                }
-                // Waiters can only remove unsent lines
+                // For Waiters or Takeaway KOT: items already sent to kitchen (KOT) or printed cannot be removed by line deletion.
+                // An active KOT order must be paid/settled or explicitly cancelled via CancelOrderAsync.
                 var unprintedLinesToRemove = order.Lines.Where(l => !l.IsSentToKitchen && l.PrintedQuantity <= 0 && !inputLineIds.Contains(l.Id)).ToList();
                 foreach (var rem in unprintedLinesToRemove)
                 {

@@ -8,7 +8,7 @@
                 type="button"
                 label="Clear Cart"
                 class="p-button-outlined"
-                [disabled]="!cart.length || saving || (isRestaurantMode && isWaiter && activeOrderId && !hasUnsentItems)"
+                [disabled]="!cart.length || saving"
                 (click)="clearCart()"
             ></button>
             <button
@@ -133,30 +133,6 @@
                 [label]="isCarService ? ('Car: ' + selectedCarNumber) : (selectedTable ? 'Change Table' : 'Select Table / Car')"
                 [class]="(isCarService || selectedTable) ? 'p-button-outlined p-button-primary' : 'p-button-primary'"
                 (click)="openTableDialog(false)"
-            ></button>
-
-            <button
-                *ngIf="orderType === 'dineIn' && (selectedTable || isCarService)"
-                pButton
-                pRipple
-                type="button"
-                icon="pi pi-user"
-                [label]="waiterName ? 'Waiter: ' + waiterName : 'Assign Waiter'"
-                [class]="waiterName ? 'p-button-outlined p-button-success' : 'p-button-outlined p-button-warning'"
-                (click)="openAssignWaiterDialog()"
-                title="Assign or change waiter for this table or car"
-            ></button>
-
-            <button
-                *ngIf="orderType === 'dineIn' && selectedTable && (selectedTable.status === 1 || selectedTable.status === 2)"
-                pButton
-                pRipple
-                type="button"
-                icon="pi pi-arrows-h"
-                label="Shift Table"
-                class="p-button-outlined p-button-warning"
-                title="Transfer active order to another table"
-                (click)="openTransferDialog()"
             ></button>
 
             <button
@@ -432,7 +408,7 @@
                                     <i
                                         *ngIf="!canRemoveLine(line)"
                                         class="pi pi-lock text-400 text-sm"
-                                        title="Previously sent item cannot be removed by Waiter"
+                                        title="Previously sent KOT item cannot be removed. Use Cancel KOT to cancel order."
                                     ></i>
                                 </td>
                             </tr>
@@ -542,7 +518,7 @@
                             <i
                                 *ngIf="!canRemoveLine(line)"
                                 class="pi pi-lock text-400 text-sm p-2"
-                                title="Previously sent item cannot be removed by Waiter"
+                                title="Previously sent KOT item cannot be removed. Use Cancel KOT to cancel order."
                             ></i>
                         </div>
                         <div class="pos-cart-item-controls mt-2">

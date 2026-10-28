@@ -17,6 +17,7 @@ import {
     OrderTypes,
     ReserveCarServiceDto,
     RestaurantOrderDto,
+    RestaurantOrderStatuses,
     SendToKitchenResultDto,
     UnpaidTakeawayOrderDto,
 } from 'src/app/demo/api/restaurant-order';
@@ -970,6 +971,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 life: 3000,
             });
             this.cancelOrderDialogVisible = false;
+            this.router.navigate([], { queryParams: {}, replaceUrl: true });
             this.clearCart();
             this.selectedCarOrder = null;
             this.selectedCarName = '';
@@ -1008,6 +1010,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 detail: `Takeaway order #${this.orderToCancel.orderNo} has been cancelled.`,
                 life: 3000,
             });
+            this.router.navigate([], { queryParams: {}, replaceUrl: true });
             if (this.activeOrderId === this.orderToCancel.id) {
                 this.clearCart();
             }
@@ -1105,62 +1108,99 @@ export class PosComponent implements OnInit, OnDestroy {
 
     async selectUnpaidTakeaway(order: UnpaidTakeawayOrderDto): Promise<void> {
         this.unpaidTakeawayDialogVisible = false;
+        this.router.navigate([], { queryParams: { restaurantOrderId: order.id, _t: Date.now() }, replaceUrl: true });
         await this.loadOrderById(order.id);
     }
 
     async loadOrderById(orderId: number): Promise<void> {
         try {
+            this.cart = [];
+            this.activeOrderId = null;
+            this.activeOrderNo = '';
+            this.discountPercent = 0;
+            this.discountAmount = 0;
+            this.taxPercent = 0;
+            this.serviceChargePercent = 0;
+            this.notes = '';
+
             const order = await this.restaurantOrderService.get(orderId);
-            if (order) {
-                this.activeOrderId = order.id;
-                this.activeOrderNo = order.orderNo;
-                if (order.orderType === OrderTypes.CarService || order.carNumber) {
-                    this.orderType = 'dineIn';
-                    this.diningOption = 'carService';
-                    this.selectedCarOrder = order;
-                    this.selectedCarName = order.carName || '';
-                    this.selectedCarNumber = order.carNumber || '';
-                    this.selectedCarLocation = order.carLocation || '';
-                    this.selectedTable = null;
-                } else if (order.orderType === OrderTypes.Takeaway) {
-                    this.orderType = 'takeaway';
-                    this.diningOption = 'tables';
-                    this.selectedCarOrder = null;
-                    this.selectedCarName = '';
-                    this.selectedCarNumber = '';
-                    this.selectedCarLocation = '';
-                    this.selectedTable = null;
-                } else {
-                    this.orderType = 'dineIn';
-                    this.diningOption = 'tables';
-                    this.selectedCarOrder = null;
-                    this.selectedCarName = '';
-                    this.selectedCarNumber = '';
-                    this.selectedCarLocation = '';
-                    if (order.tableId) {
-                        this.selectedTable = this.tables.find((t) => t.id === order.tableId) || ({
-                            id: order.tableId,
-                            tableNo: order.tableNo || 'Table',
-                            status: 1,
-                        } as any);
-                    } else {
-                        this.selectedTable = null;
-                    }
-                }
+            if (!order) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Order Not Found',
+                    detail: `Order #${orderId} could not be found.`,
+                });
+                return;
+            }
 
-                if (this.isWaiter) {
-                    this.waiterName = this.authService.getPrinterIdentity().name;
-                } else {
-                    this.waiterName = order.waiterName || this.waiterName;
-                }
-                this.notes = order.notes || '';
-                if (order.customerId) {
-                    this.customerId = order.customerId;
-                }
+            if (
+                order.status === RestaurantOrderStatuses.Settled ||
+                order.status === RestaurantOrderStatuses.Cancelled ||
+                (order.status as any) === 'Settled' ||
+                (order.status as any) === 'Cancelled'
+            ) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Order Not Pending',
+                    detail: `Order #${order.orderNo || orderId} is already ${order.statusName || order.status}.`,
+                });
+                this.router.navigate([], { queryParams: {}, replaceUrl: true });
+                return;
+            }
 
-                const existingLines: PosCartLine[] = [];
-                if (order.lines?.length) {
-                    for (const l of order.lines) {
+            this.activeOrderId = order.id;
+            this.activeOrderNo = order.orderNo;
+            if (order.orderType === OrderTypes.CarService || order.carNumber) {
+                this.orderType = 'dineIn';
+                this.diningOption = 'carService';
+                this.selectedCarOrder = order;
+                this.selectedCarName = order.carName || '';
+                this.selectedCarNumber = order.carNumber || '';
+                this.selectedCarLocation = order.carLocation || '';
+                this.selectedTable = null;
+            } else if (order.orderType === OrderTypes.Takeaway) {
+                this.orderType = 'takeaway';
+                this.diningOption = 'tables';
+                this.selectedCarOrder = null;
+                this.selectedCarName = '';
+                this.selectedCarNumber = '';
+                this.selectedCarLocation = '';
+                this.selectedTable = null;
+            } else {
+                this.orderType = 'dineIn';
+                this.diningOption = 'tables';
+                this.selectedCarOrder = null;
+                this.selectedCarName = '';
+                this.selectedCarNumber = '';
+                this.selectedCarLocation = '';
+                if (order.tableId) {
+                    this.selectedTable = this.tables.find((t) => t.id === order.tableId) || ({
+                        id: order.tableId,
+                        tableNo: order.tableNo || 'Table',
+                        status: 1,
+                    } as any);
+                } else {
+                    this.selectedTable = null;
+                }
+            }
+
+            if (this.isWaiter) {
+                this.waiterName = this.authService.getPrinterIdentity().name;
+            } else {
+                this.waiterName = order.waiterName || this.waiterName;
+            }
+            this.notes = order.notes || '';
+            if (order.customerId) {
+                this.customerId = order.customerId;
+            }
+            this.discountPercent = order.discountPercent || 0;
+            this.discountAmount = order.discountAmount || 0;
+            this.taxPercent = order.taxPercent || 0;
+            this.serviceChargePercent = order.serviceChargePercent || 0;
+
+            const existingLines: PosCartLine[] = [];
+            if (order.lines?.length) {
+                for (const l of order.lines) {
                     let isDeal = false;
                     let dealSummary: string | undefined = undefined;
                     let dealId: number | undefined = undefined;
@@ -1207,19 +1247,18 @@ export class PosComponent implements OnInit, OnDestroy {
                         dealId,
                         dealSummary,
                     });
-                    }
                 }
-                this.cart = existingLines;
-                const targetLabel = this.isCarService
-                    ? `Car ${this.selectedCarName} (${this.selectedCarNumber})`
-                    : (this.orderType === 'takeaway' ? 'Takeaway' : 'Table ' + (order.tableNo || ''));
-                this.messageService.add({
-                    severity: 'info',
-                    summary: 'Order Loaded',
-                    detail: `Loaded order #${order.orderNo} (${targetLabel})`,
-                    life: 3000,
-                });
             }
+            this.cart = existingLines;
+            const targetLabel = this.isCarService
+                ? `Car ${this.selectedCarName} (${this.selectedCarNumber})`
+                : (this.orderType === 'takeaway' ? 'Takeaway' : 'Table ' + (order.tableNo || ''));
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Order Loaded',
+                detail: `Loaded order #${order.orderNo} (${targetLabel}) with ${this.cart.length} item(s)`,
+                life: 3000,
+            });
         } catch (err: any) {
             console.error('Failed to load order', err);
             this.messageService.add({
@@ -2135,14 +2174,14 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     canRemoveLine(line: PosCartLine): boolean {
-        if (!this.isRestaurantMode || !this.isWaiter) {
+        if (!this.isRestaurantMode) {
             return true;
         }
         return !line.isSentToKitchen && !(line.printedQuantity && line.printedQuantity > 0);
     }
 
     getMinQty(line: PosCartLine): number {
-        if (!this.isRestaurantMode || !this.isWaiter) {
+        if (!this.isRestaurantMode) {
             return 0.01;
         }
         if (line.isSentToKitchen || (line.printedQuantity && line.printedQuantity > 0)) {
@@ -2154,11 +2193,11 @@ export class PosComponent implements OnInit, OnDestroy {
     bumpQty(line: PosCartLine, delta: number): void {
         const min = this.getMinQty(line);
         const next = Number(((line.quantity || 0) + delta).toFixed(2));
-        if (this.isRestaurantMode && this.isWaiter && delta < 0 && next < min) {
+        if (this.isRestaurantMode && delta < 0 && next < min) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Permission Denied',
-                detail: `Waiters cannot reduce quantity below previously sent amount (${min}).`,
+                detail: `Cannot reduce quantity below previously sent amount (${min}).`,
             });
             return;
         }
@@ -2167,7 +2206,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.messageService.add({
                     severity: 'warn',
                     summary: 'Permission Denied',
-                    detail: 'Waiters cannot remove previously sent items.',
+                    detail: 'Items already sent to KOT cannot be removed. To cancel, please use Cancel KOT / Cancel Order.',
                 });
                 return;
             }
@@ -2184,11 +2223,11 @@ export class PosComponent implements OnInit, OnDestroy {
 
         const value = Number(qty);
         const min = this.getMinQty(line);
-        if (this.isRestaurantMode && this.isWaiter && value < min) {
+        if (this.isRestaurantMode && value < min) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Permission Denied',
-                detail: `Waiters cannot reduce quantity below previously sent amount (${min}).`,
+                detail: `Cannot reduce quantity below previously sent amount (${min}).`,
             });
             line.quantity = min;
             return;
@@ -2220,7 +2259,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Permission Denied',
-                detail: 'Waiters cannot remove previously sent items.',
+                detail: 'Previously sent items cannot be removed. To cancel, please use Cancel KOT / Cancel Order.',
             });
             return;
         }
@@ -2229,22 +2268,6 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     clearCart(): void {
-        if (this.isRestaurantMode && this.isWaiter && this.activeOrderId) {
-            const sentLines = this.cart.filter(
-                (l) => l.isSentToKitchen || (l.printedQuantity && l.printedQuantity > 0)
-            );
-            if (sentLines.length === this.cart.length) {
-                this.messageService.add({
-                    severity: 'info',
-                    summary: 'Clear Cart',
-                    detail: 'Previously sent items cannot be removed by Waiters.',
-                });
-                return;
-            }
-            this.cart = sentLines;
-            this.focusSearch();
-            return;
-        }
         this.cart = [];
         this.applyBranchPricing();
         this.notes = '';
@@ -2257,6 +2280,17 @@ export class PosComponent implements OnInit, OnDestroy {
         this.selectedCarName = '';
         this.selectedCarNumber = '';
         this.selectedCarLocation = '';
+        this.discountPercent = 0;
+        this.discountAmount = 0;
+        this.taxPercent = 0;
+        this.serviceChargePercent = 0;
+        this.router.navigate([], { queryParams: {}, replaceUrl: true });
+        if (this.isRestaurantMode) {
+            this.loadUnpaidTakeaways();
+            if (this.takeawayAlarmService) {
+                this.takeawayAlarmService.checkImmediately();
+            }
+        }
         this.focusSearch();
     }
 

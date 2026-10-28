@@ -209,7 +209,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
 
     openTakeawayInPos(order: UnpaidTakeawayOrderDto): void {
         this.takeawayOrdersDialogVisible = false;
-        this.router.navigate(['/pos'], { queryParams: { restaurantOrderId: order.id } });
+        this.router.navigate(['/pos'], { queryParams: { restaurantOrderId: order.id, _t: Date.now() } });
     }
 
     private initChatListener(): void {
