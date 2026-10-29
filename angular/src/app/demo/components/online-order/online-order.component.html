@@ -107,20 +107,8 @@
                 </span>
             </div>
 
-            <!-- Right: View Mode Toggle, Sign In / Profile, and Cart Drawer -->
+            <!-- Right: Sign In / Profile, and Cart Drawer -->
             <div class="flex align-items-center gap-2 flex-shrink-0">
-                <!-- View Mode Toggle (Carousel vs Grid) -->
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    [icon]="viewMode === 'carousel' ? 'pi pi-th-large' : 'pi pi-list'"
-                    [pTooltip]="viewMode === 'carousel' ? 'Switch to Grid View' : 'Switch to Carousel Sections'"
-                    tooltipPosition="bottom"
-                    class="p-button-outlined p-button-rounded border-300 text-700 fp-nav-icon-btn"
-                    (click)="viewMode = viewMode === 'carousel' ? 'grid' : 'carousel'"
-                ></button>
-
                 <!-- Authentication: Sign In (Desktop) -->
                 <a
                     *ngIf="!isLoggedIn"
@@ -461,28 +449,10 @@
                         <span class="cat-sec-sub">Select a category to view freshly cooked meals</span>
                     </div>
                 </div>
-                <!-- View Mode Switcher -->
-                <button
-                    pButton
-                    type="button"
-                    [icon]="viewMode === 'carousel' ? 'pi pi-th-large' : 'pi pi-list'"
-                    [label]="viewMode === 'carousel' ? 'Grid View' : 'Slider View'"
-                    class="p-button-outlined p-button-sm border-round-3xl hidden md:inline-flex"
-                    (click)="viewMode = viewMode === 'carousel' ? 'grid' : 'carousel'"
-                ></button>
             </div>
 
             <!-- DESKTOP CATEGORY TRACK (Horizontal Chips) -->
             <div class="fp-category-bar hidden md:flex">
-                <button
-                    type="button"
-                    class="fp-scroll-arrow mr-2"
-                    (click)="scrollFilterBar('left')"
-                    pTooltip="Scroll Left"
-                >
-                    <i class="pi pi-chevron-left text-xs"></i>
-                </button>
-
                 <div class="fp-category-track" id="fpStoreFilterTrack">
                     <div
                         *ngFor="let cat of categories"
@@ -494,15 +464,6 @@
                         <span>{{ cat }}</span>
                     </div>
                 </div>
-
-                <button
-                    type="button"
-                    class="fp-scroll-arrow ml-2"
-                    (click)="scrollFilterBar('right')"
-                    pTooltip="Scroll Right"
-                >
-                    <i class="pi pi-chevron-right text-xs"></i>
-                </button>
             </div>
 
             <!-- MOBILE CIRCULAR CATEGORY & PILL BADGES (< 768px) -->
@@ -642,10 +603,8 @@
         </div>
     </section>
 
-    <!-- 5. MAIN MENU CATALOG BODY: CAROUSEL VIEW OR GRID VIEW -->
-
-    <!-- VIEW MODE 1: Horizontal Slider / Carousel Rows (Cheezious & Modern Restaurant Style) -->
-    <main class="max-w-7xl mx-auto pb-8" *ngIf="viewMode === 'carousel' && !searchKeyword && selectedCategory === 'All'">
+    <!-- 5. MAIN MENU CATALOG BODY: CATEGORY SECTIONS GRID -->
+    <main class="max-w-7xl mx-auto pb-8" *ngIf="!searchKeyword && selectedCategory === 'All'">
         <!-- Section 1: 🔥 Hot Deals & Trending Items -->
         <section class="fp-store-section" *ngIf="trendingDeals.length > 0">
             <div class="section-header-row">
@@ -665,74 +624,58 @@
                         class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
                         (click)="selectCategory('🔥 Deals')"
                     ></button>
-                    <div class="hidden md:flex align-items-center gap-1">
-                        <button
-                            type="button"
-                            class="fp-scroll-arrow"
-                            (click)="scrollCarousel('trackTrending', 'left')"
-                        >
-                            <i class="pi pi-chevron-left text-xs"></i>
-                        </button>
-                        <button
-                            type="button"
-                            class="fp-scroll-arrow"
-                            (click)="scrollCarousel('trackTrending', 'right')"
-                        >
-                            <i class="pi pi-chevron-right text-xs"></i>
-                        </button>
-                    </div>
                 </div>
             </div>
 
-            <div class="fp-product-carousel-track" id="trackTrending">
+            <div class="fp-menu-grid" id="trackTrending">
                 <div
                     *ngFor="let product of trendingDeals; let idx = index"
-                    class="fp-food-card"
-                    (click)="openProductModal(product)"
+                    class="fp-menu-grid-col"
                 >
-                    <!-- Media Container -->
+                    <div
+                        class="fp-food-card grid-mode"
+                        (click)="openProductModal(product)"
+                    >
+                    <!-- Heart (favourite) icon button -->
+                    <button
+                        type="button"
+                        class="badge-fav-btn"
+                        [class.active]="isFavorite(product.id)"
+                        (click)="toggleFavorite(product.id, $event)"
+                        aria-label="Add to favorites"
+                    >
+                        <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                    </button>
+
+                    <!-- Tag / Deal badge if present -->
+                    <span class="badge-deal" *ngIf="getProductTag(product, idx)">{{ getProductTag(product, idx) }}</span>
+
+                    <!-- Image: full width, square (aspect-ratio 1/1), object-fit contain, margin-bottom 12px -->
                     <div class="card-media-box">
                         <img [src]="getProductImage(product, idx)" [alt]="product.name" class="card-img" />
-                        <div class="media-overlay"></div>
-                        <span class="badge-deal">{{ getProductTag(product, idx) }}</span>
-                        <span class="badge-rating">
-                            <i class="pi pi-star-fill text-yellow-400"></i>
-                            {{ getProductRating(product) }}
-                        </span>
-                        <button
-                            type="button"
-                            class="badge-fav-btn"
-                            [class.active]="isFavorite(product.id)"
-                            (click)="toggleFavorite(product.id, $event)"
-                            aria-label="Add to favorites"
-                        >
-                            <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
-                        </button>
-                        <span class="badge-category">
-                            <i class="pi pi-tag"></i>
-                            {{ product.categoryName || 'Featured' }}
-                        </span>
                     </div>
 
-                    <!-- Card Body -->
-                    <div class="card-body-box">
-                        <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-                        <p class="product-subtitle">{{ product.brandName || product.code || 'Fresh Quality Item' }}</p>
-                        <div class="card-footer-row">
-                            <div class="price-col">
-                                <div class="strike-price">PKR {{ getOriginalPrice(product) | number: '1.0-0' }}</div>
-                                <div class="main-price">PKR {{ product.price | number: '1.0-0' }}</div>
-                            </div>
-                            <button
-                                type="button"
-                                class="btn-add-cart"
-                                [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
-                                (click)="addToCart(product, 1, $event)"
-                            >
-                                <i class="pi pi-plus text-xs"></i>
-                                <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' in cart') : 'Add' }}</span>
-                            </button>
-                        </div>
+                    <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->
+                    <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
+
+                    <!-- Description: 12.5px, line-height 1.5, color #666, clamped to 3 lines with ellipsis (-webkit-line-clamp: 3), min-height of 3 lines -->
+                    <p class="product-desc">{{ getProductDescription(product) }}</p>
+
+                    <!-- Price row: price in Montserrat 700 16px color #e8532b ("Rs. 1,480" format). Next to it, show a "Starting Price" badge (bg #e8532b, white text, 12px, 600 weight, padding 3px 8px, radius 6px) only when the item has variants/sizes. -->
+                    <div class="price-row">
+                        <span class="product-price">Rs. {{ product.price | number: '1.0-0' }}</span>
+                        <span class="starting-price-badge" *ngIf="hasVariants(product)">Starting Price</span>
+                    </div>
+
+                    <!-- Button: full width, margin-top auto, padding 12px, radius 8px, bg #fff, text uppercase "+ ADD TO CART" in Montserrat 600 13px. On hover: bg #e8532b, text white, transition .2s. -->
+                    <button
+                        type="button"
+                        class="btn-add-cart"
+                        [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
+                        (click)="addToCart(product, 1, $event)"
+                    >
+                        <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' IN CART') : '+ ADD TO CART' }}</span>
+                    </button>
                     </div>
                 </div>
             </div>
@@ -757,74 +700,58 @@
                         class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
                         (click)="selectCategory('✨ Popular')"
                     ></button>
-                    <div class="hidden md:flex align-items-center gap-1">
-                        <button
-                            type="button"
-                            class="fp-scroll-arrow"
-                            (click)="scrollCarousel('trackPopular', 'left')"
-                        >
-                            <i class="pi pi-chevron-left text-xs"></i>
-                        </button>
-                        <button
-                            type="button"
-                            class="fp-scroll-arrow"
-                            (click)="scrollCarousel('trackPopular', 'right')"
-                        >
-                            <i class="pi pi-chevron-right text-xs"></i>
-                        </button>
-                    </div>
                 </div>
             </div>
 
-            <div class="fp-product-carousel-track" id="trackPopular">
+            <div class="fp-menu-grid" id="trackPopular">
                 <div
                     *ngFor="let product of popularItems; let idx = index"
-                    class="fp-food-card"
-                    (click)="openProductModal(product)"
+                    class="fp-menu-grid-col"
                 >
-                    <!-- Media Container -->
+                    <div
+                        class="fp-food-card grid-mode"
+                        (click)="openProductModal(product)"
+                    >
+                    <!-- Heart (favourite) icon button -->
+                    <button
+                        type="button"
+                        class="badge-fav-btn"
+                        [class.active]="isFavorite(product.id)"
+                        (click)="toggleFavorite(product.id, $event)"
+                        aria-label="Add to favorites"
+                    >
+                        <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                    </button>
+
+                    <!-- Tag / Deal badge if present -->
+                    <span class="badge-deal" *ngIf="getProductTag(product, idx + 4)">{{ getProductTag(product, idx + 4) }}</span>
+
+                    <!-- Image: full width, square (aspect-ratio 1/1), object-fit contain, margin-bottom 12px -->
                     <div class="card-media-box">
                         <img [src]="getProductImage(product, idx + 4)" [alt]="product.name" class="card-img" />
-                        <div class="media-overlay"></div>
-                        <span class="badge-deal bg-orange-500">⭐ Best Seller</span>
-                        <span class="badge-rating">
-                            <i class="pi pi-star-fill text-yellow-400"></i>
-                            {{ getProductRating(product) }}
-                        </span>
-                        <button
-                            type="button"
-                            class="badge-fav-btn"
-                            [class.active]="isFavorite(product.id)"
-                            (click)="toggleFavorite(product.id, $event)"
-                            aria-label="Add to favorites"
-                        >
-                            <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
-                        </button>
-                        <span class="badge-category">
-                            <i class="pi pi-tag"></i>
-                            {{ product.categoryName || 'Popular' }}
-                        </span>
                     </div>
 
-                    <!-- Card Body -->
-                    <div class="card-body-box">
-                        <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-                        <p class="product-subtitle">{{ product.brandName || product.code || 'Most Ordered' }}</p>
-                        <div class="card-footer-row">
-                            <div class="price-col">
-                                <div class="strike-price">PKR {{ getOriginalPrice(product) | number: '1.0-0' }}</div>
-                                <div class="main-price">PKR {{ product.price | number: '1.0-0' }}</div>
-                            </div>
-                            <button
-                                type="button"
-                                class="btn-add-cart"
-                                [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
-                                (click)="addToCart(product, 1, $event)"
-                            >
-                                <i class="pi pi-plus text-xs"></i>
-                                <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' in cart') : 'Add' }}</span>
-                            </button>
-                        </div>
+                    <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->
+                    <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
+
+                    <!-- Description: 12.5px, line-height 1.5, color #666, clamped to 3 lines with ellipsis (-webkit-line-clamp: 3), min-height of 3 lines -->
+                    <p class="product-desc">{{ getProductDescription(product) }}</p>
+
+                    <!-- Price row: price in Montserrat 700 16px color #e8532b ("Rs. 1,480" format). Next to it, show a "Starting Price" badge (bg #e8532b, white text, 12px, 600 weight, padding 3px 8px, radius 6px) only when the item has variants/sizes. -->
+                    <div class="price-row">
+                        <span class="product-price">Rs. {{ product.price | number: '1.0-0' }}</span>
+                        <span class="starting-price-badge" *ngIf="hasVariants(product)">Starting Price</span>
+                    </div>
+
+                    <!-- Button: full width, margin-top auto, padding 12px, radius 8px, bg #fff, text uppercase "+ ADD TO CART" in Montserrat 600 13px. On hover: bg #e8532b, text white, transition .2s. -->
+                    <button
+                        type="button"
+                        class="btn-add-cart"
+                        [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
+                        (click)="addToCart(product, 1, $event)"
+                    >
+                        <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' IN CART') : '+ ADD TO CART' }}</span>
+                    </button>
                     </div>
                 </div>
             </div>
@@ -852,74 +779,58 @@
                         class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
                         (click)="selectCategory(sec.category)"
                     ></button>
-                    <div class="hidden md:flex align-items-center gap-1">
-                        <button
-                            type="button"
-                            class="fp-scroll-arrow"
-                            (click)="scrollCarousel('trackCat' + sIdx, 'left')"
-                        >
-                            <i class="pi pi-chevron-left text-xs"></i>
-                        </button>
-                        <button
-                            type="button"
-                            class="fp-scroll-arrow"
-                            (click)="scrollCarousel('trackCat' + sIdx, 'right')"
-                        >
-                            <i class="pi pi-chevron-right text-xs"></i>
-                        </button>
-                    </div>
                 </div>
             </div>
 
-            <div class="fp-product-carousel-track" [id]="'trackCat' + sIdx">
+            <div class="fp-menu-grid" [id]="'trackCat' + sIdx">
                 <div
                     *ngFor="let product of sec.items; let idx = index"
-                    class="fp-food-card"
-                    (click)="openProductModal(product)"
+                    class="fp-menu-grid-col"
                 >
-                    <!-- Media Container -->
+                    <div
+                        class="fp-food-card grid-mode"
+                        (click)="openProductModal(product)"
+                    >
+                    <!-- Heart (favourite) icon button -->
+                    <button
+                        type="button"
+                        class="badge-fav-btn"
+                        [class.active]="isFavorite(product.id)"
+                        (click)="toggleFavorite(product.id, $event)"
+                        aria-label="Add to favorites"
+                    >
+                        <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                    </button>
+
+                    <!-- Tag / Deal badge if present -->
+                    <span class="badge-deal" *ngIf="getProductTag(product, idx)">{{ getProductTag(product, idx) }}</span>
+
+                    <!-- Image: full width, square (aspect-ratio 1/1), object-fit contain, margin-bottom 12px -->
                     <div class="card-media-box">
                         <img [src]="getProductImage(product, idx + sIdx)" [alt]="product.name" class="card-img" />
-                        <div class="media-overlay"></div>
-                        <span class="badge-deal">{{ getProductTag(product, idx) }}</span>
-                        <span class="badge-rating">
-                            <i class="pi pi-star-fill text-yellow-400"></i>
-                            {{ getProductRating(product) }}
-                        </span>
-                        <button
-                            type="button"
-                            class="badge-fav-btn"
-                            [class.active]="isFavorite(product.id)"
-                            (click)="toggleFavorite(product.id, $event)"
-                            aria-label="Add to favorites"
-                        >
-                            <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
-                        </button>
-                        <span class="badge-category">
-                            <i class="pi pi-tag"></i>
-                            {{ sec.category }}
-                        </span>
                     </div>
 
-                    <!-- Card Body -->
-                    <div class="card-body-box">
-                        <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-                        <p class="product-subtitle">{{ product.brandName || product.code || 'Fresh Store Item' }}</p>
-                        <div class="card-footer-row">
-                            <div class="price-col">
-                                <div class="strike-price">PKR {{ getOriginalPrice(product) | number: '1.0-0' }}</div>
-                                <div class="main-price">PKR {{ product.price | number: '1.0-0' }}</div>
-                            </div>
-                            <button
-                                type="button"
-                                class="btn-add-cart"
-                                [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
-                                (click)="addToCart(product, 1, $event)"
-                            >
-                                <i class="pi pi-plus text-xs"></i>
-                                <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' in cart') : 'Add' }}</span>
-                            </button>
-                        </div>
+                    <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->
+                    <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
+
+                    <!-- Description: 12.5px, line-height 1.5, color #666, clamped to 3 lines with ellipsis (-webkit-line-clamp: 3), min-height of 3 lines -->
+                    <p class="product-desc">{{ getProductDescription(product) }}</p>
+
+                    <!-- Price row: price in Montserrat 700 16px color #e8532b ("Rs. 1,480" format). Next to it, show a "Starting Price" badge (bg #e8532b, white text, 12px, 600 weight, padding 3px 8px, radius 6px) only when the item has variants/sizes. -->
+                    <div class="price-row">
+                        <span class="product-price">Rs. {{ product.price | number: '1.0-0' }}</span>
+                        <span class="starting-price-badge" *ngIf="hasVariants(product)">Starting Price</span>
+                    </div>
+
+                    <!-- Button: full width, margin-top auto, padding 12px, radius 8px, bg #fff, text uppercase "+ ADD TO CART" in Montserrat 600 13px. On hover: bg #e8532b, text white, transition .2s. -->
+                    <button
+                        type="button"
+                        class="btn-add-cart"
+                        [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
+                        (click)="addToCart(product, 1, $event)"
+                    >
+                        <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' IN CART') : '+ ADD TO CART' }}</span>
+                    </button>
                     </div>
                 </div>
             </div>
@@ -933,8 +844,8 @@
         </div>
     </main>
 
-    <!-- VIEW MODE 2: Responsive Grid (Foodies Pakistan Cards Grid) -->
-    <main class="max-w-7xl mx-auto p-2 sm:p-4 pb-8" *ngIf="viewMode === 'grid' || searchKeyword || selectedCategory !== 'All'">
+    <!-- FILTERED / SEARCHED PRODUCTS GRID -->
+    <main class="max-w-7xl mx-auto p-2 sm:p-4 pb-8" *ngIf="searchKeyword || selectedCategory !== 'All'">
         <div class="flex align-items-center justify-content-between mb-3 sm:mb-4 flex-wrap gap-2">
             <div class="font-bold text-base sm:text-xl text-900 flex align-items-center gap-2">
                 <span *ngIf="searchKeyword">Search: "{{ searchKeyword }}"</span>
@@ -951,70 +862,58 @@
                     *ngIf="selectedCategory !== 'All' || searchKeyword"
                     (click)="clearFilter()"
                 ></button>
-                <button
-                    pButton
-                    type="button"
-                    icon="pi pi-arrow-left"
-                    label="Carousels"
-                    class="p-button-text p-button-sm font-semibold"
-                    *ngIf="viewMode === 'grid' && selectedCategory === 'All' && !searchKeyword"
-                    (click)="viewMode = 'carousel'"
-                ></button>
             </div>
         </div>
 
-        <div class="grid grid-nogutter sm:grid-gutter">
+        <div class="fp-menu-grid">
             <div
                 *ngFor="let product of filteredProducts; let idx = index"
-                class="col-6 sm:col-6 lg:col-4 xl:col-3 p-1 sm:p-2"
+                class="fp-menu-grid-col"
             >
                 <div class="fp-food-card grid-mode" (click)="openProductModal(product)">
-                    <!-- Media Container -->
+                    <!-- Heart (favourite) icon button -->
+                    <button
+                        type="button"
+                        class="badge-fav-btn"
+                        [class.active]="isFavorite(product.id)"
+                        (click)="toggleFavorite(product.id, $event)"
+                        aria-label="Add to favorites"
+                    >
+                        <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                    </button>
+
+                    <!-- Tag / Deal badge if present -->
+                    <span class="badge-deal" *ngIf="getProductTag(product, idx)">{{ getProductTag(product, idx) }}</span>
+
+                    <!-- Image: full width, square (aspect-ratio 1/1), object-fit contain, margin-bottom 12px -->
                     <div class="card-media-box">
                         <img [src]="getProductImage(product, idx)" [alt]="product.name" class="card-img" />
-                        <div class="media-overlay"></div>
-                        <span class="badge-deal">{{ getProductTag(product, idx) }}</span>
-                        <span class="badge-rating">
-                            <i class="pi pi-star-fill text-yellow-400"></i>
-                            {{ getProductRating(product) }}
-                        </span>
-                        <button
-                            type="button"
-                            class="badge-fav-btn"
-                            [class.active]="isFavorite(product.id)"
-                            (click)="toggleFavorite(product.id, $event)"
-                            aria-label="Add to favorites"
-                        >
-                            <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
-                        </button>
-                        <span class="badge-category">
-                            <i class="pi pi-tag"></i>
-                            {{ product.categoryName || 'Catalog' }}
-                        </span>
                     </div>
 
-                    <!-- Card Body -->
-                    <div class="card-body-box">
-                        <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-                        <p class="product-subtitle">{{ product.brandName || product.code || 'Quality Product' }}</p>
-                        <div class="card-footer-row">
-                            <div class="price-col">
-                                <div class="strike-price">PKR {{ getOriginalPrice(product) | number: '1.0-0' }}</div>
-                                <div class="main-price">PKR {{ product.price | number: '1.0-0' }}</div>
-                            </div>
-                            <button
-                                type="button"
-                                class="btn-add-cart"
-                                [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
-                                (click)="addToCart(product, 1, $event)"
-                            >
-                                <i class="pi pi-plus text-xs"></i>
-                                <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' in cart') : 'Add' }}</span>
-                            </button>
-                        </div>
+                    <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->
+                    <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
+
+                    <!-- Description: 12.5px, line-height 1.5, color #666, clamped to 3 lines with ellipsis (-webkit-line-clamp: 3), min-height of 3 lines -->
+                    <p class="product-desc">{{ getProductDescription(product) }}</p>
+
+                    <!-- Price row: price in Montserrat 700 16px color #e8532b ("Rs. 1,480" format). Next to it, show a "Starting Price" badge (bg #e8532b, white text, 12px, 600 weight, padding 3px 8px, radius 6px) only when the item has variants/sizes. -->
+                    <div class="price-row">
+                        <span class="product-price">Rs. {{ product.price | number: '1.0-0' }}</span>
+                        <span class="starting-price-badge" *ngIf="hasVariants(product)">Starting Price</span>
                     </div>
+
+                    <!-- Button: full width, margin-top auto, padding 12px, radius 8px, bg #fff, text uppercase "+ ADD TO CART" in Montserrat 600 13px. On hover: bg #e8532b, text white, transition .2s. -->
+                    <button
+                        type="button"
+                        class="btn-add-cart"
+                        [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
+                        (click)="addToCart(product, 1, $event)"
+                    >
+                        <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' IN CART') : '+ ADD TO CART' }}</span>
+                    </button>
                 </div>
             </div>
+        </div>
 
             <!-- Empty Filter / Search Results -->
             <div *ngIf="filteredProducts.length === 0 && !loading" class="col-12 text-center py-8">
@@ -1033,7 +932,6 @@
                     (click)="clearFilter()"
                 ></button>
             </div>
-        </div>
     </main>
 
     <!-- 6. Card Click Interface (Product Detail View - Modal / Bottom-Sheet) -->
@@ -1389,22 +1287,22 @@
                     styleClass="w-full border-round-xl"
                 >
                     <ng-template let-area pTemplate="item">
-                        <div class="flex align-items-center justify-content-between w-full">
+                        <div class="flex align-items-center justify-content-between w-full" *ngIf="area">
                             <div>
-                                <span class="font-semibold">{{ area.name }}</span>
-                                <span class="text-xs text-500 block" *ngIf="area.estimatedDeliveryTime">({{ area.estimatedDeliveryTime }})</span>
+                                <span class="font-semibold">{{ area?.name }}</span>
+                                <span class="text-xs text-500 block" *ngIf="area?.estimatedDeliveryTime">({{ area?.estimatedDeliveryTime }})</span>
                             </div>
                             <div>
-                                <span *ngIf="area.deliveryFee === 0" class="text-green-600 font-bold text-xs">FREE</span>
-                                <span *ngIf="area.deliveryFee > 0" class="font-bold text-700 text-xs">PKR {{ area.deliveryFee | number: '1.0-0' }}</span>
+                                <span *ngIf="area?.deliveryFee === 0" class="text-green-600 font-bold text-xs">FREE</span>
+                                <span *ngIf="area?.deliveryFee > 0" class="font-bold text-700 text-xs">PKR {{ area?.deliveryFee | number: '1.0-0' }}</span>
                             </div>
                         </div>
                     </ng-template>
                     <ng-template let-area pTemplate="selectedItem">
-                        <div class="flex align-items-center justify-content-between w-full">
-                            <span>{{ area.name }}</span>
+                        <div class="flex align-items-center justify-content-between w-full" *ngIf="area">
+                            <span>{{ area?.name }}</span>
                             <span class="font-bold text-xs ml-2 text-primary">
-                                {{ area.deliveryFee === 0 ? 'FREE' : ('+ PKR ' + (area.deliveryFee | number: '1.0-0')) }}
+                                {{ area?.deliveryFee === 0 ? 'FREE' : ('+ PKR ' + (area?.deliveryFee | number: '1.0-0')) }}
                             </span>
                         </div>
                     </ng-template>

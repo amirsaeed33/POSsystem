@@ -67,8 +67,8 @@ export class OnlineOrderComponent implements OnInit {
     popularItems: any[] = [];
     categorySections: CategorySection[] = [];
 
-    // View mode: 'carousel' (horizontal swipeable rows) or 'grid'
-    viewMode: 'carousel' | 'grid' = 'carousel';
+    // View mode: 'grid' (responsive multi-column wrapped grid)
+    viewMode: 'grid' | 'carousel' = 'grid';
 
     // Search query
     searchKeyword = '';
@@ -980,18 +980,174 @@ export class OnlineOrderComponent implements OnInit {
         return 'retail';
     }
 
+    // Direct curated images matching exact catalog items (ID & name)
+    private static readonly CATALOG_IMAGES_BY_ID: { [id: number]: string } = {
+        1: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=500&h=500&q=80', // Milk
+        2: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=500&h=500&q=80', // Butter
+        3: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=500&h=500&q=80', // Desi Ghee
+        4: 'assets/menu-items/barfi.jpg', // Barfi (Pakistani silver vark barfi)
+        5: 'assets/menu-items/milk_bread.jpg', // Milk Bread Large
+        6: 'assets/menu-items/milk_bread.jpg', // Milk Bread Small
+        7: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&h=500&q=80', // Brown Bread
+        8: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&w=500&h=500&q=80', // Sandwich Bread
+        9: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=500&h=500&q=80', // Burger Bun Pack 4
+        10: 'https://images.unsplash.com/photo-1619740455993-9e612b1af08a?auto=format&fit=crop&w=500&h=500&q=80', // Hot Dog Bun Pack 4
+        11: 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=500&h=500&q=80', // Dinner Rolls Pack 6
+        12: 'https://images.unsplash.com/photo-1619535860434-ba1d8fa12536?auto=format&fit=crop&w=500&h=500&q=80', // Garlic Bread Stick
+        13: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&h=500&q=80', // Fruit Bun
+        14: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=500&h=500&q=80', // Plain Kulcha Pack 4
+        15: 'https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?auto=format&fit=crop&w=500&h=500&q=80', // Chocolate Cupcake
+        16: 'https://images.unsplash.com/photo-1587668178277-295251f900ce?auto=format&fit=crop&w=500&h=500&q=80', // Vanilla Cupcake
+        17: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=500&h=500&q=80', // Cream Donut
+        18: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=500&h=500&q=80', // Chocolate Donut
+        19: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=500&h=500&q=80', // Croissant Plain
+        20: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=500&h=500&q=80', // Chocolate Pastry
+        21: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=500&h=500&q=80', // Pineapple Pastry
+        22: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?auto=format&fit=crop&w=500&h=500&q=80', // Muffin Chocolate
+        23: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?auto=format&fit=crop&w=500&h=500&q=80', // Muffin Blueberry
+        24: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=500&h=500&q=80', // Slice Cake Chocolate
+        25: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=500&h=500&q=80', // Sooper Biscuits Pack
+        26: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=500&h=500&q=80', // Chocolate Chip Cookies
+        27: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=500&h=500&q=80', // Butter Cookies Tin
+        28: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=500&h=500&q=80', // Rusk Plain Large
+        29: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=500&h=500&q=80', // Rusk Zeera
+        30: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=500&h=500&q=80', // Glucose Biscuits
+        31: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=500&h=500&q=80', // Cream Biscuits Chocolate
+        32: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=500&h=500&q=80', // Jam Sandwich Biscuits
+        33: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=500&h=500&q=80', // Olper\'s Milk 1L
+        34: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=500&h=500&q=80', // Olper\'s Milk 500ml
+        35: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?auto=format&fit=crop&w=500&h=500&q=80', // Olper\'s Cream 200ml
+        36: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=500&h=500&q=80', // Nestle Yogurt Plain 400g
+        37: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=500&h=500&q=80', // Nestle Yogurt Sweet 400g
+        38: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=500&h=500&q=80', // Butter 200g
+        39: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=500&h=500&q=80', // Cheese Slices Pack 10
+        40: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&w=500&h=500&q=80', // Eggs Farm Fresh Dozen
+        41: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=500&h=500&q=80', // Tapal Danedar 900g
+        42: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=500&h=500&q=80', // Tapal Danedar 200g
+        43: 'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=500&h=500&q=80', // Lipton Yellow Label 200g
+        44: 'https://images.unsplash.com/photo-1587735243615-c03f25aaff15?auto=format&fit=crop&w=500&h=500&q=80', // Nestle Everyday 400g
+        45: 'https://images.unsplash.com/photo-1587735243615-c03f25aaff15?auto=format&fit=crop&w=500&h=500&q=80', // Nestle Nido 400g
+        46: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=500&h=500&q=80', // Soft Drink 1.5L Cola
+        47: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=500&h=500&q=80', // Soft Drink 1.5L Lemon
+        48: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=500&h=500&q=80', // Mineral Water 1.5L
+        49: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=500&h=500&q=80', // Orange Juice 1L
+        50: 'https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?auto=format&fit=crop&w=500&h=500&q=80', // Mango Juice 1L
+        51: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=500&h=500&q=80', // Lays Classic 30g
+        52: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=500&h=500&q=80', // Lays Masala 30g
+        53: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=500&h=500&q=80', // Lays French Cheese 30g
+        54: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?auto=format&fit=crop&w=500&h=500&q=80', // Kurkure Chutney Chaska
+        55: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?auto=format&fit=crop&w=500&h=500&q=80', // Kurkure Masala Munch
+        56: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=500&h=500&q=80', // Nimco Mix 200g
+        57: 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?auto=format&fit=crop&w=500&h=500&q=80', // Popcorn Butter 100g
+        58: 'https://images.unsplash.com/photo-1567892324422-540bb9687e35?auto=format&fit=crop&w=500&h=500&q=80', // Peanuts Roasted 200g
+        59: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=500&h=500&q=80', // Wheat Flour 5kg
+        60: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=500&h=500&q=80', // Wheat Flour 10kg
+        61: 'https://images.unsplash.com/photo-1587735243615-c03f25aaff15?auto=format&fit=crop&w=500&h=500&q=80', // Sugar 1kg
+        62: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=500&h=500&q=80', // Rice Basmati 5kg
+        63: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=500&h=500&q=80', // Cooking Oil 1L
+        64: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=500&h=500&q=80', // Cooking Oil 5L
+        65: 'https://images.unsplash.com/photo-1518110925495-5fe2fda0442c?auto=format&fit=crop&w=500&h=500&q=80', // Salt Iodized 800g
+        66: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=500&h=500&q=80', // National Red Chilli 200g
+        67: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=500&h=500&q=80', // National Turmeric 200g
+        68: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=500&h=500&q=80', // Shan Biryani Masala
+        69: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=500&h=500&q=80', // Shan Chicken Masala
+        70: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=500&h=500&q=80', // National Ketchup 500g
+        71: 'https://images.unsplash.com/photo-1568909344668-6f14a07b56a0?auto=format&fit=crop&w=500&h=500&q=80', // Mitchell\'s Jam Mixed Fruit 450g
+        72: 'https://images.unsplash.com/photo-1521483451569-e33803c0330c?auto=format&fit=crop&w=500&h=500&q=80', // Cornflakes 250g
+        73: 'https://images.unsplash.com/photo-1584776296944-ab6fb57b0bdd?auto=format&fit=crop&w=500&h=500&q=80', // Oats 500g
+        74: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=500&h=500&q=80', // Honey 250g
+        75: 'https://images.unsplash.com/photo-1589733955941-5eeaf752f6dd?auto=format&fit=crop&w=500&h=500&q=80', // Peanut Butter 340g
+        76: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=500&h=500&q=80', // Chocolate Spread 350g
+        77: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=500&h=500&q=80', // Instant Noodles Pack
+        78: 'https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=500&h=500&q=80', // Instant Noodles Family 5
+        79: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=500&h=500&q=80', // Surf Excel 1kg
+        80: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=500&h=500&q=80', // Surf Excel 500g
+        81: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=500&h=500&q=80', // Dishwashing Liquid 500ml
+        82: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=500&h=500&q=80', // Floor Cleaner 1L
+        83: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=500&h=500&q=80', // Tissue Roll Pack 4
+        84: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=500&h=500&q=80', // Kitchen Tissue Pack
+        85: 'https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?auto=format&fit=crop&w=500&h=500&q=80', // Garbage Bags Medium
+        86: 'https://images.unsplash.com/photo-1518110925495-5fe2fda0442c?auto=format&fit=crop&w=500&h=500&q=80', // Match Box Pack 10
+        87: 'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=500&h=500&q=80', // Lux Soap 115g
+        88: 'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=500&h=500&q=80', // Lux Soap Pack 3
+        89: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=500&h=500&q=80', // Shampoo 180ml
+        90: 'https://images.unsplash.com/photo-1559591937-e10220268595?auto=format&fit=crop&w=500&h=500&q=80', // Toothpaste 100g
+        91: 'https://images.unsplash.com/photo-1559591937-e10220268595?auto=format&fit=crop&w=500&h=500&q=80', // Toothbrush Soft
+        92: 'https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=500&h=500&q=80', // Hand Wash 250ml
+        93: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=500&h=500&q=80', // Face Wash 100ml
+        94: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?auto=format&fit=crop&w=500&h=500&q=80', // Tissue Pocket Pack
+    };
+
     getProductImage(product: any, index: number): string {
         if (product?.imagePath && !product.imagePath.includes('placeholder.png')) {
             return this.getImageUrl(product.imagePath);
         }
+
+        // Direct matching by Product ID (exact 1-to-1 match for all 94 catalog items)
+        if (product?.id && OnlineOrderComponent.CATALOG_IMAGES_BY_ID[product.id]) {
+            return OnlineOrderComponent.CATALOG_IMAGES_BY_ID[product.id];
+        }
+
+        const name = (product?.name || '').toLowerCase().trim();
+        const cat = (product?.categoryName || '').toLowerCase().trim();
+        const desc = (product?.description || '').toLowerCase().trim();
+
+        // 1. Cheezious-style Pizza Deals & Combos
+        if (name.includes('small pizza') || (name.includes('pizza') && name.includes('small'))) {
+            return 'assets/menu-items/pizza_small.jpg';
+        }
+        if (name.includes('regular pizza') || (name.includes('pizza') && name.includes('regular'))) {
+            return 'assets/menu-items/pizza_regular.jpg';
+        }
+        if (name.includes('large pizza') || (name.includes('pizza') && (name.includes('large') || name.includes('family')))) {
+            return 'assets/menu-items/pizza_large.jpg';
+        }
+        if (name.includes('pizza') || desc.includes('pizza')) {
+            return 'assets/menu-items/pizza_regular.jpg';
+        }
+
+        // 2. Cheezious-style Burger Combos & Deals
+        if (name.includes('burger deal') || name.includes('somewhat') || name.includes('combo') || name.includes('bazinga') || name.includes('amazing') || name.includes('cheezious') || name.includes('fast food deal')) {
+            return 'assets/menu-items/burger_combo.jpg';
+        }
+
+        // 3. Specific Bakery Item Names (Match against product name FIRST, NOT category!)
+        if (name.includes('barfi')) return 'assets/menu-items/barfi.jpg';
+        if (name.includes('milk bread') || name.includes('sandwich bread')) return 'assets/menu-items/milk_bread.jpg';
+        if (name.includes('brown bread')) return 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('burger bun')) return 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('hot dog')) return 'https://images.unsplash.com/photo-1619740455993-9e612b1af08a?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('dinner roll') || name.includes('rolls')) return 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('garlic bread')) return 'https://images.unsplash.com/photo-1619535860434-ba1d8fa12536?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('fruit bun')) return 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('kulcha') || name.includes('naan')) return 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=500&h=500&q=80';
+
+        // 4. Sweets, Cakes, Donuts & Pastries
+        if (name.includes('donut')) return 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('cupcake')) return 'https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('muffin')) return 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('croissant')) return 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('pastry') || name.includes('cake')) return 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=500&h=500&q=80';
+
+        // 5. Dairy
+        if (name.includes('cheese')) return 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('ghee')) return 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('butter')) return 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('yogurt')) return 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('egg')) return 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&w=500&h=500&q=80';
+        if (name.includes('milk') || name.includes('cream')) return 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=500&h=500&q=80';
+
+        // Fast food fallback
+        if (name.includes('burger') || name.includes('zinger') || name.includes('chicken') || name.includes('fast food')) {
+            return 'assets/menu-items/burger_combo.jpg';
+        }
+
+        // Default domain fallback
         const domain = this.getProductDomain(product);
         const idx = Math.abs(product?.id || index || 0);
-
         switch (domain) {
             case 'food':
-                return this.foodImages[idx % this.foodImages.length];
-            case 'retail':
-                return this.retailImages[idx % this.retailImages.length];
+                return 'assets/menu-items/burger_combo.jpg';
             case 'solar-panel':
                 return this.solarPanelImages[idx % this.solarPanelImages.length];
             case 'inverter':
@@ -1001,13 +1157,7 @@ export class OnlineOrderComponent implements OnInit {
             case 'solar-accessory':
                 return this.solarAccessoryImages[idx % this.solarAccessoryImages.length];
             default:
-                if (this.isRestaurantStore()) {
-                    return this.foodImages[idx % this.foodImages.length];
-                }
-                if (this.isSolarStore()) {
-                    return this.solarPanelImages[idx % this.solarPanelImages.length];
-                }
-                return this.retailImages[idx % this.retailImages.length];
+                return 'assets/menu-items/burger_combo.jpg';
         }
     }
 
@@ -1075,6 +1225,15 @@ export class OnlineOrderComponent implements OnInit {
             return ['Standard Portion', 'Large / Family Pack', 'Double Delight'];
         }
         return ['Standard Unit', 'Commercial Pack', 'Complete Deal'];
+    }
+
+    hasVariants(product: any): boolean {
+        if (!product) return false;
+        if (product.hasVariants != null) return !!product.hasVariants;
+        if (product.variants && product.variants.length > 0) return true;
+        if (product.sizes && product.sizes.length > 0) return true;
+        const opts = this.getDetailOptions(product);
+        return opts && opts.length > 1;
     }
 
     getOriginalPrice(product: any): number {
