@@ -347,6 +347,16 @@
         (mouseenter)="stopHeroSlider()"
         (mouseleave)="startHeroSlider()"
     >
+        <!-- Background Imagery with Dark Gradient Overlays per Slide -->
+        <div class="fp-hero-bg-container">
+            <div
+                *ngFor="let slide of heroSlides; let idx = index"
+                class="fp-hero-bg-layer"
+                [class.active]="currentHeroSlide === idx"
+                [style.background-image]="'linear-gradient(rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.65)), url(' + slide.bgImageUrl + ')'"
+            ></div>
+        </div>
+
         <div class="fp-hero-backdrop"></div>
 
         <!-- Carousel Navigation Arrows -->
@@ -376,7 +386,7 @@
             >
                 <div class="grid align-items-center">
                     <!-- Left Column: Typography, Badges, CTAs -->
-                    <div class="col-12 lg:col-7 fp-hero-text-col">
+                    <div class="col-12 md:col-7 lg:col-7 p-2 md:p-3 fp-hero-text-col">
                         <div class="fp-hero-badge inline-flex align-items-center gap-2">
                             <span class="badge-fire-icon">{{ slide.badgeIcon }}</span>
                             <span class="font-extrabold uppercase tracking-wider text-xs">{{ slide.badge }}</span>
@@ -429,7 +439,7 @@
                     </div>
 
                     <!-- Right Column: Visual Showcase Presentation Card -->
-                    <div class="col-12 lg:col-5 hidden lg:flex justify-content-center">
+                    <div class="col-12 md:col-5 lg:col-5 p-2 md:p-3 flex justify-content-center align-items-center fp-hero-card-col">
                         <div class="fp-hero-deal-card shadow-4">
                             <div class="deal-card-badge">
                                 {{ slide.cardTag }}
