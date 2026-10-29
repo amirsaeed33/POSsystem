@@ -667,7 +667,10 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     onTableDialogHide(): void {
-        this.pendingSendToTable = false;
+        // Only clear pendingSendToTable if dialog was closed without selecting a table
+        if (!this.pendingSelectedTable) {
+            this.pendingSendToTable = false;
+        }
     }
 
     async onTableClicked(table: RestaurantTableDto): Promise<void> {
@@ -863,6 +866,7 @@ export class PosComponent implements OnInit, OnDestroy {
         this.pendingVehicleTable = null;
         this.pendingVehicleNumber = '';
         this.pendingSelectedTable = null;
+        this.pendingSendToTable = false;
     }
 
     openAssignWaiterDialog(): void {
@@ -1034,6 +1038,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
         const isDirectSend = this.pendingSendToTable;
         this.pendingSendToTable = false;
+        this.pendingSelectedTable = null;
 
         if (table.status === 1 || table.status === 2) {
             try {
@@ -1098,7 +1103,8 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.selectedCarNumber = '';
                 this.selectedCarLocation = '';
             }
-            if (!isDirectSend) {
+            // Preserve cart if user already selected products before selecting table
+            if (!isDirectSend && this.activeOrderId) {
                 this.cart = [];
                 this.notes = '';
                 this.discountAmount = 0;
