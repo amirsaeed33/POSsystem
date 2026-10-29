@@ -87,10 +87,19 @@ export interface CreateOrUpdateRestaurantOrderDto {
 
 export interface ReserveCarServiceDto {
     branchId: number;
+    tableId?: number | null;
     carName: string;
     carNumber: string;
     carLocation: string;
     waiterName?: string;
+    notes?: string;
+}
+
+export interface OpenTableSessionDto {
+    branchId: number;
+    tableId: number;
+    waiterName?: string;
+    carNumber?: string;
     notes?: string;
 }
 

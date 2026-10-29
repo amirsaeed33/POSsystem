@@ -213,63 +213,8 @@
                     </button>
                 </div>
 
-                <!-- Restaurant Category Filter Dropdown (Restaurant only) -->
-                <div class="mt-3 mb-2" *ngIf="isRestaurantMode">
-                    <div class="flex flex-wrap align-items-center justify-content-between gap-2">
-                        <div class="flex align-items-center gap-2">
-                            <span class="text-xs font-bold text-700 uppercase tracking-wider flex align-items-center gap-1">
-                                <i class="pi pi-th-large text-primary"></i> Category:
-                            </span>
-                            <p-dropdown
-                                [options]="posCategories"
-                                [(ngModel)]="selectedCategoryId"
-                                (onChange)="onCategoryChange()"
-                                placeholder="All Categories"
-                                styleClass="p-inputtext-sm w-14rem"
-                                [showClear]="true"
-                            ></p-dropdown>
-                        </div>
-                        <span *ngIf="selectedCategoryId && categoryProducts.length" class="text-xs text-500 font-medium">
-                            {{ categoryProducts.length }} product(s) available
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Products for Selected Category (Restaurant only) -->
-                <div class="mt-2" *ngIf="isRestaurantMode && selectedCategoryId && !suggestions.length">
-                    <div class="flex align-items-center justify-content-between mb-2">
-                        <span class="text-xs font-bold text-700 uppercase tracking-wider flex align-items-center gap-1">
-                            <i class="pi pi-list text-primary"></i> Category Products
-                        </span>
-                        <span class="text-xs text-500 font-medium">Click badge to quick-add</span>
-                    </div>
-                    <div *ngIf="loadingCategoryProducts" class="text-500 text-xs py-2">
-                        <i class="pi pi-spin pi-spinner mr-1"></i> Loading products...
-                    </div>
-                    <div class="flex flex-wrap gap-2" *ngIf="!loadingCategoryProducts && categoryProducts.length">
-                        <div
-                            *ngFor="let product of categoryProducts"
-                            class="surface-card border-1 surface-border border-round-pill px-3 py-1.5 flex align-items-center gap-2 cursor-pointer hover:border-primary hover:surface-hover transition-colors transition-duration-150 shadow-1"
-                            (click)="selectSuggestion(product)"
-                            [title]="'Quick add ' + product.name + ' (' + (getUnitPrice(product) | number: '1.2-2') + ')'"
-                        >
-                            <i *ngIf="isDealProduct(product)" class="pi pi-bolt text-amber-500 text-xs font-bold"></i>
-                            <i *ngIf="!isDealProduct(product)" class="pi pi-tag text-primary text-xs"></i>
-                            <span class="font-semibold text-sm text-900 line-clamp-1" style="max-width: 170px;">
-                                {{ product.name }}
-                            </span>
-                            <span class="text-xs font-bold text-primary bg-primary-50 px-2 py-0.5 border-round-pill">
-                                {{ getUnitPrice(product) | number: '1.2-2' }}
-                            </span>
-                        </div>
-                    </div>
-                    <div *ngIf="!loadingCategoryProducts && !categoryProducts.length" class="text-500 text-xs py-2">
-                        No products found in this category.
-                    </div>
-                </div>
-
-                <!-- Default Top 5 Selling Products Badges (when All Categories or non-restaurant) -->
-                <div class="mt-3" *ngIf="(!isRestaurantMode || !selectedCategoryId) && !suggestions.length && topProducts.length">
+                <!-- Top Sale Products Badges -->
+                <div class="mt-3" *ngIf="!suggestions.length && topProducts.length">
                     <div class="flex align-items-center justify-content-between mb-2">
                         <span class="text-xs font-bold text-700 uppercase tracking-wider flex align-items-center gap-1">
                             <i class="pi pi-bolt text-amber-500"></i> Top Sale Products

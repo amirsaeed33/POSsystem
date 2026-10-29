@@ -65,6 +65,19 @@ export class RestaurantOrderService {
         return this.unwrap(res, 'Failed to reserve car service');
     }
 
+    async openTableSession(dto: {
+        branchId: number;
+        tableId: number;
+        waiterName?: string;
+        carNumber?: string;
+        notes?: string;
+    }): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/OpenTableSession`, dto)
+        );
+        return this.unwrap(res, 'Failed to open table / car session');
+    }
+
     async getActiveCarOrders(branchId: number): Promise<RestaurantOrderDto[]> {
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetActiveCarOrders`, {

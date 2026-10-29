@@ -32,7 +32,6 @@ import { ProductModifierService } from 'src/app/demo/service/product-modifier.se
 import { SaleService } from 'src/app/demo/service/sale.service';
 import { StaffDto } from 'src/app/demo/api/staff';
 import { StaffService } from 'src/app/demo/service/staff.service';
-import { CategoryService } from 'src/app/demo/service/category.service';
 import { DealService } from 'src/app/demo/service/deal.service';
 import { DealDto } from 'src/app/demo/api/deal';
 import { AuthService } from 'src/app/demo/service/auth.service';
@@ -124,11 +123,6 @@ export class PosComponent implements OnInit, OnDestroy {
         return this.selectedCarNumber ? `${bay} • ${this.selectedCarNumber}` : bay;
     }
 
-    // Restaurant POS Category Filtering
-    posCategories: { label: string; value: number | null }[] = [];
-    selectedCategoryId: number | null = null;
-    categoryProducts: ProductDto[] = [];
-    loadingCategoryProducts = false;
 
     // Active Running Order (Hold & Tabs)
     activeOrderId: number | null = null;
@@ -202,7 +196,6 @@ export class PosComponent implements OnInit, OnDestroy {
         private productModifierService: ProductModifierService,
         private branchContext: BranchContextService,
         private staffService: StaffService,
-        private categoryService: CategoryService,
         private dealService: DealService,
         private authService: AuthService,
         private route: ActivatedRoute,
@@ -447,42 +440,6 @@ export class PosComponent implements OnInit, OnDestroy {
         if (this.isRestaurantMode && branch?.id) {
             this.loadTables(branch.id);
             this.loadWaiters(branch.id);
-            this.loadPosCategories();
-        }
-    }
-
-    async loadPosCategories(): Promise<void> {
-        try {
-            const categories = await this.categoryService.getLookup();
-            this.posCategories = [
-                { label: 'All Categories', value: null },
-                ...(categories || []).map((c) => ({ label: c.name, value: c.id })),
-            ];
-        } catch (err) {
-            console.error('Failed to load POS categories:', err);
-            this.posCategories = [{ label: 'All Categories', value: null }];
-        }
-    }
-
-    async onCategoryChange(): Promise<void> {
-        if (this.selectedCategoryId) {
-            this.loadingCategoryProducts = true;
-            try {
-                const res = await this.saleService.getPosProducts(this.selectedCategoryId);
-                this.categoryProducts = (res || []).filter((p) => !this.isGroceryProduct(p));
-            } catch (err) {
-                console.error('Failed to load products for category:', err);
-                this.categoryProducts = [];
-            } finally {
-                this.loadingCategoryProducts = false;
-            }
-        } else {
-            this.categoryProducts = [];
-        }
-
-        const q = (this.searchText || '').trim();
-        if (q) {
-            this.loadSuggestions(q);
         }
     }
 
@@ -899,7 +856,7 @@ export class PosComponent implements OnInit, OnDestroy {
         if (table.status === 1 || table.status === 2) {
             try {
                 const order = await this.restaurantOrderService.getByTable(table.id);
-                if (order && order.lines?.length) {
+                if (order) {
                     this.activeOrderId = order.id;
                     this.activeOrderNo = order.orderNo;
                     if (order.carNumber || order.orderType === OrderTypes.CarService || carBay) {
@@ -915,6 +872,23 @@ export class PosComponent implements OnInit, OnDestroy {
                     this.notes = order.notes || '';
                     if (order.customerId) {
                         this.customerId = order.customerId;
+                    }
+                    if (!order.lines?.length) {
+                        if (!isDirectSend) {
+                            this.clearCart();
+                            this.messageService.add({
+                                severity: 'info',
+                                summary: carBay ? 'Car Order Open' : 'Table Order Open',
+                                detail: carBay
+                                    ? `${this.carServiceLabel} is occupied — add items to continue.`
+                                    : `Table ${table.tableNo} is occupied — add items to continue.`,
+                                life: 2500,
+                            });
+                        }
+                        if (isDirectSend) {
+                            await this.sendToTable();
+                        }
+                        return;
                     }
                     const existingLines: PosCartLine[] = [];
                     for (const l of order.lines) {
@@ -989,31 +963,90 @@ export class PosComponent implements OnInit, OnDestroy {
                 console.error('Failed to load table order', err);
             }
         } else {
-            // Available table / car bay: fresh cart for this bay/table
+            // Available table / car bay: open session immediately so bay shows Occupied
             this.selectedCarOrder = null;
             if (!carBay) {
                 this.selectedCarName = '';
                 this.selectedCarNumber = '';
                 this.selectedCarLocation = '';
             }
-            this.activeOrderId = null;
-            this.activeOrderNo = '';
             if (!isDirectSend) {
                 this.clearCart();
             }
             if (this.isWaiter) {
                 this.waiterName = this.authService.getPrinterIdentity().name;
-            } else {
+            } else if (!this.waiterName) {
                 this.waiterName = table.waiterName || '';
             }
+
+            const branchId = this.branchContext.getBranchId();
+            if (branchId) {
+                try {
+                    if (carBay && !(this.selectedCarNumber || '').trim()) {
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: 'Vehicle Number Required',
+                            detail: 'Enter the car plate before opening this bay.',
+                            life: 3500,
+                        });
+                        return;
+                    }
+
+                    const session = await this.restaurantOrderService.openTableSession({
+                        branchId,
+                        tableId: table.id,
+                        waiterName: this.waiterName || undefined,
+                        carNumber: carBay ? this.selectedCarNumber : undefined,
+                    });
+                    this.activeOrderId = session.id;
+                    this.activeOrderNo = session.orderNo;
+                    if (session.carName) this.selectedCarName = session.carName;
+                    if (session.carNumber) this.selectedCarNumber = session.carNumber;
+                    if (session.carLocation) this.selectedCarLocation = session.carLocation;
+                    if (session.waiterName) this.waiterName = session.waiterName;
+
+                    table.status = 1;
+                    table.statusName = 'Occupied';
+                    table.currentOrderId = session.id;
+                    table.waiterName = this.waiterName;
+                    if (carBay) {
+                        table.currentVehicleNumber = this.selectedCarNumber;
+                    }
+                    const listed = this.tables.find((t) => t.id === table.id);
+                    if (listed) {
+                        listed.status = 1;
+                        listed.statusName = 'Occupied';
+                        listed.currentOrderId = session.id;
+                        listed.waiterName = this.waiterName;
+                        if (carBay) {
+                            listed.currentVehicleNumber = this.selectedCarNumber;
+                        }
+                    }
+                    this.loadTables();
+                } catch (err: any) {
+                    this.activeOrderId = null;
+                    this.activeOrderNo = '';
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Could Not Open Session',
+                        detail: err?.message || 'Failed to occupy table / car bay',
+                        life: 4000,
+                    });
+                    return;
+                }
+            } else {
+                this.activeOrderId = null;
+                this.activeOrderNo = '';
+            }
+
             if (!isDirectSend) {
                 this.messageService.add({
                     severity: 'info',
-                    summary: carBay ? 'Car Bay Selected' : 'Table Selected',
+                    summary: carBay ? 'Car Bay Occupied' : 'Table Occupied',
                     detail: carBay
-                        ? `${this.carServiceLabel} ready for order`
-                        : `Table ${table.tableNo} (${table.area || 'Main Hall'}) selected`,
-                    life: 2500,
+                        ? `${this.carServiceLabel} is now occupied — add items and send KOT.`
+                        : `Table ${table.tableNo} is now occupied — add items and send to table.`,
+                    life: 3000,
                 });
             }
         }
@@ -1741,8 +1774,22 @@ export class PosComponent implements OnInit, OnDestroy {
         if (isCar) {
             const bay = this.selectedCarName || this.selectedTable?.tableNo || 'Car';
             const plate = this.selectedCarNumber || '';
+            const bayTableId =
+                this.selectedTable?.id ??
+                this.tables.find(
+                    (t) =>
+                        this.isCarBay(t) &&
+                        (t.tableNo || '').trim().toLowerCase() ===
+                            (bay || '').trim().toLowerCase()
+                )?.id ??
+                null;
+            // Keep selectedTable in sync so later KOTs still send TableId
+            if (!this.selectedTable && bayTableId) {
+                this.selectedTable =
+                    this.tables.find((t) => t.id === bayTableId) || this.selectedTable;
+            }
             return {
-                tableId: this.selectedTable?.id ?? null,
+                tableId: bayTableId,
                 tableNo: plate ? `Car: ${bay} - ${plate}` : bay,
                 orderType: OrderTypes.CarService,
                 carName: bay,
@@ -2973,9 +3020,8 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     private loadSuggestions(keyword: string): void {
-        const categoryId = this.isRestaurantMode ? this.selectedCategoryId : null;
         this.saleService
-            .searchPosProducts(keyword, categoryId)
+            .searchPosProducts(keyword, null)
             .then((items) => {
                 if ((this.searchText || '').trim() !== keyword) {
                     return;

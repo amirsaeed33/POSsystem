@@ -215,17 +215,45 @@ namespace SmartPos.Restaurant
                 isNew = true;
             }
 
+            // Prefer explicit table from the request (car bays must stay linked for CurrentOrderId).
+            if (input.TableId.HasValue && input.TableId.Value > 0)
+            {
+                order.TableId = input.TableId;
+            }
+
             RestaurantTable linkedTable = null;
             if (order.TableId.HasValue)
             {
                 linkedTable = await _tableRepository.FirstOrDefaultAsync(order.TableId.Value);
             }
 
-            var tableIsCarBay = linkedTable != null
-                && RestaurantTable.LooksLikeCarBay(linkedTable.TableNo, linkedTable.Area, linkedTable.IsCarBay);
-            var isCarOrder = tableIsCarBay
-                || input.OrderType == OrderType.CarService
-                || !string.IsNullOrWhiteSpace(input.CarNumber);
+            var isCarOrder = input.OrderType == OrderType.CarService
+                || !string.IsNullOrWhiteSpace(input.CarNumber)
+                || !string.IsNullOrWhiteSpace(order.CarNumber)
+                || (linkedTable != null
+                    && RestaurantTable.LooksLikeCarBay(linkedTable.TableNo, linkedTable.Area, linkedTable.IsCarBay));
+
+            // Resolve car bay by name when client omitted TableId (legacy / stale POS payloads).
+            if (isCarOrder && linkedTable == null)
+            {
+                var bayName = !string.IsNullOrWhiteSpace(input.CarName)
+                    ? input.CarName.Trim()
+                    : order.CarName;
+                if (!string.IsNullOrWhiteSpace(bayName))
+                {
+                    var bayNameLower = bayName.ToLower();
+                    linkedTable = await _tableRepository.GetAll()
+                        .Where(t => t.BranchId == input.BranchId
+                                    && t.IsActive
+                                    && t.TableNo.ToLower() == bayNameLower)
+                        .OrderByDescending(t => t.IsCarBay)
+                        .FirstOrDefaultAsync();
+                    if (linkedTable != null)
+                    {
+                        order.TableId = linkedTable.Id;
+                    }
+                }
+            }
 
             var isWaiter = await IsCurrentUserWaiterAsync();
             order.CustomerId = input.CustomerId;
@@ -386,20 +414,64 @@ namespace SmartPos.Restaurant
                 await _orderRepository.UpdateAsync(order);
             }
 
-            // Sync table status
-            if (order.TableId.HasValue)
-            {
-                var table = await _tableRepository.GetAsync(order.TableId.Value);
-                table.Status = TableStatus.Occupied;
-                table.CurrentOrderId = order.Id;
-                if (!string.IsNullOrWhiteSpace(order.WaiterName))
-                {
-                    table.WaiterName = order.WaiterName;
-                }
-                await _tableRepository.UpdateAsync(table);
-            }
+            // Sync table / car bay occupancy + CurrentOrderId
+            await SyncTableOccupationAsync(order);
 
             return ObjectMapper.Map<RestaurantOrderDto>(order);
+        }
+
+        private async Task EnsureOrderLinkedToTableAsync(RestaurantOrder order)
+        {
+            if (order == null || order.TableId.HasValue)
+            {
+                return;
+            }
+
+            var isCar = order.OrderType == OrderType.CarService || !string.IsNullOrWhiteSpace(order.CarNumber);
+            if (!isCar || string.IsNullOrWhiteSpace(order.CarName))
+            {
+                return;
+            }
+
+            var bayNameLower = order.CarName.Trim().ToLower();
+            var bay = await _tableRepository.GetAll()
+                .Where(t => t.BranchId == order.BranchId
+                            && t.IsActive
+                            && t.TableNo.ToLower() == bayNameLower)
+                .OrderByDescending(t => t.IsCarBay)
+                .FirstOrDefaultAsync();
+
+            if (bay == null)
+            {
+                return;
+            }
+
+            order.TableId = bay.Id;
+            await _orderRepository.UpdateAsync(order);
+        }
+
+        private async Task SyncTableOccupationAsync(RestaurantOrder order)
+        {
+            if (order == null || !order.TableId.HasValue || order.TableId.Value <= 0 || order.Id <= 0)
+            {
+                return;
+            }
+
+            var table = await _tableRepository.FirstOrDefaultAsync(order.TableId.Value);
+            if (table == null)
+            {
+                return;
+            }
+
+            table.Status = order.Status == RestaurantOrderStatus.Billed
+                ? TableStatus.Billed
+                : TableStatus.Occupied;
+            table.CurrentOrderId = order.Id;
+            if (!string.IsNullOrWhiteSpace(order.WaiterName))
+            {
+                table.WaiterName = order.WaiterName;
+            }
+            await _tableRepository.UpdateAsync(table);
         }
 
         public async Task<RestaurantOrderDto> ReserveCarServiceAsync(ReserveCarServiceDto input)
@@ -411,6 +483,18 @@ namespace SmartPos.Restaurant
                 throw new UserFriendlyException("Car Number is required.");
             if (string.IsNullOrWhiteSpace(input.CarLocation))
                 throw new UserFriendlyException("Car Location is required.");
+
+            if (input.TableId.HasValue && input.TableId.Value > 0)
+            {
+                return await OpenTableSessionAsync(new OpenTableSessionDto
+                {
+                    BranchId = input.BranchId,
+                    TableId = input.TableId.Value,
+                    WaiterName = input.WaiterName,
+                    CarNumber = input.CarNumber,
+                    Notes = input.Notes
+                });
+            }
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(input.BranchId);
 
@@ -449,6 +533,96 @@ namespace SmartPos.Restaurant
             return ObjectMapper.Map<RestaurantOrderDto>(saved);
         }
 
+        public async Task<RestaurantOrderDto> OpenTableSessionAsync(OpenTableSessionDto input)
+        {
+            if (input == null) throw new ArgumentNullException(nameof(input));
+            if (input.TableId <= 0)
+                throw new UserFriendlyException("Table is required.");
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(input.BranchId);
+
+            var table = await _tableRepository.GetAsync(input.TableId);
+            if (table.BranchId != input.BranchId)
+                throw new UserFriendlyException("Table does not belong to this branch.");
+
+            var isCarBay = RestaurantTable.LooksLikeCarBay(table.TableNo, table.Area, table.IsCarBay);
+            if (isCarBay && string.IsNullOrWhiteSpace(input.CarNumber))
+                throw new UserFriendlyException("Vehicle number / plate is required for car service.");
+
+            // Resume existing open/billed session on this bay/table
+            if (table.CurrentOrderId.HasValue)
+            {
+                var existing = await _orderRepository.GetAll()
+                    .Include(o => o.Lines)
+                    .FirstOrDefaultAsync(o => o.Id == table.CurrentOrderId.Value
+                        && (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed));
+                if (existing != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(input.WaiterName))
+                    {
+                        existing.WaiterName = input.WaiterName.Trim();
+                        table.WaiterName = existing.WaiterName;
+                        await _orderRepository.UpdateAsync(existing);
+                        await _tableRepository.UpdateAsync(table);
+                    }
+                    return ObjectMapper.Map<RestaurantOrderDto>(existing);
+                }
+            }
+
+            if (table.Status != TableStatus.Available && table.Status != TableStatus.Reserved)
+            {
+                throw new UserFriendlyException($"'{table.TableNo}' is not available.");
+            }
+
+            var isWaiter = await IsCurrentUserWaiterAsync();
+            string waiter = input.WaiterName;
+            if (isWaiter)
+            {
+                var printer = await GetCurrentPrinterIdentityAsync();
+                waiter = printer.Name;
+            }
+            if (string.IsNullOrWhiteSpace(waiter))
+            {
+                waiter = string.IsNullOrWhiteSpace(table.WaiterName) ? "Staff" : table.WaiterName;
+            }
+
+            var plate = input.CarNumber?.Trim();
+            var order = new RestaurantOrder
+            {
+                TenantId = AbpSession.TenantId,
+                BranchId = input.BranchId,
+                OrderNo = GenerateOrderNumber(),
+                TableId = table.Id,
+                TableNo = isCarBay && !string.IsNullOrWhiteSpace(plate)
+                    ? $"Car: {table.TableNo} - {plate}"
+                    : table.TableNo,
+                OrderType = isCarBay ? OrderType.CarService : OrderType.DineIn,
+                Status = RestaurantOrderStatus.Open,
+                CarName = isCarBay ? table.TableNo : null,
+                CarNumber = isCarBay ? plate : null,
+                CarLocation = isCarBay
+                    ? (string.IsNullOrWhiteSpace(table.Area) ? "Car Parking" : table.Area)
+                    : null,
+                WaiterName = waiter.Trim(),
+                Notes = input.Notes,
+                Lines = new List<RestaurantOrderLine>()
+            };
+
+            var id = await _orderRepository.InsertAndGetIdAsync(order);
+
+            table.Status = TableStatus.Occupied;
+            table.CurrentOrderId = id;
+            table.WaiterName = order.WaiterName;
+            await _tableRepository.UpdateAsync(table);
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            var saved = await _orderRepository.GetAll()
+                .Include(o => o.Lines)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            return ObjectMapper.Map<RestaurantOrderDto>(saved);
+        }
+
         public async Task<List<RestaurantOrderDto>> GetActiveCarOrdersAsync(int branchId)
         {
             await _branchAccessChecker.EnsureCanAccessBranchAsync(branchId);
@@ -476,6 +650,10 @@ namespace SmartPos.Restaurant
             }
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+            // Ensure car/table bay stays linked and CurrentOrderId is set
+            await EnsureOrderLinkedToTableAsync(order);
+            await SyncTableOccupationAsync(order);
 
             var printer = await GetCurrentPrinterIdentityAsync();
 

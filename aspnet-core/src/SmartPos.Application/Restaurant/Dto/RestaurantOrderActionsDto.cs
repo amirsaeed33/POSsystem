@@ -42,6 +42,9 @@ namespace SmartPos.Restaurant.Dto
         [Required]
         public int BranchId { get; set; }
 
+        /// <summary>Optional car bay table id — when set, bay is marked Occupied.</summary>
+        public int? TableId { get; set; }
+
         [Required]
         public string CarName { get; set; }
 
@@ -52,6 +55,23 @@ namespace SmartPos.Restaurant.Dto
         public string CarLocation { get; set; }
 
         public string WaiterName { get; set; }
+
+        public string Notes { get; set; }
+    }
+
+    /// <summary>Open a dine-in table or car bay session (empty order + Occupied status).</summary>
+    public class OpenTableSessionDto
+    {
+        [Required]
+        public int BranchId { get; set; }
+
+        [Required]
+        public int TableId { get; set; }
+
+        public string WaiterName { get; set; }
+
+        /// <summary>Required when the table is a car bay.</summary>
+        public string CarNumber { get; set; }
 
         public string Notes { get; set; }
     }
