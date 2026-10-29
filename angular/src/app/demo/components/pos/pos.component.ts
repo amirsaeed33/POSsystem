@@ -1,4 +1,4 @@
-import {
+﻿import {
     Component,
     ElementRef,
     OnDestroy,
@@ -80,7 +80,7 @@ export class PosComponent implements OnInit, OnDestroy {
     loadingTables = false;
     pendingSendToTable = false;
 
-    // Car bay (permanent Car 1–N slots) + vehicle plate on select
+    // Car bay (permanent Car 1â€“N slots) + vehicle plate on select
     selectedCarOrder: RestaurantOrderDto | null = null;
     selectedCarName = '';
     selectedCarNumber = '';
@@ -120,7 +120,7 @@ export class PosComponent implements OnInit, OnDestroy {
     get carServiceLabel(): string {
         if (!this.isCarService) return '';
         const bay = this.selectedCarName || this.selectedTable?.tableNo || 'Car';
-        return this.selectedCarNumber ? `${bay} • ${this.selectedCarNumber}` : bay;
+        return this.selectedCarNumber ? `${bay} â€¢ ${this.selectedCarNumber}` : bay;
     }
 
 
@@ -443,7 +443,7 @@ export class PosComponent implements OnInit, OnDestroy {
             }
         }
         if (!summary) return [];
-        const parts = summary.includes(' • ') ? summary.split(' • ') : summary.split(',');
+        const parts = summary.includes(' â€¢ ') ? summary.split(' â€¢ ') : summary.split(',');
         return parts.map((s: string) => s.trim()).filter(Boolean);
     }
 
@@ -504,6 +504,27 @@ export class PosComponent implements OnInit, OnDestroy {
             this.loadingWaiters = false;
         }
     }
+
+    /** Returns IDs of waiters currently serving an occupied/billed table (excluding the currently selected table). */
+    getBusyWaiterIds(): Set<number> {
+        if (!this.isRestaurantMode) return new Set<number>();
+        const busyIds = new Set<number>();
+        for (const t of this.tables) {
+            // Status 1 = Occupied, 2 = Billed â€” both mean an active order is running
+            if ((t.status === 1 || t.status === 2) && t.waiterId && t.id !== this.selectedTable?.id) {
+                busyIds.add(t.waiterId);
+            }
+        }
+        return busyIds;
+    }
+
+    /** Waiters that are NOT currently serving another active table. */
+    get availableWaiters(): StaffDto[] {
+        if (!this.isRestaurantMode) return this.waiters;
+        const busyIds = this.getBusyWaiterIds();
+        return this.waiters.filter((w) => !busyIds.has(w.id));
+    }
+
 
     loadTables(branchId?: number): void {
         const bId = branchId || this.branchContext.getBranchId();
@@ -628,8 +649,8 @@ export class PosComponent implements OnInit, OnDestroy {
                 severity: 'success',
                 summary: 'Order Held',
                 detail: this.isCarService
-                    ? `${this.carServiceLabel} saved — pick another bay or table when ready.`
-                    : `Table ${this.selectedTable?.tableNo} saved — pick another table or car when ready.`,
+                    ? `${this.carServiceLabel} saved â€” pick another bay or table when ready.`
+                    : `Table ${this.selectedTable?.tableNo} saved â€” pick another table or car when ready.`,
                 life: 3000,
             });
             return true;
@@ -649,7 +670,7 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     async onTableClicked(table: RestaurantTableDto): Promise<void> {
-        // Switching away from a different active table/car — park current cart first
+        // Switching away from a different active table/car â€” park current cart first
         const switchingAway =
             !!this.selectedTable &&
             this.selectedTable.id !== table.id &&
@@ -823,7 +844,12 @@ export class PosComponent implements OnInit, OnDestroy {
             return { id: match?.id ?? null, name: this.waiterName.trim() };
         }
 
-        // First active waiter for the branch
+        // First available (non-busy) waiter for the branch
+        const available = this.availableWaiters;
+        if (available.length) {
+            return { id: available[0].id, name: available[0].name };
+        }
+        // Fall back to any waiter if all are busy
         if (this.waiters.length) {
             return { id: this.waiters[0].id, name: this.waiters[0].name };
         }
@@ -893,7 +919,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
             this.assignWaiterDialogVisible = false;
 
-            // Already on this table/car — just update waiter, don't reopen session
+            // Already on this table/car â€” just update waiter, don't reopen session
             const alreadyOpen =
                 this.selectedTable?.id === this.pendingSelectedTable.id &&
                 !!this.activeOrderId;
@@ -1128,8 +1154,8 @@ export class PosComponent implements OnInit, OnDestroy {
                     severity: 'info',
                     summary: carBay ? 'Car Bay Occupied' : 'Table Occupied',
                     detail: carBay
-                        ? `${this.carServiceLabel} is now occupied — add items and send KOT.`
-                        : `Table ${table.tableNo} is now occupied — add items and send to table.`,
+                        ? `${this.carServiceLabel} is now occupied â€” add items and send KOT.`
+                        : `Table ${table.tableNo} is now occupied â€” add items and send to table.`,
                     life: 3000,
                 });
             }
@@ -1438,7 +1464,7 @@ export class PosComponent implements OnInit, OnDestroy {
                             isDeal = true;
                             dealId = dealInfo.id;
                             if (!dealSummary) {
-                                dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' • ');
+                                dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' â€¢ ');
                             }
                             if (!selectedModifiers || !selectedModifiers.includes('DEAL:')) {
                                 const extra = this.parseModifiers(selectedModifiers).filter(
@@ -1586,7 +1612,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.kotDialogVisible = true;
                 this.messageService.add({
                     severity: 'success',
-                    summary: isCar ? '🚗 Sent to Car' : (isTakeaway ? '🍳 Sent to KOT' : '🍽️ Sent to Table'),
+                    summary: isCar ? 'ðŸš— Sent to Car' : (isTakeaway ? 'ðŸ³ Sent to KOT' : 'ðŸ½ï¸ Sent to Table'),
                     detail: isCar
                         ? `Order sent to Car ${this.selectedCarName} (${this.selectedCarNumber}) (Order #${kotResult.orderNo})`
                         : (isTakeaway
@@ -1655,7 +1681,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.loadTables();
             this.messageService.add({
                 severity: 'info',
-                summary: '🧾 Guest Check Ready',
+                summary: 'ðŸ§¾ Guest Check Ready',
                 detail: `Bill printed for ${this.isCarService ? this.carServiceLabel : (this.selectedTable?.tableNo || 'Table')}`,
                 life: 3000,
             });
@@ -1757,7 +1783,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
             this.messageService.add({
                 severity: 'success',
-                summary: '💾 Tab Saved',
+                summary: 'ðŸ’¾ Tab Saved',
                 detail: `Order #${saved.orderNo} held on ${this.selectedTable ? 'Table ' + this.selectedTable.tableNo : 'Takeaway'}`,
                 life: 3000,
             });
@@ -1941,7 +1967,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'success',
                 summary: 'Car Bay Added',
-                detail: `${table.tableNo} ready — tap it and enter the vehicle number when a car arrives.`,
+                detail: `${table.tableNo} ready â€” tap it and enter the vehicle number when a car arrives.`,
                 life: 4000,
             });
         } catch (err: any) {
@@ -2286,7 +2312,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 }
                 return `${item.quantity}x ${item.productName}${chosen.length ? ' (' + chosen.join(', ') + ')' : ''}`;
             })
-            .join(' • ');
+            .join(' â€¢ ');
 
         this.pushDealToCart(
             this.selectedDealProduct,
@@ -2361,7 +2387,7 @@ export class PosComponent implements OnInit, OnDestroy {
             try {
                 const dealInfo = await this.dealService.getByProductId(line.productId);
                 if (dealInfo && dealInfo.items?.length) {
-                    line.dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' • ');
+                    line.dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' â€¢ ');
                 }
             } catch (err) {
                 console.warn('Could not load deal details for dialog:', err);
@@ -2833,7 +2859,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
                 this.messageService.add({
                     severity: 'success',
-                    summary: '🍽️ Order Completed',
+                    summary: 'ðŸ½ï¸ Order Completed',
                     detail,
                 });
 

@@ -1,4 +1,4 @@
-<div class="pos-page">
+﻿<div class="pos-page">
     <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <h4 class="m-0">POS</h4>
         <div class="flex flex-wrap gap-2 pos-header-actions">
@@ -2037,6 +2037,7 @@
                     <i class="pi pi-spin pi-spinner text-xl mr-2"></i>Loading waiters...
                 </div>
 
+
                 <div *ngIf="!loadingWaiters && !waiters.length" class="text-center py-4 surface-50 border-round">
                     <i class="pi pi-user-times text-400 text-3xl mb-2 block"></i>
                     <div class="font-bold text-700">No Waiters Found</div>
@@ -2045,8 +2046,9 @@
                     </div>
                 </div>
 
-                <div *ngIf="!loadingWaiters && waiters.length" class="grid">
-                    <div class="col-12 sm:col-6" *ngFor="let waiter of waiters">
+                <!-- Available Waiters -->
+                <div *ngIf="!loadingWaiters && availableWaiters.length" class="grid">
+                    <div class="col-12 sm:col-6" *ngFor="let waiter of availableWaiters">
                         <div
                             class="p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex align-items-center gap-3 shadow-1 hover:shadow-3"
                             [style.background]="pendingSelectedTable?.waiterId === waiter.id ? '#e0f2fe' : '#ffffff'"
@@ -2088,6 +2090,44 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- No available waiters message -->
+                <div *ngIf="!loadingWaiters && waiters.length && !availableWaiters.length" class="text-center py-3 surface-50 border-round mb-2">
+                    <i class="pi pi-clock text-orange-400 text-2xl mb-1 block"></i>
+                    <div class="font-bold text-700 text-sm">All Waiters Busy</div>
+                    <div class="text-xs text-500 mt-1">All waiters are currently serving active tables.</div>
+                </div>
+
+                <!-- Busy Waiters (shown as disabled / informational) -->
+                <ng-container *ngIf="!loadingWaiters && getBusyWaiterIds().size > 0">
+                    <div class="text-xs text-500 font-semibold mt-3 mb-1 px-1">
+                        <i class="pi pi-lock mr-1"></i> Busy (serving another table)
+                    </div>
+                    <div class="grid">
+                        <div class="col-12 sm:col-6" *ngFor="let waiter of waiters">
+                            <div
+                                *ngIf="getBusyWaiterIds().has(waiter.id)"
+                                class="p-3 border-round-xl border-1 flex align-items-center gap-3 opacity-50"
+                                style="background:#f8fafc; border-color:#e2e8f0; cursor:not-allowed;"
+                            >
+                                <div
+                                    class="border-circle flex align-items-center justify-content-center text-lg font-bold"
+                                    style="width:2.75rem;height:2.75rem;flex-shrink:0;background:#f1f5f9;color:#94a3b8;"
+                                >
+                                    <i class="pi pi-user"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="font-bold text-700 text-base text-overflow-ellipsis overflow-hidden white-space-nowrap">
+                                        {{ waiter.name }}
+                                    </div>
+                                    <span class="text-xs px-2 py-0.5 border-round font-semibold bg-orange-100 text-orange-700 mt-1 inline-block">
+                                        <i class="pi pi-circle-fill mr-1" style="font-size:0.5rem;"></i>Busy
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ng-container>
             </div>
         </div>
 
