@@ -339,104 +339,147 @@
         </div>
     </p-sidebar>
 
-    <!-- 2. HERO BANNER SECTION (High Appetite Appeal, Modern Cheezious Aesthetic) -->
-    <section class="fp-hero-banner" id="storeHomeSection" *ngIf="!searchKeyword">
+    <!-- 2. HERO BANNER SECTION (Auto-sliding Carousel with Yellow Theme) -->
+    <section
+        class="fp-hero-banner"
+        id="storeHomeSection"
+        *ngIf="!searchKeyword"
+        (mouseenter)="stopHeroSlider()"
+        (mouseleave)="startHeroSlider()"
+    >
         <div class="fp-hero-backdrop"></div>
+
+        <!-- Carousel Navigation Arrows -->
+        <button
+            type="button"
+            class="fp-hero-nav-arrow prev"
+            (click)="prevHeroSlide()"
+            aria-label="Previous Slide"
+        >
+            <i class="pi pi-chevron-left"></i>
+        </button>
+        <button
+            type="button"
+            class="fp-hero-nav-arrow next"
+            (click)="nextHeroSlide()"
+            aria-label="Next Slide"
+        >
+            <i class="pi pi-chevron-right"></i>
+        </button>
+
         <div class="fp-hero-inner max-w-7xl mx-auto">
-            <div class="grid align-items-center">
-                <!-- Left Column: High-Impact Typography & Action CTAs -->
-                <div class="col-12 lg:col-7 fp-hero-text-col">
-                    <div class="fp-hero-badge inline-flex align-items-center gap-2">
-                        <span class="badge-fire-icon">🔥</span>
-                        <span class="font-extrabold uppercase tracking-wider text-xs">Fresh From Kitchen • Delivered In 30-45 Mins</span>
-                    </div>
-
-                    <h1 class="fp-hero-title">
-                        Craving Something <span class="fp-title-gradient">Hot, Cheesy</span> & Delicious?
-                    </h1>
-
-                    <p class="fp-hero-desc">
-                        Explore handcrafted pizzas loaded with mozzarella, sizzling juicy burgers, crispy tenders, and mouth-watering family deals. Cooked fresh on order, delivered lightning-fast to your doorstep.
-                    </p>
-
-                    <!-- Trust / Service Highlights Row -->
-                    <div class="fp-hero-features-row flex flex-wrap gap-2 sm:gap-3 mb-4">
-                        <div class="fp-feature-pill">
-                            <i class="pi pi-bolt text-yellow-400"></i>
-                            <span>30-45 Min Fast Delivery</span>
+            <!-- Carousel Slides -->
+            <div
+                *ngFor="let slide of heroSlides; let idx = index"
+                class="fp-hero-slide"
+                [class.active]="currentHeroSlide === idx"
+            >
+                <div class="grid align-items-center">
+                    <!-- Left Column: Typography, Badges, CTAs -->
+                    <div class="col-12 lg:col-7 fp-hero-text-col">
+                        <div class="fp-hero-badge inline-flex align-items-center gap-2">
+                            <span class="badge-fire-icon">{{ slide.badgeIcon }}</span>
+                            <span class="font-extrabold uppercase tracking-wider text-xs">{{ slide.badge }}</span>
                         </div>
-                        <div class="fp-feature-pill">
-                            <i class="pi pi-check-circle text-green-400"></i>
-                            <span>100% Fresh Ingredients</span>
-                        </div>
-                        <div class="fp-feature-pill">
-                            <i class="pi pi-star-fill text-yellow-400"></i>
-                            <span>4.9★ Customer Rating</span>
-                        </div>
-                    </div>
 
-                    <!-- Prominent CTAs -->
-                    <div class="fp-hero-cta-group flex flex-wrap align-items-center gap-3">
-                        <button
-                            type="button"
-                            class="fp-btn-primary-hero"
-                            (click)="scrollToSection('deals', $event)"
-                        >
-                            <span>Order Now</span>
-                            <i class="pi pi-arrow-right text-sm"></i>
-                        </button>
+                        <h1 class="fp-hero-title">
+                            {{ slide.titleMain }} <span class="fp-title-gradient">{{ slide.titleHighlight }}</span> {{ slide.titleEnd }}
+                        </h1>
 
-                        <button
-                            type="button"
-                            class="fp-btn-secondary-hero"
-                            (click)="scrollToSection('menu', $event)"
-                        >
-                            <i class="pi pi-book text-sm"></i>
-                            <span>Explore Full Menu</span>
-                        </button>
-                    </div>
-                </div>
+                        <p class="fp-hero-desc">
+                            {{ slide.description }}
+                        </p>
 
-                <!-- Right Column: Appetizing Food Spotlight Presentation Card (Desktop / Tablet) -->
-                <div class="col-12 lg:col-5 hidden lg:flex justify-content-center">
-                    <div class="fp-hero-deal-card shadow-4" *ngIf="heroSpotlightItem">
-                        <div class="deal-card-badge">
-                            {{ (heroSpotlightItem?.isDeal || (heroSpotlightItem?.categoryName || '').toLowerCase().includes('deal')) ? '🔥 SPECIAL COMBO' : '⭐ CHEF\'S TOP PICK' }}
-                        </div>
-                        <div class="deal-card-img-wrap">
-                            <img [src]="getProductImage(heroSpotlightItem, 0)" [alt]="heroSpotlightItem?.name" class="deal-hero-img" />
-                            <div class="deal-card-overlay"></div>
-                        </div>
-                        <div class="deal-card-content">
-                            <div class="flex align-items-center justify-content-between mb-1">
-                                <span class="deal-cat-name">{{ heroSpotlightItem?.categoryName || 'Chef Choice' }}</span>
-                                <span class="deal-rating"><i class="pi pi-star-fill text-yellow-400 mr-1"></i>4.9</span>
+                        <!-- Highlights Row with Yellow Theme Accent -->
+                        <div class="fp-hero-features-row flex flex-wrap gap-2 sm:gap-3 mb-4">
+                            <div class="fp-feature-pill highlight-pill">
+                                <i class="pi pi-tag text-yellow-400"></i>
+                                <span>{{ slide.offerPill }}</span>
                             </div>
-                            <h3 class="deal-hero-title">{{ heroSpotlightItem?.name }}</h3>
-                            <p class="deal-hero-desc line-clamp-2">{{ getProductDescription(heroSpotlightItem) }}</p>
-                            <div class="deal-card-foot flex align-items-center justify-content-between mt-3">
-                                <div>
-                                    <div class="deal-strike-price" *ngIf="getOriginalPrice(heroSpotlightItem) > heroSpotlightItem?.price">
-                                        PKR {{ getOriginalPrice(heroSpotlightItem) | number: '1.0-0' }}
-                                    </div>
-                                    <div class="deal-main-price">PKR {{ heroSpotlightItem?.price | number: '1.0-0' }}</div>
+                            <div class="fp-feature-pill">
+                                <i class="pi pi-bolt text-yellow-400"></i>
+                                <span>30-45 Min Express Delivery</span>
+                            </div>
+                            <div class="fp-feature-pill">
+                                <i class="pi pi-star-fill text-yellow-400"></i>
+                                <span>{{ slide.rating }} Customer Rating</span>
+                            </div>
+                        </div>
+
+                        <!-- Prominent Yellow-Themed CTAs -->
+                        <div class="fp-hero-cta-group flex flex-wrap align-items-center gap-3">
+                            <button
+                                type="button"
+                                class="fp-btn-primary-hero"
+                                (click)="scrollToSection(slide.primaryTarget, $event)"
+                            >
+                                <span>{{ slide.primaryBtnText }}</span>
+                                <i class="pi pi-arrow-right text-sm"></i>
+                            </button>
+
+                            <button
+                                type="button"
+                                class="fp-btn-secondary-hero"
+                                (click)="scrollToSection(slide.secondaryTarget, $event)"
+                            >
+                                <i class="pi pi-book text-sm text-yellow-400"></i>
+                                <span>{{ slide.secondaryBtnText }}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Visual Showcase Presentation Card -->
+                    <div class="col-12 lg:col-5 hidden lg:flex justify-content-center">
+                        <div class="fp-hero-deal-card shadow-4">
+                            <div class="deal-card-badge">
+                                {{ slide.cardTag }}
+                            </div>
+                            <div class="deal-card-img-wrap">
+                                <img [src]="slide.imageUrl" [alt]="slide.cardTitle" class="deal-hero-img" />
+                                <div class="deal-card-overlay"></div>
+                            </div>
+                            <div class="deal-card-content">
+                                <div class="flex align-items-center justify-content-between mb-1">
+                                    <span class="deal-cat-name">HOT PICK</span>
+                                    <span class="deal-rating"><i class="pi pi-star-fill text-yellow-400 mr-1"></i>{{ slide.rating }}</span>
                                 </div>
-                                <button
-                                    type="button"
-                                    class="fp-btn-add-spotlight"
-                                    (click)="addToCart(heroSpotlightItem, 1, $event)"
-                                >
-                                    <i class="pi pi-plus"></i>
-                                    <span>Add To Order</span>
-                                </button>
+                                <h3 class="deal-hero-title">{{ slide.cardTitle }}</h3>
+                                <p class="deal-hero-desc line-clamp-2">{{ slide.description }}</p>
+                                <div class="deal-card-foot flex align-items-center justify-content-between mt-3">
+                                    <div>
+                                        <div class="deal-strike-price" *ngIf="slide.cardOriginalPrice && slide.cardOriginalPrice > slide.cardPrice">
+                                            PKR {{ slide.cardOriginalPrice | number: '1.0-0' }}
+                                        </div>
+                                        <div class="deal-main-price">PKR {{ slide.cardPrice | number: '1.0-0' }}</div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="fp-btn-add-spotlight"
+                                        (click)="scrollToSection('deals', $event)"
+                                    >
+                                        <i class="pi pi-bolt"></i>
+                                        <span>Order Now</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Slide Pagination Indicator Dots -->
+            <div class="fp-hero-indicators flex align-items-center justify-content-center gap-2 mt-4">
+                <button
+                    type="button"
+                    *ngFor="let s of heroSlides; let idx = index"
+                    class="fp-indicator-dot"
+                    [class.active]="currentHeroSlide === idx"
+                    (click)="goToHeroSlide(idx)"
+                    [attr.aria-label]="'Go to slide ' + (idx + 1)"
+                ></button>
+            </div>
         </div>
     </section>
-
     <!-- 3. CATEGORY & FILTER BARS (Sticky / Smooth Horizontal Track) -->
     <section class="fp-categories-nav-section" id="storeMenuSection">
         <div class="max-w-7xl mx-auto">

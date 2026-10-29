@@ -1,5 +1,5 @@
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
@@ -22,7 +22,7 @@ export interface CategorySection {
     styleUrls: ['./online-order.component.scss'],
     providers: [MessageService],
 })
-export class OnlineOrderComponent implements OnInit {
+export class OnlineOrderComponent implements OnInit, OnDestroy {
     branchId: number | null = null;
     branchName = '';
     branchAddress = '';
@@ -195,7 +195,141 @@ export class OnlineOrderComponent implements OnInit {
         private deliveryAreaService: DeliveryAreaService
     ) {}
 
+    currentHeroSlide = 0;
+    private heroSlideTimer: any = null;
+
+    heroSlides = [
+        {
+            id: 1,
+            badge: 'FRESH FROM OVEN • 30-45 MIN DELIVERY',
+            badgeIcon: '🔥',
+            titleMain: 'Craving Something',
+            titleHighlight: 'Hot, Cheesy',
+            titleEnd: '& Delicious?',
+            description: 'Explore handcrafted pizzas loaded with 100% mozzarella, sizzling juicy burgers, crispy wings, and mouth-watering family deals. Cooked fresh on order!',
+            offerPill: 'FLAT 25% OFF ON LARGE PIZZAS',
+            primaryBtnText: 'Order Deals Now',
+            primaryTarget: 'deals',
+            secondaryBtnText: 'Explore Full Menu',
+            secondaryTarget: 'menu',
+            imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&h=600&q=80',
+            cardTag: '🔥 CROWN CRUST PIZZA',
+            cardTitle: 'Cheesy Crown Supreme Pizza',
+            cardPrice: 1650,
+            cardOriginalPrice: 2199,
+            rating: '4.9★'
+        },
+        {
+            id: 2,
+            badge: 'SMASHED & GRILLED TO PERFECTION',
+            badgeIcon: '🍔',
+            titleMain: 'Bite Into Pure',
+            titleHighlight: 'Juicy & Crispy',
+            titleEnd: 'Gourmet Burgers',
+            description: 'Double smashed beef patties, crispy tender chicken fillets, secret spicy mayo, and melted golden cheddar packed inside freshly toasted brioche buns.',
+            offerPill: 'FREE CRISPY FRIES + DIP WITH COMBOS',
+            primaryBtnText: 'Grab Burger Deal',
+            primaryTarget: 'deals',
+            secondaryBtnText: 'View All Burgers',
+            secondaryTarget: 'menu',
+            imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&h=600&q=80',
+            cardTag: '⭐ BEST SELLER',
+            cardTitle: 'Double Smashed Monster Burger',
+            cardPrice: 890,
+            cardOriginalPrice: 1150,
+            rating: '4.8★'
+        },
+        {
+            id: 3,
+            badge: 'SMOKY CHARCOAL & AUTHENTIC TASTE',
+            badgeIcon: '🍢',
+            titleMain: 'Sizzling Live',
+            titleHighlight: 'Smoky BBQ',
+            titleEnd: '& Kebab Platters',
+            description: 'Tender chicken boti, melt-in-mouth seekh kebabs, and grilled reshmi tikka marinated in rich spices and served with piping-hot kulchas and mint raita.',
+            offerPill: 'FAMILY PLATTER SPECIAL SAVE PKR 800',
+            primaryBtnText: 'Taste The BBQ',
+            primaryTarget: 'menu',
+            secondaryBtnText: 'View BBQ Platters',
+            secondaryTarget: 'menu',
+            imageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&h=600&q=80',
+            cardTag: '👑 SIGNATURE SPECIAL',
+            cardTitle: 'Royal Charcoal Mixed BBQ Platter',
+            cardPrice: 2450,
+            cardOriginalPrice: 3250,
+            rating: '4.9★'
+        },
+        {
+            id: 4,
+            badge: 'MEGA VALUE PACKS & CELEBRATIONS',
+            badgeIcon: '🎉',
+            titleMain: 'Gather Round For',
+            titleHighlight: 'Mega Family',
+            titleEnd: 'Feast Combos',
+            description: 'The ultimate party solution! 2 Large Specialty Pizzas, 10 pcs Crispy Wings, Cheesy Garlic Bread, and a chilled 1.5L drink for the whole squad.',
+            offerPill: 'MEGA SAVINGS UP TO PKR 1,200',
+            primaryBtnText: 'Get Family Feast',
+            primaryTarget: 'deals',
+            secondaryBtnText: 'See All Combos',
+            secondaryTarget: 'deals',
+            imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&h=600&q=80',
+            cardTag: '⚡ JUMBO COMBO',
+            cardTitle: 'Ultimate Family Feast Box',
+            cardPrice: 3499,
+            cardOriginalPrice: 4699,
+            rating: '5.0★'
+        },
+        {
+            id: 5,
+            badge: 'PIPING HOT DELIVERY GUARANTEE',
+            badgeIcon: '⚡',
+            titleMain: 'Delivered In',
+            titleHighlight: '30-45 Mins',
+            titleEnd: 'Right To Your Door',
+            description: 'Experience lightning-fast express delivery with insulated heat bags. Live rider GPS tracking keeps you informed every step of the way from grill to table.',
+            offerPill: 'FREE EXPRESS DELIVERY TODAY',
+            primaryBtnText: 'Order Online Now',
+            primaryTarget: 'menu',
+            secondaryBtnText: 'Track Active Order',
+            secondaryTarget: 'deals',
+            imageUrl: 'https://images.unsplash.com/photo-1526367790999-0150786686a2?auto=format&fit=crop&w=800&h=600&q=80',
+            cardTag: '🚀 EXPRESS DELIVERY',
+            cardTitle: 'Fresh, Steaming & Fast To Doorstep',
+            cardPrice: 1200,
+            cardOriginalPrice: 1500,
+            rating: '4.9★'
+        }
+    ];
+
+    startHeroSlider(): void {
+        this.stopHeroSlider();
+        this.heroSlideTimer = setInterval(() => {
+            this.nextHeroSlide();
+        }, 5000);
+    }
+
+    stopHeroSlider(): void {
+        if (this.heroSlideTimer) {
+            clearInterval(this.heroSlideTimer);
+            this.heroSlideTimer = null;
+        }
+    }
+
+    nextHeroSlide(): void {
+        this.currentHeroSlide = (this.currentHeroSlide + 1) % this.heroSlides.length;
+    }
+
+    prevHeroSlide(): void {
+        this.currentHeroSlide = (this.currentHeroSlide - 1 + this.heroSlides.length) % this.heroSlides.length;
+    }
+
+    goToHeroSlide(index: number): void {
+        this.currentHeroSlide = index;
+        this.startHeroSlider();
+    }
+
     ngOnInit(): void {
+        this.startHeroSlider();
         this.checkScreenSize();
         this.checkAuthSession();
         this.loadFavorites();
@@ -212,6 +346,10 @@ export class OnlineOrderComponent implements OnInit {
                 this.handleMissingBranchId();
             }
         });
+    }
+
+    ngOnDestroy(): void {
+        this.stopHeroSlider();
     }
 
     @HostListener('window:resize')
@@ -466,12 +604,14 @@ export class OnlineOrderComponent implements OnInit {
         return 'cat-section-' + clean;
     }
 
-    scrollToSection(sectionId: 'home' | 'menu' | 'deals' | 'contact', event?: Event): void {
+    scrollToSection(sectionId: string, event?: Event): void {
         if (event) {
             event.preventDefault();
             event.stopPropagation();
         }
-        this.activeNav = sectionId;
+        if (sectionId === 'home' || sectionId === 'menu' || sectionId === 'deals' || sectionId === 'contact') {
+            this.activeNav = sectionId as any;
+        }
         this.mobileNavOpen = false;
 
         if (sectionId === 'home') {
