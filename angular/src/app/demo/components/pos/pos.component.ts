@@ -593,6 +593,7 @@ export class PosComponent implements OnInit, OnDestroy {
         if (this.orderType !== 'dineIn') return true;
         if (!this.cart.length) return true;
         if (!this.selectedTable && !this.isCarService) return true;
+        if (!this.activeOrderId) return true;
 
         const branchId = this.branchContext.getBranchId();
         if (!branchId) return false;
@@ -920,10 +921,9 @@ export class PosComponent implements OnInit, OnDestroy {
             this.assignWaiterDialogVisible = false;
 
             // Already on this table/car â€” just update waiter, don't reopen session
-            const alreadyOpen =
-                this.selectedTable?.id === this.pendingSelectedTable.id &&
-                !!this.activeOrderId;
-            if (!alreadyOpen) {
+            const isAlreadySelected =
+                this.selectedTable?.id === this.pendingSelectedTable.id;
+            if (!isAlreadySelected) {
                 await this.selectTable(this.pendingSelectedTable);
             }
         } catch (err: any) {
@@ -975,7 +975,11 @@ export class PosComponent implements OnInit, OnDestroy {
             });
 
             this.assignWaiterDialogVisible = false;
-            await this.selectTable(this.pendingSelectedTable);
+            const isAlreadySelected =
+                this.selectedTable?.id === this.pendingSelectedTable.id;
+            if (!isAlreadySelected) {
+                await this.selectTable(this.pendingSelectedTable);
+            }
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',
@@ -993,9 +997,22 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.waiterName = this.pendingSelectedTable.waiterName;
             }
             this.assignWaiterDialogVisible = false;
-            await this.selectTable(this.pendingSelectedTable);
+            const isAlreadySelected =
+                this.selectedTable?.id === this.pendingSelectedTable.id;
+            if (!isAlreadySelected) {
+                await this.selectTable(this.pendingSelectedTable);
+            }
         } else {
             this.assignWaiterDialogVisible = false;
+        }
+    }
+
+    onAssignWaiterDialogHide(): void {
+        if (
+            this.pendingSelectedTable &&
+            (!this.selectedTable || this.selectedTable.id !== this.pendingSelectedTable.id)
+        ) {
+            void this.selectTable(this.pendingSelectedTable);
         }
     }
 
@@ -1073,7 +1090,8 @@ export class PosComponent implements OnInit, OnDestroy {
                 console.error('Failed to load table order', err);
             }
         } else {
-            // Available table / car bay: open session immediately so bay shows Occupied
+            // Available table / car bay: select table/car locally.
+            // Do NOT occupy or hold the table until items are actually sent to table / kitchen (or saved as tab).
             this.selectedCarOrder = null;
             if (!carBay) {
                 this.selectedCarName = '';
@@ -1081,81 +1099,28 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.selectedCarLocation = '';
             }
             if (!isDirectSend) {
-                this.clearCart();
+                this.cart = [];
+                this.notes = '';
+                this.discountAmount = 0;
+                this.discountPercent = 0;
             }
+            this.selectedTable = table;
             if (this.isWaiter) {
                 this.waiterName = this.authService.getPrinterIdentity().name;
             } else if (!this.waiterName) {
                 this.waiterName = table.waiterName || '';
             }
 
-            const branchId = this.branchContext.getBranchId();
-            if (branchId) {
-                try {
-                    if (carBay && !(this.selectedCarNumber || '').trim()) {
-                        this.messageService.add({
-                            severity: 'warn',
-                            summary: 'Vehicle Number Required',
-                            detail: 'Enter the car plate before opening this bay.',
-                            life: 3500,
-                        });
-                        return;
-                    }
-
-                    const session = await this.restaurantOrderService.openTableSession({
-                        branchId,
-                        tableId: table.id,
-                        waiterName: this.waiterName || undefined,
-                        carNumber: carBay ? this.selectedCarNumber : undefined,
-                    });
-                    this.activeOrderId = session.id;
-                    this.activeOrderNo = session.orderNo;
-                    if (session.carName) this.selectedCarName = session.carName;
-                    if (session.carNumber) this.selectedCarNumber = session.carNumber;
-                    if (session.carLocation) this.selectedCarLocation = session.carLocation;
-                    if (session.waiterName) this.waiterName = session.waiterName;
-
-                    table.status = 1;
-                    table.statusName = 'Occupied';
-                    table.currentOrderId = session.id;
-                    table.waiterName = this.waiterName;
-                    if (carBay) {
-                        table.currentVehicleNumber = this.selectedCarNumber;
-                    }
-                    const listed = this.tables.find((t) => t.id === table.id);
-                    if (listed) {
-                        listed.status = 1;
-                        listed.statusName = 'Occupied';
-                        listed.currentOrderId = session.id;
-                        listed.waiterName = this.waiterName;
-                        if (carBay) {
-                            listed.currentVehicleNumber = this.selectedCarNumber;
-                        }
-                    }
-                    this.loadTables();
-                } catch (err: any) {
-                    this.activeOrderId = null;
-                    this.activeOrderNo = '';
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Could Not Open Session',
-                        detail: err?.message || 'Failed to occupy table / car bay',
-                        life: 4000,
-                    });
-                    return;
-                }
-            } else {
-                this.activeOrderId = null;
-                this.activeOrderNo = '';
-            }
+            this.activeOrderId = null;
+            this.activeOrderNo = '';
 
             if (!isDirectSend) {
                 this.messageService.add({
                     severity: 'info',
-                    summary: carBay ? 'Car Bay Occupied' : 'Table Occupied',
+                    summary: carBay ? 'Car Bay Selected' : 'Table Selected',
                     detail: carBay
-                        ? `${this.carServiceLabel} is now occupied â€” add items and send KOT.`
-                        : `Table ${table.tableNo} is now occupied â€” add items and send to table.`,
+                        ? `${this.carServiceLabel} selected — select products and click "Send to Car".`
+                        : `Table ${table.tableNo} selected — select products and click "Send to Table".`,
                     life: 3000,
                 });
             }
@@ -1572,6 +1537,12 @@ export class PosComponent implements OnInit, OnDestroy {
             const savedOrder = await this.restaurantOrderService.saveOrder(payload);
             this.activeOrderId = savedOrder.id;
             this.activeOrderNo = savedOrder.orderNo;
+            if (this.selectedTable) {
+                this.selectedTable.status = 1;
+                this.selectedTable.statusName = 'Occupied';
+                this.selectedTable.currentOrderId = savedOrder.id;
+                this.selectedTable.waiterName = waiter;
+            }
 
             // Sync saved line ids and printed quantities back to local cart
             if (savedOrder.lines?.length) {
@@ -1779,6 +1750,12 @@ export class PosComponent implements OnInit, OnDestroy {
             const saved = await this.restaurantOrderService.saveOrder(payload);
             this.activeOrderId = saved.id;
             this.activeOrderNo = saved.orderNo;
+            if (this.selectedTable) {
+                this.selectedTable.status = 1;
+                this.selectedTable.statusName = 'Occupied';
+                this.selectedTable.currentOrderId = saved.id;
+                this.selectedTable.waiterName = this.waiterName || 'Staff';
+            }
             this.loadTables();
 
             this.messageService.add({

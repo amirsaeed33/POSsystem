@@ -1997,6 +1997,7 @@
     <p-dialog
         [header]="'Change Waiter — ' + (pendingSelectedTable?.tableNo || carServiceLabel || 'Order')"
         [(visible)]="assignWaiterDialogVisible"
+        (onHide)="onAssignWaiterDialogHide()"
         [modal]="true"
         [style]="{ width: '38rem', maxWidth: '95vw' }"
         [draggable]="false"
