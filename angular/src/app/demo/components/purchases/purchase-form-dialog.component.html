@@ -108,7 +108,7 @@
                     <thead>
                         <tr class="surface-100">
                             <th class="text-left p-2">Product</th>
-                            <th class="text-left p-2" style="width: 8rem" *ngIf="!isRestaurant">Quantity</th>
+                            <th class="text-left p-2" style="width: 8rem">Quantity</th>
                             <th class="text-left p-2" style="width: 9rem">Purchase Price</th>
                             <th class="text-right p-2" style="width: 8rem">Line Total</th>
                             <th class="p-2" style="width: 4rem"></th>
@@ -140,7 +140,7 @@
                                     </ng-template>
                                 </p-dropdown>
                             </td>
-                            <td class="p-2" *ngIf="!isRestaurant">
+                            <td class="p-2">
                                 <p-inputNumber
                                     [(ngModel)]="line.quantity"
                                     [min]="0.01"

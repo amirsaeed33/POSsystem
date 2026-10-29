@@ -60,7 +60,7 @@
                 <thead>
                     <tr class="surface-100">
                         <th class="text-left p-2">Product</th>
-                        <th class="text-right p-2" *ngIf="!isRestaurant">Quantity</th>
+                        <th class="text-right p-2">Quantity</th>
                         <th class="text-right p-2">Purchase Price</th>
                         <th class="text-right p-2">Line Total</th>
                     </tr>
@@ -68,12 +68,12 @@
                 <tbody>
                     <tr *ngFor="let line of purchase.lines || []">
                         <td class="p-2">{{ line.productName || ('#' + line.productId) }}</td>
-                        <td class="p-2 text-right" *ngIf="!isRestaurant">{{ line.quantity }}</td>
+                        <td class="p-2 text-right">{{ line.quantity }}</td>
                         <td class="p-2 text-right">{{ line.unitCost | number: '1.2-2' }}</td>
                         <td class="p-2 text-right">{{ line.lineTotal | number: '1.2-2' }}</td>
                     </tr>
                     <tr *ngIf="!(purchase.lines || []).length">
-                        <td [attr.colspan]="isRestaurant ? 3 : 4" class="p-3 text-center text-500">No line items</td>
+                        <td colspan="4" class="p-3 text-center text-500">No line items</td>
                     </tr>
                 </tbody>
             </table>
@@ -134,7 +134,7 @@
                 <thead>
                     <tr class="surface-100">
                         <th class="text-left p-2">Product</th>
-                        <th class="text-right p-2" *ngIf="!isRestaurant">Return Qty</th>
+                        <th class="text-right p-2">Return Qty</th>
                         <th class="text-right p-2">Purchase Price</th>
                         <th class="text-right p-2">Line Total</th>
                     </tr>
@@ -142,7 +142,7 @@
                 <tbody>
                     <tr *ngFor="let line of purchaseReturn.lines || []">
                         <td class="p-2">{{ line.productName || ('#' + line.productId) }}</td>
-                        <td class="p-2 text-right" *ngIf="!isRestaurant">{{ line.quantity }}</td>
+                        <td class="p-2 text-right">{{ line.quantity }}</td>
                         <td class="p-2 text-right">{{ line.unitCost | number: '1.2-2' }}</td>
                         <td class="p-2 text-right">{{ line.lineTotal | number: '1.2-2' }}</td>
                     </tr>
