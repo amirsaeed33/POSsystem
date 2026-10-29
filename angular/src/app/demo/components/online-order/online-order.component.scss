@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
 
 :host {
+  scroll-behavior: smooth;
   --yellow: #fddb00;
   --orange: #e8532b;
   --card-bg: #f6f6f6;
@@ -772,6 +773,11 @@
     padding-bottom: 0.5rem;
 
     .fp-circle-cat-item {
+      background: transparent;
+      border: none;
+      padding: 0;
+      outline: none;
+      font-family: inherit;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -1776,4 +1782,18 @@
       display: none !important;
     }
   }
+}
+
+
+/* Single-page smooth scroll margins below sticky header */
+:host {
+  scroll-behavior: smooth;
+}
+
+.fp-store-section,
+.fp-deals-showcase-section,
+.fp-hero-banner,
+.fp-categories-nav-section,
+.fp-restaurant-footer {
+  scroll-margin-top: 90px;
 }

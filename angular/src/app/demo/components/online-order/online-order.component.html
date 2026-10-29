@@ -5,7 +5,7 @@
         <div class="hidden md:flex align-items-center justify-content-between gap-3 max-w-7xl mx-auto w-full">
             <!-- Left: Brand Logo, Name & Location Selector -->
             <div class="flex align-items-center gap-3 overflow-hidden">
-                <div class="fp-brand-group cursor-pointer" (click)="scrollToSection('home')">
+                <div class="fp-brand-group cursor-pointer" (click)="scrollToSection('home', $event)">
                     <div class="brand-logo-sq">
                         <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
                     </div>
@@ -44,7 +44,7 @@
                     type="button"
                     class="fp-nav-link-btn"
                     [class.active]="activeNav === 'home'"
-                    (click)="scrollToSection('home')"
+                    (click)="scrollToSection('home', $event)"
                 >
                     <i class="pi pi-home text-xs mr-1"></i>
                     <span>Home</span>
@@ -53,7 +53,7 @@
                     type="button"
                     class="fp-nav-link-btn"
                     [class.active]="activeNav === 'menu'"
-                    (click)="scrollToSection('menu')"
+                    (click)="scrollToSection('menu', $event)"
                 >
                     <i class="pi pi-th-large text-xs mr-1"></i>
                     <span>Menu</span>
@@ -62,7 +62,7 @@
                     type="button"
                     class="fp-nav-link-btn"
                     [class.active]="activeNav === 'deals'"
-                    (click)="scrollToSection('deals')"
+                    (click)="scrollToSection('deals', $event)"
                 >
                     <i class="pi pi-tags text-xs mr-1"></i>
                     <span>Deals</span>
@@ -80,7 +80,7 @@
                     type="button"
                     class="fp-nav-link-btn"
                     [class.active]="activeNav === 'contact'"
-                    (click)="scrollToSection('contact')"
+                    (click)="scrollToSection('contact', $event)"
                 >
                     <i class="pi pi-phone text-xs mr-1"></i>
                     <span>Contact</span>
@@ -155,7 +155,7 @@
         <div class="flex md:hidden align-items-center justify-content-between gap-2 w-full fp-mobile-top-bar">
             <!-- Left: Brand Logo + Branch / City Selector -->
             <div class="flex align-items-center gap-2 overflow-hidden flex-grow-1 min-w-0">
-                <div class="brand-logo-sq flex-shrink-0" (click)="scrollToSection('home')">
+                <div class="brand-logo-sq flex-shrink-0" (click)="scrollToSection('home', $event)">
                     <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
                 </div>
                 <div class="fp-mobile-header-info min-w-0 flex-grow-1">
@@ -271,7 +271,7 @@
                 type="button"
                 class="fp-mobile-drawer-link"
                 [class.active]="activeNav === 'home'"
-                (click)="scrollToSection('home')"
+                (click)="scrollToSection('home', $event)"
             >
                 <i class="pi pi-home"></i>
                 <span>Home</span>
@@ -280,7 +280,7 @@
                 type="button"
                 class="fp-mobile-drawer-link"
                 [class.active]="activeNav === 'menu'"
-                (click)="scrollToSection('menu')"
+                (click)="scrollToSection('menu', $event)"
             >
                 <i class="pi pi-th-large"></i>
                 <span>Full Menu</span>
@@ -289,7 +289,7 @@
                 type="button"
                 class="fp-mobile-drawer-link"
                 [class.active]="activeNav === 'deals'"
-                (click)="scrollToSection('deals')"
+                (click)="scrollToSection('deals', $event)"
             >
                 <i class="pi pi-tags"></i>
                 <span>Deals & Offers</span>
@@ -315,7 +315,7 @@
                 type="button"
                 class="fp-mobile-drawer-link"
                 [class.active]="activeNav === 'contact'"
-                (click)="scrollToSection('contact')"
+                (click)="scrollToSection('contact', $event)"
             >
                 <i class="pi pi-phone"></i>
                 <span>Contact & Hours</span>
@@ -340,7 +340,7 @@
     </p-sidebar>
 
     <!-- 2. HERO BANNER SECTION (High Appetite Appeal, Modern Cheezious Aesthetic) -->
-    <section class="fp-hero-banner" id="storeHomeSection" *ngIf="!searchKeyword && selectedCategory === 'All'">
+    <section class="fp-hero-banner" id="storeHomeSection" *ngIf="!searchKeyword">
         <div class="fp-hero-backdrop"></div>
         <div class="fp-hero-inner max-w-7xl mx-auto">
             <div class="grid align-items-center">
@@ -380,7 +380,7 @@
                         <button
                             type="button"
                             class="fp-btn-primary-hero"
-                            (click)="scrollToSection('deals')"
+                            (click)="scrollToSection('deals', $event)"
                         >
                             <span>Order Now</span>
                             <i class="pi pi-arrow-right text-sm"></i>
@@ -389,7 +389,7 @@
                         <button
                             type="button"
                             class="fp-btn-secondary-hero"
-                            (click)="scrollToSection('menu')"
+                            (click)="scrollToSection('menu', $event)"
                         >
                             <i class="pi pi-book text-sm"></i>
                             <span>Explore Full Menu</span>
@@ -454,15 +454,16 @@
             <!-- DESKTOP CATEGORY TRACK (Horizontal Chips) -->
             <div class="fp-category-bar hidden md:flex">
                 <div class="fp-category-track" id="fpStoreFilterTrack">
-                    <div
+                    <button
+                        type="button"
                         *ngFor="let cat of categories"
                         class="fp-cat-chip"
                         [class.active]="selectedCategory === cat"
-                        (click)="selectCategory(cat)"
+                        (click)="selectCategory(cat, $event)"
                     >
                         <i [class]="getCategoryVisual(cat).icon" class="mr-1 text-xs"></i>
                         <span>{{ cat }}</span>
-                    </div>
+                    </button>
                 </div>
             </div>
 
@@ -470,11 +471,12 @@
             <div class="fp-mobile-filter-container md:hidden">
                 <!-- Circular Category Icons Track -->
                 <div class="fp-circle-category-track" id="fpMobileCircleTrack">
-                    <div
+                    <button
+                        type="button"
                         *ngFor="let cat of categories"
                         class="fp-circle-cat-item"
                         [class.active]="selectedCategory === cat"
-                        (click)="selectCategory(cat)"
+                        (click)="selectCategory(cat, $event)"
                     >
                         <div class="circle-avatar-box">
                             <img
@@ -492,7 +494,7 @@
                             </span>
                         </div>
                         <span class="circle-cat-name">{{ cat }}</span>
-                    </div>
+                    </button>
                 </div>
 
                 <!-- Capsule Filter Pills Track -->
@@ -512,7 +514,7 @@
     </section>
 
     <!-- 4. DEDICATED DEALS & SPECIAL OFFERS SECTION -->
-    <section class="fp-deals-showcase-section" id="storeDealsSection" *ngIf="!searchKeyword && selectedCategory === 'All' && dealsList.length > 0">
+    <section class="fp-deals-showcase-section" id="storeDealsSection" *ngIf="!searchKeyword && dealsList.length > 0">
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
             <div class="deals-header-row flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
                 <div>
@@ -531,7 +533,7 @@
                         icon="pi pi-chevron-right"
                         iconPos="right"
                         class="p-button-text p-button-sm text-red-600 font-bold p-0"
-                        (click)="selectCategory('🔥 Deals')"
+                        (click)="selectCategory('🔥 Deals', $event)"
                     ></button>
                 </div>
             </div>
@@ -604,9 +606,9 @@
     </section>
 
     <!-- 5. MAIN MENU CATALOG BODY: CATEGORY SECTIONS GRID -->
-    <main class="max-w-7xl mx-auto pb-8" *ngIf="!searchKeyword && selectedCategory === 'All'">
+    <main class="max-w-7xl mx-auto pb-8" *ngIf="!searchKeyword">
         <!-- Section 1: 🔥 Hot Deals & Trending Items -->
-        <section class="fp-store-section" *ngIf="trendingDeals.length > 0">
+        <section class="fp-store-section" id="storeTrendingSection" *ngIf="trendingDeals.length > 0">
             <div class="section-header-row">
                 <div class="section-title">
                     <span>🔥 Hot Trending Items</span>
@@ -622,7 +624,7 @@
                         icon="pi pi-chevron-right"
                         iconPos="right"
                         class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
-                        (click)="selectCategory('🔥 Deals')"
+                        (click)="selectCategory('🔥 Deals', $event)"
                     ></button>
                 </div>
             </div>
@@ -682,7 +684,7 @@
         </section>
 
         <!-- Section 2: ✨ Best Sellers & Popular Picks -->
-        <section class="fp-store-section" *ngIf="popularItems.length > 0">
+        <section class="fp-store-section" id="storePopularSection" *ngIf="popularItems.length > 0">
             <div class="section-header-row">
                 <div class="section-title">
                     <span>✨ Best Sellers & Popular</span>
@@ -698,7 +700,7 @@
                         icon="pi pi-chevron-right"
                         iconPos="right"
                         class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
-                        (click)="selectCategory('✨ Popular')"
+                        (click)="selectCategory('✨ Popular', $event)"
                     ></button>
                 </div>
             </div>
@@ -761,9 +763,10 @@
         <section
             class="fp-store-section"
             *ngFor="let sec of categorySections; let sIdx = index"
+            [id]="getCategorySectionId(sec.category)"
         >
             <div class="section-header-row">
-                <div class="section-title cursor-pointer" (click)="selectCategory(sec.category)">
+                <div class="section-title cursor-pointer" (click)="selectCategory(sec.category, $event)">
                     <span>{{ sec.category }}</span>
                     <span class="badge surface-200 text-700 text-xs px-2 py-1 border-round-3xl font-bold">
                         {{ sec.items.length }} items
@@ -777,7 +780,7 @@
                         icon="pi pi-chevron-right"
                         iconPos="right"
                         class="p-button-text p-button-sm text-primary font-bold mr-2 p-0"
-                        (click)="selectCategory(sec.category)"
+                        (click)="selectCategory(sec.category, $event)"
                     ></button>
                 </div>
             </div>
@@ -845,7 +848,7 @@
     </main>
 
     <!-- FILTERED / SEARCHED PRODUCTS GRID -->
-    <main class="max-w-7xl mx-auto p-2 sm:p-4 pb-8" *ngIf="searchKeyword || selectedCategory !== 'All'">
+    <main class="max-w-7xl mx-auto p-2 sm:p-4 pb-8" *ngIf="searchKeyword">
         <div class="flex align-items-center justify-content-between mb-3 sm:mb-4 flex-wrap gap-2">
             <div class="font-bold text-base sm:text-xl text-900 flex align-items-center gap-2">
                 <span *ngIf="searchKeyword">Search: "{{ searchKeyword }}"</span>
@@ -1679,9 +1682,9 @@
                 <div class="col-6 md:col-2 mb-4 md:mb-0">
                     <h4 class="text-white font-bold text-sm mb-3">Quick Navigation</h4>
                     <ul class="list-none p-0 m-0 text-sm text-400 flex flex-column gap-2">
-                        <li><a (click)="scrollToSection('home')" class="cursor-pointer hover:text-white transition-colors">Home</a></li>
-                        <li><a (click)="scrollToSection('menu')" class="cursor-pointer hover:text-white transition-colors">Food Menu</a></li>
-                        <li><a (click)="scrollToSection('deals')" class="cursor-pointer hover:text-white transition-colors">Super Deals</a></li>
+                        <li><a (click)="scrollToSection('home', $event)" class="cursor-pointer hover:text-white transition-colors">Home</a></li>
+                        <li><a (click)="scrollToSection('menu', $event)" class="cursor-pointer hover:text-white transition-colors">Food Menu</a></li>
+                        <li><a (click)="scrollToSection('deals', $event)" class="cursor-pointer hover:text-white transition-colors">Super Deals</a></li>
                         <li><a (click)="goToTracking()" class="cursor-pointer hover:text-white transition-colors">Track Order</a></li>
                     </ul>
                 </div>
@@ -1690,7 +1693,7 @@
                 <div class="col-6 md:col-3 mb-4 md:mb-0">
                     <h4 class="text-white font-bold text-sm mb-3">Categories</h4>
                     <ul class="list-none p-0 m-0 text-sm text-400 flex flex-column gap-2">
-                        <li *ngFor="let cat of categories.slice(0, 5)"><a (click)="selectCategory(cat)" class="cursor-pointer hover:text-white transition-colors">{{ cat }}</a></li>
+                        <li *ngFor="let cat of categories.slice(0, 5)"><a (click)="selectCategory(cat, $event)" class="cursor-pointer hover:text-white transition-colors">{{ cat }}</a></li>
                     </ul>
                 </div>
 

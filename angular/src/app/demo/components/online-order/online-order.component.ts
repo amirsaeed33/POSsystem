@@ -447,13 +447,39 @@ export class OnlineOrderComponent implements OnInit {
         });
     }
 
-    scrollToSection(sectionId: 'home' | 'menu' | 'deals' | 'contact'): void {
+    getCategorySectionId(category: string): string {
+        if (!category) return '';
+        const lower = category.toLowerCase().trim();
+        if (lower.includes('deal')) {
+            return 'storeDealsSection';
+        }
+        if (lower.includes('popular')) {
+            return 'storePopularSection';
+        }
+        if (lower.includes('trend')) {
+            return 'storeTrendingSection';
+        }
+        const clean = lower
+            .replace(/[^a-z0-9]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+        return 'cat-section-' + clean;
+    }
+
+    scrollToSection(sectionId: 'home' | 'menu' | 'deals' | 'contact', event?: Event): void {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
         this.activeNav = sectionId;
         this.mobileNavOpen = false;
 
         if (sectionId === 'home') {
             this.selectedCategory = 'All';
-            this.applyFilter();
+            if (this.searchKeyword) {
+                this.searchKeyword = '';
+                this.applyFilter();
+            }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (sectionId === 'menu') {
             const el = document.getElementById('storeMenuSection');
@@ -467,7 +493,7 @@ export class OnlineOrderComponent implements OnInit {
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
-                this.selectCategory('🔥 Deals');
+                this.selectCategory('🔥 Deals', event);
             }
         } else if (sectionId === 'contact') {
             const el = document.getElementById('storeContactSection');
@@ -479,24 +505,64 @@ export class OnlineOrderComponent implements OnInit {
         }
     }
 
-    selectCategory(cat: string): void {
-        if (this.selectedCategory === cat && cat !== 'All') {
-            this.selectedCategory = 'All';
-        } else {
-            this.selectedCategory = cat;
+    selectCategory(cat: string, event?: Event): void {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
         }
+
+        this.selectedCategory = cat;
+
+        if (this.searchKeyword) {
+            this.searchKeyword = '';
+            this.applyFilter();
+        }
+
         if (this.activeMobileTab === 'favorites') {
             this.activeMobileTab = 'home';
         }
-        this.applyFilter();
+
         setTimeout(() => {
             const activeChip = document.querySelector('.fp-cat-chip.active, .fp-circle-cat-item.active');
             if (activeChip) {
                 activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             }
-        }, 60);
-    }
+        }, 50);
 
+        const lower = (cat || '').toLowerCase().trim();
+        if (!cat || lower === 'all') {
+            const menuEl = document.getElementById('storeMenuSection');
+            if (menuEl) {
+                menuEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            return;
+        }
+
+        const targetId = this.getCategorySectionId(cat);
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            const allSections = document.querySelectorAll('.fp-store-section');
+            let found = false;
+            allSections.forEach((section) => {
+                if (found) return;
+                const titleEl = section.querySelector('.section-title');
+                if (titleEl && titleEl.textContent && titleEl.textContent.toLowerCase().includes(lower.replace(/[^a-z0-9]/g, ''))) {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    found = true;
+                }
+            });
+            if (!found) {
+                const menuEl = document.getElementById('storeMenuSection');
+                if (menuEl) {
+                    menuEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        }
+    }
     selectPill(pill: string): void {
         if (this.selectedPill === pill) {
             this.selectedPill = '';
