@@ -296,8 +296,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             primaryTarget: 'menu',
             secondaryBtnText: 'Track Active Order',
             secondaryTarget: 'deals',
-            imageUrl: 'https://images.unsplash.com/photo-1526367790999-0150786686a2?auto=format&fit=crop&w=800&h=600&q=80',
-            bgImageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1920&q=85',
+            imageUrl: 'https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?auto=format&fit=crop&w=800&h=600&q=80',
+            bgImageUrl: 'https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?auto=format&fit=crop&w=1920&q=85',
             cardTag: '🚀 EXPRESS DELIVERY',
             cardTitle: 'Fresh, Steaming & Fast To Doorstep',
             cardPrice: 1200,
@@ -310,7 +310,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.stopHeroSlider();
         this.heroSlideTimer = setInterval(() => {
             this.nextHeroSlide();
-        }, 5000);
+        }, 3000);
     }
 
     stopHeroSlider(): void {

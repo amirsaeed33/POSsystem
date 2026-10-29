@@ -15,24 +15,42 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 1. TOP STICKY NAVBAR */
+/* 1. TOP STICKY NAVBAR (Full Width Edge-to-Edge, Fixed & Fully Transparent) */
 .fp-store-navbar {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 0.75rem 1.25rem;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  z-index: 1000;
+  background: transparent !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.75rem 1.5rem;
+  box-shadow: none;
 
   &.fp-navbar-scrolled {
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
-    background: rgba(255, 255, 255, 0.98);
+    background: transparent !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
   }
 
   @media (max-width: 767px) {
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
     padding: 0.5rem 0.85rem;
   }
 }
@@ -69,7 +87,8 @@
       font-size: 1.15rem;
       font-weight: 900;
       letter-spacing: -0.02em;
-      color: #0f172a;
+      color: #ffffff;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
       display: flex;
       align-items: center;
       gap: 0.45rem;
@@ -82,8 +101,9 @@
     }
     .brand-sub {
       font-size: 0.72rem;
-      color: #64748b;
-      font-weight: 500;
+      color: #cbd5e1;
+      font-weight: 600;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -161,13 +181,14 @@
   gap: 0.45rem;
   padding: 0.35rem 0.75rem;
   border-radius: 9999px;
-  background: var(--surface-100, #f1f5f9);
-  border: 1px solid var(--surface-border, #e2e8f0);
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.2s ease;
 
   &:hover {
-    background: #fee2e2;
-    border-color: #fca5a5;
+    background: rgba(253, 219, 0, 0.2);
+    border-color: rgba(253, 219, 0, 0.6);
   }
 
   .location-text-col {
@@ -179,17 +200,18 @@
       font-size: 0.62rem;
       text-transform: uppercase;
       font-weight: 800;
-      color: #94a3b8;
+      color: #fddb00;
     }
 
     .location-val {
       font-size: 0.75rem;
       font-weight: 800;
-      color: #0f172a;
+      color: #ffffff;
       max-width: 140px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
     }
   }
 }
@@ -203,7 +225,8 @@
     border-radius: 9999px;
     font-size: 0.82rem;
     font-weight: 700;
-    color: #475569;
+    color: #ffffff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -211,13 +234,15 @@
     transition: all 0.2s ease;
 
     &:hover {
-      color: #e23744;
-      background: rgba(226, 55, 68, 0.06);
+      color: #fddb00;
+      background: rgba(253, 219, 0, 0.15);
     }
 
     &.active {
-      color: #e23744;
-      background: rgba(226, 55, 68, 0.1);
+      color: #0f172a;
+      background: #fddb00;
+      box-shadow: 0 0 12px rgba(253, 219, 0, 0.4);
+      text-shadow: none;
     }
 
     .fp-nav-badge {
@@ -235,17 +260,23 @@
 
 /* Search Input */
 .fp-search-input {
-  background: var(--surface-100, #f1f5f9) !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  color: #ffffff !important;
   font-size: 0.82rem !important;
   padding: 0.55rem 1rem 0.55rem 2.25rem !important;
   border-radius: 9999px !important;
-  border: 1px solid transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
   transition: all 0.2s ease !important;
 
+  &::placeholder {
+    color: #cbd5e1 !important;
+  }
+
   &:focus {
-    background: #ffffff !important;
-    border-color: #e23744 !important;
-    box-shadow: 0 0 0 3px rgba(226, 55, 68, 0.15) !important;
+    background: rgba(15, 23, 42, 0.85) !important;
+    border-color: #fddb00 !important;
+    box-shadow: 0 0 0 3px rgba(253, 219, 0, 0.25) !important;
   }
 }
 
@@ -275,10 +306,22 @@
   gap: 0.45rem;
   padding: 0.35rem 0.75rem;
   border-radius: 9999px;
-  background: var(--surface-100, #f1f5f9);
-  border: 1px solid var(--surface-border, #e2e8f0);
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   text-decoration: none;
-  color: #0f172a;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  transition: all 0.2s ease;
+
+  i {
+    color: #fddb00 !important;
+  }
+
+  &:hover {
+    background: rgba(253, 219, 0, 0.2);
+    border-color: rgba(253, 219, 0, 0.6);
+  }
 
   .avatar-circle {
     width: 24px;
@@ -352,6 +395,8 @@
   .fp-mobile-header-info {
     .mobile-store-title {
       font-size: 0.92rem;
+      color: #ffffff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -363,7 +408,8 @@
       gap: 0.25rem;
       font-size: 0.68rem;
       font-weight: 700;
-      color: #64748b;
+      color: #e2e8f0;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 
       .city-name-text {
         max-width: 120px;
@@ -378,19 +424,27 @@
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    border: 1px solid var(--surface-border, #e2e8f0);
-    background: var(--surface-0, #ffffff);
-    color: #334155;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    backdrop-filter: blur(8px);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     position: relative;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(253, 219, 0, 0.25);
+      border-color: #fddb00;
+      color: #fddb00;
+    }
 
     &.active {
-      background: #fee2e2;
-      color: #e23744;
-      border-color: #fca5a5;
+      background: #fddb00;
+      color: #0f172a;
+      border-color: #fddb00;
     }
 
     &.fp-mobile-cart-action-btn {
@@ -450,49 +504,59 @@
    ========================================================================== */
 .fp-hero-banner {
   position: relative;
-  background: #0b0f19;
+  background: #121212;
   color: #ffffff;
   overflow: hidden;
-  padding: 3.5rem 1.5rem 2.5rem;
+  min-height: 80vh;
+  min-height: clamp(580px, 80vh, 760px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 1.5rem 1.75rem;
 
   @media (max-width: 767px) {
-    padding: 2rem 1rem 2rem;
+    min-height: auto;
+    padding: 0 1rem 1.5rem;
   }
 
-  /* Full-bleed Edge-to-Edge Background Imagery Container */
+  /* Right-Side Targeted Food Imagery Container (Right 55%, with soft left fade) */
   .fp-hero-bg-container {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 55%;
     pointer-events: none;
     z-index: 0;
     overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.45) 15%, black 40%, black 100%);
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.45) 15%, black 40%, black 100%);
 
     .fp-hero-bg-layer {
       position: absolute;
       inset: 0;
+      width: 100%;
+      height: 100%;
       background-size: cover;
-      background-position: center center;
+      background-position: center right;
       background-repeat: no-repeat;
-      filter: brightness(1.05) contrast(1.05);
+      filter: brightness(1.02) contrast(1.05);
       opacity: 0;
       transform: scale(1.03);
-      transition: opacity 0.85s ease-in-out, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.5s ease-in-out, transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 
       &.active {
         opacity: 1;
         transform: scale(1);
       }
     }
-  }
 
-  .fp-hero-backdrop {
-    position: absolute;
-    inset: 0;
-    background-image:
-      radial-gradient(circle at 80% 20%, rgba(253, 219, 0, 0.18) 0%, transparent 50%),
-      radial-gradient(circle at 15% 85%, rgba(253, 219, 0, 0.12) 0%, transparent 55%);
-    pointer-events: none;
-    z-index: 1;
+    @media (max-width: 767px) {
+      width: 100%;
+      opacity: 0.35;
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.7) 40%, black 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.7) 40%, black 100%);
+    }
   }
 
   /* Slide Transitions */
@@ -503,10 +567,14 @@
     transform: translateY(10px);
 
     &.active {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      width: 100%;
+      flex: 1;
       opacity: 1;
       transform: translateY(0);
-      animation: fadeInSlide 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: fadeInSlide 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
   }
 
@@ -524,7 +592,7 @@
   /* Carousel Navigation Arrows */
   .fp-hero-nav-arrow {
     position: absolute;
-    top: 50%;
+    top: calc(50% + 30px);
     transform: translateY(-50%);
     width: 44px;
     height: 44px;
@@ -562,9 +630,27 @@
     }
   }
 
+  .fp-hero-text-col {
+    position: relative;
+    z-index: 3;
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+  }
+
   .fp-hero-inner {
     position: relative;
     z-index: 2;
+    width: 100%;
+    padding-top: 115px;
+    padding-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+
+    @media (max-width: 767px) {
+      padding-top: 95px;
+    }
   }
 
   .fp-hero-badge {
@@ -610,7 +696,7 @@
     line-height: 1.6;
     color: #f8fafc;
     font-weight: 600;
-    max-width: 560px;
+    max-width: 640px;
     margin: 0 0 1.5rem;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.95);
 

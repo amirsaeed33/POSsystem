@@ -347,17 +347,16 @@
         (mouseenter)="stopHeroSlider()"
         (mouseleave)="startHeroSlider()"
     >
-        <!-- Background Imagery with Dark Gradient Overlays per Slide -->
+        <!-- Targeted Right-Side Food Imagery with Soft Fade on Left Edge -->
         <div class="fp-hero-bg-container">
             <div
                 *ngFor="let slide of heroSlides; let idx = index"
                 class="fp-hero-bg-layer"
                 [class.active]="currentHeroSlide === idx"
-                [style.background-image]="'linear-gradient(rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.65)), url(' + slide.bgImageUrl + ')'"
+                [style.background-image]="'linear-gradient(to right, #121212 0%, rgba(18, 18, 18, 0.4) 30%, rgba(18, 18, 18, 0.1) 100%), linear-gradient(to bottom, rgba(18, 18, 18, 0.25) 0%, rgba(18, 18, 18, 0.45) 100%), url(' + slide.bgImageUrl + ')'"
             ></div>
         </div>
-
-        <div class="fp-hero-backdrop"></div>
+        
 
         <!-- Carousel Navigation Arrows -->
         <button
@@ -386,7 +385,7 @@
             >
                 <div class="grid align-items-center">
                     <!-- Left Column: Typography, Badges, CTAs -->
-                    <div class="col-12 md:col-7 lg:col-7 p-2 md:p-3 fp-hero-text-col">
+                    <div class="col-12 md:col-9 lg:col-8 xl:col-7 p-2 md:p-3 fp-hero-text-col">
                         <div class="fp-hero-badge inline-flex align-items-center gap-2">
                             <span class="badge-fire-icon">{{ slide.badgeIcon }}</span>
                             <span class="font-extrabold uppercase tracking-wider text-xs">{{ slide.badge }}</span>
@@ -435,43 +434,6 @@
                                 <i class="pi pi-book text-sm text-yellow-400"></i>
                                 <span>{{ slide.secondaryBtnText }}</span>
                             </button>
-                        </div>
-                    </div>
-
-                    <!-- Right Column: Visual Showcase Presentation Card -->
-                    <div class="col-12 md:col-5 lg:col-5 p-2 md:p-3 flex justify-content-center align-items-center fp-hero-card-col">
-                        <div class="fp-hero-deal-card shadow-4">
-                            <div class="deal-card-badge">
-                                {{ slide.cardTag }}
-                            </div>
-                            <div class="deal-card-img-wrap">
-                                <img [src]="slide.imageUrl" [alt]="slide.cardTitle" class="deal-hero-img" />
-                                <div class="deal-card-overlay"></div>
-                            </div>
-                            <div class="deal-card-content">
-                                <div class="flex align-items-center justify-content-between mb-1">
-                                    <span class="deal-cat-name">HOT PICK</span>
-                                    <span class="deal-rating"><i class="pi pi-star-fill text-yellow-400 mr-1"></i>{{ slide.rating }}</span>
-                                </div>
-                                <h3 class="deal-hero-title">{{ slide.cardTitle }}</h3>
-                                <p class="deal-hero-desc line-clamp-2">{{ slide.description }}</p>
-                                <div class="deal-card-foot flex align-items-center justify-content-between mt-3">
-                                    <div>
-                                        <div class="deal-strike-price" *ngIf="slide.cardOriginalPrice && slide.cardOriginalPrice > slide.cardPrice">
-                                            PKR {{ slide.cardOriginalPrice | number: '1.0-0' }}
-                                        </div>
-                                        <div class="deal-main-price">PKR {{ slide.cardPrice | number: '1.0-0' }}</div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        class="fp-btn-add-spotlight"
-                                        (click)="scrollToSection('deals', $event)"
-                                    >
-                                        <i class="pi pi-bolt"></i>
-                                        <span>Order Now</span>
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
