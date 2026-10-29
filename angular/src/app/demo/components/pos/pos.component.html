@@ -2006,9 +2006,9 @@
         </ng-template>
     </p-dialog>
 
-    <!-- 🍽️ Assign Waiter Dialog (Restaurant) -->
+    <!-- Change Waiter Dialog (optional — waiter is auto-assigned on select) -->
     <p-dialog
-        [header]="'🍽️ Assign Waiter - Table ' + (pendingSelectedTable?.tableNo || '')"
+        [header]="'Change Waiter — ' + (pendingSelectedTable?.tableNo || carServiceLabel || 'Order')"
         [(visible)]="assignWaiterDialogVisible"
         [modal]="true"
         [style]="{ width: '38rem', maxWidth: '95vw' }"
@@ -2018,17 +2018,27 @@
         <div class="flex flex-column gap-3">
             <div class="surface-50 border-round p-3 flex align-items-center justify-content-between">
                 <div>
-                    <div class="font-bold text-900 text-base">Table {{ pendingSelectedTable?.tableNo }}</div>
-                    <div class="text-xs text-500">
-                        {{ pendingSelectedTable?.area || 'Main Hall' }} &bull; {{ pendingSelectedTable?.capacity || 4 }} Seats
+                    <div class="font-bold text-900 text-base">
+                        {{ pendingSelectedTable?.tableNo || selectedCarName || 'Order' }}
+                    </div>
+                    <div class="text-xs text-500" *ngIf="pendingSelectedTable && !isCarBay(pendingSelectedTable)">
+                        {{ pendingSelectedTable.area || 'Main Hall' }} &bull; {{ pendingSelectedTable.capacity || 4 }} Seats
+                    </div>
+                    <div class="text-xs text-500" *ngIf="pendingSelectedTable && isCarBay(pendingSelectedTable)">
+                        {{ pendingSelectedTable.area || 'Car Parking' }}
+                        <span *ngIf="selectedCarNumber"> &bull; {{ selectedCarNumber }}</span>
                     </div>
                 </div>
-                <div *ngIf="pendingSelectedTable?.waiterName" class="text-right">
+                <div *ngIf="waiterName || pendingSelectedTable?.waiterName" class="text-right">
                     <span class="text-xs text-500 block">Current Waiter</span>
                     <span class="font-semibold text-green-700 text-sm">
-                        <i class="pi pi-check-circle mr-1"></i>{{ pendingSelectedTable?.waiterName }}
+                        <i class="pi pi-check-circle mr-1"></i>{{ waiterName || pendingSelectedTable?.waiterName }}
                     </span>
                 </div>
+            </div>
+
+            <div class="text-sm text-600">
+                Waiter was assigned automatically. Select another below if you need to change.
             </div>
 
             <div>

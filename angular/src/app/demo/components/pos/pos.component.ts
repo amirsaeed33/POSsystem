@@ -648,7 +648,7 @@ export class PosComponent implements OnInit, OnDestroy {
             return;
         }
 
-        // Available car bay: ask for vehicle plate first
+        // Available car bay: ask for vehicle plate first, then auto-assign waiter
         if (this.isCarBay(table)) {
             this.pendingVehicleTable = table;
             this.pendingVehicleNumber = '';
@@ -656,15 +656,8 @@ export class PosComponent implements OnInit, OnDestroy {
             return;
         }
 
-        if (this.isWaiter) {
-            this.waiterName = this.authService.getPrinterIdentity().name;
-            this.selectTable(table);
-            return;
-        }
-        if (!this.waiters.length) {
-            this.loadWaiters();
-        }
-        this.assignWaiterDialogVisible = true;
+        // Dining table: auto-assign waiter and open (user can change later)
+        await this.autoAssignWaiterAndOpen(table);
     }
 
     confirmVehicleNumber(): void {
@@ -688,20 +681,87 @@ export class PosComponent implements OnInit, OnDestroy {
         this.selectedCarNumber = plate;
         this.selectedCarLocation = table.area || 'Car Parking';
         this.pendingSelectedTable = table;
-        this.selectedWaiterId = table.waiterId || null;
         this.vehicleDialogVisible = false;
         this.pendingVehicleTable = null;
         this.pendingVehicleNumber = '';
 
+        // Auto-assign waiter and open car session (change anytime from header)
+        void this.autoAssignWaiterAndOpen(table);
+    }
+
+    /** Pick a default waiter and open the table/car without a forced dialog. */
+    private async autoAssignWaiterAndOpen(table: RestaurantTableDto): Promise<void> {
+        if (!this.waiters.length && !this.isWaiter) {
+            await this.loadWaiters();
+        }
+
+        const resolved = this.resolveDefaultWaiter(table);
+        this.waiterName = resolved.name;
+        this.selectedWaiterId = resolved.id;
+        this.pendingSelectedTable = table;
+
+        if (!this.isWaiter && resolved.id) {
+            try {
+                await this.restaurantTableService.assignWaiter({
+                    tableId: table.id,
+                    waiterId: resolved.id,
+                    waiterName: resolved.name,
+                });
+                table.waiterId = resolved.id;
+                table.waiterName = resolved.name;
+                const listed = this.tables.find((t) => t.id === table.id);
+                if (listed) {
+                    listed.waiterId = resolved.id;
+                    listed.waiterName = resolved.name;
+                }
+            } catch {
+                // Still open the session even if persist fails
+            }
+        }
+
+        await this.selectTable(table);
+    }
+
+    private resolveDefaultWaiter(table?: RestaurantTableDto | null): {
+        id: number | null;
+        name: string;
+    } {
         if (this.isWaiter) {
-            this.waiterName = this.authService.getPrinterIdentity().name;
-            this.selectTable(table);
-            return;
+            return {
+                id: null,
+                name: this.authService.getPrinterIdentity().name || 'Staff',
+            };
         }
-        if (!this.waiters.length) {
-            this.loadWaiters();
+
+        // Prefer waiter already on this table/bay
+        if (table?.waiterId && table?.waiterName) {
+            return { id: table.waiterId, name: table.waiterName };
         }
-        this.assignWaiterDialogVisible = true;
+        if (table?.waiterName) {
+            const byName = this.waiters.find(
+                (w) =>
+                    (w.name || '').trim().toLowerCase() ===
+                    table.waiterName!.trim().toLowerCase()
+            );
+            return { id: byName?.id ?? null, name: table.waiterName };
+        }
+
+        // Keep the waiter from the previous order this session
+        if (this.waiterName?.trim()) {
+            const match = this.waiters.find(
+                (w) =>
+                    (w.name || '').trim().toLowerCase() ===
+                    this.waiterName.trim().toLowerCase()
+            );
+            return { id: match?.id ?? null, name: this.waiterName.trim() };
+        }
+
+        // First active waiter for the branch
+        if (this.waiters.length) {
+            return { id: this.waiters[0].id, name: this.waiters[0].name };
+        }
+
+        return { id: null, name: 'Staff' };
     }
 
     cancelVehicleDialog(): void {
@@ -728,8 +788,8 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.assignWaiterDialogVisible = false;
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Waiter Assigned',
-                    detail: `Waiter "${waiter.name}" assigned to ${this.carServiceLabel}`,
+                    summary: 'Waiter Updated',
+                    detail: `Waiter changed to "${waiter.name}" for ${this.carServiceLabel}`,
                     life: 2500,
                 });
             }
@@ -745,22 +805,34 @@ export class PosComponent implements OnInit, OnDestroy {
             this.pendingSelectedTable.waiterId = waiter.id;
             this.pendingSelectedTable.waiterName = waiter.name;
             this.waiterName = waiter.name;
+            this.selectedWaiterId = waiter.id;
 
             const t = this.tables.find((x) => x.id === this.pendingSelectedTable?.id);
             if (t) {
                 t.waiterId = waiter.id;
                 t.waiterName = waiter.name;
             }
+            if (this.selectedTable?.id === this.pendingSelectedTable.id) {
+                this.selectedTable.waiterId = waiter.id;
+                this.selectedTable.waiterName = waiter.name;
+            }
 
             this.messageService.add({
                 severity: 'success',
-                summary: 'Waiter Assigned',
-                detail: `Waiter "${waiter.name}" assigned to Table ${this.pendingSelectedTable.tableNo}`,
+                summary: 'Waiter Updated',
+                detail: `Waiter "${waiter.name}" assigned to ${this.pendingSelectedTable.tableNo}`,
                 life: 2500,
             });
 
             this.assignWaiterDialogVisible = false;
-            await this.selectTable(this.pendingSelectedTable);
+
+            // Already on this table/car — just update waiter, don't reopen session
+            const alreadyOpen =
+                this.selectedTable?.id === this.pendingSelectedTable.id &&
+                !!this.activeOrderId;
+            if (!alreadyOpen) {
+                await this.selectTable(this.pendingSelectedTable);
+            }
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',
@@ -1066,9 +1138,8 @@ export class PosComponent implements OnInit, OnDestroy {
         this.activeOrderNo = '';
         if (this.isWaiter) {
             this.waiterName = this.authService.getPrinterIdentity().name;
-        } else {
-            this.waiterName = '';
         }
+        // Keep last waiterName for admins so the next table/car auto-assigns the same person
         this.pendingSendToTable = false;
         this.clearCart();
     }
