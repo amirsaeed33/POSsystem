@@ -11,19 +11,6 @@
                 [disabled]="!cart.length || saving"
                 (click)="clearCart()"
             ></button>
-            <!-- <button
-                *ngIf="!isWaiter"
-                pButton
-                pRipple
-                type="button"
-                [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : (orderType === 'takeaway' ? 'Settle & Close Takeaway' : 'Settle & Close Table')) : 'Complete Sale'"
-                icon="pi pi-check"
-                class="hidden md:inline-flex"
-                [disabled]="!canSave()"
-                [loading]="saving"
-                (click)="completeSale()"
-                [title]="settleButtonTooltip"
-            ></button> -->
         </div>
     </div>
 

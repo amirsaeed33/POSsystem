@@ -18,17 +18,22 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppResta
 BEGIN
     ALTER TABLE [AppRestaurantTables] ADD [IsCarBay] bit NOT NULL CONSTRAINT [DF_AppRestaurantTables_IsCarBay] DEFAULT 0;
 END
+");
 
+            migrationBuilder.Sql(@"
 -- Backfill existing car-like slots (Car Parking area or TableNo starting with Car)
-UPDATE [AppRestaurantTables]
-SET [IsCarBay] = 1
-WHERE [IsCarBay] = 0
-  AND (
-        LOWER(LTRIM(RTRIM(ISNULL([Area], '')))) = N'car parking'
-     OR LOWER(LTRIM(RTRIM(ISNULL([Area], '')))) LIKE N'%car park%'
-     OR LOWER(LTRIM(RTRIM(ISNULL([TableNo], '')))) LIKE N'car %'
-     OR LOWER(LTRIM(RTRIM(ISNULL([TableNo], '')))) LIKE N'car-%'
-  );
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppRestaurantTables]') AND name = N'IsCarBay')
+BEGIN
+    EXEC(N'UPDATE [AppRestaurantTables]
+    SET [IsCarBay] = 1
+    WHERE [IsCarBay] = 0
+      AND (
+            LOWER(LTRIM(RTRIM(ISNULL([Area], '''')))) = N''car parking''
+         OR LOWER(LTRIM(RTRIM(ISNULL([Area], '''')))) LIKE N''%car park%''
+         OR LOWER(LTRIM(RTRIM(ISNULL([TableNo], '''')))) LIKE N''car %''
+         OR LOWER(LTRIM(RTRIM(ISNULL([TableNo], '''')))) LIKE N''car-%''
+      );');
+END
 ");
         }
 
