@@ -8,7 +8,10 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { PurchaseDto } from 'src/app/demo/api/purchase';
+import {
+    PurchaseDto,
+    PurchasePaymentHistoryDto,
+} from 'src/app/demo/api/purchase';
 import { PurchaseReturnDto } from 'src/app/demo/api/purchase-return';
 import { PurchaseService } from 'src/app/demo/service/purchase.service';
 import { PurchaseReturnService } from 'src/app/demo/service/purchase-return.service';
@@ -29,6 +32,7 @@ export class PurchaseViewDialogComponent implements OnChanges {
 
     purchase: PurchaseDto | null = null;
     returns: PurchaseReturnDto[] = [];
+    paymentHistory: PurchasePaymentHistoryDto[] = [];
     loading = false;
 
     get isRestaurant(): boolean {
@@ -55,7 +59,15 @@ export class PurchaseViewDialogComponent implements OnChanges {
         if (!visible) {
             this.purchase = null;
             this.returns = [];
+            this.paymentHistory = [];
         }
+    }
+
+    get paymentHistoryTotal(): number {
+        return (this.paymentHistory || []).reduce(
+            (sum, p) => sum + (p.amount || 0),
+            0
+        );
     }
 
     onHide(): void {
@@ -115,6 +127,7 @@ export class PurchaseViewDialogComponent implements OnChanges {
         this.loading = true;
         this.purchase = null;
         this.returns = [];
+        this.paymentHistory = [];
 
         Promise.all([
             this.purchaseService.get(id),
@@ -123,10 +136,12 @@ export class PurchaseViewDialogComponent implements OnChanges {
                 skipCount: 0,
                 maxResultCount: 100,
             }),
+            this.purchaseService.getPaymentHistory(id),
         ])
-            .then(([purchase, returnsResult]) => {
+            .then(([purchase, returnsResult, payments]) => {
                 this.purchase = purchase;
                 this.returns = returnsResult.items || [];
+                this.paymentHistory = payments || [];
             })
             .catch((error) => {
                 this.messageService.add({

@@ -23,6 +23,15 @@ export interface PurchaseDto {
     lines?: PurchaseLineDto[];
 }
 
+export interface PurchasePaymentHistoryDto {
+    id: number;
+    transactionDate: string | Date;
+    amount: number;
+    paymentAccountId?: number;
+    paymentAccountName?: string;
+    description?: string;
+}
+
 export interface CreatePurchaseLineDto {
     productId: number;
     quantity: number;

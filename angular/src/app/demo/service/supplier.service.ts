@@ -118,6 +118,35 @@ export class SupplierService {
         this.unwrap(res, 'Failed to delete supplier');
     }
 
+    async getAssignedProductIds(supplierId: number): Promise<number[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetAssignedProductIds`, {
+                params: { Id: supplierId },
+            })
+        );
+        const result = this.unwrap(res, 'Failed to load assigned products');
+        const items = Array.isArray(result) ? result : result?.items || result?.Items || [];
+        return (items as any[])
+            .map((x) => Number(x))
+            .filter((id) => Number.isFinite(id) && id > 0);
+    }
+
+    async setAssignedProducts(
+        supplierId: number,
+        productIds: number[]
+    ): Promise<void> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/SetAssignedProducts`, {
+                supplierId,
+                productIds: productIds || [],
+            })
+        );
+        if (res == null) {
+            return;
+        }
+        this.unwrap(res, 'Failed to assign products');
+    }
+
     private unwrap(res: any, fallbackMessage: string): any {
         if (!res) {
             throw new Error('No response from server');

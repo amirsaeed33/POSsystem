@@ -126,6 +126,7 @@ namespace SmartPos.Orders
                     .Where(p => (p.BranchId == targetBranchId) || (p.BranchId == 0 && (!p.TenantId.HasValue || p.TenantId == targetBranch.TenantId)))
                     .WhereVisibleToBranch(_branchStockRepository.GetAll(), targetBranchId)
                     .Where(p => (p.Barcode == null || !p.Barcode.StartsWith("GROCERY-")) && p.Name != "Grocery")
+                    .Where(p => p.Category == null || p.Category.Name != "Permanent Grocery")
                     .ToListAsync();
 
                 var branchInfo = await _branchStockRepository.GetAll()

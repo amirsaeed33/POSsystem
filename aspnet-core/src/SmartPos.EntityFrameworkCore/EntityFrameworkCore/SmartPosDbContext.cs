@@ -64,6 +64,8 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<Supplier> Suppliers { get; set; }
 
+        public virtual DbSet<SupplierProduct> SupplierProducts { get; set; }
+
         public virtual DbSet<BusinessAccount> Accounts { get; set; }
 
         public virtual DbSet<LedgerEntry> LedgerEntries { get; set; }
@@ -424,6 +426,21 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasOne(x => x.Account)
                     .WithMany()
                     .HasForeignKey(x => x.AccountId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<SupplierProduct>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.SupplierId, x.ProductId })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasOne(x => x.Supplier)
+                    .WithMany()
+                    .HasForeignKey(x => x.SupplierId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 

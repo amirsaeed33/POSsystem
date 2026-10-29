@@ -22,9 +22,6 @@ using SmartPos.Inventory;
 using SmartPos.Lookups;
 using SmartPos.MultiTenancy;
 using SmartPos.Products;
-using SmartPos.Categories;
-using SmartPos.Brands;
-using SmartPos.Units;
 
 namespace SmartPos.Branches
 {
@@ -44,9 +41,6 @@ namespace SmartPos.Branches
         private readonly IConfiguration _configuration;
         private readonly BranchCatalogSeedService _branchCatalogSeedService;
         private readonly ICacheManager _cacheManager;
-        private readonly IRepository<Category> _categoryRepository;
-        private readonly IRepository<Brand> _brandRepository;
-        private readonly IRepository<Unit> _unitRepository;
 
         public BranchAppService(
             IRepository<Branch> repository,
@@ -59,10 +53,7 @@ namespace SmartPos.Branches
             ISmtpMailSender smtpMailSender,
             IConfiguration configuration,
             BranchCatalogSeedService branchCatalogSeedService,
-            ICacheManager cacheManager,
-            IRepository<Category> categoryRepository,
-            IRepository<Brand> brandRepository,
-            IRepository<Unit> unitRepository)
+            ICacheManager cacheManager)
             : base(repository)
         {
             _productRepository = productRepository;
@@ -75,9 +66,6 @@ namespace SmartPos.Branches
             _configuration = configuration;
             _branchCatalogSeedService = branchCatalogSeedService;
             _cacheManager = cacheManager;
-            _categoryRepository = categoryRepository;
-            _brandRepository = brandRepository;
-            _unitRepository = unitRepository;
             CreatePermissionName = PermissionNames.Pages_Branches_Create;
             UpdatePermissionName = PermissionNames.Pages_Branches_Edit;
             DeletePermissionName = PermissionNames.Pages_Branches_Delete;
@@ -133,11 +121,6 @@ namespace SmartPos.Branches
             }
 
             await SeedSharedProductsAsync(branch.Id);
-
-            if (branch.BusinessType == BusinessType.Restaurant)
-            {
-                await EnsureRestaurantGroceryProductAsync(branch);
-            }
 
             // First branch after signup: bind the creating user so session/context have a location.
             var currentUser = await UserManager.GetUserByIdAsync(AbpSession.UserId.Value);
@@ -219,11 +202,6 @@ namespace SmartPos.Branches
             }
 
             await CurrentUnitOfWork.SaveChangesAsync();
-
-            if (branch.BusinessType == BusinessType.Restaurant)
-            {
-                await EnsureRestaurantGroceryProductAsync(branch);
-            }
 
             if (sendActivationEmail)
             {
@@ -350,10 +328,6 @@ namespace SmartPos.Branches
                             .Where(x => x.IsActive && x.TenantId != null)
                             .OrderBy(x => x.Name)
                             .ToListAsync();
-                        foreach (var b in allLocations.Where(x => x.BusinessType == BusinessType.Restaurant))
-                        {
-                            await EnsureRestaurantGroceryProductAsync(b);
-                        }
                         var allDtos = ObjectMapper.Map<List<BranchDto>>(allLocations);
                         for (var i = 0; i < allLocations.Count; i++)
                         {
@@ -384,10 +358,6 @@ namespace SmartPos.Branches
                 }
 
                 var branches = await query.OrderBy(x => x.Name).ToListAsync();
-                foreach (var b in branches.Where(x => x.BusinessType == BusinessType.Restaurant))
-                {
-                    await EnsureRestaurantGroceryProductAsync(b);
-                }
                 var dtos = ObjectMapper.Map<List<BranchDto>>(branches);
                 for (var i = 0; i < branches.Count; i++)
                 {
@@ -885,142 +855,5 @@ namespace SmartPos.Branches
             }
         }
 
-        private async Task EnsureRestaurantGroceryProductAsync(Branch branch)
-        {
-            if (branch == null || branch.BusinessType != BusinessType.Restaurant)
-            {
-                return;
-            }
-
-            var barcode = $"GROCERY-{branch.Id}";
-            var filterDisposable = branch.TenantId.HasValue
-                ? CurrentUnitOfWork.SetTenantId(branch.TenantId)
-                : CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant);
-
-            using (filterDisposable)
-            {
-                var existing = await _productRepository.FirstOrDefaultAsync(p =>
-                    p.BranchId == branch.Id && (p.Barcode == barcode || p.Name == "Grocery"));
-
-                if (existing != null)
-                {
-                    if (existing.Barcode != barcode)
-                    {
-                        existing.Barcode = barcode;
-                        await _productRepository.UpdateAsync(existing);
-                    }
-                    return;
-                }
-
-                // Resolve or create Category with valid non-zero ID
-                int categoryId;
-                var category = await _categoryRepository.FirstOrDefaultAsync(c => c.BranchId == branch.Id)
-                               ?? await _categoryRepository.FirstOrDefaultAsync(c => true);
-                if (category == null)
-                {
-                    using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
-                    {
-                        category = await _categoryRepository.FirstOrDefaultAsync(c => true);
-                    }
-                }
-
-                if (category != null && category.Id > 0)
-                {
-                    categoryId = category.Id;
-                }
-                else
-                {
-                    categoryId = await _categoryRepository.InsertAndGetIdAsync(new Category
-                    {
-                        TenantId = branch.TenantId,
-                        BranchId = branch.Id,
-                        Name = "General",
-                        IsActive = true
-                    });
-                }
-
-                // Resolve or create Brand with valid non-zero ID
-                int brandId;
-                var brand = await _brandRepository.FirstOrDefaultAsync(b => b.BranchId == branch.Id)
-                            ?? await _brandRepository.FirstOrDefaultAsync(b => true);
-                if (brand == null)
-                {
-                    using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
-                    {
-                        brand = await _brandRepository.FirstOrDefaultAsync(b => true);
-                    }
-                }
-
-                if (brand != null && brand.Id > 0)
-                {
-                    brandId = brand.Id;
-                }
-                else
-                {
-                    brandId = await _brandRepository.InsertAndGetIdAsync(new Brand
-                    {
-                        TenantId = branch.TenantId,
-                        BranchId = branch.Id,
-                        Name = "General",
-                        IsActive = true
-                    });
-                }
-
-                // Resolve or create Unit with valid non-zero ID
-                int unitId;
-                var unit = await _unitRepository.FirstOrDefaultAsync(u => u.BranchId == branch.Id)
-                           ?? await _unitRepository.FirstOrDefaultAsync(u => true);
-                if (unit == null)
-                {
-                    using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
-                    {
-                        unit = await _unitRepository.FirstOrDefaultAsync(u => true);
-                    }
-                }
-
-                if (unit != null && unit.Id > 0)
-                {
-                    unitId = unit.Id;
-                }
-                else
-                {
-                    unitId = await _unitRepository.InsertAndGetIdAsync(new Unit
-                    {
-                        TenantId = branch.TenantId,
-                        BranchId = branch.Id,
-                        Name = "Piece",
-                        Symbol = "pcs",
-                        IsActive = true
-                    });
-                }
-
-                var groceryProduct = new Product
-                {
-                    TenantId = branch.TenantId,
-                    BranchId = branch.Id,
-                    Name = "Grocery",
-                    Barcode = barcode,
-                    Description = "Permanent Grocery Item for Restaurant Purchases",
-                    Price = 0,
-                    CostPrice = 0,
-                    WholesalePrice = 0,
-                    AlertQuantityLimit = 0,
-                    CategoryId = categoryId,
-                    BrandId = brandId,
-                    UnitId = unitId
-                };
-
-                await _productRepository.InsertAsync(groceryProduct);
-                await CurrentUnitOfWork.SaveChangesAsync();
-
-                await _branchStockManager.UpsertStockAndPricesAsync(
-                    branch.Id,
-                    groceryProduct.Id,
-                    0,
-                    0,
-                    0,
-                    0);
-            }
-        }
     }
 }

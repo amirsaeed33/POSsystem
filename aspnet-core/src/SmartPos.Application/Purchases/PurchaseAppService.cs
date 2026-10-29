@@ -295,7 +295,8 @@ namespace SmartPos.Purchases
             IQueryable<Purchase> query = Repository.GetAll()
                 .Include(x => x.Supplier)
                 .Include(x => x.Lines)
-                    .ThenInclude(l => l.Product);
+                    .ThenInclude(l => l.Product)
+                        .ThenInclude(p => p.Category);
 
             if (branchId.HasValue)
             {
@@ -303,7 +304,11 @@ namespace SmartPos.Purchases
                 var branch = _branchRepository.FirstOrDefault(branchId.Value);
                 if (branch != null && branch.BusinessType == BusinessType.Restaurant)
                 {
-                    query = query.Where(x => x.Lines.Any(l => (l.Product.Barcode != null && l.Product.Barcode.StartsWith("GROCERY-")) || l.Product.Name == "Grocery"));
+                    // Restaurant purchases are for products under the "Permanent Grocery" category.
+                    query = query.Where(x => x.Lines.Any(l =>
+                        l.Product != null &&
+                        l.Product.Category != null &&
+                        l.Product.Category.Name == "Permanent Grocery"));
                 }
             }
 
@@ -495,6 +500,34 @@ namespace SmartPos.Purchases
             });
 
             await CurrentUnitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<List<PurchasePaymentHistoryDto>> GetPaymentHistoryAsync(EntityDto input)
+        {
+            var purchase = await Repository.GetAsync(input.Id);
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(purchase.BranchId);
+
+            // Credit side of Payment vouchers = money paid from Cash/Bank accounts.
+            var entries = await _ledgerRepository.GetAll()
+                .AsNoTracking()
+                .Include(x => x.Account)
+                .Where(x =>
+                    x.VoucherType == VoucherTypes.Payment &&
+                    x.VoucherId == purchase.Id &&
+                    x.Credit > 0)
+                .OrderByDescending(x => x.TransactionDate)
+                .ThenByDescending(x => x.Id)
+                .ToListAsync();
+
+            return entries.Select(x => new PurchasePaymentHistoryDto
+            {
+                Id = x.Id,
+                TransactionDate = x.TransactionDate,
+                Amount = x.Credit,
+                PaymentAccountId = x.AccountId,
+                PaymentAccountName = x.Account != null ? x.Account.Name : null,
+                Description = x.Description
+            }).ToList();
         }
     }
 }

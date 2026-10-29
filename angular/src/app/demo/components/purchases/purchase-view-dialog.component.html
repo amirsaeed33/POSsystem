@@ -31,6 +31,24 @@
                 <div class="text-500 mb-1">Total Amount</div>
                 <div class="font-medium">{{ purchase.totalAmount | number: '1.2-2' }}</div>
             </div>
+            <div class="col-12 md:col-4">
+                <div class="text-500 mb-1">Amount Paid</div>
+                <div class="font-medium">{{ (purchase.amountPaid || 0) | number: '1.2-2' }}</div>
+            </div>
+            <div class="col-12 md:col-4">
+                <div class="text-500 mb-1">Due Amount</div>
+                <div class="font-medium">{{ (purchase.dueAmount || 0) | number: '1.2-2' }}</div>
+            </div>
+            <div class="col-12 md:col-4">
+                <div class="text-500 mb-1">Payment Status</div>
+                <div>
+                    <span
+                        [class]="purchase.paymentStatus === 'Paid' ? 'p-tag p-tag-success' : (purchase.paymentStatus === 'Partial' ? 'p-tag p-tag-warning' : 'p-tag p-tag-danger')"
+                    >
+                        {{ purchase.paymentStatus || 'Unpaid' }}
+                    </span>
+                </div>
+            </div>
             <div class="col-12">
                 <div class="text-500 mb-1">Notes</div>
                 <div class="font-medium">{{ purchase.notes || '—' }}</div>
@@ -56,6 +74,35 @@
                     </tr>
                     <tr *ngIf="!(purchase.lines || []).length">
                         <td [attr.colspan]="isRestaurant ? 3 : 4" class="p-3 text-center text-500">No line items</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h5 class="mt-0 mb-2">Payment History</h5>
+        <div class="surface-border border-1 border-round overflow-auto mb-3">
+            <table class="w-full">
+                <thead>
+                    <tr class="surface-100">
+                        <th class="text-left p-2">Date</th>
+                        <th class="text-left p-2">Paid From</th>
+                        <th class="text-left p-2">Description</th>
+                        <th class="text-right p-2">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let payment of paymentHistory">
+                        <td class="p-2">{{ payment.transactionDate | date: formatService.dateFormat }}</td>
+                        <td class="p-2">{{ payment.paymentAccountName || '—' }}</td>
+                        <td class="p-2">{{ payment.description || '—' }}</td>
+                        <td class="p-2 text-right">{{ payment.amount | number: '1.2-2' }}</td>
+                    </tr>
+                    <tr *ngIf="!paymentHistory.length">
+                        <td colspan="4" class="p-3 text-center text-500">No payments recorded in ledger</td>
+                    </tr>
+                    <tr *ngIf="paymentHistory.length" class="surface-50 font-semibold">
+                        <td class="p-2" colspan="3">Total Paid</td>
+                        <td class="p-2 text-right">{{ paymentHistoryTotal | number: '1.2-2' }}</td>
                     </tr>
                 </tbody>
             </table>

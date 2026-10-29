@@ -66,19 +66,7 @@ export class PurchaseListComponent implements OnInit {
                 maxResultCount: 1000,
             })
             .then((result) => {
-                let items = result.items || [];
-                if (this.isRestaurant) {
-                    items = items.filter(
-                        (p) =>
-                            !p.lines ||
-                            !p.lines.length ||
-                            p.lines.some(
-                                (l) =>
-                                    l.productName?.trim().toLowerCase() === 'grocery' ||
-                                    l.productBarcode?.startsWith('GROCERY-')
-                            )
-                    );
-                }
+                const items = result.items || [];
                 this.purchases = items;
                 this.totalRecords = items.length;
             })

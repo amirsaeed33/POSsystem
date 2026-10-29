@@ -105,6 +105,12 @@
         (saved)="onDialogSaved()"
     ></app-supplier-form-dialog>
 
+    <app-supplier-assign-products-dialog
+        [(visible)]="assignDialogVisible"
+        [supplierId]="assignSupplierId"
+        [supplierName]="assignSupplierName"
+    ></app-supplier-assign-products-dialog>
+
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
 </div>

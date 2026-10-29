@@ -340,8 +340,15 @@ namespace SmartPos.Sales
                     throw new UserFriendlyException("Quantity must be greater than zero.");
                 }
 
-                var product = await _productRepository.GetAsync(lineInput.ProductId);
-                if ((product.Barcode != null && product.Barcode.StartsWith("GROCERY-")) || product.Name == "Grocery")
+                var product = await _productRepository.GetAllIncluding(x => x.Category)
+                    .FirstOrDefaultAsync(p => p.Id == lineInput.ProductId);
+                if (product == null)
+                {
+                    throw new UserFriendlyException("Product not found.");
+                }
+                if ((product.Barcode != null && product.Barcode.StartsWith("GROCERY-"))
+                    || product.Name == "Grocery"
+                    || (product.Category != null && product.Category.Name == "Permanent Grocery"))
                 {
                     throw new UserFriendlyException("Grocery items cannot be sold in Sales.");
                 }
@@ -478,6 +485,7 @@ namespace SmartPos.Sales
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
             return _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
                 .Where(p => (p.Barcode == null || !p.Barcode.StartsWith("GROCERY-")) && p.Name != "Grocery")
+                .Where(p => p.Category == null || p.Category.Name != "Permanent Grocery")
                 .WhereVisibleToBranch(_branchStockRepository.GetAll(), branchId);
         }
 

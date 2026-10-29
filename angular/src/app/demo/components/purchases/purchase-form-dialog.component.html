@@ -20,6 +20,7 @@
                 inputId="supplierId"
                 [options]="suppliers"
                 [(ngModel)]="purchase.supplierId"
+                (ngModelChange)="onSupplierChange()"
                 optionLabel="name"
                 optionValue="id"
                 placeholder="Select supplier"
@@ -87,6 +88,9 @@
         <div class="col-12">
             <div class="flex align-items-center justify-content-between mb-2">
                 <h5 class="m-0">Products</h5>
+                <small class="text-500" *ngIf="purchase.supplierId && !loadingSupplierProducts && !products.length">
+                    No products assigned to this supplier
+                </small>
                 <button
                     pButton
                     pRipple

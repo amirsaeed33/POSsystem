@@ -328,7 +328,8 @@ export class PosComponent implements OnInit, OnDestroy {
         if (!product) return false;
         return (
             (product.barcode || '').startsWith('GROCERY-') ||
-            (product.name || '').trim().toLowerCase() === 'grocery'
+            (product.name || '').trim().toLowerCase() === 'grocery' ||
+            (product.categoryName || '').trim().toLowerCase() === 'permanent grocery'
         );
     }
 

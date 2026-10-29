@@ -7,6 +7,7 @@ import {
     PagedResultDto,
     PurchaseDto,
     PurchaseLineDto,
+    PurchasePaymentHistoryDto,
 } from '../api/purchase';
 import { environment } from '../../../environments/environment';
 
@@ -144,6 +145,29 @@ export class PurchaseService {
             return;
         }
         this.unwrap(res, 'Failed to pay purchase');
+    }
+
+    async getPaymentHistory(
+        purchaseId: number
+    ): Promise<PurchasePaymentHistoryDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetPaymentHistory`, {
+                params: { Id: purchaseId },
+            })
+        );
+        const result = this.unwrap(res, 'Failed to load payment history');
+        const items = Array.isArray(result)
+            ? result
+            : result?.items || result?.Items || [];
+        return (items as any[]).map((item) => ({
+            id: item.id ?? item.Id,
+            transactionDate: item.transactionDate ?? item.TransactionDate,
+            amount: item.amount ?? item.Amount ?? 0,
+            paymentAccountId: item.paymentAccountId ?? item.PaymentAccountId,
+            paymentAccountName:
+                item.paymentAccountName ?? item.PaymentAccountName,
+            description: item.description ?? item.Description,
+        }));
     }
 
     private mapLine(item: any): PurchaseLineDto {
