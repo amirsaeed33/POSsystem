@@ -285,36 +285,69 @@ export class PosComponent implements OnInit, OnDestroy {
 
     topProducts: ProductDto[] = [];
     loadingTopProducts = false;
+    private lastLoadedBranchId: number | null = null;
+    private posInitDone = false;
 
     ngOnInit(): void {
-        this.applyBranchPricing();
+        void this.initPosForBranch();
+
         this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
-            if (branch) {
-                this.applyBranchPricing();
-                if (this.isRestaurantMode) {
-                    this.loadUnpaidTakeaways();
-                }
+            if (!this.posInitDone || !branch?.id) {
+                return;
+            }
+            if (branch.id === this.lastLoadedBranchId) {
+                return;
+            }
+            void this.reloadForBranch(branch.id);
+        });
+
+        this.route.queryParams.subscribe(async (params) => {
+            if (!this.isRestaurantMode) {
+                return;
+            }
+            const orderId = params['restaurantOrderId'] || params['orderId'];
+            if (orderId) {
+                await this.loadOrderById(Number(orderId));
             }
         });
+    }
+
+    private async initPosForBranch(): Promise<void> {
+        try {
+            await this.branchContext.ensureLoaded();
+        } catch (err) {
+            console.error('Failed to load branch context for POS', err);
+        }
+        this.posInitDone = true;
+        const branchId = this.branchContext.getBranchId();
+        if (branchId) {
+            await this.reloadForBranch(branchId);
+        } else {
+            this.applyBranchPricing();
+            this.loadTopProducts();
+            this.loadPosCustomers();
+        }
+    }
+
+    private async reloadForBranch(branchId: number): Promise<void> {
+        this.lastLoadedBranchId = branchId;
+        this.applyBranchPricing();
         this.loadTopProducts();
+        this.loadPosCustomers();
 
         if (this.isRestaurantMode) {
             if (this.isWaiter) {
                 this.waiterName = this.authService.getPrinterIdentity().name;
-            } else if (this.takeawayAlarmService) {
+            } else if (this.takeawayAlarmService && !this.alarmOrdersSub) {
                 this.alarmOrdersSub = this.takeawayAlarmService.unpaidOrders$.subscribe((orders) => {
                     this.unpaidTakeawayOrders = orders || [];
                 });
             }
             this.loadUnpaidTakeaways();
-            this.route.queryParams.subscribe(async (params) => {
-                const orderId = params['restaurantOrderId'] || params['orderId'];
-                if (orderId) {
-                    await this.loadOrderById(Number(orderId));
-                }
-            });
         }
+    }
 
+    private loadPosCustomers(): void {
         this.saleService
             .getPosCustomers()
             .then((customers) => {

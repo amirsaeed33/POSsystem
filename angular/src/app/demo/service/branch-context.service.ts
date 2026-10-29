@@ -20,7 +20,8 @@ export class BranchContextService {
     constructor(private branchService: BranchService) {}
 
     getBranchId(): number | null {
-        return this.currentBranchSubject.value?.id ?? null;
+        return this.toBranchId(this.currentBranchSubject.value?.id)
+            ?? this.readStoredBranchId();
     }
 
     getCurrentBranch(): BranchDto | null {
@@ -107,23 +108,41 @@ export class BranchContextService {
             return branches;
         }
 
-        const storedRaw = localStorage.getItem(BRANCH_STORAGE_KEY);
-        const storedId = storedRaw ? parseInt(storedRaw, 10) : NaN;
-        const preferred =
-            preferredBranchId != null && Number.isFinite(preferredBranchId)
-                ? preferredBranchId
-                : null;
-        const currentId = this.currentBranchSubject.value?.id ?? null;
+        const storedId = this.readStoredBranchId();
+        const preferred = this.toBranchId(preferredBranchId);
+        const currentId = this.toBranchId(this.currentBranchSubject.value?.id);
 
-        // Keep an already-selected / stored branch when still allowed so a
-        // session reload (or HMR) does not silently reset the user's choice.
+        // Priority: in-memory selection → persisted user choice → login preferred → first
+        // Never let preferred/user.branchId override a valid stored selection after refresh.
         const selected =
-            branches.find((b) => b.id === currentId) ||
-            branches.find((b) => b.id === storedId) ||
-            branches.find((b) => b.id === preferred) ||
+            this.findBranch(branches, currentId) ||
+            this.findBranch(branches, storedId) ||
+            this.findBranch(branches, preferred) ||
             branches[0];
 
         this.setCurrentBranch(selected);
         return branches;
+    }
+
+    private findBranch(
+        branches: BranchDto[],
+        id: number | null
+    ): BranchDto | undefined {
+        if (id == null) {
+            return undefined;
+        }
+        return branches.find((b) => this.toBranchId(b.id) === id);
+    }
+
+    private readStoredBranchId(): number | null {
+        return this.toBranchId(localStorage.getItem(BRANCH_STORAGE_KEY));
+    }
+
+    private toBranchId(value: unknown): number | null {
+        if (value == null || value === '') {
+            return null;
+        }
+        const n = typeof value === 'number' ? value : parseInt(String(value), 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 }
