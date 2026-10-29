@@ -88,6 +88,15 @@
             ></p-inputNumber>
             <small class="text-500">Default service fee automatically applied to dine-in orders at this branch.</small>
         </div>
+        <div class="field flex align-items-center gap-3 mb-3" *ngIf="branch.businessType === 2">
+            <p-inputSwitch
+                inputId="autoAssignWaiterDialog"
+                [(ngModel)]="branch.autoAssignWaiterToTables"
+            ></p-inputSwitch>
+            <label for="autoAssignWaiterDialog" class="font-medium cursor-pointer mb-0">
+                Auto Assign Waiter to Tables
+            </label>
+        </div>
 
             <div class="flex flex-column gap-3 surface-50 border-round p-3" *ngIf="isCreateMode">
             <div class="flex flex-column gap-2">

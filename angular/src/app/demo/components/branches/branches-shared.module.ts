@@ -20,6 +20,7 @@ import { BranchEditComponent } from './branch-edit/branch-edit.component';
 import { BranchCreateComponent } from './branch-create/branch-create.component';
 
 import { TabViewModule } from 'primeng/tabview';
+import { InputSwitchModule } from 'primeng/inputswitch';
 import { NotificationSettingsSharedModule } from '../notification-settings/notification-settings-shared.module';
 import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
@@ -40,6 +41,7 @@ import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/ro
         StyleClassModule,
         DropdownModule,
         TabViewModule,
+        InputSwitchModule,
         NotificationSettingsSharedModule,
         AppRowActionsComponent,
     ],

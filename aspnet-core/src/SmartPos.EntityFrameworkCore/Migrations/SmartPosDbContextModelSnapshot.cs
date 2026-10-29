@@ -1725,6 +1725,9 @@ namespace SmartPos.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<bool>("AutoAssignWaiterToTables")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(64)

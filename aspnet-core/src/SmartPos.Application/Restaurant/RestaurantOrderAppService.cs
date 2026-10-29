@@ -135,13 +135,29 @@ namespace SmartPos.Restaurant
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(table.BranchId);
 
-            var order = await _orderRepository.GetAll()
-                .Include(o => o.Lines)
-                .Include(o => o.Customer)
-                .Where(o => o.TableId == tableId &&
-                            (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed))
-                .OrderByDescending(o => o.CreationTime)
-                .FirstOrDefaultAsync();
+            RestaurantOrder order = null;
+
+            // 1. Try table.CurrentOrderId if set
+            if (table.CurrentOrderId.HasValue && table.CurrentOrderId.Value > 0)
+            {
+                order = await _orderRepository.GetAll()
+                    .Include(o => o.Lines)
+                    .Include(o => o.Customer)
+                    .FirstOrDefaultAsync(o => o.Id == table.CurrentOrderId.Value &&
+                                              (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed));
+            }
+
+            // 2. Fallback to TableId or BranchId + TableNo
+            if (order == null)
+            {
+                order = await _orderRepository.GetAll()
+                    .Include(o => o.Lines)
+                    .Include(o => o.Customer)
+                    .Where(o => (o.TableId == tableId || (o.BranchId == table.BranchId && o.TableNo == table.TableNo)) &&
+                                (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed))
+                    .OrderByDescending(o => o.CreationTime)
+                    .FirstOrDefaultAsync();
+            }
 
             if (order == null)
             {

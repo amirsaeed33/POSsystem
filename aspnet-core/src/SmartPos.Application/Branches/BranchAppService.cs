@@ -95,6 +95,7 @@ namespace SmartPos.Branches
             branch.CurrencyFormat = string.IsNullOrWhiteSpace(input.CurrencyFormat) ? "PKR" : input.CurrencyFormat.Trim();
             branch.BusinessType = input.BusinessType;
             branch.ServiceChargePercent = Math.Max(0, input.ServiceChargePercent);
+            branch.AutoAssignWaiterToTables = input.AutoAssignWaiterToTables;
             branch.TenantId = AbpSession.TenantId;
             // New branches always start as Pending until host admin approves.
             branch.StatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
@@ -167,6 +168,7 @@ namespace SmartPos.Branches
             branch.DiscountAmount = Math.Max(0, input.DiscountAmount);
             branch.BusinessType = input.BusinessType;
             branch.ServiceChargePercent = Math.Max(0, input.ServiceChargePercent);
+            branch.AutoAssignWaiterToTables = input.AutoAssignWaiterToTables;
             branch.DateFormat = string.IsNullOrWhiteSpace(input.DateFormat) ? "dd/MM/yyyy" : input.DateFormat.Trim();
             branch.CurrencyFormat = string.IsNullOrWhiteSpace(input.CurrencyFormat) ? "PKR" : input.CurrencyFormat.Trim();
             branch.Latitude = input.Latitude;
@@ -728,12 +730,19 @@ namespace SmartPos.Branches
                 ["ExpirationHours"] = expirationHours.ToString()
             };
 
-            var (subject, bodyHtml) = await ResolveBranchActivationTemplateAsync(placeholders);
-            await _smtpMailSender.SendAsync(
-                branch.InvoiceContactEmail.Trim(),
-                subject,
-                bodyHtml,
-                isBodyHtml: true);
+            try
+            {
+                var (subject, bodyHtml) = await ResolveBranchActivationTemplateAsync(placeholders);
+                await _smtpMailSender.SendAsync(
+                    branch.InvoiceContactEmail.Trim(),
+                    subject,
+                    bodyHtml,
+                    isBodyHtml: true);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Could not send branch activation email to '{branch.InvoiceContactEmail}': {ex.Message}");
+            }
         }
 
         private async Task<(string Subject, string BodyHtml)> ResolveBranchActivationTemplateAsync(

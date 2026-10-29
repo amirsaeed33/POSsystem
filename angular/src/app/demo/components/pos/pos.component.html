@@ -2024,8 +2024,11 @@
                 </div>
             </div>
 
-            <div class="text-sm text-600">
+            <div class="text-sm text-600" *ngIf="isAutoAssignWaiter()">
                 Waiter was assigned automatically. Select another below if you need to change.
+            </div>
+            <div class="text-sm text-600" *ngIf="!isAutoAssignWaiter()">
+                Select a waiter to assign to this {{ isCarBay(pendingSelectedTable) ? 'car service' : 'table' }}.
             </div>
 
             <div>

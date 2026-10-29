@@ -208,6 +208,13 @@ export class PosComponent implements OnInit, OnDestroy {
         return this.isRestaurantMode && this.authService.isWaiter();
     }
 
+    isAutoAssignWaiter(): boolean {
+        if (!this.isRestaurantMode) return true;
+        const branch = this.branchContext.getCurrentBranch();
+        if (!branch) return true;
+        return branch.autoAssignWaiterToTables !== false;
+    }
+
     get currentPrinterText(): string {
         return this.authService.getPrinterIdentity().text;
     }
@@ -677,11 +684,11 @@ export class PosComponent implements OnInit, OnDestroy {
             if (this.isWaiter) {
                 this.waiterName = this.authService.getPrinterIdentity().name;
             }
-            this.selectTable(table);
+            await this.selectTable(table);
             return;
         }
 
-        // Available car bay: ask for vehicle plate first, then auto-assign waiter
+        // Available car bay: ask for vehicle plate first
         if (this.isCarBay(table)) {
             this.pendingVehicleTable = table;
             this.pendingVehicleNumber = '';
@@ -689,11 +696,25 @@ export class PosComponent implements OnInit, OnDestroy {
             return;
         }
 
-        // Dining table: auto-assign waiter and open (user can change later)
-        await this.autoAssignWaiterAndOpen(table);
+        // Dining table:
+        if (this.isWaiter) {
+            this.waiterName = this.authService.getPrinterIdentity().name;
+            await this.selectTable(table);
+            return;
+        }
+
+        if (this.isAutoAssignWaiter()) {
+            await this.autoAssignWaiterAndOpen(table);
+            return;
+        }
+
+        if (!this.waiters.length) {
+            await this.loadWaiters();
+        }
+        this.assignWaiterDialogVisible = true;
     }
 
-    confirmVehicleNumber(): void {
+    async confirmVehicleNumber(): Promise<void> {
         const plate = (this.pendingVehicleNumber || '').trim().toUpperCase();
         if (!plate) {
             this.messageService.add({
@@ -718,8 +739,21 @@ export class PosComponent implements OnInit, OnDestroy {
         this.pendingVehicleTable = null;
         this.pendingVehicleNumber = '';
 
-        // Auto-assign waiter and open car session (change anytime from header)
-        void this.autoAssignWaiterAndOpen(table);
+        if (this.isWaiter) {
+            this.waiterName = this.authService.getPrinterIdentity().name;
+            await this.selectTable(table);
+            return;
+        }
+
+        if (this.isAutoAssignWaiter()) {
+            await this.autoAssignWaiterAndOpen(table);
+            return;
+        }
+
+        if (!this.waiters.length) {
+            await this.loadWaiters();
+        }
+        this.assignWaiterDialogVisible = true;
     }
 
     /** Pick a default waiter and open the table/car without a forced dialog. */
@@ -927,13 +961,13 @@ export class PosComponent implements OnInit, OnDestroy {
         }
     }
 
-    skipAssignWaiter(): void {
+    async skipAssignWaiter(): Promise<void> {
         if (this.pendingSelectedTable) {
             if (this.pendingSelectedTable.waiterName) {
                 this.waiterName = this.pendingSelectedTable.waiterName;
             }
             this.assignWaiterDialogVisible = false;
-            this.selectTable(this.pendingSelectedTable);
+            await this.selectTable(this.pendingSelectedTable);
         } else {
             this.assignWaiterDialogVisible = false;
         }
@@ -960,109 +994,54 @@ export class PosComponent implements OnInit, OnDestroy {
 
         if (table.status === 1 || table.status === 2) {
             try {
-                const order = await this.restaurantOrderService.getByTable(table.id);
-                if (order) {
-                    this.activeOrderId = order.id;
-                    this.activeOrderNo = order.orderNo;
-                    if (order.carNumber || order.orderType === OrderTypes.CarService || carBay) {
+                let order: RestaurantOrderDto | null = null;
+                if (table.currentOrderId) {
+                    try {
+                        order = await this.restaurantOrderService.get(table.currentOrderId);
+                    } catch {
+                        order = null;
+                    }
+                }
+                if (!order) {
+                    try {
+                        order = await this.restaurantOrderService.getByTable(table.id);
+                    } catch {
+                        order = null;
+                    }
+                }
+
+                if (order && order.id) {
+                    const unsentItems = isDirectSend ? this.cart.filter((c) => !c.id) : [];
+                    await this.loadOrderById(order.id);
+                    this.selectedTable = table;
+                    this.orderType = 'dineIn';
+                    if (carBay || order.carNumber || order.orderType === OrderTypes.CarService) {
                         this.selectedCarName = order.carName || table.tableNo;
                         this.selectedCarNumber = order.carNumber || table.currentVehicleNumber || this.selectedCarNumber || '';
                         this.selectedCarLocation = order.carLocation || table.area || 'Car Parking';
                     }
                     if (this.isWaiter) {
                         this.waiterName = this.authService.getPrinterIdentity().name;
-                    } else {
+                    } else if (order.waiterName || table.waiterName) {
                         this.waiterName = order.waiterName || table.waiterName || this.waiterName || '';
                     }
-                    this.notes = order.notes || '';
-                    if (order.customerId) {
-                        this.customerId = order.customerId;
-                    }
-                    if (!order.lines?.length) {
-                        if (!isDirectSend) {
-                            this.clearCart();
-                            this.messageService.add({
-                                severity: 'info',
-                                summary: carBay ? 'Car Order Open' : 'Table Order Open',
-                                detail: carBay
-                                    ? `${this.carServiceLabel} is occupied — add items to continue.`
-                                    : `Table ${table.tableNo} is occupied — add items to continue.`,
-                                life: 2500,
-                            });
-                        }
-                        if (isDirectSend) {
-                            await this.sendToTable();
-                        }
-                        return;
-                    }
-                    const existingLines: PosCartLine[] = [];
-                    for (const l of order.lines) {
-                        let isDeal = false;
-                        let dealSummary: string | undefined = undefined;
-                        let dealId: number | undefined = undefined;
-                        let selectedModifiers = l.selectedModifiers;
 
-                        const mods = this.parseModifiers(selectedModifiers);
-                        const dealMod = mods.find((m: string) => typeof m === 'string' && m.startsWith('DEAL:'));
-                        if (dealMod) {
-                            isDeal = true;
-                            dealSummary = dealMod.substring(5).trim();
-                        }
-
-                        // Always check with DealService to resolve deal constituent items for this product
-                        try {
-                            const dealInfo = await this.dealService.getByProductId(l.productId);
-                            if (dealInfo && dealInfo.items?.length) {
-                                isDeal = true;
-                                dealId = dealInfo.id;
-                                if (!dealSummary) {
-                                    dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' • ');
-                                }
-                                if (!selectedModifiers || !selectedModifiers.includes('DEAL:')) {
-                                    const extra = this.parseModifiers(selectedModifiers).filter(
-                                        (m: string) => typeof m === 'string' && !m.startsWith('DEAL:')
-                                    );
-                                    selectedModifiers = JSON.stringify([`DEAL: ${dealSummary}`, ...extra]);
-                                }
-                            }
-                        } catch {
-                            // Regular non-deal product
-                        }
-
-                        existingLines.push({
-                            id: l.id,
-                            productId: l.productId,
-                            productName: l.productName,
-                            quantity: l.quantity,
-                            unitPrice: l.unitPrice,
-                            retailPrice: l.unitPrice,
-                            wholesalePrice: l.unitPrice,
-                            stockQuantity: 999,
-                            kitchenNotes: l.kitchenNotes,
-                            selectedModifiers,
-                            isSentToKitchen: true,
-                            printedQuantity: l.printedQuantity && l.printedQuantity > 0 ? l.printedQuantity : l.quantity,
-                            isDeal,
-                            dealId,
-                            dealSummary,
-                        });
+                    if (isDirectSend && unsentItems.length > 0) {
+                        this.cart = [...this.cart, ...unsentItems];
+                        await this.sendToTable();
                     }
-
-                    if (isDirectSend) {
-                        const newCartItems = this.cart.filter((c) => !c.id);
-                        this.cart = [...existingLines, ...newCartItems];
-                    } else {
-                        this.cart = existingLines;
-                        this.messageService.add({
-                            severity: 'info',
-                            summary: 'Order Resumed',
-                            detail: this.isCarService
-                                ? `Loaded #${order.orderNo} for ${this.carServiceLabel}`
-                                : `Loaded active order #${order.orderNo} for Table ${table.tableNo}`,
-                            life: 3000,
-                        });
-                        return;
-                    }
+                    return;
+                } else {
+                    this.clearCart();
+                    this.activeOrderId = null;
+                    this.activeOrderNo = '';
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'No Active Order',
+                        detail: `Table ${table.tableNo} is occupied, but no active order was found. Add items to start a new order.`,
+                        life: 3500,
+                    });
+                    return;
                 }
             } catch (err) {
                 console.error('Failed to load table order', err);

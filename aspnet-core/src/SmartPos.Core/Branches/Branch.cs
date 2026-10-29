@@ -94,6 +94,12 @@ namespace SmartPos.Branches
         /// <summary>Optional default dine-in service charge % applied for restaurant branches.</summary>
         public virtual decimal ServiceChargePercent { get; set; }
 
+        /// <summary>
+        /// For restaurant branches: when true, automatically assign available waiter to tables.
+        /// When false, prompt admin to choose a waiter manually. Default is true.
+        /// </summary>
+        public virtual bool AutoAssignWaiterToTables { get; set; } = true;
+
         /// <summary>SHA256 (Base64) of the one-time branch activation token emailed after host approval.</summary>
         [StringLength(MaxActivationTokenHashLength)]
         public virtual string ActivationTokenHash { get; set; }

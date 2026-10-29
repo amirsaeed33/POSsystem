@@ -41,6 +41,7 @@ export interface BranchDto {
     discountAmount?: number;
     businessType?: BusinessType;
     serviceChargePercent?: number;
+    autoAssignWaiterToTables?: boolean;
     dateFormat?: string;
     currencyFormat?: string;
     latitude?: number | null;
@@ -68,6 +69,7 @@ export interface CreateBranchDto {
     discountAmount?: number;
     businessType?: BusinessType;
     serviceChargePercent?: number;
+    autoAssignWaiterToTables?: boolean;
     companyTypeId?: number;
     hostCatalogItemIds?: number[];
     dateFormat?: string;

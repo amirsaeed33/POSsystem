@@ -180,6 +180,7 @@ export class BranchEditComponent implements OnInit {
             discountAmount: this.branch.discountAmount ?? 0,
             businessType: this.branch.businessType ?? 1,
             serviceChargePercent: this.branch.serviceChargePercent ?? 0,
+            autoAssignWaiterToTables: this.branch.autoAssignWaiterToTables !== false,
             dateFormat: this.branch.dateFormat || 'dd/MM/yyyy',
             currencyFormat: this.branch.currencyFormat || 'PKR',
             latitude: this.branch.latitude != null ? Number(this.branch.latitude) : null,
@@ -306,6 +307,7 @@ export class BranchEditComponent implements OnInit {
                     ...branch,
                     businessType: branch.businessType ?? 1,
                     serviceChargePercent: branch.serviceChargePercent ?? 0,
+                    autoAssignWaiterToTables: branch.autoAssignWaiterToTables !== false,
                     latitude: branch.latitude ?? null,
                     longitude: branch.longitude ?? null,
                     attendanceAutoCheckInRadiusFeet:
@@ -411,6 +413,7 @@ export class BranchEditComponent implements OnInit {
             discountAmount: 0,
             businessType: 1,
             serviceChargePercent: 0,
+            autoAssignWaiterToTables: true,
             dateFormat: 'dd/MM/yyyy',
             currencyFormat: 'PKR',
             latitude: null,
