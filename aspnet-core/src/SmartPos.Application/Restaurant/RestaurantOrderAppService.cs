@@ -121,11 +121,20 @@ namespace SmartPos.Restaurant
                 throw new UserFriendlyException("Order not found.");
             }
 
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
             return ObjectMapper.Map<RestaurantOrderDto>(order);
         }
 
         public async Task<RestaurantOrderDto> GetByTableAsync(int tableId)
         {
+            var table = await _tableRepository.FirstOrDefaultAsync(tableId);
+            if (table == null)
+            {
+                throw new UserFriendlyException("Table not found.");
+            }
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(table.BranchId);
+
             var order = await _orderRepository.GetAll()
                 .Include(o => o.Lines)
                 .Include(o => o.Customer)

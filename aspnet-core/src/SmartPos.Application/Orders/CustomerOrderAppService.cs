@@ -408,6 +408,18 @@ namespace SmartPos.Orders
                     var product = await _productRepository.GetAsync(lineInput.ProductId);
                     var branchStock = await _branchStockRepository.FirstOrDefaultAsync(s => s.BranchId == branchId && s.ProductId == lineInput.ProductId);
                     var authoritativePrice = branchStock != null && branchStock.Price > 0 ? branchStock.Price : product.Price;
+
+                    // Non-restaurant online orders must not oversell available branch stock.
+                    if (branch.BusinessType != BusinessType.Restaurant)
+                    {
+                        var available = branchStock?.Quantity ?? 0m;
+                        if (available < lineInput.Quantity)
+                        {
+                            throw new UserFriendlyException(
+                                $"Insufficient stock for '{product.Name}'. Available: {available:0.##}.");
+                        }
+                    }
+
                     var lineTotal = lineInput.Quantity * authoritativePrice;
                     subTotal += lineTotal;
                     orderedProductIds.Add(product.Id);

@@ -70,6 +70,20 @@ export class ProductFormDialogComponent implements OnChanges {
         return this.branchContext.isRestaurant();
     }
 
+    get isPermanentGroceryCategory(): boolean {
+        const category = (this.categories || []).find(
+            (c) => c.id === this.product.categoryId
+        );
+        return (
+            (category?.name || '').trim().toLowerCase() === 'permanent grocery'
+        );
+    }
+
+    /** Restaurant grocery inventory: show cost / allow stock-oriented fields. */
+    get isGroceryInventory(): boolean {
+        return this.isRestaurant && this.isPermanentGroceryCategory;
+    }
+
     get dialogTitle(): string {
         return this.productId ? 'Edit Product' : 'Create Product';
     }
@@ -195,7 +209,11 @@ export class ProductFormDialogComponent implements OnChanges {
                 brandId = this.brands[0].id;
             }
             wholesalePrice = 0;
-            costPrice = 0;
+            if (!this.isGroceryInventory) {
+                costPrice = 0;
+            } else {
+                costPrice = Number.isFinite(costPrice) ? Math.max(0, costPrice) : 0;
+            }
         } else {
             if (price < costPrice) {
                 this.messageService.add({
@@ -295,7 +313,14 @@ export class ProductFormDialogComponent implements OnChanges {
         if (!this.isRestaurant && !(this.product.barcode || '').trim()) {
             return 'Barcode is required.';
         }
-        if (this.product.price == null || Number(this.product.price) <= 0) {
+        if (this.isGroceryInventory) {
+            if (this.product.price == null || Number(this.product.price) < 0) {
+                return 'Price cannot be negative.';
+            }
+            if (this.product.costPrice == null || Number(this.product.costPrice) < 0) {
+                return 'Purchase price is required.';
+            }
+        } else if (this.product.price == null || Number(this.product.price) <= 0) {
             return 'Price is required.';
         }
         if (!this.isRestaurant && (this.product.wholesalePrice == null || Number(this.product.wholesalePrice) < 0)) {

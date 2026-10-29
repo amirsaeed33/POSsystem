@@ -24,6 +24,7 @@ namespace SmartPos.Suppliers
         private readonly IRepository<BusinessAccount> _accountRepository;
         private readonly IRepository<SupplierProduct> _supplierProductRepository;
         private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<User, long> _userRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
@@ -34,6 +35,7 @@ namespace SmartPos.Suppliers
             IRepository<BusinessAccount> accountRepository,
             IRepository<SupplierProduct> supplierProductRepository,
             IRepository<Product> productRepository,
+            IRepository<Branch> branchRepository,
             IRepository<User, long> userRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
@@ -43,6 +45,7 @@ namespace SmartPos.Suppliers
             _accountRepository = accountRepository;
             _supplierProductRepository = supplierProductRepository;
             _productRepository = productRepository;
+            _branchRepository = branchRepository;
             _userRepository = userRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
@@ -176,12 +179,27 @@ namespace SmartPos.Suppliers
 
             if (productIds.Count > 0)
             {
-                var validCount = await _productRepository.GetAll()
+                var products = await _productRepository.GetAll()
                     .AsNoTracking()
-                    .CountAsync(p => productIds.Contains(p.Id));
-                if (validCount != productIds.Count)
+                    .Include(p => p.Category)
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToListAsync();
+
+                if (products.Count != productIds.Count)
                 {
                     throw new UserFriendlyException("One or more selected products are invalid.");
+                }
+
+                var branch = await _branchRepository.FirstOrDefaultAsync(supplier.BranchId);
+                if (branch != null && branch.BusinessType == BusinessType.Restaurant)
+                {
+                    var invalid = products.FirstOrDefault(p =>
+                        !PermanentGrocery.IsInventoryProduct(p.Barcode, p.Name, p.Category?.Name));
+                    if (invalid != null)
+                    {
+                        throw new UserFriendlyException(
+                            $"Only Permanent Grocery products can be assigned for restaurant suppliers. Invalid: '{invalid.Name}'.");
+                    }
                 }
             }
 

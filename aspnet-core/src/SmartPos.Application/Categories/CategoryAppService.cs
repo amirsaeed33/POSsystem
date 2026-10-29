@@ -14,6 +14,7 @@ using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Categories.Dto;
+using SmartPos.Products;
 
 namespace SmartPos.Categories
 {
@@ -23,17 +24,20 @@ namespace SmartPos.Categories
         private const string CacheName = "CategoryLookupCache";
         private readonly IBranchContext _branchContext;
         private readonly IRepository<User, long> _userRepository;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly ICacheManager _cacheManager;
 
         public CategoryAppService(
             IRepository<Category> repository,
             IBranchContext branchContext,
             IRepository<User, long> userRepository,
+            IRepository<Branch> branchRepository,
             ICacheManager cacheManager)
             : base(repository)
         {
             _branchContext = branchContext;
             _userRepository = userRepository;
+            _branchRepository = branchRepository;
             _cacheManager = cacheManager;
             CreatePermissionName = PermissionNames.Pages_Categories_Create;
             UpdatePermissionName = PermissionNames.Pages_Categories_Edit;
@@ -101,6 +105,13 @@ namespace SmartPos.Categories
                 throw new UserFriendlyException($"Category '{name}' already exists in this location.");
             }
 
+            if (PermanentGrocery.IsCategoryName(entity.Name)
+                && !PermanentGrocery.IsCategoryName(name))
+            {
+                throw new UserFriendlyException(
+                    $"The '{PermanentGrocery.CategoryName}' category cannot be renamed.");
+            }
+
             ObjectMapper.Map(input, entity);
             entity.Name = name;
             if (entity.BranchId <= 0)
@@ -117,6 +128,12 @@ namespace SmartPos.Categories
         public override async Task DeleteAsync(EntityDto<int> input)
         {
             CheckDeletePermission();
+            var entity = await Repository.GetAsync(input.Id);
+            if (PermanentGrocery.IsCategoryName(entity.Name))
+            {
+                throw new UserFriendlyException(
+                    $"The '{PermanentGrocery.CategoryName}' category cannot be deleted.");
+            }
             await base.DeleteAsync(input);
             await ClearLookupCacheAsync();
         }
@@ -125,6 +142,11 @@ namespace SmartPos.Categories
         public async Task<ListResultDto<CategoryDto>> GetLookupAsync()
         {
             var branchId = ResolveBranchId();
+            if (branchId.HasValue)
+            {
+                await EnsurePermanentGroceryCategoryAsync(branchId.Value);
+            }
+
             var tenantId = AbpSession.TenantId ?? 0;
             var cacheKey = $"Tenant_{tenantId}_Branch_{branchId?.ToString() ?? "All"}";
 
@@ -191,6 +213,34 @@ namespace SmartPos.Categories
             }
 
             return branchId.Value;
+        }
+
+        private async Task EnsurePermanentGroceryCategoryAsync(int branchId)
+        {
+            var branch = await _branchRepository.FirstOrDefaultAsync(branchId);
+            if (branch == null || branch.BusinessType != BusinessType.Restaurant)
+            {
+                return;
+            }
+
+            var exists = await Repository.CountAsync(c =>
+                c.BranchId == branchId
+                && c.Name.ToLower() == PermanentGrocery.CategoryName.ToLower()) > 0;
+            if (exists)
+            {
+                return;
+            }
+
+            await Repository.InsertAsync(new Category
+            {
+                TenantId = branch.TenantId ?? AbpSession.TenantId,
+                BranchId = branchId,
+                Name = PermanentGrocery.CategoryName,
+                Description = "Restaurant purchase/inventory ingredients",
+                IsActive = true
+            });
+            await CurrentUnitOfWork.SaveChangesAsync();
+            await ClearLookupCacheAsync();
         }
     }
 }

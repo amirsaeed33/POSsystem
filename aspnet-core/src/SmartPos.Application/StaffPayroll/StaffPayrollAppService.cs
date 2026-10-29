@@ -195,9 +195,8 @@ namespace SmartPos.StaffPayrolls
             }
 
             // Concurrency & duplicate safety: verify no existing payment ledger entries for this voucher
-            var existingLedger = await _ledgerRepository.GetAllListAsync(
-                x => x.VoucherType == VoucherTypes.Payment && x.VoucherId == entity.Id);
-            if (existingLedger.Any())
+            var existingLedgerCandidates = await _ledgerRepository.GetAllListAsync(x => x.VoucherId == entity.Id);
+            if (existingLedgerCandidates.Any(x => VoucherTypes.IsPayrollPayment(x.VoucherType, x.Description)))
             {
                 throw new UserFriendlyException("Payment ledger entries already exist for this payroll.");
             }
@@ -249,9 +248,10 @@ namespace SmartPos.StaffPayrolls
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
                 TenantId = AbpSession.TenantId,
+                BranchId = entity.BranchId,
                 AccountId = expenseAccount.Id,
                 TransactionDate = paymentDate,
-                VoucherType = VoucherTypes.Payment,
+                VoucherType = VoucherTypes.PayrollPayment,
                 VoucherId = entity.Id,
                 Debit = netSalary,
                 Credit = 0,
@@ -262,9 +262,10 @@ namespace SmartPos.StaffPayrolls
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
                 TenantId = AbpSession.TenantId,
+                BranchId = entity.BranchId,
                 AccountId = paymentAccount.Id,
                 TransactionDate = paymentDate,
-                VoucherType = VoucherTypes.Payment,
+                VoucherType = VoucherTypes.PayrollPayment,
                 VoucherId = entity.Id,
                 Debit = 0,
                 Credit = netSalary,
@@ -300,9 +301,9 @@ namespace SmartPos.StaffPayrolls
             var entity = await Repository.GetAsync(input.Id);
             await _branchAccessChecker.EnsureCanAccessBranchAsync(entity.BranchId);
 
-            var ledgerEntries = await _ledgerRepository.GetAllListAsync(
-                x => x.VoucherType == VoucherTypes.Payment && x.VoucherId == entity.Id);
-            foreach (var entry in ledgerEntries)
+            var ledgerCandidates = await _ledgerRepository.GetAllListAsync(x => x.VoucherId == entity.Id);
+            foreach (var entry in ledgerCandidates.Where(x =>
+                         VoucherTypes.IsPayrollPayment(x.VoucherType, x.Description)))
             {
                 await _ledgerRepository.DeleteAsync(entry);
             }

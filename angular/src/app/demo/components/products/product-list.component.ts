@@ -74,11 +74,19 @@ export class ProductListComponent implements OnInit {
         return this.branchContext.isRestaurant();
     }
 
+    /** Legacy locked single Grocery product (not editable). */
     isGroceryProduct(product: ProductDto): boolean {
         if (!product) return false;
         return (
             (product.barcode || '').startsWith('GROCERY-') ||
             (product.name || '').trim().toLowerCase() === 'grocery'
+        );
+    }
+
+    isPermanentGroceryCategory(product: ProductDto): boolean {
+        return (
+            (product?.categoryName || '').trim().toLowerCase() ===
+            'permanent grocery'
         );
     }
 

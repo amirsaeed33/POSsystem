@@ -107,6 +107,16 @@ namespace SmartPos.Products
                 input.CostPrice = Math.Max(0, input.CostPrice);
                 input.WholesalePrice = Math.Max(0, input.WholesalePrice);
                 input.AlertQuantityLimit = Math.Max(0, input.AlertQuantityLimit);
+            }
+
+            var createCategory = input.CategoryId > 0
+                ? await _categoryRepository.FirstOrDefaultAsync(input.CategoryId)
+                : null;
+            var isGroceryInventory = PermanentGrocery.IsInventoryProduct(
+                input.Barcode, input.Name, createCategory?.Name);
+
+            if (isRestaurant && !isGroceryInventory)
+            {
                 input.StockQuantity = 0;
             }
 
@@ -120,8 +130,9 @@ namespace SmartPos.Products
                 input.CategoryId,
                 input.BrandId.GetValueOrDefault(),
                 input.UnitId,
-                isRestaurant);
-            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice, isRestaurant);
+                isRestaurant,
+                isGroceryInventory);
+            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice, isRestaurant || isGroceryInventory);
 
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: null);
@@ -205,7 +216,7 @@ namespace SmartPos.Products
             var product = await GetEntityByIdAsync(input.Id);
             await EnsureProductVisibleAsync(product);
 
-            if (IsPermanentGrocery(product))
+            if (IsLegacyLockedGrocery(product))
             {
                 throw new UserFriendlyException("The default Grocery entry cannot be edited.");
             }
@@ -227,6 +238,12 @@ namespace SmartPos.Products
                 input.AlertQuantityLimit = Math.Max(0, input.AlertQuantityLimit);
             }
 
+            var updateCategory = input.CategoryId > 0
+                ? await _categoryRepository.FirstOrDefaultAsync(input.CategoryId)
+                : product.Category;
+            var isGroceryInventory = PermanentGrocery.IsInventoryProduct(
+                input.Barcode, input.Name, updateCategory?.Name);
+
             EnsureRequiredFields(
                 input.Name,
                 input.Barcode,
@@ -237,8 +254,9 @@ namespace SmartPos.Products
                 input.CategoryId,
                 input.BrandId.GetValueOrDefault(),
                 input.UnitId,
-                isRestaurant);
-            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice, isRestaurant);
+                isRestaurant,
+                isGroceryInventory);
+            EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice, isRestaurant || isGroceryInventory);
 
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: product.Id);
@@ -313,7 +331,7 @@ namespace SmartPos.Products
             var product = await Repository.GetAsync(input.Id);
             await EnsureProductVisibleAsync(product);
 
-            if (IsPermanentGrocery(product))
+            if (IsLegacyLockedGrocery(product))
             {
                 throw new UserFriendlyException("The default Grocery entry cannot be deleted.");
             }
@@ -397,11 +415,10 @@ namespace SmartPos.Products
                 _effectiveBranchIdForQuery.Value);
         }
 
-        private static bool IsPermanentGrocery(Product product)
+        private static bool IsLegacyLockedGrocery(Product product)
         {
             if (product == null) return false;
-            return (product.Barcode != null && product.Barcode.StartsWith("GROCERY-", StringComparison.OrdinalIgnoreCase))
-                   || string.Equals(product.Name, "Grocery", StringComparison.OrdinalIgnoreCase);
+            return PermanentGrocery.IsLegacyLockedProduct(product.Barcode, product.Name);
         }
 
         protected override async Task<Product> GetEntityByIdAsync(int id)
@@ -612,7 +629,8 @@ namespace SmartPos.Products
             int categoryId,
             int brandId,
             int unitId,
-            bool isRestaurant = false)
+            bool isRestaurant = false,
+            bool isGroceryInventory = false)
         {
             if (name.IsNullOrWhiteSpace())
             {
@@ -624,7 +642,15 @@ namespace SmartPos.Products
                 throw new UserFriendlyException("Barcode is required.");
             }
 
-            if (price <= 0)
+            // Menu items need a selling price; grocery ingredients can be cost-only (price 0).
+            if (isGroceryInventory)
+            {
+                if (price < 0)
+                {
+                    throw new UserFriendlyException("Price cannot be negative.");
+                }
+            }
+            else if (price <= 0)
             {
                 throw new UserFriendlyException("Price is required.");
             }
@@ -634,7 +660,7 @@ namespace SmartPos.Products
                 throw new UserFriendlyException("Wholesale price is required.");
             }
 
-            if (!isRestaurant && costPrice < 0)
+            if ((!isRestaurant || isGroceryInventory) && costPrice < 0)
             {
                 throw new UserFriendlyException("Cost price is required.");
             }

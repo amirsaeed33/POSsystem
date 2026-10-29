@@ -89,7 +89,10 @@
             <div class="flex align-items-center justify-content-between mb-2">
                 <h5 class="m-0">Products</h5>
                 <small class="text-500" *ngIf="purchase.supplierId && !loadingSupplierProducts && !products.length">
-                    No products assigned to this supplier
+                    No products assigned to this supplier.
+                    <span *ngIf="isRestaurant">
+                        Create products under <strong>Permanent Grocery</strong>, then use Suppliers → Assign Products.
+                    </span>
                 </small>
                 <button
                     pButton
@@ -131,11 +134,11 @@
                                     [style]="{ width: '100%' }"
                                 >
                                     <ng-template let-item pTemplate="item">
-                                        {{ item.name }}<span *ngIf="!isRestaurant"> (Stock: {{ item.stockQuantity || 0 }})</span>
+                                        {{ item.name }} (Stock: {{ item.stockQuantity || 0 }})
                                     </ng-template>
                                     <ng-template let-item pTemplate="selectedItem">
                                         <span *ngIf="item">
-                                            {{ item.name }}<span *ngIf="!isRestaurant"> (Stock: {{ item.stockQuantity || 0 }})</span>
+                                            {{ item.name }} (Stock: {{ item.stockQuantity || 0 }})
                                         </span>
                                     </ng-template>
                                 </p-dropdown>

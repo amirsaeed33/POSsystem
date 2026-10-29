@@ -679,6 +679,8 @@ namespace SmartPos.Sales
 
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
+                TenantId = AbpSession.TenantId,
+                BranchId = sale.BranchId,
                 AccountId = saleAccount.Id,
                 TransactionDate = sale.SaleDate,
                 VoucherType = VoucherTypes.Sale,
@@ -693,6 +695,8 @@ namespace SmartPos.Sales
                 var cash = await _systemAccountManager.GetCashAccountAsync();
                 await _ledgerRepository.InsertAsync(new LedgerEntry
                 {
+                    TenantId = AbpSession.TenantId,
+                    BranchId = sale.BranchId,
                     AccountId = cash.Id,
                     TransactionDate = sale.SaleDate,
                     VoucherType = VoucherTypes.Sale,
@@ -708,6 +712,8 @@ namespace SmartPos.Sales
                 var bank = await _systemAccountManager.GetBankAccountAsync();
                 await _ledgerRepository.InsertAsync(new LedgerEntry
                 {
+                    TenantId = AbpSession.TenantId,
+                    BranchId = sale.BranchId,
                     AccountId = bank.Id,
                     TransactionDate = sale.SaleDate,
                     VoucherType = VoucherTypes.Sale,
@@ -722,6 +728,8 @@ namespace SmartPos.Sales
             {
                 await _ledgerRepository.InsertAsync(new LedgerEntry
                 {
+                    TenantId = AbpSession.TenantId,
+                    BranchId = sale.BranchId,
                     AccountId = customerAccountId,
                     TransactionDate = sale.SaleDate,
                     VoucherType = VoucherTypes.Sale,

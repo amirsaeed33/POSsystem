@@ -233,6 +233,14 @@ namespace SmartPos.Reports
                 .ToListAsync();
 
             var effectiveBranchId = branchId ?? (await _branchAccessChecker.RequireEffectiveBranchIdAsync());
+            var reportBranch = await _branchRepository.FirstOrDefaultAsync(effectiveBranchId);
+            if (reportBranch != null && reportBranch.BusinessType == BusinessType.Restaurant)
+            {
+                products = products
+                    .Where(p => PermanentGrocery.IsInventoryProduct(p.Barcode, p.Name, p.Category?.Name))
+                    .ToList();
+            }
+
             var branchInfo = await _branchStockManager.GetBranchProductInfoAsync(effectiveBranchId, products.Select(p => p.Id));
 
             string StatusOf(Product p, decimal qty)

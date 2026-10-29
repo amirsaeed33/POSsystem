@@ -127,7 +127,23 @@
             </div>
         </div>
 
-        <div class="field col-12 flex flex-column gap-2 px-0 mb-0" *ngIf="isRestaurant">
+        <div class="formgrid grid" *ngIf="isRestaurant && isGroceryInventory">
+            <div class="field col-12 md:col-6 flex flex-column gap-2">
+                <label for="productCostRestaurant" class="font-medium">Purchase Price <span class="p-error">*</span></label>
+                <p-inputNumber inputId="productCostRestaurant" [(ngModel)]="product.costPrice" mode="decimal"
+                    [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
+                    [disabled]="saving"></p-inputNumber>
+            </div>
+            <div class="field col-12 md:col-6 flex flex-column gap-2">
+                <label for="productPriceRestaurantGrocery" class="font-medium">Selling Price</label>
+                <p-inputNumber inputId="productPriceRestaurantGrocery" [(ngModel)]="product.price" mode="decimal"
+                    [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
+                    [disabled]="saving"></p-inputNumber>
+                <small class="text-500">Optional for grocery ingredients (can be 0).</small>
+            </div>
+        </div>
+
+        <div class="field col-12 flex flex-column gap-2 px-0 mb-0" *ngIf="isRestaurant && !isGroceryInventory">
             <label for="productPriceRestaurant" class="font-medium">Price <span class="p-error">*</span></label>
             <p-inputNumber inputId="productPriceRestaurant" [(ngModel)]="product.price" mode="decimal"
                 [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"

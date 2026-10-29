@@ -9,6 +9,7 @@ using Abp.Extensions;
 using Abp.Linq.Extensions;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
+using System;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
@@ -27,6 +28,7 @@ namespace SmartPos.Sales
         private readonly IRepository<SaleReturnLine> _returnLineRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<User, long> _userRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
@@ -39,6 +41,7 @@ namespace SmartPos.Sales
             IRepository<SaleReturnLine> returnLineRepository,
             IRepository<Product> productRepository,
             IRepository<LedgerEntry> ledgerRepository,
+            IRepository<Branch> branchRepository,
             IRepository<User, long> userRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
@@ -50,6 +53,7 @@ namespace SmartPos.Sales
             _returnLineRepository = returnLineRepository;
             _productRepository = productRepository;
             _ledgerRepository = ledgerRepository;
+            _branchRepository = branchRepository;
             _userRepository = userRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
@@ -174,7 +178,6 @@ namespace SmartPos.Sales
                     LineTotal = lineTotal
                 });
 
-                await _branchStockManager.IncreaseAsync(sale.BranchId, saleLine.ProductId, lineInput.Quantity);
                 returnedByLine[saleLine.Id] = alreadyReturned + lineInput.Quantity;
             }
 
@@ -183,34 +186,22 @@ namespace SmartPos.Sales
                 throw new UserFriendlyException("Add at least one product to return.");
             }
 
+            var branch = await _branchRepository.FirstOrDefaultAsync(sale.BranchId);
+            var trackStock = branch == null || branch.BusinessType != BusinessType.Restaurant;
+
+            if (trackStock)
+            {
+                foreach (var line in saleReturn.Lines)
+                {
+                    await _branchStockManager.IncreaseAsync(sale.BranchId, line.ProductId, line.Quantity);
+                }
+            }
+
             saleReturn.TotalAmount = total;
             await _returnRepository.InsertAsync(saleReturn);
             await CurrentUnitOfWork.SaveChangesAsync();
 
-            var saleAccount = await _systemAccountManager.GetSaleAccountAsync();
-            var description = "Sale return for " + (sale.InvoiceNo.IsNullOrWhiteSpace() ? "#" + sale.Id : sale.InvoiceNo);
-
-            await _ledgerRepository.InsertAsync(new LedgerEntry
-            {
-                AccountId = saleAccount.Id,
-                TransactionDate = saleReturn.ReturnDate,
-                VoucherType = VoucherTypes.SaleReturn,
-                VoucherId = saleReturn.Id,
-                Debit = saleReturn.TotalAmount,
-                Credit = 0,
-                Description = description
-            });
-
-            await _ledgerRepository.InsertAsync(new LedgerEntry
-            {
-                AccountId = sale.Customer.AccountId.Value,
-                TransactionDate = saleReturn.ReturnDate,
-                VoucherType = VoucherTypes.SaleReturn,
-                VoucherId = saleReturn.Id,
-                Debit = 0,
-                Credit = saleReturn.TotalAmount,
-                Description = description
-            });
+            await PostSaleReturnLedgerAsync(sale, saleReturn);
 
             return await GetAsync(new EntityDto<int>(saleReturn.Id));
         }
@@ -227,14 +218,20 @@ namespace SmartPos.Sales
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(saleReturn.BranchId);
 
+            var branch = await _branchRepository.FirstOrDefaultAsync(saleReturn.BranchId);
+            var trackStock = branch == null || branch.BusinessType != BusinessType.Restaurant;
+
             foreach (var line in saleReturn.Lines.ToList())
             {
-                var product = await _productRepository.GetAsync(line.ProductId);
-                await _branchStockManager.DecreaseAsync(
-                    saleReturn.BranchId,
-                    line.ProductId,
-                    line.Quantity,
-                    product.Name);
+                if (trackStock)
+                {
+                    var product = await _productRepository.GetAsync(line.ProductId);
+                    await _branchStockManager.DecreaseAsync(
+                        saleReturn.BranchId,
+                        line.ProductId,
+                        line.Quantity,
+                        product.Name);
+                }
                 await _returnLineRepository.DeleteAsync(line);
             }
 
@@ -246,6 +243,112 @@ namespace SmartPos.Sales
             }
 
             await _returnRepository.DeleteAsync(saleReturn);
+        }
+
+        /// <summary>
+        /// Reverse sale revenue and original cash/card/credit payment mix proportionally.
+        /// </summary>
+        private async Task PostSaleReturnLedgerAsync(Sale sale, SaleReturn saleReturn)
+        {
+            var saleAccount = await _systemAccountManager.GetSaleAccountAsync();
+            var description = "Sale return for " + (sale.InvoiceNo.IsNullOrWhiteSpace() ? "#" + sale.Id : sale.InvoiceNo);
+
+            await _ledgerRepository.InsertAsync(new LedgerEntry
+            {
+                TenantId = AbpSession.TenantId,
+                BranchId = sale.BranchId,
+                AccountId = saleAccount.Id,
+                TransactionDate = saleReturn.ReturnDate,
+                VoucherType = VoucherTypes.SaleReturn,
+                VoucherId = saleReturn.Id,
+                Debit = saleReturn.TotalAmount,
+                Credit = 0,
+                Description = description
+            });
+
+            var saleTotal = sale.TotalAmount > 0 ? sale.TotalAmount : saleReturn.TotalAmount;
+            if (saleTotal <= 0)
+            {
+                saleTotal = 1;
+            }
+
+            var ratio = saleReturn.TotalAmount / saleTotal;
+            var cashPart = Math.Round(sale.CashAmount * ratio, 2);
+            var cardPart = Math.Round(sale.CardAmount * ratio, 2);
+            var creditPart = Math.Round(sale.CreditAmount * ratio, 2);
+
+            var allocated = cashPart + cardPart + creditPart;
+            var diff = saleReturn.TotalAmount - allocated;
+            if (diff != 0)
+            {
+                if (creditPart > 0 || (cashPart == 0 && cardPart == 0))
+                {
+                    creditPart += diff;
+                }
+                else if (cashPart > 0)
+                {
+                    cashPart += diff;
+                }
+                else
+                {
+                    cardPart += diff;
+                }
+            }
+
+            if (cashPart > 0)
+            {
+                var cash = await _systemAccountManager.GetCashAccountAsync();
+                await _ledgerRepository.InsertAsync(new LedgerEntry
+                {
+                    TenantId = AbpSession.TenantId,
+                    BranchId = sale.BranchId,
+                    AccountId = cash.Id,
+                    TransactionDate = saleReturn.ReturnDate,
+                    VoucherType = VoucherTypes.SaleReturn,
+                    VoucherId = saleReturn.Id,
+                    Debit = 0,
+                    Credit = cashPart,
+                    Description = description + " (Cash)"
+                });
+            }
+
+            if (cardPart > 0)
+            {
+                var bank = await _systemAccountManager.GetBankAccountAsync();
+                await _ledgerRepository.InsertAsync(new LedgerEntry
+                {
+                    TenantId = AbpSession.TenantId,
+                    BranchId = sale.BranchId,
+                    AccountId = bank.Id,
+                    TransactionDate = saleReturn.ReturnDate,
+                    VoucherType = VoucherTypes.SaleReturn,
+                    VoucherId = saleReturn.Id,
+                    Debit = 0,
+                    Credit = cardPart,
+                    Description = description + " (Card)"
+                });
+            }
+
+            if (creditPart > 0)
+            {
+                if (!sale.Customer.AccountId.HasValue)
+                {
+                    throw new UserFriendlyException("Customer has no linked account.");
+                }
+
+                await _ledgerRepository.InsertAsync(new LedgerEntry
+                {
+                    TenantId = AbpSession.TenantId,
+                    BranchId = sale.BranchId,
+                    AccountId = sale.Customer.AccountId.Value,
+                    TransactionDate = saleReturn.ReturnDate,
+                    VoucherType = VoucherTypes.SaleReturn,
+                    VoucherId = saleReturn.Id,
+                    Debit = 0,
+                    Credit = creditPart,
+                    Description = description + " (Credit)"
+                });
+            }
         }
 
         public async Task<PagedResultDto<SaleReturnDto>> GetAllAsync(PagedSaleReturnResultRequestDto input)

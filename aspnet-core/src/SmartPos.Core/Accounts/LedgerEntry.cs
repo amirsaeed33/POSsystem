@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Abp.Domain.Entities;
 using Abp.Domain.Entities.Auditing;
+using SmartPos.Branches;
 
 namespace SmartPos.Accounts
 {
@@ -13,6 +14,12 @@ namespace SmartPos.Accounts
         public const int MaxDescriptionLength = 512;
 
         public virtual int? TenantId { get; set; }
+
+        /// <summary>Branch that owns this posting (nullable for opening balances / system-wide).</summary>
+        public virtual int? BranchId { get; set; }
+
+        [ForeignKey(nameof(BranchId))]
+        public virtual Branch Branch { get; set; }
 
         [Required]
         public virtual int AccountId { get; set; }

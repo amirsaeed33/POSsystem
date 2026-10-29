@@ -9,6 +9,7 @@ using Abp.Domain.Uow;
 using Abp.Events.Bus;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
+using SmartPos.Branches;
 using SmartPos.Orders.Dto;
 
 namespace SmartPos.Orders
@@ -17,22 +18,25 @@ namespace SmartPos.Orders
     {
         private readonly IRepository<CustomerChatMessage, long> _chatMessageRepository;
         private readonly IRepository<CustomerOrder> _orderRepository;
+        private readonly IRepository<Branch> _branchRepository;
         private readonly IEventBus _eventBus;
 
         public CustomerChatAppService(
             IRepository<CustomerChatMessage, long> chatMessageRepository,
             IRepository<CustomerOrder> orderRepository,
+            IRepository<Branch> branchRepository,
             IEventBus eventBus)
         {
             _chatMessageRepository = chatMessageRepository;
             _orderRepository = orderRepository;
+            _branchRepository = branchRepository;
             _eventBus = eventBus;
         }
 
         [AbpAllowAnonymous]
         public async Task<List<CustomerChatMessageDto>> GetMessagesByOrderNoAsync(string orderNo)
         {
-            if (string.IsNullOrWhiteSpace(orderNo))
+            if (string.IsNullOrWhiteSpace(orderNo) || orderNo.Trim().Length < 6)
             {
                 return new List<CustomerChatMessageDto>();
             }
@@ -41,6 +45,15 @@ namespace SmartPos.Orders
 
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
             {
+                // Only expose chat when the order number maps to a real order.
+                var orderExists = await _orderRepository.GetAll()
+                    .AsNoTracking()
+                    .AnyAsync(o => o.OrderNo == cleanOrderNo);
+                if (!orderExists)
+                {
+                    return new List<CustomerChatMessageDto>();
+                }
+
                 var messages = await _chatMessageRepository.GetAll()
                     .AsNoTracking()
                     .Where(x => x.OrderNo == cleanOrderNo)
@@ -70,7 +83,7 @@ namespace SmartPos.Orders
         [AbpAllowAnonymous]
         public async Task<List<CustomerChatMessageDto>> GetMessagesBySessionAsync(string sessionId, int branchId)
         {
-            if (string.IsNullOrWhiteSpace(sessionId))
+            if (string.IsNullOrWhiteSpace(sessionId) || sessionId.Trim().Length < 8 || branchId <= 0)
             {
                 return new List<CustomerChatMessageDto>();
             }
@@ -79,14 +92,17 @@ namespace SmartPos.Orders
 
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
             {
+                var branchOk = await _branchRepository.GetAll()
+                    .AsNoTracking()
+                    .AnyAsync(b => b.Id == branchId && b.IsActive);
+                if (!branchOk)
+                {
+                    return new List<CustomerChatMessageDto>();
+                }
+
                 var query = _chatMessageRepository.GetAll()
                     .AsNoTracking()
-                    .Where(x => x.SessionId == cleanSessionId);
-
-                if (branchId > 0)
-                {
-                    query = query.Where(x => x.BranchId == branchId);
-                }
+                    .Where(x => x.SessionId == cleanSessionId && x.BranchId == branchId);
 
                 var messages = await query
                     .OrderBy(x => x.CreationTime)

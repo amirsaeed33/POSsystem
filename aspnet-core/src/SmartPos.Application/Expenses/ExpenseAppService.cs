@@ -98,6 +98,8 @@ namespace SmartPos.Expenses
 
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
+                TenantId = AbpSession.TenantId,
+                BranchId = branchId,
                 AccountId = expenseAccount.Id,
                 TransactionDate = expense.ExpenseDate,
                 VoucherType = VoucherTypes.Expense,
@@ -109,6 +111,8 @@ namespace SmartPos.Expenses
 
             await _ledgerRepository.InsertAsync(new LedgerEntry
             {
+                TenantId = AbpSession.TenantId,
+                BranchId = branchId,
                 AccountId = paymentAccount.Id,
                 TransactionDate = expense.ExpenseDate,
                 VoucherType = VoucherTypes.Expense,

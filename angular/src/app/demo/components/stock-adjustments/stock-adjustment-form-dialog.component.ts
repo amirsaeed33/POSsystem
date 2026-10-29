@@ -15,6 +15,7 @@ import {
 import { ProductDto } from 'src/app/demo/api/product';
 import { StockAdjustmentService } from 'src/app/demo/service/stock-adjustment.service';
 import { ProductService } from 'src/app/demo/service/product.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 
 @Component({
     selector: 'app-stock-adjustment-form-dialog',
@@ -39,9 +40,14 @@ export class StockAdjustmentFormDialogComponent implements OnChanges {
         { value: StockAdjustmentReasons.Other, label: 'Other' },
     ];
 
+    get isRestaurant(): boolean {
+        return this.branchContext.isRestaurant();
+    }
+
     constructor(
         private stockAdjustmentService: StockAdjustmentService,
         private productService: ProductService,
+        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -272,7 +278,17 @@ export class StockAdjustmentFormDialogComponent implements OnChanges {
                 skipCount: 0,
                 maxResultCount: 1000,
             });
-            this.products = products.items;
+            const items = products.items || [];
+            // Restaurant: only Permanent Grocery / legacy grocery inventory items.
+            this.products = this.isRestaurant
+                ? items.filter(
+                      (p) =>
+                          (p.categoryName || '').trim().toLowerCase() ===
+                              'permanent grocery' ||
+                          (p.barcode || '').startsWith('GROCERY-') ||
+                          (p.name || '').trim().toLowerCase() === 'grocery'
+                  )
+                : items;
         } catch (error: any) {
             this.messageService.add({
                 severity: 'error',

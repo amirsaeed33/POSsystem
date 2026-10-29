@@ -334,10 +334,15 @@ namespace SmartPos.EntityFrameworkCore
                 b.Property(x => x.Debit).HasPrecision(18, 2);
                 b.Property(x => x.Credit).HasPrecision(18, 2);
                 b.HasIndex(x => x.AccountId);
+                b.HasIndex(x => x.BranchId);
                 b.HasIndex(x => x.TransactionDate);
                 b.HasOne(x => x.Account)
                     .WithMany()
                     .HasForeignKey(x => x.AccountId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 

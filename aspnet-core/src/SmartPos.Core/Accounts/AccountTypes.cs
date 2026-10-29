@@ -25,7 +25,10 @@ namespace SmartPos.Accounts
     public static class VoucherTypes
     {
         public const string Invoice = "Invoice";
+        /// <summary>Legacy generic payment. Prefer PurchasePayment / PayrollPayment.</summary>
         public const string Payment = "Payment";
+        public const string PurchasePayment = "PurchasePayment";
+        public const string PayrollPayment = "PayrollPayment";
         public const string Journal = "Journal";
         public const string OpeningBalance = "OpeningBalance";
         public const string Adjustment = "Adjustment";
@@ -33,5 +36,43 @@ namespace SmartPos.Accounts
         public const string Sale = "Sale";
         public const string SaleReturn = "SaleReturn";
         public const string PurchaseReturn = "PurchaseReturn";
+
+        public static bool IsPurchasePayment(string voucherType, string description = null)
+        {
+            if (voucherType == PurchasePayment)
+            {
+                return true;
+            }
+
+            if (voucherType != Payment)
+            {
+                return false;
+            }
+
+            // Legacy Payment rows: exclude payroll salary payments.
+            if (!string.IsNullOrEmpty(description)
+                && description.StartsWith("Salary payment", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool IsPayrollPayment(string voucherType, string description = null)
+        {
+            if (voucherType == PayrollPayment)
+            {
+                return true;
+            }
+
+            if (voucherType != Payment)
+            {
+                return false;
+            }
+
+            return !string.IsNullOrEmpty(description)
+                   && description.StartsWith("Salary payment", System.StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
