@@ -7,7 +7,8 @@ namespace SmartPos.Restaurant
     {
         public RestaurantMapProfile()
         {
-            CreateMap<RestaurantTable, RestaurantTableDto>();
+            CreateMap<RestaurantTable, RestaurantTableDto>()
+                .ForMember(d => d.CurrentVehicleNumber, opt => opt.Ignore());
             CreateMap<RestaurantTableDto, RestaurantTable>()
                 .ForMember(x => x.Branch, opt => opt.Ignore())
                 .ForMember(x => x.TenantId, opt => opt.Ignore());

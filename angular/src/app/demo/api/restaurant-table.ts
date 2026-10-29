@@ -13,9 +13,12 @@ export interface RestaurantTableDto {
     tableNo: string;
     area?: string;
     capacity: number;
+    isCarBay?: boolean;
     status: TableStatus;
     statusName: string;
     currentOrderId?: number | null;
+    /** Plate / vehicle title from linked open/billed car order */
+    currentVehicleNumber?: string;
     waiterId?: number | null;
     waiterName?: string;
     isActive: boolean;
@@ -32,6 +35,7 @@ export interface CreateRestaurantTableDto {
     tableNo: string;
     area?: string;
     capacity: number;
+    isCarBay?: boolean;
     isActive?: boolean;
 }
 

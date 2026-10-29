@@ -53,7 +53,7 @@
                 <div class="text-sm text-500 mt-1">
                     <ng-container *ngIf="orderType === 'dineIn'">
                         <span *ngIf="isCarService" class="text-primary font-semibold flex flex-wrap align-items-center gap-2">
-                            <span><i class="pi pi-car mr-1 text-orange-600"></i>Car: <strong>{{ selectedCarName }} ({{ selectedCarNumber }})</strong> &bull; Spot: <strong>{{ selectedCarLocation }}</strong></span>
+                            <span><i class="pi pi-car mr-1 text-orange-600"></i><strong>{{ carServiceLabel }}</strong><span *ngIf="selectedCarLocation"> &bull; {{ selectedCarLocation }}</span></span>
                             <span
                                 *ngIf="waiterName"
                                 class="inline-flex align-items-center px-2 py-0.5 bg-green-100 text-green-800 border-round text-xs font-semibold cursor-pointer"
@@ -130,9 +130,22 @@
                 pRipple
                 type="button"
                 [icon]="isCarService ? 'pi pi-car' : (selectedTable ? 'pi pi-refresh' : 'pi pi-table')"
-                [label]="isCarService ? ('Car: ' + selectedCarNumber) : (selectedTable ? 'Change Table' : 'Select Table / Car')"
+                [label]="isCarService || selectedTable ? 'Switch Table / Car' : 'Select Table / Car'"
                 [class]="(isCarService || selectedTable) ? 'p-button-outlined p-button-primary' : 'p-button-primary'"
                 (click)="openTableDialog(false)"
+                [title]="isCarService ? ('Current: ' + carServiceLabel) : (selectedTable ? ('Current: ' + selectedTable.tableNo) : 'Select table or car')"
+            ></button>
+
+            <button
+                *ngIf="orderType === 'dineIn' && (selectedTable || isCarService || cart.length)"
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-plus"
+                label="New Order"
+                class="p-button-success"
+                title="Hold current order on its table/car and start another"
+                (click)="startNewOrder()"
             ></button>
 
             <button
@@ -895,9 +908,9 @@
         </ng-template>
     </p-dialog>
 
-    <!-- Restaurant Table / Car Service Selection Dialog -->
+    <!-- Restaurant Table / Car Bay Selection Dialog -->
     <p-dialog
-        header="🍽️ Dine-In: Tables & Car Service"
+        header="Dine-In: Tables &amp; Car Bays"
         [(visible)]="tableDialogVisible"
         (onHide)="onTableDialogHide()"
         [modal]="true"
@@ -906,120 +919,16 @@
         [resizable]="false"
     >
         <div class="flex flex-column gap-3">
-            <!-- Dining Option Switcher: Tables vs Car Service -->
-            <div class="flex flex-wrap align-items-center justify-content-between gap-2 pb-2 border-bottom-1 surface-border">
-                <p-selectButton
-                    [options]="[
-                        { label: '🪑 Tables', value: 'tables' },
-                        { label: '🚗 Car Service', value: 'carService' }
-                    ]"
-                    [(ngModel)]="diningOption"
-                    optionLabel="label"
-                    optionValue="value"
-                    (onChange)="onDiningOptionChange()"
-                ></p-selectButton>
-
-                <div *ngIf="diningOption === 'carService'" class="flex align-items-center gap-2">
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-plus"
-                        label="Add Car Service"
-                        class="p-button-success p-button-sm font-semibold"
-                        (click)="openAddCarServiceDialog()"
-                    ></button>
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-refresh"
-                        label="Refresh"
-                        class="p-button-outlined p-button-secondary p-button-sm"
-                        [loading]="loadingCarOrders"
-                        (click)="loadActiveCarOrders()"
-                    ></button>
+            <div
+                *ngIf="pendingSendToTable"
+                class="p-3 border-round-lg bg-orange-50 border-1 border-orange-200 text-orange-900 font-medium text-sm flex align-items-center gap-2"
+            >
+                <i class="pi pi-send text-orange-600 text-lg"></i>
+                <div>
+                    <strong>Select a table or car bay</strong> to send this order.
                 </div>
             </div>
 
-            <!-- CAR SERVICE VIEW -->
-            <div *ngIf="diningOption === 'carService'" class="flex flex-column gap-3">
-                <div
-                    *ngIf="pendingSendToTable"
-                    class="p-3 border-round-lg bg-orange-50 border-1 border-orange-200 text-orange-900 font-medium text-sm flex align-items-center gap-2"
-                >
-                    <i class="pi pi-car text-orange-600 text-lg"></i>
-                    <div>
-                        <strong>Select a Car Service:</strong> Click any active car below to send this order to that car.
-                    </div>
-                </div>
-
-                <div *ngIf="loadingCarOrders" class="text-center py-5 text-500">
-                    <i class="pi pi-spin pi-spinner text-2xl mr-2"></i> Loading car service orders...
-                </div>
-
-                <div *ngIf="!loadingCarOrders && activeCarOrders.length" class="grid">
-                    <div
-                        class="col-12 sm:col-6 md:col-4"
-                        *ngFor="let order of activeCarOrders"
-                    >
-                        <div
-                            class="p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column gap-2 shadow-1 hover:shadow-3 surface-card"
-                            [style.borderColor]="selectedCarOrder?.id === order.id ? '#0284c7' : '#e2e8f0'"
-                            [style.background]="selectedCarOrder?.id === order.id ? '#f0f9ff' : '#ffffff'"
-                            (click)="selectCarServiceOrder(order)"
-                        >
-                            <div class="flex align-items-center justify-content-between">
-                                <span class="font-bold text-lg text-900 flex align-items-center gap-1">
-                                    <i class="pi pi-car text-primary text-xl"></i> {{ order.carName }}
-                                </span>
-                                <span class="badge bg-blue-100 text-blue-800 px-2 py-0.5 border-round text-xs font-bold uppercase">
-                                    {{ order.carNumber }}
-                                </span>
-                            </div>
-                            <div class="text-xs text-600 flex align-items-center gap-1">
-                                <i class="pi pi-map-marker text-red-500"></i> Spot: <strong>{{ order.carLocation }}</strong>
-                            </div>
-                            <div class="flex align-items-center justify-content-between text-xs text-500 border-top-1 surface-border pt-2 mt-1">
-                                <span><i class="pi pi-user mr-1"></i>{{ order.waiterName || 'Staff' }}</span>
-                                <span class="font-bold text-primary">{{ order.grandTotal | currency:'PKR ':'symbol':'1.2-2' }}</span>
-                            </div>
-                            <div class="text-xs text-400">
-                                Order #{{ order.orderNo }} &bull; {{ order.creationTime | date:'shortTime' }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div *ngIf="!loadingCarOrders && !activeCarOrders.length" class="text-center py-5 surface-50 border-round-xl border-1 border-200">
-                    <i class="pi pi-car text-4xl text-400 mb-3 block"></i>
-                    <div class="font-bold text-lg text-800">No active car service orders</div>
-                    <div class="text-sm text-500 mt-1 mb-3">Click below to add a car service and create a new order.</div>
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-plus"
-                        label="Add Car Service"
-                        class="p-button-success font-semibold"
-                        (click)="openAddCarServiceDialog()"
-                    ></button>
-                </div>
-            </div>
-
-            <!-- TABLES VIEW -->
-            <div *ngIf="diningOption === 'tables'" class="flex flex-column gap-3">
-                <!-- Notice when triggered from 'Send to Table' -->
-                <div
-                    *ngIf="pendingSendToTable"
-                    class="p-3 border-round-lg bg-orange-50 border-1 border-orange-200 text-orange-900 font-medium text-sm flex align-items-center gap-2"
-                >
-                    <i class="pi pi-send text-orange-600 text-lg"></i>
-                    <div>
-                        <strong>Select a table:</strong> Click any table below to send this order directly to that table.
-                    </div>
-                </div>
-            <!-- Table Status Legend -->
             <div class="flex flex-wrap align-items-center justify-content-between gap-2 p-2 surface-50 border-round">
                 <div class="flex align-items-center gap-3 text-sm">
                     <span class="flex align-items-center gap-1">
@@ -1031,6 +940,7 @@
                     <span class="flex align-items-center gap-1">
                         <span class="border-circle bg-yellow-500" style="width: 10px; height: 10px;"></span> Billed
                     </span>
+                    <span class="text-500 text-xs ml-1">Cars: tap bay → enter plate</span>
                 </div>
                 <button
                     pButton
@@ -1044,137 +954,259 @@
                 ></button>
             </div>
 
-            <!-- Loading Spinner -->
             <div *ngIf="loadingTables" class="text-center py-5 text-500">
-                <i class="pi pi-spin pi-spinner text-2xl mr-2"></i> Loading tables...
+                <i class="pi pi-spin pi-spinner text-2xl mr-2"></i> Loading...
             </div>
 
-            <!-- Tables Grid -->
-            <div *ngIf="!loadingTables && tables.length" class="grid">
-                <div
-                    class="col-6 sm:col-4 md:col-3"
-                    *ngFor="let table of tables"
-                >
-                    <div
-                        class="p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column align-items-center text-center shadow-1 hover:shadow-3"
-                        [style.background]="
-                            selectedTable?.id === table.id
-                                ? '#e0f2fe'
-                                : table.status === 0
-                                  ? '#f0fdf4'
-                                  : table.status === 1
-                                    ? '#fef2f2'
-                                    : '#fefce8'
-                        "
-                        [style.borderColor]="
-                            selectedTable?.id === table.id
-                                ? '#0284c7'
-                                : table.status === 0
-                                  ? '#86efac'
-                                  : table.status === 1
-                                    ? '#fca5a5'
-                                    : '#fde047'
-                        "
-                        (click)="onTableClicked(table)"
-                    >
-                        <i
-                            class="pi pi-table text-2xl mb-2"
-                            [style.color]="
-                                selectedTable?.id === table.id
-                                    ? '#0284c7'
-                                    : table.status === 0
-                                      ? '#16a34a'
-                                      : table.status === 1
-                                        ? '#dc2626'
-                                        : '#ca8a04'
-                            "
-                        ></i>
-                        <div class="font-bold text-900 text-lg">{{ table.tableNo }}</div>
-                        <div class="text-xs text-500 mb-2">{{ table.area || 'Main Hall' }} &bull; {{ table.capacity }} Seats</div>
-                        <span
-                            class="text-xs px-2 py-1 border-round font-medium"
-                            [style.background]="
-                                table.status === 0
-                                    ? '#dcfce7'
-                                    : table.status === 1
-                                      ? '#fee2e2'
-                                      : '#fef9c3'
-                            "
-                            [style.color]="
-                                table.status === 0
-                                    ? '#15803d'
-                                    : table.status === 1
-                                      ? '#b91c1c'
-                                      : '#a16207'
-                            "
-                        >
-                            {{ table.statusName || (table.status === 0 ? 'Available' : table.status === 1 ? 'Occupied' : 'Billed') }}
-                        </span>
-                        <div *ngIf="table.waiterName" class="text-xs text-primary font-semibold mt-1">
-                            <i class="pi pi-user mr-1"></i>{{ table.waiterName }}
+            <ng-container *ngIf="!loadingTables">
+                <!-- TABLES SECTION -->
+                <div class="flex flex-column gap-2">
+                    <div class="flex align-items-center justify-content-between gap-2 pt-1">
+                        <div class="font-semibold text-800 flex align-items-center gap-2">
+                            <i class="pi pi-table text-primary"></i>
+                            Tables
+                            <span class="text-xs text-500 font-normal">({{ diningTables.length }})</span>
+                        </div>
+                    </div>
+
+                    <div *ngIf="diningTables.length" class="grid">
+                        <div class="col-6 sm:col-4 md:col-3" *ngFor="let table of diningTables">
+                            <div
+                                class="p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column align-items-center text-center shadow-1 hover:shadow-3"
+                                [style.background]="
+                                    selectedTable?.id === table.id
+                                        ? '#e0f2fe'
+                                        : table.status === 0
+                                          ? '#f0fdf4'
+                                          : table.status === 1
+                                            ? '#fef2f2'
+                                            : '#fefce8'
+                                "
+                                [style.borderColor]="
+                                    selectedTable?.id === table.id
+                                        ? '#0284c7'
+                                        : table.status === 0
+                                          ? '#86efac'
+                                          : table.status === 1
+                                            ? '#fca5a5'
+                                            : '#fde047'
+                                "
+                                (click)="onTableClicked(table)"
+                            >
+                                <i
+                                    class="pi pi-table text-2xl mb-2"
+                                    [style.color]="
+                                        selectedTable?.id === table.id
+                                            ? '#0284c7'
+                                            : table.status === 0
+                                              ? '#16a34a'
+                                              : table.status === 1
+                                                ? '#dc2626'
+                                                : '#ca8a04'
+                                    "
+                                ></i>
+                                <div class="font-bold text-900 text-lg">{{ table.tableNo }}</div>
+                                <div class="text-xs text-500 mb-1">
+                                    {{ table.area || 'Main Hall' }} &bull; {{ table.capacity }} Seats
+                                </div>
+                                <span
+                                    class="text-xs px-2 py-1 border-round font-medium"
+                                    [style.background]="
+                                        table.status === 0
+                                            ? '#dcfce7'
+                                            : table.status === 1
+                                              ? '#fee2e2'
+                                              : '#fef9c3'
+                                    "
+                                    [style.color]="
+                                        table.status === 0
+                                            ? '#15803d'
+                                            : table.status === 1
+                                              ? '#b91c1c'
+                                              : '#a16207'
+                                    "
+                                >
+                                    {{ table.statusName || (table.status === 0 ? 'Available' : table.status === 1 ? 'Occupied' : 'Billed') }}
+                                </span>
+                                <div *ngIf="table.waiterName" class="text-xs text-primary font-semibold mt-1">
+                                    <i class="pi pi-user mr-1"></i>{{ table.waiterName }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!diningTables.length" class="text-sm text-500 surface-50 border-round p-3">
+                        No dining tables yet. Use Quick Add Table below.
+                    </div>
+
+                    <div *ngIf="!isWaiter" class="surface-50 border-round-xl p-3 border-1 border-200">
+                        <div class="font-semibold text-800 mb-2 flex align-items-center gap-2">
+                            <i class="pi pi-plus-circle text-primary"></i> Quick Add Table
+                        </div>
+                        <div class="grid formgrid p-fluid">
+                            <div class="field col-12 sm:col-4 mb-2">
+                                <label class="text-xs font-medium">Table No / Name *</label>
+                                <input
+                                    pInputText
+                                    type="text"
+                                    placeholder="e.g. Table 1"
+                                    [(ngModel)]="newTableNo"
+                                    class="p-inputtext-sm"
+                                />
+                            </div>
+                            <div class="field col-12 sm:col-4 mb-2">
+                                <label class="text-xs font-medium">Area / Floor</label>
+                                <input
+                                    pInputText
+                                    type="text"
+                                    placeholder="e.g. Main Hall"
+                                    [(ngModel)]="newTableArea"
+                                    class="p-inputtext-sm"
+                                />
+                            </div>
+                            <div class="field col-8 sm:col-2 mb-2">
+                                <label class="text-xs font-medium">Seats</label>
+                                <p-inputNumber
+                                    [(ngModel)]="newTableCapacity"
+                                    [min]="1"
+                                    [max]="50"
+                                    styleClass="p-inputtext-sm"
+                                ></p-inputNumber>
+                            </div>
+                            <div class="field col-4 sm:col-2 mb-2 flex align-items-end">
+                                <button
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    label="Add"
+                                    icon="pi pi-check"
+                                    class="p-button-sm w-full"
+                                    [disabled]="!newTableNo.trim() || creatingTable"
+                                    [loading]="creatingTable"
+                                    (click)="createQuickTable()"
+                                ></button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Empty Tables State -->
-            <div *ngIf="!loadingTables && !tables.length" class="text-center py-4 surface-50 border-round">
-                <i class="pi pi-table text-3xl text-400 mb-2 block"></i>
-                <div class="font-medium text-700">No tables configured yet for this branch.</div>
-                <div class="text-sm text-500 mt-1">Use the quick form below to add your first tables (e.g. Table 1, Table 2).</div>
-            </div>
+                <div class="border-top-1 surface-border my-2"></div>
 
-            <!-- Quick Add Table Form -->
-            <div *ngIf="!isWaiter" class="surface-50 border-round-xl p-3 border-1 border-200 mt-2">
-                <div class="font-semibold text-800 mb-2 flex align-items-center gap-2">
-                    <i class="pi pi-plus-circle text-primary"></i> Quick Add Table
+                <!-- CAR BAYS SECTION -->
+                <div class="flex flex-column gap-2">
+                    <div class="font-semibold text-800 flex align-items-center gap-2">
+                        <i class="pi pi-car text-orange-600"></i>
+                        Car Bays
+                        <span class="text-xs text-500 font-normal">({{ carBays.length }})</span>
+                        <span class="text-xs text-500 font-normal ml-1">— tap bay, enter plate</span>
+                    </div>
+
+                    <div *ngIf="carBays.length" class="grid">
+                        <div class="col-6 sm:col-4 md:col-3" *ngFor="let table of carBays">
+                            <div
+                                class="p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column align-items-center text-center shadow-1 hover:shadow-3"
+                                [style.background]="
+                                    selectedTable?.id === table.id
+                                        ? '#e0f2fe'
+                                        : table.status === 0
+                                          ? '#f0fdf4'
+                                          : table.status === 1
+                                            ? '#fef2f2'
+                                            : '#fefce8'
+                                "
+                                [style.borderColor]="
+                                    selectedTable?.id === table.id
+                                        ? '#0284c7'
+                                        : table.status === 0
+                                          ? '#86efac'
+                                          : table.status === 1
+                                            ? '#fca5a5'
+                                            : '#fde047'
+                                "
+                                (click)="onTableClicked(table)"
+                            >
+                                <i
+                                    class="pi pi-car text-2xl mb-2"
+                                    [style.color]="
+                                        selectedTable?.id === table.id
+                                            ? '#0284c7'
+                                            : table.status === 0
+                                              ? '#16a34a'
+                                              : table.status === 1
+                                                ? '#dc2626'
+                                                : '#ca8a04'
+                                    "
+                                ></i>
+                                <div class="font-bold text-900 text-lg">{{ table.tableNo }}</div>
+                                <div class="text-xs text-500 mb-1">{{ table.area || 'Car Parking' }}</div>
+                                <div
+                                    *ngIf="table.currentVehicleNumber"
+                                    class="text-xs font-bold text-orange-700 mb-1 px-2 py-0.5 border-round bg-orange-50"
+                                >
+                                    {{ table.currentVehicleNumber }}
+                                </div>
+                                <span
+                                    class="text-xs px-2 py-1 border-round font-medium"
+                                    [style.background]="
+                                        table.status === 0
+                                            ? '#dcfce7'
+                                            : table.status === 1
+                                              ? '#fee2e2'
+                                              : '#fef9c3'
+                                    "
+                                    [style.color]="
+                                        table.status === 0
+                                            ? '#15803d'
+                                            : table.status === 1
+                                              ? '#b91c1c'
+                                              : '#a16207'
+                                    "
+                                >
+                                    {{ table.statusName || (table.status === 0 ? 'Available' : table.status === 1 ? 'Occupied' : 'Billed') }}
+                                </span>
+                                <div *ngIf="table.waiterName" class="text-xs text-primary font-semibold mt-1">
+                                    <i class="pi pi-user mr-1"></i>{{ table.waiterName }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div *ngIf="!carBays.length" class="text-sm text-500 surface-50 border-round p-3">
+                        No car bays yet. Add Car 1–5 below for parking service.
+                    </div>
+
+                    <div *ngIf="!isWaiter" class="surface-50 border-round-xl p-3 border-1 border-200">
+                        <div class="font-semibold text-800 mb-2 flex align-items-center gap-2">
+                            <i class="pi pi-car text-orange-600"></i> Quick Add Car Bay
+                        </div>
+                        <div class="text-xs text-500 mb-2">
+                            Permanent slots (Car 1, Car 2…). When a car arrives, tap the bay and enter the plate number.
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Add next Car"
+                                icon="pi pi-plus"
+                                class="p-button-sm p-button-outlined"
+                                [loading]="creatingCarBay"
+                                (click)="createQuickCarBay()"
+                            ></button>
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Add Car 1–5"
+                                icon="pi pi-car"
+                                class="p-button-sm p-button-warning"
+                                [loading]="creatingCarBay"
+                                (click)="createCarBaysBatch(5)"
+                            ></button>
+                        </div>
+                    </div>
                 </div>
-                <div class="grid formgrid p-fluid">
-                    <div class="field col-12 sm:col-4 mb-2">
-                        <label class="text-xs font-medium">Table No / Name *</label>
-                        <input
-                            pInputText
-                            type="text"
-                            placeholder="e.g. Table 1"
-                            [(ngModel)]="newTableNo"
-                            class="p-inputtext-sm"
-                        />
-                    </div>
-                    <div class="field col-12 sm:col-4 mb-2">
-                        <label class="text-xs font-medium">Area / Floor</label>
-                        <input
-                            pInputText
-                            type="text"
-                            placeholder="e.g. Main Hall"
-                            [(ngModel)]="newTableArea"
-                            class="p-inputtext-sm"
-                        />
-                    </div>
-                    <div class="field col-8 sm:col-2 mb-2">
-                        <label class="text-xs font-medium">Seats</label>
-                        <p-inputNumber
-                            [(ngModel)]="newTableCapacity"
-                            [min]="1"
-                            [max]="50"
-                            styleClass="p-inputtext-sm"
-                        ></p-inputNumber>
-                    </div>
-                    <div class="field col-4 sm:col-2 mb-2 flex align-items-end">
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            label="Add"
-                            icon="pi pi-check"
-                            class="p-button-sm w-full"
-                            [disabled]="!newTableNo.trim() || creatingTable"
-                            [loading]="creatingTable"
-                            (click)="createQuickTable()"
-                        ></button>
-                    </div>
-                </div>
-            </div>
-        </div>
+            </ng-container>
         </div>
 
         <ng-template pTemplate="footer">
@@ -1195,6 +1227,63 @@
                 label="Close"
                 class="p-button-text"
                 (click)="tableDialogVisible = false"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Vehicle plate for car bay -->
+    <p-dialog
+        header="Assign Vehicle Number"
+        [(visible)]="vehicleDialogVisible"
+        (onHide)="cancelVehicleDialog()"
+        [modal]="true"
+        [style]="{ width: '26rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <div class="flex flex-column gap-3">
+            <div class="surface-50 border-round p-3">
+                <div class="text-xs text-500 uppercase font-semibold">Car Bay</div>
+                <div class="font-bold text-lg text-900 mt-1">
+                    {{ pendingVehicleTable?.tableNo }}
+                    <span class="text-sm text-500 font-normal">
+                        ({{ pendingVehicleTable?.area || 'Car Parking' }})
+                    </span>
+                </div>
+            </div>
+            <div class="field mb-0 p-fluid">
+                <label class="text-sm font-semibold" for="vehiclePlate">Vehicle number / plate *</label>
+                <input
+                    id="vehiclePlate"
+                    pInputText
+                    type="text"
+                    placeholder="e.g. LEA-4021"
+                    [(ngModel)]="pendingVehicleNumber"
+                    class="w-full text-lg font-semibold"
+                    (keydown.enter)="confirmVehicleNumber()"
+                    autofocus
+                />
+                <small class="text-500">Shown on KOT and bill so kitchen/staff know which car.</small>
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="cancelVehicleDialog()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Continue"
+                icon="pi pi-check"
+                class="p-button-success"
+                [disabled]="!(pendingVehicleNumber || '').trim()"
+                (click)="confirmVehicleNumber()"
             ></button>
         </ng-template>
     </p-dialog>
@@ -1280,7 +1369,7 @@
             <div class="p-3 surface-50 border-round text-center">
                 <i class="pi pi-check-circle text-green-500 text-3xl mb-1 block"></i>
                 <div class="font-bold text-900">{{ isCarService ? 'Sent to Car Successfully' : (orderType === 'takeaway' ? 'Sent to Kitchen KOT' : 'Sent to Table Successfully') }}</div>
-                <div class="text-xs text-500 mt-1">Ticket dispatched for {{ kotResult?.carNumber ? ('Car: ' + (kotResult?.carName || '') + ' (' + kotResult?.carNumber + ')') : (kotResult?.tableNo || selectedTable?.tableNo || 'Takeaway') }}</div>
+                <div class="text-xs text-500 mt-1">Ticket dispatched for {{ (kotResult?.carNumber || isCarService) ? (carServiceLabel || ('Car: ' + (kotResult?.carName || '') + ' (' + (kotResult?.carNumber || '') + ')')) : (kotResult?.tableNo || selectedTable?.tableNo || 'Takeaway') }}</div>
             </div>
 
             <!-- Thermal KOT Ticket Preview Container -->
@@ -1293,8 +1382,8 @@
                     <div class="font-bold text-base">*** KITCHEN ORDER TICKET ***</div>
                     <div class="text-xs font-semibold mt-1">
                         <span *ngIf="kotResult?.carNumber || isCarService">
-                            Car: <strong>{{ kotResult?.carName || selectedCarName }} ({{ kotResult?.carNumber || selectedCarNumber }})</strong>
-                            <span *ngIf="kotResult?.carLocation || selectedCarLocation">&bull; Spot: <strong>{{ kotResult?.carLocation || selectedCarLocation }}</strong></span>
+                            Car: <strong>{{ carServiceLabel || ((kotResult?.carName || selectedCarName) + ' • ' + (kotResult?.carNumber || selectedCarNumber)) }}</strong>
+                            <span *ngIf="kotResult?.carLocation || selectedCarLocation">&bull; {{ kotResult?.carLocation || selectedCarLocation }}</span>
                         </span>
                         <span *ngIf="!kotResult?.carNumber && !isCarService">
                             Table: <strong>{{ kotResult?.tableNo || selectedTable?.tableNo || 'Takeaway' }}</strong>
@@ -1394,7 +1483,7 @@
                     <div class="text-xs font-semibold mt-1">*** GUEST CHECK ***</div>
                     <div class="text-xs">
                         <span *ngIf="isCarService">
-                            Car: <strong>{{ selectedCarName }} ({{ selectedCarNumber }})</strong> &bull; Spot: <strong>{{ selectedCarLocation }}</strong> &bull; Order: #{{ activeOrderNo || 'N/A' }}
+                            Car: <strong>{{ carServiceLabel }}</strong><span *ngIf="selectedCarLocation"> &bull; {{ selectedCarLocation }}</span> &bull; Order: #{{ activeOrderNo || 'N/A' }}
                         </span>
                         <span *ngIf="!isCarService">
                             Table: <strong>{{ selectedTable?.tableNo || 'Takeaway' }}</strong> &bull; Order: #{{ activeOrderNo || 'N/A' }}
@@ -2255,89 +2344,6 @@
                     class="p-button-danger"
                     [loading]="cancellingTakeawayOrder"
                     (click)="confirmCancelTakeawayOrder()"
-                ></button>
-            </div>
-        </ng-template>
-    </p-dialog>
-
-    <!-- 🚗 Add Car Service Dialog -->
-    <p-dialog
-        header="🚗 Add Car Service"
-        [(visible)]="addCarServiceDialogVisible"
-        [modal]="true"
-        [style]="{ width: '32rem', maxWidth: '95vw' }"
-        [draggable]="false"
-        [resizable]="false"
-    >
-        <div class="flex flex-column gap-3 p-fluid">
-            <div class="field mb-0">
-                <label class="text-sm font-semibold">Car Name *</label>
-                <input
-                    pInputText
-                    type="text"
-                    placeholder="e.g. Civic, Corolla, Sportage"
-                    [(ngModel)]="newCarName"
-                    class="w-full"
-                />
-            </div>
-
-            <div class="field mb-0">
-                <label class="text-sm font-semibold">Car Number / Plate *</label>
-                <input
-                    pInputText
-                    type="text"
-                    placeholder="e.g. LE-1234, ICT-889"
-                    [(ngModel)]="newCarNumber"
-                    class="w-full"
-                />
-            </div>
-
-            <div class="field mb-0">
-                <label class="text-sm font-semibold">Car Location / Spot *</label>
-                <input
-                    pInputText
-                    type="text"
-                    placeholder="e.g. Parking Spot 1, Outside Front Gate"
-                    [(ngModel)]="newCarLocation"
-                    class="w-full"
-                />
-            </div>
-
-            <!-- Waiter Assignment (Admin only) -->
-            <div class="field mb-0" *ngIf="!isWaiter">
-                <label class="text-sm font-semibold">Assign Waiter</label>
-                <p-dropdown
-                    [options]="waiters"
-                    [(ngModel)]="newCarWaiterId"
-                    optionLabel="name"
-                    optionValue="id"
-                    placeholder="Select Waiter (Optional)"
-                    [showClear]="true"
-                    class="w-full"
-                ></p-dropdown>
-            </div>
-        </div>
-
-        <ng-template pTemplate="footer">
-            <div class="flex justify-content-end gap-2">
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    label="Cancel"
-                    class="p-button-text p-button-secondary"
-                    (click)="addCarServiceDialogVisible = false"
-                    [disabled]="reservingCarService"
-                ></button>
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    label="Reserve & Create Order"
-                    icon="pi pi-check"
-                    class="p-button-success font-semibold"
-                    [loading]="reservingCarService"
-                    (click)="createCarServiceOrder()"
                 ></button>
             </div>
         </ng-template>

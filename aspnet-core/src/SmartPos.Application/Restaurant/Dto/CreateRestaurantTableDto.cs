@@ -17,6 +17,8 @@ namespace SmartPos.Restaurant.Dto
 
         public int Capacity { get; set; } = 4;
 
+        public bool IsCarBay { get; set; }
+
         public bool IsActive { get; set; } = true;
     }
 }

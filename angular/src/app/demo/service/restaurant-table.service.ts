@@ -87,15 +87,26 @@ export class RestaurantTableService {
     }
 
     private map(item: any): RestaurantTableDto {
+        const tableNo = item.tableNo ?? item.TableNo ?? '';
+        const area = item.area ?? item.Area ?? 'Main Hall';
+        const flagged = !!(item.isCarBay ?? item.IsCarBay);
+        const looksLikeCar =
+            flagged ||
+            (area || '').trim().toLowerCase() === 'car parking' ||
+            (area || '').toLowerCase().includes('car park') ||
+            /^car[\s-]/i.test((tableNo || '').trim());
         return {
             id: item.id ?? item.Id,
             branchId: item.branchId ?? item.BranchId,
-            tableNo: item.tableNo ?? item.TableNo,
-            area: item.area ?? item.Area ?? 'Main Hall',
+            tableNo,
+            area,
             capacity: item.capacity ?? item.Capacity ?? 4,
+            isCarBay: looksLikeCar,
             status: item.status ?? item.Status ?? 0,
             statusName: item.statusName ?? item.StatusName ?? 'Available',
             currentOrderId: item.currentOrderId ?? item.CurrentOrderId ?? null,
+            currentVehicleNumber:
+                item.currentVehicleNumber ?? item.CurrentVehicleNumber ?? '',
             waiterId: item.waiterId ?? item.WaiterId ?? null,
             waiterName: item.waiterName ?? item.WaiterName ?? '',
             isActive: item.isActive ?? item.IsActive ?? true,

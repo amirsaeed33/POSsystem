@@ -13,11 +13,16 @@ namespace SmartPos.Restaurant.Dto
 
         public int Capacity { get; set; }
 
+        public bool IsCarBay { get; set; }
+
         public TableStatus Status { get; set; }
 
         public string StatusName => Status.ToString();
 
         public int? CurrentOrderId { get; set; }
+
+        /// <summary>Plate / vehicle title from the linked open/billed car order, if any.</summary>
+        public string CurrentVehicleNumber { get; set; }
 
         public int? WaiterId { get; set; }
 

@@ -215,6 +215,18 @@ namespace SmartPos.Restaurant
                 isNew = true;
             }
 
+            RestaurantTable linkedTable = null;
+            if (order.TableId.HasValue)
+            {
+                linkedTable = await _tableRepository.FirstOrDefaultAsync(order.TableId.Value);
+            }
+
+            var tableIsCarBay = linkedTable != null
+                && RestaurantTable.LooksLikeCarBay(linkedTable.TableNo, linkedTable.Area, linkedTable.IsCarBay);
+            var isCarOrder = tableIsCarBay
+                || input.OrderType == OrderType.CarService
+                || !string.IsNullOrWhiteSpace(input.CarNumber);
+
             var isWaiter = await IsCurrentUserWaiterAsync();
             order.CustomerId = input.CustomerId;
             if (isWaiter)
@@ -225,27 +237,49 @@ namespace SmartPos.Restaurant
             else
             {
                 order.WaiterName = input.WaiterName;
-                if (string.IsNullOrWhiteSpace(order.WaiterName) && order.TableId.HasValue)
+                if (string.IsNullOrWhiteSpace(order.WaiterName) && !string.IsNullOrWhiteSpace(linkedTable?.WaiterName))
                 {
-                    var tbl = await _tableRepository.FirstOrDefaultAsync(order.TableId.Value);
-                    if (!string.IsNullOrWhiteSpace(tbl?.WaiterName))
-                    {
-                        order.WaiterName = tbl.WaiterName;
-                    }
+                    order.WaiterName = linkedTable.WaiterName;
                 }
             }
             order.Notes = input.Notes;
-            order.OrderType = input.OrderType;
-            if (!string.IsNullOrWhiteSpace(input.CarName)) order.CarName = input.CarName;
-            if (!string.IsNullOrWhiteSpace(input.CarNumber)) order.CarNumber = input.CarNumber;
-            if (!string.IsNullOrWhiteSpace(input.CarLocation)) order.CarLocation = input.CarLocation;
-            if (!string.IsNullOrWhiteSpace(input.TableNo))
+            order.OrderType = isCarOrder ? OrderType.CarService : input.OrderType;
+
+            if (isCarOrder)
             {
-                order.TableNo = input.TableNo;
+                order.CarName = !string.IsNullOrWhiteSpace(input.CarName)
+                    ? input.CarName.Trim()
+                    : (linkedTable?.TableNo ?? order.CarName);
+                if (!string.IsNullOrWhiteSpace(input.CarNumber))
+                {
+                    order.CarNumber = input.CarNumber.Trim();
+                }
+                order.CarLocation = !string.IsNullOrWhiteSpace(input.CarLocation)
+                    ? input.CarLocation.Trim()
+                    : (string.IsNullOrWhiteSpace(linkedTable?.Area) ? "Car Parking" : linkedTable.Area.Trim());
+
+                if (string.IsNullOrWhiteSpace(order.CarNumber) && isNew)
+                {
+                    throw new UserFriendlyException("Vehicle number / plate is required for car service.");
+                }
+
+                order.TableNo = !string.IsNullOrWhiteSpace(order.CarNumber)
+                    ? $"Car: {order.CarName} - {order.CarNumber}"
+                    : (linkedTable?.TableNo ?? order.TableNo);
             }
-            else if (order.OrderType == OrderType.CarService && !string.IsNullOrWhiteSpace(order.CarNumber))
+            else
             {
-                order.TableNo = $"Car: {order.CarName} - {order.CarNumber}";
+                order.CarName = null;
+                order.CarNumber = null;
+                order.CarLocation = null;
+                if (!string.IsNullOrWhiteSpace(input.TableNo))
+                {
+                    order.TableNo = input.TableNo;
+                }
+                else if (linkedTable != null)
+                {
+                    order.TableNo = linkedTable.TableNo;
+                }
             }
 
             decimal subTotal = 0;
@@ -336,7 +370,7 @@ namespace SmartPos.Restaurant
             order.TaxAmount = input.TaxPercent > 0 ? Math.Round((taxable * input.TaxPercent) / 100m, 2) : 0;
 
             order.ServiceChargePercent = input.ServiceChargePercent;
-            order.ServiceChargeAmount = (input.ServiceChargePercent > 0 && (input.OrderType == OrderType.DineIn || input.OrderType == OrderType.CarService))
+            order.ServiceChargeAmount = (input.ServiceChargePercent > 0 && (order.OrderType == OrderType.DineIn || order.OrderType == OrderType.CarService))
                 ? Math.Round((taxable * input.ServiceChargePercent) / 100m, 2)
                 : 0;
 
@@ -676,7 +710,7 @@ namespace SmartPos.Restaurant
             string tableTag;
             if (order.OrderType == OrderType.CarService || !string.IsNullOrWhiteSpace(order.CarNumber))
             {
-                tableTag = $"[Car Service - {order.CarName} ({order.CarNumber}) - {order.CarLocation}]{waiterTag}";
+                tableTag = $"[Car Service - {order.CarName} • {order.CarNumber}]{waiterTag}";
             }
             else if (order.OrderType == OrderType.DineIn)
             {

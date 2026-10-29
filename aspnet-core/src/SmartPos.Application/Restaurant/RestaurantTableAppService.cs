@@ -30,18 +30,64 @@ namespace SmartPos.Restaurant
         public async Task<List<RestaurantTableDto>> GetTablesAsync(int branchId)
         {
             var tables = await _tableRepository.GetAll()
+                .AsNoTracking()
                 .Where(t => t.BranchId == branchId && t.IsActive)
-                .OrderBy(t => t.Area)
+                .OrderBy(t => t.IsCarBay ? 1 : 0)
+                .ThenBy(t => t.Area)
                 .ThenBy(t => t.TableNo)
                 .ToListAsync();
 
-            return ObjectMapper.Map<List<RestaurantTableDto>>(tables);
+            var orderIds = tables
+                .Where(t => t.CurrentOrderId.HasValue)
+                .Select(t => t.CurrentOrderId.Value)
+                .Distinct()
+                .ToList();
+
+            var vehicleByOrderId = new Dictionary<int, string>();
+            if (orderIds.Count > 0)
+            {
+                try
+                {
+                    var carNumbers = await _orderRepository.GetAll()
+                        .AsNoTracking()
+                        .Where(o => orderIds.Contains(o.Id))
+                        .Select(o => new { o.Id, o.CarNumber })
+                        .ToListAsync();
+
+                    foreach (var row in carNumbers)
+                    {
+                        if (!string.IsNullOrWhiteSpace(row.CarNumber))
+                        {
+                            vehicleByOrderId[row.Id] = row.CarNumber.Trim();
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Older DBs may be missing car columns; still return tables/bays.
+                }
+            }
+
+            var result = new List<RestaurantTableDto>(tables.Count);
+            foreach (var table in tables)
+            {
+                var dto = ObjectMapper.Map<RestaurantTableDto>(table);
+                dto.IsCarBay = RestaurantTable.LooksLikeCarBay(table.TableNo, table.Area, table.IsCarBay);
+                if (table.CurrentOrderId.HasValue
+                    && vehicleByOrderId.TryGetValue(table.CurrentOrderId.Value, out var plate))
+                {
+                    dto.CurrentVehicleNumber = plate;
+                }
+                result.Add(dto);
+            }
+
+            return result;
         }
 
         public async Task<RestaurantTableDto> GetAsync(EntityDto<int> input)
         {
             var table = await _tableRepository.GetAsync(input.Id);
-            return ObjectMapper.Map<RestaurantTableDto>(table);
+            return await MapTableDtoAsync(table);
         }
 
         public async Task<RestaurantTableDto> CreateAsync(CreateRestaurantTableDto input)
@@ -54,15 +100,25 @@ namespace SmartPos.Restaurant
                 throw new UserFriendlyException($"Table '{input.TableNo}' already exists in this branch.");
             }
 
+            var isCarBay = input.IsCarBay
+                || RestaurantTable.LooksLikeCarBay(input.TableNo, input.Area, false);
+
             var table = ObjectMapper.Map<RestaurantTable>(input);
             table.Status = TableStatus.Available;
             table.TableNo = input.TableNo.Trim();
-            table.Area = string.IsNullOrWhiteSpace(input.Area) ? "Main Hall" : input.Area.Trim();
+            table.IsCarBay = isCarBay;
+            table.Area = string.IsNullOrWhiteSpace(input.Area)
+                ? (isCarBay ? "Car Parking" : "Main Hall")
+                : input.Area.Trim();
+            if (isCarBay && table.Capacity <= 0)
+            {
+                table.Capacity = 4;
+            }
 
             var id = await _tableRepository.InsertAndGetIdAsync(table);
             table.Id = id;
 
-            return ObjectMapper.Map<RestaurantTableDto>(table);
+            return await MapTableDtoAsync(table);
         }
 
         public async Task<RestaurantTableDto> UpdateAsync(RestaurantTableDto input)
@@ -81,10 +137,12 @@ namespace SmartPos.Restaurant
             table.Area = string.IsNullOrWhiteSpace(input.Area) ? "Main Hall" : input.Area.Trim();
             table.Capacity = input.Capacity;
             table.IsActive = input.IsActive;
+            table.IsCarBay = input.IsCarBay
+                || RestaurantTable.LooksLikeCarBay(table.TableNo, table.Area, false);
 
             await _tableRepository.UpdateAsync(table);
 
-            return ObjectMapper.Map<RestaurantTableDto>(table);
+            return await MapTableDtoAsync(table);
         }
 
         public async Task DeleteAsync(EntityDto<int> input)
@@ -105,7 +163,7 @@ namespace SmartPos.Restaurant
             table.CurrentOrderId = input.CurrentOrderId;
 
             await _tableRepository.UpdateAsync(table);
-            return ObjectMapper.Map<RestaurantTableDto>(table);
+            return await MapTableDtoAsync(table);
         }
 
         public async Task TransferTableAsync(int fromTableId, int toTableId)
@@ -139,6 +197,26 @@ namespace SmartPos.Restaurant
                     {
                         order.WaiterName = dest.WaiterName;
                     }
+
+                    var destIsCar = RestaurantTable.LooksLikeCarBay(dest.TableNo, dest.Area, dest.IsCarBay);
+                    if (destIsCar)
+                    {
+                        order.OrderType = OrderType.CarService;
+                        order.CarName = dest.TableNo;
+                        order.CarLocation = string.IsNullOrWhiteSpace(dest.Area) ? "Car Parking" : dest.Area;
+                        if (!string.IsNullOrWhiteSpace(order.CarNumber))
+                        {
+                            order.TableNo = $"Car: {order.CarName} - {order.CarNumber}";
+                        }
+                    }
+                    else
+                    {
+                        order.OrderType = OrderType.DineIn;
+                        order.CarName = null;
+                        order.CarNumber = null;
+                        order.CarLocation = null;
+                    }
+
                     await _orderRepository.UpdateAsync(order);
                 }
             }
@@ -169,7 +247,27 @@ namespace SmartPos.Restaurant
                 }
             }
 
-            return ObjectMapper.Map<RestaurantTableDto>(table);
+            return await MapTableDtoAsync(table);
+        }
+
+        private async Task<RestaurantTableDto> MapTableDtoAsync(RestaurantTable table)
+        {
+            var dto = ObjectMapper.Map<RestaurantTableDto>(table);
+            dto.IsCarBay = RestaurantTable.LooksLikeCarBay(table.TableNo, table.Area, table.IsCarBay);
+            if (table.CurrentOrderId.HasValue)
+            {
+                var order = await _orderRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(o => o.Id == table.CurrentOrderId.Value)
+                    .Select(o => new { o.CarNumber })
+                    .FirstOrDefaultAsync();
+                if (!string.IsNullOrWhiteSpace(order?.CarNumber))
+                {
+                    dto.CurrentVehicleNumber = order.CarNumber.Trim();
+                }
+            }
+
+            return dto;
         }
     }
 }

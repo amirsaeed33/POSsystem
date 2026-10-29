@@ -14,8 +14,8 @@ import { ProductDto } from 'src/app/demo/api/product';
 import { RestaurantTableDto } from 'src/app/demo/api/restaurant-table';
 import {
     CreateOrUpdateRestaurantOrderDto,
+    OrderType,
     OrderTypes,
-    ReserveCarServiceDto,
     RestaurantOrderDto,
     RestaurantOrderStatuses,
     SendToKitchenResultDto,
@@ -81,26 +81,47 @@ export class PosComponent implements OnInit, OnDestroy {
     loadingTables = false;
     pendingSendToTable = false;
 
-    // Restaurant Dine-In: Tables vs Car Service
-    diningOption: 'tables' | 'carService' = 'tables';
-    activeCarOrders: RestaurantOrderDto[] = [];
-    loadingCarOrders = false;
-    addCarServiceDialogVisible = false;
-    reservingCarService = false;
+    // Car bay (permanent Car 1–N slots) + vehicle plate on select
     selectedCarOrder: RestaurantOrderDto | null = null;
     selectedCarName = '';
     selectedCarNumber = '';
     selectedCarLocation = '';
-
-    // New Car Service Form
-    newCarName = '';
-    newCarNumber = '';
-    newCarLocation = '';
-    newCarWaiterId: number | null = null;
-    newCarWaiterName = '';
+    vehicleDialogVisible = false;
+    pendingVehicleTable: RestaurantTableDto | null = null;
+    pendingVehicleNumber = '';
+    creatingCarBay = false;
 
     get isCarService(): boolean {
-        return this.isRestaurantMode && this.orderType === 'dineIn' && (!!this.selectedCarOrder || !!this.selectedCarNumber);
+        if (!this.isRestaurantMode || this.orderType !== 'dineIn') {
+            return false;
+        }
+        return (
+            !!this.selectedCarNumber ||
+            !!this.selectedCarOrder ||
+            this.isCarBay(this.selectedTable)
+        );
+    }
+
+    isCarBay(table: RestaurantTableDto | null | undefined): boolean {
+        if (!table) return false;
+        if (table.isCarBay) return true;
+        const area = (table.area || '').trim().toLowerCase();
+        if (area === 'car parking' || area.includes('car park')) return true;
+        return /^car[\s-]/i.test((table.tableNo || '').trim());
+    }
+
+    get diningTables(): RestaurantTableDto[] {
+        return (this.tables || []).filter((t) => !this.isCarBay(t));
+    }
+
+    get carBays(): RestaurantTableDto[] {
+        return (this.tables || []).filter((t) => this.isCarBay(t));
+    }
+
+    get carServiceLabel(): string {
+        if (!this.isCarService) return '';
+        const bay = this.selectedCarName || this.selectedTable?.tableNo || 'Car';
+        return this.selectedCarNumber ? `${bay} • ${this.selectedCarNumber}` : bay;
     }
 
     // Restaurant POS Category Filtering
@@ -498,6 +519,13 @@ export class PosComponent implements OnInit, OnDestroy {
             })
             .catch((err) => {
                 console.error('Failed to load tables', err);
+                this.tables = [];
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Tables',
+                    detail: err?.message || 'Failed to load tables / car bays. Restart API after DB update if needed.',
+                    life: 5000,
+                });
             })
             .finally(() => {
                 this.loadingTables = false;
@@ -515,168 +543,164 @@ export class PosComponent implements OnInit, OnDestroy {
     openTableDialog(forSend: boolean = false): void {
         this.pendingSendToTable = forSend;
         this.loadTables();
-        this.loadActiveCarOrders();
         if (!this.waiters.length) {
             this.loadWaiters();
         }
         this.tableDialogVisible = true;
     }
 
-    onDiningOptionChange(event?: any): void {
-        if (this.diningOption === 'carService') {
-            this.loadActiveCarOrders();
-            if (!this.waiters.length) {
-                this.loadWaiters();
-            }
-        } else {
-            this.loadTables();
-        }
+    /**
+     * Park current dine-in/car order (if any), clear POS, open picker for another table/car.
+     * Lets staff take multiple concurrent car/table orders without settling first.
+     */
+    async startNewOrder(): Promise<void> {
+        if (!this.isRestaurantMode) return;
+
+        const parked = await this.parkCurrentDineInOrderIfNeeded();
+        if (!parked) return;
+
+        this.clearTableSelection();
+        this.orderType = 'dineIn';
+        this.openTableDialog(false);
+        this.messageService.add({
+            severity: 'info',
+            summary: 'New Order',
+            detail: 'Select a table or car bay to start the next order.',
+            life: 2500,
+        });
     }
 
-    async loadActiveCarOrders(): Promise<void> {
-        const branchId = this.branchContext.getBranchId();
-        if (!branchId || !this.isRestaurantMode) {
-            this.activeCarOrders = [];
-            return;
-        }
-        this.loadingCarOrders = true;
-        try {
-            this.activeCarOrders = await this.restaurantOrderService.getActiveCarOrders(branchId);
-        } catch {
-            this.activeCarOrders = [];
-        } finally {
-            this.loadingCarOrders = false;
-        }
-    }
-
-    openAddCarServiceDialog(): void {
-        this.newCarName = '';
-        this.newCarNumber = '';
-        this.newCarLocation = '';
-        this.newCarWaiterId = null;
-        this.newCarWaiterName = '';
-        if (!this.waiters.length) {
-            this.loadWaiters();
-        }
-        this.addCarServiceDialogVisible = true;
-    }
-
-    async createCarServiceOrder(): Promise<void> {
-        if (!this.newCarName?.trim()) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Validation Error',
-                detail: 'Car Name is required.',
-                life: 3500,
-            });
-            return;
-        }
-        if (!this.newCarNumber?.trim()) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Validation Error',
-                detail: 'Car Number is required.',
-                life: 3500,
-            });
-            return;
-        }
-        if (!this.newCarLocation?.trim()) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Validation Error',
-                detail: 'Car Location is required.',
-                life: 3500,
-            });
-            return;
-        }
+    /** Save open cart onto current table/car bay so it stays occupied while staff take another order. */
+    private async parkCurrentDineInOrderIfNeeded(): Promise<boolean> {
+        if (this.orderType !== 'dineIn') return true;
+        if (!this.cart.length) return true;
+        if (!this.selectedTable && !this.isCarService) return true;
 
         const branchId = this.branchContext.getBranchId();
-        if (!branchId) return;
+        if (!branchId) return false;
 
-        this.reservingCarService = true;
         try {
-            let assignedWaiter = this.newCarWaiterName;
-            if (!assignedWaiter && this.newCarWaiterId) {
-                const w = this.waiters.find((x) => x.id === this.newCarWaiterId);
-                if (w) assignedWaiter = w.name;
+            const loc = this.buildOrderLocationFields(false);
+            if (this.isCarService && !loc.carNumber) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Vehicle Number Required',
+                    detail: 'Current car order needs a plate number before starting another order.',
+                    life: 3500,
+                });
+                return false;
             }
 
-            const res = await this.restaurantOrderService.reserveCarService({
+            const payload: CreateOrUpdateRestaurantOrderDto = {
+                id: this.activeOrderId,
                 branchId,
-                carName: this.newCarName.trim(),
-                carNumber: this.newCarNumber.trim().toUpperCase(),
-                carLocation: this.newCarLocation.trim(),
-                waiterName: assignedWaiter || (this.isWaiter ? this.authService.getPrinterIdentity().name : 'Staff'),
-            });
+                ...loc,
+                customerId: this.customerId,
+                waiterName: this.waiterName || (this.isWaiter ? this.authService.getPrinterIdentity().name : 'Staff'),
+                notes: this.notes,
+                discountPercent: this.discountPercent || 0,
+                discountAmount: this.discountAmount || 0,
+                taxPercent: this.taxPercent || 0,
+                serviceChargePercent: this.serviceChargePercent || 0,
+                lines: this.cart.map((line) => ({
+                    id: line.id,
+                    productId: line.productId,
+                    productName: line.productName,
+                    quantity: line.quantity,
+                    unitPrice: line.unitPrice,
+                    kitchenNotes: line.kitchenNotes,
+                    selectedModifiers: line.selectedModifiers,
+                    isSentToKitchen: line.isSentToKitchen || false,
+                    printedQuantity: line.printedQuantity || 0,
+                })),
+            };
 
-            this.selectedTable = null;
-            this.selectedCarOrder = res;
-            this.selectedCarName = res.carName || this.newCarName.trim();
-            this.selectedCarNumber = res.carNumber || this.newCarNumber.trim().toUpperCase();
-            this.selectedCarLocation = res.carLocation || this.newCarLocation.trim();
-            this.waiterName = res.waiterName || assignedWaiter || 'Staff';
-            this.activeOrderId = res.id;
-            this.activeOrderNo = res.orderNo;
-            this.orderType = 'dineIn';
-            this.diningOption = 'carService';
-            this.clearCart();
-
-            this.addCarServiceDialogVisible = false;
-            this.tableDialogVisible = false;
-
+            const saved = await this.restaurantOrderService.saveOrder(payload);
+            this.activeOrderId = saved.id;
+            this.activeOrderNo = saved.orderNo;
+            if (saved.lines?.length) {
+                saved.lines.forEach((sl) => {
+                    const cartLine = this.cart.find(
+                        (cl) => cl.id === sl.id || (!cl.id && cl.productId === sl.productId)
+                    );
+                    if (cartLine) cartLine.id = sl.id;
+                });
+            }
+            this.loadTables();
             this.messageService.add({
                 severity: 'success',
-                summary: 'Car Service Reserved',
-                detail: `Order #${res.orderNo} created for ${this.selectedCarName} (${this.selectedCarNumber}). Add products and quantities to start order.`,
-                life: 4000,
+                summary: 'Order Held',
+                detail: this.isCarService
+                    ? `${this.carServiceLabel} saved — pick another bay or table when ready.`
+                    : `Table ${this.selectedTable?.tableNo} saved — pick another table or car when ready.`,
+                life: 3000,
             });
-
-            await this.loadActiveCarOrders();
+            return true;
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',
-                summary: 'Error',
-                detail: err?.message || 'Failed to reserve car service',
+                summary: 'Could Not Hold Order',
+                detail: err?.message || 'Save the current order before starting another.',
+                life: 4000,
             });
-        } finally {
-            this.reservingCarService = false;
+            return false;
         }
-    }
-
-    async selectCarServiceOrder(order: RestaurantOrderDto): Promise<void> {
-        this.tableDialogVisible = false;
-        this.selectedTable = null;
-        this.selectedCarOrder = order;
-        this.selectedCarName = order.carName || '';
-        this.selectedCarNumber = order.carNumber || '';
-        this.selectedCarLocation = order.carLocation || '';
-        this.waiterName = order.waiterName || '';
-        this.orderType = 'dineIn';
-        this.diningOption = 'carService';
-        await this.loadOrderById(order.id);
-        this.messageService.add({
-            severity: 'info',
-            summary: 'Car Service Loaded',
-            detail: `Loaded active order #${order.orderNo} for Car ${this.selectedCarName} (${this.selectedCarNumber})`,
-            life: 3000,
-        });
     }
 
     onTableDialogHide(): void {
         this.pendingSendToTable = false;
     }
 
-    onTableClicked(table: RestaurantTableDto): void {
+    async onTableClicked(table: RestaurantTableDto): Promise<void> {
+        // Switching away from a different active table/car — park current cart first
+        const switchingAway =
+            !!this.selectedTable &&
+            this.selectedTable.id !== table.id &&
+            this.cart.length > 0;
+        if (switchingAway) {
+            const parked = await this.parkCurrentDineInOrderIfNeeded();
+            if (!parked) {
+                this.tableDialogVisible = true;
+                return;
+            }
+            // Clear local cart so the next bay/table starts clean (previous order stays on its bay)
+            this.clearCart();
+            this.activeOrderId = null;
+            this.activeOrderNo = '';
+            this.selectedCarOrder = null;
+            this.selectedCarName = '';
+            this.selectedCarNumber = '';
+            this.selectedCarLocation = '';
+        }
+
         this.pendingSelectedTable = table;
         this.selectedWaiterId = table.waiterId || null;
         this.tableDialogVisible = false;
-        if (this.isWaiter) {
-            this.waiterName = this.authService.getPrinterIdentity().name;
+
+        // Occupied / billed: load existing order (plate already on order for car bays)
+        if (table.status === 1 || table.status === 2) {
+            if (this.isCarBay(table)) {
+                this.selectedCarName = table.tableNo;
+                this.selectedCarNumber = table.currentVehicleNumber || '';
+                this.selectedCarLocation = table.area || 'Car Parking';
+            }
+            if (this.isWaiter) {
+                this.waiterName = this.authService.getPrinterIdentity().name;
+            }
             this.selectTable(table);
             return;
         }
-        if (table.status === 1 || table.status === 2) {
-            // Already occupied / billed: directly open table and load order items into cart!
+
+        // Available car bay: ask for vehicle plate first
+        if (this.isCarBay(table)) {
+            this.pendingVehicleTable = table;
+            this.pendingVehicleNumber = '';
+            this.vehicleDialogVisible = true;
+            return;
+        }
+
+        if (this.isWaiter) {
+            this.waiterName = this.authService.getPrinterIdentity().name;
             this.selectTable(table);
             return;
         }
@@ -684,6 +708,50 @@ export class PosComponent implements OnInit, OnDestroy {
             this.loadWaiters();
         }
         this.assignWaiterDialogVisible = true;
+    }
+
+    confirmVehicleNumber(): void {
+        const plate = (this.pendingVehicleNumber || '').trim().toUpperCase();
+        if (!plate) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Vehicle Number Required',
+                detail: 'Enter the car number / plate to identify this order.',
+                life: 3000,
+            });
+            return;
+        }
+        const table = this.pendingVehicleTable;
+        if (!table) {
+            this.vehicleDialogVisible = false;
+            return;
+        }
+
+        this.selectedCarName = table.tableNo;
+        this.selectedCarNumber = plate;
+        this.selectedCarLocation = table.area || 'Car Parking';
+        this.pendingSelectedTable = table;
+        this.selectedWaiterId = table.waiterId || null;
+        this.vehicleDialogVisible = false;
+        this.pendingVehicleTable = null;
+        this.pendingVehicleNumber = '';
+
+        if (this.isWaiter) {
+            this.waiterName = this.authService.getPrinterIdentity().name;
+            this.selectTable(table);
+            return;
+        }
+        if (!this.waiters.length) {
+            this.loadWaiters();
+        }
+        this.assignWaiterDialogVisible = true;
+    }
+
+    cancelVehicleDialog(): void {
+        this.vehicleDialogVisible = false;
+        this.pendingVehicleTable = null;
+        this.pendingVehicleNumber = '';
+        this.pendingSelectedTable = null;
     }
 
     openAssignWaiterDialog(): void {
@@ -697,18 +765,19 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     async confirmAssignWaiter(waiter: StaffDto): Promise<void> {
-        if (this.isCarService && !this.pendingSelectedTable) {
-            this.waiterName = waiter.name;
-            this.assignWaiterDialogVisible = false;
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Waiter Assigned',
-                detail: `Waiter "${waiter.name}" assigned to Car Service (${this.selectedCarNumber})`,
-                life: 2500,
-            });
+        if (!this.pendingSelectedTable) {
+            if (this.isCarService) {
+                this.waiterName = waiter.name;
+                this.assignWaiterDialogVisible = false;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Waiter Assigned',
+                    detail: `Waiter "${waiter.name}" assigned to ${this.carServiceLabel}`,
+                    life: 2500,
+                });
+            }
             return;
         }
-        if (!this.pendingSelectedTable) return;
         this.assigningWaiter = true;
         try {
             await this.restaurantTableService.assignWaiter({
@@ -811,10 +880,16 @@ export class PosComponent implements OnInit, OnDestroy {
     async selectTable(table: RestaurantTableDto): Promise<void> {
         this.selectedTable = table;
         this.selectedCarOrder = null;
-        this.selectedCarName = '';
-        this.selectedCarNumber = '';
-        this.selectedCarLocation = '';
-        this.diningOption = 'tables';
+        const carBay = this.isCarBay(table);
+        if (!carBay) {
+            this.selectedCarName = '';
+            this.selectedCarNumber = '';
+            this.selectedCarLocation = '';
+        } else {
+            this.selectedCarName = this.selectedCarName || table.tableNo;
+            this.selectedCarLocation =
+                this.selectedCarLocation || table.area || 'Car Parking';
+        }
         this.orderType = 'dineIn';
         this.tableDialogVisible = false;
 
@@ -827,6 +902,11 @@ export class PosComponent implements OnInit, OnDestroy {
                 if (order && order.lines?.length) {
                     this.activeOrderId = order.id;
                     this.activeOrderNo = order.orderNo;
+                    if (order.carNumber || order.orderType === OrderTypes.CarService || carBay) {
+                        this.selectedCarName = order.carName || table.tableNo;
+                        this.selectedCarNumber = order.carNumber || table.currentVehicleNumber || this.selectedCarNumber || '';
+                        this.selectedCarLocation = order.carLocation || table.area || 'Car Parking';
+                    }
                     if (this.isWaiter) {
                         this.waiterName = this.authService.getPrinterIdentity().name;
                     } else {
@@ -897,7 +977,9 @@ export class PosComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'info',
                             summary: 'Order Resumed',
-                            detail: `Loaded active order #${order.orderNo} for Table ${table.tableNo}`,
+                            detail: this.isCarService
+                                ? `Loaded #${order.orderNo} for ${this.carServiceLabel}`
+                                : `Loaded active order #${order.orderNo} for Table ${table.tableNo}`,
                             life: 3000,
                         });
                         return;
@@ -907,23 +989,30 @@ export class PosComponent implements OnInit, OnDestroy {
                 console.error('Failed to load table order', err);
             }
         } else {
-            // Available table: new running order
+            // Available table / car bay: fresh cart for this bay/table
             this.selectedCarOrder = null;
-            this.selectedCarName = '';
-            this.selectedCarNumber = '';
-            this.selectedCarLocation = '';
+            if (!carBay) {
+                this.selectedCarName = '';
+                this.selectedCarNumber = '';
+                this.selectedCarLocation = '';
+            }
             this.activeOrderId = null;
             this.activeOrderNo = '';
+            if (!isDirectSend) {
+                this.clearCart();
+            }
             if (this.isWaiter) {
                 this.waiterName = this.authService.getPrinterIdentity().name;
             } else {
-                this.waiterName = table.waiterName || this.waiterName || '';
+                this.waiterName = table.waiterName || '';
             }
             if (!isDirectSend) {
                 this.messageService.add({
                     severity: 'info',
-                    summary: 'Table Selected',
-                    detail: `Table ${table.tableNo} (${table.area || 'Main Hall'}) selected`,
+                    summary: carBay ? 'Car Bay Selected' : 'Table Selected',
+                    detail: carBay
+                        ? `${this.carServiceLabel} ready for order`
+                        : `Table ${table.tableNo} (${table.area || 'Main Hall'}) selected`,
                     life: 2500,
                 });
             }
@@ -979,7 +1068,6 @@ export class PosComponent implements OnInit, OnDestroy {
             this.selectedCarNumber = '';
             this.selectedCarLocation = '';
             await this.loadTables();
-            await this.loadActiveCarOrders();
             await this.loadUnpaidTakeaways();
             if (this.takeawayAlarmService) {
                 this.takeawayAlarmService.checkImmediately();
@@ -1153,15 +1241,30 @@ export class PosComponent implements OnInit, OnDestroy {
             this.activeOrderNo = order.orderNo;
             if (order.orderType === OrderTypes.CarService || order.carNumber) {
                 this.orderType = 'dineIn';
-                this.diningOption = 'carService';
                 this.selectedCarOrder = order;
                 this.selectedCarName = order.carName || '';
                 this.selectedCarNumber = order.carNumber || '';
                 this.selectedCarLocation = order.carLocation || '';
-                this.selectedTable = null;
+                if (order.tableId) {
+                    this.selectedTable =
+                        this.tables.find((t) => t.id === order.tableId) ||
+                        ({
+                            id: order.tableId,
+                            tableNo: order.carName || order.tableNo || 'Car',
+                            area: order.carLocation || 'Car Parking',
+                            isCarBay: true,
+                            status: 1,
+                            capacity: 4,
+                            statusName: 'Occupied',
+                            branchId: order.branchId,
+                            isActive: true,
+                            currentVehicleNumber: order.carNumber,
+                        } as RestaurantTableDto);
+                } else {
+                    this.selectedTable = null;
+                }
             } else if (order.orderType === OrderTypes.Takeaway) {
                 this.orderType = 'takeaway';
-                this.diningOption = 'tables';
                 this.selectedCarOrder = null;
                 this.selectedCarName = '';
                 this.selectedCarNumber = '';
@@ -1169,7 +1272,6 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.selectedTable = null;
             } else {
                 this.orderType = 'dineIn';
-                this.diningOption = 'tables';
                 this.selectedCarOrder = null;
                 this.selectedCarName = '';
                 this.selectedCarNumber = '';
@@ -1299,18 +1401,12 @@ export class PosComponent implements OnInit, OnDestroy {
             const isTakeaway = this.orderType === 'takeaway';
             const isCar = this.isCarService;
             const waiter = this.waiterName || (this.isWaiter ? this.authService.getPrinterIdentity().name : 'Staff');
+            const loc = this.buildOrderLocationFields(isTakeaway);
 
             const payload: CreateOrUpdateRestaurantOrderDto = {
                 id: this.activeOrderId,
                 branchId,
-                tableId: !isTakeaway && !isCar ? this.selectedTable?.id : null,
-                tableNo: isCar
-                    ? `Car: ${this.selectedCarName} - ${this.selectedCarNumber}`
-                    : (!isTakeaway ? (this.selectedTable?.tableNo || 'Table') : 'Takeaway'),
-                orderType: isCar ? OrderTypes.CarService : (isTakeaway ? OrderTypes.Takeaway : OrderTypes.DineIn),
-                carName: isCar ? this.selectedCarName : undefined,
-                carNumber: isCar ? this.selectedCarNumber : undefined,
-                carLocation: isCar ? this.selectedCarLocation : undefined,
+                ...loc,
                 customerId: this.customerId,
                 waiterName: waiter,
                 notes: this.notes,
@@ -1352,9 +1448,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.kotResult = kotResult;
 
             this.cart.forEach((l) => (l.isSentToKitchen = true));
-            if (isCar) {
-                await this.loadActiveCarOrders();
-            } else if (!isTakeaway) {
+            if (!isTakeaway) {
                 await this.loadTables();
             } else {
                 if (!this.isWaiter) {
@@ -1413,17 +1507,10 @@ export class PosComponent implements OnInit, OnDestroy {
         this.printingBill = true;
         try {
             if (!this.activeOrderId) {
-                const isCar = this.isCarService;
+                const loc = this.buildOrderLocationFields(this.orderType === 'takeaway');
                 const payload = {
                     branchId,
-                    tableId: !isCar && this.orderType === 'dineIn' ? this.selectedTable?.id : null,
-                    tableNo: isCar
-                        ? `Car: ${this.selectedCarName} - ${this.selectedCarNumber}`
-                        : (this.orderType === 'dineIn' ? this.selectedTable?.tableNo : 'Takeaway'),
-                    orderType: isCar ? OrderTypes.CarService : (this.orderType === 'dineIn' ? OrderTypes.DineIn : OrderTypes.Takeaway),
-                    carName: isCar ? this.selectedCarName : undefined,
-                    carNumber: isCar ? this.selectedCarNumber : undefined,
-                    carLocation: isCar ? this.selectedCarLocation : undefined,
+                    ...loc,
                     customerId: this.customerId,
                     waiterName: this.waiterName || 'Staff',
                     notes: this.notes,
@@ -1450,14 +1537,10 @@ export class PosComponent implements OnInit, OnDestroy {
             await this.restaurantOrderService.printBill(this.activeOrderId);
             this.guestBillDialogVisible = true;
             this.loadTables();
-
-            if (this.isCarService) {
-                this.loadActiveCarOrders();
-            }
             this.messageService.add({
                 severity: 'info',
                 summary: '🧾 Guest Check Ready',
-                detail: `Bill printed for ${this.isCarService ? 'Car ' + this.selectedCarNumber : (this.selectedTable?.tableNo || 'Table')}`,
+                detail: `Bill printed for ${this.isCarService ? this.carServiceLabel : (this.selectedTable?.tableNo || 'Table')}`,
                 life: 3000,
             });
         } catch (err: any) {
@@ -1527,18 +1610,11 @@ export class PosComponent implements OnInit, OnDestroy {
 
         this.savingOrder = true;
         try {
-            const isCar = this.isCarService;
+            const loc = this.buildOrderLocationFields(this.orderType === 'takeaway');
             const payload: CreateOrUpdateRestaurantOrderDto = {
                 id: this.activeOrderId,
                 branchId,
-                tableId: !isCar && this.orderType === 'dineIn' ? this.selectedTable?.id : null,
-                tableNo: isCar
-                    ? `Car: ${this.selectedCarName} - ${this.selectedCarNumber}`
-                    : (this.orderType === 'dineIn' ? this.selectedTable?.tableNo : 'Takeaway'),
-                orderType: isCar ? OrderTypes.CarService : (this.orderType === 'dineIn' ? OrderTypes.DineIn : OrderTypes.Takeaway),
-                carName: isCar ? this.selectedCarName : undefined,
-                carNumber: isCar ? this.selectedCarNumber : undefined,
-                carLocation: isCar ? this.selectedCarLocation : undefined,
+                ...loc,
                 customerId: this.customerId,
                 waiterName: this.waiterName || 'Staff',
                 notes: this.notes,
@@ -1645,6 +1721,42 @@ export class PosComponent implements OnInit, OnDestroy {
         }, 250);
     }
 
+    /** Shared table / car bay fields for restaurant order save payloads. */
+    private buildOrderLocationFields(isTakeaway: boolean): {
+        tableId: number | null;
+        tableNo: string;
+        orderType: OrderType;
+        carName?: string;
+        carNumber?: string;
+        carLocation?: string;
+    } {
+        const isCar = !isTakeaway && this.isCarService;
+        if (isTakeaway) {
+            return {
+                tableId: null,
+                tableNo: 'Takeaway',
+                orderType: OrderTypes.Takeaway,
+            };
+        }
+        if (isCar) {
+            const bay = this.selectedCarName || this.selectedTable?.tableNo || 'Car';
+            const plate = this.selectedCarNumber || '';
+            return {
+                tableId: this.selectedTable?.id ?? null,
+                tableNo: plate ? `Car: ${bay} - ${plate}` : bay,
+                orderType: OrderTypes.CarService,
+                carName: bay,
+                carNumber: plate || undefined,
+                carLocation: this.selectedCarLocation || this.selectedTable?.area || 'Car Parking',
+            };
+        }
+        return {
+            tableId: this.selectedTable?.id ?? null,
+            tableNo: this.selectedTable?.tableNo || 'Table',
+            orderType: OrderTypes.DineIn,
+        };
+    }
+
     async createQuickTable(): Promise<void> {
         const branchId = this.branchContext.getBranchId();
         if (!branchId || !this.newTableNo?.trim()) return;
@@ -1655,9 +1767,9 @@ export class PosComponent implements OnInit, OnDestroy {
                 tableNo: this.newTableNo.trim(),
                 area: this.newTableArea?.trim() || 'Main Hall',
                 capacity: this.newTableCapacity || 4,
+                isCarBay: false,
             });
-            this.tables.push(table);
-            this.selectTable(table);
+            this.tables = [...this.tables, table];
             this.newTableNo = '';
             this.messageService.add({
                 severity: 'success',
@@ -1672,6 +1784,86 @@ export class PosComponent implements OnInit, OnDestroy {
             });
         } finally {
             this.creatingTable = false;
+        }
+    }
+
+    async createQuickCarBay(name?: string): Promise<void> {
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId) return;
+
+        let tableNo = (name || this.newTableNo || '').trim();
+        if (!tableNo) {
+            const existingCars = this.tables.filter((t) => this.isCarBay(t)).length;
+            tableNo = `Car ${existingCars + 1}`;
+        }
+
+        this.creatingCarBay = true;
+        try {
+            const table = await this.restaurantTableService.create({
+                branchId,
+                tableNo,
+                area: 'Car Parking',
+                capacity: 4,
+                isCarBay: true,
+            });
+            this.tables = [...this.tables, table];
+            this.newTableNo = '';
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Car Bay Added',
+                detail: `${table.tableNo} ready — tap it and enter the vehicle number when a car arrives.`,
+                life: 4000,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to create car bay',
+            });
+        } finally {
+            this.creatingCarBay = false;
+        }
+    }
+
+    async createCarBaysBatch(count: number = 5): Promise<void> {
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId) return;
+        this.creatingCarBay = true;
+        try {
+            const existing = new Set(
+                this.tables.filter((t) => this.isCarBay(t)).map((t) => (t.tableNo || '').toLowerCase())
+            );
+            let created = 0;
+            for (let i = 1; i <= count + 20 && created < count; i++) {
+                const name = `Car ${i}`;
+                if (existing.has(name.toLowerCase())) continue;
+                const table = await this.restaurantTableService.create({
+                    branchId,
+                    tableNo: name,
+                    area: 'Car Parking',
+                    capacity: 4,
+                    isCarBay: true,
+                });
+                this.tables = [...this.tables, table];
+                existing.add(name.toLowerCase());
+                created++;
+            }
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Car Bays Ready',
+                detail: created
+                    ? `Added ${created} car bay(s). Tap a bay and enter the plate when a car arrives.`
+                    : 'Car bays already exist for this branch.',
+                life: 4000,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to create car bays',
+            });
+        } finally {
+            this.creatingCarBay = false;
         }
     }
 
@@ -2423,17 +2615,10 @@ export class PosComponent implements OnInit, OnDestroy {
             if (this.isRestaurantMode) {
                 const branchId = this.branchContext.getBranchId();
                 if (!this.activeOrderId && branchId) {
-                    const isCar = this.isCarService;
+                    const loc = this.buildOrderLocationFields(this.orderType === 'takeaway');
                     const payload = {
                         branchId,
-                        tableId: !isCar && this.orderType === 'dineIn' ? this.selectedTable?.id : null,
-                        tableNo: isCar
-                            ? `Car: ${this.selectedCarName} - ${this.selectedCarNumber}`
-                            : (this.orderType === 'dineIn' ? this.selectedTable?.tableNo : 'Takeaway'),
-                        orderType: isCar ? OrderTypes.CarService : (this.orderType === 'dineIn' ? OrderTypes.DineIn : OrderTypes.Takeaway),
-                        carName: isCar ? this.selectedCarName : undefined,
-                        carNumber: isCar ? this.selectedCarNumber : undefined,
-                        carLocation: isCar ? this.selectedCarLocation : undefined,
+                        ...loc,
                         customerId: this.customerId,
                         waiterName: this.waiterName || 'Staff',
                         notes: this.notes,
@@ -2529,7 +2714,6 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.selectedCarNumber = '';
                 this.selectedCarLocation = '';
                 this.loadTables();
-                this.loadActiveCarOrders();
                 this.loadTopProducts();
             } else {
                 await this.saleService.create({
