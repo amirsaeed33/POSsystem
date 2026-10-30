@@ -1,0 +1,219 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
+    <div>
+        <div class="font-bold text-900">Online Order Hero Banners</div>
+        <div class="text-sm text-500">
+            These slides appear on the customer online order page for this branch.
+        </div>
+    </div>
+    <button
+        pButton
+        pRipple
+        type="button"
+        icon="pi pi-plus"
+        label="Add Banner"
+        class="p-button-sm"
+        (click)="openCreate()"
+        [disabled]="!branchId || loading"
+    ></button>
+</div>
+
+<div *ngIf="loading" class="flex align-items-center justify-content-center p-4">
+    <i class="pi pi-spin pi-spinner text-2xl"></i>
+</div>
+
+<div *ngIf="!loading && !slides.length" class="surface-50 border-1 surface-border border-round p-4 text-center text-600">
+    No banners yet. Add slides to customize the online storefront hero.
+    Until then, the default demo slides are shown.
+</div>
+
+<div *ngIf="!loading && slides.length" class="flex flex-column gap-2">
+    <div
+        *ngFor="let slide of slides"
+        class="surface-card border-1 surface-border border-round-xl p-3 flex flex-wrap align-items-center gap-3"
+    >
+        <div
+            class="border-round overflow-hidden surface-100 flex-shrink-0"
+            style="width: 7rem; height: 4.5rem;"
+        >
+            <img
+                *ngIf="slide.bgImagePath || slide.imagePath; else noImg"
+                [src]="getThumb(slide.bgImagePath || slide.imagePath)"
+                [alt]="slide.titleMain"
+                class="w-full h-full"
+                style="object-fit: cover;"
+            />
+            <ng-template #noImg>
+                <div class="w-full h-full flex align-items-center justify-content-center text-400 text-xs">
+                    No image
+                </div>
+            </ng-template>
+        </div>
+
+        <div class="flex-1 min-w-0">
+            <div class="flex align-items-center gap-2 flex-wrap mb-1">
+                <span class="font-bold text-900">{{ slide.titleMain }}
+                    <span *ngIf="slide.titleHighlight" class="text-primary">{{ slide.titleHighlight }}</span>
+                    <span *ngIf="slide.titleEnd"> {{ slide.titleEnd }}</span>
+                </span>
+                <span
+                    class="text-xs px-2 py-0.5 border-round font-semibold"
+                    [class.bg-green-100]="slide.isActive"
+                    [class.text-green-800]="slide.isActive"
+                    [class.bg-gray-100]="!slide.isActive"
+                    [class.text-gray-600]="!slide.isActive"
+                >
+                    {{ slide.isActive ? 'Active' : 'Inactive' }}
+                </span>
+                <span class="text-xs text-500">Order #{{ slide.sortOrder }}</span>
+            </div>
+            <div class="text-sm text-600 line-clamp-2">{{ slide.description || slide.offerPill || '—' }}</div>
+        </div>
+
+        <div class="flex gap-2">
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-pencil"
+                class="p-button-rounded p-button-text"
+                (click)="openEdit(slide)"
+                title="Edit"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-trash"
+                class="p-button-rounded p-button-text p-button-danger"
+                (click)="confirmDelete(slide)"
+                title="Delete"
+            ></button>
+        </div>
+    </div>
+</div>
+
+<p-dialog
+    [(visible)]="dialogVisible"
+    [modal]="true"
+    [style]="{ width: '42rem', maxWidth: '96vw' }"
+    [header]="editing?.id ? 'Edit Hero Banner' : 'Add Hero Banner'"
+    [draggable]="false"
+    [resizable]="false"
+>
+    <div class="grid formgrid p-fluid" *ngIf="editing">
+        <div class="field col-12 md:col-8">
+            <label>Title (main)</label>
+            <input pInputText [(ngModel)]="editing.titleMain" maxlength="256" />
+        </div>
+        <div class="field col-6 md:col-2">
+            <label>Sort</label>
+            <p-inputNumber [(ngModel)]="editing.sortOrder" [min]="0" [showButtons]="true"></p-inputNumber>
+        </div>
+        <div class="field col-6 md:col-2 flex align-items-end">
+            <div class="flex align-items-center gap-2 mb-2">
+                <p-inputSwitch [(ngModel)]="editing.isActive"></p-inputSwitch>
+                <span class="text-sm font-medium">Active</span>
+            </div>
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label>Highlight title</label>
+            <input pInputText [(ngModel)]="editing.titleHighlight" maxlength="256" />
+        </div>
+        <div class="field col-12 md:col-6">
+            <label>Title end</label>
+            <input pInputText [(ngModel)]="editing.titleEnd" maxlength="256" />
+        </div>
+
+        <div class="field col-12 md:col-8">
+            <label>Badge text</label>
+            <input pInputText [(ngModel)]="editing.badge" maxlength="128" placeholder="FRESH FROM OVEN • 30-45 MIN" />
+        </div>
+        <div class="field col-12 md:col-4">
+            <label>Badge icon</label>
+            <input pInputText [(ngModel)]="editing.badgeIcon" maxlength="16" placeholder="🔥" />
+        </div>
+
+        <div class="field col-12">
+            <label>Description</label>
+            <textarea pInputTextarea [(ngModel)]="editing.description" rows="3" maxlength="1000"></textarea>
+        </div>
+
+        <div class="field col-12 md:col-8">
+            <label>Offer pill</label>
+            <input pInputText [(ngModel)]="editing.offerPill" maxlength="128" />
+        </div>
+        <div class="field col-12 md:col-4">
+            <label>Rating</label>
+            <input pInputText [(ngModel)]="editing.rating" maxlength="32" placeholder="4.9★" />
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label>Primary button</label>
+            <input pInputText [(ngModel)]="editing.primaryBtnText" maxlength="128" />
+        </div>
+        <div class="field col-12 md:col-6">
+            <label>Primary target</label>
+            <p-dropdown
+                [options]="targetOptions"
+                [(ngModel)]="editing.primaryTarget"
+                optionLabel="label"
+                optionValue="value"
+            ></p-dropdown>
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label>Secondary button</label>
+            <input pInputText [(ngModel)]="editing.secondaryBtnText" maxlength="128" />
+        </div>
+        <div class="field col-12 md:col-6">
+            <label>Secondary target</label>
+            <p-dropdown
+                [options]="targetOptions"
+                [(ngModel)]="editing.secondaryTarget"
+                optionLabel="label"
+                optionValue="value"
+            ></p-dropdown>
+        </div>
+
+        <div class="field col-12 md:col-6">
+            <label>Card / food image</label>
+            <input type="file" accept="image/*" (change)="onImageSelected($event, 'image')" class="mb-2" />
+            <div *ngIf="imagePreview" class="border-round overflow-hidden surface-100" style="height: 7rem;">
+                <img [src]="imagePreview" alt="Preview" class="w-full h-full" style="object-fit: cover;" />
+            </div>
+        </div>
+        <div class="field col-12 md:col-6">
+            <label>Background image</label>
+            <input type="file" accept="image/*" (change)="onImageSelected($event, 'bg')" class="mb-2" />
+            <div *ngIf="bgImagePreview" class="border-round overflow-hidden surface-100" style="height: 7rem;">
+                <img [src]="bgImagePreview" alt="Background" class="w-full h-full" style="object-fit: cover;" />
+            </div>
+            <small class="text-500">If empty, card image is used as background.</small>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="dialogVisible = false"
+            [disabled]="saving"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            (click)="save()"
+            [loading]="saving"
+        ></button>
+    </ng-template>
+</p-dialog>

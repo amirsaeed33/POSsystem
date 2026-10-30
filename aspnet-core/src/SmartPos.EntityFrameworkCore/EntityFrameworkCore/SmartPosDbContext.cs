@@ -96,6 +96,8 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<DeliveryArea> DeliveryAreas { get; set; }
 
+        public virtual DbSet<OnlineOrderHeroSlide> OnlineOrderHeroSlides { get; set; }
+
         public virtual DbSet<DeliveryPromotion> DeliveryPromotions { get; set; }
 
         public virtual DbSet<StockAdjustment> StockAdjustments { get; set; }
@@ -636,6 +638,16 @@ namespace SmartPos.EntityFrameworkCore
                 b.Property(x => x.MinimumOrderAmount).HasPrecision(18, 2);
                 b.HasIndex(x => x.BranchId);
                 b.HasIndex(x => x.IsActive);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<OnlineOrderHeroSlide>(b =>
+            {
+                b.HasIndex(x => new { x.BranchId, x.SortOrder });
+                b.HasIndex(x => new { x.BranchId, x.IsActive });
                 b.HasOne(x => x.Branch)
                     .WithMany()
                     .HasForeignKey(x => x.BranchId)

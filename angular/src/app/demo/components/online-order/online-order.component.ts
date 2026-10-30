@@ -8,6 +8,7 @@ import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { SessionService } from 'src/app/demo/service/session.service';
+import { OnlineOrderHeroSlideService } from 'src/app/demo/service/online-order-hero-slide.service';
 import { MessageService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
 
@@ -192,13 +193,16 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         private route: ActivatedRoute,
         private router: Router,
         private messageService: MessageService,
-        private deliveryAreaService: DeliveryAreaService
+        private deliveryAreaService: DeliveryAreaService,
+        private onlineOrderHeroSlideService: OnlineOrderHeroSlideService
     ) {}
 
     currentHeroSlide = 0;
     private heroSlideTimer: any = null;
 
-    heroSlides = [
+    heroSlides: any[] = [];
+
+    private readonly defaultHeroSlides = [
         {
             id: 1,
             badge: 'FRESH FROM OVEN • 30-45 MIN DELIVERY',
@@ -306,6 +310,44 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
     ];
 
+    private async loadHeroSlides(branchId: number): Promise<void> {
+        try {
+            const slides = await this.onlineOrderHeroSlideService.getActiveByBranch(branchId);
+            if (slides?.length) {
+                this.heroSlides = slides.map((s) => ({
+                    id: s.id,
+                    badge: s.badge || '',
+                    badgeIcon: s.badgeIcon || '🔥',
+                    titleMain: s.titleMain || '',
+                    titleHighlight: s.titleHighlight || '',
+                    titleEnd: s.titleEnd || '',
+                    description: s.description || '',
+                    offerPill: s.offerPill || '',
+                    primaryBtnText: s.primaryBtnText || 'Order Now',
+                    primaryTarget: s.primaryTarget || 'menu',
+                    secondaryBtnText: s.secondaryBtnText || 'Explore Full Menu',
+                    secondaryTarget: s.secondaryTarget || 'menu',
+                    imageUrl: this.onlineOrderHeroSlideService.getImageUrl(s.imagePath),
+                    bgImageUrl:
+                        this.onlineOrderHeroSlideService.getImageUrl(s.bgImagePath || s.imagePath) ||
+                        this.onlineOrderHeroSlideService.getImageUrl(s.imagePath),
+                    rating: s.rating || '4.9★',
+                }));
+            } else {
+                this.heroSlides = [...this.defaultHeroSlides];
+            }
+        } catch {
+            this.heroSlides = [...this.defaultHeroSlides];
+        }
+
+        this.currentHeroSlide = 0;
+        if (this.heroSlides.length > 1) {
+            this.startHeroSlider();
+        } else {
+            this.stopHeroSlider();
+        }
+    }
+
     startHeroSlider(): void {
         this.stopHeroSlider();
         this.heroSlideTimer = setInterval(() => {
@@ -334,7 +376,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.startHeroSlider();
+        this.heroSlides = [...this.defaultHeroSlides];
         this.checkScreenSize();
         this.checkAuthSession();
         this.loadFavorites();
@@ -346,6 +388,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 this.branchId = Number(paramBranchId);
                 this.branchMissingError = false;
                 this.resolveBranchName(this.branchId);
+                void this.loadHeroSlides(this.branchId);
                 this.loadCatalog(this.branchId, paramProductId ? Number(paramProductId) : undefined);
             } else {
                 this.handleMissingBranchId();

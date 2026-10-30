@@ -22,6 +22,7 @@ using SmartPos.Inventory;
 using SmartPos.Lookups;
 using SmartPos.MultiTenancy;
 using SmartPos.Categories;
+using SmartPos.Orders;
 using SmartPos.Products;
 
 namespace SmartPos.Branches
@@ -38,6 +39,7 @@ namespace SmartPos.Branches
         private readonly IRepository<LookUp> _lookUpRepository;
         private readonly IRepository<EmailTemplate> _emailTemplateRepository;
         private readonly IRepository<Category> _categoryRepository;
+        private readonly IRepository<OnlineOrderHeroSlide> _heroSlideRepository;
         private readonly BranchStatusLookup _branchStatusLookup;
         private readonly ISmtpMailSender _smtpMailSender;
         private readonly IConfiguration _configuration;
@@ -52,6 +54,7 @@ namespace SmartPos.Branches
             IRepository<LookUp> lookUpRepository,
             IRepository<EmailTemplate> emailTemplateRepository,
             IRepository<Category> categoryRepository,
+            IRepository<OnlineOrderHeroSlide> heroSlideRepository,
             BranchStatusLookup branchStatusLookup,
             ISmtpMailSender smtpMailSender,
             IConfiguration configuration,
@@ -65,6 +68,7 @@ namespace SmartPos.Branches
             _lookUpRepository = lookUpRepository;
             _emailTemplateRepository = emailTemplateRepository;
             _categoryRepository = categoryRepository;
+            _heroSlideRepository = heroSlideRepository;
             _branchStatusLookup = branchStatusLookup;
             _smtpMailSender = smtpMailSender;
             _configuration = configuration;
@@ -130,6 +134,7 @@ namespace SmartPos.Branches
             if (branch.BusinessType == BusinessType.Restaurant)
             {
                 await EnsurePermanentGroceryCategoryAsync(branch);
+                await EnsureDefaultHeroSlidesAsync(branch);
             }
 
             // First branch after signup: bind the creating user so session/context have a location.
@@ -217,6 +222,7 @@ namespace SmartPos.Branches
             if (branch.BusinessType == BusinessType.Restaurant)
             {
                 await EnsurePermanentGroceryCategoryAsync(branch);
+                await EnsureDefaultHeroSlidesAsync(branch);
             }
 
             if (sendActivationEmail)
@@ -907,6 +913,29 @@ namespace SmartPos.Branches
                 Description = "Restaurant purchase/inventory ingredients",
                 IsActive = true
             });
+            await CurrentUnitOfWork.SaveChangesAsync();
+        }
+
+        private async Task EnsureDefaultHeroSlidesAsync(Branch branch)
+        {
+            if (branch == null || branch.BusinessType != BusinessType.Restaurant || branch.Id <= 0)
+            {
+                return;
+            }
+
+            var hasAny = await _heroSlideRepository.GetAll()
+                .AnyAsync(x => x.BranchId == branch.Id);
+            if (hasAny)
+            {
+                return;
+            }
+
+            foreach (var bp in OnlineOrderHeroSlideDefaults.GetBlueprints())
+            {
+                await _heroSlideRepository.InsertAsync(
+                    OnlineOrderHeroSlideDefaults.CreateEntity(branch.Id, branch.TenantId, bp));
+            }
+
             await CurrentUnitOfWork.SaveChangesAsync();
         }
     }

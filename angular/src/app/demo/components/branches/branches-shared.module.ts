@@ -22,6 +22,7 @@ import { BranchCreateComponent } from './branch-create/branch-create.component';
 import { TabViewModule } from 'primeng/tabview';
 import { InputSwitchModule } from 'primeng/inputswitch';
 import { NotificationSettingsSharedModule } from '../notification-settings/notification-settings-shared.module';
+import { BranchHeroBannersSharedModule } from '../branch-hero-banners/branch-hero-banners-shared.module';
 import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 
 @NgModule({
@@ -43,6 +44,7 @@ import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/ro
         TabViewModule,
         InputSwitchModule,
         NotificationSettingsSharedModule,
+        BranchHeroBannersSharedModule,
         AppRowActionsComponent,
     ],
     providers: [MessageService],

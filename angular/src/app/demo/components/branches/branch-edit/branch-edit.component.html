@@ -480,6 +480,10 @@
             <p-tabPanel header="Notifications">
                 <app-notification-settings *ngIf="branch?.id" [branchId]="branch.id"></app-notification-settings>
             </p-tabPanel>
+
+            <p-tabPanel header="Hero Banners">
+                <app-branch-hero-banners *ngIf="branch?.id" [branchId]="branch.id"></app-branch-hero-banners>
+            </p-tabPanel>
         </p-tabView>
     </div>
 

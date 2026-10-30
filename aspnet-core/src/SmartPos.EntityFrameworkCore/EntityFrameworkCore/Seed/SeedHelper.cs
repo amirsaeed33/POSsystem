@@ -33,6 +33,7 @@ namespace SmartPos.EntityFrameworkCore.Seed
                 new DefaultEmailTemplatesCreator(context, null).Create();
                 new DefaultHostCatalogCreator(context).Create();
                 new BakeryGeneralStoreDemoDataCreator(context, null).Create();
+                new DefaultOnlineOrderHeroSlideCreator(context).Create();
 
                 // Keep tenant admin roles/permissions in sync for tenants created via signup/host UI.
                 // Do not create default admin users here.
@@ -43,6 +44,9 @@ namespace SmartPos.EntityFrameworkCore.Seed
                     new DefaultLookupsCreator(context, tenantId).Create();
                     new DefaultEmailTemplatesCreator(context, tenantId).Create();
                 }
+
+                // Re-run after tenants so any newly-visible restaurant branches get defaults.
+                new DefaultOnlineOrderHeroSlideCreator(context).Create();
             }
             finally
             {
