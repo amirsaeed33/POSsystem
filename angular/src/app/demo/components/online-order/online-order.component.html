@@ -377,63 +377,66 @@
         </button>
 
         <div class="fp-hero-inner max-w-7xl mx-auto">
-            <!-- Carousel Slides -->
-            <div
-                *ngFor="let slide of heroSlides; let idx = index"
-                class="fp-hero-slide"
-                [class.active]="currentHeroSlide === idx"
-            >
-                <div class="grid align-items-center">
-                    <!-- Left Column: Typography, Badges, CTAs -->
-                    <div class="col-12 md:col-9 lg:col-8 xl:col-7 p-2 md:p-3 fp-hero-text-col">
-                        <div class="fp-hero-badge inline-flex align-items-center gap-2">
-                            <span class="badge-fire-icon">{{ slide.badgeIcon }}</span>
-                            <span class="font-extrabold uppercase tracking-wider text-xs">{{ slide.badge }}</span>
-                        </div>
-
-                        <h1 class="fp-hero-title">
-                            {{ slide.titleMain }} <span class="fp-title-gradient">{{ slide.titleHighlight }}</span> {{ slide.titleEnd }}
-                        </h1>
-
-                        <p class="fp-hero-desc">
-                            {{ slide.description }}
-                        </p>
-
-                        <!-- Highlights Row with Yellow Theme Accent -->
-                        <div class="fp-hero-features-row flex flex-wrap gap-2 sm:gap-3 mb-4">
-                            <div class="fp-feature-pill highlight-pill">
-                                <i class="pi pi-tag text-yellow-400"></i>
-                                <span>{{ slide.offerPill }}</span>
+            <!-- Carousel Slides (stacked for crossfade) -->
+            <div class="fp-hero-slides-stack">
+                <div
+                    *ngFor="let slide of heroSlides; let idx = index"
+                    class="fp-hero-slide"
+                    [class.active]="currentHeroSlide === idx"
+                    [attr.aria-hidden]="currentHeroSlide !== idx"
+                >
+                    <div class="grid align-items-center">
+                        <!-- Left Column: Typography, Badges, CTAs -->
+                        <div class="col-12 md:col-9 lg:col-8 xl:col-7 p-2 md:p-3 fp-hero-text-col">
+                            <div class="fp-hero-badge inline-flex align-items-center gap-2">
+                                <span class="badge-fire-icon">{{ slide.badgeIcon }}</span>
+                                <span class="font-extrabold uppercase tracking-wider text-xs">{{ slide.badge }}</span>
                             </div>
-                            <div class="fp-feature-pill">
-                                <i class="pi pi-bolt text-yellow-400"></i>
-                                <span>30-45 Min Express Delivery</span>
-                            </div>
-                            <div class="fp-feature-pill">
-                                <i class="pi pi-star-fill text-yellow-400"></i>
-                                <span>{{ slide.rating }} Customer Rating</span>
-                            </div>
-                        </div>
 
-                        <!-- Prominent Yellow-Themed CTAs -->
-                        <div class="fp-hero-cta-group flex flex-wrap align-items-center gap-3">
-                            <button
-                                type="button"
-                                class="fp-btn-primary-hero"
-                                (click)="scrollToSection(slide.primaryTarget, $event)"
-                            >
-                                <span>{{ slide.primaryBtnText }}</span>
-                                <i class="pi pi-arrow-right text-sm"></i>
-                            </button>
+                            <h1 class="fp-hero-title">
+                                {{ slide.titleMain }} <span class="fp-title-gradient">{{ slide.titleHighlight }}</span> {{ slide.titleEnd }}
+                            </h1>
 
-                            <button
-                                type="button"
-                                class="fp-btn-secondary-hero"
-                                (click)="scrollToSection(slide.secondaryTarget, $event)"
-                            >
-                                <i class="pi pi-book text-sm text-yellow-400"></i>
-                                <span>{{ slide.secondaryBtnText }}</span>
-                            </button>
+                            <p class="fp-hero-desc">
+                                {{ slide.description }}
+                            </p>
+
+                            <!-- Highlights Row with Yellow Theme Accent -->
+                            <div class="fp-hero-features-row flex flex-wrap gap-2 sm:gap-3 mb-4">
+                                <div class="fp-feature-pill highlight-pill">
+                                    <i class="pi pi-tag text-yellow-400"></i>
+                                    <span>{{ slide.offerPill }}</span>
+                                </div>
+                                <div class="fp-feature-pill">
+                                    <i class="pi pi-bolt text-yellow-400"></i>
+                                    <span>30-45 Min Express Delivery</span>
+                                </div>
+                                <div class="fp-feature-pill">
+                                    <i class="pi pi-star-fill text-yellow-400"></i>
+                                    <span>{{ slide.rating }} Customer Rating</span>
+                                </div>
+                            </div>
+
+                            <!-- Prominent Yellow-Themed CTAs -->
+                            <div class="fp-hero-cta-group flex flex-wrap align-items-center gap-3">
+                                <button
+                                    type="button"
+                                    class="fp-btn-primary-hero"
+                                    (click)="scrollToSection(slide.primaryTarget, $event)"
+                                >
+                                    <span>{{ slide.primaryBtnText }}</span>
+                                    <i class="pi pi-arrow-right text-sm"></i>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="fp-btn-secondary-hero"
+                                    (click)="scrollToSection(slide.secondaryTarget, $event)"
+                                >
+                                    <i class="pi pi-book text-sm text-yellow-400"></i>
+                                    <span>{{ slide.secondaryBtnText }}</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1788,7 +1791,7 @@
         [modal]="false"
         [draggable]="false"
         [resizable]="false"
-        [style]="{ width: '23rem', maxWidth: '92vw', position: 'fixed', bottom: '80px', right: '16px', zIndex: 1100 }"
+        [style]="{ width: '23rem', maxWidth: '92vw', position: 'fixed', bottom: '5.5rem', right: '1.25rem', zIndex: 1100 }"
         styleClass="store-chat-popup-dialog"
         [showHeader]="false"
     >

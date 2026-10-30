@@ -350,9 +350,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     startHeroSlider(): void {
         this.stopHeroSlider();
+        // Interval longer than CSS crossfade (~0.85s) so each transition can finish.
         this.heroSlideTimer = setInterval(() => {
             this.nextHeroSlide();
-        }, 3000);
+        }, 4500);
     }
 
     stopHeroSlider(): void {
