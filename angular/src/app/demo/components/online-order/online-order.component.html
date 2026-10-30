@@ -995,9 +995,6 @@
                     <span class="surface-100 text-700 text-xs px-3 py-1 border-round-3xl font-semibold" *ngIf="selectedProduct.categoryName">
                         Category: {{ selectedProduct.categoryName }}
                     </span>
-                    <span class="surface-100 text-700 text-xs px-3 py-1 border-round-3xl font-semibold" *ngIf="selectedProduct.brandName">
-                        Brand: {{ selectedProduct.brandName }}
-                    </span>
                     <span class="surface-100 text-700 text-xs px-3 py-1 border-round-3xl font-semibold" *ngIf="selectedProduct.code">
                         Code: {{ selectedProduct.code }}
                     </span>
@@ -1006,21 +1003,37 @@
                     </span>
                 </div>
 
-                <!-- Variants / Options Selector -->
-                <div class="detail-section-label">
-                    <i class="pi pi-sliders-h text-red-500"></i>
-                    <span>Choose Option / Portion</span>
+                <!-- Loading Modifiers Spinner (if fetching) -->
+                <div *ngIf="loadingModifiers" class="flex align-items-center gap-2 py-2 text-xs text-500 font-semibold">
+                    <i class="pi pi-spin pi-spinner text-red-500"></i>
+                    <span>Loading options...</span>
                 </div>
-                <div class="option-pills">
-                    <div
-                        *ngFor="let opt of detailOptions"
-                        class="opt-chip"
-                        [class.selected]="detailSelectedOption === opt"
-                        (click)="detailSelectedOption = opt"
-                    >
-                        {{ opt }}
+
+                <!-- Product Extra Options / Modifiers (from Manage Modifiers & Options) -->
+                <!-- If no options in product, then do not show -->
+                <ng-container *ngIf="!loadingModifiers && productModifierGroups && productModifierGroups.length > 0">
+                    <div *ngFor="let group of productModifierGroups" class="mb-3">
+                        <div class="detail-section-label">
+                            <i class="pi pi-sliders-h text-red-500"></i>
+                            <span>{{ group.name }}</span>
+                            <span *ngIf="group.isRequired" class="text-xs text-red-500 ml-1 font-bold">(Required)</span>
+                            <span *ngIf="!group.isRequired" class="text-xs text-500 ml-1 font-normal">(Optional)</span>
+                        </div>
+                        <div class="option-pills">
+                            <div
+                                *ngFor="let opt of group.options"
+                                class="opt-chip"
+                                [class.selected]="isOptionSelected(group, opt)"
+                                (click)="toggleOption(group, opt)"
+                            >
+                                <span>{{ opt.name }}</span>
+                                <span *ngIf="getOptionPrice(opt) > 0" class="ml-1 font-bold text-xs">
+                                    +PKR {{ getOptionPrice(opt) | number: '1.0-0' }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </ng-container>
 
                 <!-- Description -->
                 <div class="detail-section-label">
@@ -1105,6 +1118,9 @@
                         </div>
                         <div>
                             <div class="font-bold text-900 text-sm line-clamp-1">{{ item.name }}</div>
+                            <div *ngIf="item.optionsText" class="text-xs text-red-600 font-semibold mt-1">
+                                <i class="pi pi-tag mr-1 text-xs"></i>{{ item.optionsText }}
+                            </div>
                             <div class="text-xs text-500">PKR {{ item.unitPrice | number: '1.0-0' }} each</div>
                         </div>
                     </div>

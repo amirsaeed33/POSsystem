@@ -9,6 +9,8 @@ import { BranchContextService } from 'src/app/demo/service/branch-context.servic
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { SessionService } from 'src/app/demo/service/session.service';
 import { OnlineOrderHeroSlideService } from 'src/app/demo/service/online-order-hero-slide.service';
+import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
+import { ProductModifierGroupDto, ProductModifierOptionDto } from 'src/app/demo/api/product-modifier';
 import { MessageService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
 
@@ -87,8 +89,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     detailModalVisible = false;
     selectedProduct: any | null = null;
     detailQuantity = 1;
-    detailSelectedOption = 'Standard';
-    detailOptions = ['Standard', 'Large / Deal Pack', 'Double Delight'];
+    productModifierGroups: ProductModifierGroupDto[] = [];
+    selectedModifierOptions: Record<number, number[]> = {};
+    loadingModifiers = false;
 
     // Store Chat Floating Drawer
     storeChatOpen = false;
@@ -194,7 +197,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         private router: Router,
         private messageService: MessageService,
         private deliveryAreaService: DeliveryAreaService,
-        private onlineOrderHeroSlideService: OnlineOrderHeroSlideService
+        private onlineOrderHeroSlideService: OnlineOrderHeroSlideService,
+        private productModifierService: ProductModifierService
     ) {}
 
     currentHeroSlide = 0;
@@ -1465,30 +1469,12 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return 'Authentic, premium-quality branded product with official manufacturer warranty and guaranteed durability.';
     }
 
-    getDetailOptions(product: any): string[] {
-        const domain = this.getProductDomain(product);
-        if (domain === 'solar-panel') {
-            return ['Single Panel', 'Pallet Pack (31 Panels)', 'Complete System Deal'];
-        }
-        if (domain === 'inverter') {
-            return ['Standard Unit', 'With WiFi Monitoring Module', 'Complete Installation Kit'];
-        }
-        if (domain === 'battery') {
-            return ['1x Battery Unit', '2x Battery Bank (24V)', '4x Battery Bank (48V)'];
-        }
-        if (domain === 'food') {
-            return ['Standard Portion', 'Large / Family Pack', 'Double Delight'];
-        }
-        return ['Standard Unit', 'Commercial Pack', 'Complete Deal'];
-    }
-
     hasVariants(product: any): boolean {
         if (!product) return false;
         if (product.hasVariants != null) return !!product.hasVariants;
         if (product.variants && product.variants.length > 0) return true;
         if (product.sizes && product.sizes.length > 0) return true;
-        const opts = this.getDetailOptions(product);
-        return opts && opts.length > 1;
+        return false;
     }
 
     getOriginalPrice(product: any): number {
@@ -1497,20 +1483,45 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     // FoodiesPakistan Product Detail Modal / Bottom Sheet
-    openProductModal(product: any, event?: Event): void {
+    async openProductModal(product: any, event?: Event): Promise<void> {
         if (event) {
             event.stopPropagation();
         }
         this.selectedProduct = product;
         this.detailQuantity = 1;
-        this.detailOptions = this.getDetailOptions(product);
-        this.detailSelectedOption = this.detailOptions[0];
+        this.productModifierGroups = [];
+        this.selectedModifierOptions = {};
         this.detailModalVisible = true;
+        this.loadingModifiers = true;
+
+        try {
+            const groups = await this.productModifierService.getByProduct(product.id);
+            this.productModifierGroups = (groups || []).filter(
+                (g) => g.options && g.options.length > 0
+            );
+            for (const g of this.productModifierGroups) {
+                this.selectedModifierOptions[g.id] = [];
+                const defaultOpt = g.options.find((o) => o.isDefault);
+                if (defaultOpt) {
+                    this.selectedModifierOptions[g.id] = [defaultOpt.id];
+                } else if (g.isRequired && g.options.length > 0) {
+                    this.selectedModifierOptions[g.id] = [g.options[0].id];
+                }
+            }
+        } catch (err) {
+            console.warn('Failed to load modifiers for product', err);
+            this.productModifierGroups = [];
+        } finally {
+            this.loadingModifiers = false;
+        }
     }
 
     closeProductModal(): void {
         this.detailModalVisible = false;
         this.selectedProduct = null;
+        this.productModifierGroups = [];
+        this.selectedModifierOptions = {};
+        this.loadingModifiers = false;
     }
 
     updateDetailQuantity(change: number): void {
@@ -1520,20 +1531,111 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
     }
 
-    getDetailTotalPrice(): number {
-        if (!this.selectedProduct) return 0;
-        let base = this.selectedProduct.price || 0;
-        if (this.detailSelectedOption.includes('Pallet') || this.detailSelectedOption.includes('4x')) {
-            base = base * 4;
-        } else if (this.detailSelectedOption.includes('2x') || this.detailSelectedOption.includes('Installation') || this.detailSelectedOption.includes('Large')) {
-            base = Math.round(base * 1.5);
+    isOptionSelected(group: ProductModifierGroupDto, option: ProductModifierOptionDto): boolean {
+        const selected = this.selectedModifierOptions[group.id] || [];
+        return selected.includes(option.id);
+    }
+
+    toggleOption(group: ProductModifierGroupDto, option: ProductModifierOptionDto): void {
+        const isMulti = group.allowMultiple || (group.maxSelection != null && group.maxSelection > 1);
+        const current = [...(this.selectedModifierOptions[group.id] || [])];
+        const idx = current.indexOf(option.id);
+
+        if (isMulti) {
+            if (idx > -1) {
+                if (group.isRequired && current.length <= 1) {
+                    return;
+                }
+                current.splice(idx, 1);
+            } else {
+                if (group.maxSelection && current.length >= group.maxSelection) {
+                    current.shift();
+                }
+                current.push(option.id);
+            }
+            this.selectedModifierOptions[group.id] = current;
+        } else {
+            if (idx > -1) {
+                if (!group.isRequired) {
+                    this.selectedModifierOptions[group.id] = [];
+                }
+            } else {
+                this.selectedModifierOptions[group.id] = [option.id];
+            }
         }
-        return base * this.detailQuantity;
+    }
+
+    getOptionPrice(opt: ProductModifierOptionDto): number {
+        return opt.price ?? opt.extraPrice ?? 0;
+    }
+
+    getDetailUnitPrice(): number {
+        if (!this.selectedProduct) return 0;
+        let price = this.selectedProduct.price || 0;
+        for (const g of this.productModifierGroups) {
+            const selectedIds = this.selectedModifierOptions[g.id] || [];
+            for (const optId of selectedIds) {
+                const opt = g.options.find((o) => o.id === optId);
+                if (opt) {
+                    price += this.getOptionPrice(opt);
+                }
+            }
+        }
+        return price;
+    }
+
+    getDetailTotalPrice(): number {
+        return this.getDetailUnitPrice() * this.detailQuantity;
     }
 
     addDetailToCart(): void {
         if (!this.selectedProduct) return;
-        this.addToCart(this.selectedProduct, this.detailQuantity);
+
+        for (const g of this.productModifierGroups) {
+            if (g.isRequired) {
+                const selected = this.selectedModifierOptions[g.id] || [];
+                if (!selected.length) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Option Required',
+                        detail: `Please select an option for "${g.name}"`,
+                    });
+                    return;
+                }
+            }
+        }
+
+        const selectedOptionNames: string[] = [];
+        const allSelectedIds: number[] = [];
+
+        for (const g of this.productModifierGroups) {
+            const selectedIds = this.selectedModifierOptions[g.id] || [];
+            for (const optId of selectedIds) {
+                const opt = g.options.find((o) => o.id === optId);
+                if (opt) {
+                    allSelectedIds.push(opt.id);
+                    const extra = this.getOptionPrice(opt);
+                    selectedOptionNames.push(extra > 0 ? `${opt.name} (+PKR ${extra})` : opt.name);
+                }
+            }
+        }
+
+        const unitPrice = this.getDetailUnitPrice();
+        const optionsText = selectedOptionNames.join(', ');
+
+        this.cartService.addToCart(this.selectedProduct, this.detailQuantity, {
+            unitPrice,
+            optionsText: optionsText || undefined,
+            selectedOptionIds: allSelectedIds,
+        });
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Added to Cart',
+            detail: `${this.detailQuantity > 1 ? this.detailQuantity + 'x ' : ''}${this.selectedProduct.name} added to your order`,
+            life: 1800,
+        });
+
         this.closeProductModal();
     }
 
@@ -1808,6 +1910,13 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             }
             if (this.notes.trim()) {
                 addressParts.push(`📝 Notes: ${this.notes.trim()}`);
+            }
+            const itemsWithOptions = this.cartService.items.filter((i) => i.optionsText);
+            if (itemsWithOptions.length > 0) {
+                const optLines = itemsWithOptions
+                    .map((i) => `${i.quantity}x ${i.name} [${i.optionsText}]`)
+                    .join(' | ');
+                addressParts.push(`Options: ${optLines}`);
             }
 
             const formattedNotes = addressParts.length > 0 ? addressParts.join(' | ').substring(0, 510) : this.notes.trim();

@@ -8,6 +8,8 @@ export interface CartItem {
     unitPrice: number;
     quantity: number;
     imagePath?: string;
+    optionsText?: string;
+    selectedOptionIds?: number[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -30,14 +32,30 @@ export class OnlineCartService {
     }
 
     getItemQuantity(productId: number): number {
-        const item = this.items.find((c) => c.productId === productId);
-        return item ? item.quantity : 0;
+        return this.items
+            .filter((c) => c.productId === productId)
+            .reduce((sum, i) => sum + i.quantity, 0);
     }
 
-    addToCart(product: any, qty: number = 1): void {
+    addToCart(
+        product: any,
+        qty: number = 1,
+        options?: {
+            unitPrice?: number;
+            optionsText?: string;
+            selectedOptionIds?: number[];
+        }
+    ): void {
         const countToAdd = Math.max(1, qty || 1);
+        const unitPrice =
+            options?.unitPrice != null ? options.unitPrice : (product.price || 0);
+        const optionsText = options?.optionsText || '';
         const current = [...this.items];
-        const existing = current.find((c) => c.productId === product.id);
+        const existing = current.find(
+            (c) =>
+                c.productId === product.id &&
+                (c.optionsText || '') === optionsText
+        );
         if (existing) {
             existing.quantity += countToAdd;
         } else {
@@ -45,9 +63,11 @@ export class OnlineCartService {
                 productId: product.id,
                 name: product.name,
                 unitName: product.unitName || 'Pcs',
-                unitPrice: product.price || 0,
+                unitPrice: unitPrice,
                 quantity: countToAdd,
                 imagePath: product.imagePath,
+                optionsText: optionsText || undefined,
+                selectedOptionIds: options?.selectedOptionIds,
             });
         }
         this.saveCart(current);
@@ -63,7 +83,7 @@ export class OnlineCartService {
     }
 
     removeFromCart(item: CartItem): void {
-        const filtered = this.items.filter((c) => c.productId !== item.productId);
+        const filtered = this.items.filter((c) => c !== item);
         this.saveCart(filtered);
     }
 

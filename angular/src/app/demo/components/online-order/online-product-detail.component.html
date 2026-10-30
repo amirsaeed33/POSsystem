@@ -107,10 +107,6 @@
                                 <i class="pi pi-dollar text-primary"></i>
                                 <span>Currency: <strong>{{ currencyFormat }}</strong></span>
                             </div>
-                            <div *ngIf="product.brandName" class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
-                                <i class="pi pi-bookmark text-primary"></i>
-                                <span>Brand: <strong>{{ product.brandName }}</strong></span>
-                            </div>
                             <div *ngIf="product.barcode" class="spec-pill px-3 py-2 flex align-items-center gap-2 text-xs text-700 flex-1 min-w-min justify-content-center font-medium">
                                 <i class="pi pi-barcode text-primary"></i>
                                 <span>SKU: <strong>{{ product.barcode }}</strong></span>
@@ -124,8 +120,6 @@
                             <!-- Category / Brand sub-heading -->
                             <div class="flex align-items-center gap-2 text-xs text-500 font-semibold uppercase tracking-wider">
                                 <span>{{ product.categoryName || 'General Category' }}</span>
-                                <span *ngIf="product.brandName">•</span>
-                                <span *ngIf="product.brandName">{{ product.brandName }}</span>
                             </div>
 
                             <!-- Product Title -->
