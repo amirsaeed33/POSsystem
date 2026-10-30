@@ -93,11 +93,63 @@
                         <strong>Total Amount</strong>
                     </td>
                     <td class="text-right">
-                        <strong>{{ purchase.totalAmount }}</strong>
+                        <strong>{{ purchase.totalAmount | number: '1.2-2' }}</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">Total Paid</td>
+                    <td class="text-right">{{ paymentHistoryTotal | number: '1.2-2' }}</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">
+                        <strong>Balance Due</strong>
+                    </td>
+                    <td class="text-right">
+                        <strong>{{ dueAmount | number: '1.2-2' }}</strong>
                     </td>
                 </tr>
             </tfoot>
         </table>
+
+        <div class="payment-history-block">
+            <div class="section-title">
+                Payment History
+                <span *ngIf="purchase.paymentStatus" class="payment-status">
+                    ({{ purchase.paymentStatus }})
+                </span>
+            </div>
+            <table class="invoice-table payment-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Paid From</th>
+                        <th>Description</th>
+                        <th class="text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let payment of paymentHistory">
+                        <td>{{ payment.transactionDate | date: formatService.dateFormat }}</td>
+                        <td>{{ payment.paymentAccountName || '—' }}</td>
+                        <td>{{ payment.description || '—' }}</td>
+                        <td class="text-right">{{ payment.amount | number: '1.2-2' }}</td>
+                    </tr>
+                    <tr *ngIf="!paymentHistory.length">
+                        <td colspan="4" class="text-center">No payments recorded</td>
+                    </tr>
+                </tbody>
+                <tfoot *ngIf="paymentHistory.length">
+                    <tr>
+                        <td colspan="3" class="text-right">
+                            <strong>Total Paid</strong>
+                        </td>
+                        <td class="text-right">
+                            <strong>{{ paymentHistoryTotal | number: '1.2-2' }}</strong>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
 
         <div class="invoice-footer">
             <div *ngIf="company?.invoiceFooter" class="mb-1">

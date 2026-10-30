@@ -94,6 +94,26 @@
   text-align: right;
 }
 
+.payment-history-block {
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.payment-history-block .section-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.payment-history-block .payment-status {
+  font-weight: 600;
+  color: #444;
+}
+
+.payment-table {
+  margin-bottom: 0;
+}
+
 .invoice-footer {
   margin-top: 24px;
   font-size: 12px;

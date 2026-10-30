@@ -10,7 +10,10 @@ import {
 } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { BranchDto } from 'src/app/demo/api/branch';
-import { PurchaseDto } from 'src/app/demo/api/purchase';
+import {
+    PurchaseDto,
+    PurchasePaymentHistoryDto,
+} from 'src/app/demo/api/purchase';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { PurchaseService } from 'src/app/demo/service/purchase.service';
 
@@ -29,11 +32,28 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
 
     purchase: PurchaseDto | null = null;
     company: BranchDto | null = null;
+    paymentHistory: PurchasePaymentHistoryDto[] = [];
     loading = false;
     today = new Date().toLocaleString();
 
     get isRestaurant(): boolean {
         return this.branchContext.isRestaurant();
+    }
+
+    get paymentHistoryTotal(): number {
+        return (this.paymentHistory || []).reduce(
+            (sum, p) => sum + (Number(p.amount) || 0),
+            0
+        );
+    }
+
+    get dueAmount(): number {
+        const total = Number(this.purchase?.totalAmount) || 0;
+        const paid =
+            this.paymentHistoryTotal ||
+            Number(this.purchase?.amountPaid) ||
+            0;
+        return Math.max(0, Math.round((total - paid) * 100) / 100);
     }
 
     constructor(public formatService: AppFormatService, 
@@ -62,6 +82,7 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
         if (!visible) {
             this.purchase = null;
             this.company = null;
+            this.paymentHistory = [];
         }
     }
 
@@ -86,15 +107,18 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
         this.loading = true;
         this.purchase = null;
         this.company = null;
+        this.paymentHistory = [];
         this.today = new Date().toLocaleString();
 
         Promise.all([
             this.purchaseService.get(id),
             this.branchService.getInvoiceInfo(),
+            this.purchaseService.getPaymentHistory(id),
         ])
-            .then(([purchase, company]) => {
+            .then(([purchase, company, payments]) => {
                 this.purchase = purchase;
                 this.company = company;
+                this.paymentHistory = payments || [];
                 this.loading = false;
                 this.cd.detectChanges();
                 if (this.autoPrint) {
