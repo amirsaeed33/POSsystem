@@ -1737,6 +1737,9 @@ namespace SmartPos.Migrations
                     b.Property<byte>("BusinessType")
                         .HasColumnType("tinyint");
 
+                    b.Property<bool>("AutoAssignWaiterToTables")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(64)

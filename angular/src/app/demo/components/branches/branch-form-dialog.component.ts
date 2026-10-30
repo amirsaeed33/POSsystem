@@ -254,6 +254,7 @@ export class BranchFormDialogComponent implements OnChanges {
             discountAmount: this.branch.discountAmount ?? 0,
             businessType: this.branch.businessType ?? 1,
             serviceChargePercent: this.branch.serviceChargePercent ?? 0,
+            autoAssignWaiterToTables: this.branch.autoAssignWaiterToTables !== false,
             companyTypeId: this.selectedCompanyTypeId || undefined,
             hostCatalogItemIds: this.selectedHostItemIds,
             latitude: this.branch.latitude != null ? Number(this.branch.latitude) : null,
@@ -352,6 +353,7 @@ export class BranchFormDialogComponent implements OnChanges {
             discountAmount: 0,
             businessType: 1,
             serviceChargePercent: 0,
+            autoAssignWaiterToTables: true,
             latitude: null,
             longitude: null,
             attendanceAutoCheckInRadiusFeet: 200,
@@ -449,6 +451,7 @@ export class BranchFormDialogComponent implements OnChanges {
             .then((branch) => {
                 this.branch = {
                     ...branch,
+                    autoAssignWaiterToTables: branch.autoAssignWaiterToTables !== false,
                     latitude: branch.latitude ?? null,
                     longitude: branch.longitude ?? null,
                     attendanceAutoCheckInRadiusFeet:
