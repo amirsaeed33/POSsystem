@@ -9,7 +9,11 @@ namespace SmartPos.Branches
     {
         Task<ListResultDto<BranchDto>> GetLookupAsync();
 
-        Task<BranchDto> GetInvoiceInfoAsync();
+        /// <summary>
+        /// Branch header for printed invoices (logo, address, contacts).
+        /// Prefers <paramref name="branchId"/>, then request branch header, then user's branch.
+        /// </summary>
+        Task<BranchDto> GetInvoiceInfoAsync(int? branchId = null);
 
         /// <summary>Host-only: pending tenant branches awaiting approval.</summary>
         Task<ListResultDto<BranchDto>> GetPendingApprovalsAsync();

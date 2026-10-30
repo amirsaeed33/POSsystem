@@ -53,10 +53,14 @@ export class BranchService {
         return (Array.isArray(items) ? items : []).map((i) => this.map(i));
     }
 
-    async getInvoiceInfo(): Promise<BranchDto | null> {
+    async getInvoiceInfo(branchId?: number | null): Promise<BranchDto | null> {
         try {
+            const params: any = {};
+            if (branchId != null && branchId > 0) {
+                params.branchId = String(branchId);
+            }
             const res: any = await firstValueFrom(
-                this.http.get<any>(`${this.apiUrl}/GetInvoiceInfo`)
+                this.http.get<any>(`${this.apiUrl}/GetInvoiceInfo`, { params })
             );
             const result = this.unwrap(res, 'Failed to load branch');
             if (!result) {

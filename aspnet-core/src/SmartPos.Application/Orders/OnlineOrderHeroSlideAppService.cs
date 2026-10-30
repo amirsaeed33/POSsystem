@@ -139,32 +139,69 @@ namespace SmartPos.Orders
                 entity.SecondaryBtnText = TrimOrNull(input.SecondaryBtnText, OnlineOrderHeroSlide.MaxShortTextLength) ?? "Explore Menu";
                 entity.SecondaryTarget = NormalizeTarget(input.SecondaryTarget);
 
+                var uploadedCardImage = false;
+                var uploadedBgImage = false;
+
                 if (OnlineOrderHeroImageStore.IsNewImagePayload(input.ImageBase64))
                 {
                     var old = entity.ImagePath;
                     entity.ImagePath = OnlineOrderHeroImageStore.SaveBase64Image(input.ImageBase64);
-                    OnlineOrderHeroImageStore.DeleteIfExists(old);
+                    uploadedCardImage = !string.IsNullOrWhiteSpace(entity.ImagePath);
+                    if (uploadedCardImage
+                        && !string.Equals(old, entity.ImagePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        OnlineOrderHeroImageStore.DeleteIfExists(old);
+                    }
                 }
-                else if (!string.IsNullOrWhiteSpace(input.ImagePath))
+                else if (input.ImagePath != null)
                 {
-                    entity.ImagePath = input.ImagePath.Trim();
+                    var old = entity.ImagePath;
+                    entity.ImagePath = string.IsNullOrWhiteSpace(input.ImagePath)
+                        ? null
+                        : TrimOrNull(input.ImagePath, OnlineOrderHeroSlide.MaxImagePathLength);
+                    if (string.IsNullOrWhiteSpace(entity.ImagePath)
+                        && !string.Equals(old, entity.ImagePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        OnlineOrderHeroImageStore.DeleteIfExists(old);
+                    }
                 }
 
                 if (OnlineOrderHeroImageStore.IsNewImagePayload(input.BgImageBase64))
                 {
                     var old = entity.BgImagePath;
                     entity.BgImagePath = OnlineOrderHeroImageStore.SaveBase64Image(input.BgImageBase64);
-                    OnlineOrderHeroImageStore.DeleteIfExists(old);
+                    uploadedBgImage = !string.IsNullOrWhiteSpace(entity.BgImagePath);
+                    if (uploadedBgImage
+                        && !string.Equals(old, entity.BgImagePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        OnlineOrderHeroImageStore.DeleteIfExists(old);
+                    }
                 }
-                else if (!string.IsNullOrWhiteSpace(input.BgImagePath))
+                else if (input.BgImagePath != null)
                 {
-                    entity.BgImagePath = input.BgImagePath.Trim();
+                    var old = entity.BgImagePath;
+                    entity.BgImagePath = string.IsNullOrWhiteSpace(input.BgImagePath)
+                        ? null
+                        : TrimOrNull(input.BgImagePath, OnlineOrderHeroSlide.MaxImagePathLength);
+                    if (string.IsNullOrWhiteSpace(entity.BgImagePath)
+                        && !string.Equals(old, entity.BgImagePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        OnlineOrderHeroImageStore.DeleteIfExists(old);
+                    }
                 }
 
-                // Prefer bg image; fall back to main image for storefront background.
-                if (string.IsNullOrWhiteSpace(entity.BgImagePath) && !string.IsNullOrWhiteSpace(entity.ImagePath))
+                // Card image and background must stay paired unless a dedicated bg was uploaded.
+                if (uploadedCardImage && !uploadedBgImage && !string.IsNullOrWhiteSpace(entity.ImagePath))
                 {
                     entity.BgImagePath = entity.ImagePath;
+                }
+                else if (string.IsNullOrWhiteSpace(entity.BgImagePath) && !string.IsNullOrWhiteSpace(entity.ImagePath))
+                {
+                    entity.BgImagePath = entity.ImagePath;
+                }
+                else if (string.IsNullOrWhiteSpace(entity.ImagePath) && !string.IsNullOrWhiteSpace(entity.BgImagePath))
+                {
+                    entity.ImagePath = entity.BgImagePath;
                 }
 
                 if (entity.Id == 0)

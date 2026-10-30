@@ -14,6 +14,7 @@ import { SaleDto } from 'src/app/demo/api/sale';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
 import { AuthService } from 'src/app/demo/service/auth.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 
 @Component({
     selector: 'app-print-sale-invoice-dialog',
@@ -35,6 +36,7 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
     constructor(public formatService: AppFormatService, 
         private saleService: SaleService,
         private branchService: BranchService,
+        private branchContext: BranchContextService,
         private authService: AuthService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef
@@ -121,7 +123,7 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
 
         Promise.all([
             this.saleService.get(id),
-            this.branchService.getInvoiceInfo(),
+            this.branchService.getInvoiceInfo(this.branchContext.getBranchId()),
         ])
             .then(([sale, company]) => {
                 this.sale = sale;

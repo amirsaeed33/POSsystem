@@ -69,7 +69,34 @@ export class OnlineOrderHeroSlideService {
         ) {
             return path;
         }
-        return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+
+        const relative = path.startsWith('/') ? path : `/${path}`;
+        const isHero = /\/?OnlineOrderHeroImages\//i.test(relative);
+
+        // Production / explicit API host: load static files from the API origin.
+        if (environment.apiUrl) {
+            return `${environment.apiUrl}${relative}`;
+        }
+
+        // Local Angular (empty apiUrl): the /OnlineOrderHeroImages proxy is only
+        // loaded when ng serve starts, so hit the API host directly for hero files.
+        if (
+            isHero &&
+            typeof window !== 'undefined' &&
+            /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)
+        ) {
+            return `https://localhost:44311${relative}`;
+        }
+
+        // ngrok / same-origin: use /api controller (proxied via existing /api rule).
+        if (isHero) {
+            return relative.replace(
+                /^\/?OnlineOrderHeroImages\//i,
+                '/api/OnlineOrderHeroImages/'
+            );
+        }
+
+        return relative;
     }
 
     private unwrap(res: any, fallbackMessage: string): any {

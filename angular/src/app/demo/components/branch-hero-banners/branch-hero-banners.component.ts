@@ -1,4 +1,5 @@
 import {
+    ChangeDetectorRef,
     Component,
     Input,
     OnChanges,
@@ -15,6 +16,7 @@ import { OnlineOrderHeroSlideService } from 'src/app/demo/service/online-order-h
 @Component({
     selector: 'app-branch-hero-banners',
     templateUrl: './branch-hero-banners.component.html',
+    styleUrls: ['./branch-hero-banners.component.scss'],
     providers: [MessageService, ConfirmationService],
 })
 export class BranchHeroBannersComponent implements OnInit, OnChanges {
@@ -23,6 +25,7 @@ export class BranchHeroBannersComponent implements OnInit, OnChanges {
     slides: OnlineOrderHeroSlideDto[] = [];
     loading = false;
     saving = false;
+    private thumbVersion = Date.now();
 
     dialogVisible = false;
     editing: CreateOrUpdateOnlineOrderHeroSlideDto | null = null;
@@ -38,7 +41,8 @@ export class BranchHeroBannersComponent implements OnInit, OnChanges {
     constructor(
         private heroService: OnlineOrderHeroSlideService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
+        private cd: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
@@ -61,6 +65,7 @@ export class BranchHeroBannersComponent implements OnInit, OnChanges {
         this.loading = true;
         try {
             this.slides = await this.heroService.getByBranch(this.branchId);
+            this.thumbVersion = Date.now();
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',
@@ -106,7 +111,7 @@ export class BranchHeroBannersComponent implements OnInit, OnChanges {
         this.editing = {
             id: slide.id,
             branchId: slide.branchId,
-            sortOrder: slide.sortOrder,
+            sortOrder: Number(slide.sortOrder) || 0,
             isActive: slide.isActive,
             badge: slide.badge || '',
             badgeIcon: slide.badgeIcon || '',
@@ -122,10 +127,22 @@ export class BranchHeroBannersComponent implements OnInit, OnChanges {
             secondaryTarget: slide.secondaryTarget || 'menu',
             imagePath: slide.imagePath || '',
             bgImagePath: slide.bgImagePath || '',
+            imageBase64: undefined,
+            bgImageBase64: undefined,
         };
         this.imagePreview = this.heroService.getImageUrl(slide.imagePath);
-        this.bgImagePreview = this.heroService.getImageUrl(slide.bgImagePath);
+        this.bgImagePreview = this.heroService.getImageUrl(
+            slide.bgImagePath || slide.imagePath
+        );
         this.dialogVisible = true;
+    }
+
+    bumpSort(delta: number): void {
+        if (!this.editing) {
+            return;
+        }
+        const next = Math.max(0, (Number(this.editing.sortOrder) || 0) + delta);
+        this.editing.sortOrder = next;
     }
 
     onImageSelected(event: Event, kind: 'image' | 'bg'): void {
@@ -142,19 +159,60 @@ export class BranchHeroBannersComponent implements OnInit, OnChanges {
             });
             return;
         }
+        if (file.size > 5 * 1024 * 1024) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'File too large',
+                detail: 'Please upload an image under 5 MB.',
+            });
+            return;
+        }
         const reader = new FileReader();
         reader.onload = () => {
             const result = String(reader.result || '');
+            if (!this.editing || !result) {
+                return;
+            }
             if (kind === 'image') {
-                this.editing!.imageBase64 = result;
+                this.editing.imageBase64 = result;
+                this.editing.imagePath = '';
                 this.imagePreview = result;
+                // Card upload replaces storefront bg unless a separate bg was chosen in this edit.
+                if (!this.editing.bgImageBase64) {
+                    this.editing.bgImagePath = '';
+                    this.bgImagePreview = result;
+                }
             } else {
-                this.editing!.bgImageBase64 = result;
+                this.editing.bgImageBase64 = result;
+                this.editing.bgImagePath = '';
                 this.bgImagePreview = result;
             }
+            this.cd.detectChanges();
+        };
+        reader.onerror = () => {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Image',
+                detail: 'Could not read the selected image file.',
+            });
         };
         reader.readAsDataURL(file);
         input.value = '';
+    }
+
+    clearImage(kind: 'image' | 'bg'): void {
+        if (!this.editing) {
+            return;
+        }
+        if (kind === 'image') {
+            this.editing.imageBase64 = undefined;
+            this.editing.imagePath = '';
+            this.imagePreview = '';
+        } else {
+            this.editing.bgImageBase64 = undefined;
+            this.editing.bgImagePath = '';
+            this.bgImagePreview = '';
+        }
     }
 
     async save(): Promise<void> {
@@ -172,11 +230,20 @@ export class BranchHeroBannersComponent implements OnInit, OnChanges {
 
         this.saving = true;
         try {
-            await this.heroService.createOrUpdate({
+            const hasNewCard = !!this.editing.imageBase64;
+            const hasNewBg = !!this.editing.bgImageBase64;
+            const payload: CreateOrUpdateOnlineOrderHeroSlideDto = {
                 ...this.editing,
                 branchId: this.branchId,
+                sortOrder: Number(this.editing.sortOrder) || 0,
                 titleMain: this.editing.titleMain.trim(),
-            });
+                imageBase64: this.editing.imageBase64 || undefined,
+                bgImageBase64: this.editing.bgImageBase64 || undefined,
+                // Don't keep stale remote/local paths when a new file is uploaded.
+                imagePath: hasNewCard ? '' : this.editing.imagePath || undefined,
+                bgImagePath: hasNewBg || hasNewCard ? '' : this.editing.bgImagePath || undefined,
+            };
+            await this.heroService.createOrUpdate(payload);
             this.messageService.add({
                 severity: 'success',
                 summary: 'Saved',
@@ -224,6 +291,19 @@ export class BranchHeroBannersComponent implements OnInit, OnChanges {
     }
 
     getThumb(path?: string): string {
-        return this.heroService.getImageUrl(path);
+        const url = this.heroService.getImageUrl(path);
+        if (!url || url.startsWith('data:') || url.startsWith('http')) {
+            return url;
+        }
+        // Cache-bust relative API paths after save/reload (stable within a load).
+        return `${url}${url.includes('?') ? '&' : '?'}v=${this.thumbVersion}`;
+    }
+
+    onPreviewError(kind: 'image' | 'bg'): void {
+        if (kind === 'image') {
+            this.imagePreview = '';
+        } else {
+            this.bgImagePreview = '';
+        }
     }
 }

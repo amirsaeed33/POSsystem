@@ -45,6 +45,8 @@ namespace SmartPos.Branches
         private readonly IConfiguration _configuration;
         private readonly BranchCatalogSeedService _branchCatalogSeedService;
         private readonly ICacheManager _cacheManager;
+        private readonly IBranchContext _branchContext;
+        private readonly IBranchAccessChecker _branchAccessChecker;
 
         public BranchAppService(
             IRepository<Branch> repository,
@@ -59,7 +61,9 @@ namespace SmartPos.Branches
             ISmtpMailSender smtpMailSender,
             IConfiguration configuration,
             BranchCatalogSeedService branchCatalogSeedService,
-            ICacheManager cacheManager)
+            ICacheManager cacheManager,
+            IBranchContext branchContext,
+            IBranchAccessChecker branchAccessChecker)
             : base(repository)
         {
             _productRepository = productRepository;
@@ -74,6 +78,8 @@ namespace SmartPos.Branches
             _configuration = configuration;
             _branchCatalogSeedService = branchCatalogSeedService;
             _cacheManager = cacheManager;
+            _branchContext = branchContext;
+            _branchAccessChecker = branchAccessChecker;
             CreatePermissionName = PermissionNames.Pages_Branches_Create;
             UpdatePermissionName = PermissionNames.Pages_Branches_Edit;
             DeletePermissionName = PermissionNames.Pages_Branches_Delete;
@@ -395,22 +401,37 @@ namespace SmartPos.Branches
             await _cacheManager.GetCache(CacheName).ClearAsync();
         }
 
-        public async Task<BranchDto> GetInvoiceInfoAsync()
+        public async Task<BranchDto> GetInvoiceInfoAsync(int? branchId = null)
         {
-            Branch branch = null;
+            int? resolvedBranchId = branchId.HasValue && branchId.Value > 0
+                ? branchId.Value
+                : _branchContext?.BranchId;
 
-            if (AbpSession.UserId.HasValue)
+            if ((!resolvedBranchId.HasValue || resolvedBranchId.Value <= 0) && AbpSession.UserId.HasValue)
             {
                 var currentUser = await UserManager.FindByIdAsync(AbpSession.UserId.Value.ToString());
-                if (currentUser?.BranchId != null)
+                if (currentUser?.BranchId != null && currentUser.BranchId.Value > 0)
                 {
-                    branch = await Repository.FirstOrDefaultAsync(currentUser.BranchId.Value);
+                    resolvedBranchId = currentUser.BranchId.Value;
+                }
+            }
+
+            Branch branch = null;
+
+            if (resolvedBranchId.HasValue && resolvedBranchId.Value > 0)
+            {
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(resolvedBranchId.Value);
+
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+                {
+                    branch = await Repository.FirstOrDefaultAsync(resolvedBranchId.Value);
                 }
             }
 
             if (branch == null)
             {
                 branch = await Repository.GetAll()
+                    .Where(x => x.IsActive)
                     .OrderBy(x => x.Id)
                     .FirstOrDefaultAsync();
             }

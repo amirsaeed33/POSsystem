@@ -110,14 +110,21 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
         this.paymentHistory = [];
         this.today = new Date().toLocaleString();
 
+        const branchId = this.branchContext.getBranchId();
+        // Prefer selected branch immediately so logo/address match the topbar selection.
+        const contextBranch = this.branchContext.getCurrentBranch();
+        if (contextBranch) {
+            this.company = contextBranch;
+        }
+
         Promise.all([
             this.purchaseService.get(id),
-            this.branchService.getInvoiceInfo(),
+            this.branchService.getInvoiceInfo(branchId),
             this.purchaseService.getPaymentHistory(id),
         ])
             .then(([purchase, company, payments]) => {
                 this.purchase = purchase;
-                this.company = company;
+                this.company = company || contextBranch || this.company;
                 this.paymentHistory = payments || [];
                 this.loading = false;
                 this.cd.detectChanges();

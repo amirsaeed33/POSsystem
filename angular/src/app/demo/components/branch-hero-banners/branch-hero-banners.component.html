@@ -39,8 +39,8 @@
             style="width: 7rem; height: 4.5rem;"
         >
             <img
-                *ngIf="slide.bgImagePath || slide.imagePath; else noImg"
-                [src]="getThumb(slide.bgImagePath || slide.imagePath)"
+                *ngIf="slide.imagePath || slide.bgImagePath; else noImg"
+                [src]="getThumb(slide.imagePath || slide.bgImagePath)"
                 [alt]="slide.titleMain"
                 class="w-full h-full"
                 style="object-fit: cover;"
@@ -67,7 +67,7 @@
                 >
                     {{ slide.isActive ? 'Active' : 'Inactive' }}
                 </span>
-                <span class="text-xs text-500">Order #{{ slide.sortOrder }}</span>
+                <span class="text-xs text-500">Sort #{{ slide.sortOrder }}</span>
             </div>
             <div class="text-sm text-600 line-clamp-2">{{ slide.description || slide.offerPill || '—' }}</div>
         </div>
@@ -98,101 +98,220 @@
 <p-dialog
     [(visible)]="dialogVisible"
     [modal]="true"
-    [style]="{ width: '42rem', maxWidth: '96vw' }"
+    appendTo="body"
+    [style]="{ width: '48rem', maxWidth: '96vw' }"
+    [contentStyle]="{ 'max-height': '70vh', 'overflow-y': 'auto' }"
     [header]="editing?.id ? 'Edit Hero Banner' : 'Add Hero Banner'"
     [draggable]="false"
     [resizable]="false"
 >
-    <div class="grid formgrid p-fluid" *ngIf="editing">
-        <div class="field col-12 md:col-8">
-            <label>Title (main)</label>
-            <input pInputText [(ngModel)]="editing.titleMain" maxlength="256" />
-        </div>
-        <div class="field col-6 md:col-2">
-            <label>Sort</label>
-            <p-inputNumber [(ngModel)]="editing.sortOrder" [min]="0" [showButtons]="true"></p-inputNumber>
-        </div>
-        <div class="field col-6 md:col-2 flex align-items-end">
-            <div class="flex align-items-center gap-2 mb-2">
-                <p-inputSwitch [(ngModel)]="editing.isActive"></p-inputSwitch>
-                <span class="text-sm font-medium">Active</span>
+    <div class="hero-banner-form" *ngIf="editing">
+        <!-- Images first so they are always visible -->
+        <div class="surface-50 border-1 surface-border border-round-xl p-3 mb-3">
+            <div class="font-bold text-900 mb-2">Banner Images</div>
+            <div class="grid formgrid">
+                <div class="field col-12 md:col-6 mb-0">
+                    <label class="font-semibold block mb-2">Card / food image</label>
+                    <div
+                        class="border-round overflow-hidden surface-100 mb-2 flex align-items-center justify-content-center"
+                        style="height: 9rem; border: 1px dashed var(--surface-border);"
+                    >
+                        <img
+                            *ngIf="imagePreview; else noCardImg"
+                            [src]="imagePreview"
+                            alt="Card preview"
+                            class="w-full h-full"
+                            style="object-fit: cover;"
+                            (error)="onPreviewError('image')"
+                        />
+                        <ng-template #noCardImg>
+                            <span class="text-400 text-sm">No image selected</span>
+                        </ng-template>
+                    </div>
+                    <input
+                        #cardImageInput
+                        type="file"
+                        accept="image/*"
+                        class="hidden"
+                        (change)="onImageSelected($event, 'image')"
+                    />
+                    <div class="flex gap-2 flex-wrap">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-upload"
+                            label="Upload image"
+                            class="p-button-sm"
+                            (click)="cardImageInput.click()"
+                        ></button>
+                        <button
+                            *ngIf="imagePreview"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-times"
+                            label="Clear"
+                            class="p-button-sm p-button-outlined p-button-secondary"
+                            (click)="clearImage('image')"
+                        ></button>
+                    </div>
+                </div>
+
+                <div class="field col-12 md:col-6 mb-0">
+                    <label class="font-semibold block mb-2">Background image</label>
+                    <div
+                        class="border-round overflow-hidden surface-100 mb-2 flex align-items-center justify-content-center"
+                        style="height: 9rem; border: 1px dashed var(--surface-border);"
+                    >
+                        <img
+                            *ngIf="bgImagePreview; else noBgImg"
+                            [src]="bgImagePreview"
+                            alt="Background preview"
+                            class="w-full h-full"
+                            style="object-fit: cover;"
+                            (error)="onPreviewError('bg')"
+                        />
+                        <ng-template #noBgImg>
+                            <span class="text-400 text-sm">No image selected</span>
+                        </ng-template>
+                    </div>
+                    <input
+                        #bgImageInput
+                        type="file"
+                        accept="image/*"
+                        class="hidden"
+                        (change)="onImageSelected($event, 'bg')"
+                    />
+                    <div class="flex gap-2 flex-wrap">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-upload"
+                            label="Upload background"
+                            class="p-button-sm"
+                            (click)="bgImageInput.click()"
+                        ></button>
+                        <button
+                            *ngIf="bgImagePreview"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-times"
+                            label="Clear"
+                            class="p-button-sm p-button-outlined p-button-secondary"
+                            (click)="clearImage('bg')"
+                        ></button>
+                    </div>
+                    <small class="text-500 block mt-1">If empty, card image is used as background.</small>
+                </div>
             </div>
         </div>
 
-        <div class="field col-12 md:col-6">
-            <label>Highlight title</label>
-            <input pInputText [(ngModel)]="editing.titleHighlight" maxlength="256" />
-        </div>
-        <div class="field col-12 md:col-6">
-            <label>Title end</label>
-            <input pInputText [(ngModel)]="editing.titleEnd" maxlength="256" />
-        </div>
-
-        <div class="field col-12 md:col-8">
-            <label>Badge text</label>
-            <input pInputText [(ngModel)]="editing.badge" maxlength="128" placeholder="FRESH FROM OVEN • 30-45 MIN" />
-        </div>
-        <div class="field col-12 md:col-4">
-            <label>Badge icon</label>
-            <input pInputText [(ngModel)]="editing.badgeIcon" maxlength="16" placeholder="🔥" />
-        </div>
-
-        <div class="field col-12">
-            <label>Description</label>
-            <textarea pInputTextarea [(ngModel)]="editing.description" rows="3" maxlength="1000"></textarea>
-        </div>
-
-        <div class="field col-12 md:col-8">
-            <label>Offer pill</label>
-            <input pInputText [(ngModel)]="editing.offerPill" maxlength="128" />
-        </div>
-        <div class="field col-12 md:col-4">
-            <label>Rating</label>
-            <input pInputText [(ngModel)]="editing.rating" maxlength="32" placeholder="4.9★" />
-        </div>
-
-        <div class="field col-12 md:col-6">
-            <label>Primary button</label>
-            <input pInputText [(ngModel)]="editing.primaryBtnText" maxlength="128" />
-        </div>
-        <div class="field col-12 md:col-6">
-            <label>Primary target</label>
-            <p-dropdown
-                [options]="targetOptions"
-                [(ngModel)]="editing.primaryTarget"
-                optionLabel="label"
-                optionValue="value"
-            ></p-dropdown>
-        </div>
-
-        <div class="field col-12 md:col-6">
-            <label>Secondary button</label>
-            <input pInputText [(ngModel)]="editing.secondaryBtnText" maxlength="128" />
-        </div>
-        <div class="field col-12 md:col-6">
-            <label>Secondary target</label>
-            <p-dropdown
-                [options]="targetOptions"
-                [(ngModel)]="editing.secondaryTarget"
-                optionLabel="label"
-                optionValue="value"
-            ></p-dropdown>
-        </div>
-
-        <div class="field col-12 md:col-6">
-            <label>Card / food image</label>
-            <input type="file" accept="image/*" (change)="onImageSelected($event, 'image')" class="mb-2" />
-            <div *ngIf="imagePreview" class="border-round overflow-hidden surface-100" style="height: 7rem;">
-                <img [src]="imagePreview" alt="Preview" class="w-full h-full" style="object-fit: cover;" />
+        <div class="grid formgrid p-fluid">
+            <div class="field col-12">
+                <label>Title (main)</label>
+                <input pInputText [(ngModel)]="editing.titleMain" maxlength="256" />
             </div>
-        </div>
-        <div class="field col-12 md:col-6">
-            <label>Background image</label>
-            <input type="file" accept="image/*" (change)="onImageSelected($event, 'bg')" class="mb-2" />
-            <div *ngIf="bgImagePreview" class="border-round overflow-hidden surface-100" style="height: 7rem;">
-                <img [src]="bgImagePreview" alt="Background" class="w-full h-full" style="object-fit: cover;" />
+
+            <div class="field col-12 md:col-6">
+                <label>Sort order</label>
+                <div class="hero-sort-control">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-minus"
+                        class="p-button-outlined p-button-sm hero-sort-btn"
+                        (click)="bumpSort(-1)"
+                    ></button>
+                    <input
+                        pInputText
+                        type="number"
+                        class="hero-sort-input text-center"
+                        [(ngModel)]="editing.sortOrder"
+                        min="0"
+                    />
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        class="p-button-outlined p-button-sm hero-sort-btn"
+                        (click)="bumpSort(1)"
+                    ></button>
+                </div>
             </div>
-            <small class="text-500">If empty, card image is used as background.</small>
+            <div class="field col-12 md:col-6">
+                <label>Status</label>
+                <div class="hero-active-row">
+                    <p-inputSwitch [(ngModel)]="editing.isActive"></p-inputSwitch>
+                    <span class="text-sm font-medium">{{ editing.isActive ? 'Active' : 'Inactive' }}</span>
+                </div>
+            </div>
+
+            <div class="field col-12 md:col-6">
+                <label>Highlight title</label>
+                <input pInputText [(ngModel)]="editing.titleHighlight" maxlength="256" />
+            </div>
+            <div class="field col-12 md:col-6">
+                <label>Title end</label>
+                <input pInputText [(ngModel)]="editing.titleEnd" maxlength="256" />
+            </div>
+
+            <div class="field col-12 md:col-8">
+                <label>Badge text</label>
+                <input pInputText [(ngModel)]="editing.badge" maxlength="128" placeholder="FRESH FROM OVEN • 30-45 MIN" />
+            </div>
+            <div class="field col-12 md:col-4">
+                <label>Badge icon</label>
+                <input pInputText [(ngModel)]="editing.badgeIcon" maxlength="16" placeholder="🔥" />
+            </div>
+
+            <div class="field col-12">
+                <label>Description</label>
+                <textarea pInputTextarea [(ngModel)]="editing.description" rows="3" maxlength="1000"></textarea>
+            </div>
+
+            <div class="field col-12 md:col-8">
+                <label>Offer pill</label>
+                <input pInputText [(ngModel)]="editing.offerPill" maxlength="128" />
+            </div>
+            <div class="field col-12 md:col-4">
+                <label>Rating</label>
+                <input pInputText [(ngModel)]="editing.rating" maxlength="32" placeholder="4.9★" />
+            </div>
+
+            <div class="field col-12 md:col-6">
+                <label>Primary button</label>
+                <input pInputText [(ngModel)]="editing.primaryBtnText" maxlength="128" />
+            </div>
+            <div class="field col-12 md:col-6">
+                <label>Primary target</label>
+                <p-dropdown
+                    [options]="targetOptions"
+                    [(ngModel)]="editing.primaryTarget"
+                    optionLabel="label"
+                    optionValue="value"
+                    [style]="{ width: '100%' }"
+                ></p-dropdown>
+            </div>
+
+            <div class="field col-12 md:col-6">
+                <label>Secondary button</label>
+                <input pInputText [(ngModel)]="editing.secondaryBtnText" maxlength="128" />
+            </div>
+            <div class="field col-12 md:col-6">
+                <label>Secondary target</label>
+                <p-dropdown
+                    [options]="targetOptions"
+                    [(ngModel)]="editing.secondaryTarget"
+                    optionLabel="label"
+                    optionValue="value"
+                    [style]="{ width: '100%' }"
+                ></p-dropdown>
+            </div>
         </div>
     </div>
 

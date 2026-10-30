@@ -25,6 +25,7 @@
                 />
                 <div>
                     <h2>{{ company?.name || 'Purchase Invoice' }}</h2>
+                    <div *ngIf="company?.code" class="company-code">Branch: {{ company?.code }}</div>
                     <div *ngIf="company?.invoiceAddress">{{ company?.invoiceAddress }}</div>
                     <div *ngIf="company?.invoiceContactPhone">
                         Phone: {{ company?.invoiceContactPhone }}
@@ -34,6 +35,9 @@
                     </div>
                     <div *ngIf="company?.taxNumber">
                         Tax Number: {{ company?.taxNumber }}
+                    </div>
+                    <div *ngIf="company?.website">
+                        Website: {{ company?.website }}
                     </div>
                 </div>
             </div>
@@ -46,6 +50,10 @@
                 <div>
                     <strong>Purchase Date:</strong>
                     {{ purchase.purchaseDate | date: formatService.dateFormat }}
+                </div>
+                <div *ngIf="purchase.paymentStatus">
+                    <strong>Payment Status:</strong>
+                    {{ purchase.paymentStatus }}
                 </div>
             </div>
         </div>
