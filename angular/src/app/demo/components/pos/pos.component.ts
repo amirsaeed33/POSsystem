@@ -30,6 +30,7 @@ import { RestaurantTableService } from 'src/app/demo/service/restaurant-table.se
 import { RestaurantOrderService } from 'src/app/demo/service/restaurant-order.service';
 import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
+import { ProductService } from 'src/app/demo/service/product.service';
 import { StaffDto } from 'src/app/demo/api/staff';
 import { StaffService } from 'src/app/demo/service/staff.service';
 import { DealService } from 'src/app/demo/service/deal.service';
@@ -191,6 +192,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
     constructor(
         private saleService: SaleService,
+        private productService: ProductService,
         private restaurantTableService: RestaurantTableService,
         private restaurantOrderService: RestaurantOrderService,
         private productModifierService: ProductModifierService,
@@ -292,8 +294,58 @@ export class PosComponent implements OnInit, OnDestroy {
 
     topProducts: ProductDto[] = [];
     loadingTopProducts = false;
+
+    /** Restaurant menu browser (tap-to-add by category). */
+    menuProducts: ProductDto[] = [];
+    selectedMenuCategoryId: number | null = null;
+    loadingMenu = false;
+
     private lastLoadedBranchId: number | null = null;
     private posInitDone = false;
+
+    get menuCategories(): { id: number; name: string; count: number }[] {
+        const map = new Map<number, { id: number; name: string; count: number }>();
+        for (const p of this.menuProducts) {
+            if (!p.categoryId) {
+                continue;
+            }
+            const existing = map.get(p.categoryId);
+            if (existing) {
+                existing.count += 1;
+            } else {
+                map.set(p.categoryId, {
+                    id: p.categoryId,
+                    name: (p.categoryName || 'Other').trim() || 'Other',
+                    count: 1,
+                });
+            }
+        }
+        return Array.from(map.values()).sort((a, b) => {
+            const aDeal = a.name.toLowerCase() === 'deals' ? 0 : 1;
+            const bDeal = b.name.toLowerCase() === 'deals' ? 0 : 1;
+            if (aDeal !== bDeal) {
+                return aDeal - bDeal;
+            }
+            return a.name.localeCompare(b.name);
+        });
+    }
+
+    get filteredMenuProducts(): ProductDto[] {
+        let list = this.menuProducts;
+        if (this.selectedMenuCategoryId != null) {
+            list = list.filter((p) => p.categoryId === this.selectedMenuCategoryId);
+        }
+        const q = (this.searchText || '').trim().toLowerCase();
+        if (q) {
+            list = list.filter(
+                (p) =>
+                    (p.name || '').toLowerCase().includes(q) ||
+                    (p.barcode || '').toLowerCase().includes(q) ||
+                    (p.categoryName || '').toLowerCase().includes(q)
+            );
+        }
+        return list;
+    }
 
     ngOnInit(): void {
         void this.initPosForBranch();
@@ -333,6 +385,9 @@ export class PosComponent implements OnInit, OnDestroy {
             this.applyBranchPricing();
             this.loadTopProducts();
             this.loadPosCustomers();
+            if (this.isRestaurantMode) {
+                this.loadMenuProducts();
+            }
         }
     }
 
@@ -343,6 +398,7 @@ export class PosComponent implements OnInit, OnDestroy {
         this.loadPosCustomers();
 
         if (this.isRestaurantMode) {
+            this.loadMenuProducts();
             if (this.isWaiter) {
                 this.waiterName = this.authService.getPrinterIdentity().name;
             } else if (this.takeawayAlarmService && !this.alarmOrdersSub) {
@@ -351,6 +407,9 @@ export class PosComponent implements OnInit, OnDestroy {
                 });
             }
             this.loadUnpaidTakeaways();
+        } else {
+            this.menuProducts = [];
+            this.selectedMenuCategoryId = null;
         }
     }
 
@@ -467,6 +526,47 @@ export class PosComponent implements OnInit, OnDestroy {
             .finally(() => {
                 this.loadingTopProducts = false;
             });
+    }
+
+    loadMenuProducts(): void {
+        this.loadingMenu = true;
+        this.saleService
+            .getPosProducts()
+            .then((products) => {
+                this.menuProducts = (products || [])
+                    .filter((p) => !this.isGroceryProduct(p))
+                    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                if (
+                    this.selectedMenuCategoryId != null &&
+                    !this.menuCategories.some((c) => c.id === this.selectedMenuCategoryId)
+                ) {
+                    this.selectedMenuCategoryId = null;
+                }
+            })
+            .catch((err) => {
+                console.error('Failed to load menu products:', err);
+                this.menuProducts = [];
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Menu',
+                    detail: err?.message || 'Failed to load products for menu',
+                });
+            })
+            .finally(() => {
+                this.loadingMenu = false;
+            });
+    }
+
+    selectMenuCategory(categoryId: number | null): void {
+        this.selectedMenuCategoryId = categoryId;
+    }
+
+    getMenuProductImage(product: ProductDto): string {
+        return this.productService.getImageUrl(product?.imagePath);
+    }
+
+    getMenuProductInitials(product: ProductDto): string {
+        return this.productService.getProductInitials(product?.name);
     }
 
     private applyBranchPricing(): void {
@@ -1239,7 +1339,7 @@ export class PosComponent implements OnInit, OnDestroy {
     selectedTargetTableId: number | null = null;
 
     get availableTransferTables(): RestaurantTableDto[] {
-        return this.tables.filter(
+        return (this.tables || []).filter(
             (t) => t.id !== this.selectedTable?.id && t.status === 0
         );
     }
@@ -1249,7 +1349,15 @@ export class PosComponent implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'No Table',
-                detail: 'Select an active table first to transfer.',
+                detail: 'Select an active table or car first to transfer.',
+            });
+            return;
+        }
+        if (!this.activeOrderId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'No Order',
+                detail: 'Send items to the table/car first, then transfer the order.',
             });
             return;
         }
@@ -1260,6 +1368,8 @@ export class PosComponent implements OnInit, OnDestroy {
     async confirmTransfer(): Promise<void> {
         if (!this.selectedTable || !this.selectedTargetTableId) return;
         this.transferringTable = true;
+        const fromLabel = this.selectedTable.tableNo;
+        const orderId = this.activeOrderId;
         try {
             const target = this.tables.find(
                 (t) => t.id === this.selectedTargetTableId
@@ -1270,13 +1380,28 @@ export class PosComponent implements OnInit, OnDestroy {
             );
             this.messageService.add({
                 severity: 'success',
-                summary: 'Table Transferred',
-                detail: `Order moved from Table ${this.selectedTable.tableNo} to Table ${target?.tableNo || ''}`,
+                summary: 'Order Transferred',
+                detail: `Moved from ${fromLabel} to ${target?.tableNo || ''}`,
             });
             this.transferDialogVisible = false;
             await this.loadTables();
-            if (target) {
-                this.selectedTable = target;
+            const refreshed =
+                (this.tables || []).find((t) => t.id === this.selectedTargetTableId) ||
+                target ||
+                null;
+            this.selectedTable = refreshed;
+            if (this.isCarBay(refreshed)) {
+                this.selectedCarName = refreshed?.tableNo || '';
+                this.selectedCarLocation = refreshed?.area || 'Car Parking';
+                // Keep plate if already set on the order; clear only when moving to a plain table.
+            } else {
+                this.selectedCarOrder = null;
+                this.selectedCarName = '';
+                this.selectedCarNumber = '';
+                this.selectedCarLocation = '';
+            }
+            if (orderId) {
+                await this.loadOrderById(orderId);
             }
         } catch (err: any) {
             this.messageService.add({
@@ -1589,7 +1714,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.kotDialogVisible = true;
                 this.messageService.add({
                     severity: 'success',
-                    summary: isCar ? 'ðŸš— Sent to Car' : (isTakeaway ? 'ðŸ³ Sent to KOT' : 'ðŸ½ï¸ Sent to Table'),
+                    summary: isCar ? 'Sent to Car' : (isTakeaway ? 'Sent to KOT' : 'Sent to Table'),
                     detail: isCar
                         ? `Order sent to Car ${this.selectedCarName} (${this.selectedCarNumber}) (Order #${kotResult.orderNo})`
                         : (isTakeaway
@@ -1658,7 +1783,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.loadTables();
             this.messageService.add({
                 severity: 'info',
-                summary: 'ðŸ§¾ Guest Check Ready',
+                summary: 'Guest Check Ready',
                 detail: `Bill printed for ${this.isCarService ? this.carServiceLabel : (this.selectedTable?.tableNo || 'Table')}`,
                 life: 3000,
             });
@@ -1766,8 +1891,14 @@ export class PosComponent implements OnInit, OnDestroy {
 
             this.messageService.add({
                 severity: 'success',
-                summary: 'ðŸ’¾ Tab Saved',
-                detail: `Order #${saved.orderNo} held on ${this.selectedTable ? 'Table ' + this.selectedTable.tableNo : 'Takeaway'}`,
+                summary: 'Tab Saved',
+                detail: `Order #${saved.orderNo} held on ${
+                    this.isCarService
+                        ? this.carServiceLabel
+                        : this.selectedTable
+                          ? 'Table ' + this.selectedTable.tableNo
+                          : 'Takeaway'
+                }`,
                 life: 3000,
             });
         } catch (err: any) {
@@ -2007,6 +2138,10 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     focusSearch(): void {
+        // Restaurant staff tap menu tiles; avoid opening the mobile keyboard.
+        if (this.isRestaurantMode) {
+            return;
+        }
         setTimeout(() => this.barcodeInput?.nativeElement?.focus(), 50);
     }
 
@@ -2016,6 +2151,11 @@ export class PosComponent implements OnInit, OnDestroy {
         }
         const q = (this.searchText || '').trim();
         if (!q) {
+            this.suggestions = [];
+            return;
+        }
+        // Restaurant: filter the on-screen menu grid locally (no suggestion dropdown).
+        if (this.isRestaurantMode) {
             this.suggestions = [];
             return;
         }
@@ -2065,6 +2205,35 @@ export class PosComponent implements OnInit, OnDestroy {
         this.searchText = '';
         this.suggestions = [];
         this.focusSearch();
+    }
+
+    getMenuCartQty(productId: number): number {
+        return (this.cart || [])
+            .filter((l) => l.productId === productId)
+            .reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
+    }
+
+    async bumpMenuProduct(product: ProductDto, delta: number): Promise<void> {
+        if (!product || this.scanning || this.saving) {
+            return;
+        }
+        if (delta > 0) {
+            await this.addProduct(product);
+            return;
+        }
+
+        const lines = (this.cart || []).filter((l) => l.productId === product.id);
+        if (!lines.length) {
+            return;
+        }
+
+        // Prefer a line that can still be reduced; otherwise try the last line (shows KOT lock message).
+        const line =
+            [...lines]
+                .reverse()
+                .find((l) => (Number(l.quantity) || 0) > this.getMinQty(l)) ||
+            lines[lines.length - 1];
+        this.bumpQty(line, -1);
     }
 
     get currentCustomisedTotal(): number {
@@ -2842,7 +3011,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'ðŸ½ï¸ Order Completed',
+                    summary: 'Order Completed',
                     detail,
                 });
 

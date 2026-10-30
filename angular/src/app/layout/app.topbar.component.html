@@ -117,29 +117,25 @@
     </div>
 
     <div class="topbar-end flex align-items-center gap-2">
-        <!-- 🍳 Restaurant Unpaid Takeaway KOT Alarm (Restaurant Only & Admin/Cashier Only) -->
+        <!-- Restaurant Unpaid Takeaway KOT Alarm (Restaurant Only & Admin/Cashier Only) -->
         <div class="topbar-notifications relative" *ngIf="currentBranch?.businessType === 2 && !isWaiter">
             <button
-                class="p-link flex align-items-center justify-content-center px-2 py-1 border-round transition-colors"
-                [ngClass]="{
-                    'bg-red-600 text-white shadow-3 animate-pulse': unpaidTakeawayOrders.length > 0,
-                    'hover:surface-hover text-700': unpaidTakeawayOrders.length === 0
-                }"
                 type="button"
+                class="topbar-kot-btn p-link"
+                [class.has-alert]="unpaidTakeawayOrders.length > 0"
                 pStyleClass="@next"
                 enterClass="hidden"
                 enterActiveClass="scalein"
                 leaveToClass="hidden"
                 leaveActiveClass="fadeout"
                 [hideOnOutsideClick]="true"
-                [title]="unpaidTakeawayOrders.length > 0 ? (unpaidTakeawayOrders.length + ' Unpaid Takeaway Orders Sent to Kitchen!') : 'No Unpaid Takeaway Orders'"
+                [title]="unpaidTakeawayOrders.length > 0 ? (unpaidTakeawayOrders.length + ' unpaid takeaway order(s) sent to kitchen') : 'No unpaid takeaway orders'"
                 (click)="takeawayAlarmService.checkImmediately()"
             >
-                <i class="pi pi-bell p-overlay-badge text-lg" [ngClass]="{ 'text-white': unpaidTakeawayOrders.length > 0, 'text-700': unpaidTakeawayOrders.length === 0 }">
-                    <p-badge *ngIf="unpaidTakeawayOrders.length > 0" [value]="unpaidTakeawayOrders.length.toString()" severity="danger" styleClass="text-xs"></p-badge>
-                </i>
-                <span class="ml-1 font-bold text-xs hidden sm:inline" [ngClass]="{ 'text-white': unpaidTakeawayOrders.length > 0, 'text-700': unpaidTakeawayOrders.length === 0 }">
-                    Takeaway KOT
+                <i class="pi pi-shopping-bag"></i>
+                <span class="topbar-kot-label">Takeaway KOT</span>
+                <span class="topbar-kot-count" *ngIf="unpaidTakeawayOrders.length > 0">
+                    {{ unpaidTakeawayOrders.length }}
                 </span>
             </button>
 
@@ -228,8 +224,8 @@
         <!-- Combined Notifications: Online Orders + Customer Chat -->
         <div class="topbar-notifications relative" *ngIf="!isDeliveryRider && !isWaiter">
             <button
-                class="p-link flex align-items-center justify-content-center w-2rem h-2rem md:w-3rem md:h-3rem border-circle hover:surface-hover relative transition-colors"
                 type="button"
+                class="topbar-notify-btn p-link"
                 pStyleClass="@next"
                 enterClass="hidden"
                 enterActiveClass="scalein"
@@ -239,9 +235,10 @@
                 title="Orders & Messages"
                 (click)="openNotificationsPanel()"
             >
-                <i class="pi pi-bell p-overlay-badge text-xl text-700" style="font-size: 1.25rem;">
-                    <p-badge *ngIf="totalNotificationCount > 0" [value]="totalNotificationCount.toString()" severity="danger" styleClass="text-xs"></p-badge>
-                </i>
+                <i class="pi pi-bell"></i>
+                <span class="topbar-notify-count" *ngIf="totalNotificationCount > 0">
+                    {{ totalNotificationCount > 99 ? '99+' : totalNotificationCount }}
+                </span>
             </button>
 
             <div
