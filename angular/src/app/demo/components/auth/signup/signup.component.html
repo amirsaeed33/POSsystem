@@ -1,117 +1,230 @@
-<div class="surface-ground min-h-screen w-screen flex align-items-center justify-content-center py-5 overflow-hidden" [ngClass]="{'p-input-filled': filledInput}">
-    <div class="surface-card py-5 px-4 sm:px-5 shadow-2 flex flex-column w-11" style="border-radius:14px; max-width: 26rem; width: 100%;" [@slideIn]>
-        <h1 class="font-bold text-2xl mt-0 mb-2">Create your SmartPos account</h1>
-        <p class="text-color-secondary mb-4">
-            Sign up to create a new company (tenant) and your admin login. You will set up your first branch next.
-        </p>
+<div
+    class="signup-page"
+    [ngClass]="{ 'p-input-filled': filledInput }"
+>
+    <div class="signup-orb signup-orb--a" aria-hidden="true"></div>
+    <div class="signup-orb signup-orb--b" aria-hidden="true"></div>
 
-        <form [formGroup]="signupForm" (ngSubmit)="onSubmit()">
-            <div class="formgrid grid">
-                <div class="field col-6 mb-3">
-                    <label class="block text-sm font-medium mb-2" for="name">Display name</label>
-                    <span class="p-input-icon-left w-full">
-                        <i class="pi pi-briefcase"></i>
-                        <input id="name" type="text" pInputText class="w-full" formControlName="name"
-                            placeholder="Acme Corp" style="padding-left: 2.5rem;" />
-                    </span>
-                    <small class="p-error block mt-1" *ngIf="signupForm.get('name')?.invalid && signupForm.get('name')?.touched">
-                        Required
-                    </small>
-                </div>
-                <div class="field col-6 mb-3">
-                    <label class="block text-sm font-medium mb-2" for="tenancyName">Tenancy name</label>
-                    <span class="p-input-icon-left w-full">
-                        <i class="pi pi-building"></i>
-                        <input id="tenancyName" type="text" pInputText class="w-full" formControlName="tenancyName"
-                            placeholder="e.g. AcmeCorp" style="padding-left: 2.5rem;"
-                            (input)="onTenancyNameInput()" />
-                    </span>
-                    <small class="p-error block mt-1" *ngIf="signupForm.get('tenancyName')?.invalid && signupForm.get('tenancyName')?.touched">
-                        Valid code required
-                    </small>
+    <div class="signup-card" [@slideIn]>
+        <div class="signup-brand">
+            <div class="signup-brand-mark" aria-hidden="true">SP</div>
+            <div class="signup-brand-text">
+                <h1 class="signup-brand-name">SmartPos</h1>
+                <p class="signup-brand-tag">Point of sale for growing businesses</p>
+            </div>
+        </div>
+
+        <h2 class="signup-title">Create your company account</h2>
+
+        <form [formGroup]="signupForm" (ngSubmit)="onSubmit()" autocomplete="on">
+            <div class="signup-section">
+                <div class="signup-row">
+                    <div class="signup-field">
+                        <label class="signup-label" for="name">Company name</label>
+                        <span class="signup-input-wrap">
+                            <i class="pi pi-briefcase pi-field"></i>
+                            <input
+                                id="name"
+                                type="text"
+                                pInputText
+                                formControlName="name"
+                                placeholder="Acme Cafe"
+                                autocomplete="organization"
+                            />
+                        </span>
+                        <small
+                            class="p-error block mt-1"
+                            *ngIf="signupForm.get('name')?.invalid && signupForm.get('name')?.touched"
+                        >
+                            Company name is required
+                        </small>
+                    </div>
+                    <div class="signup-field">
+                        <label class="signup-label" for="tenancyName">Workspace ID</label>
+                        <span class="signup-input-wrap">
+                            <i class="pi pi-building pi-field"></i>
+                            <input
+                                id="tenancyName"
+                                type="text"
+                                pInputText
+                                formControlName="tenancyName"
+                                placeholder="AcmeCafe"
+                                autocomplete="off"
+                                (input)="onTenancyNameInput()"
+                            />
+                        </span>
+                        <small
+                            class="p-error block mt-1"
+                            *ngIf="signupForm.get('tenancyName')?.invalid && signupForm.get('tenancyName')?.touched"
+                        >
+                            Use a valid workspace ID (start with a letter)
+                        </small>
+                    </div>
                 </div>
             </div>
 
-            <div class="formgrid grid">
-                <div class="field col-12 md:col-6 mb-3">
-                    <label class="block text-sm font-medium mb-2" for="adminName">First name</label>
-                    <input id="adminName" type="text" pInputText class="w-full" formControlName="adminName" />
-                    <small class="p-error block mt-1" *ngIf="signupForm.get('adminName')?.invalid && signupForm.get('adminName')?.touched">
-                        Required
-                    </small>
+            <div class="signup-section">
+                <div class="signup-row">
+                    <div class="signup-field">
+                        <label class="signup-label" for="adminName">First name</label>
+                        <span class="signup-input-wrap">
+                            <i class="pi pi-user pi-field"></i>
+                            <input
+                                id="adminName"
+                                type="text"
+                                pInputText
+                                formControlName="adminName"
+                                placeholder="Ali"
+                                autocomplete="given-name"
+                            />
+                        </span>
+                        <small
+                            class="p-error block mt-1"
+                            *ngIf="signupForm.get('adminName')?.invalid && signupForm.get('adminName')?.touched"
+                        >
+                            Required
+                        </small>
+                    </div>
+                    <div class="signup-field">
+                        <label class="signup-label" for="adminSurname">Last name</label>
+                        <span class="signup-input-wrap">
+                            <i class="pi pi-user pi-field"></i>
+                            <input
+                                id="adminSurname"
+                                type="text"
+                                pInputText
+                                formControlName="adminSurname"
+                                placeholder="Khan"
+                                autocomplete="family-name"
+                            />
+                        </span>
+                        <small
+                            class="p-error block mt-1"
+                            *ngIf="signupForm.get('adminSurname')?.invalid && signupForm.get('adminSurname')?.touched"
+                        >
+                            Required
+                        </small>
+                    </div>
                 </div>
-                <div class="field col-12 md:col-6 mb-3">
-                    <label class="block text-sm font-medium mb-2" for="adminSurname">Last name</label>
-                    <input id="adminSurname" type="text" pInputText class="w-full" formControlName="adminSurname" />
-                    <small class="p-error block mt-1" *ngIf="signupForm.get('adminSurname')?.invalid && signupForm.get('adminSurname')?.touched">
-                        Required
-                    </small>
+
+                <div class="signup-row">
+                    <div class="signup-field">
+                        <label class="signup-label" for="adminEmailAddress">Work email</label>
+                        <span class="signup-input-wrap">
+                            <i class="pi pi-envelope pi-field"></i>
+                            <input
+                                id="adminEmailAddress"
+                                type="email"
+                                pInputText
+                                formControlName="adminEmailAddress"
+                                placeholder="you@company.com"
+                                autocomplete="email"
+                            />
+                        </span>
+                        <small
+                            class="p-error block mt-1"
+                            *ngIf="signupForm.get('adminEmailAddress')?.invalid && signupForm.get('adminEmailAddress')?.touched"
+                        >
+                            A valid email is required
+                        </small>
+                    </div>
+                    <div class="signup-field">
+                        <label class="signup-label" for="adminUserName">Username</label>
+                        <span class="signup-input-wrap">
+                            <i class="pi pi-id-card pi-field"></i>
+                            <input
+                                id="adminUserName"
+                                type="text"
+                                pInputText
+                                formControlName="adminUserName"
+                                placeholder="admin"
+                                autocomplete="username"
+                            />
+                        </span>
+                        <small
+                            class="p-error block mt-1"
+                            *ngIf="signupForm.get('adminUserName')?.invalid && signupForm.get('adminUserName')?.touched"
+                        >
+                            Username is required
+                        </small>
+                    </div>
                 </div>
             </div>
 
-            <div class="mb-3">
-                <label class="block text-sm font-medium mb-2" for="adminEmailAddress">Admin email</label>
-                <span class="p-input-icon-left w-full">
-                    <i class="pi pi-envelope"></i>
-                    <input id="adminEmailAddress" type="email" pInputText class="w-full" formControlName="adminEmailAddress"
-                        style="padding-left: 2.5rem;" />
-                </span>
-                <small class="p-error block mt-1" *ngIf="signupForm.get('adminEmailAddress')?.invalid && signupForm.get('adminEmailAddress')?.touched">
-                    A valid email is required
-                </small>
-            </div>
-
-            <div class="mb-3">
-                <label class="block text-sm font-medium mb-2" for="adminUserName">Admin username</label>
-                <span class="p-input-icon-left w-full">
-                    <i class="pi pi-user"></i>
-                    <input id="adminUserName" type="text" pInputText class="w-full" formControlName="adminUserName"
-                        style="padding-left: 2.5rem;" />
-                </span>
-                <small class="p-error block mt-1" *ngIf="signupForm.get('adminUserName')?.invalid && signupForm.get('adminUserName')?.touched">
-                    Username is required
-                </small>
-            </div>
-
-            <div class="formgrid grid">
-                <div class="field col-12 md:col-6 mb-3">
-                    <label class="block text-sm font-medium mb-2" for="adminPassword">Password</label>
-                    <span class="p-input-icon-left w-full">
-                        <i class="pi pi-key"></i>
-                        <input id="adminPassword" type="password" pInputText class="w-full" formControlName="adminPassword"
-                            style="padding-left: 2.5rem;" />
-                    </span>
-                    <small class="p-error block mt-1" *ngIf="signupForm.get('adminPassword')?.invalid && signupForm.get('adminPassword')?.touched">
-                        At least 6 characters
-                    </small>
+            <div class="signup-section">
+                <div class="signup-row">
+                    <div class="signup-field">
+                        <label class="signup-label" for="adminPassword">Password</label>
+                        <span class="signup-input-wrap has-toggle">
+                            <i class="pi pi-key pi-field"></i>
+                            <input
+                                id="adminPassword"
+                                [type]="showPassword ? 'text' : 'password'"
+                                pInputText
+                                formControlName="adminPassword"
+                                autocomplete="new-password"
+                            />
+                            <i
+                                class="pi pi-toggle"
+                                [ngClass]="showPassword ? 'pi-eye-slash' : 'pi-eye'"
+                                (click)="showPassword = !showPassword"
+                                [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                            ></i>
+                        </span>
+                        <span class="signup-hint">At least 6 characters</span>
+                        <small
+                            class="p-error block mt-1"
+                            *ngIf="signupForm.get('adminPassword')?.invalid && signupForm.get('adminPassword')?.touched"
+                        >
+                            At least 6 characters
+                        </small>
+                    </div>
+                    <div class="signup-field">
+                        <label class="signup-label" for="confirmPassword">Confirm password</label>
+                        <span class="signup-input-wrap has-toggle">
+                            <i class="pi pi-lock pi-field"></i>
+                            <input
+                                id="confirmPassword"
+                                [type]="showConfirmPassword ? 'text' : 'password'"
+                                pInputText
+                                formControlName="confirmPassword"
+                                autocomplete="new-password"
+                            />
+                            <i
+                                class="pi pi-toggle"
+                                [ngClass]="showConfirmPassword ? 'pi-eye-slash' : 'pi-eye'"
+                                (click)="showConfirmPassword = !showConfirmPassword"
+                                [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'"
+                            ></i>
+                        </span>
+                        <small
+                            class="p-error block mt-1"
+                            *ngIf="signupForm.hasError('passwordMismatch') && signupForm.get('confirmPassword')?.touched"
+                        >
+                            Passwords do not match
+                        </small>
+                    </div>
                 </div>
-                <div class="field col-12 md:col-6 mb-3">
-                    <label class="block text-sm font-medium mb-2" for="confirmPassword">Confirm password</label>
-                    <span class="p-input-icon-left w-full">
-                        <i class="pi pi-lock"></i>
-                        <input id="confirmPassword" type="password" pInputText class="w-full" formControlName="confirmPassword"
-                            style="padding-left: 2.5rem;" />
-                    </span>
-                    <small class="p-error block mt-1" *ngIf="signupForm.hasError('passwordMismatch') && signupForm.get('confirmPassword')?.touched">
-                        Passwords do not match
-                    </small>
-                </div>
             </div>
 
-            <button type="submit" pButton pRipple class="w-full mb-3" [disabled]="loading || signupForm.invalid">
+            <button
+                type="submit"
+                pButton
+                pRipple
+                class="signup-submit"
+                [disabled]="loading || signupForm.invalid"
+            >
                 <i *ngIf="loading" class="pi pi-spin pi-spinner mr-2"></i>
                 <span *ngIf="!loading">Create company &amp; continue</span>
                 <span *ngIf="loading">Creating...</span>
             </button>
         </form>
 
-        <div class="text-center text-sm">
+        <div class="signup-footer">
             Already have an account?
-            <a routerLink="/auth/login" class="font-medium ml-1">Sign in</a>
+            <a routerLink="/auth/login">Sign in</a>
         </div>
 
         <p-toast></p-toast>
     </div>
 </div>
-
-<app-config [minimal]="true"></app-config>

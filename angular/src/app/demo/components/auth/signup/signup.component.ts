@@ -20,14 +20,15 @@ import { TenantContextService } from 'src/app/demo/service/tenant-context.servic
 
 @Component({
     templateUrl: './signup.component.html',
+    styleUrls: ['./signup.component.scss'],
     providers: [MessageService],
     animations: [
         trigger('slideIn', [
             transition(':enter', [
-                style({ transform: 'translateX(48px)', opacity: 0 }),
+                style({ transform: 'translateY(18px)', opacity: 0 }),
                 animate(
                     '420ms cubic-bezier(0.22, 1, 0.36, 1)',
-                    style({ transform: 'translateX(0)', opacity: 1 })
+                    style({ transform: 'translateY(0)', opacity: 1 })
                 ),
             ]),
         ]),
@@ -36,6 +37,8 @@ import { TenantContextService } from 'src/app/demo/service/tenant-context.servic
 export class SignupComponent implements OnInit, OnDestroy {
     signupForm: FormGroup;
     loading = false;
+    showPassword = false;
+    showConfirmPassword = false;
     private tenancyManuallyEdited = false;
     private nameSub?: Subscription;
 

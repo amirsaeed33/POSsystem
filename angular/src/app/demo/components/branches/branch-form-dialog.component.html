@@ -221,24 +221,23 @@
                         <small class="text-500">Defines store coordinates to calculate customer distance (km) on online orders</small>
                     </div>
                 </div>
-                <div class="flex align-items-center gap-2">
+                <div class="flex align-items-center gap-2 gps-action-btns">
                     <button
-                        pButton
-                        pRipple
                         type="button"
-                        icon="pi pi-compass"
-                        [label]="locating ? 'Detecting...' : 'Pin Current Location'"
-                        class="p-button-outlined p-button-sm p-button-success"
+                        class="p-button p-button-outlined p-button-sm p-button-success text-decoration-none inline-flex align-items-center justify-content-center gap-1 gps-action-btn"
                         [disabled]="locating || saving"
                         (click)="detectCurrentLocation()"
                         title="Detect this device's GPS coordinates as shop location"
-                    ></button>
+                    >
+                        <i class="pi" [ngClass]="locating ? 'pi-spin pi-spinner' : 'pi-compass'"></i>
+                        <span>{{ locating ? 'Detecting...' : 'Pin Current Location' }}</span>
+                    </button>
                     <a
                         *ngIf="googleMapsShopLink"
                         [href]="googleMapsShopLink"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="p-button p-button-outlined p-button-sm p-button-info text-decoration-none flex align-items-center gap-1"
+                        class="p-button p-button-outlined p-button-sm p-button-info text-decoration-none inline-flex align-items-center justify-content-center gap-1 gps-action-btn"
                         title="Open store pin on Google Maps"
                     >
                         <i class="pi pi-external-link"></i>
