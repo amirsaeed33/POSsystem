@@ -56,6 +56,168 @@
         </div>
     </div>
 
+    <!-- ONLINE-PIPELINE START -->
+    <!-- Online Orders Monitoring Widget -->
+    <div class="col-12 anim-card anim-delay-5">
+        <div class="card online-pipeline-card p-4">
+            <!-- Header with Title, Today's Total Badge & Refresh / View All button -->
+            <div class="flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                <div class="flex align-items-center gap-3">
+                    <div class="pipeline-icon-wrapper flex align-items-center justify-content-center border-round-xl shadow-1">
+                        <i class="pi pi-shopping-bag text-xl text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="flex align-items-center gap-2">
+                            <h5 class="m-0 font-bold text-xl text-900">Online Orders Monitoring</h5>
+                            <span *ngIf="!onlinePipelineLoading && !onlinePipelineError && onlinePipelineData" 
+                                  class="pipeline-today-pill"
+                                  (click)="navigateToAllOnlineOrders()"
+                                  title="View all online orders">
+                                <i class="pi pi-calendar mr-1"></i>
+                                Today: <strong class="ml-1">{{ onlinePipelineData.todayTotalOrders }}</strong>
+                            </span>
+                        </div>
+                        <span class="text-color-secondary text-sm">Real-time status pipeline &bull; click any stage to filter</span>
+                    </div>
+                </div>
+
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-refresh"
+                        [loading]="onlinePipelineLoading"
+                        title="Refresh Online Orders"
+                        class="p-button-outlined p-button-secondary p-button-sm p-button-rounded"
+                        (click)="loadOnlineOrderPipeline()"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="View All Orders"
+                        icon="pi pi-arrow-right"
+                        iconPos="right"
+                        class="p-button-outlined p-button-primary p-button-sm border-round-lg font-semibold"
+                        (click)="navigateToAllOnlineOrders()"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div *ngIf="onlinePipelineLoading" class="py-4 text-center">
+                <i class="pi pi-spin pi-spinner text-3xl text-primary mb-2"></i>
+                <div class="text-color-secondary font-medium text-sm">Loading online order pipeline...</div>
+            </div>
+
+            <!-- Error State -->
+            <div *ngIf="!onlinePipelineLoading && onlinePipelineError" class="p-3 border-round-lg bg-red-50 border-1 border-red-200 text-red-900 flex align-items-center justify-content-between gap-3">
+                <div class="flex align-items-center gap-2">
+                    <i class="pi pi-exclamation-triangle text-red-600 text-lg"></i>
+                    <span class="font-medium text-sm">{{ onlinePipelineError }}</span>
+                </div>
+                <button
+                    pButton
+                    type="button"
+                    label="Retry"
+                    icon="pi pi-refresh"
+                    class="p-button-sm p-button-danger p-button-text"
+                    (click)="loadOnlineOrderPipeline()"
+                ></button>
+            </div>
+
+            <!-- Pipeline Cards Row -->
+            <div *ngIf="!onlinePipelineLoading && !onlinePipelineError && onlinePipelineData" class="pipeline-grid">
+                <!-- 1. Pending (New) - Status 0 -->
+                <div class="pipeline-stage-card stage-pending cursor-pointer" (click)="navigateToOnlineOrders(0)" title="Click to view Pending orders">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="stage-label font-bold text-sm">New (Pending)</span>
+                        <div class="stage-icon-circle flex align-items-center justify-content-center">
+                            <i class="pi pi-bell text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="stage-count font-bold text-3xl">
+                        {{ onlinePipelineData.pendingCount }}
+                    </div>
+                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
+                        <span>Awaiting accept</span>
+                        <i class="pi pi-arrow-up-right ml-auto"></i>
+                    </div>
+                </div>
+
+                <!-- 2. Accepted - Status 1 -->
+                <div class="pipeline-stage-card stage-accepted cursor-pointer" (click)="navigateToOnlineOrders(1)" title="Click to view Accepted orders">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="stage-label font-bold text-sm">Accepted</span>
+                        <div class="stage-icon-circle flex align-items-center justify-content-center">
+                            <i class="pi pi-check text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="stage-count font-bold text-3xl">
+                        {{ onlinePipelineData.acceptedCount }}
+                    </div>
+                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
+                        <span>Confirmed order</span>
+                        <i class="pi pi-arrow-up-right ml-auto"></i>
+                    </div>
+                </div>
+
+                <!-- 3. Preparing - Status 3 -->
+                <div class="pipeline-stage-card stage-preparing cursor-pointer" (click)="navigateToOnlineOrders(3)" title="Click to view Preparing orders">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="stage-label font-bold text-sm">Preparing</span>
+                        <div class="stage-icon-circle flex align-items-center justify-content-center">
+                            <i class="pi pi-spin pi-cog text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="stage-count font-bold text-3xl">
+                        {{ onlinePipelineData.preparingCount }}
+                    </div>
+                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
+                        <span>In kitchen / packing</span>
+                        <i class="pi pi-arrow-up-right ml-auto"></i>
+                    </div>
+                </div>
+
+                <!-- 4. Delivered - Status 4 -->
+                <div class="pipeline-stage-card stage-delivered cursor-pointer" (click)="navigateToOnlineOrders(4)" title="Click to view Delivered orders">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="stage-label font-bold text-sm">Delivered</span>
+                        <div class="stage-icon-circle flex align-items-center justify-content-center">
+                            <i class="pi pi-check-circle text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="stage-count font-bold text-3xl">
+                        {{ onlinePipelineData.deliveredCount }}
+                    </div>
+                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
+                        <span>Completed delivery</span>
+                        <i class="pi pi-arrow-up-right ml-auto"></i>
+                    </div>
+                </div>
+
+                <!-- 5. Rejected - Status 2 -->
+                <div class="pipeline-stage-card stage-rejected cursor-pointer" (click)="navigateToOnlineOrders(2)" title="Click to view Rejected orders">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="stage-label font-bold text-sm">Rejected</span>
+                        <div class="stage-icon-circle flex align-items-center justify-content-center">
+                            <i class="pi pi-times-circle text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="stage-count font-bold text-3xl">
+                        {{ onlinePipelineData.rejectedCount }}
+                    </div>
+                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
+                        <span>Cancelled / turned down</span>
+                        <i class="pi pi-arrow-up-right ml-auto"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ONLINE-PIPELINE END -->
+
     <!-- Restaurant Table Occupancy Widget (Step 2: Restaurant Mode ONLY) -->
     <div *ngIf="isRestaurant" class="col-12 anim-card anim-delay-4">
         <div class="card table-occupancy-card p-4">
@@ -428,167 +590,6 @@
         </div>
     </div>
 
-    <!-- ONLINE-PIPELINE START -->
-    <!-- Online Orders Monitoring Widget -->
-    <div class="col-12 anim-card anim-delay-5">
-        <div class="card online-pipeline-card p-4">
-            <!-- Header with Title, Today's Total Badge & Refresh / View All button -->
-            <div class="flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-                <div class="flex align-items-center gap-3">
-                    <div class="pipeline-icon-wrapper flex align-items-center justify-content-center border-round-xl shadow-1">
-                        <i class="pi pi-shopping-bag text-xl text-primary"></i>
-                    </div>
-                    <div>
-                        <div class="flex align-items-center gap-2">
-                            <h5 class="m-0 font-bold text-xl text-900">Online Orders Monitoring</h5>
-                            <span *ngIf="!onlinePipelineLoading && !onlinePipelineError && onlinePipelineData" 
-                                  class="pipeline-today-pill"
-                                  (click)="navigateToAllOnlineOrders()"
-                                  title="View all online orders">
-                                <i class="pi pi-calendar mr-1"></i>
-                                Today: <strong class="ml-1">{{ onlinePipelineData.todayTotalOrders }}</strong>
-                            </span>
-                        </div>
-                        <span class="text-color-secondary text-sm">Real-time status pipeline &bull; click any stage to filter</span>
-                    </div>
-                </div>
-
-                <div class="flex align-items-center gap-2">
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-refresh"
-                        [loading]="onlinePipelineLoading"
-                        title="Refresh Online Orders"
-                        class="p-button-outlined p-button-secondary p-button-sm p-button-rounded"
-                        (click)="loadOnlineOrderPipeline()"
-                    ></button>
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        label="View All Orders"
-                        icon="pi pi-arrow-right"
-                        iconPos="right"
-                        class="p-button-outlined p-button-primary p-button-sm border-round-lg font-semibold"
-                        (click)="navigateToAllOnlineOrders()"
-                    ></button>
-                </div>
-            </div>
-
-            <!-- Loading State -->
-            <div *ngIf="onlinePipelineLoading" class="py-4 text-center">
-                <i class="pi pi-spin pi-spinner text-3xl text-primary mb-2"></i>
-                <div class="text-color-secondary font-medium text-sm">Loading online order pipeline...</div>
-            </div>
-
-            <!-- Error State -->
-            <div *ngIf="!onlinePipelineLoading && onlinePipelineError" class="p-3 border-round-lg bg-red-50 border-1 border-red-200 text-red-900 flex align-items-center justify-content-between gap-3">
-                <div class="flex align-items-center gap-2">
-                    <i class="pi pi-exclamation-triangle text-red-600 text-lg"></i>
-                    <span class="font-medium text-sm">{{ onlinePipelineError }}</span>
-                </div>
-                <button
-                    pButton
-                    type="button"
-                    label="Retry"
-                    icon="pi pi-refresh"
-                    class="p-button-sm p-button-danger p-button-text"
-                    (click)="loadOnlineOrderPipeline()"
-                ></button>
-            </div>
-
-            <!-- Pipeline Cards Row -->
-            <div *ngIf="!onlinePipelineLoading && !onlinePipelineError && onlinePipelineData" class="pipeline-grid">
-                <!-- 1. Pending (New) - Status 0 -->
-                <div class="pipeline-stage-card stage-pending cursor-pointer" (click)="navigateToOnlineOrders(0)" title="Click to view Pending orders">
-                    <div class="flex justify-content-between align-items-center mb-2">
-                        <span class="stage-label font-bold text-sm">New (Pending)</span>
-                        <div class="stage-icon-circle flex align-items-center justify-content-center">
-                            <i class="pi pi-bell text-sm"></i>
-                        </div>
-                    </div>
-                    <div class="stage-count font-bold text-3xl">
-                        {{ onlinePipelineData.pendingCount }}
-                    </div>
-                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
-                        <span>Awaiting accept</span>
-                        <i class="pi pi-arrow-up-right ml-auto"></i>
-                    </div>
-                </div>
-
-                <!-- 2. Accepted - Status 1 -->
-                <div class="pipeline-stage-card stage-accepted cursor-pointer" (click)="navigateToOnlineOrders(1)" title="Click to view Accepted orders">
-                    <div class="flex justify-content-between align-items-center mb-2">
-                        <span class="stage-label font-bold text-sm">Accepted</span>
-                        <div class="stage-icon-circle flex align-items-center justify-content-center">
-                            <i class="pi pi-check text-sm"></i>
-                        </div>
-                    </div>
-                    <div class="stage-count font-bold text-3xl">
-                        {{ onlinePipelineData.acceptedCount }}
-                    </div>
-                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
-                        <span>Confirmed order</span>
-                        <i class="pi pi-arrow-up-right ml-auto"></i>
-                    </div>
-                </div>
-
-                <!-- 3. Preparing - Status 3 -->
-                <div class="pipeline-stage-card stage-preparing cursor-pointer" (click)="navigateToOnlineOrders(3)" title="Click to view Preparing orders">
-                    <div class="flex justify-content-between align-items-center mb-2">
-                        <span class="stage-label font-bold text-sm">Preparing</span>
-                        <div class="stage-icon-circle flex align-items-center justify-content-center">
-                            <i class="pi pi-spin pi-cog text-sm"></i>
-                        </div>
-                    </div>
-                    <div class="stage-count font-bold text-3xl">
-                        {{ onlinePipelineData.preparingCount }}
-                    </div>
-                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
-                        <span>In kitchen / packing</span>
-                        <i class="pi pi-arrow-up-right ml-auto"></i>
-                    </div>
-                </div>
-
-                <!-- 4. Delivered - Status 4 -->
-                <div class="pipeline-stage-card stage-delivered cursor-pointer" (click)="navigateToOnlineOrders(4)" title="Click to view Delivered orders">
-                    <div class="flex justify-content-between align-items-center mb-2">
-                        <span class="stage-label font-bold text-sm">Delivered</span>
-                        <div class="stage-icon-circle flex align-items-center justify-content-center">
-                            <i class="pi pi-check-circle text-sm"></i>
-                        </div>
-                    </div>
-                    <div class="stage-count font-bold text-3xl">
-                        {{ onlinePipelineData.deliveredCount }}
-                    </div>
-                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
-                        <span>Completed delivery</span>
-                        <i class="pi pi-arrow-up-right ml-auto"></i>
-                    </div>
-                </div>
-
-                <!-- 5. Rejected - Status 2 -->
-                <div class="pipeline-stage-card stage-rejected cursor-pointer" (click)="navigateToOnlineOrders(2)" title="Click to view Rejected orders">
-                    <div class="flex justify-content-between align-items-center mb-2">
-                        <span class="stage-label font-bold text-sm">Rejected</span>
-                        <div class="stage-icon-circle flex align-items-center justify-content-center">
-                            <i class="pi pi-times-circle text-sm"></i>
-                        </div>
-                    </div>
-                    <div class="stage-count font-bold text-3xl">
-                        {{ onlinePipelineData.rejectedCount }}
-                    </div>
-                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
-                        <span>Cancelled / turned down</span>
-                        <i class="pi pi-arrow-up-right ml-auto"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- ONLINE-PIPELINE END -->
 
     <!-- 15-Day Financial Trend Chart (Immediately below KPI Cards) -->
     <div class="col-12 anim-card anim-delay-5">
@@ -622,99 +623,124 @@
 
     <!-- Row: Latest Customers, Quick Actions, Timeline (Directly after Financial Trend Card) -->
     <div class="col-12 lg:col-6 xl:col-4 anim-card anim-delay-6">
-        <div class="card h-full flex flex-column">
+        <div class="card widget-latest-customers h-full flex flex-column">
             <h5>{{ latestListTitle }}</h5>
-            <ul class="list-none p-0 m-0 flex-grow-1">
-                <li class="mb-3 flex align-items-center dashboard-interactive-item" *ngFor="let item of latestListItems">
-                    <p-avatar [label]="item.initials" size="large" shape="circle" styleClass="text-base font-bold"
-                        [style]="item.avatarStyle"></p-avatar>
-                    <div class="ml-3">
-                        <span class="block">{{ item.title }}</span>
-                        <span class="text-color-secondary block">{{ item.subtitle }}</span>
-                    </div>
-                </li>
-                <li class="mb-3 flex align-items-center" *ngIf="!latestListItems.length">
-                    <div class="ml-0">
-                        <span class="text-color-secondary block">No data available</span>
-                    </div>
-                </li>
-            </ul>
-            <button type="button" pButton pRipple class="w-full mt-3" label="View All" icon="pi pi-arrow-right"
-                iconPos="right" routerLink="/customers"></button>
+            <div class="flex flex-column flex-1 justify-content-between">
+                <ul class="list-none p-0 m-0 latest-customers-list">
+                    <li class="mb-2 flex align-items-center dashboard-interactive-item" *ngFor="let item of latestListItems">
+                        <p-avatar [label]="item.initials" size="normal" shape="circle" styleClass="text-sm font-bold flex-shrink-0"
+                            [style]="item.avatarStyle"></p-avatar>
+                        <div class="ml-2 min-w-0 flex-1">
+                            <span class="block font-medium white-space-nowrap overflow-hidden text-overflow-ellipsis">{{ item.title }}</span>
+                            <span class="text-color-secondary block text-xs white-space-nowrap overflow-hidden text-overflow-ellipsis">{{ item.subtitle }}</span>
+                        </div>
+                    </li>
+                    <li class="mb-2 flex align-items-center" *ngIf="!latestListItems.length">
+                        <div class="ml-0">
+                            <span class="text-color-secondary block text-sm">No data available</span>
+                        </div>
+                    </li>
+                </ul>
+                <button type="button" pButton pRipple class="w-full mt-2 p-button-sm" label="View All" icon="pi pi-arrow-right"
+                    iconPos="right" routerLink="/customers"></button>
+            </div>
         </div>
     </div>
 
     <div class="col-12 lg:col-6 xl:col-4 anim-card anim-delay-7">
-        <div class="card h-full flex flex-column">
+        <div class="card widget-quick-actions h-full flex flex-column">
             <h5>Quick Actions</h5>
-            <div class="text-center mb-5">
-                <img [src]="'assets/demo/images/dashboard/completion-graph-' + (colorScheme === 'light' ? 'light' : 'dark') + '.svg'"
-                    alt="graph" class="w-full">
+            <div class="text-center quick-actions-graph-wrapper">
+                <svg class="quick-actions-gauge" viewBox="0 0 220 122" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background track arc -->
+                    <path d="M 28 100 A 82 82 0 0 1 192 100" class="gauge-track" [class.gauge-track-dark]="colorScheme === 'dark'"
+                        fill="none" stroke-width="16" stroke-linecap="round" />
+                    
+                    <!-- Active progress arc (32.79% of semicircle) -->
+                    <path d="M 28 100 A 82 82 0 0 1 192 100" class="gauge-progress"
+                        fill="none" stroke-width="16" stroke-linecap="round"
+                        stroke-dasharray="84.47 257.61" stroke-dashoffset="0" />
+
+                    <!-- Center Icon Badge -->
+                    <circle cx="110" cy="46" r="14" class="gauge-icon-bg" />
+                    <path d="M104 46 L108 50 L116 42" fill="none" class="gauge-icon-check"
+                        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+
+                    <!-- Percentage Value: 32.79% -->
+                    <text x="110" y="84" text-anchor="middle" class="gauge-percentage-val">32.79%</text>
+
+                    <!-- Divider -->
+                    <line x1="88" y1="92" x2="132" y2="92" class="gauge-divider" stroke-width="1.5" stroke-linecap="round" />
+
+                    <!-- 0% and 100% Labels -->
+                    <text x="28" y="118" text-anchor="middle" class="gauge-endpoint-label">0%</text>
+                    <text x="192" y="118" text-anchor="middle" class="gauge-endpoint-label">100%</text>
+                </svg>
             </div>
 
-            <ul class="list-none p-0 m-0">
-                <li class="mb-3 flex align-items-center justify-content-between gap-2 dashboard-interactive-item">
+            <ul class="list-none p-0 m-0 quick-actions-list flex-1">
+                <li class="flex align-items-center justify-content-between gap-2 dashboard-interactive-item quick-action-item">
                     <div class="flex align-items-center min-w-0">
-                        <p-avatar icon="pi pi-box" size="large" shape="circle" styleClass="text-base font-bold"
+                        <p-avatar icon="pi pi-box" size="normal" shape="circle" styleClass="font-bold flex-shrink-0"
                             [style]="{'background-color':'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F'}"></p-avatar>
                         <div class="ml-3 min-w-0">
-                            <span class="block">Low Stock Products</span>
-                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold"
+                            <span class="block action-title">Low Stock Products</span>
+                            <a class="action-link cursor-pointer"
                                 routerLink="/reports/stock">View Stock</a>
                         </div>
                     </div>
-                    <span class="quick-action-badge" [class.quick-action-badge-warn]="lowStockCount > 0"
+                    <span class="quick-action-badge ml-auto flex-shrink-0" [class.quick-action-badge-warn]="lowStockCount > 0"
                         [class.quick-action-badge-muted]="lowStockCount === 0"
                         [attr.title]="lowStockCount + ' low stock products'">
                         {{ formatQuickActionCount(lowStockCount) }}
                     </span>
                 </li>
 
-                <li class="mb-3 flex align-items-center justify-content-between gap-2 dashboard-interactive-item">
+                <li class="flex align-items-center justify-content-between gap-2 dashboard-interactive-item quick-action-item">
                     <div class="flex align-items-center min-w-0">
-                        <p-avatar icon="pi pi-file" size="large" shape="circle" styleClass="text-base font-bold"
+                        <p-avatar icon="pi pi-file" size="normal" shape="circle" styleClass="font-bold flex-shrink-0"
                             [style]="{'background-color':'rgba(94, 208, 250, 0.1)', 'color': '#1992D4', 'border': '1px solid #5ED0FA'}"></p-avatar>
                         <div class="ml-3 min-w-0">
-                            <span class="block">Pending Customer Orders</span>
-                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold"
+                            <span class="block action-title">Pending Customer Orders</span>
+                            <a class="action-link cursor-pointer"
                                 routerLink="/customer-orders">View Orders</a>
                         </div>
                     </div>
-                    <span class="quick-action-badge" [class.quick-action-badge-info]="pendingOrdersCount > 0"
+                    <span class="quick-action-badge ml-auto flex-shrink-0" [class.quick-action-badge-info]="pendingOrdersCount > 0"
                         [class.quick-action-badge-muted]="pendingOrdersCount === 0"
                         [attr.title]="pendingOrdersCount + ' pending orders'">
                         {{ formatQuickActionCount(pendingOrdersCount) }}
                     </span>
                 </li>
 
-                <li class="mb-3 flex align-items-center justify-content-between gap-2 dashboard-interactive-item" *ngIf="canOpenPos()">
+                <li class="flex align-items-center justify-content-between gap-2 dashboard-interactive-item quick-action-item" *ngIf="canOpenPos()">
                     <div class="flex align-items-center min-w-0">
-                        <p-avatar icon="pi pi-desktop" size="large" shape="circle" styleClass="text-base font-bold"
+                        <p-avatar icon="pi pi-desktop" size="normal" shape="circle" styleClass="font-bold flex-shrink-0"
                             [style]="{'background-color':'rgba(101, 214, 173, 0.1)', 'color': '#27AB83', 'border': '1px solid #65D6AD'}"></p-avatar>
                         <div class="ml-3 min-w-0">
-                            <span class="block">Open POS</span>
-                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold"
+                            <span class="block action-title">Open POS</span>
+                            <a class="action-link cursor-pointer"
                                 routerLink="/pos">Open POS</a>
                         </div>
                     </div>
-                    <span class="quick-action-badge" [class.quick-action-badge-success]="todaySalesCount > 0"
+                    <span class="quick-action-badge ml-auto flex-shrink-0" [class.quick-action-badge-success]="todaySalesCount > 0"
                         [class.quick-action-badge-muted]="todaySalesCount === 0"
                         [attr.title]="todaySalesCount + ' sales today'">
                         {{ formatQuickActionCount(todaySalesCount) }}
                     </span>
                 </li>
 
-                <li class="mb-3 flex align-items-center justify-content-between gap-2 dashboard-interactive-item">
+                <li class="flex align-items-center justify-content-between gap-2 dashboard-interactive-item quick-action-item">
                     <div class="flex align-items-center min-w-0">
-                        <p-avatar icon="pi pi-building" size="large" shape="circle" styleClass="text-base font-bold"
+                        <p-avatar icon="pi pi-building" size="normal" shape="circle" styleClass="font-bold flex-shrink-0"
                             [style]="{'background-color':'rgba(167, 139, 250, 0.12)', 'color': '#7C3AED', 'border': '1px solid #C4B5FD'}"></p-avatar>
                         <div class="ml-3 min-w-0">
-                            <span class="block">Branches</span>
-                            <a class="text-blue-500 hover:underline cursor-pointer block font-bold"
+                            <span class="block action-title">Branches</span>
+                            <a class="action-link cursor-pointer"
                                 routerLink="/branches">Open Branches</a>
                         </div>
                     </div>
-                    <span class="quick-action-badge" [class.quick-action-badge-purple]="branchCount > 0"
+                    <span class="quick-action-badge ml-auto flex-shrink-0" [class.quick-action-badge-purple]="branchCount > 0"
                         [class.quick-action-badge-muted]="branchCount === 0" [attr.title]="branchCount + ' branches'">
                         {{ formatQuickActionCount(branchCount) }}
                     </span>
@@ -726,28 +752,27 @@
     <div class="col-12 lg:col-12 xl:col-4 anim-card anim-delay-8">
         <div class="card widget-timeline h-full flex flex-column">
             <h5>Timeline</h5>
-            <ul class="list-none p-0 m-0 flex-grow-1">
-                <li class="flex mb-3" *ngFor="let event of visibleTimelineEvents; let last = last">
+            <ul class="list-none p-0 m-0 timeline-events-list flex-1">
+                <li class="flex mb-2" *ngFor="let event of visibleTimelineEvents; let last = last">
                     <div class="flex flex-column align-items-center">
                         <span class="flex align-items-center justify-content-center border-circle p-2 timeline-icon"
                             [ngClass]="event.iconClass">
                             <i [class]="event.icon"></i>
                         </span>
-                        <div *ngIf="!last || hasMoreTimelineEvents" class="h-full" [ngClass]="event.lineClass"
-                            style="width: 2px; min-height: 4rem"></div>
+                        <div *ngIf="!last || hasMoreTimelineEvents" class="timeline-line flex-1" [ngClass]="event.lineClass"></div>
                     </div>
 
-                    <div class="ml-3 flex-1">
-                        <div class="flex align-items-center justify-content-between mb-3">
-                            <span>
+                    <div class="ml-3 flex-1 min-w-0">
+                        <div class="flex align-items-center justify-content-between mb-1 gap-2">
+                            <span class="text-sm">
                                 <strong>{{ event.title }}</strong>
                             </span>
-                            <span class="font-bold text-color-secondary">{{ event.timeAgo }}</span>
+                            <span class="font-bold text-color-secondary text-xs white-space-nowrap">{{ event.timeAgo }}</span>
                         </div>
-                        <div class="p-3 border-round"
+                        <div class="p-2 border-round timeline-detail-box"
                             [style]="{'background-color': colorScheme === 'dark' ? event.detailBgDark : event.detailBg}">
-                            <div class="font-bold mb-2">{{ event.amountLabel }}</div>
-                            <p class="text-color-secondary text-sm line-height-3 m-0" style="max-width: 28rem">
+                            <div class="font-bold text-sm mb-1">{{ event.amountLabel }}</div>
+                            <p class="text-color-secondary text-xs line-height-2 m-0 text-overflow-ellipsis overflow-hidden">
                                 {{ event.type === 'sale' ? 'Sale Created' :
                                 event.type === 'purchase' ? 'Purchase Created' :
                                 event.type === 'expense' ? 'Expense Added' : 'Stock Adjusted' }}
@@ -755,13 +780,13 @@
                         </div>
                     </div>
                 </li>
-                <li class="flex mb-3" *ngIf="!timelineEvents.length">
+                <li class="flex mb-2" *ngIf="!timelineEvents.length">
                     <div class="ml-0">
-                        <span class="text-color-secondary">No recent activity</span>
+                        <span class="text-color-secondary text-sm">No recent activity</span>
                     </div>
                 </li>
-                <li class="text-center" *ngIf="hasMoreTimelineEvents">
-                    <p-button pRipple styleClass="p-button-text" icon="pi pi-chevron-down" label="View More"
+                <li class="text-center pt-1" *ngIf="hasMoreTimelineEvents">
+                    <p-button pRipple styleClass="p-button-text p-button-sm py-1" icon="pi pi-chevron-down" label="View More"
                         (onClick)="showMoreTimelineEvents()"></p-button>
                 </li>
             </ul>

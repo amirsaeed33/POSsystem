@@ -840,3 +840,223 @@
     }
 }
 // ONLINE-PIPELINE END
+// =============================================================================
+// Targeted Visual & Size Optimization: Latest Customers, Quick Actions, Timeline
+// =============================================================================
+.widget-latest-customers,
+.widget-quick-actions,
+.widget-timeline {
+    padding: 1.15rem 1.25rem;
+
+    h5 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+    }
+
+    .dashboard-interactive-item {
+        padding: 0.25rem 0.45rem;
+        border-radius: 6px;
+    }
+}
+
+// 1. Latest Customers Card
+.widget-latest-customers {
+    .latest-customers-list {
+        max-height: 290px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 2px;
+
+        &::-webkit-scrollbar {
+            width: 4px;
+        }
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        &::-webkit-scrollbar-thumb {
+            background: var(--surface-border);
+            border-radius: 4px;
+        }
+    }
+
+    ::ng-deep .p-avatar {
+        width: 2.25rem !important;
+        height: 2.25rem !important;
+        font-size: 0.85rem !important;
+    }
+}
+
+// 2. Quick Actions Card
+.widget-quick-actions {
+    .quick-actions-graph-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0.15rem 0 0.5rem;
+    }
+
+    .quick-actions-gauge {
+        display: block;
+        width: 100%;
+        max-width: 205px;
+        height: 110px;
+        margin: 0 auto;
+        overflow: visible;
+
+        .gauge-track {
+            stroke: var(--surface-200, #e2e8f0);
+            transition: stroke 0.3s ease;
+
+            &.gauge-track-dark {
+                stroke: rgba(255, 255, 255, 0.12);
+            }
+        }
+
+        .gauge-progress {
+            stroke: #10b981;
+            filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.25));
+        }
+
+        .gauge-icon-bg {
+            fill: rgba(16, 185, 129, 0.12);
+            stroke: #10b981;
+            stroke-width: 1.5;
+        }
+
+        .gauge-icon-check {
+            stroke: #10b981;
+        }
+
+        .gauge-percentage-val {
+            font-family: inherit;
+            font-size: 21px;
+            font-weight: 800;
+            fill: var(--text-color, #1e293b);
+            letter-spacing: -0.02em;
+        }
+
+        .gauge-divider {
+            stroke: var(--surface-border, #cbd5e1);
+            opacity: 0.6;
+        }
+
+        .gauge-endpoint-label {
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 600;
+            fill: var(--text-color-secondary, #64748b);
+        }
+    }
+
+    .quick-actions-list {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        flex: 1 1 auto;
+        gap: 0.5rem;
+        max-height: 250px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 2px;
+
+        &::-webkit-scrollbar {
+            width: 4px;
+        }
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        &::-webkit-scrollbar-thumb {
+            background: var(--surface-border);
+            border-radius: 4px;
+        }
+    }
+
+    .quick-action-item {
+        padding: 0.35rem 0.55rem;
+        border-radius: 8px;
+        transition: transform 0.2s ease, background-color 0.2s ease;
+
+        &:hover {
+            background-color: var(--surface-hover);
+            transform: translateX(3px);
+        }
+    }
+
+    .action-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-color);
+        line-height: 1.25;
+    }
+
+    .action-link {
+        font-size: 0.775rem;
+        font-weight: 600;
+        color: var(--primary-color, #3b82f6);
+        text-decoration: none;
+        display: inline-block;
+        margin-top: 2px;
+        transition: color 0.15s ease;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+
+    ::ng-deep .p-avatar {
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+        font-size: 1.05rem !important;
+        flex-shrink: 0;
+    }
+
+    .quick-action-badge {
+        min-width: 1.85rem;
+        height: 1.85rem;
+        padding: 0 0.45rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+}
+
+// 3. Timeline Card
+.widget-timeline {
+    .timeline-events-list {
+        max-height: 330px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 4px;
+
+        &::-webkit-scrollbar {
+            width: 4px;
+        }
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        &::-webkit-scrollbar-thumb {
+            background: var(--surface-border);
+            border-radius: 4px;
+        }
+    }
+
+    .timeline-icon {
+        width: 2rem;
+        height: 2rem;
+        font-size: 0.8rem;
+    }
+
+    .timeline-line {
+        width: 2px;
+        min-height: 1.25rem;
+        opacity: 0.6;
+    }
+
+    .timeline-detail-box {
+        padding: 0.5rem 0.65rem;
+    }
+}
