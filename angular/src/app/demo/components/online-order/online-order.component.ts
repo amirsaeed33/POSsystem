@@ -410,9 +410,14 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.checkScreenSize();
     }
 
-    @HostListener('window:scroll')
+    @HostListener('window:scroll', [])
     onWindowScroll(): void {
-        this.isScrolled = window.scrollY > 15;
+        const y =
+            window.scrollY ||
+            document.documentElement.scrollTop ||
+            document.body.scrollTop ||
+            0;
+        this.isScrolled = y > 24;
     }
 
     private checkScreenSize(): void {

@@ -139,14 +139,14 @@
                 >
                     <div class="cart-trigger-icon-box">
                         <i class="pi pi-shopping-bag"></i>
-                        <span class="cart-badge" *ngIf="cartService.totalItemsCount > 0">
-                            {{ cartService.totalItemsCount }}
-                        </span>
                     </div>
                     <div class="cart-trigger-text hidden xl:flex flex-column text-left">
                         <span class="cart-trigger-label">My Cart</span>
                         <span class="cart-trigger-total">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
                     </div>
+                    <span class="cart-badge" *ngIf="cartService.totalItemsCount > 0">
+                        {{ cartService.totalItemsCount }}
+                    </span>
                 </button>
             </div>
         </div>
@@ -651,51 +651,11 @@
                 <div
                     *ngFor="let product of trendingDeals; let idx = index"
                     class="fp-menu-grid-col"
+                    [style.animation-delay.ms]="idx * 45"
                 >
-                    <div
-                        class="fp-food-card grid-mode"
-                        (click)="openProductModal(product)"
-                    >
-                    <!-- Heart (favourite) icon button -->
-                    <button
-                        type="button"
-                        class="badge-fav-btn"
-                        [class.active]="isFavorite(product.id)"
-                        (click)="toggleFavorite(product.id, $event)"
-                        aria-label="Add to favorites"
-                    >
-                        <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
-                    </button>
-
-                    <!-- Tag / Deal badge if present -->
-                    <span class="badge-deal" *ngIf="getProductTag(product, idx)">{{ getProductTag(product, idx) }}</span>
-
-                    <div class="card-media-box">
-                        <img
-                            [src]="getProductImage(product, idx)"
-                            alt=""
-                            class="card-img"
-                            (error)="onProductImageError($event, product)"
-                        />
-                    </div>
-
-                    <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-                    <p class="product-desc">{{ getProductDescription(product) }}</p>
-
-                    <div class="price-row">
-                        <span class="product-price">Rs. {{ product.price | number: '1.0-0' }}</span>
-                        <span class="starting-price-badge" *ngIf="hasVariants(product)">Starting Price</span>
-                    </div>
-
-                    <button
-                        type="button"
-                        class="btn-add-cart"
-                        [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
-                        (click)="addToCart(product, 1, $event)"
-                    >
-                        <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' IN CART') : '+ ADD TO CART' }}</span>
-                    </button>
-                    </div>
+                    <ng-container
+                        *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx, tagIdx: idx }"
+                    ></ng-container>
                 </div>
             </div>
         </section>
@@ -726,56 +686,11 @@
                 <div
                     *ngFor="let product of popularItems; let idx = index"
                     class="fp-menu-grid-col"
+                    [style.animation-delay.ms]="idx * 45"
                 >
-                    <div
-                        class="fp-food-card grid-mode"
-                        (click)="openProductModal(product)"
-                    >
-                    <!-- Heart (favourite) icon button -->
-                    <button
-                        type="button"
-                        class="badge-fav-btn"
-                        [class.active]="isFavorite(product.id)"
-                        (click)="toggleFavorite(product.id, $event)"
-                        aria-label="Add to favorites"
-                    >
-                        <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
-                    </button>
-
-                    <!-- Tag / Deal badge if present -->
-                    <span class="badge-deal" *ngIf="getProductTag(product, idx + 4)">{{ getProductTag(product, idx + 4) }}</span>
-
-                    <div class="card-media-box">
-                        <img
-                            [src]="getProductImage(product, idx + 4)"
-                            alt=""
-                            class="card-img"
-                            (error)="onProductImageError($event, product)"
-                        />
-                    </div>
-
-                    <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->
-                    <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-
-                    <!-- Description: 12.5px, line-height 1.5, color #666, clamped to 3 lines with ellipsis (-webkit-line-clamp: 3), min-height of 3 lines -->
-                    <p class="product-desc">{{ getProductDescription(product) }}</p>
-
-                    <!-- Price row: price in Montserrat 700 16px color #e8532b ("Rs. 1,480" format). Next to it, show a "Starting Price" badge (bg #e8532b, white text, 12px, 600 weight, padding 3px 8px, radius 6px) only when the item has variants/sizes. -->
-                    <div class="price-row">
-                        <span class="product-price">Rs. {{ product.price | number: '1.0-0' }}</span>
-                        <span class="starting-price-badge" *ngIf="hasVariants(product)">Starting Price</span>
-                    </div>
-
-                    <!-- Button: full width, margin-top auto, padding 12px, radius 8px, bg #fff, text uppercase "+ ADD TO CART" in Montserrat 600 13px. On hover: bg #e8532b, text white, transition .2s. -->
-                    <button
-                        type="button"
-                        class="btn-add-cart"
-                        [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
-                        (click)="addToCart(product, 1, $event)"
-                    >
-                        <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' IN CART') : '+ ADD TO CART' }}</span>
-                    </button>
-                    </div>
+                    <ng-container
+                        *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx + 4, tagIdx: idx + 4 }"
+                    ></ng-container>
                 </div>
             </div>
         </section>
@@ -810,56 +725,11 @@
                 <div
                     *ngFor="let product of sec.items; let idx = index"
                     class="fp-menu-grid-col"
+                    [style.animation-delay.ms]="idx * 45"
                 >
-                    <div
-                        class="fp-food-card grid-mode"
-                        (click)="openProductModal(product)"
-                    >
-                    <!-- Heart (favourite) icon button -->
-                    <button
-                        type="button"
-                        class="badge-fav-btn"
-                        [class.active]="isFavorite(product.id)"
-                        (click)="toggleFavorite(product.id, $event)"
-                        aria-label="Add to favorites"
-                    >
-                        <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
-                    </button>
-
-                    <!-- Tag / Deal badge if present -->
-                    <span class="badge-deal" *ngIf="getProductTag(product, idx)">{{ getProductTag(product, idx) }}</span>
-
-                    <div class="card-media-box">
-                        <img
-                            [src]="getProductImage(product, idx + sIdx)"
-                            alt=""
-                            class="card-img"
-                            (error)="onProductImageError($event, product)"
-                        />
-                    </div>
-
-                    <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->
-                    <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-
-                    <!-- Description: 12.5px, line-height 1.5, color #666, clamped to 3 lines with ellipsis (-webkit-line-clamp: 3), min-height of 3 lines -->
-                    <p class="product-desc">{{ getProductDescription(product) }}</p>
-
-                    <!-- Price row: price in Montserrat 700 16px color #e8532b ("Rs. 1,480" format). Next to it, show a "Starting Price" badge (bg #e8532b, white text, 12px, 600 weight, padding 3px 8px, radius 6px) only when the item has variants/sizes. -->
-                    <div class="price-row">
-                        <span class="product-price">Rs. {{ product.price | number: '1.0-0' }}</span>
-                        <span class="starting-price-badge" *ngIf="hasVariants(product)">Starting Price</span>
-                    </div>
-
-                    <!-- Button: full width, margin-top auto, padding 12px, radius 8px, bg #fff, text uppercase "+ ADD TO CART" in Montserrat 600 13px. On hover: bg #e8532b, text white, transition .2s. -->
-                    <button
-                        type="button"
-                        class="btn-add-cart"
-                        [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
-                        (click)="addToCart(product, 1, $event)"
-                    >
-                        <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' IN CART') : '+ ADD TO CART' }}</span>
-                    </button>
-                    </div>
+                    <ng-container
+                        *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx + sIdx, tagIdx: idx }"
+                    ></ng-container>
                 </div>
             </div>
         </section>
@@ -897,53 +767,11 @@
             <div
                 *ngFor="let product of filteredProducts; let idx = index"
                 class="fp-menu-grid-col"
+                [style.animation-delay.ms]="idx * 45"
             >
-                <div class="fp-food-card grid-mode" (click)="openProductModal(product)">
-                    <!-- Heart (favourite) icon button -->
-                    <button
-                        type="button"
-                        class="badge-fav-btn"
-                        [class.active]="isFavorite(product.id)"
-                        (click)="toggleFavorite(product.id, $event)"
-                        aria-label="Add to favorites"
-                    >
-                        <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
-                    </button>
-
-                    <!-- Tag / Deal badge if present -->
-                    <span class="badge-deal" *ngIf="getProductTag(product, idx)">{{ getProductTag(product, idx) }}</span>
-
-                    <div class="card-media-box">
-                        <img
-                            [src]="getProductImage(product, idx)"
-                            alt=""
-                            class="card-img"
-                            (error)="onProductImageError($event, product)"
-                        />
-                    </div>
-
-                    <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->
-                    <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-
-                    <!-- Description: 12.5px, line-height 1.5, color #666, clamped to 3 lines with ellipsis (-webkit-line-clamp: 3), min-height of 3 lines -->
-                    <p class="product-desc">{{ getProductDescription(product) }}</p>
-
-                    <!-- Price row: price in Montserrat 700 16px color #e8532b ("Rs. 1,480" format). Next to it, show a "Starting Price" badge (bg #e8532b, white text, 12px, 600 weight, padding 3px 8px, radius 6px) only when the item has variants/sizes. -->
-                    <div class="price-row">
-                        <span class="product-price">Rs. {{ product.price | number: '1.0-0' }}</span>
-                        <span class="starting-price-badge" *ngIf="hasVariants(product)">Starting Price</span>
-                    </div>
-
-                    <!-- Button: full width, margin-top auto, padding 12px, radius 8px, bg #fff, text uppercase "+ ADD TO CART" in Montserrat 600 13px. On hover: bg #e8532b, text white, transition .2s. -->
-                    <button
-                        type="button"
-                        class="btn-add-cart"
-                        [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
-                        (click)="addToCart(product, 1, $event)"
-                    >
-                        <span>{{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' IN CART') : '+ ADD TO CART' }}</span>
-                    </button>
-                </div>
+                <ng-container
+                    *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx, tagIdx: idx }"
+                ></ng-container>
             </div>
         </div>
 
@@ -1844,4 +1672,56 @@
     </p-dialog>
 
     <p-toast></p-toast>
+
+    <!-- Shared product card (menu grids) -->
+    <ng-template #foodCardTpl let-product="product" let-imgIdx="imgIdx" let-tagIdx="tagIdx">
+        <div class="fp-food-card grid-mode" (click)="openProductModal(product)">
+            <div class="card-media-box">
+                <img
+                    [src]="getProductImage(product, imgIdx)"
+                    [alt]="product.name || 'Product'"
+                    class="card-img"
+                    (error)="onProductImageError($event, product)"
+                />
+                <div class="card-media-shade" aria-hidden="true"></div>
+
+                <button
+                    type="button"
+                    class="badge-fav-btn"
+                    [class.active]="isFavorite(product.id)"
+                    (click)="toggleFavorite(product.id, $event)"
+                    aria-label="Add to favorites"
+                >
+                    <i [class]="isFavorite(product.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"></i>
+                </button>
+
+                <span class="badge-deal" *ngIf="getProductTag(product, tagIdx)">
+                    {{ getProductTag(product, tagIdx) }}
+                </span>
+            </div>
+
+            <div class="card-body">
+                <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
+                <p class="product-desc">{{ getProductDescription(product) }}</p>
+
+                <div class="card-footer-row">
+                    <div class="price-col">
+                        <span class="product-price">Rs. {{ product.price | number: '1.0-0' }}</span>
+                        <span class="starting-price-badge" *ngIf="hasVariants(product)">Starting Price</span>
+                    </div>
+                    <button
+                        type="button"
+                        class="btn-add-cart"
+                        [class.in-cart]="getCartQuantityForProduct(product.id) > 0"
+                        (click)="addToCart(product, 1, $event)"
+                    >
+                        <i class="pi" [ngClass]="getCartQuantityForProduct(product.id) > 0 ? 'pi-check' : 'pi-plus'"></i>
+                        <span class="btn-add-label-full">
+                            {{ getCartQuantityForProduct(product.id) > 0 ? (getCartQuantityForProduct(product.id) + ' in cart') : 'Add' }}
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </ng-template>
 </div>
