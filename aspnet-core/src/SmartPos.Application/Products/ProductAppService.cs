@@ -404,6 +404,7 @@ namespace SmartPos.Products
         protected override IQueryable<Product> CreateFilteredQuery(PagedProductResultRequestDto input)
         {
             var query = Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
+                .AsNoTracking()
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
                          || (x.Description != null && x.Description.Contains(input.Keyword))

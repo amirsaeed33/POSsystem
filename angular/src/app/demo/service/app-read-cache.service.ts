@@ -10,6 +10,8 @@ import { SaleService } from './sale.service';
 import { UnitService } from './unit.service';
 import { CustomerOrderService } from './customer-order.service';
 import { LookUpService } from './lookup.service';
+import { ProductService } from './product.service';
+import { SupplierService } from './supplier.service';
 
 /**
  * Clears branch-scoped client caches when the active branch changes.
@@ -27,7 +29,9 @@ export class AppReadCacheService {
         private deliveryAreaService: DeliveryAreaService,
         private heroSlideService: OnlineOrderHeroSlideService,
         private customerOrderService: CustomerOrderService,
-        private lookUpService: LookUpService
+        private lookUpService: LookUpService,
+        private productService: ProductService,
+        private supplierService: SupplierService
     ) {}
 
     clearBranchScoped(): void {
@@ -42,5 +46,7 @@ export class AppReadCacheService {
         this.heroSlideService.clearCache();
         this.customerOrderService.clearCache();
         this.lookUpService.clearCache();
+        this.productService.clearCache();
+        this.supplierService.clearCache();
     }
 }

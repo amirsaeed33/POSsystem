@@ -228,6 +228,7 @@ namespace SmartPos.Suppliers
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
 
             return Repository.GetAllIncluding(x => x.Account)
+                .AsNoTracking()
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)

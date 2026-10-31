@@ -11,17 +11,23 @@ import {
 import { environment } from '../../../environments/environment';
 import { SaleService } from './sale.service';
 import { CustomerOrderService } from './customer-order.service';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({
     providedIn: 'root',
 })
 export class ProductService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Product`;
+    private readonly listCache = new TtlCache<PagedResultDto<ProductDto>>(90 * 1000);
 
     constructor(
         private http: HttpClient,
         private injector: Injector
     ) {}
+
+    clearCache(): void {
+        this.listCache.clear();
+    }
 
     // Demo product helpers used by Sales dashboard widgets
     getProducts() {
@@ -42,8 +48,32 @@ export class ProductService {
 
     // POS / ABP Product API
     async getAll(
-        input?: PagedProductResultRequestDto
+        input?: PagedProductResultRequestDto,
+        forceRefresh = false
     ): Promise<PagedResultDto<ProductDto>> {
+        const cacheKey = branchCacheKey(
+            this.readBranchId(),
+            [
+                'list',
+                input?.keyword || '',
+                input?.categoryId ?? '',
+                input?.brandId ?? '',
+                input?.unitId ?? '',
+                input?.skipCount ?? 0,
+                input?.maxResultCount ?? 1000,
+            ].join('|')
+        );
+
+        if (!forceRefresh) {
+            const hit = this.listCache.get(cacheKey);
+            if (hit) {
+                return {
+                    items: hit.items.map((p) => ({ ...p })),
+                    totalCount: hit.totalCount,
+                };
+            }
+        }
+
         const params: any = {};
         if (input?.keyword) {
             params.Keyword = input.keyword;
@@ -70,13 +100,19 @@ export class ProductService {
         const result = this.unwrap(res, 'Failed to load products');
         const items = result.items || result.Items || [];
         const totalCount = result.totalCount ?? result.TotalCount ?? items.length;
-
-        return {
+        const mapped: PagedResultDto<ProductDto> = {
             items: (Array.isArray(items) ? items : []).map((item: any) =>
                 this.mapProduct(item)
             ),
             totalCount,
         };
+        this.listCache.set(cacheKey, mapped);
+        return mapped;
+    }
+
+    private readBranchId(): number | null {
+        const n = parseInt(localStorage.getItem('SmartPos.BranchId') || '', 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 
     async get(id: number): Promise<ProductDto> {
@@ -143,6 +179,7 @@ export class ProductService {
     }
 
     private invalidateCatalogCaches(): void {
+        this.clearCache();
         try {
             this.injector.get(SaleService).clearPosCaches();
             this.injector.get(CustomerOrderService).clearCache();

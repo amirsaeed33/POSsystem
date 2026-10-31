@@ -8,18 +8,47 @@ import {
     SupplierDto,
 } from '../api/supplier';
 import { environment } from '../../../environments/environment';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({
     providedIn: 'root',
 })
 export class SupplierService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Supplier`;
+    private readonly listCache = new TtlCache<PagedResultDto<SupplierDto>>(90 * 1000);
+    private readonly lookupCache = new TtlCache<SupplierDto[]>(5 * 60 * 1000);
 
     constructor(private http: HttpClient) {}
 
+    clearCache(): void {
+        this.listCache.clear();
+        this.lookupCache.clear();
+    }
+
     async getAll(
-        input?: PagedSupplierResultRequestDto
+        input?: PagedSupplierResultRequestDto,
+        forceRefresh = false
     ): Promise<PagedResultDto<SupplierDto>> {
+        const cacheKey = branchCacheKey(
+            this.readBranchId(),
+            [
+                'list',
+                input?.keyword || '',
+                input?.skipCount ?? 0,
+                input?.maxResultCount ?? 1000,
+            ].join('|')
+        );
+
+        if (!forceRefresh) {
+            const hit = this.listCache.get(cacheKey);
+            if (hit) {
+                return {
+                    items: hit.items.map((s) => ({ ...s })),
+                    totalCount: hit.totalCount,
+                };
+            }
+        }
+
         const params: any = {};
         if (input?.keyword) {
             params.Keyword = input.keyword;
@@ -37,36 +66,34 @@ export class SupplierService {
         const result = this.unwrap(res, 'Failed to load suppliers');
         const items = result.items || result.Items || [];
         const totalCount = result.totalCount ?? result.TotalCount ?? items.length;
-
-        return {
+        const mapped: PagedResultDto<SupplierDto> = {
             items: (Array.isArray(items) ? items : []).map((item: any) =>
                 this.mapSupplier(item)
             ),
             totalCount,
         };
-    }
-
-    private lookupCache: { data: SupplierDto[]; timestamp: number } | null = null;
-    private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-
-    clearCache(): void {
-        this.lookupCache = null;
+        this.listCache.set(cacheKey, mapped);
+        return mapped;
     }
 
     async getLookup(forceRefresh = false): Promise<SupplierDto[]> {
-        const now = Date.now();
-        if (
-            !forceRefresh &&
-            this.lookupCache &&
-            now - this.lookupCache.timestamp < this.CACHE_DURATION_MS
-        ) {
-            return this.lookupCache.data;
+        const key = branchCacheKey(this.readBranchId(), 'lookup');
+        if (!forceRefresh) {
+            const hit = this.lookupCache.get(key);
+            if (hit) {
+                return hit;
+            }
         }
 
-        const res = await this.getAll({ skipCount: 0, maxResultCount: 1000 });
+        const res = await this.getAll({ skipCount: 0, maxResultCount: 1000 }, forceRefresh);
         const items = res.items || [];
-        this.lookupCache = { data: items, timestamp: now };
+        this.lookupCache.set(key, items);
         return items;
+    }
+
+    private readBranchId(): number | null {
+        const n = parseInt(localStorage.getItem('SmartPos.BranchId') || '', 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 
     async get(id: number): Promise<SupplierDto> {
@@ -135,6 +162,7 @@ export class SupplierService {
         supplierId: number,
         productIds: number[]
     ): Promise<void> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/SetAssignedProducts`, {
                 supplierId,
