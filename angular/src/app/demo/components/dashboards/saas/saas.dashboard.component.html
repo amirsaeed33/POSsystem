@@ -1,4 +1,4 @@
-<div class="grid dashboard-grid">
+﻿<div class="grid dashboard-grid">
     <div [ngClass]="isRestaurant ? 'col-12 md:col-6 xl:col-4' : 'col-12 lg:col-6 xl:col-3'" class="anim-card anim-delay-1">
         <div class="card kpi-card sales-card p-0 overflow-hidden flex flex-column h-full">
             <div class="flex align-items-center p-3 flex-grow-1">
@@ -427,6 +427,168 @@
             </div>
         </div>
     </div>
+
+    <!-- ONLINE-PIPELINE START -->
+    <!-- Online Orders Monitoring Widget -->
+    <div class="col-12 anim-card anim-delay-5">
+        <div class="card online-pipeline-card p-4">
+            <!-- Header with Title, Today's Total Badge & Refresh / View All button -->
+            <div class="flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                <div class="flex align-items-center gap-3">
+                    <div class="pipeline-icon-wrapper flex align-items-center justify-content-center border-round-xl shadow-1">
+                        <i class="pi pi-shopping-bag text-xl text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="flex align-items-center gap-2">
+                            <h5 class="m-0 font-bold text-xl text-900">Online Orders Monitoring</h5>
+                            <span *ngIf="!onlinePipelineLoading && !onlinePipelineError && onlinePipelineData" 
+                                  class="pipeline-today-pill"
+                                  (click)="navigateToAllOnlineOrders()"
+                                  title="View all online orders">
+                                <i class="pi pi-calendar mr-1"></i>
+                                Today: <strong class="ml-1">{{ onlinePipelineData.todayTotalOrders }}</strong>
+                            </span>
+                        </div>
+                        <span class="text-color-secondary text-sm">Real-time status pipeline &bull; click any stage to filter</span>
+                    </div>
+                </div>
+
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-refresh"
+                        [loading]="onlinePipelineLoading"
+                        title="Refresh Online Orders"
+                        class="p-button-outlined p-button-secondary p-button-sm p-button-rounded"
+                        (click)="loadOnlineOrderPipeline()"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="View All Orders"
+                        icon="pi pi-arrow-right"
+                        iconPos="right"
+                        class="p-button-outlined p-button-primary p-button-sm border-round-lg font-semibold"
+                        (click)="navigateToAllOnlineOrders()"
+                    ></button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div *ngIf="onlinePipelineLoading" class="py-4 text-center">
+                <i class="pi pi-spin pi-spinner text-3xl text-primary mb-2"></i>
+                <div class="text-color-secondary font-medium text-sm">Loading online order pipeline...</div>
+            </div>
+
+            <!-- Error State -->
+            <div *ngIf="!onlinePipelineLoading && onlinePipelineError" class="p-3 border-round-lg bg-red-50 border-1 border-red-200 text-red-900 flex align-items-center justify-content-between gap-3">
+                <div class="flex align-items-center gap-2">
+                    <i class="pi pi-exclamation-triangle text-red-600 text-lg"></i>
+                    <span class="font-medium text-sm">{{ onlinePipelineError }}</span>
+                </div>
+                <button
+                    pButton
+                    type="button"
+                    label="Retry"
+                    icon="pi pi-refresh"
+                    class="p-button-sm p-button-danger p-button-text"
+                    (click)="loadOnlineOrderPipeline()"
+                ></button>
+            </div>
+
+            <!-- Pipeline Cards Row -->
+            <div *ngIf="!onlinePipelineLoading && !onlinePipelineError && onlinePipelineData" class="pipeline-grid">
+                <!-- 1. Pending (New) - Status 0 -->
+                <div class="pipeline-stage-card stage-pending cursor-pointer" (click)="navigateToOnlineOrders(0)" title="Click to view Pending orders">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="stage-label font-bold text-sm">New (Pending)</span>
+                        <div class="stage-icon-circle flex align-items-center justify-content-center">
+                            <i class="pi pi-bell text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="stage-count font-bold text-3xl">
+                        {{ onlinePipelineData.pendingCount }}
+                    </div>
+                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
+                        <span>Awaiting accept</span>
+                        <i class="pi pi-arrow-up-right ml-auto"></i>
+                    </div>
+                </div>
+
+                <!-- 2. Accepted - Status 1 -->
+                <div class="pipeline-stage-card stage-accepted cursor-pointer" (click)="navigateToOnlineOrders(1)" title="Click to view Accepted orders">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="stage-label font-bold text-sm">Accepted</span>
+                        <div class="stage-icon-circle flex align-items-center justify-content-center">
+                            <i class="pi pi-check text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="stage-count font-bold text-3xl">
+                        {{ onlinePipelineData.acceptedCount }}
+                    </div>
+                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
+                        <span>Confirmed order</span>
+                        <i class="pi pi-arrow-up-right ml-auto"></i>
+                    </div>
+                </div>
+
+                <!-- 3. Preparing - Status 3 -->
+                <div class="pipeline-stage-card stage-preparing cursor-pointer" (click)="navigateToOnlineOrders(3)" title="Click to view Preparing orders">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="stage-label font-bold text-sm">Preparing</span>
+                        <div class="stage-icon-circle flex align-items-center justify-content-center">
+                            <i class="pi pi-spin pi-cog text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="stage-count font-bold text-3xl">
+                        {{ onlinePipelineData.preparingCount }}
+                    </div>
+                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
+                        <span>In kitchen / packing</span>
+                        <i class="pi pi-arrow-up-right ml-auto"></i>
+                    </div>
+                </div>
+
+                <!-- 4. Delivered - Status 4 -->
+                <div class="pipeline-stage-card stage-delivered cursor-pointer" (click)="navigateToOnlineOrders(4)" title="Click to view Delivered orders">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="stage-label font-bold text-sm">Delivered</span>
+                        <div class="stage-icon-circle flex align-items-center justify-content-center">
+                            <i class="pi pi-check-circle text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="stage-count font-bold text-3xl">
+                        {{ onlinePipelineData.deliveredCount }}
+                    </div>
+                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
+                        <span>Completed delivery</span>
+                        <i class="pi pi-arrow-up-right ml-auto"></i>
+                    </div>
+                </div>
+
+                <!-- 5. Rejected - Status 2 -->
+                <div class="pipeline-stage-card stage-rejected cursor-pointer" (click)="navigateToOnlineOrders(2)" title="Click to view Rejected orders">
+                    <div class="flex justify-content-between align-items-center mb-2">
+                        <span class="stage-label font-bold text-sm">Rejected</span>
+                        <div class="stage-icon-circle flex align-items-center justify-content-center">
+                            <i class="pi pi-times-circle text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="stage-count font-bold text-3xl">
+                        {{ onlinePipelineData.rejectedCount }}
+                    </div>
+                    <div class="stage-footer flex align-items-center gap-1 text-xs mt-2">
+                        <span>Cancelled / turned down</span>
+                        <i class="pi pi-arrow-up-right ml-auto"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ONLINE-PIPELINE END -->
 
     <!-- 15-Day Financial Trend Chart (Immediately below KPI Cards) -->
     <div class="col-12 anim-card anim-delay-5">

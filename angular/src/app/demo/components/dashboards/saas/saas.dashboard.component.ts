@@ -1,4 +1,5 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+﻿import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { Subscription, debounceTime, interval } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { DashboardService } from 'src/app/demo/service/dashboard.service';
@@ -14,6 +15,9 @@ import {
     DailyOverviewDto,
     DashboardProductRowDto,
     DashboardTimelineEventDto,
+    // ONLINE-PIPELINE START
+    OnlineOrderPipelineDto,
+    // ONLINE-PIPELINE END
 } from 'src/app/demo/api/dashboard';
 
 interface LatestListItem {
@@ -213,6 +217,12 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     longestWaitingFormatted = '';
     private waitingTimerSubscription?: Subscription;
 
+    // ONLINE-PIPELINE START
+    onlinePipelineData: OnlineOrderPipelineDto | null = null;
+    onlinePipelineLoading = false;
+    onlinePipelineError: string | null = null;
+    // ONLINE-PIPELINE END
+
     // Restaurant Unpaid Bills state (Step 5)
     unpaidBills: UnpaidBillItem[] = [];
     unpaidBillsCount = 0;
@@ -224,7 +234,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         private permissionService: PermissionService,
         private branchContext: BranchContextService,
         private restaurantTableService: RestaurantTableService,
-        private restaurantOrderService: RestaurantOrderService
+        private restaurantOrderService: RestaurantOrderService,
+        private router: Router
     ) {
         this.subscription = this.layoutService.configUpdate$
             .pipe(debounceTime(25))
@@ -303,6 +314,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     async loadDashboard() {
         this.loadTableOccupancy();
         this.loadRunningOrders();
+        this.loadOnlineOrderPipeline();
         try {
             const data = await this.dashboardService.get();
             this.todaySales = data.todaySales ?? 0;
@@ -1379,6 +1391,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     refreshRestaurantFloor(): void {
         this.loadTableOccupancy();
         this.loadRunningOrders();
+        this.loadOnlineOrderPipeline();
     }
 
     async loadRunningOrders(): Promise<void> {
@@ -1641,6 +1654,30 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         if (severity === 'warning') return 'Attention Needed';
         return 'Normal Pace';
     }
+
+    // ONLINE-PIPELINE START
+    async loadOnlineOrderPipeline(): Promise<void> {
+        this.onlinePipelineLoading = true;
+        this.onlinePipelineError = null;
+        try {
+            const branchId = this.branchContext.getBranchId() ?? undefined;
+            this.onlinePipelineData = await this.dashboardService.getOnlineOrderPipeline(branchId);
+        } catch (error: any) {
+            console.error('Failed to load online order pipeline', error);
+            this.onlinePipelineError = error?.message || 'Failed to load online orders';
+        } finally {
+            this.onlinePipelineLoading = false;
+        }
+    }
+
+    navigateToOnlineOrders(status: number): void {
+        this.router.navigate(['/customer-orders'], { queryParams: { status } });
+    }
+
+    navigateToAllOnlineOrders(): void {
+        this.router.navigate(['/customer-orders']);
+    }
+    // ONLINE-PIPELINE END
 
     ngOnDestroy(): void {
         this.stopWaitingTimer();

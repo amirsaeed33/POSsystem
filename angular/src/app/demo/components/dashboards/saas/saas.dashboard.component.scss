@@ -1,4 +1,4 @@
-// Staggered card entrance keyframes
+﻿// Staggered card entrance keyframes
 @keyframes dashboardCardFadeInUp {
     0% {
         opacity: 0;
@@ -624,3 +624,219 @@
         }
     }
 }
+
+// ONLINE-PIPELINE START
+.online-pipeline-card {
+    border-radius: 14px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface-card);
+
+    .pipeline-icon-wrapper {
+        width: 2.75rem;
+        height: 2.75rem;
+        background: rgba(99, 102, 241, 0.12);
+        color: var(--primary-color);
+    }
+
+    .pipeline-today-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        background: var(--surface-ground);
+        color: var(--text-color);
+        border: 1px solid var(--surface-border);
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background: var(--surface-hover);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+    }
+
+    .pipeline-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+
+        @media (max-width: 1200px) {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        @media (max-width: 768px) {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        @media (max-width: 480px) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .pipeline-stage-card {
+        padding: 1rem 1.15rem;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        position: relative;
+        overflow: hidden;
+
+        &:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px -4px rgba(0, 0, 0, 0.08);
+        }
+
+        .stage-icon-circle {
+            width: 1.85rem;
+            height: 1.85rem;
+            border-radius: 50%;
+        }
+
+        .stage-count {
+            line-height: 1.2;
+            margin: 0.35rem 0;
+        }
+
+        .stage-footer {
+            opacity: 0.85;
+            font-weight: 500;
+        }
+
+        // Amber - Pending
+        &.stage-pending {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #92400e;
+
+            .stage-label { color: #b45309; }
+            .stage-count { color: #78350f; }
+            .stage-icon-circle { background: #fef3c7; color: #d97706; }
+            .stage-footer { color: #b45309; }
+
+            &:hover {
+                border-color: #f59e0b;
+                box-shadow: 0 8px 18px -4px rgba(245, 158, 11, 0.25);
+            }
+        }
+
+        // Blue - Accepted
+        &.stage-accepted {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1e40af;
+
+            .stage-label { color: #1d4ed8; }
+            .stage-count { color: #1e3a8a; }
+            .stage-icon-circle { background: #dbeafe; color: #2563eb; }
+            .stage-footer { color: #1d4ed8; }
+
+            &:hover {
+                border-color: #3b82f6;
+                box-shadow: 0 8px 18px -4px rgba(59, 130, 246, 0.25);
+            }
+        }
+
+        // Purple - Preparing
+        &.stage-preparing {
+            background: #faf5ff;
+            border-color: #e9d5ff;
+            color: #6b21a8;
+
+            .stage-label { color: #7e22ce; }
+            .stage-count { color: #581c87; }
+            .stage-icon-circle { background: #f3e8ff; color: #9333ea; }
+            .stage-footer { color: #7e22ce; }
+
+            &:hover {
+                border-color: #a855f7;
+                box-shadow: 0 8px 18px -4px rgba(168, 85, 247, 0.25);
+            }
+        }
+
+        // Green - Delivered
+        &.stage-delivered {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+
+            .stage-label { color: #15803d; }
+            .stage-count { color: #14532d; }
+            .stage-icon-circle { background: #dcfce7; color: #16a34a; }
+            .stage-footer { color: #15803d; }
+
+            &:hover {
+                border-color: #22c55e;
+                box-shadow: 0 8px 18px -4px rgba(34, 197, 94, 0.25);
+            }
+        }
+
+        // Red / Neutral Gray - Rejected
+        &.stage-rejected {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+
+            .stage-label { color: #b91c1c; }
+            .stage-count { color: #7f1d1d; }
+            .stage-icon-circle { background: #fee2e2; color: #dc2626; }
+            .stage-footer { color: #b91c1c; }
+
+            &:hover {
+                border-color: #ef4444;
+                box-shadow: 0 8px 18px -4px rgba(239, 68, 68, 0.25);
+            }
+        }
+    }
+}
+
+// Dark mode overrides
+:host-context(.layout-theme-dark) {
+    .online-pipeline-card {
+        .pipeline-stage-card {
+            &.stage-pending {
+                background: rgba(245, 158, 11, 0.12);
+                border-color: rgba(245, 158, 11, 0.3);
+                .stage-label { color: #fde68a; }
+                .stage-count { color: #fffbeb; }
+                .stage-icon-circle { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+                .stage-footer { color: #fde68a; }
+            }
+            &.stage-accepted {
+                background: rgba(59, 130, 246, 0.12);
+                border-color: rgba(59, 130, 246, 0.3);
+                .stage-label { color: #bfdbfe; }
+                .stage-count { color: #eff6ff; }
+                .stage-icon-circle { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+                .stage-footer { color: #bfdbfe; }
+            }
+            &.stage-preparing {
+                background: rgba(168, 85, 247, 0.12);
+                border-color: rgba(168, 85, 247, 0.3);
+                .stage-label { color: #e9d5ff; }
+                .stage-count { color: #faf5ff; }
+                .stage-icon-circle { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+                .stage-footer { color: #e9d5ff; }
+            }
+            &.stage-delivered {
+                background: rgba(34, 197, 94, 0.12);
+                border-color: rgba(34, 197, 94, 0.3);
+                .stage-label { color: #bbf7d0; }
+                .stage-count { color: #f0fdf4; }
+                .stage-icon-circle { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+                .stage-footer { color: #bbf7d0; }
+            }
+            &.stage-rejected {
+                background: rgba(239, 68, 68, 0.12);
+                border-color: rgba(239, 68, 68, 0.3);
+                .stage-label { color: #fecaca; }
+                .stage-count { color: #fef2f2; }
+                .stage-icon-circle { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+                .stage-footer { color: #fecaca; }
+            }
+        }
+    }
+}
+// ONLINE-PIPELINE END

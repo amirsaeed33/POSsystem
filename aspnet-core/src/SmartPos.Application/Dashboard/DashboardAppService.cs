@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -754,6 +754,68 @@ namespace SmartPos.Dashboard
 
             return result;
         }
+
+        // ONLINE-PIPELINE START
+        public async Task<OnlineOrderPipelineDto> GetOnlineOrderPipelineAsync(GetOnlineOrderPipelineInput input = null)
+        {
+            int? branchId;
+            if (input?.BranchId.HasValue == true)
+            {
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(input.BranchId.Value);
+                branchId = input.BranchId.Value;
+            }
+            else
+            {
+                branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            }
+
+            var baseQuery = _customerOrderRepository.GetAll()
+                .AsNoTracking()
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value);
+
+            var targetDate = input?.Date?.Date ?? Clock.Now.Date;
+            var nextDay = targetDate.AddDays(1);
+
+            var todayTotalOrders = await baseQuery
+                .Where(x => x.OrderDate >= targetDate && x.OrderDate < nextDay)
+                .CountAsync();
+
+            var statusGroups = await baseQuery
+                .GroupBy(x => x.Status)
+                .Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                })
+                .ToListAsync();
+
+            var countsByStatus = statusGroups.ToDictionary(x => x.Status, x => x.Count);
+
+            int pendingCount = countsByStatus.TryGetValue(CustomerOrderStatus.Pending, out var p) ? p : 0;
+            int approvedCount = countsByStatus.TryGetValue(CustomerOrderStatus.Approved, out var a) ? a : 0;
+            int rejectedCount = countsByStatus.TryGetValue(CustomerOrderStatus.Rejected, out var r) ? r : 0;
+            int inProgressCount = countsByStatus.TryGetValue(CustomerOrderStatus.InProgress, out var ip) ? ip : 0;
+            int deliveredCount = countsByStatus.TryGetValue(CustomerOrderStatus.Delivered, out var d) ? d : 0;
+
+            return new OnlineOrderPipelineDto
+            {
+                TodayTotalOrders = todayTotalOrders,
+                PendingCount = pendingCount,
+                ApprovedCount = approvedCount,
+                RejectedCount = rejectedCount,
+                InProgressCount = inProgressCount,
+                DeliveredCount = deliveredCount,
+                Stages = new List<OnlineOrderPipelineStageDto>
+                {
+                    new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.Pending, StatusName = "Pending", Count = pendingCount },
+                    new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.Approved, StatusName = "Accepted", Count = approvedCount },
+                    new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.InProgress, StatusName = "Preparing", Count = inProgressCount },
+                    new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.Delivered, StatusName = "Delivered", Count = deliveredCount },
+                    new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.Rejected, StatusName = "Rejected", Count = rejectedCount }
+                }
+            };
+        }
+        // ONLINE-PIPELINE END
 
         private static DateTime EnsureUtc(DateTime dt)
         {

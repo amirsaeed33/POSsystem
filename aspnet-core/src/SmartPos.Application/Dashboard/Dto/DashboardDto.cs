@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SmartPos.Dashboard.Dto
@@ -191,4 +191,65 @@ namespace SmartPos.Dashboard.Dto
 
         public decimal AlertQuantityLimit { get; set; }
     }
+    // ONLINE-PIPELINE START
+    public class GetOnlineOrderPipelineInput
+    {
+        public int? BranchId { get; set; }
+
+        public DateTime? Date { get; set; }
+    }
+
+    public class OnlineOrderPipelineStageDto
+    {
+        public int Status { get; set; }
+
+        public string StatusName { get; set; }
+
+        public int Count { get; set; }
+    }
+
+    public class OnlineOrderPipelineDto
+    {
+        /// <summary>
+        /// Total online orders placed today within server-local date boundary [todayStart, tomorrow).
+        /// </summary>
+        public int TodayTotalOrders { get; set; }
+
+        public int TodayOrdersCount => TodayTotalOrders;
+
+        /// <summary>
+        /// Pending online orders (CustomerOrderStatus.Pending = 0).
+        /// </summary>
+        public int PendingCount { get; set; }
+
+        /// <summary>
+        /// Approved/Accepted online orders (CustomerOrderStatus.Approved = 1).
+        /// </summary>
+        public int ApprovedCount { get; set; }
+
+        public int AcceptedCount => ApprovedCount;
+
+        /// <summary>
+        /// Rejected online orders (CustomerOrderStatus.Rejected = 2).
+        /// </summary>
+        public int RejectedCount { get; set; }
+
+        /// <summary>
+        /// In-progress/Preparing online orders (CustomerOrderStatus.InProgress = 3).
+        /// </summary>
+        public int InProgressCount { get; set; }
+
+        public int PreparingCount => InProgressCount;
+
+        /// <summary>
+        /// Delivered online orders (CustomerOrderStatus.Delivered = 4).
+        /// </summary>
+        public int DeliveredCount { get; set; }
+
+        /// <summary>
+        /// Pipeline stages breakdown for UI iteration.
+        /// </summary>
+        public List<OnlineOrderPipelineStageDto> Stages { get; set; } = new List<OnlineOrderPipelineStageDto>();
+    }
+    // ONLINE-PIPELINE END
 }
