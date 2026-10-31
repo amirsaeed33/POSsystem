@@ -670,24 +670,23 @@
                     <!-- Tag / Deal badge if present -->
                     <span class="badge-deal" *ngIf="getProductTag(product, idx)">{{ getProductTag(product, idx) }}</span>
 
-                    <!-- Image: full width, square (aspect-ratio 1/1), object-fit contain, margin-bottom 12px -->
                     <div class="card-media-box">
-                        <img [src]="getProductImage(product, idx)" [alt]="product.name" class="card-img" />
+                        <img
+                            [src]="getProductImage(product, idx)"
+                            alt=""
+                            class="card-img"
+                            (error)="onProductImageError($event, product)"
+                        />
                     </div>
 
-                    <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->
                     <h3 class="product-title" [title]="product.name">{{ product.name }}</h3>
-
-                    <!-- Description: 12.5px, line-height 1.5, color #666, clamped to 3 lines with ellipsis (-webkit-line-clamp: 3), min-height of 3 lines -->
                     <p class="product-desc">{{ getProductDescription(product) }}</p>
 
-                    <!-- Price row: price in Montserrat 700 16px color #e8532b ("Rs. 1,480" format). Next to it, show a "Starting Price" badge (bg #e8532b, white text, 12px, 600 weight, padding 3px 8px, radius 6px) only when the item has variants/sizes. -->
                     <div class="price-row">
                         <span class="product-price">Rs. {{ product.price | number: '1.0-0' }}</span>
                         <span class="starting-price-badge" *ngIf="hasVariants(product)">Starting Price</span>
                     </div>
 
-                    <!-- Button: full width, margin-top auto, padding 12px, radius 8px, bg #fff, text uppercase "+ ADD TO CART" in Montserrat 600 13px. On hover: bg #e8532b, text white, transition .2s. -->
                     <button
                         type="button"
                         class="btn-add-cart"
@@ -746,9 +745,13 @@
                     <!-- Tag / Deal badge if present -->
                     <span class="badge-deal" *ngIf="getProductTag(product, idx + 4)">{{ getProductTag(product, idx + 4) }}</span>
 
-                    <!-- Image: full width, square (aspect-ratio 1/1), object-fit contain, margin-bottom 12px -->
                     <div class="card-media-box">
-                        <img [src]="getProductImage(product, idx + 4)" [alt]="product.name" class="card-img" />
+                        <img
+                            [src]="getProductImage(product, idx + 4)"
+                            alt=""
+                            class="card-img"
+                            (error)="onProductImageError($event, product)"
+                        />
                     </div>
 
                     <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->
@@ -826,9 +829,13 @@
                     <!-- Tag / Deal badge if present -->
                     <span class="badge-deal" *ngIf="getProductTag(product, idx)">{{ getProductTag(product, idx) }}</span>
 
-                    <!-- Image: full width, square (aspect-ratio 1/1), object-fit contain, margin-bottom 12px -->
                     <div class="card-media-box">
-                        <img [src]="getProductImage(product, idx + sIdx)" [alt]="product.name" class="card-img" />
+                        <img
+                            [src]="getProductImage(product, idx + sIdx)"
+                            alt=""
+                            class="card-img"
+                            (error)="onProductImageError($event, product)"
+                        />
                     </div>
 
                     <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->
@@ -906,9 +913,13 @@
                     <!-- Tag / Deal badge if present -->
                     <span class="badge-deal" *ngIf="getProductTag(product, idx)">{{ getProductTag(product, idx) }}</span>
 
-                    <!-- Image: full width, square (aspect-ratio 1/1), object-fit contain, margin-bottom 12px -->
                     <div class="card-media-box">
-                        <img [src]="getProductImage(product, idx)" [alt]="product.name" class="card-img" />
+                        <img
+                            [src]="getProductImage(product, idx)"
+                            alt=""
+                            class="card-img"
+                            (error)="onProductImageError($event, product)"
+                        />
                     </div>
 
                     <!-- Title: Montserrat 700, 16px, margin-bottom 8px -->

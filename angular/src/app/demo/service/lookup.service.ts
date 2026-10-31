@@ -8,12 +8,18 @@ import {
     PagedResultDto,
 } from '../api/lookup';
 import { environment } from '../../../environments/environment';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({ providedIn: 'root' })
 export class LookUpService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/LookUp`;
+    private readonly byTypeCache = new TtlCache<LookUpDto[]>(10 * 60 * 1000);
 
     constructor(private http: HttpClient) {}
+
+    clearCache(): void {
+        this.byTypeCache.clear();
+    }
 
     async getAll(input?: PagedLookUpResultRequestDto): Promise<PagedResultDto<LookUpDto>> {
         const params: any = {};
@@ -33,12 +39,25 @@ export class LookUpService {
     }
 
     async getByType(type: string): Promise<LookUpDto[]> {
+        const key = branchCacheKey(this.readBranchId(), `type:${type}`);
+        const hit = this.byTypeCache.get(key);
+        if (hit) {
+            return hit;
+        }
+
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetByType`, { params: { type } })
         );
         const result = this.unwrap(res, 'Failed to load lookup options');
         const items = result.items || result.Items || result || [];
-        return (Array.isArray(items) ? items : []).map((item: any) => this.map(item));
+        const mapped = (Array.isArray(items) ? items : []).map((item: any) => this.map(item));
+        this.byTypeCache.set(key, mapped);
+        return mapped;
+    }
+
+    private readBranchId(): number | null {
+        const n = parseInt(localStorage.getItem('SmartPos.BranchId') || '', 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 
     async get(id: number): Promise<LookUpDto> {
@@ -47,16 +66,19 @@ export class LookUpService {
     }
 
     async create(input: CreateLookUpDto): Promise<LookUpDto> {
+        this.clearCache();
         const res: any = await firstValueFrom(this.http.post<any>(`${this.apiUrl}/Create`, input));
         return this.map(this.unwrap(res, 'Failed to create lookup'));
     }
 
     async update(input: LookUpDto): Promise<LookUpDto> {
+        this.clearCache();
         const res: any = await firstValueFrom(this.http.put<any>(`${this.apiUrl}/Update`, input));
         return this.map(this.unwrap(res, 'Failed to update lookup'));
     }
 
     async delete(id: number): Promise<void> {
+        this.clearCache();
         const res: any = await firstValueFrom(this.http.delete<any>(`${this.apiUrl}/Delete`, { params: { Id: id } }));
         if (res != null) this.unwrap(res, 'Failed to delete lookup');
     }

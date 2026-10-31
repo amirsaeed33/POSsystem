@@ -8,12 +8,14 @@ using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Abp.Runtime.Caching;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Accounts;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
+using SmartPos.Caching;
 using SmartPos.Customers;
 using SmartPos.Customers.Dto;
 using SmartPos.Inventory;
@@ -44,6 +46,8 @@ namespace SmartPos.Sales
         private readonly IRepository<BusinessAccount> _accountRepository;
         private readonly SystemAccountManager _systemAccountManager;
         private readonly IBranchNotificationService _branchNotificationService;
+        private readonly ICacheManager _cacheManager;
+        private readonly ISmartPosReadCacheInvalidator _readCacheInvalidator;
 
         public SaleAppService(
             IRepository<Sale> repository,
@@ -61,7 +65,9 @@ namespace SmartPos.Sales
             IRepository<Branch> branchRepository,
             IRepository<BusinessAccount> accountRepository,
             SystemAccountManager systemAccountManager,
-            IBranchNotificationService branchNotificationService)
+            IBranchNotificationService branchNotificationService,
+            ICacheManager cacheManager,
+            ISmartPosReadCacheInvalidator readCacheInvalidator)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -78,6 +84,8 @@ namespace SmartPos.Sales
             _branchRepository = branchRepository;
             _accountRepository = accountRepository;
             _systemAccountManager = systemAccountManager;
+            _cacheManager = cacheManager;
+            _readCacheInvalidator = readCacheInvalidator;
             _branchNotificationService = branchNotificationService;
             CreatePermissionName = PermissionNames.Pages_Sales_Create;
             UpdatePermissionName = PermissionNames.Pages_Sales_Edit;
@@ -181,71 +189,97 @@ namespace SmartPos.Sales
 
         public async Task<ListResultDto<ProductDto>> GetPosProductsAsync(int? categoryId = null)
         {
-            var query = await GetVisibleProductsQueryAsync();
-            if (categoryId.HasValue && categoryId.Value > 0)
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+            var cacheKey = SmartPosAppCaches.TenantBranchKey(
+                AbpSession.TenantId,
+                branchId,
+                $"Cat_{categoryId?.ToString() ?? "All"}");
+
+            var cache = SmartPosAppCaches.Typed<ListResultDto<ProductDto>>(
+                _cacheManager,
+                SmartPosAppCaches.PosProducts,
+                TimeSpan.FromMinutes(2));
+
+            return await cache.GetAsync(cacheKey, async _ =>
             {
-                query = query.Where(x => x.CategoryId == categoryId.Value);
-            }
+                var query = await GetVisibleProductsQueryAsync();
+                if (categoryId.HasValue && categoryId.Value > 0)
+                {
+                    query = query.Where(x => x.CategoryId == categoryId.Value);
+                }
 
-            var products = await query
-                .OrderBy(x => x.Name)
-                .Take(1000)
-                .ToListAsync();
+                var products = await query
+                    .AsNoTracking()
+                    .OrderBy(x => x.Name)
+                    .Take(1000)
+                    .ToListAsync();
 
-            return new ListResultDto<ProductDto>(await MapProductsWithBranchStockAsync(products));
+                return new ListResultDto<ProductDto>(await MapProductsWithBranchStockAsync(products));
+            });
         }
 
         public async Task<ListResultDto<ProductDto>> GetTopSellingProductsAsync(int maxCount = 5)
         {
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
-            
-            var salesQuery = Repository.GetAll();
-            if (branchId.HasValue)
-            {
-                salesQuery = salesQuery.Where(s => s.BranchId == branchId.Value);
-            }
+            var cacheKey = SmartPosAppCaches.TenantBranchKey(AbpSession.TenantId, branchId, $"Top_{maxCount}");
+            var cache = SmartPosAppCaches.Typed<ListResultDto<ProductDto>>(
+                _cacheManager,
+                SmartPosAppCaches.TopSellingProducts,
+                TimeSpan.FromMinutes(10));
 
-            var topProductIds = await _lineRepository.GetAll()
-                .Where(sl => salesQuery.Any(s => s.Id == sl.SaleId))
-                .GroupBy(sl => sl.ProductId)
-                .Select(g => new
+            return await cache.GetAsync(cacheKey, async _ =>
+            {
+                var salesQuery = Repository.GetAll().AsNoTracking();
+                if (branchId.HasValue)
                 {
-                    ProductId = g.Key,
-                    TotalQuantity = g.Sum(x => x.Quantity)
-                })
-                .OrderByDescending(x => x.TotalQuantity)
-                .Take(maxCount)
-                .Select(x => x.ProductId)
-                .ToListAsync();
+                    salesQuery = salesQuery.Where(s => s.BranchId == branchId.Value);
+                }
 
-            var visibleQuery = await GetVisibleProductsQueryAsync();
-            var topProducts = new List<Product>();
-
-            if (topProductIds.Count > 0)
-            {
-                var productsFromSales = await visibleQuery
-                    .Where(p => topProductIds.Contains(p.Id))
+                var topProductIds = await _lineRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(sl => salesQuery.Any(s => s.Id == sl.SaleId))
+                    .GroupBy(sl => sl.ProductId)
+                    .Select(g => new
+                    {
+                        ProductId = g.Key,
+                        TotalQuantity = g.Sum(x => x.Quantity)
+                    })
+                    .OrderByDescending(x => x.TotalQuantity)
+                    .Take(maxCount)
+                    .Select(x => x.ProductId)
                     .ToListAsync();
 
-                topProducts = topProductIds
-                    .Select(id => productsFromSales.FirstOrDefault(p => p.Id == id))
-                    .Where(p => p != null)
-                    .ToList();
-            }
+                var visibleQuery = await GetVisibleProductsQueryAsync();
+                var topProducts = new List<Product>();
 
-            if (topProducts.Count < maxCount)
-            {
-                var existingIds = topProducts.Select(p => p.Id).ToList();
-                var fillProducts = await visibleQuery
-                    .Where(p => !existingIds.Contains(p.Id))
-                    .OrderByDescending(p => p.CreationTime)
-                    .Take(maxCount - topProducts.Count)
-                    .ToListAsync();
+                if (topProductIds.Count > 0)
+                {
+                    var productsFromSales = await visibleQuery
+                        .AsNoTracking()
+                        .Where(p => topProductIds.Contains(p.Id))
+                        .ToListAsync();
 
-                topProducts.AddRange(fillProducts);
-            }
+                    topProducts = topProductIds
+                        .Select(id => productsFromSales.FirstOrDefault(p => p.Id == id))
+                        .Where(p => p != null)
+                        .ToList();
+                }
 
-            return new ListResultDto<ProductDto>(await MapProductsWithBranchStockAsync(topProducts));
+                if (topProducts.Count < maxCount)
+                {
+                    var existingIds = topProducts.Select(p => p.Id).ToList();
+                    var fillProducts = await visibleQuery
+                        .AsNoTracking()
+                        .Where(p => !existingIds.Contains(p.Id))
+                        .OrderByDescending(p => p.CreationTime)
+                        .Take(maxCount - topProducts.Count)
+                        .ToListAsync();
+
+                    topProducts.AddRange(fillProducts);
+                }
+
+                return new ListResultDto<ProductDto>(await MapProductsWithBranchStockAsync(topProducts));
+            });
         }
 
         public override async Task<SaleDto> CreateAsync(CreateSaleDto input)
@@ -420,6 +454,13 @@ namespace SmartPos.Sales
                 sale.TotalAmount,
                 AbpSession.UserId,
                 sale.SaleDate);
+
+            // Stock/top-sellers change after sale — refresh hot-path caches.
+            await SmartPosAppCaches.ClearManyAsync(
+                _cacheManager,
+                SmartPosAppCaches.TopSellingProducts,
+                SmartPosAppCaches.PosProducts,
+                SmartPosAppCaches.OnlineCatalog);
 
             return dto;
         }

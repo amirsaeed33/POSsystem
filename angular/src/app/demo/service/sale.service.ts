@@ -10,12 +10,18 @@ import {
 } from '../api/sale';
 import { ProductDto } from '../api/product';
 import { environment } from '../../../environments/environment';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({
     providedIn: 'root',
 })
 export class SaleService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Sale`;
+    private readonly posProductsCache = new TtlCache<ProductDto[]>(2 * 60 * 1000);
+    private readonly topSellingCache = new TtlCache<ProductDto[]>(10 * 60 * 1000);
+    private readonly posCustomersCache = new TtlCache<
+        { id: number; name: string; customerType: number }[]
+    >(5 * 60 * 1000);
 
     constructor(private http: HttpClient) {}
 
@@ -142,6 +148,15 @@ export class SaleService {
 
     async getPosProducts(categoryId?: number | null): Promise<ProductDto[]> {
         try {
+            const key = branchCacheKey(
+                this.readBranchId(),
+                `posProducts:${categoryId || 'all'}`
+            );
+            const hit = this.posProductsCache.get(key);
+            if (hit) {
+                return hit;
+            }
+
             const params: any = {};
             if (categoryId) {
                 params.categoryId = categoryId;
@@ -153,9 +168,11 @@ export class SaleService {
             );
             const result = this.unwrap(res, 'Failed to load POS products');
             const items = result.items || result.Items || result || [];
-            return (Array.isArray(items) ? items : []).map((item: any) =>
+            const mapped = (Array.isArray(items) ? items : []).map((item: any) =>
                 this.mapProduct(item)
             );
+            this.posProductsCache.set(key, mapped);
+            return mapped;
         } catch (error) {
             throw new Error(
                 this.extractErrorMessage(error, 'Failed to load POS products')
@@ -165,6 +182,12 @@ export class SaleService {
 
     async getTopSellingProducts(maxCount = 5): Promise<ProductDto[]> {
         try {
+            const key = branchCacheKey(this.readBranchId(), `top:${maxCount}`);
+            const hit = this.topSellingCache.get(key);
+            if (hit) {
+                return hit;
+            }
+
             const res: any = await firstValueFrom(
                 this.http.get<any>(`${this.apiUrl}/GetTopSellingProducts`, {
                     params: { maxCount },
@@ -172,39 +195,47 @@ export class SaleService {
             );
             const result = this.unwrap(res, 'Failed to load top selling products');
             const items = result.items || result.Items || result || [];
-            return (Array.isArray(items) ? items : []).map((item: any) =>
+            const mapped = (Array.isArray(items) ? items : []).map((item: any) =>
                 this.mapProduct(item)
             );
+            this.topSellingCache.set(key, mapped);
+            return mapped;
         } catch (error) {
             console.error('Failed to load top selling products:', error);
             return [];
         }
     }
 
-    private static posCustomersCache: {
-        data: { id: number; name: string; customerType: number }[];
-        timestamp: number;
-    } | null = null;
-    private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+    private static sharedCustomersCache = new TtlCache<
+        { id: number; name: string; customerType: number }[]
+    >(5 * 60 * 1000);
 
     static clearPosCustomersCache(): void {
-        SaleService.posCustomersCache = null;
+        SaleService.sharedCustomersCache.clear();
     }
 
     clearPosCustomersCache(): void {
-        SaleService.posCustomersCache = null;
+        SaleService.sharedCustomersCache.clear();
+    }
+
+    clearPosCaches(): void {
+        this.posProductsCache.clear();
+        this.topSellingCache.clear();
+        this.posCustomersCache.clear();
+        SaleService.sharedCustomersCache.clear();
     }
 
     async getPosCustomers(forceRefresh = false): Promise<
         { id: number; name: string; customerType: number }[]
     > {
-        const now = Date.now();
-        if (
-            !forceRefresh &&
-            SaleService.posCustomersCache &&
-            now - SaleService.posCustomersCache.timestamp < this.CACHE_DURATION_MS
-        ) {
-            return SaleService.posCustomersCache.data;
+        const key = branchCacheKey(this.readBranchId(), 'posCustomers');
+        if (!forceRefresh) {
+            const hit =
+                this.posCustomersCache.get(key) ||
+                SaleService.sharedCustomersCache.get(key);
+            if (hit) {
+                return hit;
+            }
         }
 
         const res: any = await firstValueFrom(
@@ -217,8 +248,14 @@ export class SaleService {
             name: item.name ?? item.Name,
             customerType: item.customerType ?? item.CustomerType ?? 0,
         }));
-        SaleService.posCustomersCache = { data: mapped, timestamp: now };
+        this.posCustomersCache.set(key, mapped);
+        SaleService.sharedCustomersCache.set(key, mapped);
         return mapped;
+    }
+
+    private readBranchId(): number | null {
+        const n = parseInt(localStorage.getItem('SmartPos.BranchId') || '', 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 
 

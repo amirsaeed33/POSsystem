@@ -17,3 +17,121 @@
     background: var(--surface-ground);
     user-select: none;
 }
+
+/* Modifier dialog — option row (no overlap) */
+.modifier-option-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modifier-option-name {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.modifier-option-price {
+    flex: 0 0 7.5rem;
+    width: 7.5rem;
+    max-width: 100%;
+
+    ::ng-deep .p-inputnumber,
+    ::ng-deep .p-inputnumber-input {
+        width: 100% !important;
+    }
+}
+
+.modifier-option-btn {
+    flex: 0 0 auto;
+}
+
+/* Modifier dialog — create group row (no clipped Create button) */
+.modifier-create-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+.modifier-create-name {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
+.modifier-create-flags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    flex: 0 0 auto;
+    padding-bottom: 0.35rem;
+}
+
+.modifier-create-btn {
+    flex: 0 0 auto;
+    min-width: 6.5rem;
+}
+
+.deal-image-upload {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    cursor: pointer;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.deal-image-preview {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+    border-radius: 14px;
+    border: 2px solid var(--primary-color);
+}
+
+.deal-image-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 14px;
+    border: 2px dashed var(--primary-color);
+    background: var(--surface-100);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+}
+
+.deal-image-clear {
+    position: absolute !important;
+    top: 6px;
+    right: 6px;
+    width: 1.75rem !important;
+    height: 1.75rem !important;
+}
+
+:host ::ng-deep .product-list-tabs {
+    .p-tabview-nav {
+        border-bottom: 1px solid var(--surface-border);
+    }
+
+    .p-tabview-panels {
+        display: none;
+    }
+}
+
+.product-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: var(--surface-200);
+    color: var(--text-color-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+}

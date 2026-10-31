@@ -14,6 +14,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { CheckboxModule } from 'primeng/checkbox';
+import { TabViewModule } from 'primeng/tabview';
 import { ProductsRoutingModule } from './products-routing.module';
 import { ProductListComponent } from './product-list.component';
 import { ProductFormDialogComponent } from './product-form-dialog.component';
@@ -39,6 +40,7 @@ import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/ro
         DropdownModule,
         MultiSelectModule,
         CheckboxModule,
+        TabViewModule,
         StyleClassModule,
         AppRowActionsComponent,
     ],

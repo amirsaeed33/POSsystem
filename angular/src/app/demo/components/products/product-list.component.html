@@ -1,7 +1,33 @@
 <div class="card">
+    <p-tabView
+        *ngIf="isRestaurant"
+        [activeIndex]="activeListTab"
+        (activeIndexChange)="onListTabChange($event)"
+        styleClass="product-list-tabs mb-2"
+    >
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-box"></i>
+                    <span>Products</span>
+                    <span class="product-tab-count">{{ productsTabCount }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-bolt"></i>
+                    <span>Deals</span>
+                    <span class="product-tab-count">{{ dealsTabCount }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+    </p-tabView>
+
     <p-table
         #dt
-        [value]="products"
+        [value]="listProducts"
         [(selection)]="selectedProducts"
         dataKey="id"
         [paginator]="true"
@@ -9,7 +35,7 @@
         [showCurrentPageReport]="true"
         responsiveLayout="scroll"
         [loading]="loading"
-        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [currentPageReportTemplate]="isDealsTab ? 'Showing {first} to {last} of {totalRecords} deals' : 'Showing {first} to {last} of {totalRecords} products'"
         [rowsPerPageOptions]="[10, 25, 50]"
         [globalFilterFields]="['name', 'barcode', 'categoryName', 'brandName', 'unitName']"
     >
@@ -22,7 +48,7 @@
                             pInputText
                             type="text"
                             class="w-full"
-                            placeholder="Search products"
+                            [placeholder]="isDealsTab ? 'Search deals' : 'Search products'"
                             [(ngModel)]="keyword"
                             (keyup.enter)="onSearch()"
                             (input)="onGlobalFilter(dt, $event)"
@@ -49,52 +75,55 @@
                         tooltipPosition="top"
                         (click)="openBulkBarcodeDialog()"
                     ></button>
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-file-excel"
-                        class="p-button-outlined p-button-success font-semibold"
-                        label="Import Excel"
-                        [pTooltip]="!canCreate ? 'You do not have permission to Import' : 'Import products from Excel sheet'"
-                        tooltipPosition="top"
-                        [disabled]="!canCreate"
-                        (click)="fileInput.click()"
-                    ></button>
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-download"
-                        class="p-button-text p-button-secondary font-semibold"
-                        label="Template"
-                        pTooltip="Download Excel Sample Template"
-                        tooltipPosition="top"
-                        (click)="downloadExcelTemplate()"
-                    ></button>
-                    <input
-                        #fileInput
-                        type="file"
-                        accept=".xlsx, .xls"
-                        class="hidden"
-                        (change)="onExcelFileSelected($event)"
-                    />
+                    <ng-container *ngIf="!isDealsTab">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-file-excel"
+                            class="p-button-outlined p-button-success font-semibold"
+                            label="Import Excel"
+                            [pTooltip]="!canCreate ? 'You do not have permission to Import' : 'Import products from Excel sheet'"
+                            tooltipPosition="top"
+                            [disabled]="!canCreate"
+                            (click)="fileInput.click()"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-download"
+                            class="p-button-text p-button-secondary font-semibold"
+                            label="Template"
+                            pTooltip="Download Excel Sample Template"
+                            tooltipPosition="top"
+                            (click)="downloadExcelTemplate()"
+                        ></button>
+                        <input
+                            #fileInput
+                            type="file"
+                            accept=".xlsx, .xls"
+                            class="hidden"
+                            (change)="onExcelFileSelected($event)"
+                        />
+                    </ng-container>
                 </div>
                 <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-order-0 sm:flex-order-1">
                     <button
-                        *ngIf="isRestaurant"
+                        *ngIf="isDealsTab"
                         pButton
                         pRipple
                         type="button"
                         icon="pi pi-bolt"
                         label="Create Deal"
-                        class="p-button-outlined p-button-warning font-semibold"
+                        class="p-button-warning font-semibold"
                         (click)="openCreateDealDialog()"
                         [disabled]="!canCreate"
                         pTooltip="Create a combo deal or meal bundle"
                         tooltipPosition="top"
                     ></button>
                     <button
+                        *ngIf="!isDealsTab"
                         pButton
                         pRipple
                         type="button"
@@ -192,7 +221,7 @@
         <ng-template pTemplate="emptymessage">
             <tr>
                 <td [attr.colspan]="isRestaurant ? 7 : 11" class="text-center p-4">
-                    <div class="text-500">No products found</div>
+                    <div class="text-500">{{ isDealsTab ? 'No deals found' : 'No products found' }}</div>
                 </td>
             </tr>
         </ng-template>
@@ -230,9 +259,10 @@
         [(visible)]="modifierDialogVisible"
         [modal]="true"
         appendTo="body"
-        [style]="{ width: '42rem', maxWidth: '95vw' }"
+        [style]="{ width: '48rem', maxWidth: '95vw' }"
         [draggable]="false"
         [resizable]="false"
+        styleClass="modifier-manage-dialog"
     >
         <div class="flex flex-column gap-3">
             <div class="surface-50 p-3 border-round">
@@ -308,13 +338,13 @@
                     </div>
 
                     <!-- Add Option Form -->
-                    <div class="surface-100 p-2 border-round flex flex-wrap align-items-center gap-2">
+                    <div class="modifier-option-row surface-100 p-2 border-round">
                         <input
                             pInputText
                             type="text"
                             placeholder="New option (e.g. Large, Extra Cheese)"
                             [(ngModel)]="newOptionName[group.id]"
-                            class="p-inputtext-sm flex-grow-1"
+                            class="p-inputtext-sm modifier-option-name"
                         />
                         <p-inputNumber
                             placeholder="Extra Price"
@@ -324,7 +354,8 @@
                             [minFractionDigits]="0"
                             [maxFractionDigits]="2"
                             styleClass="p-inputtext-sm"
-                            [style]="{ width: '7rem' }"
+                            inputStyleClass="w-full"
+                            class="modifier-option-price"
                         ></p-inputNumber>
                         <button
                             pButton
@@ -332,7 +363,7 @@
                             type="button"
                             icon="pi pi-plus"
                             label="Add Option"
-                            class="p-button-sm p-button-secondary"
+                            class="p-button-sm p-button-secondary white-space-nowrap modifier-option-btn"
                             [disabled]="!newOptionName[group.id] || addingOption[group.id]"
                             [loading]="addingOption[group.id]"
                             (click)="addModifierOption(group.id)"
@@ -353,26 +384,24 @@
                 <div class="font-semibold text-800 mb-2 flex align-items-center gap-2 text-sm">
                     <i class="pi pi-plus-circle text-primary"></i> Create Modifier Group
                 </div>
-                <div class="grid formgrid p-fluid">
-                    <div class="field col-12 sm:col-5 mb-2">
-                        <label class="text-xs font-medium">Group Name *</label>
+                <div class="modifier-create-row">
+                    <div class="modifier-create-name">
+                        <label class="text-xs font-medium mb-1 block">Group Name *</label>
                         <input
                             pInputText
                             type="text"
                             placeholder="e.g. Size, Crust, Spice Level"
                             [(ngModel)]="newGroupName"
-                            class="p-inputtext-sm"
+                            class="p-inputtext-sm w-full"
                         />
                     </div>
-                    <div class="field col-6 sm:col-3 mb-2 flex align-items-center pt-3">
+                    <div class="modifier-create-flags">
                         <p-checkbox
                             [(ngModel)]="newGroupIsRequired"
                             [binary]="true"
                             label="Required"
                             labelStyleClass="text-xs font-medium ml-1"
                         ></p-checkbox>
-                    </div>
-                    <div class="field col-6 sm:col-2 mb-2 flex align-items-center pt-3">
                         <p-checkbox
                             [(ngModel)]="newGroupAllowMultiple"
                             [binary]="true"
@@ -380,19 +409,17 @@
                             labelStyleClass="text-xs font-medium ml-1"
                         ></p-checkbox>
                     </div>
-                    <div class="field col-12 sm:col-2 mb-2 flex align-items-end">
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            label="Create"
-                            icon="pi pi-check"
-                            class="p-button-sm w-full"
-                            [disabled]="!newGroupName || creatingGroup"
-                            [loading]="creatingGroup"
-                            (click)="createModifierGroup()"
-                        ></button>
-                    </div>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Create"
+                        icon="pi pi-check"
+                        class="p-button-sm white-space-nowrap modifier-create-btn"
+                        [disabled]="!newGroupName || creatingGroup"
+                        [loading]="creatingGroup"
+                        (click)="createModifierGroup()"
+                    ></button>
                 </div>
             </div>
         </div>
@@ -420,6 +447,46 @@
         styleClass="p-fluid"
     >
         <ng-template pTemplate="content">
+            <div class="flex justify-content-center mb-3">
+                <div
+                    class="deal-image-upload"
+                    (click)="dealImageInput.click()"
+                    pTooltip="Click to upload deal image"
+                    tooltipPosition="bottom"
+                >
+                    <img
+                        *ngIf="dealImagePreview; else dealNoImageTpl"
+                        [src]="dealImagePreview"
+                        alt="Deal image"
+                        class="deal-image-preview"
+                    />
+                    <ng-template #dealNoImageTpl>
+                        <div class="deal-image-placeholder">
+                            <i class="pi pi-camera text-2xl text-primary mb-1"></i>
+                            <span class="text-xs font-semibold text-600">Upload Image</span>
+                        </div>
+                    </ng-template>
+                    <button
+                        *ngIf="dealImagePreview"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-times"
+                        class="p-button-rounded p-button-danger p-button-sm deal-image-clear"
+                        (click)="clearDealImage(); $event.stopPropagation()"
+                        pTooltip="Remove image"
+                    ></button>
+                    <input
+                        #dealImageInput
+                        type="file"
+                        accept="image/*"
+                        (change)="onDealImageSelected($event)"
+                        style="display: none;"
+                        [disabled]="savingDeal"
+                    />
+                </div>
+            </div>
+
             <div class="grid p-fluid mt-1">
                 <!-- Deal Name -->
                 <div class="col-12 md:col-6 field">
@@ -647,11 +714,20 @@
 
         <div *ngIf="!loadingDealDetails && selectedDealDetails">
             <div class="surface-card border-1 surface-border border-round p-3 mb-3">
-                <div class="flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <h4 class="m-0 font-bold text-900">{{ selectedDealDetails.name }}</h4>
-                        <div class="text-500 text-xs mt-1" *ngIf="selectedDealDetails.description">
-                            {{ selectedDealDetails.description }}
+                <div class="flex justify-content-between align-items-start mb-2 gap-3">
+                    <div class="flex align-items-start gap-3">
+                        <img
+                            *ngIf="selectedDealDetails.imagePath"
+                            [src]="getDealImageUrl(selectedDealDetails.imagePath)"
+                            alt="Deal"
+                            class="border-round"
+                            style="width: 72px; height: 72px; object-fit: cover; flex-shrink: 0;"
+                        />
+                        <div>
+                            <h4 class="m-0 font-bold text-900">{{ selectedDealDetails.name }}</h4>
+                            <div class="text-500 text-xs mt-1" *ngIf="selectedDealDetails.description">
+                                {{ selectedDealDetails.description }}
+                            </div>
                         </div>
                     </div>
                     <span class="p-tag p-tag-warning font-bold">

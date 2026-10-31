@@ -26,6 +26,12 @@ namespace SmartPos.Deals.Dto
         [StringLength(Deal.MaxCategoryTypeLength)]
         public string CategoryType { get; set; } = "Deals";
 
+        /// <summary>
+        /// Optional new image as data URL (data:image/...;base64,...).
+        /// Saved onto the linked deal product.
+        /// </summary>
+        public string ImageBase64 { get; set; }
+
         [Required(ErrorMessage = "At least one product must be included in the deal.")]
         public List<CreateDealDetailDto> Items { get; set; } = new List<CreateDealDetailDto>();
     }

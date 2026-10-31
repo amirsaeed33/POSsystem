@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PagedResultDto } from '../api/customer-order';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 export interface DeliveryAreaDto {
     id: number;
@@ -37,8 +38,15 @@ export interface PagedDeliveryAreaResultRequestDto {
 @Injectable({ providedIn: 'root' })
 export class DeliveryAreaService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/DeliveryArea`;
+    private readonly activeAreasCache = new TtlCache<DeliveryAreaDto[]>(
+        5 * 60 * 1000
+    );
 
     constructor(private http: HttpClient) {}
+
+    clearCache(): void {
+        this.activeAreasCache.clear();
+    }
 
     async getAll(
         input?: PagedDeliveryAreaResultRequestDto
@@ -72,6 +80,7 @@ export class DeliveryAreaService {
     }
 
     async create(input: CreateDeliveryAreaDto): Promise<DeliveryAreaDto> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 branchId: input.branchId,
@@ -87,6 +96,7 @@ export class DeliveryAreaService {
     }
 
     async update(input: DeliveryAreaDto): Promise<DeliveryAreaDto> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.put<any>(`${this.apiUrl}/Update`, {
                 id: input.id,
@@ -103,6 +113,7 @@ export class DeliveryAreaService {
     }
 
     async delete(id: number): Promise<void> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.delete<any>(`${this.apiUrl}/Delete`, {
                 params: { Id: id },
@@ -113,6 +124,7 @@ export class DeliveryAreaService {
     }
 
     async toggleActive(id: number): Promise<DeliveryAreaDto> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/ToggleActive`, { id })
         );
@@ -120,6 +132,12 @@ export class DeliveryAreaService {
     }
 
     async getActiveAreasForBranch(branchId: number): Promise<DeliveryAreaDto[]> {
+        const key = branchCacheKey(branchId, 'activeAreas');
+        const hit = this.activeAreasCache.get(key);
+        if (hit) {
+            return hit;
+        }
+
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetActiveAreasForBranch`, {
                 params: { branchId },
@@ -127,7 +145,9 @@ export class DeliveryAreaService {
         );
         const result = this.unwrap(res, 'Failed to load active delivery areas');
         const items = Array.isArray(result) ? result : result?.items || [];
-        return items.map((i: any) => this.map(i));
+        const mapped = items.map((i: any) => this.map(i));
+        this.activeAreasCache.set(key, mapped);
+        return mapped;
     }
 
     private unwrap(res: any, fallback: string): any {

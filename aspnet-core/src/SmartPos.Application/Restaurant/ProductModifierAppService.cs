@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -5,8 +6,10 @@ using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
+using Abp.Runtime.Caching;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
+using SmartPos.Caching;
 using SmartPos.Restaurant.Dto;
 
 namespace SmartPos.Restaurant
@@ -16,24 +19,40 @@ namespace SmartPos.Restaurant
     {
         private readonly IRepository<ProductModifierGroup> _groupRepository;
         private readonly IRepository<ProductModifierOption> _optionRepository;
+        private readonly ICacheManager _cacheManager;
+        private readonly ISmartPosReadCacheInvalidator _readCacheInvalidator;
 
         public ProductModifierAppService(
             IRepository<ProductModifierGroup> groupRepository,
-            IRepository<ProductModifierOption> optionRepository)
+            IRepository<ProductModifierOption> optionRepository,
+            ICacheManager cacheManager,
+            ISmartPosReadCacheInvalidator readCacheInvalidator)
         {
             _groupRepository = groupRepository;
             _optionRepository = optionRepository;
+            _cacheManager = cacheManager;
+            _readCacheInvalidator = readCacheInvalidator;
         }
 
         public async Task<List<ProductModifierGroupDto>> GetByProductAsync(int productId)
         {
-            var groups = await _groupRepository.GetAll()
-                .Include(g => g.Options)
-                .Where(g => g.ProductId == productId)
-                .OrderBy(g => g.Name)
-                .ToListAsync();
+            var cacheKey = SmartPosAppCaches.ProductKey(productId);
+            var cache = SmartPosAppCaches.Typed<List<ProductModifierGroupDto>>(
+                _cacheManager,
+                SmartPosAppCaches.ProductModifiers,
+                TimeSpan.FromMinutes(15));
 
-            return ObjectMapper.Map<List<ProductModifierGroupDto>>(groups);
+            return await cache.GetAsync(cacheKey, async _ =>
+            {
+                var groups = await _groupRepository.GetAll()
+                    .AsNoTracking()
+                    .Include(g => g.Options)
+                    .Where(g => g.ProductId == productId)
+                    .OrderBy(g => g.Name)
+                    .ToListAsync();
+
+                return ObjectMapper.Map<List<ProductModifierGroupDto>>(groups);
+            });
         }
 
         public async Task<ProductModifierGroupDto> CreateGroupAsync(CreateModifierGroupDto input)
@@ -55,6 +74,7 @@ namespace SmartPos.Restaurant
 
             var id = await _groupRepository.InsertAndGetIdAsync(group);
             group.Id = id;
+            await _readCacheInvalidator.ClearModifiersAsync();
 
             return ObjectMapper.Map<ProductModifierGroupDto>(group);
         }
@@ -62,6 +82,7 @@ namespace SmartPos.Restaurant
         public async Task DeleteGroupAsync(EntityDto<int> input)
         {
             await _groupRepository.DeleteAsync(input.Id);
+            await _readCacheInvalidator.ClearModifiersAsync();
         }
 
         public async Task<ProductModifierOptionDto> AddOptionAsync(int groupId, CreateModifierOptionDto input)
@@ -77,6 +98,7 @@ namespace SmartPos.Restaurant
 
             var id = await _optionRepository.InsertAndGetIdAsync(option);
             option.Id = id;
+            await _readCacheInvalidator.ClearModifiersAsync();
 
             return ObjectMapper.Map<ProductModifierOptionDto>(option);
         }
@@ -84,6 +106,7 @@ namespace SmartPos.Restaurant
         public async Task DeleteOptionAsync(EntityDto<int> input)
         {
             await _optionRepository.DeleteAsync(input.Id);
+            await _readCacheInvalidator.ClearModifiersAsync();
         }
     }
 }

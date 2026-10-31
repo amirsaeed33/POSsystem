@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { BranchDto, BranchStatuses } from '../api/branch';
 import { BranchService } from './branch.service';
+import { AppReadCacheService } from './app-read-cache.service';
 
 const BRANCH_STORAGE_KEY = 'SmartPos.BranchId';
 export const HOST_ADMIN_STORAGE_KEY = 'SmartPos.IsHostAdmin';
@@ -17,7 +18,10 @@ export class BranchContextService {
     readonly currentBranch$: Observable<BranchDto | null> =
         this.currentBranchSubject.asObservable();
 
-    constructor(private branchService: BranchService) {}
+    constructor(
+        private branchService: BranchService,
+        private injector: Injector
+    ) {}
 
     getBranchId(): number | null {
         return this.toBranchId(this.currentBranchSubject.value?.id)
@@ -64,14 +68,29 @@ export class BranchContextService {
             return;
         }
 
+        const previousId = this.toBranchId(this.currentBranchSubject.value?.id);
+        const nextId = this.toBranchId(branch.id);
         localStorage.setItem(BRANCH_STORAGE_KEY, String(branch.id));
         this.currentBranchSubject.next(branch);
+
+        if (previousId !== nextId) {
+            this.clearBranchScopedCaches();
+        }
     }
 
     clear(): void {
         localStorage.removeItem(BRANCH_STORAGE_KEY);
         this.currentBranchSubject.next(null);
         this.allowedBranches = [];
+        this.clearBranchScopedCaches();
+    }
+
+    private clearBranchScopedCaches(): void {
+        try {
+            this.injector.get(AppReadCacheService).clearBranchScoped();
+        } catch {
+            // AppReadCacheService may not be available during early bootstrap.
+        }
     }
 
     static setHostAdminSession(isHostAdmin: boolean): void {

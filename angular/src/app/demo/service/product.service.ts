@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
     CreateProductDto,
@@ -9,6 +9,8 @@ import {
     ProductDto,
 } from 'src/app/demo/api/product';
 import { environment } from '../../../environments/environment';
+import { SaleService } from './sale.service';
+import { CustomerOrderService } from './customer-order.service';
 
 @Injectable({
     providedIn: 'root',
@@ -16,7 +18,10 @@ import { environment } from '../../../environments/environment';
 export class ProductService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Product`;
 
-    constructor(private http: HttpClient) {}
+    constructor(
+        private http: HttpClient,
+        private injector: Injector
+    ) {}
 
     // Demo product helpers used by Sales dashboard widgets
     getProducts() {
@@ -86,7 +91,9 @@ export class ProductService {
             const res: any = await firstValueFrom(
                 this.http.post<any>(`${this.apiUrl}/Create`, input)
             );
-            return this.mapProduct(this.unwrap(res, 'Failed to create product'));
+            const product = this.mapProduct(this.unwrap(res, 'Failed to create product'));
+            this.invalidateCatalogCaches();
+            return product;
         } catch (error) {
             throw new Error(this.extractErrorMessage(error, 'Failed to create product'));
         }
@@ -114,7 +121,9 @@ export class ProductService {
                     specifications: input.specifications,
                 })
             );
-            return this.mapProduct(this.unwrap(res, 'Failed to update product'));
+            const product = this.mapProduct(this.unwrap(res, 'Failed to update product'));
+            this.invalidateCatalogCaches();
+            return product;
         } catch (error) {
             throw new Error(this.extractErrorMessage(error, 'Failed to update product'));
         }
@@ -126,10 +135,19 @@ export class ProductService {
                 params: { Id: id },
             })
         );
-        if (res == null) {
-            return;
+        if (res != null) {
+            this.unwrap(res, 'Failed to delete product');
         }
-        this.unwrap(res, 'Failed to delete product');
+        this.invalidateCatalogCaches();
+    }
+
+    private invalidateCatalogCaches(): void {
+        try {
+            this.injector.get(SaleService).clearPosCaches();
+            this.injector.get(CustomerOrderService).clearCache();
+        } catch {
+            // Ignore if services are unavailable during bootstrap.
+        }
     }
 
     getImageUrl(imagePath?: string): string {

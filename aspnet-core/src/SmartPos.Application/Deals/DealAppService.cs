@@ -7,11 +7,13 @@ using Abp.Application.Services.Dto;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Domain.Uow;
+using Abp.Runtime.Caching;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Branches;
 using SmartPos.Brands;
+using SmartPos.Caching;
 using SmartPos.Categories;
 using SmartPos.Deals.Dto;
 using SmartPos.Inventory;
@@ -32,6 +34,8 @@ namespace SmartPos.Deals
         private readonly IRepository<Branch> _branchRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchStockManager _branchStockManager;
+        private readonly ICacheManager _cacheManager;
+        private readonly ISmartPosReadCacheInvalidator _readCacheInvalidator;
 
         public DealAppService(
             IRepository<Deal> dealRepository,
@@ -42,7 +46,9 @@ namespace SmartPos.Deals
             IRepository<Brand> brandRepository,
             IRepository<Branch> branchRepository,
             IBranchAccessChecker branchAccessChecker,
-            IBranchStockManager branchStockManager)
+            IBranchStockManager branchStockManager,
+            ICacheManager cacheManager,
+            ISmartPosReadCacheInvalidator readCacheInvalidator)
         {
             _dealRepository = dealRepository;
             _dealDetailRepository = dealDetailRepository;
@@ -53,6 +59,8 @@ namespace SmartPos.Deals
             _branchRepository = branchRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchStockManager = branchStockManager;
+            _cacheManager = cacheManager;
+            _readCacheInvalidator = readCacheInvalidator;
         }
 
         public async Task<DealDto> CreateAsync(CreateDealDto input)
@@ -171,7 +179,8 @@ namespace SmartPos.Deals
                     UnitId = unitId,
                     Barcode = $"DEAL-{Guid.NewGuid():N}".Substring(0, 16).ToUpper(),
                     IsDeal = true,
-                    AlertQuantityLimit = 0
+                    AlertQuantityLimit = 0,
+                    ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64)
                 };
                 var createdProduct = await _productRepository.InsertAsync(product);
                 await CurrentUnitOfWork.SaveChangesAsync();
@@ -221,6 +230,7 @@ namespace SmartPos.Deals
                     });
                 }
                 await CurrentUnitOfWork.SaveChangesAsync();
+                await _readCacheInvalidator.ClearCatalogAsync();
 
                 return await GetAsync(new EntityDto<int>(createdDeal.Id));
             }
@@ -270,9 +280,15 @@ namespace SmartPos.Deals
                 {
                     product.Name = input.Name.Trim();
                     product.Price = input.DealPrice;
+                    product.WholesalePrice = input.DealPrice;
                     product.Description = input.Description;
                     product.IsDeal = true;
                     product.DealId = deal.Id;
+                    if (ProductImageStore.IsNewImagePayload(input.ImageBase64))
+                    {
+                        ProductImageStore.DeleteIfExists(product.ImagePath);
+                        product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
+                    }
                     await _productRepository.UpdateAsync(product);
                 }
 
@@ -310,6 +326,7 @@ namespace SmartPos.Deals
                     await CurrentUnitOfWork.SaveChangesAsync();
                 }
 
+                await _readCacheInvalidator.ClearCatalogAsync();
                 return await GetAsync(new EntityDto<int>(deal.Id));
             }
             catch (UserFriendlyException)
@@ -341,28 +358,40 @@ namespace SmartPos.Deals
 
         public async Task<DealDto> GetByProductIdAsync(int productId)
         {
-            var deal = await _dealRepository.GetAllIncluding(d => d.Branch, d => d.Category, d => d.Product)
-                .FirstOrDefaultAsync(d => d.ProductId == productId);
-            if (deal == null)
+            var cacheKey = SmartPosAppCaches.ProductKey(productId);
+            var cache = SmartPosAppCaches.Typed<DealDto>(
+                _cacheManager,
+                SmartPosAppCaches.DealByProduct,
+                TimeSpan.FromMinutes(10));
+
+            return await cache.GetAsync(cacheKey, async _ =>
             {
-                var prod = await _productRepository.FirstOrDefaultAsync(productId);
-                if (prod?.DealId != null)
+                var deal = await _dealRepository.GetAllIncluding(d => d.Branch, d => d.Category, d => d.Product)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(d => d.ProductId == productId);
+                if (deal == null)
                 {
-                    deal = await _dealRepository.GetAllIncluding(d => d.Branch, d => d.Category, d => d.Product)
-                        .FirstOrDefaultAsync(d => d.Id == prod.DealId.Value);
+                    var prod = await _productRepository.GetAll().AsNoTracking().FirstOrDefaultAsync(p => p.Id == productId);
+                    if (prod?.DealId != null)
+                    {
+                        deal = await _dealRepository.GetAllIncluding(d => d.Branch, d => d.Category, d => d.Product)
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(d => d.Id == prod.DealId.Value);
+                    }
                 }
-            }
 
-            if (deal == null)
-            {
-                throw new UserFriendlyException("Deal details not found for this product.");
-            }
+                if (deal == null)
+                {
+                    throw new UserFriendlyException("Deal details not found for this product.");
+                }
 
-            var details = await _dealDetailRepository.GetAllIncluding(dd => dd.Product)
-                .Where(dd => dd.DealId == deal.Id)
-                .ToListAsync();
+                var details = await _dealDetailRepository.GetAllIncluding(dd => dd.Product)
+                    .AsNoTracking()
+                    .Where(dd => dd.DealId == deal.Id)
+                    .ToListAsync();
 
-            return MapToDealDto(deal, details);
+                return MapToDealDto(deal, details);
+            });
         }
 
         public async Task<PagedResultDto<DealDto>> GetAllAsync(PagedDealResultRequestDto input)
@@ -416,6 +445,7 @@ namespace SmartPos.Deals
                     await _dealDetailRepository.DeleteAsync(detail);
                 }
                 await _dealRepository.DeleteAsync(deal);
+                await _readCacheInvalidator.ClearCatalogAsync();
             }
         }
 
@@ -435,6 +465,7 @@ namespace SmartPos.Deals
                 CategoryName = deal.Category?.Name ?? "Deals",
                 IsActive = deal.IsActive,
                 ProductId = deal.ProductId,
+                ImagePath = deal.Product?.ImagePath,
                 Items = details.Select(dd => new DealDetailDto
                 {
                     Id = dd.Id,

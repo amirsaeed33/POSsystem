@@ -9,12 +9,14 @@ import {
 } from '../api/customer';
 import { environment } from '../../../environments/environment';
 import { SaleService } from './sale.service';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({
     providedIn: 'root',
 })
 export class CustomerService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Customer`;
+    private readonly lookupCache = new TtlCache<CustomerDto[]>(5 * 60 * 1000);
 
     constructor(private http: HttpClient) {}
 
@@ -47,27 +49,28 @@ export class CustomerService {
         };
     }
 
-    private lookupCache: { data: CustomerDto[]; timestamp: number } | null = null;
-    private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-
     clearCache(): void {
-        this.lookupCache = null;
+        this.lookupCache.clear();
     }
 
     async getLookup(forceRefresh = false): Promise<CustomerDto[]> {
-        const now = Date.now();
-        if (
-            !forceRefresh &&
-            this.lookupCache &&
-            now - this.lookupCache.timestamp < this.CACHE_DURATION_MS
-        ) {
-            return this.lookupCache.data;
+        const key = branchCacheKey(this.readBranchId(), 'lookup');
+        if (!forceRefresh) {
+            const hit = this.lookupCache.get(key);
+            if (hit) {
+                return hit;
+            }
         }
 
         const res = await this.getAll({ skipCount: 0, maxResultCount: 1000 });
         const items = res.items || [];
-        this.lookupCache = { data: items, timestamp: now };
+        this.lookupCache.set(key, items);
         return items;
+    }
+
+    private readBranchId(): number | null {
+        const n = parseInt(localStorage.getItem('SmartPos.BranchId') || '', 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 
     async get(id: number): Promise<CustomerDto> {

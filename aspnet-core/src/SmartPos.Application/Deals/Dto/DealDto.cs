@@ -30,6 +30,8 @@ namespace SmartPos.Deals.Dto
 
         public int? ProductId { get; set; }
 
+        public string ImagePath { get; set; }
+
         public List<DealDetailDto> Items { get; set; } = new List<DealDetailDto>();
 
         public decimal TotalOriginalPrice

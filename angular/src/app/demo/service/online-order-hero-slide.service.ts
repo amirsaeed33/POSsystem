@@ -6,16 +6,34 @@ import {
     OnlineOrderHeroSlideDto,
 } from '../api/online-order-hero-slide';
 import { environment } from '../../../environments/environment';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({
     providedIn: 'root',
 })
 export class OnlineOrderHeroSlideService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/OnlineOrderHeroSlide`;
+    private readonly byBranchCache = new TtlCache<OnlineOrderHeroSlideDto[]>(
+        5 * 60 * 1000
+    );
+    private readonly activeByBranchCache = new TtlCache<OnlineOrderHeroSlideDto[]>(
+        5 * 60 * 1000
+    );
 
     constructor(private http: HttpClient) {}
 
+    clearCache(): void {
+        this.byBranchCache.clear();
+        this.activeByBranchCache.clear();
+    }
+
     async getByBranch(branchId: number): Promise<OnlineOrderHeroSlideDto[]> {
+        const key = branchCacheKey(branchId, 'all');
+        const hit = this.byBranchCache.get(key);
+        if (hit) {
+            return hit;
+        }
+
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetByBranch`, {
                 params: { branchId: String(branchId) },
@@ -23,10 +41,20 @@ export class OnlineOrderHeroSlideService {
         );
         const result = this.unwrap(res, 'Failed to load hero slides');
         const items = result.items || result.Items || result || [];
-        return (Array.isArray(items) ? items : []).map((x: any) => this.map(x));
+        const mapped = (Array.isArray(items) ? items : []).map((x: any) =>
+            this.map(x)
+        );
+        this.byBranchCache.set(key, mapped);
+        return mapped;
     }
 
     async getActiveByBranch(branchId: number): Promise<OnlineOrderHeroSlideDto[]> {
+        const key = branchCacheKey(branchId, 'active');
+        const hit = this.activeByBranchCache.get(key);
+        if (hit) {
+            return hit;
+        }
+
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetActiveByBranch`, {
                 params: { branchId: String(branchId) },
@@ -34,12 +62,17 @@ export class OnlineOrderHeroSlideService {
         );
         const result = this.unwrap(res, 'Failed to load active hero slides');
         const items = result.items || result.Items || result || [];
-        return (Array.isArray(items) ? items : []).map((x: any) => this.map(x));
+        const mapped = (Array.isArray(items) ? items : []).map((x: any) =>
+            this.map(x)
+        );
+        this.activeByBranchCache.set(key, mapped);
+        return mapped;
     }
 
     async createOrUpdate(
         input: CreateOrUpdateOnlineOrderHeroSlideDto
     ): Promise<OnlineOrderHeroSlideDto> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/CreateOrUpdate`, input)
         );
@@ -47,6 +80,7 @@ export class OnlineOrderHeroSlideService {
     }
 
     async delete(id: number): Promise<void> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.delete<any>(`${this.apiUrl}/Delete`, {
                 params: { Id: String(id) },

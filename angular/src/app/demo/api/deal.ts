@@ -23,6 +23,7 @@ export interface DealDto {
     categoryName?: string;
     isActive?: boolean;
     productId?: number;
+    imagePath?: string;
     items: DealDetailDto[];
     totalOriginalPrice?: number;
 }
@@ -41,6 +42,7 @@ export interface CreateDealDto {
     expiryDate?: string | Date;
     categoryId?: number;
     categoryType?: string;
+    imageBase64?: string;
     items: CreateDealDetailDto[];
 }
 

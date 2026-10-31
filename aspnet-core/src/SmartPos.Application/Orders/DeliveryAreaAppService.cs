@@ -9,11 +9,13 @@ using Abp.Domain.Repositories;
 using Abp.Domain.Uow;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Abp.Runtime.Caching;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
+using SmartPos.Caching;
 using SmartPos.Orders.Dto;
 
 namespace SmartPos.Orders
@@ -27,19 +29,25 @@ namespace SmartPos.Orders
         private readonly IRepository<User, long> _userRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
+        private readonly ICacheManager _cacheManager;
+        private readonly ISmartPosReadCacheInvalidator _readCacheInvalidator;
 
         public DeliveryAreaAppService(
             IRepository<DeliveryArea> repository,
             IRepository<Branch> branchRepository,
             IRepository<User, long> userRepository,
             IBranchAccessChecker branchAccessChecker,
-            IBranchContext branchContext)
+            IBranchContext branchContext,
+            ICacheManager cacheManager,
+            ISmartPosReadCacheInvalidator readCacheInvalidator)
             : base(repository)
         {
             _branchRepository = branchRepository;
             _userRepository = userRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
+            _cacheManager = cacheManager;
+            _readCacheInvalidator = readCacheInvalidator;
 
             CreatePermissionName = PermissionNames.Pages_DeliveryAreas;
             UpdatePermissionName = PermissionNames.Pages_DeliveryAreas;
@@ -140,6 +148,7 @@ namespace SmartPos.Orders
 
                 await Repository.InsertAsync(entity);
                 await CurrentUnitOfWork.SaveChangesAsync();
+                await _readCacheInvalidator.ClearDeliveryAsync();
 
                 return await GetAsync(new EntityDto<int>(entity.Id));
             }
@@ -177,6 +186,7 @@ namespace SmartPos.Orders
 
                 await Repository.UpdateAsync(entity);
                 await CurrentUnitOfWork.SaveChangesAsync();
+                await _readCacheInvalidator.ClearDeliveryAsync();
 
                 return await GetAsync(new EntityDto<int>(entity.Id));
             }
@@ -197,6 +207,7 @@ namespace SmartPos.Orders
                 await _branchAccessChecker.EnsureCanAccessBranchAsync(entity.BranchId);
 
                 await Repository.DeleteAsync(entity);
+                await _readCacheInvalidator.ClearDeliveryAsync();
             }
         }
 
@@ -217,6 +228,7 @@ namespace SmartPos.Orders
                 entity.IsActive = !entity.IsActive;
                 await Repository.UpdateAsync(entity);
                 await CurrentUnitOfWork.SaveChangesAsync();
+                await _readCacheInvalidator.ClearDeliveryAsync();
 
                 return await GetAsync(new EntityDto<int>(entity.Id));
             }
@@ -225,17 +237,26 @@ namespace SmartPos.Orders
         [AbpAllowAnonymous]
         public async Task<List<DeliveryAreaDto>> GetActiveAreasForBranchAsync(int branchId)
         {
-            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
-            {
-                var areas = await Repository.GetAllIncluding(x => x.Branch)
-                    .AsNoTracking()
-                    .Where(x => x.BranchId == branchId && x.IsActive)
-                    .OrderBy(x => x.DeliveryFee)
-                    .ThenBy(x => x.Name)
-                    .ToListAsync();
+            var cacheKey = SmartPosAppCaches.BranchKey(branchId);
+            var cache = SmartPosAppCaches.Typed<List<DeliveryAreaDto>>(
+                _cacheManager,
+                SmartPosAppCaches.DeliveryAreas,
+                TimeSpan.FromMinutes(15));
 
-                return areas.Select(MapToEntityDto).ToList();
-            }
+            return await cache.GetAsync(cacheKey, async _ =>
+            {
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+                {
+                    var areas = await Repository.GetAllIncluding(x => x.Branch)
+                        .AsNoTracking()
+                        .Where(x => x.BranchId == branchId && x.IsActive)
+                        .OrderBy(x => x.DeliveryFee)
+                        .ThenBy(x => x.Name)
+                        .ToListAsync();
+
+                    return areas.Select(MapToEntityDto).ToList();
+                }
+            });
         }
 
         protected override DeliveryAreaDto MapToEntityDto(DeliveryArea entity)

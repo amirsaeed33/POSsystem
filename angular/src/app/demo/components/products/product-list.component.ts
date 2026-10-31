@@ -25,6 +25,8 @@ export class ProductListComponent implements OnInit {
     loading = false;
     totalRecords = 0;
     keyword = '';
+    /** 0 = Products tab, 1 = Deals tab (restaurant). */
+    activeListTab = 0;
 
     dialogVisible = false;
     editingProductId: number | null = null;
@@ -59,6 +61,8 @@ export class ProductListComponent implements OnInit {
     dealCategoryType = 'Deals';
     dealDescription = '';
     dealProductSearch = '';
+    dealImagePreview = '';
+    dealImageBase64: string | undefined;
     availableDealProducts: { product: ProductDto; selected: boolean; quantity: number }[] = [];
     savingDeal = false;
 
@@ -72,6 +76,36 @@ export class ProductListComponent implements OnInit {
 
     get isRestaurant(): boolean {
         return this.branchContext.isRestaurant();
+    }
+
+    get isDealsTab(): boolean {
+        return this.isRestaurant && this.activeListTab === 1;
+    }
+
+    /** Products shown in the active tab (deals filtered out of Products tab). */
+    get listProducts(): ProductDto[] {
+        if (!this.isRestaurant) {
+            return this.products;
+        }
+        if (this.isDealsTab) {
+            return this.products.filter((p) => this.isDealProduct(p));
+        }
+        return this.products.filter((p) => !this.isDealProduct(p));
+    }
+
+    get productsTabCount(): number {
+        return this.products.filter((p) => !this.isDealProduct(p)).length;
+    }
+
+    get dealsTabCount(): number {
+        return this.products.filter((p) => this.isDealProduct(p)).length;
+    }
+
+    onListTabChange(index: number): void {
+        this.activeListTab = index;
+        this.selectedProducts = [];
+        this.keyword = '';
+        this.totalRecords = this.listProducts.length;
     }
 
     /** Legacy locked single Grocery product (not editable). */
@@ -319,8 +353,8 @@ export class ProductListComponent implements OnInit {
                 maxResultCount: 1000,
             })
             .then((result) => {
-                this.products = result.items;
-                this.totalRecords = result.totalCount;
+                this.products = result.items || [];
+                this.totalRecords = this.listProducts.length;
             })
             .catch((error) => {
                 this.messageService.add({
@@ -344,6 +378,10 @@ export class ProductListComponent implements OnInit {
 
     getImageUrl(product: ProductDto): string {
         return this.productService.getImageUrl(product.imagePath);
+    }
+
+    getDealImageUrl(imagePath?: string): string {
+        return this.productService.getImageUrl(imagePath);
     }
 
     getProductInitials(name?: string | null): string {
@@ -581,6 +619,8 @@ export class ProductListComponent implements OnInit {
         this.dealCategoryType = 'Deals';
         this.dealDescription = '';
         this.dealProductSearch = '';
+        this.dealImagePreview = '';
+        this.dealImageBase64 = undefined;
         this.availableDealProducts = this.products
             .filter((p) => !this.isGroceryProduct(p) && !this.isDealProduct(p))
             .map((p) => ({
@@ -589,6 +629,30 @@ export class ProductListComponent implements OnInit {
                 quantity: 1,
             }));
         this.dealDialogVisible = true;
+    }
+
+    onDealImageSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (!input.files?.length) {
+            return;
+        }
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result as string;
+            if (!result?.startsWith('data:image')) {
+                return;
+            }
+            this.dealImagePreview = result;
+            this.dealImageBase64 = result;
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+    }
+
+    clearDealImage(): void {
+        this.dealImagePreview = '';
+        this.dealImageBase64 = undefined;
     }
 
     async openEditDealDialog(product: ProductDto): Promise<void> {
@@ -617,6 +681,9 @@ export class ProductListComponent implements OnInit {
             this.dealExpiryDate = deal.expiryDate ? this.toDateInputValue(deal.expiryDate) : '';
             this.dealCategoryType = deal.categoryType || 'Deals';
             this.dealDescription = deal.description || product.description || '';
+            this.dealImageBase64 = undefined;
+            this.dealImagePreview =
+                this.productService.getImageUrl(deal.imagePath || product.imagePath) || '';
 
             const dealItemsMap = new Map<number, number>();
             for (const it of deal.items || []) {
@@ -772,6 +839,10 @@ export class ProductListComponent implements OnInit {
                 unitPrice: x.product.price,
             }));
 
+            const imageBase64 = this.dealImageBase64?.startsWith('data:image')
+                ? this.dealImageBase64
+                : undefined;
+
             if (this.editingDealId) {
                 const payload: UpdateDealDto = {
                     id: this.editingDealId,
@@ -780,6 +851,7 @@ export class ProductListComponent implements OnInit {
                     expiryDate: this.dealExpiryDate ? new Date(this.dealExpiryDate).toISOString() : undefined,
                     categoryType: this.dealCategoryType?.trim() || 'Deals',
                     description: this.dealDescription?.trim() || undefined,
+                    imageBase64,
                     items: itemsPayload,
                 };
 
@@ -796,6 +868,7 @@ export class ProductListComponent implements OnInit {
                     expiryDate: this.dealExpiryDate ? new Date(this.dealExpiryDate).toISOString() : undefined,
                     categoryType: this.dealCategoryType?.trim() || 'Deals',
                     description: this.dealDescription?.trim() || undefined,
+                    imageBase64,
                     items: itemsPayload,
                 };
 

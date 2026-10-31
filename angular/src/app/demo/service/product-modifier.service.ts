@@ -8,26 +8,50 @@ import {
     ProductModifierOptionDto,
 } from '../api/product-modifier';
 import { environment } from '../../../environments/environment';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({ providedIn: 'root' })
 export class ProductModifierService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/ProductModifier`;
+    private readonly byProductCache = new TtlCache<ProductModifierGroupDto[]>(
+        5 * 60 * 1000
+    );
 
     constructor(private http: HttpClient) {}
 
+    clearCache(): void {
+        this.byProductCache.clear();
+    }
+
     async getByProduct(productId: number): Promise<ProductModifierGroupDto[]> {
+        const key = branchCacheKey(this.readBranchId(), `mod:${productId}`);
+        const hit = this.byProductCache.get(key);
+        if (hit) {
+            return hit;
+        }
+
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetByProduct`, {
                 params: { productId },
             })
         );
         const list = this.unwrap(res, 'Failed to load modifiers');
-        return (Array.isArray(list) ? list : []).map((g: any) => this.mapGroup(g));
+        const mapped = (Array.isArray(list) ? list : []).map((g: any) =>
+            this.mapGroup(g)
+        );
+        this.byProductCache.set(key, mapped);
+        return mapped;
+    }
+
+    private readBranchId(): number | null {
+        const n = parseInt(localStorage.getItem('SmartPos.BranchId') || '', 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 
     async createGroup(
         dto: CreateModifierGroupDto
     ): Promise<ProductModifierGroupDto> {
+        this.clearCache();
         const payload = {
             productId: dto.productId,
             name: dto.name,
@@ -48,6 +72,7 @@ export class ProductModifierService {
     }
 
     async deleteGroup(id: number): Promise<void> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.delete<any>(`${this.apiUrl}/DeleteGroup`, {
                 params: { Id: id },
@@ -60,6 +85,7 @@ export class ProductModifierService {
         groupId: number,
         dto: CreateModifierOptionDto
     ): Promise<ProductModifierOptionDto> {
+        this.clearCache();
         const payload = {
             name: dto.name,
             price: dto.price ?? dto.extraPrice ?? 0,
@@ -75,6 +101,7 @@ export class ProductModifierService {
     }
 
     async deleteOption(id: number): Promise<void> {
+        this.clearCache();
         const res: any = await firstValueFrom(
             this.http.delete<any>(`${this.apiUrl}/DeleteOption`, {
                 params: { Id: id },

@@ -8,17 +8,24 @@ import {
     PagedDealResultRequestDto,
 } from '../api/deal';
 import { environment } from '../../../environments/environment';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({
     providedIn: 'root',
 })
 export class DealService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Deal`;
+    private readonly byProductCache = new TtlCache<DealDto>(5 * 60 * 1000);
 
     constructor(private http: HttpClient) {}
 
+    clearCache(): void {
+        this.byProductCache.clear();
+    }
+
     async create(input: CreateDealDto): Promise<DealDto> {
         try {
+            this.clearCache();
             const res: any = await firstValueFrom(
                 this.http.post<any>(`${this.apiUrl}/Create`, input)
             );
@@ -32,6 +39,7 @@ export class DealService {
 
     async update(input: UpdateDealDto): Promise<DealDto> {
         try {
+            this.clearCache();
             const res: any = await firstValueFrom(
                 this.http.put<any>(`${this.apiUrl}/Update`, input)
             );
@@ -60,17 +68,30 @@ export class DealService {
 
     async getByProductId(productId: number): Promise<DealDto> {
         try {
+            const key = branchCacheKey(this.readBranchId(), `deal:${productId}`);
+            const hit = this.byProductCache.get(key);
+            if (hit) {
+                return hit;
+            }
+
             const res: any = await firstValueFrom(
                 this.http.get<any>(`${this.apiUrl}/GetByProductId`, {
                     params: { productId: productId.toString() },
                 })
             );
-            return this.unwrap(res, 'Failed to get deal details');
+            const deal = this.unwrap(res, 'Failed to get deal details');
+            this.byProductCache.set(key, deal);
+            return deal;
         } catch (error) {
             throw new Error(
                 this.extractErrorMessage(error, 'Failed to get deal details')
             );
         }
+    }
+
+    private readBranchId(): number | null {
+        const n = parseInt(localStorage.getItem('SmartPos.BranchId') || '', 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
     }
 
     async getAll(
@@ -112,6 +133,7 @@ export class DealService {
 
     async delete(id: number): Promise<void> {
         try {
+            this.clearCache();
             const res: any = await firstValueFrom(
                 this.http.delete<any>(`${this.apiUrl}/Delete`, {
                     params: { Id: id.toString() },

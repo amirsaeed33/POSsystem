@@ -9,11 +9,13 @@ using Abp.Domain.Repositories;
 using Abp.Domain.Uow;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Abp.Runtime.Caching;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
+using SmartPos.Caching;
 using SmartPos.Customers;
 using SmartPos.Inventory;
 using SmartPos.Orders.Dto;
@@ -51,6 +53,7 @@ namespace SmartPos.Orders
         private readonly IRepository<DeliveryPromotion> _deliveryPromotionRepository;
         private readonly IRepository<Staff> _staffRepository;
         private readonly IRepository<Category> _categoryRepository;
+        private readonly ICacheManager _cacheManager;
 
         public CustomerOrderAppService(
             IRepository<CustomerOrder> repository,
@@ -69,7 +72,8 @@ namespace SmartPos.Orders
             IRepository<DeliveryArea> deliveryAreaRepository,
             IRepository<DeliveryPromotion> deliveryPromotionRepository,
             IRepository<Staff> staffRepository,
-            IRepository<Category> categoryRepository)
+            IRepository<Category> categoryRepository,
+            ICacheManager cacheManager)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -88,6 +92,7 @@ namespace SmartPos.Orders
             _deliveryPromotionRepository = deliveryPromotionRepository;
             _staffRepository = staffRepository;
             _categoryRepository = categoryRepository;
+            _cacheManager = cacheManager;
             
             CreatePermissionName = PermissionNames.Pages_CustomerOrders_Create;
             UpdatePermissionName = PermissionNames.Pages_CustomerOrders_Edit;
@@ -99,62 +104,73 @@ namespace SmartPos.Orders
         [AbpAllowAnonymous]
         public async Task<List<OnlineProductDto>> GetOnlineCatalogAsync(int? branchId)
         {
-            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            var resolvedBranchId = branchId.GetValueOrDefault();
+            var cacheKey = SmartPosAppCaches.BranchKey(resolvedBranchId > 0 ? resolvedBranchId : 0, "Catalog");
+            var cache = SmartPosAppCaches.Typed<List<OnlineProductDto>>(
+                _cacheManager,
+                SmartPosAppCaches.OnlineCatalog,
+                TimeSpan.FromMinutes(2));
+
+            return await cache.GetAsync(cacheKey, async _ =>
             {
-                Branch targetBranch = null;
-                if (branchId.HasValue && branchId.Value > 0)
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
                 {
-                    targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.Id == branchId.Value);
-                }
-
-                if (targetBranch == null)
-                {
-                    targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.IsActive);
-                }
-
-                if (targetBranch == null)
-                {
-                    return new List<OnlineProductDto>();
-                }
-
-                var targetBranchId = targetBranch.Id;
-                var isRestaurant = targetBranch.BusinessType == BusinessType.Restaurant;
-                var branchCurrency = !string.IsNullOrWhiteSpace(targetBranch.CurrencyFormat) ? targetBranch.CurrencyFormat : "PKR";
-
-                var products = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit, p => p.Brand)
-                    .AsNoTracking()
-                    .Where(p => (p.BranchId == targetBranchId) || (p.BranchId == 0 && (!p.TenantId.HasValue || p.TenantId == targetBranch.TenantId)))
-                    .WhereVisibleToBranch(_branchStockRepository.GetAll(), targetBranchId)
-                    .Where(p => (p.Barcode == null || !p.Barcode.StartsWith("GROCERY-")) && p.Name != "Grocery")
-                    .Where(p => p.Category == null || p.Category.Name != "Permanent Grocery")
-                    .ToListAsync();
-
-                var branchInfo = await _branchStockRepository.GetAll()
-                    .Where(s => s.BranchId == targetBranchId)
-                    .ToDictionaryAsync(s => s.ProductId, s => new { s.Quantity, s.Price });
-
-                return products
-                    .Select(p => new OnlineProductDto
+                    Branch targetBranch = null;
+                    if (branchId.HasValue && branchId.Value > 0)
                     {
-                        Id = p.Id,
-                        Name = p.Name,
-                        Description = p.Description,
-                        CategoryName = p.Category?.Name ?? "General",
-                        BrandName = p.Brand?.Name,
-                        Barcode = p.Barcode,
-                        UnitName = p.Unit?.Name ?? "Pcs",
-                        Price = branchInfo.TryGetValue(p.Id, out var info) && info.Price > 0 ? info.Price : p.Price,
-                        CurrencyFormat = branchCurrency,
-                        ImagePath = p.ImagePath,
-                        InStock = isRestaurant ? true : (branchInfo.TryGetValue(p.Id, out info) ? info.Quantity > 0 : true),
-                        StockQuantity = isRestaurant ? 999 : (branchInfo.TryGetValue(p.Id, out info) ? info.Quantity : 0),
-                        Specifications = p.Specifications,
-                        IsFreeDelivery = p.IsFreeDelivery,
-                        CategoryId = p.CategoryId,
-                        IsDeal = p.IsDeal || (p.Category != null && p.Category.Name.ToLower().Contains("deal"))
-                    })
-                    .ToList();
-            }
+                        targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.Id == branchId.Value);
+                    }
+
+                    if (targetBranch == null)
+                    {
+                        targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.IsActive);
+                    }
+
+                    if (targetBranch == null)
+                    {
+                        return new List<OnlineProductDto>();
+                    }
+
+                    var targetBranchId = targetBranch.Id;
+                    var isRestaurant = targetBranch.BusinessType == BusinessType.Restaurant;
+                    var branchCurrency = !string.IsNullOrWhiteSpace(targetBranch.CurrencyFormat) ? targetBranch.CurrencyFormat : "PKR";
+
+                    var products = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit, p => p.Brand)
+                        .AsNoTracking()
+                        .Where(p => (p.BranchId == targetBranchId) || (p.BranchId == 0 && (!p.TenantId.HasValue || p.TenantId == targetBranch.TenantId)))
+                        .WhereVisibleToBranch(_branchStockRepository.GetAll(), targetBranchId)
+                        .Where(p => (p.Barcode == null || !p.Barcode.StartsWith("GROCERY-")) && p.Name != "Grocery")
+                        .Where(p => p.Category == null || p.Category.Name != "Permanent Grocery")
+                        .ToListAsync();
+
+                    var branchInfo = await _branchStockRepository.GetAll()
+                        .AsNoTracking()
+                        .Where(s => s.BranchId == targetBranchId)
+                        .ToDictionaryAsync(s => s.ProductId, s => new { s.Quantity, s.Price });
+
+                    return products
+                        .Select(p => new OnlineProductDto
+                        {
+                            Id = p.Id,
+                            Name = p.Name,
+                            Description = p.Description,
+                            CategoryName = p.Category?.Name ?? "General",
+                            BrandName = p.Brand?.Name,
+                            Barcode = p.Barcode,
+                            UnitName = p.Unit?.Name ?? "Pcs",
+                            Price = branchInfo.TryGetValue(p.Id, out var info) && info.Price > 0 ? info.Price : p.Price,
+                            CurrencyFormat = branchCurrency,
+                            ImagePath = p.ImagePath,
+                            InStock = isRestaurant ? true : (branchInfo.TryGetValue(p.Id, out info) ? info.Quantity > 0 : true),
+                            StockQuantity = isRestaurant ? 999 : (branchInfo.TryGetValue(p.Id, out info) ? info.Quantity : 0),
+                            Specifications = p.Specifications,
+                            IsFreeDelivery = p.IsFreeDelivery,
+                            CategoryId = p.CategoryId,
+                            IsDeal = p.IsDeal || (p.Category != null && p.Category.Name.ToLower().Contains("deal"))
+                        })
+                        .ToList();
+                }
+            });
         }
 
         [AbpAllowAnonymous]
@@ -229,10 +245,19 @@ namespace SmartPos.Orders
         [AbpAllowAnonymous]
         public async Task<OnlineStoreHeaderDto> GetOnlineStoreHeaderAsync(int branchId)
         {
+            var cacheKey = SmartPosAppCaches.BranchKey(branchId, "Header");
+            var cache = SmartPosAppCaches.Typed<OnlineStoreHeaderDto>(
+                _cacheManager,
+                SmartPosAppCaches.OnlineStoreHeader,
+                TimeSpan.FromMinutes(10));
+
+            return await cache.GetAsync(cacheKey, async _ =>
+            {
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
                 var branch = await _branchRepository.FirstOrDefaultAsync(b => b.Id == branchId);
                 var areas = await _deliveryAreaRepository.GetAll()
+                    .AsNoTracking()
                     .Where(a => a.BranchId == branchId && a.IsActive)
                     .OrderBy(a => a.DeliveryFee)
                     .ToListAsync();
@@ -253,6 +278,7 @@ namespace SmartPos.Orders
                 var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
 
                 var categories = await _categoryRepository.GetAll()
+                    .AsNoTracking()
                     .Where(c => (c.BranchId == branchId || c.BranchId == 0) && c.IsActive && !c.IsDeleted)
                     .OrderBy(c => c.Name)
                     .Select(c => c.Name)
@@ -280,6 +306,7 @@ namespace SmartPos.Orders
                     Categories = categories
                 };
             }
+            });
         }
 
         [AbpAllowAnonymous]

@@ -1420,6 +1420,28 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
     }
 
+    /** When remote/DB image fails, swap to a local food asset so alt text never overlaps the badge. */
+    onProductImageError(event: Event, product?: any): void {
+        const img = event?.target as HTMLImageElement | null;
+        if (!img || img.dataset['fallbackApplied'] === '1') {
+            return;
+        }
+        img.dataset['fallbackApplied'] = '1';
+        const name = (product?.name || '').toLowerCase();
+        if (name.includes('pizza')) {
+            img.src = 'assets/menu-items/pizza_regular.jpg';
+        } else if (name.includes('burger') || name.includes('zinger')) {
+            img.src = 'assets/menu-items/burger_combo.jpg';
+        } else if (name.includes('barfi')) {
+            img.src = 'assets/menu-items/barfi.jpg';
+        } else if (name.includes('bread') || name.includes('bun')) {
+            img.src = 'assets/menu-items/milk_bread.jpg';
+        } else {
+            img.src = 'assets/menu-items/burger_combo.jpg';
+        }
+        img.alt = '';
+    }
+
     getProductRating(product: any): string {
         const val = 4.7 + ((Math.abs(product?.id || 1) % 4) * 0.1);
         return val.toFixed(1);
@@ -1815,6 +1837,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     async loadDeliveryAreas(bId: number): Promise<void> {
         try {
+            // Header is TTL + in-flight deduped in CustomerOrderService; safe to
+            // call again after resolveBranchName without a duplicate network hit.
             const [areas, header] = await Promise.all([
                 this.deliveryAreaService.getActiveAreasForBranch(bId),
                 this.customerOrderService.getOnlineStoreHeader(bId),

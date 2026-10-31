@@ -6,10 +6,12 @@ using Abp.Application.Services.Dto;
 using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Domain.Uow;
+using Abp.Runtime.Caching;
 using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Branches;
+using SmartPos.Caching;
 using SmartPos.Orders.Dto;
 
 namespace SmartPos.Orders
@@ -19,15 +21,21 @@ namespace SmartPos.Orders
         private readonly IRepository<OnlineOrderHeroSlide> _slideRepository;
         private readonly IRepository<Branch> _branchRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
+        private readonly ICacheManager _cacheManager;
+        private readonly ISmartPosReadCacheInvalidator _readCacheInvalidator;
 
         public OnlineOrderHeroSlideAppService(
             IRepository<OnlineOrderHeroSlide> slideRepository,
             IRepository<Branch> branchRepository,
-            IBranchAccessChecker branchAccessChecker)
+            IBranchAccessChecker branchAccessChecker,
+            ICacheManager cacheManager,
+            ISmartPosReadCacheInvalidator readCacheInvalidator)
         {
             _slideRepository = slideRepository;
             _branchRepository = branchRepository;
             _branchAccessChecker = branchAccessChecker;
+            _cacheManager = cacheManager;
+            _readCacheInvalidator = readCacheInvalidator;
         }
 
         [AbpAuthorize(PermissionNames.Pages_Branches_Edit)]
@@ -61,26 +69,35 @@ namespace SmartPos.Orders
                 return new ListResultDto<OnlineOrderHeroSlideDto>(new List<OnlineOrderHeroSlideDto>());
             }
 
-            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            var cacheKey = SmartPosAppCaches.BranchKey(branchId);
+            var cache = SmartPosAppCaches.Typed<ListResultDto<OnlineOrderHeroSlideDto>>(
+                _cacheManager,
+                SmartPosAppCaches.HeroSlides,
+                TimeSpan.FromMinutes(15));
+
+            return await cache.GetAsync(cacheKey, async _ =>
             {
-                var branchExists = await _branchRepository.GetAll()
-                    .AsNoTracking()
-                    .AnyAsync(b => b.Id == branchId && b.IsActive);
-
-                if (!branchExists)
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
                 {
-                    return new ListResultDto<OnlineOrderHeroSlideDto>(new List<OnlineOrderHeroSlideDto>());
+                    var branchExists = await _branchRepository.GetAll()
+                        .AsNoTracking()
+                        .AnyAsync(b => b.Id == branchId && b.IsActive);
+
+                    if (!branchExists)
+                    {
+                        return new ListResultDto<OnlineOrderHeroSlideDto>(new List<OnlineOrderHeroSlideDto>());
+                    }
+
+                    var items = await _slideRepository.GetAll()
+                        .AsNoTracking()
+                        .Where(x => x.BranchId == branchId && x.IsActive)
+                        .OrderBy(x => x.SortOrder)
+                        .ThenBy(x => x.Id)
+                        .ToListAsync();
+
+                    return new ListResultDto<OnlineOrderHeroSlideDto>(items.Select(MapToDto).ToList());
                 }
-
-                var items = await _slideRepository.GetAll()
-                    .AsNoTracking()
-                    .Where(x => x.BranchId == branchId && x.IsActive)
-                    .OrderBy(x => x.SortOrder)
-                    .ThenBy(x => x.Id)
-                    .ToListAsync();
-
-                return new ListResultDto<OnlineOrderHeroSlideDto>(items.Select(MapToDto).ToList());
-            }
+            });
         }
 
         [AbpAuthorize(PermissionNames.Pages_Branches_Edit)]
@@ -214,6 +231,7 @@ namespace SmartPos.Orders
                 }
 
                 await CurrentUnitOfWork.SaveChangesAsync();
+                await _readCacheInvalidator.ClearHeroSlidesAsync();
                 return MapToDto(entity);
             }
         }
@@ -240,6 +258,7 @@ namespace SmartPos.Orders
                 var bgPath = entity.BgImagePath;
                 await _slideRepository.DeleteAsync(entity);
                 await CurrentUnitOfWork.SaveChangesAsync();
+                await _readCacheInvalidator.ClearHeroSlidesAsync();
 
                 OnlineOrderHeroImageStore.DeleteIfExists(imagePath);
                 if (!string.Equals(imagePath, bgPath, StringComparison.OrdinalIgnoreCase))

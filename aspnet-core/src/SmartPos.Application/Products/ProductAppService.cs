@@ -13,6 +13,7 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Branches;
+using SmartPos.Caching;
 using SmartPos.Inventory;
 using SmartPos.Products.Dto;
 
@@ -32,6 +33,7 @@ namespace SmartPos.Products
         private readonly IRepository<SmartPos.Brands.Brand> _brandRepository;
         private readonly IRepository<SmartPos.Units.Unit> _unitRepository;
         private readonly IPermissionChecker _permissionChecker;
+        private readonly ISmartPosReadCacheInvalidator _readCacheInvalidator;
         private int? _effectiveBranchIdForQuery;
 
         public ProductAppService(
@@ -43,7 +45,8 @@ namespace SmartPos.Products
             IRepository<SmartPos.Categories.Category> categoryRepository,
             IRepository<SmartPos.Brands.Brand> brandRepository,
             IRepository<SmartPos.Units.Unit> unitRepository,
-            IPermissionChecker permissionChecker)
+            IPermissionChecker permissionChecker,
+            ISmartPosReadCacheInvalidator readCacheInvalidator)
             : base(repository)
         {
             _branchAccessChecker = branchAccessChecker;
@@ -54,6 +57,7 @@ namespace SmartPos.Products
             _brandRepository = brandRepository;
             _unitRepository = unitRepository;
             _permissionChecker = permissionChecker;
+            _readCacheInvalidator = readCacheInvalidator;
             CreatePermissionName = PermissionNames.Pages_Products_Create;
             UpdatePermissionName = PermissionNames.Pages_Products_Edit;
             DeletePermissionName = PermissionNames.Pages_Products_Delete;
@@ -205,6 +209,7 @@ namespace SmartPos.Products
                     product.CostPrice);
             }
 
+            await _readCacheInvalidator.ClearCatalogAsync();
             // Skip visibility check: product may be assigned to branches other than the current topbar branch.
             return await MapProductDtoByIdAsync(product.Id);
         }
@@ -320,6 +325,7 @@ namespace SmartPos.Products
                     input.CostPrice);
             }
 
+            await _readCacheInvalidator.ClearCatalogAsync();
             // Skip visibility check: assignment may exclude the current topbar branch.
             return await MapProductDtoByIdAsync(product.Id);
         }
@@ -338,6 +344,8 @@ namespace SmartPos.Products
 
             ProductImageStore.DeleteIfExists(product.ImagePath);
             await Repository.DeleteAsync(product);
+            await _readCacheInvalidator.ClearCatalogAsync();
+            await _readCacheInvalidator.ClearModifiersAsync();
         }
 
         public override async Task<ProductDto> GetAsync(EntityDto<int> input)

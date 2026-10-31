@@ -13,12 +13,24 @@ import {
 } from '../api/customer-order';
 import { SaleDto } from '../api/sale';
 import { environment } from '../../../environments/environment';
+import { TtlCache, branchCacheKey } from './ttl-cache';
 
 @Injectable({ providedIn: 'root' })
 export class CustomerOrderService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/CustomerOrder`;
+    private readonly catalogCache = new TtlCache<any[]>(2 * 60 * 1000);
+    private readonly headerCache = new TtlCache<any>(5 * 60 * 1000);
+    private readonly categoriesCache = new TtlCache<string[]>(5 * 60 * 1000);
+    private readonly headerInflight = new Map<string, Promise<any>>();
 
     constructor(private http: HttpClient) {}
+
+    clearCache(): void {
+        this.catalogCache.clear();
+        this.headerCache.clear();
+        this.categoriesCache.clear();
+        this.headerInflight.clear();
+    }
 
     async getAll(
         input?: PagedCustomerOrderResultRequestDto
@@ -61,13 +73,21 @@ export class CustomerOrderService {
     }
 
     async getOnlineCatalog(branchId?: number): Promise<any[]> {
+        const key = branchCacheKey(branchId, 'catalog');
+        const hit = this.catalogCache.get(key);
+        if (hit) {
+            return hit;
+        }
+
         const params: any = {};
         if (branchId) params.branchId = branchId;
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetOnlineCatalog`, { params })
         );
         const result = this.unwrap(res, 'Failed to load catalog');
-        return Array.isArray(result) ? result : result?.items || [];
+        const items = Array.isArray(result) ? result : result?.items || [];
+        this.catalogCache.set(key, items);
+        return items;
     }
 
     async getOnlineProduct(id: number, branchId?: number): Promise<any> {
@@ -80,20 +100,52 @@ export class CustomerOrderService {
     }
 
     async getOnlineStoreHeader(branchId: number): Promise<any> {
-        const res: any = await firstValueFrom(
-            this.http.get<any>(`${this.apiUrl}/GetOnlineStoreHeader`, { params: { branchId } })
-        );
-        return this.unwrap(res, 'Failed to load store info');
+        const key = branchCacheKey(branchId, 'header');
+        const hit = this.headerCache.get(key);
+        if (hit) {
+            return hit;
+        }
+
+        const inflight = this.headerInflight.get(key);
+        if (inflight) {
+            return inflight;
+        }
+
+        const request = (async () => {
+            try {
+                const res: any = await firstValueFrom(
+                    this.http.get<any>(`${this.apiUrl}/GetOnlineStoreHeader`, {
+                        params: { branchId },
+                    })
+                );
+                const header = this.unwrap(res, 'Failed to load store info');
+                this.headerCache.set(key, header);
+                return header;
+            } finally {
+                this.headerInflight.delete(key);
+            }
+        })();
+
+        this.headerInflight.set(key, request);
+        return request;
     }
 
     async getOnlineCategories(branchId?: number): Promise<string[]> {
+        const key = branchCacheKey(branchId, 'categories');
+        const hit = this.categoriesCache.get(key);
+        if (hit) {
+            return hit;
+        }
+
         const params: any = {};
         if (branchId) params.branchId = branchId;
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetOnlineCategories`, { params })
         );
         const result = this.unwrap(res, 'Failed to load categories');
-        return Array.isArray(result) ? result : [];
+        const items = Array.isArray(result) ? result : [];
+        this.categoriesCache.set(key, items);
+        return items;
     }
 
     async createOnlineOrder(input: CreateCustomerOrderDto): Promise<CustomerOrderDto> {
