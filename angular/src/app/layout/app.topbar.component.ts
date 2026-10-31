@@ -101,7 +101,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         public takeawayAlarmService: RestaurantTakeawayAlarmService,
         private messageService: MessageService,
         private router: Router
-    ) {}
+    ) { }
 
     /** Host admin: sees every business location (flag survives location cookie). */
     get isHostAdmin(): boolean {
@@ -267,7 +267,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         if (this.isDeliveryRider || this.isWaiter || !this.currentBranch?.id) return;
         try {
             this.unreadChatCount = await this.customerChatService.getBranchUnreadCount(this.currentBranch.id);
-        } catch {}
+        } catch { }
     }
 
     async loadChatConversations(showLoading = true): Promise<void> {
@@ -307,7 +307,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             gain.connect(ctx.destination);
             osc.start();
             osc.stop(ctx.currentTime + 0.35);
-        } catch {}
+        } catch { }
     }
 
     private playOrderChime(): void {
@@ -338,7 +338,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             gain2.connect(ctx.destination);
             osc2.start(now + 0.16);
             osc2.stop(now + 0.45);
-        } catch {}
+        } catch { }
     }
 
     async loadTodayOrders(): Promise<void> {
@@ -539,9 +539,8 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             ) {
                 this.userImage = pictureUrl;
             } else {
-                this.userImage = `${environment.apiUrl}${
-                    pictureUrl.startsWith('/') ? '' : '/'
-                }${pictureUrl}`;
+                this.userImage = `${environment.apiUrl}${pictureUrl.startsWith('/') ? '' : '/'
+                    }${pictureUrl}`;
             }
             this.hasUserImage = true;
         } else {
@@ -560,7 +559,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                 const firstRole = roles[0];
                 this.userRole = firstRole
                     ? firstRole.charAt(0).toUpperCase() +
-                      firstRole.slice(1).toLowerCase()
+                    firstRole.slice(1).toLowerCase()
                     : 'User';
             }
         } else if (user.isDeliveryRider || (user.designation && user.designation.toLowerCase().includes('rider'))) {
@@ -609,11 +608,11 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         const path = 'assets/layout/images/logo-';
         const logo =
             this.layoutTheme === 'primaryColor' &&
-            this.layoutService.config().theme !== 'yellow'
+                this.layoutService.config().theme !== 'yellow'
                 ? 'light.png'
                 : this.colorScheme === 'light'
-                  ? 'dark.png'
-                  : 'light.png';
+                    ? 'dark.png'
+                    : 'light.png';
         return path + logo;
     }
 

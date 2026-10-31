@@ -1,10 +1,14 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Subscription, debounceTime } from 'rxjs';
+import { Subscription, debounceTime, interval } from 'rxjs';
 import { LayoutService } from 'src/app/layout/service/app.layout.service';
 import { DashboardService } from 'src/app/demo/service/dashboard.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { RestaurantTableService } from 'src/app/demo/service/restaurant-table.service';
+import { RestaurantTableDto, TableStatuses } from 'src/app/demo/api/restaurant-table';
+import { RestaurantOrderService } from 'src/app/demo/service/restaurant-order.service';
+import { RestaurantOrderDto, RestaurantOrderStatuses } from 'src/app/demo/api/restaurant-order';
 import {
     MonthlyCashFlowDto,
     DailyOverviewDto,
@@ -55,6 +59,20 @@ interface TimelineEvent {
     lineClass: string;
     detailBg: string;
     detailBgDark: string;
+}
+
+export interface UnpaidBillItem {
+    id: number;
+    orderNo: string;
+    tableOrLocation: string;
+    waiterName?: string;
+    grandTotal: number;
+    billedTime: string | null;
+    creationTime: string;
+    elapsedMinutes: number;
+    elapsedFormatted: string;
+    hasValidBilledTime: boolean;
+    isOverdue: boolean;
 }
 
 @Component({
@@ -172,11 +190,41 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         { 'background-color': 'rgba(250, 219, 95, 0.1)', 'color': '#DE911D', 'border': '1px solid #FADB5F' },
     ];
 
+    // Restaurant Table Occupancy Widget (Step 2)
+    tablesLoading = false;
+    tablesError: string | null = null;
+    totalTables = 0;
+    occupiedTables = 0;
+    availableTables = 0;
+    billedTables = 0;
+    reservedTables = 0;
+    occupancyPercentage = 0;
+    restaurantTables: RestaurantTableDto[] = [];
+
+    // Restaurant Running Orders Widget state (Step 3)
+    ordersLoading = false;
+    ordersError: string | null = null;
+    openOrdersCount = 0;
+    activeRestaurantOrders: RestaurantOrderDto[] = [];
+
+    // Restaurant Longest Waiting Order state (Step 4)
+    oldestOrder: RestaurantOrderDto | null = null;
+    longestWaitingMinutes = 0;
+    longestWaitingFormatted = '';
+    private waitingTimerSubscription?: Subscription;
+
+    // Restaurant Unpaid Bills state (Step 5)
+    unpaidBills: UnpaidBillItem[] = [];
+    unpaidBillsCount = 0;
+    unpaidBillsTotalAmount = 0;
+
     constructor(
         public layoutService: LayoutService,
         private dashboardService: DashboardService,
         private permissionService: PermissionService,
-        private branchContext: BranchContextService
+        private branchContext: BranchContextService,
+        private restaurantTableService: RestaurantTableService,
+        private restaurantOrderService: RestaurantOrderService
     ) {
         this.subscription = this.layoutService.configUpdate$
             .pipe(debounceTime(25))
@@ -253,6 +301,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     }
 
     async loadDashboard() {
+        this.loadTableOccupancy();
+        this.loadRunningOrders();
         try {
             const data = await this.dashboardService.get();
             this.todaySales = data.todaySales ?? 0;
@@ -1246,7 +1296,354 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
         return this.layoutService.config().colorScheme;
     }
 
+    
+    async loadTableOccupancy(): Promise<void> {
+        if (!this.isRestaurant) {
+            this.restaurantTables = [];
+            this.totalTables = 0;
+            this.occupiedTables = 0;
+            this.availableTables = 0;
+            this.billedTables = 0;
+            this.reservedTables = 0;
+            this.occupancyPercentage = 0;
+            this.tablesError = null;
+            this.tablesLoading = false;
+            return;
+        }
+
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId) {
+            this.tablesLoading = false;
+            this.tablesError = 'No branch selected';
+            return;
+        }
+
+        this.tablesLoading = true;
+        this.tablesError = null;
+
+        try {
+            const tables = await this.restaurantTableService.getTables(branchId);
+            // Display only active tables (isActive !== false)
+            const activeTables = (tables || []).filter((t) => t.isActive !== false);
+
+            this.restaurantTables = activeTables;
+            this.totalTables = activeTables.length;
+
+            this.occupiedTables = activeTables.filter(
+                (t) => t.status === TableStatuses.Occupied || (t.status as any) === 1
+            ).length;
+
+            this.availableTables = activeTables.filter(
+                (t) => t.status === TableStatuses.Available || (t.status as any) === 0
+            ).length;
+
+            this.billedTables = activeTables.filter(
+                (t) => t.status === TableStatuses.Billed || (t.status as any) === 2
+            ).length;
+
+            this.reservedTables = activeTables.filter(
+                (t) => t.status === TableStatuses.Reserved || (t.status as any) === 3
+            ).length;
+
+            this.occupancyPercentage =
+                this.totalTables > 0
+                    ? Math.round((this.occupiedTables / this.totalTables) * 1000) / 10
+                    : 0;
+        } catch (error: any) {
+            console.error('Failed to load table occupancy:', error);
+            this.tablesError = error?.message || 'Failed to load table occupancy';
+        } finally {
+            this.tablesLoading = false;
+        }
+    }
+
+    getOccupancySeverityClass(): string {
+        if (this.occupancyPercentage >= 80) return 'pill-danger';
+        if (this.occupancyPercentage >= 50) return 'pill-warning';
+        return 'pill-success';
+    }
+
+    getOccupancyTextClass(): string {
+        if (this.occupancyPercentage >= 80) return 'text-red-600';
+        if (this.occupancyPercentage >= 50) return 'text-orange-600';
+        return 'text-green-600';
+    }
+
+    getProgressBarClass(): string {
+        if (this.occupancyPercentage >= 80) return 'occupancy-progress-danger';
+        if (this.occupancyPercentage >= 50) return 'occupancy-progress-warning';
+        return 'occupancy-progress-success';
+    }
+
+    
+    refreshRestaurantFloor(): void {
+        this.loadTableOccupancy();
+        this.loadRunningOrders();
+    }
+
+    async loadRunningOrders(): Promise<void> {
+        if (!this.isRestaurant) {
+            this.activeRestaurantOrders = [];
+            this.openOrdersCount = 0;
+            this.oldestOrder = null;
+            this.longestWaitingMinutes = 0;
+            this.longestWaitingFormatted = '';
+            this.unpaidBills = [];
+            this.unpaidBillsCount = 0;
+            this.unpaidBillsTotalAmount = 0;
+            this.stopWaitingTimer();
+            this.ordersError = null;
+            this.ordersLoading = false;
+            return;
+        }
+
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId) {
+            this.ordersLoading = false;
+            this.ordersError = 'No branch selected';
+            return;
+        }
+
+        this.ordersLoading = true;
+        this.ordersError = null;
+        this.stopWaitingTimer();
+
+        try {
+            const orders = await this.restaurantOrderService.getActiveOrders(branchId);
+
+            // Deduplicate by order.id to avoid counting the same order more than once
+            const uniqueMap = new Map<number, RestaurantOrderDto>();
+            for (const order of orders || []) {
+                if (order && order.id && !uniqueMap.has(order.id)) {
+                    uniqueMap.set(order.id, order);
+                }
+            }
+            const uniqueOrders = Array.from(uniqueMap.values());
+            this.activeRestaurantOrders = uniqueOrders;
+
+            // 1. OPEN ORDERS: Total number of strictly open orders (excluding Billed orders)
+            this.openOrdersCount = uniqueOrders.filter(
+                (order) =>
+                    order.status === RestaurantOrderStatuses.Open ||
+                    (order.status as any) === 0
+            ).length;
+
+            // Step 4: Evaluate Longest Waiting Order
+            this.evaluateOldestWaitingOrder();
+
+            // Step 5: Evaluate Unpaid Bills
+            this.evaluateUnpaidBills();
+
+            // Manage 60s live timer for Step 4 & Step 5
+            this.checkAndManageTimer();
+
+
+
+        } catch (error: any) {
+            console.error('Failed to load active restaurant orders:', error);
+            this.ordersError = error?.message || 'Failed to load active orders';
+        } finally {
+            this.ordersLoading = false;
+        }
+    }
+
+    
+    evaluateOldestWaitingOrder(): void {
+        // Filter strictly open orders (Status = 0) with valid CreationTime
+        const openOrders = (this.activeRestaurantOrders || []).filter((order) => {
+            const isOpen =
+                order.status === RestaurantOrderStatuses.Open ||
+                (order.status as any) === 0;
+            if (!isOpen) {
+                return false;
+            }
+            if (!order.creationTime) {
+                return false;
+            }
+            const timeMs = new Date(order.creationTime).getTime();
+            return !isNaN(timeMs) && timeMs > 0;
+        });
+
+        if (openOrders.length === 0) {
+            this.oldestOrder = null;
+            this.longestWaitingMinutes = 0;
+            this.longestWaitingFormatted = '';
+            return;
+        }
+
+        // Sort ascending by creation time to find the earliest (oldest)
+        openOrders.sort(
+            (a, b) =>
+                new Date(a.creationTime).getTime() -
+                new Date(b.creationTime).getTime()
+        );
+
+        this.oldestOrder = openOrders[0];
+        this.calculateWaitingDuration();
+    }
+
+    calculateWaitingDuration(): void {
+        if (!this.oldestOrder || !this.oldestOrder.creationTime) {
+            this.longestWaitingMinutes = 0;
+            this.longestWaitingFormatted = '';
+            return;
+        }
+
+        const createdMs = new Date(this.oldestOrder.creationTime).getTime();
+        const nowMs = Date.now();
+        const diffMinutes = Math.max(0, Math.floor((nowMs - createdMs) / 60000));
+        this.longestWaitingMinutes = diffMinutes;
+
+        if (diffMinutes < 60) {
+            this.longestWaitingFormatted = `${diffMinutes} mins`;
+        } else {
+            const hours = Math.floor(diffMinutes / 60);
+            const mins = diffMinutes % 60;
+            this.longestWaitingFormatted = `${hours}h ${mins}m`;
+        }
+    }
+
+    evaluateUnpaidBills(): void {
+        const billedOrders = (this.activeRestaurantOrders || []).filter((order) => {
+            const isBilled =
+                order.status === RestaurantOrderStatuses.Billed ||
+                (order.status as any) === 1;
+            return isBilled;
+        });
+
+        // Sort ascending by billedTime (earliest printed bill first)
+        // Orders with missing BilledTime are sorted by CreationTime as secondary sort
+        billedOrders.sort((a, b) => {
+            const timeA = a.billedTime
+                ? new Date(a.billedTime).getTime()
+                : (a.creationTime ? new Date(a.creationTime).getTime() : 0);
+            const timeB = b.billedTime
+                ? new Date(b.billedTime).getTime()
+                : (b.creationTime ? new Date(b.creationTime).getTime() : 0);
+            return timeA - timeB;
+        });
+
+        const nowMs = Date.now();
+        let totalAmount = 0;
+
+        this.unpaidBills = billedOrders.map((order) => {
+            const grandTotal = Number(order.grandTotal) || 0;
+            totalAmount += grandTotal;
+
+            const timeStr = order.billedTime;
+            const timeMs = timeStr ? new Date(timeStr).getTime() : NaN;
+            const hasValidBilledTime = !isNaN(timeMs) && timeMs > 0;
+            const elapsedMinutes = hasValidBilledTime
+                ? Math.max(0, Math.floor((nowMs - timeMs) / 60000))
+                : 0;
+
+            return {
+                id: order.id,
+                orderNo: order.orderNo,
+                tableOrLocation: this.getOrderLocationLabel(order),
+                waiterName: order.waiterName,
+                grandTotal,
+                billedTime: order.billedTime || null,
+                creationTime: order.creationTime,
+                elapsedMinutes,
+                elapsedFormatted: hasValidBilledTime
+                    ? this.formatBillElapsed(elapsedMinutes)
+                    : 'Time N/A',
+                hasValidBilledTime,
+                isOverdue: hasValidBilledTime && elapsedMinutes >= 20,
+            };
+        });
+
+        this.unpaidBillsCount = this.unpaidBills.length;
+        this.unpaidBillsTotalAmount = totalAmount;
+    }
+
+    recalculateUnpaidBillDurations(): void {
+        if (!this.unpaidBills || this.unpaidBills.length === 0) {
+            return;
+        }
+        const nowMs = Date.now();
+        for (const bill of this.unpaidBills) {
+            if (!bill.hasValidBilledTime || !bill.billedTime) {
+                continue;
+            }
+            const timeMs = new Date(bill.billedTime).getTime();
+            const elapsedMinutes =
+                !isNaN(timeMs) && timeMs > 0
+                    ? Math.max(0, Math.floor((nowMs - timeMs) / 60000))
+                    : 0;
+            bill.elapsedMinutes = elapsedMinutes;
+            bill.elapsedFormatted = this.formatBillElapsed(elapsedMinutes);
+            bill.isOverdue = elapsedMinutes >= 20;
+        }
+    }
+
+    formatBillElapsed(diffMinutes: number): string {
+        if (diffMinutes < 60) {
+            return `${diffMinutes} mins`;
+        }
+        const hours = Math.floor(diffMinutes / 60);
+        const mins = diffMinutes % 60;
+        return `${hours}h ${mins}m`;
+    }
+
+    getOrderLocationLabel(order: RestaurantOrderDto): string {
+        if (order.tableNo) {
+            return `Table ${order.tableNo}`;
+        }
+        if (order.carName || order.carNumber) {
+            return [order.carName, order.carNumber].filter(Boolean).join(' - ');
+        }
+        return order.orderTypeName || 'Order';
+    }
+
+    checkAndManageTimer(): void {
+        const needsTimer =
+            !!this.oldestOrder ||
+            (this.unpaidBills && this.unpaidBills.length > 0);
+        if (needsTimer) {
+            if (!this.waitingTimerSubscription) {
+                this.startWaitingTimer();
+            }
+        } else {
+            this.stopWaitingTimer();
+        }
+    }
+
+    startWaitingTimer(): void {
+        this.stopWaitingTimer();
+        this.waitingTimerSubscription = interval(60000).subscribe(() => {
+            if (this.oldestOrder) {
+                this.calculateWaitingDuration();
+            }
+            if (this.unpaidBills && this.unpaidBills.length > 0) {
+                this.recalculateUnpaidBillDurations();
+            }
+        });
+    }
+
+    stopWaitingTimer(): void {
+        if (this.waitingTimerSubscription) {
+            this.waitingTimerSubscription.unsubscribe();
+            this.waitingTimerSubscription = undefined;
+        }
+    }
+
+    getWaitingSeverity(): 'normal' | 'warning' | 'critical' {
+        if (this.longestWaitingMinutes >= 30) return 'critical';
+        if (this.longestWaitingMinutes >= 20) return 'warning';
+        return 'normal';
+    }
+
+    getWaitingStatusLabel(): string {
+        const severity = this.getWaitingSeverity();
+        if (severity === 'critical') return 'Critical Delay';
+        if (severity === 'warning') return 'Attention Needed';
+        return 'Normal Pace';
+    }
+
     ngOnDestroy(): void {
+        this.stopWaitingTimer();
         if (this.subscription) {
             this.subscription.unsubscribe();
         }

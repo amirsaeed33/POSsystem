@@ -266,3 +266,361 @@
         }
     }
 }
+
+
+// Table Occupancy Widget Styles (Step 2: Restaurant Mode ONLY)
+.table-occupancy-card {
+    border-radius: 12px;
+    background: var(--surface-card);
+
+    .table-occupancy-icon-wrapper {
+        width: 2.75rem;
+        height: 2.75rem;
+        background: rgba(var(--primary-color-rgb, 59, 130, 246), 0.12);
+    }
+
+    .occupancy-pill {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        line-height: 1;
+
+        &.pill-success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        &.pill-warning {
+            background: #ffedd5;
+            color: #c2410c;
+        }
+        &.pill-danger {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+
+        &.dot-available {
+            background-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+        }
+        &.dot-occupied {
+            background-color: #ef4444;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        }
+        &.dot-billed {
+            background-color: #f97316;
+            box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+        }
+        &.dot-reserved {
+            background-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+    }
+
+    .occupancy-metric-box {
+        border: 1px solid var(--surface-border);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        &.metric-total {
+            background: var(--surface-50);
+            border-color: var(--surface-border);
+        }
+
+        &.metric-available {
+            background: rgba(34, 197, 94, 0.06);
+            border-color: rgba(34, 197, 94, 0.25);
+        }
+
+        &.metric-occupied {
+            background: rgba(239, 68, 68, 0.06);
+            border-color: rgba(239, 68, 68, 0.25);
+        }
+
+        &.metric-billed {
+            background: rgba(249, 115, 22, 0.06);
+            border-color: rgba(249, 115, 22, 0.25);
+        }
+
+        &.metric-reserved {
+            background: rgba(59, 130, 246, 0.06);
+            border-color: rgba(59, 130, 246, 0.25);
+        }
+    }
+
+    ::ng-deep {
+        .occupancy-progress-success .p-progressbar-value {
+            background: #22c55e !important;
+        }
+        .occupancy-progress-warning .p-progressbar-value {
+            background: #f97316 !important;
+        }
+        .occupancy-progress-danger .p-progressbar-value {
+            background: #ef4444 !important;
+        }
+        .p-progressbar {
+            border-radius: 999px;
+            background: var(--surface-200);
+            overflow: hidden;
+        }
+    }
+}
+
+
+// Running Orders Card (Step 3: Restaurant Mode ONLY)
+.restaurant-status-kpi {
+    border-radius: 12px;
+    border: 1px solid var(--surface-border);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
+    }
+
+    .status-indicator-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+
+        &.dot-blue {
+            background-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        }
+    }
+
+    .kpi-icon-pill {
+        width: 3rem;
+        height: 3rem;
+
+        &.icon-pill-blue {
+            background: rgba(59, 130, 246, 0.12);
+        }
+    }
+
+    &.kpi-open-orders {
+        background: var(--surface-card);
+        border-left: 4px solid #3b82f6;
+    }
+}
+
+
+// Longest Waiting Order Widget (Step 4: Restaurant Mode ONLY)
+.longest-waiting-card {
+    border-radius: 12px;
+    border: 1px solid var(--surface-border);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
+    }
+
+    &.waiting-card-normal {
+        border-left: 4px solid #22c55e;
+    }
+
+    &.waiting-card-warning {
+        border-left: 4px solid #f97316;
+        background: linear-gradient(to right, rgba(249, 115, 22, 0.04), var(--surface-card));
+    }
+
+    &.waiting-card-critical {
+        border-left: 4px solid #ef4444;
+        background: linear-gradient(to right, rgba(239, 68, 68, 0.06), var(--surface-card));
+    }
+
+    .waiting-icon-container {
+        width: 3rem;
+        height: 3rem;
+
+        &.icon-container-normal {
+            background: rgba(34, 197, 94, 0.12);
+            color: #16a34a;
+        }
+
+        &.icon-container-warning {
+            background: rgba(249, 115, 22, 0.15);
+            color: #ea580c;
+        }
+
+        &.icon-container-critical {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+            animation: pulseCritical 2s infinite ease-in-out;
+        }
+    }
+
+    .waiting-status-pill {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        line-height: 1;
+
+        &.pill-normal {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        &.pill-warning {
+            background: #ffedd5;
+            color: #c2410c;
+        }
+
+        &.pill-critical {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+    }
+
+    .text-normal {
+        color: #16a34a;
+    }
+
+    .text-warning {
+        color: #ea580c;
+    }
+
+    .text-critical {
+        color: #dc2626;
+    }
+
+    .waiting-details-box {
+        border: 1px solid var(--surface-border);
+    }
+}
+
+@keyframes pulseCritical {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.06);
+    }
+}
+
+
+// Unpaid Customer Bills Widget (Step 5: Restaurant Mode ONLY)
+.unpaid-bills-card {
+    border-radius: 12px;
+    border: 1px solid var(--surface-border);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
+    }
+
+    .unpaid-bills-icon-container {
+        width: 3rem;
+        height: 3rem;
+        background: rgba(249, 115, 22, 0.12);
+        color: #ea580c;
+    }
+
+    .unpaid-badge-pill {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        line-height: 1;
+
+        &.pill-amber {
+            background: #ffedd5;
+            color: #c2410c;
+        }
+
+        &.pill-settled {
+            background: #dcfce7;
+            color: #15803d;
+        }
+    }
+
+    .unpaid-bills-list {
+        max-height: 380px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .unpaid-bill-row {
+        border: 1px solid var(--surface-border);
+        transition: all 0.2s ease;
+
+        &:hover {
+            border-color: #cbd5e1;
+            background-color: var(--surface-hover) !important;
+        }
+
+        &.bill-overdue {
+            border-left: 4px solid #ef4444;
+            background: linear-gradient(to right, rgba(239, 68, 68, 0.05), var(--surface-ground)) !important;
+
+            &:hover {
+                border-color: #fca5a5;
+            }
+        }
+    }
+
+    .bill-status-dot {
+        width: 0.65rem;
+        height: 0.65rem;
+        border-radius: 50%;
+        flex-shrink: 0;
+
+        &.dot-pending {
+            background-color: #f97316;
+        }
+
+        &.dot-overdue {
+            background-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+            animation: pulseCritical 2s infinite ease-in-out;
+        }
+    }
+
+    .bill-location-badge {
+        border: 1px solid var(--surface-border);
+    }
+
+    .bill-time-badge {
+        &.time-normal {
+            background: rgba(249, 115, 22, 0.1);
+            color: #c2410c;
+            border: 1px solid rgba(249, 115, 22, 0.2);
+        }
+
+        &.time-overdue {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+            font-weight: 600;
+        }
+    }
+
+    .bill-amount-badge {
+        &.amount-normal {
+            background: rgba(249, 115, 22, 0.08);
+            color: #ea580c;
+            border: 1px solid rgba(249, 115, 22, 0.2);
+        }
+
+        &.amount-overdue {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #f87171;
+        }
+    }
+}

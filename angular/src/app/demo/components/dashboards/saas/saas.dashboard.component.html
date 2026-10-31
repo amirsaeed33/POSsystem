@@ -56,6 +56,378 @@
         </div>
     </div>
 
+    <!-- Restaurant Table Occupancy Widget (Step 2: Restaurant Mode ONLY) -->
+    <div *ngIf="isRestaurant" class="col-12 anim-card anim-delay-4">
+        <div class="card table-occupancy-card p-4">
+            <!-- Header with Title, Status & Refresh / POS button -->
+            <div class="flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div class="flex align-items-center gap-2">
+                    <div class="table-occupancy-icon-wrapper flex align-items-center justify-content-center border-round-lg shadow-1">
+                        <i class="pi pi-table text-xl text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="flex align-items-center gap-2">
+                            <h5 class="m-0 font-bold text-xl text-900">Table Occupancy</h5>
+                            <span *ngIf="!tablesLoading && !tablesError && totalTables > 0" class="occupancy-pill" [ngClass]="getOccupancySeverityClass()">
+                                {{ occupancyPercentage }}% Full
+                            </span>
+                        </div>
+                        <span class="text-color-secondary text-sm">Live dine-in floor occupancy &amp; table statuses</span>
+                    </div>
+                </div>
+
+                <div class="flex align-items-center gap-2">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-refresh"
+                        [loading]="tablesLoading || ordersLoading"
+                        title="Refresh Table & Order Status"
+                        class="p-button-outlined p-button-secondary p-button-sm p-button-rounded"
+                        (click)="refreshRestaurantFloor()"
+                    ></button>
+                    <a
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Open POS"
+                        icon="pi pi-external-link"
+                        class="p-button-outlined p-button-primary p-button-sm border-round-lg font-semibold"
+                        routerLink="/pos"
+                    ></a>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div *ngIf="tablesLoading" class="py-4 text-center">
+                <i class="pi pi-spin pi-spinner text-3xl text-primary mb-2"></i>
+                <div class="text-color-secondary font-medium text-sm">Loading live table occupancy...</div>
+            </div>
+
+            <!-- Error State -->
+            <div *ngIf="!tablesLoading && tablesError" class="p-3 border-round-lg bg-red-50 border-1 border-red-200 text-red-900 flex align-items-center justify-content-between gap-3">
+                <div class="flex align-items-center gap-2">
+                    <i class="pi pi-exclamation-circle text-red-600 text-xl"></i>
+                    <span class="text-sm font-medium">{{ tablesError }}</span>
+                </div>
+                <button pButton pRipple type="button" label="Retry" icon="pi pi-refresh" class="p-button-sm p-button-danger p-button-text" (click)="loadTableOccupancy()"></button>
+            </div>
+
+            <!-- Empty State (No Active Tables) -->
+            <div *ngIf="!tablesLoading && !tablesError && totalTables === 0" class="py-4 text-center surface-50 border-round-lg border-1 surface-border">
+                <i class="pi pi-info-circle text-3xl text-500 mb-2"></i>
+                <div class="font-bold text-900 mb-1">No Active Tables Configured</div>
+                <p class="text-color-secondary text-sm m-0 mb-3">No active dining tables or car bays found for this branch.</p>
+                <a pButton pRipple type="button" label="Go to Dining Tables" icon="pi pi-plus" class="p-button-sm p-button-outlined" routerLink="/pos"></a>
+            </div>
+
+            <!-- Normal Content State -->
+            <div *ngIf="!tablesLoading && !tablesError && totalTables > 0">
+                <!-- Progress Bar Section -->
+                <div class="mb-4">
+                    <div class="flex justify-content-between align-items-center text-sm font-medium mb-2">
+                        <span class="text-700">Occupancy Rate: <strong>{{ occupiedTables }} of {{ totalTables }} Tables Occupied</strong></span>
+                        <span class="font-bold text-base" [ngClass]="getOccupancyTextClass()">{{ occupancyPercentage }}%</span>
+                    </div>
+                    <p-progressBar
+                        [value]="occupancyPercentage"
+                        [showValue]="false"
+                        [style]="{ height: '10px' }"
+                        [styleClass]="getProgressBarClass()"
+                    ></p-progressBar>
+                </div>
+
+                <!-- 5 Metrics Grid with Colored Indicators -->
+                <div class="grid grid-nogutter gap-3">
+                    <!-- Total Tables -->
+                    <div class="col flex-1 min-w-8rem">
+                        <div class="occupancy-metric-box metric-total border-round-xl p-3 flex flex-column justify-content-between h-full">
+                            <div class="flex align-items-center justify-content-between mb-2">
+                                <span class="text-color-secondary text-xs font-semibold uppercase">Total</span>
+                                <i class="pi pi-table text-500 text-base"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-900 mb-1">{{ totalTables }}</div>
+                            <span class="text-xs text-500 font-medium">Active Slots</span>
+                        </div>
+                    </div>
+
+                    <!-- Available (Green indicator) -->
+                    <div class="col flex-1 min-w-8rem">
+                        <div class="occupancy-metric-box metric-available border-round-xl p-3 flex flex-column justify-content-between h-full">
+                            <div class="flex align-items-center justify-content-between mb-2">
+                                <span class="metric-label text-green-700 text-xs font-bold uppercase flex align-items-center gap-1">
+                                    <span class="status-dot dot-available"></span> Available
+                                </span>
+                                <i class="pi pi-check-circle text-green-600 text-base"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-green-700 mb-1">{{ availableTables }}</div>
+                            <span class="text-xs text-green-600 font-medium">Ready for Guests</span>
+                        </div>
+                    </div>
+
+                    <!-- Occupied (Red indicator) -->
+                    <div class="col flex-1 min-w-8rem">
+                        <div class="occupancy-metric-box metric-occupied border-round-xl p-3 flex flex-column justify-content-between h-full">
+                            <div class="flex align-items-center justify-content-between mb-2">
+                                <span class="metric-label text-red-700 text-xs font-bold uppercase flex align-items-center gap-1">
+                                    <span class="status-dot dot-occupied"></span> Occupied
+                                </span>
+                                <i class="pi pi-users text-red-600 text-base"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-red-700 mb-1">{{ occupiedTables }}</div>
+                            <span class="text-xs text-red-600 font-medium">Dining in Progress</span>
+                        </div>
+                    </div>
+
+                    <!-- Billed (Orange indicator) -->
+                    <div class="col flex-1 min-w-8rem">
+                        <div class="occupancy-metric-box metric-billed border-round-xl p-3 flex flex-column justify-content-between h-full">
+                            <div class="flex align-items-center justify-content-between mb-2">
+                                <span class="metric-label text-orange-700 text-xs font-bold uppercase flex align-items-center gap-1">
+                                    <span class="status-dot dot-billed"></span> Billed
+                                </span>
+                                <i class="pi pi-file-edit text-orange-600 text-base"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-orange-700 mb-1">{{ billedTables }}</div>
+                            <span class="text-xs text-orange-600 font-medium">Check Printed</span>
+                        </div>
+                    </div>
+
+                    <!-- Reserved (Blue indicator) -->
+                    <div class="col flex-1 min-w-8rem">
+                        <div class="occupancy-metric-box metric-reserved border-round-xl p-3 flex flex-column justify-content-between h-full">
+                            <div class="flex align-items-center justify-content-between mb-2">
+                                <span class="metric-label text-blue-700 text-xs font-bold uppercase flex align-items-center gap-1">
+                                    <span class="status-dot dot-reserved"></span> Reserved
+                                </span>
+                                <i class="pi pi-bookmark text-blue-600 text-base"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-blue-700 mb-1">{{ reservedTables }}</div>
+                            <span class="text-xs text-blue-600 font-medium">Booked Ahead</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restaurant Running Orders (Step 3: Restaurant Mode ONLY) -->
+    <div *ngIf="isRestaurant" class="col-12 anim-card anim-delay-5">
+        <!-- Error State -->
+        <div *ngIf="!ordersLoading && ordersError" class="p-3 mb-3 border-round-lg bg-red-50 border-1 border-red-200 text-red-900 flex align-items-center justify-content-between gap-3">
+            <div class="flex align-items-center gap-2">
+                <i class="pi pi-exclamation-circle text-red-600 text-xl"></i>
+                <span class="text-sm font-medium">{{ ordersError }}</span>
+            </div>
+            <button pButton pRipple type="button" label="Retry" icon="pi pi-refresh" class="p-button-sm p-button-danger p-button-text" (click)="loadRunningOrders()"></button>
+        </div>
+
+        <div class="card restaurant-status-kpi kpi-open-orders p-4">
+            <div class="flex flex-wrap align-items-center justify-content-between gap-3">
+                <!-- Left: Title, Icon & Description -->
+                <div class="flex align-items-center gap-3">
+                    <div class="kpi-icon-pill icon-pill-blue flex align-items-center justify-content-center border-round-xl shadow-1">
+                        <i class="pi pi-receipt text-blue-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex align-items-center gap-2 mb-1">
+                            <h5 class="m-0 font-bold text-lg text-900">Open Running Orders</h5>
+                            <span *ngIf="!ordersLoading" class="status-indicator-dot dot-blue"></span>
+                        </div>
+                        <span class="text-color-secondary text-sm">
+                            Currently active dining, takeaway, and car service orders in progress
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Right: Loading or Live Count -->
+                <div *ngIf="ordersLoading" class="flex align-items-center gap-2 py-2">
+                    <i class="pi pi-spin pi-spinner text-primary text-xl"></i>
+                    <span class="text-color-secondary text-sm">Loading active orders...</span>
+                </div>
+
+                <div *ngIf="!ordersLoading" class="flex align-items-center gap-4">
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-900 tracking-tight">
+                            {{ openOrdersCount }}
+                        </div>
+                        <span class="text-xs text-color-secondary font-medium uppercase tracking-wider">Active Orders</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Longest Waiting Restaurant Order Widget (Step 4: Restaurant Mode ONLY) -->
+    <div *ngIf="isRestaurant" class="col-12 anim-card anim-delay-6">
+        <div class="card longest-waiting-card p-4" [ngClass]="'waiting-card-' + getWaitingSeverity()">
+            <div class="flex flex-wrap align-items-center justify-content-between gap-3">
+                <!-- Left: Title, Clock Icon & Live Status Badge -->
+                <div class="flex align-items-center gap-3">
+                    <div class="waiting-icon-container flex align-items-center justify-content-center border-round-xl shadow-1" [ngClass]="'icon-container-' + getWaitingSeverity()">
+                        <i class="pi text-2xl" [ngClass]="getWaitingSeverity() === 'critical' ? 'pi-exclamation-triangle' : 'pi-clock'"></i>
+                    </div>
+                    <div>
+                        <div class="flex align-items-center gap-2 mb-1">
+                            <h5 class="m-0 font-bold text-lg text-900">Longest Waiting Order</h5>
+                            <span *ngIf="oldestOrder && !ordersLoading" class="waiting-status-pill" [ngClass]="'pill-' + getWaitingSeverity()">
+                                <i class="pi pi-circle-fill text-xs mr-1"></i>
+                                {{ getWaitingStatusLabel() }}
+                            </span>
+                        </div>
+                        <span class="text-color-secondary text-sm">
+                            Real-time order aging monitor &bull; auto-updates every 60s
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Right / Body: Loading State -->
+                <div *ngIf="ordersLoading" class="flex align-items-center gap-2 py-2">
+                    <i class="pi pi-spin pi-spinner text-primary text-xl"></i>
+                    <span class="text-color-secondary text-sm">Calculating waiting time...</span>
+                </div>
+
+                <!-- Active Oldest Waiting Order -->
+                <div *ngIf="!ordersLoading && oldestOrder" class="flex flex-wrap align-items-center gap-4">
+                    <div class="text-right">
+                        <div class="text-3xl font-bold tracking-tight" [ngClass]="'text-' + getWaitingSeverity()">
+                            {{ longestWaitingFormatted }}
+                        </div>
+                        <span class="text-xs text-color-secondary font-medium">Wait Duration</span>
+                    </div>
+
+                    <div class="waiting-details-box border-round-lg p-2 px-3 surface-ground flex flex-wrap align-items-center gap-3 text-sm">
+                        <div class="flex align-items-center gap-1 font-bold text-900">
+                            <i class="pi pi-receipt text-primary"></i>
+                            <span>#{{ oldestOrder.orderNo }}</span>
+                        </div>
+                        <div class="border-right-1 surface-border h-1rem hidden sm:block"></div>
+                        <div class="flex align-items-center gap-1 text-700">
+                            <i class="pi pi-table text-500"></i>
+                            <span>{{ oldestOrder.carName ? oldestOrder.carName + ' (' + oldestOrder.carNumber + ')' : (oldestOrder.tableNo || 'Dine-In') }}</span>
+                        </div>
+                        <div class="border-right-1 surface-border h-1rem hidden sm:block"></div>
+                        <div class="flex align-items-center gap-1 text-700">
+                            <i class="pi pi-user text-500"></i>
+                            <span>Server: {{ oldestOrder.waiterName || 'Staff' }}</span>
+                        </div>
+                        <div class="border-right-1 surface-border h-1rem hidden sm:block"></div>
+                        <div class="flex align-items-center gap-1 text-500 text-xs">
+                            <i class="pi pi-clock text-xs"></i>
+                            <span>Started: {{ oldestOrder.creationTime | date:'shortTime' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State: No Open Orders -->
+                <div *ngIf="!ordersLoading && !oldestOrder" class="flex align-items-center gap-2 text-green-700 font-medium text-sm py-2 bg-green-50 px-3 border-round-lg border-1 border-green-200">
+                    <i class="pi pi-check-circle text-green-600 text-lg"></i>
+                    <span>All orders served! No open dining orders waiting.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unpaid Customer Bills Widget (Step 5: Restaurant Mode ONLY) -->
+    <div *ngIf="isRestaurant" class="col-12 anim-card anim-delay-7">
+        <div class="card unpaid-bills-card p-4">
+            <!-- Header: Title, Icon, Count and Total Outstanding -->
+            <div class="flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pb-3 border-bottom-1 surface-border">
+                <div class="flex align-items-center gap-3">
+                    <div class="unpaid-bills-icon-container flex align-items-center justify-content-center border-round-xl shadow-1">
+                        <i class="pi pi-credit-card text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex align-items-center gap-2 mb-1">
+                            <h5 class="m-0 font-bold text-lg text-900">Unpaid Customer Bills</h5>
+                            <span *ngIf="!ordersLoading && unpaidBillsCount > 0" class="unpaid-badge-pill pill-amber">
+                                <i class="pi pi-exclamation-circle text-xs mr-1"></i>
+                                {{ unpaidBillsCount }} Pending
+                            </span>
+                            <span *ngIf="!ordersLoading && unpaidBillsCount === 0" class="unpaid-badge-pill pill-settled">
+                                <i class="pi pi-check text-xs mr-1"></i>
+                                All Settled
+                            </span>
+                        </div>
+                        <span class="text-color-secondary text-sm">
+                            Printed guest checks pending cashier settlement &bull; sorted oldest first &bull; auto-updates every 60s
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Right: Summary Metrics -->
+                <div *ngIf="!ordersLoading && unpaidBillsCount > 0" class="flex align-items-center gap-3">
+                    <div class="text-right">
+                        <div class="text-2xl font-bold tracking-tight text-orange-600">
+                            {{ formatPkr(unpaidBillsTotalAmount) }}
+                        </div>
+                        <span class="text-xs text-color-secondary font-medium uppercase tracking-wider">Total Outstanding</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div *ngIf="ordersLoading" class="flex align-items-center justify-content-center gap-2 py-4">
+                <i class="pi pi-spin pi-spinner text-primary text-xl"></i>
+                <span class="text-color-secondary text-sm">Checking for unpaid bills...</span>
+            </div>
+
+            <!-- Error State -->
+            <div *ngIf="!ordersLoading && ordersError" class="p-3 bg-red-50 text-red-700 border-round-lg flex align-items-center gap-2 text-sm border-1 border-red-200">
+                <i class="pi pi-exclamation-circle text-lg text-red-500"></i>
+                <span>{{ ordersError }}</span>
+            </div>
+
+            <!-- Empty State: No Unpaid Bills -->
+            <div *ngIf="!ordersLoading && !ordersError && unpaidBillsCount === 0" class="flex align-items-center gap-3 py-3 px-3 bg-green-50 border-round-lg border-1 border-green-200 text-green-700">
+                <i class="pi pi-check-circle text-xl text-green-600"></i>
+                <div>
+                    <span class="font-bold text-sm block">All customer checks are settled</span>
+                    <span class="text-xs text-green-600">No printed bills are currently awaiting payment at cashier counter.</span>
+                </div>
+            </div>
+
+            <!-- Unpaid Bills List -->
+            <div *ngIf="!ordersLoading && !ordersError && unpaidBillsCount > 0" class="unpaid-bills-list flex flex-column gap-2">
+                <div *ngFor="let bill of unpaidBills" class="unpaid-bill-row p-3 border-round-lg surface-ground flex flex-wrap align-items-center justify-content-between gap-3" [class.bill-overdue]="bill.isOverdue">
+                    <!-- Left: Status dot, Order #, Table/Car location & Waiter -->
+                    <div class="flex align-items-center gap-3 flex-wrap">
+                        <div class="bill-status-dot" [class.dot-overdue]="bill.isOverdue" [class.dot-pending]="!bill.isOverdue" [attr.title]="bill.isOverdue ? 'Overdue payment delay (>20 mins)' : 'Awaiting payment'"></div>
+
+                        <div class="flex align-items-center gap-2">
+                            <span class="font-bold text-900 text-base">#{{ bill.orderNo }}</span>
+                            <span class="bill-location-badge text-xs px-2 py-1 border-round-md font-medium surface-200 text-700">
+                                <i class="pi pi-table text-xs mr-1 text-500"></i>{{ bill.tableOrLocation }}
+                            </span>
+                        </div>
+
+                        <div *ngIf="bill.waiterName" class="flex align-items-center gap-1 text-xs text-600">
+                            <i class="pi pi-user text-500"></i>
+                            <span>Server: <strong>{{ bill.waiterName }}</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Duration & Grand Total -->
+                    <div class="flex align-items-center gap-3 ml-auto">
+                        <!-- Printed Duration badge -->
+                        <div class="bill-time-badge flex align-items-center gap-1 text-xs px-2 py-1 border-round-md" [class.time-overdue]="bill.isOverdue" [class.time-normal]="!bill.isOverdue">
+                            <i class="pi text-xs" [ngClass]="bill.isOverdue ? 'pi-exclamation-triangle' : (bill.hasValidBilledTime ? 'pi-clock' : 'pi-info-circle')"></i>
+                            <span *ngIf="bill.hasValidBilledTime">Printed {{ bill.elapsedFormatted }} ago</span>
+                            <span *ngIf="!bill.hasValidBilledTime">Billed (Time N/A)</span>
+                            <span *ngIf="bill.isOverdue" class="font-bold ml-1">(20+ min delay)</span>
+                        </div>
+
+                        <!-- Grand Total -->
+                        <div class="bill-amount-badge font-bold text-base px-3 py-1 border-round-md" [class.amount-overdue]="bill.isOverdue" [class.amount-normal]="!bill.isOverdue">
+                            {{ formatPkr(bill.grandTotal) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 15-Day Financial Trend Chart (Immediately below KPI Cards) -->
     <div class="col-12 anim-card anim-delay-5">
         <div class="card">
