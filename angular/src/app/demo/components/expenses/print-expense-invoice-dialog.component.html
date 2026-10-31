@@ -12,6 +12,33 @@
     styleClass="expense-invoice-dialog"
     (onHide)="onHide()"
 >
+        <!-- Format Selector Bar -->
+    <div
+        class="no-print format-toolbar mb-3 pb-2 border-bottom-1 surface-border flex align-items-center justify-content-between flex-wrap gap-2"
+        style="background: var(--surface-50, #f8fafc); padding: 8px 12px; border-radius: 8px;">
+        <div class="flex align-items-center gap-2">
+            <i class="pi pi-sliders-h text-primary"></i>
+            <span class="text-sm font-bold text-700">Receipt Format:</span>
+        </div>
+        <div class="flex gap-2">
+            <button type="button" pButton pRipple class="p-button-sm"
+                [class.p-button-outlined]="printFormat !== 'thermal-80'"
+                (click)="setPrintFormat('thermal-80')" title="80mm Thermal Receipt">
+                <i class="pi pi-ticket mr-1"></i> Thermal (80mm)
+            </button>
+            <button type="button" pButton pRipple class="p-button-sm"
+                [class.p-button-outlined]="printFormat !== 'thermal-58'"
+                (click)="setPrintFormat('thermal-58')" title="58mm Compact Thermal">
+                <i class="pi pi-receipt mr-1"></i> Thermal (58mm)
+            </button>
+            <button type="button" pButton pRipple class="p-button-sm"
+                [class.p-button-outlined]="printFormat !== 'a4'"
+                (click)="setPrintFormat('a4')" title="Standard A4 Sheet">
+                <i class="pi pi-file mr-1"></i> Standard (A4)
+            </button>
+        </div>
+    </div>
+
     <div *ngIf="loading" class="text-center p-4 text-500 no-print">Loading...</div>
 
     <div *ngIf="!loading && expense" class="print-area invoice-sheet">

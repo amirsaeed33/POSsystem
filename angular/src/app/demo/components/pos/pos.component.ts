@@ -1,4 +1,4 @@
-﻿import {
+import {
     Component,
     ElementRef,
     OnDestroy,
@@ -38,6 +38,7 @@ import { DealDto } from 'src/app/demo/api/deal';
 import { AuthService } from 'src/app/demo/service/auth.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RestaurantTakeawayAlarmService } from 'src/app/demo/service/restaurant-takeaway-alarm.service';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
 
 export interface DealCustomiseItem {
     productId: number;
@@ -179,6 +180,8 @@ export class PosComponent implements OnInit, OnDestroy {
     creatingTable = false;
 
     paymentDialogVisible = false;
+    completedReceiptVisible = false;
+    completedReceipt: any = null;
     paidAmount = 0;
 
     unpaidTakeawayOrders: UnpaidTakeawayOrderDto[] = [];
@@ -202,6 +205,7 @@ export class PosComponent implements OnInit, OnDestroy {
         private authService: AuthService,
         private route: ActivatedRoute,
         private router: Router,
+        public thermalPrintService: ThermalPrintService,
         public takeawayAlarmService: RestaurantTakeawayAlarmService,
         private messageService: MessageService
     ) {}
@@ -1912,7 +1916,7 @@ export class PosComponent implements OnInit, OnDestroy {
         }
     }
 
-    printCurrentModal(elementId: string): void {
+    printCurrentModal(elementId: string, filterType: 'all' | 'kitchen' | 'bar' = 'all'): void {
         if (this.isRestaurantMode) {
             const branchId = this.branchContext.getBranchId();
             if (branchId) {
@@ -1942,39 +1946,39 @@ export class PosComponent implements OnInit, OnDestroy {
             }
         }
 
+        if (elementId === 'kotThermalPrint' && this.kotResult) {
+            this.thermalPrintService.printKotTicket(this.kotResult, filterType);
+            return;
+        }
+
+        if (elementId === 'guestCheckPrint') {
+            this.thermalPrintService.printGuestBill({
+                orderNo: this.activeOrderNo,
+                tableNo: this.selectedTable?.tableNo || 'Takeaway',
+                carName: this.selectedCarName,
+                carNumber: this.selectedCarNumber,
+                carLocation: this.selectedCarLocation,
+                isCarService: this.isCarService,
+                waiterName: this.waiterName || (this.isWaiter ? this.authService.getPrinterIdentity().name : 'Staff'),
+                lines: this.cart,
+                subTotal: this.subTotal,
+                discountAmount: this.computedDiscount,
+                discountPercent: this.discountPercent,
+                taxAmount: this.taxAmount,
+                taxPercent: this.taxPercent,
+                serviceChargeAmount: this.serviceChargeAmount,
+                serviceChargePercent: this.serviceChargePercent,
+                grandTotal: this.grandTotal,
+            });
+            return;
+        }
+
         const printContent = document.getElementById(elementId);
         if (!printContent) {
-            window.print();
+            console.warn(`Print element not found: ${elementId}`);
             return;
         }
-        const win = window.open('', '', 'height=600,width=400');
-        if (!win) {
-            window.print();
-            return;
-        }
-        win.document.write('<html><head><title>Print</title>');
-        win.document.write('<style>');
-        win.document.write(`
-            body { font-family: 'Courier New', monospace; font-size: 13px; color: #000; padding: 12px; margin: 0; width: 78mm; }
-            .ticket-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
-            .ticket-title { font-size: 16px; font-weight: bold; }
-            .ticket-meta { font-size: 12px; margin: 2px 0; }
-            .ticket-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-            .ticket-table th, .ticket-table td { text-align: left; padding: 3px 0; }
-            .ticket-table th.text-right, .ticket-table td.text-right { text-align: right; }
-            .ticket-notes { font-size: 11px; font-style: italic; padding-left: 6px; }
-            .ticket-footer { border-top: 1px dashed #000; padding-top: 8px; text-align: center; font-size: 11px; }
-            .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 4px; }
-        `);
-        win.document.write('</style></head><body>');
-        win.document.write(printContent.innerHTML);
-        win.document.write('</body></html>');
-        win.document.close();
-        win.focus();
-        setTimeout(() => {
-            win.print();
-            win.close();
-        }, 250);
+        this.thermalPrintService.executePrint(printContent.innerHTML, 'Ticket');
     }
 
     /** Shared table / car bay fields for restaurant order save payloads. */
@@ -2996,7 +3000,6 @@ export class PosComponent implements OnInit, OnDestroy {
                     notes: saleNote || undefined,
                 });
 
-                this.printReceiptSnapshot(settledReceipt);
                 if (this.takeawayAlarmService) {
                     this.takeawayAlarmService.checkImmediately();
                 }
@@ -3023,7 +3026,41 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.selectedCarLocation = '';
                 this.loadTables();
                 this.loadTopProducts();
+
+                this.completedReceipt = settledReceipt;
+                this.completedReceiptVisible = true;
+                this.printReceiptSnapshot(settledReceipt);
             } else {
+                const branch = this.branchContext.getCurrentBranch();
+                const retailReceipt = {
+                    branchName: branch?.name || 'SmartPOS Store',
+                    branchAddress: branch?.invoiceAddress,
+                    branchPhone: branch?.invoiceContactPhone,
+                    orderNo: `SALE-${Date.now().toString().slice(-6)}`,
+                    tableNo: 'Retail POS Sale',
+                    serverName: 'Cashier',
+                    cashierName: this.authService.getPrinterIdentity().name,
+                    ntn: branch?.taxNumber || '',
+                    date: new Date(),
+                    lines: this.cart.map((l) => ({
+                        productName: l.productName,
+                        quantity: l.quantity,
+                        unitPrice: l.unitPrice,
+                        lineTotal: l.quantity * l.unitPrice,
+                    })),
+                    subTotal: this.subTotal,
+                    discountPercent: this.discountPercent,
+                    discountAmount: this.computedDiscount || 0,
+                    taxPercent: this.taxPercent,
+                    taxAmount: this.taxAmount,
+                    serviceChargePercent: 0,
+                    serviceChargeAmount: 0,
+                    grandTotal: total,
+                    paidAmount: paid,
+                    changeAmount: change,
+                    paymentType: paymentType === PaymentType.Cash ? 'CASH' : 'MIXED / CARD',
+                };
+
                 await this.saleService.create({
                     customerId: this.customerId as number,
                     saleDate: new Date().toISOString(),
@@ -3056,6 +3093,10 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.paymentDialogVisible = false;
                 this.clearCart();
                 this.loadTopProducts();
+
+                this.completedReceipt = retailReceipt;
+                this.completedReceiptVisible = true;
+                this.printReceiptSnapshot(retailReceipt);
             }
         } catch (error: any) {
             this.messageService.add({
@@ -3066,6 +3107,12 @@ export class PosComponent implements OnInit, OnDestroy {
         } finally {
             this.saving = false;
             this.focusSearch();
+        }
+    }
+
+    reprintCompletedReceipt(): void {
+        if (this.completedReceipt) {
+            this.printReceiptSnapshot(this.completedReceipt);
         }
     }
 
@@ -3084,202 +3131,8 @@ export class PosComponent implements OnInit, OnDestroy {
             }
         }
 
-        const win = window.open('', '', 'height=650,width=420');
-        if (!win) {
-            window.print();
-            return;
-        }
-
-        const linesHtml = (receipt.lines || [])
-            .map((line: any) => {
-                const dealBadge = line.isDeal
-                    ? `<span style="font-size:9px; background:#000; color:#fff; padding:1px 3px; font-weight:bold; margin-right:3px; border-radius:2px;">DEAL</span>`
-                    : '';
-                const dealHtml = line.dealItems?.length
-                    ? `<div style="font-size:11px; color:#222; margin-top:2px; padding-left:4px; border-left:2px solid #555;">
-                        <div style="font-size:9.5px; font-weight:bold; color:#555;">INCLUDES:</div>
-                        ${line.dealItems.map((d: string) => `<div>&bull; ${d}</div>`).join('')}
-                       </div>`
-                    : '';
-                const mods = line.modifiers?.length
-                    ? `<div style="font-size:10px; color:#555;">Options: ${line.modifiers.join(', ')}</div>`
-                    : '';
-                const note = line.notes
-                    ? `<div style="font-size:10px; color:#b91c1c; font-style:italic;">Note: ${line.notes}</div>`
-                    : '';
-                return `
-                    <tr style="border-bottom: 1px dotted #ccc;">
-                        <td style="padding: 4px 0;">
-                            <div style="font-weight: 500;">${dealBadge}${line.productName}</div>
-                            ${dealHtml}
-                            ${mods}
-                            ${note}
-                        </td>
-                        <td style="text-align: center; padding: 4px 0;">${line.quantity}</td>
-                        <td style="text-align: right; padding: 4px 0;">${Number(line.unitPrice).toFixed(2)}</td>
-                        <td style="text-align: right; padding: 4px 0; font-weight: 500;">${Number(line.lineTotal).toFixed(2)}</td>
-                    </tr>
-                `;
-            })
-            .join('');
-
-        const discountRow = receipt.discountAmount > 0
-            ? `<div class="row"><span>Discount${receipt.discountPercent > 0 ? ' (' + receipt.discountPercent + '%)' : ''}:</span><span>-${Number(receipt.discountAmount).toFixed(2)}</span></div>`
-            : '';
-        const taxRow = receipt.taxAmount > 0
-            ? `<div class="row"><span>Tax (${receipt.taxPercent}%):</span><span>+${Number(receipt.taxAmount).toFixed(2)}</span></div>`
-            : '';
-        const serviceRow = receipt.serviceChargeAmount > 0
-            ? `<div class="row"><span>Service Charge (${receipt.serviceChargePercent}%):</span><span>+${Number(receipt.serviceChargeAmount).toFixed(2)}</span></div>`
-            : '';
-
-        const html = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Receipt #${receipt.orderNo}</title>
-                <style>
-                    body {
-                        font-family: 'Courier New', Courier, monospace;
-                        font-size: 13px;
-                        color: #000;
-                        padding: 10px;
-                        margin: 0;
-                        width: 78mm;
-                        box-sizing: border-box;
-                    }
-                    .header {
-                        text-align: center;
-                        border-bottom: 1px dashed #000;
-                        padding-bottom: 8px;
-                        margin-bottom: 8px;
-                    }
-                    .title {
-                        font-size: 16px;
-                        font-weight: bold;
-                        text-transform: uppercase;
-                    }
-                    .subtitle {
-                        font-size: 12px;
-                        font-weight: bold;
-                        margin-top: 4px;
-                    }
-                    .meta {
-                        font-size: 11px;
-                        margin: 2px 0;
-                        color: #222;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-bottom: 8px;
-                        font-size: 12px;
-                    }
-                    th {
-                        border-bottom: 1px dashed #000;
-                        padding: 4px 0;
-                        text-align: left;
-                    }
-                    th.text-center, td.text-center { text-align: center; }
-                    th.text-right, td.text-right { text-align: right; }
-                    .totals {
-                        border-top: 1px dashed #000;
-                        padding-top: 6px;
-                        font-size: 12px;
-                    }
-                    .row {
-                        display: flex;
-                        justify-content: space-between;
-                        margin-bottom: 3px;
-                    }
-                    .grand-total {
-                        display: flex;
-                        justify-content: space-between;
-                        font-size: 15px;
-                        font-weight: bold;
-                        border-top: 1px dashed #000;
-                        border-bottom: 1px dashed #000;
-                        padding: 6px 0;
-                        margin: 6px 0;
-                    }
-                    .footer {
-                        text-align: center;
-                        font-size: 11px;
-                        margin-top: 10px;
-                        padding-top: 6px;
-                        border-top: 1px dashed #000;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <div class="title">${receipt.branchName}</div>
-                    ${receipt.branchAddress ? `<div class="meta">${receipt.branchAddress}</div>` : ''}
-                    ${receipt.branchPhone ? `<div class="meta">Tel: ${receipt.branchPhone}</div>` : ''}
-                    <div class="subtitle">*** SALES RECEIPT ***</div>
-                    ${receipt.carNumber ? `<div class="meta">Car: <strong>${receipt.carName || ''} (${receipt.carNumber})</strong> &bull; Spot: <strong>${receipt.carLocation || ''}</strong> &bull; Order: #${receipt.orderNo}</div>` : `<div class="meta">Table: <strong>${receipt.tableNo}</strong> &bull; Order: #${receipt.orderNo}</div>`}
-                    <div class="meta">Server: ${receipt.serverName} &bull; ${new Date(receipt.date).toLocaleString()}</div>
-                    ${this.isRestaurantMode ? `<div class="meta font-bold" style="font-weight:bold; margin-top:3px;">Printed By: ${this.authService.getPrinterIdentity().name} (${this.authService.getPrinterIdentity().role}) &bull; ${new Date().toLocaleTimeString()}</div>` : ''}
-                </div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Dish / Item</th>
-                            <th class="text-center">Qty</th>
-                            <th class="text-right">Price</th>
-                            <th class="text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${linesHtml}
-                    </tbody>
-                </table>
-
-                <div class="totals">
-                    <div class="row">
-                        <span>Subtotal:</span>
-                        <span>${Number(receipt.subTotal).toFixed(2)}</span>
-                    </div>
-                    ${discountRow}
-                    ${taxRow}
-                    ${serviceRow}
-                    <div class="grand-total">
-                        <span>TOTAL AMOUNT:</span>
-                        <span>${Number(receipt.grandTotal).toFixed(2)}</span>
-                    </div>
-                    <div class="row">
-                        <span>Paid (${receipt.paymentType}):</span>
-                        <span>${Number(receipt.paidAmount).toFixed(2)}</span>
-                    </div>
-                    <div class="row">
-                        <span>Change:</span>
-                        <span>${Number(receipt.changeAmount).toFixed(2)}</span>
-                    </div>
-                </div>
-
-                <div class="footer">
-                    Thank you for dining with us!<br/>
-                    Please visit again!
-                </div>
-            </body>
-            </html>
-        `;
-
-        win.document.open();
-        win.document.write(html);
-        win.document.close();
-        win.focus();
-        setTimeout(() => {
-            try {
-                win.print();
-                win.close();
-            } catch (e) {
-                console.error('Print error:', e);
-            }
-        }, 250);
+        this.thermalPrintService.printPosReceipt(receipt);
     }
-
     private loadSuggestions(keyword: string): void {
         this.saleService
             .searchPosProducts(keyword, null)

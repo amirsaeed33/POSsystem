@@ -43,6 +43,35 @@
 /* =========================================================================
    1. THERMAL 80MM RECEIPT STYLING
    ========================================================================= */
+.thermal-sheet.thermal-58 {
+  width: 48mm;
+  padding: 8px 6px 14px;
+  font-size: 10px;
+}
+.thermal-sheet.thermal-58 .thermal-logo {
+  width: 42px;
+  height: 42px;
+}
+.thermal-sheet.thermal-58 .thermal-store-name {
+  font-size: 13px;
+}
+.thermal-sheet.thermal-58 .thermal-store-info {
+  font-size: 9px;
+}
+.thermal-sheet.thermal-58 .thermal-meta {
+  font-size: 9.5px;
+}
+.thermal-sheet.thermal-58 .thermal-table th,
+.thermal-sheet.thermal-58 .thermal-table td {
+  font-size: 9.5px;
+  padding: 2px 0;
+}
+.thermal-sheet.thermal-58 .thermal-total-row {
+  font-size: 9.5px;
+}
+.thermal-sheet.thermal-58 .thermal-grand-total {
+  font-size: 13px;
+}
 .thermal-sheet {
   width: 78mm;
   max-width: 100%;

@@ -39,6 +39,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     currentBranch: BranchDto | null = null;
     changingBranch = false;
     branchLogoFailed = false;
+    printerConfigVisible = false;
     private branchSubscription?: Subscription;
 
     get branchDisplayName(): string {

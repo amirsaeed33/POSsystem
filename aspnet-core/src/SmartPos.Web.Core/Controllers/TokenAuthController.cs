@@ -79,7 +79,11 @@ namespace SmartPos.Controllers
         public async Task<AuthenticateResultModel> Authenticate([FromBody] AuthenticateModel model)
         {
             // Resolve tenant from the user account — do not require the client to select tenancy.
-            var tenancyName = await ResolveTenancyNameForLoginAsync(model.UserNameOrEmailAddress);
+            var tenancyName = !string.IsNullOrWhiteSpace(model.TenancyName)
+                ? model.TenancyName.Trim()
+                : (AbpSession.TenantId.HasValue
+                    ? GetTenancyNameByTenantId(AbpSession.TenantId)
+                    : await ResolveTenancyNameForLoginAsync(model.UserNameOrEmailAddress));
             var loginResult = await GetLoginResultAsync(
                 model.UserNameOrEmailAddress,
                 model.Password,
@@ -380,6 +384,25 @@ namespace SmartPos.Controllers
             if (string.IsNullOrWhiteSpace(input))
             {
                 return null;
+            }
+
+            var normalizedUserName = _userManager.NormalizeName(input);
+            var normalizedEmail = _userManager.NormalizeEmail(input);
+
+            if (AbpSession.TenantId.HasValue)
+            {
+                using (CurrentUnitOfWork.SetTenantId(AbpSession.TenantId.Value))
+                {
+                    var tenantUser = await _userManager.Users
+                        .FirstOrDefaultAsync(u =>
+                            u.IsActive &&
+                            (u.NormalizedUserName == normalizedUserName ||
+                             u.NormalizedEmailAddress == normalizedEmail));
+                    if (tenantUser != null)
+                    {
+                        return tenantUser;
+                    }
+                }
             }
 
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))

@@ -26,6 +26,7 @@ import { ToastModule } from 'primeng/toast';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { OrderChatComponent } from '../shared/components/order-chat/order-chat.component';
+import { PrinterConfigDialogComponent } from '../shared/components/printer-config-dialog/printer-config-dialog.component';
 
 @NgModule({
     declarations: [
@@ -35,7 +36,8 @@ import { OrderChatComponent } from '../shared/components/order-chat/order-chat.c
         AppFooterComponent,
         AppMenuComponent,
         AppLayoutComponent,
-        AppBreadcrumbComponent
+        AppBreadcrumbComponent,
+        PrinterConfigDialogComponent
     ],
     imports: [
         BrowserModule,
