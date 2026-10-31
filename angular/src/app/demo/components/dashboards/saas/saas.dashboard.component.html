@@ -375,19 +375,21 @@
     </div>
 
     <!-- Restaurant Running Orders (Step 3: Restaurant Mode ONLY) -->
-    <div *ngIf="isRestaurant" class="col-12 anim-card anim-delay-5">
+    <div *ngIf="isRestaurant && !ordersLoading && ordersError" class="col-12 anim-card anim-delay-5">
         <!-- Error State -->
-        <div *ngIf="!ordersLoading && ordersError" class="p-3 mb-3 border-round-lg bg-red-50 border-1 border-red-200 text-red-900 flex align-items-center justify-content-between gap-3">
+        <div class="p-3 border-round-lg bg-red-50 border-1 border-red-200 text-red-900 flex align-items-center justify-content-between gap-3">
             <div class="flex align-items-center gap-2">
                 <i class="pi pi-exclamation-circle text-red-600 text-xl"></i>
                 <span class="text-sm font-medium">{{ ordersError }}</span>
             </div>
             <button pButton pRipple type="button" label="Retry" icon="pi pi-refresh" class="p-button-sm p-button-danger p-button-text" (click)="loadRunningOrders()"></button>
         </div>
+    </div>
 
-        <div class="card restaurant-status-kpi kpi-open-orders p-4">
-            <div class="flex flex-wrap align-items-center justify-content-between gap-3">
-                <!-- Left: Title, Icon & Description -->
+    <!-- 1. Open Running Orders Card -->
+    <div *ngIf="isRestaurant" class="col-12 md:col-6 anim-card anim-delay-5">
+        <div class="card restaurant-status-kpi kpi-open-orders p-4 h-full mb-0">
+            <div class="flex align-items-center justify-content-between gap-3 h-full">
                 <div class="flex align-items-center gap-3">
                     <div class="kpi-icon-pill icon-pill-blue flex align-items-center justify-content-center border-round-xl shadow-1">
                         <i class="pi pi-receipt text-blue-600 text-2xl"></i>
@@ -399,6 +401,35 @@
                         </div>
                         <span class="text-color-secondary text-sm">
                             Currently active dining, takeaway, and car service orders in progress
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex align-items-center">
+                    <span class="inline-flex align-items-center gap-2 px-3 py-1 border-round-pill bg-blue-50 text-blue-700 text-xs font-semibold uppercase tracking-wider">
+                        <span class="status-indicator-dot dot-blue"></span>
+                        Live
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Active Orders Card -->
+    <div *ngIf="isRestaurant" class="col-12 md:col-6 anim-card anim-delay-5">
+        <div class="card restaurant-status-kpi kpi-active-orders p-4 h-full mb-0">
+            <div class="flex align-items-center justify-content-between gap-3 h-full">
+                <div class="flex align-items-center gap-3">
+                    <div class="kpi-icon-pill icon-pill-indigo flex align-items-center justify-content-center border-round-xl shadow-1">
+                        <i class="pi pi-bolt text-indigo-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex align-items-center gap-2 mb-1">
+                            <h5 class="m-0 font-bold text-lg text-900">Active Orders</h5>
+                            <span *ngIf="!ordersLoading" class="status-indicator-dot dot-green"></span>
+                        </div>
+                        <span class="text-color-secondary text-sm">
+                            Real-time order count in service
                         </span>
                     </div>
                 </div>

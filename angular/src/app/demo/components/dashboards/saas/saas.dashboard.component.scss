@@ -399,6 +399,11 @@
             background-color: #3b82f6;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
         }
+
+        &.dot-green {
+            background-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+        }
     }
 
     .kpi-icon-pill {
@@ -408,11 +413,20 @@
         &.icon-pill-blue {
             background: rgba(59, 130, 246, 0.12);
         }
+
+        &.icon-pill-indigo {
+            background: rgba(99, 102, 241, 0.12);
+        }
     }
 
     &.kpi-open-orders {
         background: var(--surface-card);
         border-left: 4px solid #3b82f6;
+    }
+
+    &.kpi-active-orders {
+        background: var(--surface-card);
+        border-left: 4px solid #6366f1;
     }
 }
 
