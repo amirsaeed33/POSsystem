@@ -158,6 +158,9 @@ namespace SmartPos.Products
             product.Barcode = barcode;
             product.ImagePath = ProductImageStore.SaveBase64Image(input.ImageBase64);
             product.Specifications = input.Specifications;
+            product.CardTag = string.IsNullOrWhiteSpace(input.CardTag)
+                ? null
+                : input.CardTag.Trim();
 
             int resolvedBranchId = input.BranchId;
             if (resolvedBranchId <= 0)
@@ -278,6 +281,9 @@ namespace SmartPos.Products
             product.BrandId = input.BrandId.GetValueOrDefault();
             product.UnitId = input.UnitId;
             product.Specifications = input.Specifications;
+            product.CardTag = string.IsNullOrWhiteSpace(input.CardTag)
+                ? null
+                : input.CardTag.Trim();
 
             if (input.BranchId > 0)
             {

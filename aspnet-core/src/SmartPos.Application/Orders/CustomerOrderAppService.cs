@@ -166,7 +166,8 @@ namespace SmartPos.Orders
                             Specifications = p.Specifications,
                             IsFreeDelivery = p.IsFreeDelivery,
                             CategoryId = p.CategoryId,
-                            IsDeal = p.IsDeal || (p.Category != null && p.Category.Name.ToLower().Contains("deal"))
+                            IsDeal = p.IsDeal || (p.Category != null && p.Category.Name.ToLower().Contains("deal")),
+                            CardTag = p.CardTag
                         })
                         .ToList();
                 }
@@ -237,7 +238,8 @@ namespace SmartPos.Orders
                     Specifications = product.Specifications,
                     IsFreeDelivery = product.IsFreeDelivery,
                     CategoryId = product.CategoryId,
-                    IsDeal = product.IsDeal || (product.Category != null && product.Category.Name.ToLower().Contains("deal"))
+                    IsDeal = product.IsDeal || (product.Category != null && product.Category.Name.ToLower().Contains("deal")),
+                    CardTag = product.CardTag
                 };
             }
         }

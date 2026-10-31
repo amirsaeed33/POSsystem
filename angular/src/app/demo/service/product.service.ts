@@ -119,6 +119,7 @@ export class ProductService {
                     imageBase64: input.imageBase64,
                     branchIds: input.branchIds,
                     specifications: input.specifications,
+                    cardTag: input.cardTag || null,
                 })
             );
             const product = this.mapProduct(this.unwrap(res, 'Failed to update product'));
@@ -220,6 +221,9 @@ export class ProductService {
             isShared: !!(item.isShared ?? item.IsShared),
             branchIds: item.branchIds ?? item.BranchIds ?? [],
             specifications: item.specifications ?? item.Specifications ?? undefined,
+            dealId: item.dealId ?? item.DealId,
+            isDeal: !!(item.isDeal ?? item.IsDeal),
+            cardTag: item.cardTag ?? item.CardTag ?? undefined,
         };
     }
 

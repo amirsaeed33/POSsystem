@@ -1452,28 +1452,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return val.toFixed(1);
     }
 
-    getProductTag(product: any, index: number): string {
-        const domain = this.getProductDomain(product);
-        const idx = Math.abs(product?.id || index || 0);
-
-        if (domain === 'solar-panel') {
-            const tags = ['⭐ Tier-1 Module', '⚡ 25Y Warranty', '🔥 High Efficiency', '☀️ Bifacial Glass', '✨ A-Grade'];
-            return tags[idx % tags.length];
-        }
-        if (domain === 'inverter') {
-            const tags = ['⚡ Pure Sine Wave', '🔥 Smart MPPT', '⭐ 5Y Warranty', '📱 WiFi Monitored', '✨ Dual Output'];
-            return tags[idx % tags.length];
-        }
-        if (domain === 'battery') {
-            const tags = ['🔋 Deep Cycle', '⚡ Long Backup', '🔥 Fast Charging', '⭐ Heavy Duty', '✨ High Cycles'];
-            return tags[idx % tags.length];
-        }
-        if (domain === 'solar-accessory') {
-            const tags = ['⚡ UV Resistant', '⭐ Pure Copper', '🛡️ Surge Protected', '🔩 Rust Free'];
-            return tags[idx % tags.length];
-        }
-        const tags = ['🔥 Hot Deal', '⭐ Best Seller', '🎉 Special Deal', '⚡ Verified'];
-        return tags[idx % tags.length];
+    getProductTag(product: any, _index?: number): string {
+        const tag = (product?.cardTag ?? product?.CardTag ?? '').toString().trim();
+        return tag;
     }
 
     getProductDescription(product: any): string {

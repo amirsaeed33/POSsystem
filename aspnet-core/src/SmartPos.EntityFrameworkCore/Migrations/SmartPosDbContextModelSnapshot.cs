@@ -3370,6 +3370,10 @@ namespace SmartPos.Migrations
                     b.Property<int>("BrandId")
                         .HasColumnType("int");
 
+                    b.Property<string>("CardTag")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 

@@ -17,6 +17,7 @@ namespace SmartPos.Products
         public const int MaxImagePathLength = 512;
         public const int MaxBarcodeLength = 64;
         public const int MaxLocationLength = 256;
+        public const int MaxCardTagLength = 64;
 
         public virtual int? TenantId { get; set; }
 
@@ -95,5 +96,12 @@ namespace SmartPos.Products
         /// Indicates if this product is a Deal bundle.
         /// </summary>
         public virtual bool IsDeal { get; set; }
+
+        /// <summary>
+        /// Optional online-menu badge label (e.g. Hot Deal, Best Seller).
+        /// Empty = no badge on the storefront card.
+        /// </summary>
+        [StringLength(MaxCardTagLength)]
+        public virtual string CardTag { get; set; }
     }
 }

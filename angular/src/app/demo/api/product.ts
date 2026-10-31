@@ -48,6 +48,8 @@ export interface ProductDto {
     specifications?: string;
     dealId?: number;
     isDeal?: boolean;
+    /** Online menu badge label (Hot Deal, Best Seller, etc.). Empty = no badge. */
+    cardTag?: string;
 }
 
 export interface CreateProductDto {
@@ -68,6 +70,7 @@ export interface CreateProductDto {
     /** Empty = tenant-level (all locations). */
     branchIds?: number[];
     specifications?: string;
+    cardTag?: string;
 }
 
 export interface PagedProductResultRequestDto {

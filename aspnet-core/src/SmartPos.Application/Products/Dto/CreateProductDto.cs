@@ -50,6 +50,10 @@ namespace SmartPos.Products.Dto
 
         public string Specifications { get; set; }
 
+        /// <summary>Optional online-menu badge (Hot Deal, Best Seller, etc.).</summary>
+        [StringLength(Product.MaxCardTagLength)]
+        public string CardTag { get; set; }
+
         /// <summary>
         /// Tenant-admin only. Optional. Empty = tenant-level (all locations);
         /// otherwise product is limited to these branches.

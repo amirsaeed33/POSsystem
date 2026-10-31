@@ -81,5 +81,9 @@ namespace SmartPos.Products.Dto
         public int? DealId { get; set; }
 
         public bool IsDeal { get; set; }
+
+        /// <summary>Optional online-menu badge (Hot Deal, Best Seller, etc.).</summary>
+        [StringLength(Product.MaxCardTagLength)]
+        public string CardTag { get; set; }
     }
 }

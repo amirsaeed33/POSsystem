@@ -101,6 +101,7 @@ namespace SmartPos.Orders.Dto
         public string Specifications { get; set; }
         public bool IsFreeDelivery { get; set; }
         public bool IsDeal { get; set; }
+        public string CardTag { get; set; }
     }
 
     public class CreateCustomerOrderLineDto

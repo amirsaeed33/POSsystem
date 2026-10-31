@@ -55,6 +55,15 @@ export class ProductFormDialogComponent implements OnChanges {
     loading = false;
     canManageBranches = false;
 
+    readonly cardTagOptions: { label: string; value: string }[] = [
+        { label: '🔥 Hot Deal', value: '🔥 Hot Deal' },
+        { label: '⭐ Best Seller', value: '⭐ Best Seller' },
+        { label: '🎉 Special Deal', value: '🎉 Special Deal' },
+        { label: '⚡ Verified', value: '⚡ Verified' },
+        { label: '👑 Signature', value: '👑 Signature' },
+        { label: '✨ New', value: '✨ New' },
+    ];
+
     constructor(
         private productService: ProductService,
         private categoryService: CategoryService,
@@ -262,6 +271,7 @@ export class ProductFormDialogComponent implements OnChanges {
                   brandId: brandId || undefined,
                   imageBase64,
                   specifications: specsJson,
+                  cardTag: (this.product.cardTag || '').toString().trim() || undefined,
                   ...assignment,
               })
             : this.productService.create({
@@ -279,6 +289,7 @@ export class ProductFormDialogComponent implements OnChanges {
                   unitId: this.product.unitId,
                   imageBase64: undefined,
                   specifications: specsJson,
+                  cardTag: (this.product.cardTag || '').toString().trim() || undefined,
                   ...assignment,
               } as CreateProductDto);
 
@@ -364,6 +375,7 @@ export class ProductFormDialogComponent implements OnChanges {
             imagePath: undefined,
             imageBase64: undefined,
             branchIds: [],
+            cardTag: undefined,
         };
     }
 
