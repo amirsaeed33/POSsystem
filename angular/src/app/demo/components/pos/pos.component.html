@@ -982,7 +982,7 @@
                 pRipple
                 type="button"
                 label="Confirm &amp; save"
-                icon="pi pi-check"
+                [icon]="saving ? '' : 'pi pi-check'"
                 [loading]="saving"
                 (click)="confirmPaymentAndSave()"
             ></button>
