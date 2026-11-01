@@ -254,11 +254,12 @@ namespace SmartPos.Orders
         {
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
+                // Public storefront: list every active branch so the customer can pick (no hard-coded branch).
                 return await _branchRepository.GetAll()
                     .AsNoTracking()
-                    .Where(b => b.IsActive && b.TenantId != null)
-                    .OrderByDescending(b => b.BusinessType == BusinessType.Restaurant)
-                    .ThenBy(b => b.Name)
+                    .Where(b => b.IsActive)
+                    .OrderBy(b => b.Name)
+                    .ThenBy(b => b.Id)
                     .Select(b => new OnlineBranchDto
                     {
                         Id = b.Id,

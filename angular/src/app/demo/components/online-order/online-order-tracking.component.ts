@@ -1,27 +1,30 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { CustomerOrderDto, CustomerOrderStatus } from 'src/app/demo/api/customer-order';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
+import {
+    MyOnlineOrderRef,
+    MyOnlineOrdersService,
+} from 'src/app/demo/service/my-online-orders.service';
 
 @Component({
     selector: 'app-online-order-tracking',
     templateUrl: './online-order-tracking.component.html',
     styleUrls: ['./online-order-tracking.component.scss'],
-    providers: [MessageService]
+    providers: [MessageService],
 })
 export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
-    orderNoInput = '';
+    myOrders: MyOnlineOrderRef[] = [];
     currentOrderNo = '';
     order: CustomerOrderDto | null = null;
     loading = false;
     refreshing = false;
     errorMessage = '';
     lastUpdated: Date | null = null;
-    copied = false;
     branchId: number | null = null;
+    view: 'list' | 'detail' = 'list';
 
-    private pollTimer: any = null;
     private countdownInterval: any = null;
     autoRefreshSeconds = 8;
     countdown = 8;
@@ -31,6 +34,7 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
         private route: ActivatedRoute,
         private router: Router,
         private customerOrderService: CustomerOrderService,
+        private myOnlineOrders: MyOnlineOrdersService,
         private messageService: MessageService
     ) {}
 
@@ -40,22 +44,26 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
             this.branchId = Number(qBranchId);
         }
 
-        // Check route parameter: /online-order/track/:orderNo
-        this.route.paramMap.subscribe(params => {
+        this.reloadMyOrders();
+
+        this.route.paramMap.subscribe((params) => {
             const paramOrderNo = params.get('orderNo');
             if (paramOrderNo) {
-                this.orderNoInput = paramOrderNo.trim();
-                this.searchOrder(this.orderNoInput);
-            } else {
-                // Check query parameter: /online-order/track?orderNo=...
-                this.route.queryParamMap.subscribe(qParams => {
-                    const qOrderNo = qParams.get('orderNo');
-                    if (qOrderNo) {
-                        this.orderNoInput = qOrderNo.trim();
-                        this.searchOrder(this.orderNoInput);
-                    }
-                });
+                void this.selectOrder(paramOrderNo.trim());
+                return;
             }
+
+            this.route.queryParamMap.subscribe((qParams) => {
+                const qOrderNo = qParams.get('orderNo');
+                if (qOrderNo) {
+                    void this.selectOrder(qOrderNo.trim());
+                } else {
+                    this.view = 'list';
+                    this.order = null;
+                    this.currentOrderNo = '';
+                    this.stopPolling();
+                }
+            });
         });
     }
 
@@ -63,16 +71,33 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
         this.stopPolling();
     }
 
-    onSearchSubmit(): void {
-        if (!this.orderNoInput || !this.orderNoInput.trim()) {
-            this.errorMessage = 'Please enter an Order Number or Mobile Number.';
+    reloadMyOrders(): void {
+        this.myOrders = this.myOnlineOrders.getForBranch(this.branchId);
+    }
+
+    async selectOrder(orderNo: string): Promise<void> {
+        if (!orderNo?.trim()) {
             return;
         }
         this.errorMessage = '';
-        this.searchOrder(this.orderNoInput.trim());
+        this.view = 'detail';
+        await this.loadOrder(orderNo.trim());
     }
 
-    async searchOrder(orderNo: string, silent = false): Promise<void> {
+    showMyOrders(): void {
+        this.view = 'list';
+        this.order = null;
+        this.currentOrderNo = '';
+        this.errorMessage = '';
+        this.stopPolling();
+        this.reloadMyOrders();
+        this.router.navigate(['/online-order/track'], {
+            queryParams: this.branchId ? { branchId: this.branchId } : {},
+            replaceUrl: true,
+        });
+    }
+
+    async loadOrder(orderNo: string, silent = false): Promise<void> {
         if (!silent) {
             this.loading = true;
             this.errorMessage = '';
@@ -85,26 +110,34 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
         try {
             const result = await this.customerOrderService.trackOrder(orderNo);
             if (!result) {
-                this.errorMessage = `Order "${orderNo}" not found. Please double check the number and try again.`;
+                this.errorMessage =
+                    'This order could not be found. It may have been removed.';
                 this.order = null;
                 this.stopPolling();
                 return;
             }
 
-            // Check if status changed to In Progress or Delivered
-            if (this.previousStatus !== null && this.previousStatus === CustomerOrderStatus.Pending && this.isInProgress(result)) {
+            if (
+                this.previousStatus !== null &&
+                this.previousStatus === CustomerOrderStatus.Pending &&
+                this.isInProgress(result)
+            ) {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Order Accepted!',
-                    detail: 'Great news! The store has accepted your order and it is now In Progress.',
-                    life: 6000
+                    detail: 'The store accepted your order and is preparing it.',
+                    life: 6000,
                 });
-            } else if (this.previousStatus !== null && this.previousStatus !== CustomerOrderStatus.Delivered && this.isDelivered(result)) {
+            } else if (
+                this.previousStatus !== null &&
+                this.previousStatus !== CustomerOrderStatus.Delivered &&
+                this.isDelivered(result)
+            ) {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Order Delivered!',
-                    detail: 'Your order has been successfully delivered. Enjoy your meal!',
-                    life: 8000
+                    summary: 'Delivered!',
+                    detail: 'Your order was delivered successfully. Enjoy!',
+                    life: 8000,
                 });
             }
 
@@ -112,18 +145,20 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
             this.order = result;
             this.lastUpdated = new Date();
             this.errorMessage = '';
+            this.view = 'detail';
 
-            // Update URL query param if not in paramMap
             if (!this.route.snapshot.paramMap.get('orderNo')) {
                 this.router.navigate([], {
                     relativeTo: this.route,
-                    queryParams: { orderNo: result.orderNo || orderNo },
+                    queryParams: {
+                        orderNo: result.orderNo || orderNo,
+                        ...(this.branchId ? { branchId: this.branchId } : {}),
+                    },
                     queryParamsHandling: 'merge',
-                    replaceUrl: true
+                    replaceUrl: true,
                 });
             }
 
-            // Keep polling if order is still active (Pending or In Progress)
             if (this.isPending(result) || this.isInProgress(result)) {
                 this.startPolling();
             } else {
@@ -132,7 +167,8 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
         } catch (err: any) {
             if (!silent) {
                 this.order = null;
-                this.errorMessage = err?.message || 'Could not find order. Please verify the order number.';
+                this.errorMessage =
+                    err?.message || 'Could not load this order right now.';
                 this.stopPolling();
             }
         } finally {
@@ -144,14 +180,13 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
     startPolling(): void {
         this.stopPolling();
         this.countdown = this.autoRefreshSeconds;
-
         this.countdownInterval = setInterval(() => {
             if (this.countdown > 1) {
                 this.countdown--;
             } else {
                 this.countdown = this.autoRefreshSeconds;
                 if (this.currentOrderNo && !this.loading && !this.refreshing) {
-                    this.searchOrder(this.currentOrderNo, true);
+                    void this.loadOrder(this.currentOrderNo, true);
                 }
             }
         }, 1000);
@@ -162,15 +197,11 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
             clearInterval(this.countdownInterval);
             this.countdownInterval = null;
         }
-        if (this.pollTimer) {
-            clearTimeout(this.pollTimer);
-            this.pollTimer = null;
-        }
     }
 
     manualRefresh(): void {
         if (this.currentOrderNo) {
-            this.searchOrder(this.currentOrderNo, false);
+            void this.loadOrder(this.currentOrderNo, false);
         }
     }
 
@@ -181,15 +212,19 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
 
     isInProgress(order?: CustomerOrderDto | null): boolean {
         if (!order) return false;
-        return order.status === CustomerOrderStatus.Approved
-            || order.status === CustomerOrderStatus.InProgress
-            || Boolean(order.statusName?.toLowerCase().includes('progress'));
+        return (
+            order.status === CustomerOrderStatus.Approved ||
+            order.status === CustomerOrderStatus.InProgress ||
+            Boolean(order.statusName?.toLowerCase().includes('progress'))
+        );
     }
 
     isDelivered(order?: CustomerOrderDto | null): boolean {
         if (!order) return false;
-        return order.status === CustomerOrderStatus.Delivered
-            || Boolean(order.statusName?.toLowerCase().includes('deliver'));
+        return (
+            order.status === CustomerOrderStatus.Delivered ||
+            Boolean(order.statusName?.toLowerCase().includes('deliver'))
+        );
     }
 
     isRejected(order?: CustomerOrderDto | null): boolean {
@@ -197,26 +232,26 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
         return order.status === CustomerOrderStatus.Rejected;
     }
 
-    copyOrderNo(val?: string): void {
-        if (!val) return;
-        navigator.clipboard.writeText(val).then(() => {
-            this.copied = true;
-            this.messageService.add({
-                severity: 'info',
-                summary: 'Copied',
-                detail: `Order #${val} copied to clipboard!`,
-                life: 2500
-            });
-            setTimeout(() => {
-                this.copied = false;
-            }, 2500);
-        });
+    statusLabel(order: CustomerOrderDto): string {
+        if (this.isRejected(order)) return 'Cancelled';
+        if (this.isDelivered(order)) return 'Delivered';
+        if (this.isInProgress(order)) return 'Preparing';
+        return 'Received';
+    }
+
+    statusHint(order: CustomerOrderDto): string {
+        if (this.isRejected(order)) return 'This order was cancelled by the store.';
+        if (this.isDelivered(order)) return 'Enjoy your meal — thank you for ordering!';
+        if (this.isInProgress(order)) return 'The kitchen is preparing your food now.';
+        return 'Waiting for the store to confirm your order.';
     }
 
     backToStore(): void {
         if (this.branchId || this.order?.branchId) {
             this.router.navigate(['/online-order'], {
-                queryParams: { branchId: this.branchId || this.order?.branchId }
+                queryParams: {
+                    branchId: this.branchId || this.order?.branchId,
+                },
             });
         } else {
             this.router.navigate(['/online-order']);

@@ -8,11 +8,18 @@ import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { SessionService } from 'src/app/demo/service/session.service';
+import { AuthService } from 'src/app/demo/service/auth.service';
+import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
 import { OnlineOrderHeroSlideService } from 'src/app/demo/service/online-order-hero-slide.service';
 import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
+import {
+    MyOnlineOrderRef,
+    MyOnlineOrdersService,
+} from 'src/app/demo/service/my-online-orders.service';
 import { ProductModifierGroupDto, ProductModifierOptionDto } from 'src/app/demo/api/product-modifier';
 import { MessageService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
+import { CustomerOrderStatus } from 'src/app/demo/api/customer-order';
 
 export interface CategorySection {
     category: string;
@@ -95,6 +102,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     // Store Chat Floating Drawer
     storeChatOpen = false;
+
+    /** Active online orders for this device — shown in the menu (no separate track page). */
+    activeOrders: MyOnlineOrderRef[] = [];
+    loadingActiveOrders = false;
 
     // Checkout modal & state
     checkoutModalVisible = false;
@@ -193,12 +204,15 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         private branchContext: BranchContextService,
         private branchService: BranchService,
         private sessionService: SessionService,
+        private authService: AuthService,
+        private tenantContext: TenantContextService,
         private route: ActivatedRoute,
         private router: Router,
         private messageService: MessageService,
         private deliveryAreaService: DeliveryAreaService,
         private onlineOrderHeroSlideService: OnlineOrderHeroSlideService,
-        private productModifierService: ProductModifierService
+        private productModifierService: ProductModifierService,
+        private myOnlineOrders: MyOnlineOrdersService
     ) {}
 
     currentHeroSlide = 0;
@@ -392,13 +406,78 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             if (paramBranchId && !isNaN(Number(paramBranchId))) {
                 this.branchId = Number(paramBranchId);
                 this.branchMissingError = false;
+                void this.ensurePublicBranchesLoaded();
                 this.resolveBranchName(this.branchId);
                 void this.loadHeroSlides(this.branchId);
                 this.loadCatalog(this.branchId, paramProductId ? Number(paramProductId) : undefined);
+                void this.refreshActiveOrders();
             } else {
+                this.activeOrders = [];
                 this.handleMissingBranchId();
             }
         });
+    }
+
+    async refreshActiveOrders(): Promise<void> {
+        const saved = this.myOnlineOrders.getForBranch(this.branchId).slice(0, 6);
+        if (!saved.length) {
+            this.activeOrders = [];
+            return;
+        }
+
+        this.loadingActiveOrders = true;
+        try {
+            const refreshed = await Promise.all(
+                saved.map(async (ref) => {
+                    try {
+                        const live = await this.customerOrderService.trackOrder(
+                            ref.orderNo
+                        );
+                        if (live) {
+                            this.myOnlineOrders.updateStatus(
+                                ref.orderNo,
+                                live.status,
+                                live.statusName
+                            );
+                            return {
+                                ...ref,
+                                status: live.status,
+                                statusName: live.statusName || ref.statusName,
+                                totalAmount:
+                                    live.totalAmount ?? ref.totalAmount,
+                                branchName:
+                                    live.branchName || ref.branchName,
+                            } as MyOnlineOrderRef;
+                        }
+                    } catch {
+                        // Keep cached ref if live lookup fails.
+                    }
+                    return ref;
+                })
+            );
+
+            this.activeOrders = refreshed.filter((o) =>
+                this.myOnlineOrders.isActiveStatus(o.status)
+            );
+        } finally {
+            this.loadingActiveOrders = false;
+        }
+    }
+
+    activeOrderStatusLabel(order: MyOnlineOrderRef): string {
+        if (order.status === CustomerOrderStatus.InProgress) return 'Preparing';
+        if (order.status === CustomerOrderStatus.Approved) return 'Accepted';
+        if (order.status === CustomerOrderStatus.Pending || order.status == null) {
+            return 'Pending';
+        }
+        return order.statusName || 'Active';
+    }
+
+    openActiveOrder(order: MyOnlineOrderRef): void {
+        if (!order?.orderNo) {
+            return;
+        }
+        this.goToTracking(order.orderNo);
     }
 
     ngOnDestroy(): void {
@@ -494,66 +573,88 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return this.youtubeUrl || 'https://www.youtube.com/';
     }
 
-    async handleMissingBranchId(): Promise<void> {
-        const ctxBranchId = this.branchContext.getBranchId();
-        if (ctxBranchId) {
-            this.setBranchInUrl(ctxBranchId);
-            return;
+    async ensurePublicBranchesLoaded(): Promise<void> {
+        try {
+            const publicBranches = await this.customerOrderService.getOnlineBranches();
+            this.availableBranches = (publicBranches || []).map((b) => ({
+                id: b.id,
+                name: b.name,
+                address: b.address,
+                isRestaurant: b.isRestaurant,
+            }));
+        } catch {
+            // Keep whatever list we already have.
         }
+    }
+
+    async handleMissingBranchId(): Promise<void> {
+        // Never hard-code / auto-pick a branch — always let the customer choose.
+        this.branchId = null;
+        this.branchName = '';
+        this.products = [];
+        this.filteredProducts = [];
+        this.categorySections = [];
+        this.heroSlides = [...this.defaultHeroSlides];
 
         try {
             this.loading = true;
+            await this.ensurePublicBranchesLoaded();
 
-            // Public / guest path: no login required.
-            const publicBranches = await this.customerOrderService.getOnlineBranches();
-            if (publicBranches?.length === 1) {
-                this.setBranchInUrl(publicBranches[0].id);
-                return;
-            }
-            if (publicBranches?.length > 1) {
-                const restaurants = publicBranches.filter((b) => b.isRestaurant);
-                if (restaurants.length === 1) {
-                    this.setBranchInUrl(restaurants[0].id);
-                    return;
+            if (!this.availableBranches.length) {
+                try {
+                    await this.branchContext.ensureLoaded();
+                    const allowed = this.branchContext.getAllowedBranches();
+                    if (allowed?.length) {
+                        this.availableBranches = allowed.map((b) => ({
+                            id: b.id,
+                            name: b.name,
+                        }));
+                    }
+                } catch {
+                    // ignore
                 }
-                this.availableBranches = publicBranches.map((b) => ({
-                    id: b.id,
-                    name: b.name,
-                })) as any[];
-                this.branchMissingError = true;
-                return;
             }
 
-            await this.branchContext.ensureLoaded();
-            const allowed = this.branchContext.getAllowedBranches();
-            if (allowed && allowed.length > 0) {
-                this.setBranchInUrl(allowed[0].id);
-                return;
-            }
-
-            const branches = await this.branchService.getLookup();
-            this.availableBranches = branches || [];
-            if (this.availableBranches.length === 1) {
-                this.setBranchInUrl(this.availableBranches[0].id);
-                return;
-            } else if (this.availableBranches.length > 1) {
-                this.branchMissingError = true;
-                return;
+            if (!this.availableBranches.length) {
+                try {
+                    const branches = await this.branchService.getLookup();
+                    this.availableBranches = branches || [];
+                } catch {
+                    // ignore
+                }
             }
         } catch {
-            // Fallback
+            // Fallback below
         } finally {
             this.loading = false;
         }
 
+        this.selectedBranchIdForModal = null;
         this.branchMissingError = true;
+        this.mobileBranchModal = false;
     }
 
     setBranchInUrl(bId: number): void {
+        this.branchMissingError = false;
+        this.mobileBranchModal = false;
         this.router.navigate([], {
             relativeTo: this.route,
             queryParams: { branchId: bId },
             queryParamsHandling: 'merge',
+        });
+    }
+
+    /** Clear branch selection and show the full branch list again. */
+    showAllBranches(): void {
+        this.branchId = null;
+        this.branchName = '';
+        this.branchMissingError = true;
+        this.mobileBranchModal = false;
+        this.selectedBranchIdForModal = null;
+        this.cartService.clearCart();
+        this.router.navigate(['/online-order'], { queryParams: {} });
+        void this.ensurePublicBranchesLoaded().then(() => {
+            this.branchMissingError = true;
         });
     }
 
@@ -567,6 +668,30 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             return;
         }
         this.setBranchInUrl(this.selectedBranchIdForModal);
+    }
+
+    selectBranchCard(branch: { id: number }): void {
+        if (!branch?.id) {
+            return;
+        }
+        this.setBranchInUrl(branch.id);
+    }
+
+    logoutAndShowBranches(): void {
+        this.authService.logout();
+        this.tenantContext.setTenantId(undefined);
+        this.tenantContext.setTenantInfo(null);
+        this.branchContext.clear();
+        this.isLoggedIn = false;
+        this.userName = '';
+        this.userInitials = '';
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Logged out',
+            detail: 'Choose a branch to continue ordering.',
+            life: 2500,
+        });
+        this.showAllBranches();
     }
 
     async loadCatalog(bId?: number, selectProductId?: number): Promise<void> {
@@ -907,12 +1032,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                     life: 2500,
                 });
             } else {
-                this.messageService.add({
-                    severity: 'info',
-                    summary: 'Guest checkout',
-                    detail: 'No login needed — add items and place your order with name & phone.',
-                    life: 3200,
-                });
+                this.router.navigate(['/auth/login']);
             }
         }
     }
@@ -1982,6 +2102,19 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             this.confirmedOrderNo = createdOrder.orderNo || `ORD-${createdOrder.id}`;
             this.confirmedTotal = createdOrder.totalAmount;
 
+            this.myOnlineOrders.remember({
+                orderNo: this.confirmedOrderNo,
+                branchId: this.branchId || createdOrder.branchId || null,
+                branchName: this.branchName || createdOrder.branchName || '',
+                totalAmount: createdOrder.totalAmount,
+                customerName: input.customerName,
+                customerMobile: input.customerMobile,
+                placedAt: new Date().toISOString(),
+                status: createdOrder.status ?? CustomerOrderStatus.Pending,
+                statusName: createdOrder.statusName || 'Pending',
+            });
+            void this.refreshActiveOrders();
+
             // Reset cart & checkout modal state
             this.cartService.clearCart();
             this.customerName = '';
@@ -2089,14 +2222,11 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     goToTracking(orderNo?: string): void {
         this.successModalVisible = false;
-        if (orderNo) {
-            this.router.navigate(['/online-order/track', orderNo], {
-                queryParams: this.branchId ? { branchId: this.branchId } : {}
-            });
-        } else {
-            this.router.navigate(['/online-order/track'], {
-                queryParams: this.branchId ? { branchId: this.branchId } : {}
-            });
+        if (!orderNo) {
+            return;
         }
+        this.router.navigate(['/online-order/track', orderNo], {
+            queryParams: this.branchId ? { branchId: this.branchId } : {},
+        });
     }
 }

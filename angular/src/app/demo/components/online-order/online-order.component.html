@@ -24,8 +24,7 @@
                 <!-- Desktop Branch / Location Selector Pill -->
                 <div
                     class="fp-location-picker-pill cursor-pointer"
-                    (click)="mobileBranchModal = true"
-                    *ngIf="availableBranches.length > 0"
+                    (click)="availableBranches.length ? (mobileBranchModal = true) : showAllBranches()"
                     pTooltip="Change branch location"
                     tooltipPosition="bottom"
                 >
@@ -71,14 +70,6 @@
                 <button
                     type="button"
                     class="fp-nav-link-btn"
-                    (click)="goToTracking()"
-                >
-                    <i class="pi pi-compass text-xs mr-1"></i>
-                    <span>Track Order</span>
-                </button>
-                <button
-                    type="button"
-                    class="fp-nav-link-btn"
                     [class.active]="activeNav === 'contact'"
                     (click)="scrollToSection('contact', $event)"
                 >
@@ -107,28 +98,39 @@
                 </span>
             </div>
 
-            <!-- Right: Sign In / Profile, and Cart Drawer -->
+            <!-- Right: Staff Login / Profile, and Cart Drawer -->
             <div class="flex align-items-center gap-2 flex-shrink-0">
-                <!-- Authentication: Sign In (Desktop) -->
+                <!-- Staff / Admin Login (Desktop) -->
                 <a
                     *ngIf="!isLoggedIn"
                     routerLink="/auth/login"
-                    class="fp-auth-pill inline-flex cursor-pointer hover:surface-200 transition-colors"
+                    class="fp-staff-login-btn"
+                    title="Staff / Admin Login"
                 >
-                    <i class="pi pi-user text-600"></i>
-                    <span class="font-bold text-xs">Sign In</span>
+                    <i class="pi pi-sign-in"></i>
+                    <span>Staff Login</span>
                 </a>
 
-                <!-- Authentication: Logged in Avatar -->
-                <div
-                    *ngIf="isLoggedIn"
-                    class="fp-auth-pill cursor-pointer"
-                    pTooltip="Signed in as {{ userName }}"
-                    tooltipPosition="bottom"
-                >
-                    <div class="avatar-circle">{{ userInitials }}</div>
-                    <span class="font-bold text-xs">{{ userName }}</span>
-                </div>
+                <!-- Logged in: profile + logout -->
+                <ng-container *ngIf="isLoggedIn">
+                    <div
+                        class="fp-auth-pill"
+                        pTooltip="Signed in as {{ userName }}"
+                        tooltipPosition="bottom"
+                    >
+                        <div class="avatar-circle">{{ userInitials }}</div>
+                        <span class="font-bold text-xs">{{ userName }}</span>
+                    </div>
+                    <button
+                        type="button"
+                        class="fp-staff-login-btn"
+                        title="Logout and choose branch"
+                        (click)="logoutAndShowBranches()"
+                    >
+                        <i class="pi pi-sign-out"></i>
+                        <span>Logout</span>
+                    </button>
+                </ng-container>
 
                 <!-- Cart Trigger Pill Button with Live Count & Subtotal -->
                 <button
@@ -179,8 +181,19 @@
                 </div>
             </div>
 
-            <!-- Right: Search Icon Button, Track, Cart, Burger Menu -->
+            <!-- Right: Login, Search, Track, Cart, Burger Menu -->
             <div class="flex align-items-center gap-1 flex-shrink-0">
+                <a
+                    *ngIf="!isLoggedIn"
+                    routerLink="/auth/login"
+                    class="fp-staff-login-btn fp-staff-login-btn--compact"
+                    title="Staff Login"
+                    aria-label="Staff Login"
+                >
+                    <i class="pi pi-sign-in"></i>
+                    <span>Login</span>
+                </a>
+
                 <!-- Search Toggle Button -->
                 <button
                     type="button"
@@ -190,17 +203,6 @@
                     aria-label="Search"
                 >
                     <i class="pi pi-search"></i>
-                </button>
-
-                <!-- Track Order Button (Mobile) -->
-                <button
-                    type="button"
-                    class="fp-mobile-action-btn"
-                    (click)="goToTracking()"
-                    title="Track Order"
-                    aria-label="Track Order"
-                >
-                    <i class="pi pi-compass"></i>
                 </button>
 
                 <!-- Mobile Cart Button -->
@@ -298,14 +300,6 @@
             <button
                 type="button"
                 class="fp-mobile-drawer-link"
-                (click)="mobileNavOpen = false; goToTracking()"
-            >
-                <i class="pi pi-compass"></i>
-                <span>Track Order</span>
-            </button>
-            <button
-                type="button"
-                class="fp-mobile-drawer-link"
                 (click)="mobileNavOpen = false; mobileBranchModal = true"
             >
                 <i class="pi pi-map-marker text-red-500"></i>
@@ -326,16 +320,34 @@
             <a
                 *ngIf="!isLoggedIn"
                 routerLink="/auth/login"
-                class="fp-mobile-drawer-link"
+                class="fp-mobile-drawer-link fp-mobile-drawer-login"
                 (click)="mobileNavOpen = false"
             >
-                <i class="pi pi-user text-primary"></i>
-                <span>Customer Login</span>
+                <i class="pi pi-sign-in text-primary"></i>
+                <span>Staff Login</span>
             </a>
-            <div *ngIf="isLoggedIn" class="p-3 surface-100 border-round-xl">
-                <div class="text-xs text-500 font-semibold">Signed in as</div>
-                <div class="text-sm font-bold text-900">{{ userName }}</div>
+            <div *ngIf="isLoggedIn" class="p-3 surface-100 border-round-xl flex flex-column gap-2">
+                <div>
+                    <div class="text-xs text-500 font-semibold">Signed in as</div>
+                    <div class="text-sm font-bold text-900">{{ userName }}</div>
+                </div>
+                <button
+                    type="button"
+                    class="fp-mobile-drawer-link fp-mobile-drawer-login w-full justify-content-center"
+                    (click)="mobileNavOpen = false; logoutAndShowBranches()"
+                >
+                    <i class="pi pi-sign-out text-primary"></i>
+                    <span>Logout</span>
+                </button>
             </div>
+            <button
+                type="button"
+                class="fp-mobile-drawer-link"
+                (click)="mobileNavOpen = false; showAllBranches()"
+            >
+                <i class="pi pi-building"></i>
+                <span>All Branches</span>
+            </button>
         </div>
     </p-sidebar>
 
@@ -1322,8 +1334,8 @@
                 pButton
                 pRipple
                 type="button"
-                label="Track My Order (Live Status)"
-                icon="pi pi-compass"
+                label="View Order Status"
+                icon="pi pi-eye"
                 class="p-button-primary border-round-xl font-bold w-full py-2 mb-2 shadow-2"
                 (click)="goToTracking(confirmedOrderNo)"
             ></button>
@@ -1392,36 +1404,49 @@
         </div>
     </p-dialog>
 
-    <!-- 12. Branch Missing Error Selection Dialog -->
+    <!-- 12. Branch picker (always shown when no branch selected) -->
     <p-dialog
-        header="Select a Branch to View Store"
+        header="Choose a Branch to Order"
         [(visible)]="branchMissingError"
         [modal]="true"
-        [style]="{ width: '420px', maxWidth: '94vw' }"
+        [style]="{ width: '560px', maxWidth: '96vw' }"
         [closable]="false"
         [draggable]="false"
         styleClass="fp-mobile-dialog"
     >
-        <div class="py-2">
-            <p class="text-600 text-sm mb-3">Please select which restaurant branch you would like to order from:</p>
-            <p-dropdown
-                [options]="availableBranches"
-                [(ngModel)]="selectedBranchIdForModal"
-                optionLabel="name"
-                optionValue="id"
-                placeholder="Select a Branch..."
-                styleClass="w-full mb-3"
-            ></p-dropdown>
-            <button
-                pButton
-                type="button"
-                label="Open Menu & Order"
-                icon="pi pi-arrow-right"
-                iconPos="right"
-                class="p-button-danger w-full py-3 border-round-xl font-bold shadow-2"
-                [disabled]="!selectedBranchIdForModal"
-                (click)="onSelectBranchFromModal()"
-            ></button>
+        <div class="py-1">
+            <p class="text-600 text-sm mb-3">
+                Select any branch below. You can switch branches anytime from the location picker.
+            </p>
+
+            <div *ngIf="loading && !availableBranches.length" class="text-center text-500 py-4">
+                <i class="pi pi-spin pi-spinner mr-2"></i>Loading branches...
+            </div>
+
+            <div *ngIf="!loading && !availableBranches.length" class="text-center text-500 py-4">
+                No branches available for online ordering right now.
+            </div>
+
+            <div class="fp-branch-pick-grid" *ngIf="availableBranches.length">
+                <button
+                    type="button"
+                    class="fp-branch-pick-card"
+                    *ngFor="let b of availableBranches"
+                    (click)="selectBranchCard(b)"
+                >
+                    <div class="fp-branch-pick-icon">
+                        <i [class]="b.isRestaurant ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
+                    </div>
+                    <div class="fp-branch-pick-text">
+                        <div class="font-bold text-900">{{ b.name }}</div>
+                        <div class="text-xs text-500" *ngIf="b.address">{{ b.address }}</div>
+                        <div class="text-xs text-primary font-semibold mt-1">
+                            {{ b.isRestaurant ? 'Restaurant' : 'Store' }} · Tap to order
+                        </div>
+                    </div>
+                    <i class="pi pi-arrow-right text-500"></i>
+                </button>
+            </div>
         </div>
     </p-dialog>
 
@@ -1558,7 +1583,6 @@
                         <li><a (click)="scrollToSection('home', $event)" class="cursor-pointer hover:text-white transition-colors">Home</a></li>
                         <li><a (click)="scrollToSection('menu', $event)" class="cursor-pointer hover:text-white transition-colors">Food Menu</a></li>
                         <li><a (click)="scrollToSection('deals', $event)" class="cursor-pointer hover:text-white transition-colors">Super Deals</a></li>
-                        <li><a (click)="goToTracking()" class="cursor-pointer hover:text-white transition-colors">Track Order</a></li>
                     </ul>
                 </div>
 

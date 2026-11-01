@@ -1,391 +1,200 @@
-<div class="fp-track-dashboard">
-    <!-- 1. COMPACT TOP NAVBAR -->
-    <header class="fp-track-navbar">
-        <div class="navbar-content">
-            <!-- Left: Back to Store -->
-            <button
-                pButton
-                pRipple
-                type="button"
-                icon="pi pi-arrow-left"
-                label="Back to Store"
-                class="p-button-text p-button-sm compact-nav-btn text-700"
-                (click)="backToStore()"
-            ></button>
-
-            <!-- Center: Title -->
-            <div class="navbar-center-title">
-                <span class="pulse-indicator-dot"></span>
-                <span class="title-text">Live Order Tracking</span>
-            </div>
-
-            <!-- Right: Auto-Refresh Indicator / Manual Refresh -->
-            <div class="navbar-actions">
-                <div *ngIf="order && (isPending(order) || isInProgress(order))" class="live-status-pill hidden sm:inline-flex">
-                    <span class="pulse-green-dot"></span>
-                    <span>Live &bull; {{ countdown }}s</span>
-                </div>
-                <button
-                    *ngIf="order"
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-refresh"
-                    [loading]="refreshing"
-                    [pTooltip]="'Refresh now (Auto-refresh every ' + autoRefreshSeconds + 's)'"
-                    tooltipPosition="bottom"
-                    class="p-button-rounded p-button-text p-button-sm text-600 hover:surface-200"
-                    (click)="manualRefresh()"
-                    aria-label="Refresh Order"
-                ></button>
-            </div>
+<div class="ot-page">
+    <header class="ot-top">
+        <button type="button" class="ot-back" (click)="view === 'detail' ? showMyOrders() : backToStore()">
+            <i class="pi pi-arrow-left"></i>
+            <span>{{ view === 'detail' ? 'My Orders' : 'Back to Menu' }}</span>
+        </button>
+        <div class="ot-top-title">
+            <span class="ot-live-dot" *ngIf="view === 'detail' && order && (isPending(order) || isInProgress(order))"></span>
+            <span>{{ view === 'detail' ? 'Order Status' : 'Track Your Order' }}</span>
         </div>
+        <button
+            *ngIf="view === 'detail' && order"
+            type="button"
+            class="ot-icon-btn"
+            [disabled]="refreshing || loading"
+            (click)="manualRefresh()"
+            title="Refresh"
+        >
+            <i class="pi" [class.pi-spin]="refreshing" [class.pi-spinner]="refreshing" [class.pi-refresh]="!refreshing"></i>
+        </button>
+        <div *ngIf="view !== 'detail' || !order" class="ot-top-spacer"></div>
     </header>
 
-    <!-- 2. MAIN VIEWPORT WRAPPER -->
-    <main class="fp-track-body">
-        <!-- SEARCH & ORDER QUICK BAR (Compact inline bar) -->
-        <div class="search-quick-bar">
-            <!-- Input group -->
-            <div class="search-input-group">
-                <span class="p-input-icon-left search-input-wrapper">
-                    <i class="pi pi-search text-400"></i>
-                    <input
-                        pInputText
-                        type="text"
-                        [(ngModel)]="orderNoInput"
-                        (keyup.enter)="onSearchSubmit()"
-                        placeholder="Enter Order # (e.g. ORD-00008) or Phone"
-                        class="compact-input font-mono"
-                    />
-                </span>
+    <main class="ot-main">
+        <!-- LIST: pick an order (no search) -->
+        <section *ngIf="view === 'list'" class="ot-list-wrap">
+            <div class="ot-hero-card">
+                <div class="ot-hero-icon"><i class="pi pi-send"></i></div>
+                <h1>Your recent orders</h1>
+                <p>Tap an order below to see live status. No typing needed.</p>
+            </div>
+
+            <div *ngIf="!myOrders.length" class="ot-empty">
+                <div class="ot-empty-icon"><i class="pi pi-inbox"></i></div>
+                <h2>No orders on this device yet</h2>
+                <p>Place an order from the menu and it will appear here automatically for easy tracking.</p>
+                <button type="button" class="ot-primary-btn" (click)="backToStore()">
+                    <i class="pi pi-shopping-bag"></i>
+                    <span>Browse Menu</span>
+                </button>
+            </div>
+
+            <div *ngIf="myOrders.length" class="ot-order-list">
                 <button
-                    pButton
-                    pRipple
                     type="button"
-                    label="Track"
-                    icon="pi pi-compass"
-                    class="compact-track-btn"
-                    [loading]="loading"
-                    (click)="onSearchSubmit()"
-                ></button>
-            </div>
-
-            <!-- Order Badge & Copy (when order loaded) -->
-            <div *ngIf="order && !loading" class="order-quick-info">
-                <div class="order-no-pill">
-                    <span class="label">Order:</span>
-                    <span class="number font-mono">{{ order.orderNo || ('#' + order.id) }}</span>
-                    <button
-                        pButton
-                        type="button"
-                        [icon]="copied ? 'pi pi-check text-green-600' : 'pi pi-copy text-500'"
-                        class="p-button-rounded p-button-text p-button-xs copy-btn"
-                        [pTooltip]="copied ? 'Copied!' : 'Copy Order #'"
-                        tooltipPosition="top"
-                        (click)="copyOrderNo(order.orderNo || ('#' + order.id))"
-                    ></button>
-                </div>
-
-                <!-- Status Badge -->
-                <div
-                    class="status-pill"
-                    [ngClass]="{
-                        'status-pill-pending': isPending(order),
-                        'status-pill-inprogress': isInProgress(order),
-                        'status-pill-delivered': isDelivered(order),
-                        'status-pill-rejected': isRejected(order)
-                    }"
+                    class="ot-order-card"
+                    *ngFor="let o of myOrders"
+                    (click)="selectOrder(o.orderNo)"
                 >
-                    <i [class]="isPending(order) ? 'pi pi-clock' : isInProgress(order) ? 'pi pi-spin pi-cog' : isDelivered(order) ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
-                    <span class="font-bold">
-                        {{ isPending(order) ? 'Pending Confirmation' : isInProgress(order) ? 'In Progress' : isDelivered(order) ? 'Delivered' : 'Rejected' }}
-                    </span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Error Alert -->
-        <div *ngIf="errorMessage" class="compact-error-alert">
-            <i class="pi pi-exclamation-circle text-red-600"></i>
-            <span>{{ errorMessage }}</span>
-        </div>
-
-        <!-- Loading State -->
-        <div *ngIf="loading" class="loading-state-card">
-            <i class="pi pi-spin pi-spinner text-3xl text-teal-600 mb-2"></i>
-            <div class="font-bold text-slate-800 text-sm">Locating your order...</div>
-            <div class="text-xs text-slate-500">Checking live status with store server</div>
-        </div>
-
-        <!-- Empty / Initial Search State -->
-        <div *ngIf="!loading && !order && !errorMessage" class="empty-state-card">
-            <div class="empty-icon-box">
-                <i class="pi pi-compass text-2xl text-teal-600"></i>
-            </div>
-            <h3 class="text-slate-800 font-bold text-base m-0 mb-1">Track Live Order Status</h3>
-            <p class="text-slate-500 text-xs m-0">Enter your order tracking number above to see real-time updates.</p>
-        </div>
-
-        <!-- MAIN DASHBOARD (When order is found) -->
-        <div *ngIf="!loading && order" class="tracking-dashboard-content">
-
-            <!-- 3. COMPACT HORIZONTAL STEPPER / TIMELINE (3 STEPS: Received -> In Progress -> Delivered) -->
-            <section class="stepper-section">
-                <!-- Rejected Banner if rejected -->
-                <div *ngIf="isRejected(order)" class="rejected-banner">
-                    <i class="pi pi-times-circle text-red-600 text-lg"></i>
-                    <div>
-                        <div class="font-bold text-red-900 text-sm">Order Cancelled / Rejected</div>
-                        <div class="text-red-700 text-xs">The store could not process this order. Please reach out to the branch for details.</div>
-                    </div>
-                </div>
-
-                <!-- 3-Step Stepper (when not rejected) -->
-                <div *ngIf="!isRejected(order)" class="stepper-container">
-                    <!-- Step 1: Received -->
-                    <div class="stepper-item step-completed">
-                        <div class="step-dot completed">
-                            <i class="pi pi-check"></i>
+                    <div class="ot-order-card-main">
+                        <div class="ot-order-badge">{{ o.orderNo }}</div>
+                        <div class="ot-order-meta">
+                            <span *ngIf="o.branchName">{{ o.branchName }}</span>
+                            <span *ngIf="o.placedAt">{{ o.placedAt | date: 'mediumDate' }} · {{ o.placedAt | date: 'shortTime' }}</span>
                         </div>
-                        <div class="step-text">
-                            <span class="step-title">Received</span>
-                            <span class="step-subtitle">{{ order.orderDate | date: 'hh:mm a' }}</span>
-                        </div>
+                        <div class="ot-order-name" *ngIf="o.customerName">{{ o.customerName }}</div>
                     </div>
+                    <div class="ot-order-card-side">
+                        <div class="ot-order-total" *ngIf="o.totalAmount != null">
+                            PKR {{ o.totalAmount | number: '1.0-0' }}
+                        </div>
+                        <i class="pi pi-chevron-right"></i>
+                    </div>
+                </button>
+            </div>
+        </section>
 
-                    <div class="stepper-line" [class.line-active]="isInProgress(order) || isDelivered(order)"></div>
+        <!-- DETAIL -->
+        <section *ngIf="view === 'detail'" class="ot-detail-wrap">
+            <div *ngIf="loading" class="ot-loading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Loading your order…</span>
+            </div>
 
-                    <!-- Step 2: In Progress -->
+            <div *ngIf="errorMessage && !loading" class="ot-error">
+                <i class="pi pi-exclamation-circle"></i>
+                <div>
+                    <strong>Couldn’t open this order</strong>
+                    <p>{{ errorMessage }}</p>
+                </div>
+                <button type="button" class="ot-secondary-btn" (click)="showMyOrders()">Choose another</button>
+            </div>
+
+            <ng-container *ngIf="!loading && order">
+                <div
+                    class="ot-status-hero"
+                    [class.is-pending]="isPending(order)"
+                    [class.is-progress]="isInProgress(order)"
+                    [class.is-done]="isDelivered(order)"
+                    [class.is-rejected]="isRejected(order)"
+                >
+                    <div class="ot-status-kicker">
+                        <span *ngIf="isPending(order) || isInProgress(order)">Live · updates in {{ countdown }}s</span>
+                        <span *ngIf="isDelivered(order) || isRejected(order)">Final status</span>
+                    </div>
+                    <div class="ot-status-title">{{ statusLabel(order) }}</div>
+                    <p class="ot-status-hint">{{ statusHint(order) }}</p>
+                    <div class="ot-status-orderno">{{ order.orderNo || ('#' + order.id) }}</div>
+                </div>
+
+                <div class="ot-steps" *ngIf="!isRejected(order)">
+                    <div class="ot-step done">
+                        <div class="ot-step-dot"><i class="pi pi-check"></i></div>
+                        <div class="ot-step-label">Received</div>
+                    </div>
+                    <div class="ot-step-line" [class.on]="isInProgress(order) || isDelivered(order)"></div>
                     <div
-                        class="stepper-item"
-                        [class.step-completed]="isDelivered(order)"
-                        [class.step-active]="isInProgress(order)"
-                        [class.step-waiting]="isPending(order)"
+                        class="ot-step"
+                        [class.done]="isDelivered(order)"
+                        [class.active]="isInProgress(order)"
+                        [class.wait]="isPending(order)"
                     >
-                        <div
-                            class="step-dot"
-                            [ngClass]="{
-                                'completed': isDelivered(order),
-                                'active in-progress-glow': isInProgress(order),
-                                'waiting': isPending(order)
-                            }"
-                        >
+                        <div class="ot-step-dot">
                             <i [class]="isDelivered(order) ? 'pi pi-check' : isInProgress(order) ? 'pi pi-spin pi-cog' : 'pi pi-clock'"></i>
                         </div>
-                        <div class="step-text">
-                            <span class="step-title" [class.text-teal-700]="isInProgress(order)" [class.text-green-700]="isDelivered(order)">In Progress</span>
-                            <span class="step-subtitle">
-                                {{ isDelivered(order) ? 'Prepared & Packed' : isInProgress(order) ? 'Accepted & Preparing' : 'Awaiting Store' }}
-                            </span>
-                        </div>
+                        <div class="ot-step-label">Preparing</div>
                     </div>
-
-                    <div class="stepper-line" [class.line-active]="isDelivered(order)"></div>
-
-                    <!-- Step 3: Delivered -->
+                    <div class="ot-step-line" [class.on]="isDelivered(order)"></div>
                     <div
-                        class="stepper-item"
-                        [class.step-active]="isDelivered(order)"
-                        [class.step-completed]="isDelivered(order)"
-                        [class.step-waiting]="!isDelivered(order)"
+                        class="ot-step"
+                        [class.done]="isDelivered(order)"
+                        [class.active]="isDelivered(order)"
+                        [class.wait]="!isDelivered(order)"
                     >
-                        <div
-                            class="step-dot"
-                            [ngClass]="{
-                                'completed delivered-glow': isDelivered(order),
-                                'waiting': !isDelivered(order)
-                            }"
-                        >
+                        <div class="ot-step-dot">
                             <i [class]="isDelivered(order) ? 'pi pi-check' : 'pi pi-home'"></i>
                         </div>
-                        <div class="step-text">
-                            <span class="step-title" [class.text-green-700]="isDelivered(order)">Delivered</span>
-                            <span class="step-subtitle">
-                                {{ isDelivered(order) ? 'Order Completed' : 'Awaiting Delivery' }}
-                            </span>
-                        </div>
+                        <div class="ot-step-label">Delivered</div>
                     </div>
                 </div>
 
-                <!-- In Progress Notification Bar -->
-                <div *ngIf="isInProgress(order)" class="in-progress-info-strip">
-                    <i class="pi pi-info-circle text-teal-600 font-bold"></i>
-                    <span><strong>Accepted by Store:</strong> Your order is currently being prepared and packed.</span>
-                </div>
-
-                <!-- Delivered Notification Bar -->
-                <div *ngIf="isDelivered(order)" class="delivered-info-strip">
-                    <i class="pi pi-check-circle text-green-600 font-bold"></i>
-                    <span><strong>Order Delivered:</strong> Your order has been delivered successfully. Thank you for choosing us!</span>
-                </div>
-            </section>
-
-            <!-- 4. TWO-COLUMN DASHBOARD GRID -->
-            <div class="dashboard-columns-grid">
-                <!-- LEFT COLUMN (~60%): ORDER SUMMARY -->
-                <div class="dashboard-col left-col">
-                    <div class="dashboard-card order-summary-card">
-                        <!-- Card Header -->
-                        <div class="card-header">
-                            <div class="flex align-items-center gap-2">
-                                <i class="pi pi-shopping-bag text-teal-600 text-sm"></i>
-                                <span class="font-bold text-slate-800 text-sm">Order Summary</span>
-                            </div>
-                            <span class="text-xs text-slate-500 font-medium">{{ (order.lines || []).length }} item(s)</span>
+                <div class="ot-panel">
+                    <div class="ot-panel-head">
+                        <span>Items</span>
+                        <span>{{ (order.lines || []).length }} item(s)</span>
+                    </div>
+                    <div class="ot-item" *ngFor="let line of order.lines || []">
+                        <div class="ot-item-name">
+                            <strong>{{ line.quantity }}×</strong>
+                            {{ line.productName || ('Product #' + line.productId) }}
                         </div>
-
-                        <!-- Scrollable Items List (fits view without whole page scroll) -->
-                        <div class="items-scroll-area">
-                            <table class="compact-items-table">
-                                <thead>
-                                    <tr>
-                                        <th class="text-left">Item</th>
-                                        <th class="text-center" style="width: 50px;">Qty</th>
-                                        <th class="text-right" style="width: 85px;">Price</th>
-                                        <th class="text-right" style="width: 90px;">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr *ngFor="let line of order.lines || []">
-                                        <td class="font-medium text-slate-800">
-                                            {{ line.productName || ('Product #' + line.productId) }}
-                                        </td>
-                                        <td class="text-center font-bold text-slate-700">
-                                            {{ line.quantity }}
-                                        </td>
-                                        <td class="text-right text-slate-600 font-mono text-xs">
-                                            PKR {{ line.unitPrice | number: '1.0-0' }}
-                                        </td>
-                                        <td class="text-right font-bold text-slate-900 font-mono text-xs">
-                                            PKR {{ line.lineTotal | number: '1.0-0' }}
-                                        </td>
-                                    </tr>
-                                    <tr *ngIf="!(order.lines || []).length">
-                                        <td colspan="4" class="text-center text-slate-400 py-3 text-xs">No items found</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Compact Financials Footer -->
-                        <div class="card-financials-footer">
-                            <div class="financial-row">
-                                <span class="text-slate-500">Cart Subtotal</span>
-                                <span class="font-medium text-slate-800 font-mono">PKR {{ (order.subTotal || 0) | number: '1.0-0' }}</span>
-                            </div>
-                            <div class="financial-row">
-                                <span class="text-slate-500">Delivery Fee</span>
-                                <div class="text-right">
-                                    <span *ngIf="(order.deliveryFee ?? 0) === 0 || order.isFreeDelivery" class="free-delivery-badge">
-                                        FREE
-                                    </span>
-                                    <span *ngIf="(order.deliveryFee ?? 0) > 0" class="font-medium text-slate-800 font-mono">
-                                        PKR {{ order.deliveryFee | number: '1.0-0' }}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="financial-row grand-total-row">
-                                <span class="font-bold text-slate-900">Grand Total</span>
-                                <span class="grand-total-amount font-mono">PKR {{ order.totalAmount | number: '1.0-0' }}</span>
-                            </div>
-                        </div>
+                        <div class="ot-item-price">PKR {{ line.lineTotal | number: '1.0-0' }}</div>
+                    </div>
+                    <div class="ot-total-row">
+                        <span>Total</span>
+                        <strong>PKR {{ order.totalAmount | number: '1.0-0' }}</strong>
                     </div>
                 </div>
 
-                <!-- RIGHT COLUMN (~40%): STORE, DELIVERY, & ACTION -->
-                <div class="dashboard-col right-col">
-                    <div class="dashboard-card info-card">
-                        <!-- Store Branch Details -->
-                        <div class="info-section">
-                            <div class="section-label">
-                                <i class="pi pi-building text-teal-600"></i>
-                                <span>Store Branch</span>
-                            </div>
-                            <div class="font-bold text-slate-800 text-sm">{{ order.branchName || 'Main Store Branch' }}</div>
-                            <div *ngIf="order.deliveryAreaName" class="text-xs text-slate-600 mt-1 flex align-items-center gap-1">
-                                <i class="pi pi-map text-slate-400 text-xs"></i>
-                                <span>Area: <strong>{{ order.deliveryAreaName }}</strong></span>
-                            </div>
-                        </div>
-
-                        <div class="section-divider"></div>
-
-                        <!-- Assigned Delivery Rider (if dispatched) -->
-                        <div class="info-section" *ngIf="order.riderName">
-                            <div class="section-label">
-                                <i class="pi pi-compass text-teal-600"></i>
-                                <span>Delivery Rider</span>
-                            </div>
-                            <div class="font-bold text-slate-800 text-sm flex align-items-center gap-1">
-                                🛵 {{ order.riderName }}
-                            </div>
-                            <div *ngIf="order.riderPhone" class="text-xs text-slate-600 mt-1 flex align-items-center gap-1">
-                                <i class="pi pi-phone text-slate-400 text-xs"></i>
-                                <span>Contact: <strong>{{ order.riderPhone }}</strong></span>
-                            </div>
-                        </div>
-
-                        <div class="section-divider" *ngIf="order.riderName"></div>
-
-                        <!-- Customer & Delivery Details -->
-                        <div class="info-section">
-                            <div class="section-label">
-                                <i class="pi pi-map-marker text-rose-500"></i>
-                                <span>Delivery Information</span>
-                            </div>
-                            <div class="text-xs text-slate-500">Customer:</div>
-                            <div class="font-bold text-slate-800 text-sm mb-2">{{ order.customerName || 'Online Customer' }}</div>
-
-                            <div class="text-xs text-slate-500">Address / Instructions:</div>
-                            <div class="delivery-address-box">
-                                {{ order.notes || 'Standard Delivery' }}
-                            </div>
-
-                            <!-- Live Maps Link if present -->
-                            <div *ngIf="getGoogleMapsLink(order.notes)" class="mt-2">
-                                <a
-                                    [href]="getGoogleMapsLink(order.notes)"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="maps-link-btn"
-                                >
-                                    <i class="pi pi-map-marker text-red-500"></i>
-                                    <span>Open Live Pin in Google Maps</span>
-                                    <i class="pi pi-external-link text-xs"></i>
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Secondary Action Button -->
-                        <div class="card-action-box">
-                            <button
-                                pButton
-                                pRipple
-                                type="button"
-                                label="Continue Shopping"
-                                icon="pi pi-arrow-left"
-                                class="continue-shopping-btn"
-                                (click)="backToStore()"
-                            ></button>
-                        </div>
+                <div class="ot-panel">
+                    <div class="ot-panel-head"><span>Delivery</span></div>
+                    <div class="ot-info-row">
+                        <span>Customer</span>
+                        <strong>{{ order.customerName || 'Customer' }}</strong>
                     </div>
-
-                    <!-- Direct Live Chat with Store Card -->
-                    <div class="mt-3">
-                        <app-order-chat
-                            [orderNo]="order.orderNo || ('#' + order.id)"
-                            [branchId]="order.branchId"
-                            [customerName]="order.customerName"
-                            [customerMobile]="order.customerPhone"
-                            mode="customer"
-                            height="260px"
-                            title="Direct Chat with Store"
-                        ></app-order-chat>
+                    <div class="ot-info-row" *ngIf="order.branchName">
+                        <span>Branch</span>
+                        <strong>{{ order.branchName }}</strong>
                     </div>
+                    <div class="ot-info-row" *ngIf="order.riderName">
+                        <span>Rider</span>
+                        <strong>{{ order.riderName }}{{ order.riderPhone ? ' · ' + order.riderPhone : '' }}</strong>
+                    </div>
+                    <div class="ot-notes" *ngIf="order.notes">{{ order.notes }}</div>
+                    <a
+                        *ngIf="getGoogleMapsLink(order.notes) as maps"
+                        class="ot-maps-link"
+                        [href]="maps"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <i class="pi pi-map-marker"></i> Open location in Maps
+                    </a>
                 </div>
-            </div>
-        </div>
+
+                <div class="ot-chat-wrap">
+                    <app-order-chat
+                        [orderNo]="order.orderNo || ('#' + order.id)"
+                        [branchId]="order.branchId"
+                        [customerName]="order.customerName"
+                        [customerMobile]="order.customerPhone"
+                        mode="customer"
+                        height="240px"
+                        title="Chat with store"
+                    ></app-order-chat>
+                </div>
+
+                <div class="ot-actions">
+                    <button type="button" class="ot-secondary-btn" (click)="showMyOrders()">
+                        <i class="pi pi-list"></i> My Orders
+                    </button>
+                    <button type="button" class="ot-primary-btn" (click)="backToStore()">
+                        <i class="pi pi-shopping-bag"></i> Continue Shopping
+                    </button>
+                </div>
+            </ng-container>
+        </section>
     </main>
 </div>
 <p-toast></p-toast>
