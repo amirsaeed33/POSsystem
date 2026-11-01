@@ -407,8 +407,6 @@ namespace SmartPos.Controllers
 
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
             {
-                var normalizedUserName = _userManager.NormalizeName(input);
-                var normalizedEmail = _userManager.NormalizeEmail(input);
 
                 var users = await _userManager.Users
                     .Where(u =>
