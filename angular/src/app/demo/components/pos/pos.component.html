@@ -283,25 +283,45 @@
                     ></button>
                 </div>
 
-                <div class="pos-menu-categories mb-3">
+                <div class="pos-menu-categories-wrap mb-3">
                     <button
                         type="button"
-                        class="pos-menu-cat"
-                        [class.active]="selectedMenuCategoryId === null"
-                        (click)="selectMenuCategory(null)"
+                        class="pos-menu-cat-nav"
+                        (click)="scrollMenuCategories(-1)"
+                        title="Scroll categories left"
+                        aria-label="Scroll categories left"
                     >
-                        All
-                        <span class="pos-menu-cat-count">{{ menuProducts.length }}</span>
+                        <i class="pi pi-chevron-left"></i>
                     </button>
+                    <div class="pos-menu-categories" #menuCategoriesTrack>
+                        <button
+                            type="button"
+                            class="pos-menu-cat"
+                            [class.active]="selectedMenuCategoryId === null"
+                            (click)="selectMenuCategory(null)"
+                        >
+                            All
+                            <span class="pos-menu-cat-count">{{ menuProducts.length }}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="pos-menu-cat"
+                            *ngFor="let cat of menuCategories"
+                            [class.active]="selectedMenuCategoryId === cat.id"
+                            (click)="selectMenuCategory(cat.id)"
+                        >
+                            {{ cat.name }}
+                            <span class="pos-menu-cat-count">{{ cat.count }}</span>
+                        </button>
+                    </div>
                     <button
                         type="button"
-                        class="pos-menu-cat"
-                        *ngFor="let cat of menuCategories"
-                        [class.active]="selectedMenuCategoryId === cat.id"
-                        (click)="selectMenuCategory(cat.id)"
+                        class="pos-menu-cat-nav"
+                        (click)="scrollMenuCategories(1)"
+                        title="Scroll categories right"
+                        aria-label="Scroll categories right"
                     >
-                        {{ cat.name }}
-                        <span class="pos-menu-cat-count">{{ cat.count }}</span>
+                        <i class="pi pi-chevron-right"></i>
                     </button>
                 </div>
 

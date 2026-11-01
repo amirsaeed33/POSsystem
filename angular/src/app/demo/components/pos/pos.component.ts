@@ -56,6 +56,8 @@ export interface DealCustomiseItem {
 })
 export class PosComponent implements OnInit, OnDestroy {
     @ViewChild('barcodeInput') barcodeInput?: ElementRef<HTMLInputElement>;
+    @ViewChild('menuCategoriesTrack')
+    menuCategoriesTrack?: ElementRef<HTMLDivElement>;
 
     private branchSub?: Subscription;
 
@@ -563,6 +565,15 @@ export class PosComponent implements OnInit, OnDestroy {
 
     selectMenuCategory(categoryId: number | null): void {
         this.selectedMenuCategoryId = categoryId;
+    }
+
+    scrollMenuCategories(direction: -1 | 1): void {
+        const track = this.menuCategoriesTrack?.nativeElement;
+        if (!track) {
+            return;
+        }
+        const step = Math.max(180, Math.floor(track.clientWidth * 0.7));
+        track.scrollBy({ left: direction * step, behavior: 'smooth' });
     }
 
     getMenuProductImage(product: ProductDto): string {

@@ -1078,7 +1078,22 @@
   padding: 8px 12px;
   display: flex;
   align-items: center;
-  overflow: visible;
+  overflow: hidden;
+  margin: 0 0.75rem 0.75rem;
+  position: relative;
+
+  // Fade edge hint that more categories slide horizontally
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 36px;
+    pointer-events: none;
+    background: linear-gradient(to right, transparent, #f3f3f3 85%);
+    border-radius: 0 12px 12px 0;
+  }
 
   .fp-scroll-arrow {
     display: none;
@@ -1088,10 +1103,29 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     width: 100%;
-    overflow-x: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
     flex-grow: 1;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15, 23, 42, 0.25) transparent;
+    padding-bottom: 2px;
+
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(15, 23, 42, 0.25);
+      border-radius: 999px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
 
     .fp-cat-chip {
       background: #ffffff;
@@ -1104,6 +1138,7 @@
       border: none;
       cursor: pointer;
       white-space: nowrap;
+      flex-shrink: 0;
       transition: background-color 0.2s ease, color 0.2s ease;
       display: inline-flex;
       align-items: center;
@@ -1131,9 +1166,17 @@
     display: flex;
     align-items: flex-start;
     gap: 0.55rem;
-    flex-wrap: wrap;
-    overflow-x: visible;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
     padding-bottom: 0.4rem;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
 
     .fp-circle-cat-item {
       background: transparent;
