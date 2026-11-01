@@ -231,24 +231,56 @@ export class ThermalPrintService {
             </html>
         `;
 
-        const win = window.open('', '_blank', 'height=650,width=420');
-        if (!win) {
-            console.warn('Popup blocked, falling back to window.print');
-            window.print();
+        ThermalPrintService.printHtml(receiptHtml);
+    }
+
+    /**
+     * Prints HTML via a hidden iframe (avoids popup blockers and never
+     * falls back to printing the live POS/page UI).
+     */
+    static printHtml(html: string): void {
+        if (typeof document === 'undefined') {
             return;
         }
 
-        win.document.open();
-        win.document.write(receiptHtml);
-        win.document.close();
-        win.focus();
-        setTimeout(() => {
+        const existing = document.getElementById('smartpos-print-frame');
+        if (existing?.parentNode) {
+            existing.parentNode.removeChild(existing);
+        }
+
+        const iframe = document.createElement('iframe');
+        iframe.id = 'smartpos-print-frame';
+        iframe.setAttribute('aria-hidden', 'true');
+        iframe.style.cssText =
+            'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!doc) {
+            console.error('Unable to access print frame document');
+            return;
+        }
+
+        doc.open();
+        doc.write(html);
+        doc.close();
+
+        const triggerPrint = () => {
             try {
-                win.print();
-                win.close();
+                iframe.contentWindow?.focus();
+                iframe.contentWindow?.print();
             } catch (e) {
                 console.error('Print failed', e);
+            } finally {
+                setTimeout(() => {
+                    if (iframe.parentNode) {
+                        iframe.parentNode.removeChild(iframe);
+                    }
+                }, 1000);
             }
-        }, 350);
+        };
+
+        // Wait briefly so images/fonts can settle before the print dialog.
+        setTimeout(triggerPrint, 300);
     }
 }

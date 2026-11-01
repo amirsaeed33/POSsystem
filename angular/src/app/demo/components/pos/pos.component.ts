@@ -38,6 +38,7 @@ import { DealDto } from 'src/app/demo/api/deal';
 import { AuthService } from 'src/app/demo/service/auth.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RestaurantTakeawayAlarmService } from 'src/app/demo/service/restaurant-takeaway-alarm.service';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
 
 export interface DealCustomiseItem {
     productId: number;
@@ -1944,17 +1945,9 @@ export class PosComponent implements OnInit, OnDestroy {
 
         const printContent = document.getElementById(elementId);
         if (!printContent) {
-            window.print();
             return;
         }
-        const win = window.open('', '', 'height=600,width=400');
-        if (!win) {
-            window.print();
-            return;
-        }
-        win.document.write('<html><head><title>Print</title>');
-        win.document.write('<style>');
-        win.document.write(`
+        const html = `<!DOCTYPE html><html><head><title>Print</title><style>
             body { font-family: 'Courier New', monospace; font-size: 13px; color: #000; padding: 12px; margin: 0; width: 78mm; }
             .ticket-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
             .ticket-title { font-size: 16px; font-weight: bold; }
@@ -1965,16 +1958,8 @@ export class PosComponent implements OnInit, OnDestroy {
             .ticket-notes { font-size: 11px; font-style: italic; padding-left: 6px; }
             .ticket-footer { border-top: 1px dashed #000; padding-top: 8px; text-align: center; font-size: 11px; }
             .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 4px; }
-        `);
-        win.document.write('</style></head><body>');
-        win.document.write(printContent.innerHTML);
-        win.document.write('</body></html>');
-        win.document.close();
-        win.focus();
-        setTimeout(() => {
-            win.print();
-            win.close();
-        }, 250);
+        </style></head><body>${printContent.innerHTML}</body></html>`;
+        ThermalPrintService.printHtml(html);
     }
 
     /** Shared table / car bay fields for restaurant order save payloads. */
@@ -3084,12 +3069,6 @@ export class PosComponent implements OnInit, OnDestroy {
             }
         }
 
-        const win = window.open('', '', 'height=650,width=420');
-        if (!win) {
-            window.print();
-            return;
-        }
-
         const linesHtml = (receipt.lines || [])
             .map((line: any) => {
                 const dealBadge = line.isDeal
@@ -3266,18 +3245,7 @@ export class PosComponent implements OnInit, OnDestroy {
             </html>
         `;
 
-        win.document.open();
-        win.document.write(html);
-        win.document.close();
-        win.focus();
-        setTimeout(() => {
-            try {
-                win.print();
-                win.close();
-            } catch (e) {
-                console.error('Print error:', e);
-            }
-        }, 250);
+        ThermalPrintService.printHtml(html);
     }
 
     private loadSuggestions(keyword: string): void {
