@@ -176,6 +176,11 @@ export class AppConfigComponent implements OnInit {
         return /(MSIE|Trident\/|Edge\/)/i.test(window.navigator.userAgent);
     }
 
+    openPrinterConfig(): void {
+        this.visible = false;
+        this.layoutService.showPrinterConfig();
+    }
+
     onConfigButtonClick() {
         this.layoutService.showConfigSidebar();
     }

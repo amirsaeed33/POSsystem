@@ -18,6 +18,18 @@
         <hr class="surface-border"/>
     </ng-container>
 
+    
+    <h5>Thermal Printer</h5>
+    <button
+        pButton
+        type="button"
+        icon="pi pi-print"
+        label="Printer Settings (58 / 80mm)"
+        class="p-button-outlined w-full"
+        (click)="openPrinterConfig()"
+    ></button>
+    <hr class="surface-border"/>
+
     <ng-container *ngIf="!minimal">
         <h5>Menu Type</h5>
         <div class="flex flex-wrap row-gap-3">
