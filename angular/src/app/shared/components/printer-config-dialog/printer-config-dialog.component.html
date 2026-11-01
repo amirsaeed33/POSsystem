@@ -1,0 +1,150 @@
+<p-dialog
+    header="🖨️ Thermal Printer & Paper Configuration"
+    [(visible)]="visible"
+    [modal]="true"
+    [style]="{ width: '36rem', maxWidth: '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="onClose()"
+>
+    <div class="flex flex-column gap-3 pt-2">
+        <!-- Paper Size Selector -->
+        <div class="surface-card p-3 border-round border-1 surface-border">
+            <div class="text-xs font-bold text-500 uppercase mb-2">Paper Roll Size</div>
+            <div class="grid">
+                <div class="col-6">
+                    <button
+                        type="button"
+                        pRipple
+                        class="w-full p-3 border-round flex flex-column align-items-center gap-2 cursor-pointer transition-all transition-duration-150 border-2 text-center"
+                        [ngClass]="{
+                            'surface-primary text-primary-contrast border-primary shadow-2': config.paperSize === '80mm',
+                            'surface-ground text-700 border-300 hover:border-500': config.paperSize !== '80mm'
+                        }"
+                        (click)="setPaperSize('80mm')"
+                    >
+                        <i class="pi pi-receipt text-3xl"></i>
+                        <div>
+                            <div class="font-bold text-base">80mm Paper</div>
+                            <div class="text-xs opacity-80">Standard Wide (~72mm)</div>
+                        </div>
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button
+                        type="button"
+                        pRipple
+                        class="w-full p-3 border-round flex flex-column align-items-center gap-2 cursor-pointer transition-all transition-duration-150 border-2 text-center"
+                        [ngClass]="{
+                            'surface-primary text-primary-contrast border-primary shadow-2': config.paperSize === '58mm',
+                            'surface-ground text-700 border-300 hover:border-500': config.paperSize !== '58mm'
+                        }"
+                        (click)="setPaperSize('58mm')"
+                    >
+                        <i class="pi pi-ticket text-3xl"></i>
+                        <div>
+                            <div class="font-bold text-base">58mm Paper</div>
+                            <div class="text-xs opacity-80">Compact Mini (~48mm)</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <div class="text-xs text-500 mt-2">
+                <i class="pi pi-info-circle mr-1"></i>
+                Receipts and tickets across the entire POS will format specifically for <strong>{{ config.paperSize }}</strong> thermal printers.
+            </div>
+        </div>
+
+        <!-- Automation & Print Behavior -->
+        <div class="surface-card p-3 border-round border-1 surface-border">
+            <div class="text-xs font-bold text-500 uppercase mb-2">Print Behavior</div>
+
+            <div class="flex align-items-center justify-content-between py-2 border-bottom-1 surface-border">
+                <div>
+                    <div class="font-semibold text-sm">Auto-Print On Checkout</div>
+                    <div class="text-xs text-500">Automatically open printer dialog when order is settled</div>
+                </div>
+                <p-inputSwitch [(ngModel)]="config.autoPrint" (onChange)="save()"></p-inputSwitch>
+            </div>
+
+            <div class="flex align-items-center justify-content-between py-2 border-bottom-1 surface-border">
+                <div>
+                    <div class="font-semibold text-sm">Show Store Logo</div>
+                    <div class="text-xs text-500">Print grayscale brand logo on top of receipt</div>
+                </div>
+                <p-inputSwitch [(ngModel)]="config.showLogo" (onChange)="save()"></p-inputSwitch>
+            </div>
+
+            <div class="flex align-items-center justify-content-between pt-2">
+                <div>
+                    <div class="font-semibold text-sm">Number of Copies</div>
+                    <div class="text-xs text-500">Continuous print copies per transaction</div>
+                </div>
+                <p-dropdown
+                    [options]="copiesOptions"
+                    [(ngModel)]="config.copies"
+                    optionLabel="label"
+                    optionValue="value"
+                    (onChange)="save()"
+                    styleClass="w-12rem"
+                ></p-dropdown>
+            </div>
+        </div>
+
+        <!-- Custom Header & Footer Text -->
+        <div class="surface-card p-3 border-round border-1 surface-border">
+            <div class="text-xs font-bold text-500 uppercase mb-2">Receipt Messages</div>
+
+            <div class="field mb-3">
+                <label class="text-xs font-semibold">Custom Header Tagline (Optional)</label>
+                <input
+                    type="text"
+                    pInputText
+                    class="w-full text-sm"
+                    placeholder="e.g. Authentic Taste, Best Quality"
+                    [(ngModel)]="config.headerText"
+                    (change)="save()"
+                />
+            </div>
+
+            <div class="field mb-0">
+                <label class="text-xs font-semibold">Footer Thank You Message</label>
+                <input
+                    type="text"
+                    pInputText
+                    class="w-full text-sm"
+                    placeholder="e.g. Thank you for dining with us!"
+                    [(ngModel)]="config.footerMessage"
+                    (change)="save()"
+                />
+            </div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-content-between align-items-center w-full">
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-print"
+                label="Print Test Receipt"
+                class="p-button-outlined p-button-secondary text-sm font-semibold"
+                (click)="printTest()"
+            ></button>
+
+            <div class="flex gap-2">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Done"
+                    icon="pi pi-check"
+                    class="p-button-primary font-semibold"
+                    (click)="saveAndClose()"
+                ></button>
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>
+

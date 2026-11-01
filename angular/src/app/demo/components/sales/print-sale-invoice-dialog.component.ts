@@ -15,6 +15,9 @@ import { BranchService } from 'src/app/demo/service/branch.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
 import { AuthService } from 'src/app/demo/service/auth.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
+
+export type InvoicePrintFormat = 'thermal-80' | 'thermal-58' | 'a4';
 
 @Component({
     selector: 'app-print-sale-invoice-dialog',
@@ -31,13 +34,17 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
     company: BranchDto | null = null;
     loading = false;
     today = new Date().toLocaleString();
-    printFormat: 'thermal' | 'a4' = (localStorage.getItem('smartpos_invoice_print_format') as 'thermal' | 'a4') || 'thermal';
 
-    constructor(public formatService: AppFormatService, 
+    printFormat: InvoicePrintFormat =
+        (localStorage.getItem('smartpos_invoice_print_format') as InvoicePrintFormat) || 'thermal-80';
+
+    constructor(
+        public formatService: AppFormatService,
         private saleService: SaleService,
         private branchService: BranchService,
         private branchContext: BranchContextService,
         private authService: AuthService,
+        private thermalPrintService: ThermalPrintService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef
     ) {}
@@ -52,15 +59,20 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
 
     get paymentTypeName(): string {
         switch (this.sale?.paymentType) {
-            case 0: return 'CASH';
-            case 1: return 'CARD';
-            case 2: return 'CREDIT';
-            case 3: return 'SPLIT (CASH/CARD)';
-            default: return 'CASH';
+            case 0:
+                return 'CASH';
+            case 1:
+                return 'CARD';
+            case 2:
+                return 'CREDIT';
+            case 3:
+                return 'SPLIT (CASH/CARD)';
+            default:
+                return 'CASH';
         }
     }
 
-    setPrintFormat(format: 'thermal' | 'a4'): void {
+    setPrintFormat(format: InvoicePrintFormat): void {
         this.printFormat = format;
         localStorage.setItem('smartpos_invoice_print_format', format);
     }
@@ -87,32 +99,24 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
     }
 
     print(): void {
-        setTimeout(() => {
-            const isThermal = this.printFormat === 'thermal';
-            const printClass = isThermal ? 'printing-thermal' : 'printing-invoice';
-            document.body.classList.add(printClass);
+        if (!this.sale) return;
 
-            let styleEl: HTMLStyleElement | null = null;
-            if (isThermal) {
-                styleEl = document.createElement('style');
-                styleEl.id = 'thermal-print-page-style';
-                styleEl.innerHTML = '@page { size: 80mm auto; margin: 0; }';
-                document.head.appendChild(styleEl);
-            }
-
-            const cleanup = () => {
-                document.body.classList.remove('printing-thermal');
-                document.body.classList.remove('printing-invoice');
-                if (styleEl && styleEl.parentNode) {
-                    styleEl.parentNode.removeChild(styleEl);
-                }
-                window.removeEventListener('afterprint', cleanup);
-            };
-
-            window.addEventListener('afterprint', cleanup);
-            window.print();
-            setTimeout(cleanup, 1200);
-        }, 100);
+        if (this.printFormat === 'thermal-80' || this.printFormat === 'thermal-58') {
+            const paperSize = this.printFormat === 'thermal-58' ? '58mm' : '80mm';
+            this.thermalPrintService.printSaleInvoice(this.sale, this.company, paperSize);
+        } else {
+            // A4 print
+            setTimeout(() => {
+                document.body.classList.add('printing-invoice');
+                const cleanup = () => {
+                    document.body.classList.remove('printing-invoice');
+                    window.removeEventListener('afterprint', cleanup);
+                };
+                window.addEventListener('afterprint', cleanup);
+                window.print();
+                setTimeout(cleanup, 1200);
+            }, 100);
+        }
     }
 
     private load(id: number): void {
@@ -130,8 +134,9 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
                 this.company = company;
                 this.loading = false;
                 this.cd.detectChanges();
+
                 if (this.autoPrint) {
-                    this.print();
+                    setTimeout(() => this.print(), 250);
                 }
             })
             .catch((error) => {
@@ -139,7 +144,7 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: error?.message || 'Failed to load sale invoice',
+                    detail: error?.message || 'Failed to load invoice details',
                 });
                 this.onHide();
             });

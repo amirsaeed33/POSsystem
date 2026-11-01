@@ -1,4 +1,4 @@
-﻿<div class="pos-page">
+<div class="pos-page">
     <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <h4 class="m-0">POS</h4>
         <div class="flex flex-wrap gap-2 pos-header-actions">
@@ -988,6 +988,115 @@
             ></button>
         </ng-template>
     </p-dialog>
+    <!-- Final Completed Customer Thermal Receipt Dialog -->
+    <p-dialog
+        header="Customer Sales Receipt"
+        [(visible)]="completedReceiptVisible"
+        [modal]="true"
+        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        [closable]="true"
+    >
+        <div *ngIf="completedReceipt" class="p-3 surface-ground border-round">
+            <div class="shadow-2 p-3 surface-card border-round-sm" style="font-family: 'Courier New', Courier, monospace; background: #ffffff; color: #111111; line-height: 1.35;">
+                <div class="text-center mb-2">
+                    <div class="font-bold text-lg text-900">{{ completedReceipt.branchName }}</div>
+                    <div *ngIf="completedReceipt.branchAddress" class="text-xs text-600">{{ completedReceipt.branchAddress }}</div>
+                    <div *ngIf="completedReceipt.branchPhone" class="text-xs text-600">Tel: {{ completedReceipt.branchPhone }}</div>
+                    <div *ngIf="completedReceipt.ntn" class="text-xs font-bold text-900 mt-1">NTN/STRN: {{ completedReceipt.ntn }}</div>
+                    <div class="border-top-1 surface-border my-2 border-dashed"></div>
+                    <div class="font-bold text-xs uppercase">*** SALES RECEIPT ***</div>
+                    <div class="text-xs text-700">Order: #{{ completedReceipt.orderNo }}</div>
+                    <div class="text-xs text-700 font-semibold">{{ completedReceipt.tableNo }}</div>
+                    <div class="text-xs text-700">Server: {{ completedReceipt.serverName }} &bull; {{ completedReceipt.date | date:'short' }}</div>
+                    <div class="text-xs font-bold text-900">Cashier: {{ completedReceipt.cashierName }}</div>
+                    <div class="border-top-1 surface-border my-2 border-dashed"></div>
+                </div>
+
+                <table class="w-full text-xs mb-2" style="border-collapse: collapse;">
+                    <thead>
+                        <tr class="border-bottom-1 surface-border text-800 font-bold">
+                            <th class="text-left pb-1" style="width: 15%;">Qty</th>
+                            <th class="text-left pb-1" style="width: 50%;">Item</th>
+                            <th class="text-right pb-1" style="width: 17%;">Price</th>
+                            <th class="text-right pb-1" style="width: 18%;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let item of completedReceipt.lines" class="border-bottom-1 surface-border">
+                            <td class="py-1 font-bold">{{ item.quantity }}x</td>
+                            <td class="py-1">
+                                <div>{{ item.productName }}</div>
+                                <div *ngIf="item.modifiers?.length" class="text-500" style="font-size: 8.5px;">{{ item.modifiers.join(', ') }}</div>
+                            </td>
+                            <td class="py-1 text-right">{{ item.unitPrice | number:'1.2-2' }}</td>
+                            <td class="py-1 text-right font-bold">{{ item.lineTotal | number:'1.2-2' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="border-top-1 surface-border my-1 border-dashed"></div>
+
+                <div class="flex justify-content-between text-xs py-1">
+                    <span>Subtotal:</span>
+                    <span class="font-semibold">{{ completedReceipt.subTotal | number:'1.2-2' }}</span>
+                </div>
+                <div *ngIf="completedReceipt.discountAmount > 0" class="flex justify-content-between text-xs py-1 text-red-600">
+                    <span>Discount:</span>
+                    <span>-{{ completedReceipt.discountAmount | number:'1.2-2' }}</span>
+                </div>
+                <div *ngIf="completedReceipt.taxAmount > 0" class="flex justify-content-between text-xs py-1">
+                    <span>Tax:</span>
+                    <span>+{{ completedReceipt.taxAmount | number:'1.2-2' }}</span>
+                </div>
+                <div *ngIf="completedReceipt.serviceChargeAmount > 0" class="flex justify-content-between text-xs py-1">
+                    <span>Service:</span>
+                    <span>+{{ completedReceipt.serviceChargeAmount | number:'1.2-2' }}</span>
+                </div>
+
+                <div class="border-top-2 border-bottom-2 surface-border my-2 py-1 flex justify-content-between font-bold text-base text-900">
+                    <span>TOTAL AMOUNT:</span>
+                    <span>{{ completedReceipt.grandTotal | number:'1.2-2' }}</span>
+                </div>
+
+                <div class="flex justify-content-between text-xs py-1">
+                    <span>Paid ({{ completedReceipt.paymentType }}):</span>
+                    <span class="font-semibold">{{ completedReceipt.paidAmount | number:'1.2-2' }}</span>
+                </div>
+                <div *ngIf="completedReceipt.changeAmount > 0" class="flex justify-content-between text-xs py-1 font-bold text-green-700">
+                    <span>Change Returned:</span>
+                    <span>{{ completedReceipt.changeAmount | number:'1.2-2' }}</span>
+                </div>
+
+                <div class="text-center text-xs text-600 mt-3 border-top-1 surface-border pt-2 border-dashed">
+                    <div>Thank you for your visit! Please come again.</div>
+                    <div class="text-xs text-400 mt-1">* * * END OF RECEIPT * * *</div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Close"
+                icon="pi pi-times"
+                class="p-button-text"
+                (click)="completedReceiptVisible = false"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Print Receipt"
+                icon="pi pi-print"
+                class="p-button-success"
+                (click)="reprintCompletedReceipt()"
+            ></button>
+        </ng-template>
+    </p-dialog>
 
     <!-- Restaurant Table / Car Bay Selection Dialog -->
     <p-dialog
@@ -1541,15 +1650,37 @@
                     class="p-button-outlined p-button-secondary border-round-lg px-3"
                     (click)="kotDialogVisible = false"
                 ></button>
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    label="Print KOT Slip"
-                    icon="pi pi-print"
-                    class="p-button-warning border-round-lg px-3 font-semibold shadow-2"
-                    (click)="printCurrentModal('kotThermalPrint')"
-                ></button>
+                <div class="flex align-items-center gap-1">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Bar (BOT)"
+                        icon="pi pi-compass"
+                        class="p-button-outlined p-button-secondary border-round-lg px-2 text-xs font-semibold"
+                        title="Print Bar Order Ticket for beverages only"
+                        (click)="printCurrentModal('kotThermalPrint', 'bar')"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Kitchen (KOT)"
+                        icon="pi pi-print"
+                        class="p-button-outlined p-button-warning border-round-lg px-2 text-xs font-semibold"
+                        title="Print Kitchen Order Ticket for food only"
+                        (click)="printCurrentModal('kotThermalPrint', 'kitchen')"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Print All"
+                        icon="pi pi-print"
+                        class="p-button-warning border-round-lg px-3 font-semibold shadow-2"
+                        (click)="printCurrentModal('kotThermalPrint', 'all')"
+                    ></button>
+                </div>
             </div>
         </ng-template>
     </p-dialog>

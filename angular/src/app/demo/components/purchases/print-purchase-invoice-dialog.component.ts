@@ -16,8 +16,10 @@ import {
 } from 'src/app/demo/api/purchase';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { PurchaseService } from 'src/app/demo/service/purchase.service';
-
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
+
+export type PurchasePrintFormat = 'thermal-80' | 'thermal-58' | 'a4';
 
 @Component({
     selector: 'app-print-purchase-invoice-dialog',
@@ -35,6 +37,9 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
     paymentHistory: PurchasePaymentHistoryDto[] = [];
     loading = false;
     today = new Date().toLocaleString();
+
+    printFormat: PurchasePrintFormat =
+        (localStorage.getItem('smartpos_purchase_print_format') as PurchasePrintFormat) || 'thermal-80';
 
     get isRestaurant(): boolean {
         return this.branchContext.isRestaurant();
@@ -56,16 +61,23 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
         return Math.max(0, Math.round((total - paid) * 100) / 100);
     }
 
-    constructor(public formatService: AppFormatService, 
+    constructor(
+        public formatService: AppFormatService,
         private purchaseService: PurchaseService,
         private branchService: BranchService,
         private branchContext: BranchContextService,
+        private thermalPrintService: ThermalPrintService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef
     ) {}
 
     get companyLogoUrl(): string {
         return this.branchService.getImageUrl(this.company?.imagePath);
+    }
+
+    setPrintFormat(format: PurchasePrintFormat): void {
+        this.printFormat = format;
+        localStorage.setItem('smartpos_purchase_print_format', format);
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -91,16 +103,24 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
     }
 
     print(): void {
-        setTimeout(() => {
-            document.body.classList.add('printing-invoice');
-            const cleanup = () => {
-                document.body.classList.remove('printing-invoice');
-                window.removeEventListener('afterprint', cleanup);
-            };
-            window.addEventListener('afterprint', cleanup);
-            window.print();
-            setTimeout(cleanup, 1000);
-        }, 100);
+        if (!this.purchase) return;
+
+        if (this.printFormat === 'thermal-80' || this.printFormat === 'thermal-58') {
+            const paperSize = this.printFormat === 'thermal-58' ? '58mm' : '80mm';
+            this.thermalPrintService.printPurchaseInvoice(this.purchase, this.company, paperSize);
+        } else {
+            // A4 print
+            setTimeout(() => {
+                document.body.classList.add('printing-invoice');
+                const cleanup = () => {
+                    document.body.classList.remove('printing-invoice');
+                    window.removeEventListener('afterprint', cleanup);
+                };
+                window.addEventListener('afterprint', cleanup);
+                window.print();
+                setTimeout(cleanup, 1000);
+            }, 100);
+        }
     }
 
     private load(id: number): void {
@@ -111,7 +131,6 @@ export class PrintPurchaseInvoiceDialogComponent implements OnChanges {
         this.today = new Date().toLocaleString();
 
         const branchId = this.branchContext.getBranchId();
-        // Prefer selected branch immediately so logo/address match the topbar selection.
         const contextBranch = this.branchContext.getCurrentBranch();
         if (contextBranch) {
             this.company = contextBranch;

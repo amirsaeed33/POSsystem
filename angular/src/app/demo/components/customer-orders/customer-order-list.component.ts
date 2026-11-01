@@ -1,4 +1,4 @@
-import { AppFormatService } from 'src/app/demo/service/app-format.service';
+﻿import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Table } from 'primeng/table';
@@ -57,8 +57,9 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
 
     statusOptions = [
         { label: 'Pending', value: CustomerOrderStatus.Pending },
-        { label: 'In Progress', value: CustomerOrderStatus.Approved },
         { label: 'Approved', value: CustomerOrderStatus.Approved },
+        { label: 'In Progress', value: CustomerOrderStatus.InProgress },
+        { label: 'Delivered', value: CustomerOrderStatus.Delivered },
         { label: 'Rejected', value: CustomerOrderStatus.Rejected },
     ];
 
@@ -84,13 +85,26 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         this.canOverrideDeliveryFee = this.permissionService.isGranted(
             PermissionNames.CustomerOrdersOverrideDeliveryFee
         );
-        this.loadOrders();
+        // ONLINE-PIPELINE START
+        let isInitialParams = true;
         this.route.queryParams.subscribe((params) => {
+            if (params['status'] !== undefined && params['status'] !== null && params['status'] !== '') {
+                const parsedStatus = Number(params['status']);
+                if (!isNaN(parsedStatus)) {
+                    this.statusFilter = parsedStatus;
+                }
+            }
             if (params['id']) {
                 this.viewingOrderId = Number(params['id']);
                 this.viewDialogVisible = true;
             }
+            if (!isInitialParams && params['status'] !== undefined) {
+                this.loadOrders();
+            }
+            isInitialParams = false;
         });
+        this.loadOrders();
+        // ONLINE-PIPELINE END
 
         const branchId = this.branchContext.getBranchId();
         if (branchId) {

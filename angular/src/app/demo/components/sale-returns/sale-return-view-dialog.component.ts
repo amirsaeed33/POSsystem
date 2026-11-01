@@ -10,6 +10,7 @@ import {
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SaleReturnDto } from 'src/app/demo/api/sale-return';
 import { SaleReturnService } from 'src/app/demo/service/sale-return.service';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
 
 @Component({
     selector: 'app-sale-return-view-dialog',
@@ -24,8 +25,10 @@ export class SaleReturnViewDialogComponent implements OnChanges {
     saleReturn: SaleReturnDto | null = null;
     loading = false;
 
-    constructor(public formatService: AppFormatService, 
+    constructor(
+        public formatService: AppFormatService,
         private saleReturnService: SaleReturnService,
+        private thermalPrintService: ThermalPrintService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -46,6 +49,11 @@ export class SaleReturnViewDialogComponent implements OnChanges {
 
     onHide(): void {
         this.onVisibleChange(false);
+    }
+
+    print(): void {
+        if (!this.saleReturn) return;
+        this.thermalPrintService.printSaleReturn(this.saleReturn);
     }
 
     onDelete(): void {
@@ -74,8 +82,7 @@ export class SaleReturnViewDialogComponent implements OnChanges {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail:
-                                error?.message || 'Failed to delete sale return',
+                            detail: error?.message || 'Failed to delete sale return',
                         });
                     });
             },
@@ -94,7 +101,7 @@ export class SaleReturnViewDialogComponent implements OnChanges {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: error?.message || 'Failed to load sale return',
+                    detail: error?.message || 'Failed to load sale return details',
                 });
                 this.onHide();
             })

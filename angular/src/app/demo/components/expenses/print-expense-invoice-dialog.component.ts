@@ -13,6 +13,9 @@ import { BranchDto } from 'src/app/demo/api/branch';
 import { ExpenseDto } from 'src/app/demo/api/expense';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { ExpenseService } from 'src/app/demo/service/expense.service';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
+
+export type ExpensePrintFormat = 'thermal-80' | 'thermal-58' | 'a4';
 
 @Component({
     selector: 'app-print-expense-invoice-dialog',
@@ -29,15 +32,25 @@ export class PrintExpenseInvoiceDialogComponent implements OnChanges {
     loading = false;
     today = new Date().toLocaleString();
 
-    constructor(public formatService: AppFormatService, 
+    printFormat: ExpensePrintFormat =
+        (localStorage.getItem('smartpos_expense_print_format') as ExpensePrintFormat) || 'thermal-80';
+
+    constructor(
+        public formatService: AppFormatService,
         private expenseService: ExpenseService,
         private branchService: BranchService,
+        private thermalPrintService: ThermalPrintService,
         private messageService: MessageService,
         private cd: ChangeDetectorRef
     ) {}
 
     get companyLogoUrl(): string {
         return this.branchService.getImageUrl(this.company?.imagePath);
+    }
+
+    setPrintFormat(format: ExpensePrintFormat): void {
+        this.printFormat = format;
+        localStorage.setItem('smartpos_expense_print_format', format);
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -62,16 +75,24 @@ export class PrintExpenseInvoiceDialogComponent implements OnChanges {
     }
 
     print(): void {
-        setTimeout(() => {
-            document.body.classList.add('printing-invoice');
-            const cleanup = () => {
-                document.body.classList.remove('printing-invoice');
-                window.removeEventListener('afterprint', cleanup);
-            };
-            window.addEventListener('afterprint', cleanup);
-            window.print();
-            setTimeout(cleanup, 1000);
-        }, 100);
+        if (!this.expense) return;
+
+        if (this.printFormat === 'thermal-80' || this.printFormat === 'thermal-58') {
+            const paperSize = this.printFormat === 'thermal-58' ? '58mm' : '80mm';
+            this.thermalPrintService.printExpenseVoucher(this.expense, this.company, paperSize);
+        } else {
+            // A4 print
+            setTimeout(() => {
+                document.body.classList.add('printing-invoice');
+                const cleanup = () => {
+                    document.body.classList.remove('printing-invoice');
+                    window.removeEventListener('afterprint', cleanup);
+                };
+                window.addEventListener('afterprint', cleanup);
+                window.print();
+                setTimeout(cleanup, 1000);
+            }, 100);
+        }
     }
 
     private load(id: number): void {

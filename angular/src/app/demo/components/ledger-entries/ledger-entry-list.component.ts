@@ -7,6 +7,7 @@ import { BusinessAccountDto } from 'src/app/demo/api/business-account';
 import { LedgerEntryService } from 'src/app/demo/service/ledger-entry.service';
 import { BusinessAccountService } from 'src/app/demo/service/business-account.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
 
 @Component({
     templateUrl: './ledger-entry-list.component.html',
@@ -23,9 +24,11 @@ export class LedgerEntryListComponent implements OnInit {
     dialogVisible = false;
     editingEntryId: number | null = null;
 
-    constructor(public formatService: AppFormatService, 
+    constructor(
+        public formatService: AppFormatService,
         private ledgerEntryService: LedgerEntryService,
         private businessAccountService: BusinessAccountService,
+        private thermalPrintService: ThermalPrintService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -128,6 +131,12 @@ export class LedgerEntryListComponent implements OnInit {
 
     getRowActions(entry: LedgerEntryDto): RowActionItem[] {
         return [
+            {
+                label: 'Print Voucher',
+                icon: 'pi pi-print',
+                color: 'green',
+                action: () => this.thermalPrintService.printLedgerReceipt(entry),
+            },
             {
                 label: 'Edit',
                 icon: 'pi pi-pencil',

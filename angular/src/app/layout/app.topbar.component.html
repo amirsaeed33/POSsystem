@@ -364,6 +364,17 @@
             </div>
         </div>
 
+        <!-- Thermal Printer Settings -->
+        <button
+            type="button"
+            class="topbar-icon-button p-link border-round flex align-items-center justify-content-center hover:surface-hover"
+            style="width: 2.5rem; height: 2.5rem; color: var(--text-color-secondary);"
+            title="Thermal Printer & Paper Settings (58mm / 80mm)"
+            (click)="printerConfigVisible = true"
+        >
+            <i class="pi pi-print text-xl"></i>
+        </button>
+
         <div class="topbar-profile">
             <button
                 class="topbar-profile-button p-link"
@@ -452,3 +463,4 @@
 </p-dialog>
 
 <p-toast></p-toast>
+<app-printer-config-dialog [(visible)]="printerConfigVisible"></app-printer-config-dialog>

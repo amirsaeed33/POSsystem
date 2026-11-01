@@ -17,6 +17,8 @@ namespace SmartPos.Models.TokenAuth
 
         public bool RememberClient { get; set; }
 
+        public string TenancyName { get; set; }
+
         /// <summary>Optional client GPS latitude (waiter/rider auto attendance check-in).</summary>
         public double? Latitude { get; set; }
 

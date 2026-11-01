@@ -10,6 +10,7 @@ import {
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { PurchaseReturnDto } from 'src/app/demo/api/purchase-return';
 import { PurchaseReturnService } from 'src/app/demo/service/purchase-return.service';
+import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
 
 @Component({
     selector: 'app-purchase-return-view-dialog',
@@ -24,8 +25,10 @@ export class PurchaseReturnViewDialogComponent implements OnChanges {
     purchaseReturn: PurchaseReturnDto | null = null;
     loading = false;
 
-    constructor(public formatService: AppFormatService, 
+    constructor(
+        public formatService: AppFormatService,
         private purchaseReturnService: PurchaseReturnService,
+        private thermalPrintService: ThermalPrintService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
@@ -46,6 +49,11 @@ export class PurchaseReturnViewDialogComponent implements OnChanges {
 
     onHide(): void {
         this.onVisibleChange(false);
+    }
+
+    print(): void {
+        if (!this.purchaseReturn) return;
+        this.thermalPrintService.printPurchaseReturn(this.purchaseReturn);
     }
 
     onDelete(): void {
@@ -95,7 +103,9 @@ export class PurchaseReturnViewDialogComponent implements OnChanges {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: error?.message || 'Failed to load purchase return',
+                    detail:
+                        error?.message ||
+                        'Failed to load purchase return details',
                 });
                 this.onHide();
             })
