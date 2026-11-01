@@ -6,7 +6,7 @@
     <div class="surface-card p-3 md:p-4 border-round-xl shadow-2 mb-3">
         <div class="flex flex-column sm:flex-row align-items-start sm:align-items-center justify-content-between gap-3">
             <div>
-                <div class="flex align-items-center gap-2 mb-1">
+                <div class="flex flex-wrap align-items-center gap-2 mb-1">
                     <span class="inline-flex align-items-center justify-content-center bg-primary-100 text-primary border-circle w-2rem h-2rem">
                         <i class="pi pi-compass text-lg"></i>
                     </span>
@@ -130,7 +130,7 @@
     <div *ngIf="orders.length > 0" class="orders-list">
         <div *ngFor="let order of orders" class="order-card surface-card border-round-xl shadow-2 mb-3 overflow-hidden">
             <!-- Order Header -->
-            <div class="order-card-header p-3 flex align-items-center justify-content-between border-bottom-1 surface-border">
+            <div class="order-card-header p-3 flex flex-wrap align-items-center justify-content-between gap-2 border-bottom-1 surface-border">
                 <div class="flex align-items-center gap-2">
                     <span class="order-number font-bold text-lg text-900">#{{ order.orderNo }}</span>
                     <span *ngIf="order.distanceKm" class="distance-pill">
@@ -167,7 +167,7 @@
                         <a
                             *ngIf="order.customerPhone"
                             [href]="'tel:' + order.customerPhone"
-                            class="call-btn p-button p-button-sm p-button-success border-round-lg text-decoration-none"
+                            class="call-btn p-button p-button-sm p-button-success border-round-lg text-decoration-none w-full sm:w-auto justify-content-center"
                         >
                             <i class="pi pi-phone mr-1"></i>
                             <span>Call {{ order.customerPhone }}</span>
@@ -176,7 +176,7 @@
 
                     <!-- Delivery Address & Navigation -->
                     <div class="address-box mt-2 pt-2 border-top-1 surface-border">
-                        <div class="flex align-items-start justify-content-between gap-2">
+                        <div class="flex flex-column sm:flex-row align-items-start justify-content-between gap-2">
                             <div class="flex align-items-start gap-2">
                                 <i class="pi pi-map-marker text-red-500 text-lg mt-1 flex-shrink-0"></i>
                                 <div>
@@ -196,7 +196,7 @@
                                 icon="pi pi-directions"
                                 label="Navigate"
                                 (click)="navigateToLocation(order)"
-                                class="navigate-btn p-button-sm p-button-info border-round-lg flex-shrink-0"
+                                class="navigate-btn p-button-sm p-button-info border-round-lg flex-shrink-0 w-full sm:w-auto justify-content-center"
                                 title="Open Google Maps with turn-by-turn directions"
                             ></button>
                         </div>
@@ -242,7 +242,7 @@
                 </div>
 
                 <!-- Payment & Total Summary -->
-                <div class="payment-summary p-3 border-round-lg bg-surface-100 flex justify-content-between align-items-center mb-3">
+                <div class="payment-summary p-3 border-round-lg bg-surface-100 flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <div>
                         <span class="text-xs text-500 uppercase block font-semibold">Payment</span>
                         <span class="font-bold text-sm text-900">{{ order.paymentMethod }}</span>

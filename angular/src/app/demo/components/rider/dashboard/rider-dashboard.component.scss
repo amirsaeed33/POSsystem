@@ -141,3 +141,103 @@
         justify-content: center;
     }
 }
+
+
+// Responsive mobile optimizations
+@media (max-width: 576px) {
+    .rider-dashboard-container {
+        padding: 0.35rem;
+    }
+
+    .stat-card {
+        padding: 0.85rem 1rem;
+
+        .text-3xl {
+            font-size: 1.5rem !important;
+        }
+
+        .text-2xl {
+            font-size: 1.25rem !important;
+            word-break: break-word;
+        }
+    }
+
+    .order-card {
+        .order-card-header {
+            padding: 0.75rem !important;
+        }
+
+        .order-number {
+            font-size: 1rem !important;
+        }
+
+        .status-chip {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+        }
+
+        .distance-pill {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.45rem;
+        }
+    }
+
+    .actions-row {
+        .p-button-lg {
+            font-size: 0.875rem !important;
+            padding: 0.5rem 0.25rem !important;
+            min-height: 2.75rem !important;
+            height: auto !important;
+        }
+    }
+}
+
+@media (max-width: 360px) {
+    .rider-dashboard-container {
+        padding: 0.25rem;
+    }
+
+    .stat-card {
+        padding: 0.75rem;
+
+        .stat-icon-wrap {
+            width: 2.25rem;
+            height: 2.25rem;
+
+            .pi {
+                font-size: 0.95rem;
+            }
+        }
+    }
+
+    .actions-row {
+        .p-button-lg {
+            font-size: 0.75rem !important;
+            letter-spacing: -0.2px;
+
+            .p-button-icon {
+                font-size: 0.75rem !important;
+                margin-right: 0.25rem !important;
+            }
+        }
+    }
+}
+
+// PrimeNG Dialog mobile responsiveness
+::ng-deep .p-dialog {
+    max-width: 96vw !important;
+
+    @media (max-width: 576px) {
+        .p-dialog-header {
+            padding: 0.85rem 1rem !important;
+        }
+
+        .p-dialog-content {
+            padding: 0.85rem 1rem !important;
+        }
+
+        .p-dialog-footer {
+            padding: 0.75rem 1rem !important;
+        }
+    }
+}

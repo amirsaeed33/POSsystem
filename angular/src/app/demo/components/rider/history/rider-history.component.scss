@@ -27,3 +27,55 @@
         transform: translateY(-2px);
     }
 }
+
+
+// Responsive mobile optimizations
+@media (max-width: 576px) {
+    .rider-history-container {
+        padding: 0.35rem;
+    }
+
+    .rider-preset-buttons {
+        gap: 0.35rem !important;
+
+        .p-button {
+            padding: 0.35rem 0.6rem !important;
+            font-size: 0.75rem !important;
+            min-height: 2rem !important;
+        }
+    }
+
+    .history-card {
+        padding: 0.85rem !important;
+    }
+}
+
+@media (max-width: 360px) {
+    .rider-history-container {
+        padding: 0.25rem;
+    }
+
+    .rider-preset-buttons .p-button {
+        padding: 0.3rem 0.45rem !important;
+        font-size: 0.7rem !important;
+    }
+}
+
+// PrimeNG Dialog mobile responsiveness
+::ng-deep .p-dialog {
+    max-width: 96vw !important;
+
+    @media (max-width: 576px) {
+        .p-dialog-header {
+            padding: 0.85rem 1rem !important;
+        }
+
+        .p-dialog-content {
+            padding: 0.85rem 1rem !important;
+        }
+
+        .p-dialog-footer {
+            padding: 0.75rem 1rem !important;
+        }
+    }
+}

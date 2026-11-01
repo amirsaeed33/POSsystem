@@ -144,7 +144,7 @@
             </div>
 
             <!-- Items Brief Preview -->
-            <div class="items-preview p-2 border-round-lg bg-surface-50 mb-2 text-xs flex justify-content-between align-items-center">
+            <div class="items-preview p-2 border-round-lg bg-surface-50 mb-2 text-xs flex justify-content-between align-items-center gap-2">
                 <span class="text-700">
                     <strong>{{ order.items.length }}</strong> item(s):
                     <span class="text-600">
@@ -158,7 +158,7 @@
                     icon="pi pi-eye"
                     label="Details"
                     (click)="openDetails(order)"
-                    class="p-button-text p-button-sm text-xs py-1 px-2"
+                    class="p-button-text p-button-sm text-xs py-1 px-2 flex-shrink-0"
                 ></button>
             </div>
         </div>

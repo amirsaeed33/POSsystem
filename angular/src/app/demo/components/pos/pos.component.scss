@@ -581,3 +581,210 @@
         top: 0.5rem;
     }
 }
+
+
+// Responsive mobile optimizations for Restaurant POS & Waiter mode
+@media (max-width: 767.98px) {
+    .pos-menu-categories {
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        padding-bottom: 0.4rem !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+
+        .pos-menu-cat {
+            flex-shrink: 0 !important;
+            padding: 0.35rem 0.75rem !important;
+            font-size: 0.8rem !important;
+        }
+    }
+}
+
+@media (max-width: 576px) {
+    .pos-page {
+        padding-bottom: 5.5rem;
+    }
+
+    .pos-resto-bar {
+        padding: 0.65rem 0.75rem !important;
+    }
+
+    .pos-resto-bar-main {
+        gap: 0.65rem !important;
+    }
+
+    .pos-resto-bar-icon {
+        width: 2.25rem !important;
+        height: 2.25rem !important;
+    }
+
+    .pos-resto-bar-title {
+        font-size: 0.95rem;
+    }
+
+    .pos-resto-action-group {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.4rem !important;
+        width: 100% !important;
+
+        .pos-resto-btn.p-button {
+            width: 100% !important;
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.5rem !important;
+            min-height: 2.35rem !important;
+            justify-content: center !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+
+            .p-button-label {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+    }
+
+    .pos-menu-grid {
+        gap: 0.5rem !important;
+    }
+
+    .pos-menu-tile {
+        min-height: 9.5rem !important;
+
+        .pos-menu-tile-media {
+            height: 4.85rem !important;
+        }
+
+        .pos-menu-tile-body {
+            padding: 0.45rem 0.55rem !important;
+        }
+
+        .pos-menu-tile-name {
+            font-size: 0.825rem !important;
+            line-height: 1.2 !important;
+        }
+
+        .pos-menu-tile-price {
+            font-size: 0.85rem !important;
+        }
+
+        .pos-menu-tile-qty {
+            padding: 0.35rem 0.45rem !important;
+            gap: 0.2rem !important;
+
+            .pos-menu-qty-btn {
+                width: 2rem !important;
+                height: 2rem !important;
+            }
+
+            .pos-menu-qty-value {
+                font-size: 0.85rem !important;
+            }
+        }
+    }
+
+    .pos-cart-item {
+        padding: 0.65rem 0 !important;
+    }
+
+    .pos-cart-item-controls {
+        grid-template-columns: 1fr auto !important;
+        gap: 0.5rem !important;
+    }
+
+    .pos-qty-control {
+        grid-template-columns: 2.35rem 2.5rem 2.35rem !important;
+        gap: 0.25rem !important;
+
+        .pos-touch-btn {
+            min-width: 2.35rem !important;
+            min-height: 2.35rem !important;
+            width: 2.35rem !important;
+            height: 2.35rem !important;
+        }
+    }
+
+    .pos-mobile-bar {
+        padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom)) !important;
+        margin: 0.5rem -0.5rem -0.5rem !important;
+        gap: 0.4rem !important;
+
+        .pos-mobile-bar-total {
+            min-width: 5rem !important;
+
+            small {
+                font-size: 0.7rem !important;
+            }
+
+            strong {
+                font-size: 1.05rem !important;
+            }
+        }
+
+        .p-button {
+            min-height: 2.65rem !important;
+            font-size: 0.875rem !important;
+        }
+    }
+}
+
+@media (max-width: 360px) {
+    .pos-menu-tile {
+        .pos-menu-tile-media {
+            height: 4.25rem !important;
+        }
+
+        .pos-menu-tile-name {
+            font-size: 0.775rem !important;
+        }
+
+        .pos-menu-tile-price {
+            font-size: 0.8rem !important;
+        }
+
+        .pos-menu-tile-qty {
+            .pos-menu-qty-btn {
+                width: 1.85rem !important;
+                height: 1.85rem !important;
+            }
+        }
+    }
+
+    .pos-mobile-bar {
+        .pos-mobile-bar-total {
+            min-width: 4.5rem !important;
+
+            strong {
+                font-size: 0.95rem !important;
+            }
+        }
+
+        .p-button {
+            font-size: 0.8rem !important;
+            padding: 0.35rem !important;
+        }
+    }
+}
+
+// PrimeNG Dialog mobile responsiveness for POS
+::ng-deep .p-dialog {
+    max-width: 96vw !important;
+
+    @media (max-width: 576px) {
+        margin: 0.35rem !important;
+
+        .p-dialog-header {
+            padding: 0.75rem 1rem !important;
+        }
+
+        .p-dialog-content {
+            padding: 0.75rem 1rem !important;
+            max-height: 80vh !important;
+        }
+
+        .p-dialog-footer {
+            padding: 0.65rem 1rem !important;
+        }
+    }
+}
