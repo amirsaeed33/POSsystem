@@ -1,15 +1,15 @@
 <div class="ot-page">
     <header class="ot-top">
-        <button type="button" class="ot-back" (click)="view === 'detail' ? showMyOrders() : backToStore()">
+        <button type="button" class="ot-back" (click)="backToStore()">
             <i class="pi pi-arrow-left"></i>
-            <span>{{ view === 'detail' ? 'My Orders' : 'Back to Menu' }}</span>
+            <span>Back to Menu</span>
         </button>
         <div class="ot-top-title">
-            <span class="ot-live-dot" *ngIf="view === 'detail' && order && (isPending(order) || isInProgress(order))"></span>
-            <span>{{ view === 'detail' ? 'Order Status' : 'Track Your Order' }}</span>
+            <span class="ot-live-dot" *ngIf="order && (isPending(order) || isInProgress(order))"></span>
+            <span>Order Status</span>
         </div>
         <button
-            *ngIf="view === 'detail' && order"
+            *ngIf="order"
             type="button"
             class="ot-icon-btn"
             [disabled]="refreshing || loading"
@@ -18,55 +18,12 @@
         >
             <i class="pi" [class.pi-spin]="refreshing" [class.pi-spinner]="refreshing" [class.pi-refresh]="!refreshing"></i>
         </button>
-        <div *ngIf="view !== 'detail' || !order" class="ot-top-spacer"></div>
+        <div *ngIf="!order" class="ot-top-spacer"></div>
     </header>
 
     <main class="ot-main">
-        <!-- LIST: pick an order (no search) -->
-        <section *ngIf="view === 'list'" class="ot-list-wrap">
-            <div class="ot-hero-card">
-                <div class="ot-hero-icon"><i class="pi pi-send"></i></div>
-                <h1>Your recent orders</h1>
-                <p>Tap an order below to see live status. No typing needed.</p>
-            </div>
-
-            <div *ngIf="!myOrders.length" class="ot-empty">
-                <div class="ot-empty-icon"><i class="pi pi-inbox"></i></div>
-                <h2>No orders on this device yet</h2>
-                <p>Place an order from the menu and it will appear here automatically for easy tracking.</p>
-                <button type="button" class="ot-primary-btn" (click)="backToStore()">
-                    <i class="pi pi-shopping-bag"></i>
-                    <span>Browse Menu</span>
-                </button>
-            </div>
-
-            <div *ngIf="myOrders.length" class="ot-order-list">
-                <button
-                    type="button"
-                    class="ot-order-card"
-                    *ngFor="let o of myOrders"
-                    (click)="selectOrder(o.orderNo)"
-                >
-                    <div class="ot-order-card-main">
-                        <div class="ot-order-badge">{{ o.orderNo }}</div>
-                        <div class="ot-order-meta">
-                            <span *ngIf="o.branchName">{{ o.branchName }}</span>
-                            <span *ngIf="o.placedAt">{{ o.placedAt | date: 'mediumDate' }} · {{ o.placedAt | date: 'shortTime' }}</span>
-                        </div>
-                        <div class="ot-order-name" *ngIf="o.customerName">{{ o.customerName }}</div>
-                    </div>
-                    <div class="ot-order-card-side">
-                        <div class="ot-order-total" *ngIf="o.totalAmount != null">
-                            PKR {{ o.totalAmount | number: '1.0-0' }}
-                        </div>
-                        <i class="pi pi-chevron-right"></i>
-                    </div>
-                </button>
-            </div>
-        </section>
-
-        <!-- DETAIL -->
-        <section *ngIf="view === 'detail'" class="ot-detail-wrap">
+        <!-- DETAIL only (active orders are listed in the menu) -->
+        <section class="ot-detail-wrap">
             <div *ngIf="loading" class="ot-loading">
                 <i class="pi pi-spin pi-spinner"></i>
                 <span>Loading your order…</span>
@@ -78,7 +35,7 @@
                     <strong>Couldn’t open this order</strong>
                     <p>{{ errorMessage }}</p>
                 </div>
-                <button type="button" class="ot-secondary-btn" (click)="showMyOrders()">Choose another</button>
+                <button type="button" class="ot-secondary-btn" (click)="backToStore()">Back to Menu</button>
             </div>
 
             <ng-container *ngIf="!loading && order">
@@ -186,11 +143,8 @@
                 </div>
 
                 <div class="ot-actions">
-                    <button type="button" class="ot-secondary-btn" (click)="showMyOrders()">
-                        <i class="pi pi-list"></i> My Orders
-                    </button>
                     <button type="button" class="ot-primary-btn" (click)="backToStore()">
-                        <i class="pi pi-shopping-bag"></i> Continue Shopping
+                        <i class="pi pi-shopping-bag"></i> Back to Menu
                     </button>
                 </div>
             </ng-container>

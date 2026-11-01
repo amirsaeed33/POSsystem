@@ -467,6 +467,57 @@
             </div>
         </div>
     </section>
+    <!-- Active orders (shown in menu — tap to open order detail) -->
+    <section
+        class="fp-active-orders-section"
+        *ngIf="branchId && (activeOrders.length || loadingActiveOrders)"
+        id="storeActiveOrders"
+    >
+        <div class="max-w-7xl mx-auto px-3">
+            <div class="fp-active-orders-head">
+                <div>
+                    <div class="fp-active-orders-title">
+                        <span class="fp-active-live-dot"></span>
+                        Your Active Order{{ activeOrders.length === 1 ? '' : 's' }}
+                    </div>
+                    <div class="fp-active-orders-sub">Tap an order to see live status</div>
+                </div>
+                <button
+                    type="button"
+                    class="fp-active-refresh"
+                    [disabled]="loadingActiveOrders"
+                    (click)="refreshActiveOrders()"
+                    title="Refresh"
+                >
+                    <i class="pi" [ngClass]="loadingActiveOrders ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+                </button>
+            </div>
+
+            <div class="fp-active-orders-list" *ngIf="activeOrders.length">
+                <button
+                    type="button"
+                    class="fp-active-order-card"
+                    *ngFor="let o of activeOrders"
+                    (click)="openActiveOrder(o)"
+                >
+                    <div class="fp-active-order-left">
+                        <div class="fp-active-order-no">{{ o.orderNo }}</div>
+                        <div class="fp-active-order-meta">
+                            <span class="fp-active-status">{{ activeOrderStatusLabel(o) }}</span>
+                            <span *ngIf="o.placedAt">{{ o.placedAt | date: 'shortTime' }}</span>
+                        </div>
+                    </div>
+                    <div class="fp-active-order-right">
+                        <div class="fp-active-total" *ngIf="o.totalAmount != null">
+                            PKR {{ o.totalAmount | number: '1.0-0' }}
+                        </div>
+                        <i class="pi pi-chevron-right"></i>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </section>
+
     <!-- 3. CATEGORY & FILTER BARS (Sticky / Smooth Horizontal Track) -->
     <section class="fp-categories-nav-section" id="storeMenuSection">
         <div class="max-w-7xl mx-auto">

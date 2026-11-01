@@ -53,17 +53,14 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
                 return;
             }
 
-            this.route.queryParamMap.subscribe((qParams) => {
-                const qOrderNo = qParams.get('orderNo');
-                if (qOrderNo) {
-                    void this.selectOrder(qOrderNo.trim());
-                } else {
-                    this.view = 'list';
-                    this.order = null;
-                    this.currentOrderNo = '';
-                    this.stopPolling();
-                }
-            });
+            const qOrderNo = this.route.snapshot.queryParamMap.get('orderNo');
+            if (qOrderNo) {
+                void this.selectOrder(qOrderNo.trim());
+                return;
+            }
+
+            // No order selected — send customer back to the menu (active orders live there).
+            this.backToStore();
         });
     }
 
@@ -85,16 +82,8 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
     }
 
     showMyOrders(): void {
-        this.view = 'list';
-        this.order = null;
-        this.currentOrderNo = '';
-        this.errorMessage = '';
         this.stopPolling();
-        this.reloadMyOrders();
-        this.router.navigate(['/online-order/track'], {
-            queryParams: this.branchId ? { branchId: this.branchId } : {},
-            replaceUrl: true,
-        });
+        this.backToStore();
     }
 
     async loadOrder(orderNo: string, silent = false): Promise<void> {

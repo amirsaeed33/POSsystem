@@ -10,7 +10,8 @@ import { OnlineOrderTrackingComponent } from './online-order-tracking.component'
             { path: '', component: OnlineOrderComponent },
             { path: 'product', component: OnlineOrderComponent },
             { path: 'product/:id', component: OnlineProductDetailComponent },
-            { path: 'track', component: OnlineOrderTrackingComponent },
+            // Detail only — empty /track redirects back to menu (no standalone track list page).
+            { path: 'track', redirectTo: '', pathMatch: 'full' },
             { path: 'track/:orderNo', component: OnlineOrderTrackingComponent },
         ]),
     ],

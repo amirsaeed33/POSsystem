@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Abp.Application.Services;
 using Abp.Application.Services.Dto;
+using Abp.Authorization;
 using SmartPos.Orders.Dto;
 using SmartPos.Sales.Dto;
 
@@ -20,6 +21,7 @@ namespace SmartPos.Orders
 
         Task RejectAsync(EntityDto<int> input);
 
+        [AbpAllowAnonymous]
         Task<CustomerOrderDto> CreateOnlineOrderAsync(CreateCustomerOrderDto input);
 
         Task<List<OnlineProductDto>> GetOnlineCatalogAsync(int? branchId);

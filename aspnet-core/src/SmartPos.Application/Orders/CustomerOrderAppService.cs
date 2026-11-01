@@ -637,8 +637,31 @@ namespace SmartPos.Orders
                     await _branchEmailNotifier.SendEmailsAsync(settings.Emails, subject, body);
                 }
 
-                return await GetAsync(new EntityDto<int>(insertedId));
+                // Do not call GetAsync here: it is class-authorized and rejects anonymous guests.
+                return await GetOnlineOrderDtoAsync(insertedId);
             }
+        }
+
+        /// <summary>
+        /// Loads an order DTO for anonymous online flows without going through authorized GetAsync.
+        /// </summary>
+        private async Task<CustomerOrderDto> GetOnlineOrderDtoAsync(int orderId)
+        {
+            var entity = await GetEntityByIdAsync(orderId);
+            if (entity == null)
+            {
+                throw new UserFriendlyException("Order not found.");
+            }
+
+            if (entity.Lines != null)
+            {
+                foreach (var line in entity.Lines)
+                {
+                    line.Product = await _productRepository.FirstOrDefaultAsync(line.ProductId);
+                }
+            }
+
+            return MapToEntityDto(entity);
         }
 
         public override async Task<CustomerOrderDto> CreateAsync(CreateCustomerOrderDto input)

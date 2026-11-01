@@ -1138,6 +1138,131 @@
 /* ==========================================================================
    3. CATEGORIES & FILTER BARS
    ========================================================================== */
+.fp-active-orders-section {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+  border-bottom: 1px solid #fed7aa;
+  padding: 0.85rem 0 1rem;
+}
+
+.fp-active-orders-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.fp-active-orders-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 900;
+  font-size: 1rem;
+  color: #9a3412;
+}
+
+.fp-active-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ea580c;
+  box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.45);
+  animation: fpActivePulse 1.8s infinite;
+}
+
+.fp-active-orders-sub {
+  font-size: 0.78rem;
+  color: #9a3412;
+  opacity: 0.8;
+}
+
+.fp-active-refresh {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  border: 1px solid #fdba74;
+  background: #fff;
+  color: #c2410c;
+  cursor: pointer;
+}
+
+.fp-active-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.fp-active-order-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
+  border: 1px solid #fdba74;
+  background: #fff;
+  border-radius: 0.9rem;
+  padding: 0.85rem 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(154, 52, 18, 0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(154, 52, 18, 0.1);
+  }
+}
+
+.fp-active-order-no {
+  font-weight: 900;
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+
+.fp-active-order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  color: #78716c;
+}
+
+.fp-active-status {
+  display: inline-flex;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  background: #ffedd5;
+  color: #c2410c;
+  font-weight: 800;
+}
+
+.fp-active-order-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #a8a29e;
+  flex-shrink: 0;
+}
+
+.fp-active-total {
+  font-weight: 900;
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+@keyframes fpActivePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(234, 88, 12, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0);
+  }
+}
+
 .fp-categories-nav-section {
   background: var(--surface-0, #ffffff);
   border-bottom: 1px solid var(--surface-border, #e2e8f0);
