@@ -2,6 +2,99 @@
     padding-bottom: 0.5rem;
 }
 
+.pos-waiter-assigned {
+    border: 1px solid var(--surface-border);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 0.9rem;
+    padding: 0.85rem 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.pos-waiter-assigned-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.pos-waiter-assigned-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    padding: 0 0.45rem;
+    border-radius: 999px;
+    background: var(--primary-color);
+    color: var(--primary-color-text, #fff);
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.pos-waiter-assigned-empty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem 0.85rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.75rem;
+    background: var(--surface-ground);
+    color: var(--text-color-secondary);
+    font-size: 0.875rem;
+
+    > .pi {
+        font-size: 1.1rem;
+        color: var(--primary-color);
+    }
+}
+
+.pos-waiter-assigned-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+@media (min-width: 576px) {
+    .pos-waiter-assigned-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 992px) {
+    .pos-waiter-assigned-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.pos-waiter-assigned-card {
+    display: flex;
+    width: 100%;
+    border: 1px solid var(--surface-border);
+    background: var(--surface-ground);
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+        border-color: var(--primary-color);
+        background: var(--surface-hover);
+    }
+
+    &.active {
+        border-color: var(--primary-color);
+        background: color-mix(in srgb, var(--primary-color) 12%, white);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color) 25%, transparent);
+    }
+
+    > .pi,
+    .pi {
+        color: var(--primary-color);
+    }
+}
+
 .pos-header-actions {
     .p-button {
         min-height: 2.5rem;

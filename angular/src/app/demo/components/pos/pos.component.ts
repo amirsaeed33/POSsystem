@@ -136,6 +136,11 @@ export class PosComponent implements OnInit, OnDestroy {
     sendingKOT = false;
     printingBill = false;
 
+    /** Active restaurant orders for the branch (used for waiter "My Orders" panel). */
+    activeRestaurantOrders: RestaurantOrderDto[] = [];
+    loadingMyAssignedOrders = false;
+    currentWaiterStaffId: number | null = null;
+
     // KOT Modal & Thermal print preview
     kotDialogVisible = false;
     kotResult: SendToKitchenResultDto | null = null;
@@ -214,6 +219,79 @@ export class PosComponent implements OnInit, OnDestroy {
 
     get isWaiter(): boolean {
         return this.isRestaurantMode && this.authService.isWaiter();
+    }
+
+    private get currentWaiterNameKey(): string {
+        return (this.authService.getPrinterIdentity().name || this.waiterName || '')
+            .trim()
+            .toLowerCase();
+    }
+
+    isAssignedToCurrentWaiter(tableOrOrder: {
+        waiterId?: number | null;
+        waiterName?: string | null;
+    }): boolean {
+        if (
+            this.currentWaiterStaffId &&
+            tableOrOrder.waiterId &&
+            tableOrOrder.waiterId === this.currentWaiterStaffId
+        ) {
+            return true;
+        }
+        const key = this.currentWaiterNameKey;
+        if (!key) {
+            return false;
+        }
+        return (tableOrOrder.waiterName || '').trim().toLowerCase() === key;
+    }
+
+    /** Occupied/billed tables & car bays currently assigned to this waiter. */
+    get myAssignedTables(): RestaurantTableDto[] {
+        if (!this.isWaiter) {
+            return [];
+        }
+        return (this.tables || []).filter(
+            (t) =>
+                (t.status === 1 || t.status === 2) &&
+                this.isAssignedToCurrentWaiter(t)
+        );
+    }
+
+    /** Open/billed orders currently tagged to this waiter. */
+    get myAssignedOrders(): RestaurantOrderDto[] {
+        if (!this.isWaiter) {
+            return [];
+        }
+        return (this.activeRestaurantOrders || []).filter((o) =>
+            this.isAssignedToCurrentWaiter(o)
+        );
+    }
+
+    getMyAssignedOrderForTable(table: RestaurantTableDto): RestaurantOrderDto | null {
+        if (!table) {
+            return null;
+        }
+        const byTableId = this.myAssignedOrders.find(
+            (o) => o.tableId === table.id
+        );
+        if (byTableId) {
+            return byTableId;
+        }
+        if (table.currentOrderId) {
+            return (
+                this.myAssignedOrders.find((o) => o.id === table.currentOrderId) ||
+                null
+            );
+        }
+        const tableNo = (table.tableNo || '').trim().toLowerCase();
+        if (!tableNo) {
+            return null;
+        }
+        return (
+            this.myAssignedOrders.find(
+                (o) => (o.tableNo || '').trim().toLowerCase() === tableNo
+            ) || null
+        );
     }
 
     isAutoAssignWaiter(): boolean {
@@ -407,6 +485,10 @@ export class PosComponent implements OnInit, OnDestroy {
             this.loadMenuProducts();
             if (this.isWaiter) {
                 this.waiterName = this.authService.getPrinterIdentity().name;
+                await this.loadWaiters(branchId);
+                this.resolveCurrentWaiterStaffId();
+                this.loadTables(branchId);
+                void this.loadMyAssignedOrders(branchId);
             } else if (this.takeawayAlarmService && !this.alarmOrdersSub) {
                 this.alarmOrdersSub = this.takeawayAlarmService.unpaidOrders$.subscribe((orders) => {
                     this.unpaidTakeawayOrders = orders || [];
@@ -416,7 +498,51 @@ export class PosComponent implements OnInit, OnDestroy {
         } else {
             this.menuProducts = [];
             this.selectedMenuCategoryId = null;
+            this.activeRestaurantOrders = [];
         }
+    }
+
+    private resolveCurrentWaiterStaffId(): void {
+        const user = this.authService.getUserInfo();
+        const userId = user?.id ?? null;
+        const nameKey = this.currentWaiterNameKey;
+        const byUser = userId
+            ? this.waiters.find((w) => w.userId === userId)
+            : null;
+        const byName = nameKey
+            ? this.waiters.find(
+                  (w) => (w.name || '').trim().toLowerCase() === nameKey
+              )
+            : null;
+        this.currentWaiterStaffId = byUser?.id ?? byName?.id ?? null;
+    }
+
+    async loadMyAssignedOrders(branchId?: number): Promise<void> {
+        if (!this.isWaiter) {
+            this.activeRestaurantOrders = [];
+            return;
+        }
+        const bId = branchId || this.branchContext.getBranchId();
+        if (!bId) {
+            return;
+        }
+        this.loadingMyAssignedOrders = true;
+        try {
+            this.activeRestaurantOrders =
+                (await this.restaurantOrderService.getActiveOrders(bId)) || [];
+        } catch (err) {
+            console.error('Failed to load waiter assigned orders', err);
+            this.activeRestaurantOrders = [];
+        } finally {
+            this.loadingMyAssignedOrders = false;
+        }
+    }
+
+    async openAssignedTable(table: RestaurantTableDto): Promise<void> {
+        if (!table) {
+            return;
+        }
+        await this.onTableClicked(table);
     }
 
     private loadPosCustomers(): void {
@@ -649,6 +775,9 @@ export class PosComponent implements OnInit, OnDestroy {
             .getTables(bId)
             .then((tables) => {
                 this.tables = tables || [];
+                if (this.isWaiter) {
+                    void this.loadMyAssignedOrders(bId);
+                }
             })
             .catch((err) => {
                 console.error('Failed to load tables', err);
@@ -825,6 +954,9 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.waiterName = this.authService.getPrinterIdentity().name;
             }
             await this.selectTable(table);
+            if (this.isWaiter) {
+                void this.loadMyAssignedOrders();
+            }
             return;
         }
 
@@ -839,7 +971,33 @@ export class PosComponent implements OnInit, OnDestroy {
         // Dining table:
         if (this.isWaiter) {
             this.waiterName = this.authService.getPrinterIdentity().name;
+            if (!this.currentWaiterStaffId) {
+                if (!this.waiters.length) {
+                    await this.loadWaiters();
+                }
+                this.resolveCurrentWaiterStaffId();
+            }
+            // Persist assignment so this table shows under My Assigned Orders.
+            if (this.currentWaiterStaffId && table.waiterId !== this.currentWaiterStaffId) {
+                try {
+                    await this.restaurantTableService.assignWaiter({
+                        tableId: table.id,
+                        waiterId: this.currentWaiterStaffId,
+                        waiterName: this.waiterName,
+                    });
+                    table.waiterId = this.currentWaiterStaffId;
+                    table.waiterName = this.waiterName;
+                    const listed = this.tables.find((t) => t.id === table.id);
+                    if (listed) {
+                        listed.waiterId = this.currentWaiterStaffId;
+                        listed.waiterName = this.waiterName;
+                    }
+                } catch {
+                    // Continue opening even if assignment persist fails.
+                }
+            }
             await this.selectTable(table);
+            void this.loadMyAssignedOrders();
             return;
         }
 
@@ -881,7 +1039,32 @@ export class PosComponent implements OnInit, OnDestroy {
 
         if (this.isWaiter) {
             this.waiterName = this.authService.getPrinterIdentity().name;
+            if (!this.currentWaiterStaffId) {
+                if (!this.waiters.length) {
+                    await this.loadWaiters();
+                }
+                this.resolveCurrentWaiterStaffId();
+            }
+            if (this.currentWaiterStaffId && table.waiterId !== this.currentWaiterStaffId) {
+                try {
+                    await this.restaurantTableService.assignWaiter({
+                        tableId: table.id,
+                        waiterId: this.currentWaiterStaffId,
+                        waiterName: this.waiterName,
+                    });
+                    table.waiterId = this.currentWaiterStaffId;
+                    table.waiterName = this.waiterName;
+                    const listed = this.tables.find((t) => t.id === table.id);
+                    if (listed) {
+                        listed.waiterId = this.currentWaiterStaffId;
+                        listed.waiterName = this.waiterName;
+                    }
+                } catch {
+                    // Continue opening even if assignment persist fails.
+                }
+            }
             await this.selectTable(table);
+            void this.loadMyAssignedOrders();
             return;
         }
 
@@ -934,8 +1117,11 @@ export class PosComponent implements OnInit, OnDestroy {
         name: string;
     } {
         if (this.isWaiter) {
+            if (!this.currentWaiterStaffId) {
+                this.resolveCurrentWaiterStaffId();
+            }
             return {
-                id: null,
+                id: this.currentWaiterStaffId,
                 name: this.authService.getPrinterIdentity().name || 'Staff',
             };
         }
@@ -1709,6 +1895,9 @@ export class PosComponent implements OnInit, OnDestroy {
             this.cart.forEach((l) => (l.isSentToKitchen = true));
             if (!isTakeaway) {
                 await this.loadTables();
+                if (this.isWaiter) {
+                    void this.loadMyAssignedOrders();
+                }
             } else {
                 if (!this.isWaiter) {
                     this.loadUnpaidTakeaways();

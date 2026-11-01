@@ -14,6 +14,94 @@
         </div>
     </div>
 
+    <!-- Waiter: currently assigned open/billed tables & car orders -->
+    <div *ngIf="isWaiter" class="pos-waiter-assigned card mb-3">
+        <div class="pos-waiter-assigned-head">
+            <div class="flex align-items-center gap-2 min-w-0">
+                <i class="pi pi-bookmark text-primary"></i>
+                <div class="min-w-0">
+                    <div class="font-bold text-900">My Assigned Orders</div>
+                    <div class="text-xs text-600">
+                        Tables and cars currently assigned to
+                        <strong>{{ waiterName || 'you' }}</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="flex align-items-center gap-2">
+                <span class="pos-waiter-assigned-count">
+                    {{ myAssignedTables.length }}
+                </span>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-refresh"
+                    class="p-button-rounded p-button-text p-button-sm"
+                    [loading]="loadingMyAssignedOrders || loadingTables"
+                    (click)="loadTables(); loadMyAssignedOrders()"
+                    title="Refresh my assigned orders"
+                ></button>
+            </div>
+        </div>
+
+        <div *ngIf="loadingMyAssignedOrders && !myAssignedTables.length" class="text-sm text-500 py-2">
+            <i class="pi pi-spin pi-spinner mr-2"></i>Loading your assigned orders...
+        </div>
+
+        <div *ngIf="!loadingMyAssignedOrders && !myAssignedTables.length" class="pos-waiter-assigned-empty">
+            <i class="pi pi-inbox"></i>
+            <span>No active tables assigned to you yet. Select a table or car to start.</span>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Select Table / Car"
+                icon="pi pi-th-large"
+                class="p-button-sm p-button-outlined"
+                (click)="openTableDialog(false)"
+            ></button>
+        </div>
+
+        <div *ngIf="myAssignedTables.length" class="pos-waiter-assigned-grid">
+            <button
+                type="button"
+                class="pos-waiter-assigned-card"
+                *ngFor="let table of myAssignedTables"
+                [class.active]="selectedTable?.id === table.id"
+                (click)="openAssignedTable(table)"
+            >
+                <div class="flex align-items-center justify-content-between gap-2 w-full">
+                    <div class="flex align-items-center gap-2 min-w-0">
+                        <i [class]="isCarBay(table) ? 'pi pi-car' : 'pi pi-table'"></i>
+                        <div class="min-w-0 text-left">
+                            <div class="font-bold text-900 white-space-nowrap overflow-hidden text-overflow-ellipsis">
+                                {{ table.tableNo }}
+                                <span *ngIf="isCarBay(table) && table.currentVehicleNumber" class="text-600 font-semibold">
+                                    · {{ table.currentVehicleNumber }}
+                                </span>
+                            </div>
+                            <div class="text-xs text-500">
+                                {{ table.area || (isCarBay(table) ? 'Car Parking' : 'Main Hall') }}
+                                · {{ table.statusName || (table.status === 1 ? 'Occupied' : 'Billed') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <div class="font-bold text-primary text-sm" *ngIf="getMyAssignedOrderForTable(table) as order">
+                            {{ order.grandTotal | number: '1.0-0' }}
+                        </div>
+                        <div class="text-xs text-500" *ngIf="getMyAssignedOrderForTable(table) as order">
+                            {{ order.lines.length || 0 }} items
+                        </div>
+                        <div class="text-xs text-orange-600 font-semibold" *ngIf="!getMyAssignedOrderForTable(table)">
+                            Open
+                        </div>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </div>
+
     <!-- Restaurant Mode Order Bar -->
     <div *ngIf="isRestaurantMode" class="pos-resto-bar card mb-3">
         <div class="pos-resto-bar-main">
@@ -1241,6 +1329,13 @@
                                 <div *ngIf="table.waiterName" class="text-xs text-primary font-semibold mt-1">
                                     <i class="pi pi-user mr-1"></i>{{ table.waiterName }}
                                 </div>
+                                <div
+                                    *ngIf="isWaiter && isAssignedToCurrentWaiter(table)"
+                                    class="text-xs font-bold mt-1 px-2 py-1 border-round"
+                                    style="background:#dbeafe;color:#1d4ed8"
+                                >
+                                    MY ORDER
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1376,6 +1471,13 @@
                                 </span>
                                 <div *ngIf="table.waiterName" class="text-xs text-primary font-semibold mt-1">
                                     <i class="pi pi-user mr-1"></i>{{ table.waiterName }}
+                                </div>
+                                <div
+                                    *ngIf="isWaiter && isAssignedToCurrentWaiter(table)"
+                                    class="text-xs font-bold mt-1 px-2 py-1 border-round"
+                                    style="background:#dbeafe;color:#1d4ed8"
+                                >
+                                    MY ORDER
                                 </div>
                             </div>
                         </div>
