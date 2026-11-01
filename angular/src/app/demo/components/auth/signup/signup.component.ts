@@ -107,7 +107,7 @@ export class SignupComponent implements OnInit, OnDestroy {
         );
 
         if (this.authService.isAuthenticated()) {
-            this.router.navigateByUrl('/');
+            this.router.navigateByUrl('/dashboard');
         }
     }
 

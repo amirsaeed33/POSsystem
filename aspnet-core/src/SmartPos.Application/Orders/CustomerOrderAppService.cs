@@ -123,7 +123,12 @@ namespace SmartPos.Orders
 
                     if (targetBranch == null)
                     {
-                        targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.IsActive);
+                        targetBranch = await _branchRepository.GetAll()
+                            .AsNoTracking()
+                            .Where(b => b.IsActive)
+                            .OrderByDescending(b => b.BusinessType == BusinessType.Restaurant)
+                            .ThenBy(b => b.Id)
+                            .FirstOrDefaultAsync();
                     }
 
                     if (targetBranch == null)
@@ -241,6 +246,27 @@ namespace SmartPos.Orders
                     IsDeal = product.IsDeal || (product.Category != null && product.Category.Name.ToLower().Contains("deal")),
                     CardTag = product.CardTag
                 };
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<List<OnlineBranchDto>> GetOnlineBranchesAsync()
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                return await _branchRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(b => b.IsActive && b.TenantId != null)
+                    .OrderByDescending(b => b.BusinessType == BusinessType.Restaurant)
+                    .ThenBy(b => b.Name)
+                    .Select(b => new OnlineBranchDto
+                    {
+                        Id = b.Id,
+                        Name = b.Name,
+                        IsRestaurant = b.BusinessType == BusinessType.Restaurant,
+                        Address = b.InvoiceAddress
+                    })
+                    .ToListAsync();
             }
         }
 

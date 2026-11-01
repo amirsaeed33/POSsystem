@@ -503,6 +503,27 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
         try {
             this.loading = true;
+
+            // Public / guest path: no login required.
+            const publicBranches = await this.customerOrderService.getOnlineBranches();
+            if (publicBranches?.length === 1) {
+                this.setBranchInUrl(publicBranches[0].id);
+                return;
+            }
+            if (publicBranches?.length > 1) {
+                const restaurants = publicBranches.filter((b) => b.isRestaurant);
+                if (restaurants.length === 1) {
+                    this.setBranchInUrl(restaurants[0].id);
+                    return;
+                }
+                this.availableBranches = publicBranches.map((b) => ({
+                    id: b.id,
+                    name: b.name,
+                })) as any[];
+                this.branchMissingError = true;
+                return;
+            }
+
             await this.branchContext.ensureLoaded();
             const allowed = this.branchContext.getAllowedBranches();
             if (allowed && allowed.length > 0) {
@@ -886,7 +907,12 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                     life: 2500,
                 });
             } else {
-                this.router.navigate(['/auth/login']);
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Guest checkout',
+                    detail: 'No login needed — add items and place your order with name & phone.',
+                    life: 3200,
+                });
             }
         }
     }

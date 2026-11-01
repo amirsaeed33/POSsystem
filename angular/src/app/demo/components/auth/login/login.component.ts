@@ -46,7 +46,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 	currentSpokenWord = '';
 	private googleClientId = '';
 	private googleScriptLoaded = false;
-	private returnUrl = '/';
+	private returnUrl = '/dashboard';
 	private resendTimer: ReturnType<typeof setInterval> | null = null;
 	private inactivityTimer: any;
 	private readonly INACTIVITY_LIMIT = 3 * 60 * 1000; // 3 minutes in ms
@@ -79,7 +79,10 @@ export class LoginComponent implements OnInit, OnDestroy {
 	async ngOnInit(): Promise<void> {
 		this.speakGreeting();
 		this.resetInactivityTimer();
-		this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+		const rawReturnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+		// Root now opens the public online-order storefront; staff land on dashboard.
+		this.returnUrl =
+			!rawReturnUrl || rawReturnUrl === '/' ? '/dashboard' : rawReturnUrl;
 
 		// Tenant is resolved from the user on the backend after login — clear any stale picker cookie and branch context.
 		if (!this.authService.isAuthenticated()) {

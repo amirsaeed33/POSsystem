@@ -61,6 +61,14 @@ namespace SmartPos.Orders.Dto
         public string Reason { get; set; }
     }
 
+    public class OnlineBranchDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public bool IsRestaurant { get; set; }
+        public string Address { get; set; }
+    }
+
     public class OnlineStoreHeaderDto
     {
         public int BranchId { get; set; }

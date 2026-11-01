@@ -83,7 +83,9 @@ namespace SmartPos.Web.Host.Startup
                                        || host.EndsWith(".pages.dev", StringComparison.OrdinalIgnoreCase)
                                        || host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)
                                        || host.EndsWith(".web.app", StringComparison.OrdinalIgnoreCase)
-                                       || host.EndsWith(".firebaseapp.com", StringComparison.OrdinalIgnoreCase);
+                                       || host.EndsWith(".firebaseapp.com", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".runasp.net", StringComparison.OrdinalIgnoreCase)
+                                       || host.EndsWith(".siteasp.net", StringComparison.OrdinalIgnoreCase);
                             }
                             catch
                             {

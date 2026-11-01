@@ -7,13 +7,15 @@ import { PermissionNames } from './demo/api/permission-names';
 import { StaffTabRedirectComponent } from './demo/components/staff-hub/staff-tab-redirect.component';
 
 const routes: Routes = [
+    // Customer storefront is the default landing page (no login required).
+    { path: '', pathMatch: 'full', redirectTo: '/online-order' },
     {
         path: '',
         component: AppLayoutComponent,
         canActivate: [AuthGuard],
         canActivateChild: [PermissionGuard],
         children: [
-            { path: '', loadChildren: () => import('./demo/components/dashboards/dashboards.module').then(m => m.DashboardsModule) },
+            { path: 'dashboard', loadChildren: () => import('./demo/components/dashboards/dashboards.module').then(m => m.DashboardsModule) },
             {
                 path: 'pos',
                 data: {

@@ -99,6 +99,22 @@ export class CustomerOrderService {
         return this.unwrap(res, 'Failed to load product details');
     }
 
+    async getOnlineBranches(): Promise<
+        Array<{ id: number; name: string; isRestaurant?: boolean; address?: string }>
+    > {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetOnlineBranches`)
+        );
+        const result = this.unwrap(res, 'Failed to load store branches');
+        const items = Array.isArray(result) ? result : result?.items || [];
+        return (Array.isArray(items) ? items : []).map((b: any) => ({
+            id: b.id ?? b.Id,
+            name: b.name ?? b.Name ?? `Branch #${b.id ?? b.Id}`,
+            isRestaurant: !!(b.isRestaurant ?? b.IsRestaurant),
+            address: b.address ?? b.Address ?? '',
+        }));
+    }
+
     async getOnlineStoreHeader(branchId: number): Promise<any> {
         const key = branchCacheKey(branchId, 'header');
         const hit = this.headerCache.get(key);
