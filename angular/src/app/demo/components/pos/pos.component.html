@@ -779,7 +779,10 @@
             </div>
         </div>
 
-        <div class="col-12 lg:col-4 pos-main-right">
+        <div
+            class="col-12 lg:col-4 pos-main-right lg:block"
+            [class.hidden]="isRestaurantMode && posLeftTab !== 'order'"
+        >
             <div class="card pos-checkout-card">
                 <div class="field">
                     <label for="customerId">Customer</label>
@@ -799,7 +802,8 @@
                     ></p-dropdown>
                 </div>
 
-                <div class="pos-totals">
+                <!-- Totals stay desktop-only; mobile bottom bar already shows total -->
+                <div class="pos-totals hidden md:block">
                     <div class="flex justify-content-between mb-2">
                         <span>Sub Total</span>
                         <strong>{{ subTotal | number: '1.2-2' }}</strong>
@@ -945,51 +949,51 @@
         </div>
     </div>
 
-    <div class="pos-mobile-bar md:hidden flex-column gap-2">
-        <div class="flex justify-content-between align-items-center w-full gap-1" *ngIf="isRestaurantMode">
+    <div class="pos-mobile-bar md:hidden">
+        <!-- Cashier/admin secondary actions only (waiters get a single Send button below) -->
+        <div class="pos-mobile-bar-actions" *ngIf="isRestaurantMode && !isWaiter">
             <button
                 pButton
                 pRipple
                 type="button"
-                [label]="isCarService ? '🚗 Send to Car (KOT)' : (orderType === 'takeaway' ? '🍳 Send to KOT' : '🍽️ Send to Table')"
-                class="p-button-warning p-button-outlined p-button-xs flex-grow-1"
+                [label]="isCarService ? '🚗 Send to Car' : (orderType === 'takeaway' ? '🍳 Send KOT' : '🍽️ Send')"
+                class="p-button-warning p-button-outlined p-button-sm flex-grow-1"
                 [disabled]="!cart.length || sendingKOT"
+                [loading]="sendingKOT"
                 (click)="sendToTable()"
                 [title]="orderType === 'takeaway' ? 'Send Takeaway Order to Kitchen KOT' : 'Send order to Table'"
             ></button>
-            <ng-container *ngIf="!isWaiter">
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    label="💾 Tab"
-                    class="p-button-secondary p-button-outlined p-button-xs flex-grow-1"
-                    [disabled]="!cart.length || savingOrder"
-                    (click)="saveRunningTab()"
-                ></button>
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    label="🧾 Bill"
-                    class="p-button-info p-button-outlined p-button-xs flex-grow-1"
-                    [disabled]="!cart.length || printingBill"
-                    (click)="printGuestBill()"
-                ></button>
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    label="➗ Split"
-                    class="p-button-help p-button-outlined p-button-xs flex-grow-1"
-                    [disabled]="!cart.length"
-                    (click)="openSplitBill()"
-                ></button>
-            </ng-container>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Tab"
+                class="p-button-secondary p-button-outlined p-button-sm flex-grow-1"
+                [disabled]="!cart.length || savingOrder"
+                (click)="saveRunningTab()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Bill"
+                class="p-button-info p-button-outlined p-button-sm flex-grow-1"
+                [disabled]="!cart.length || printingBill"
+                (click)="printGuestBill()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Split"
+                class="p-button-help p-button-outlined p-button-sm flex-grow-1"
+                [disabled]="!cart.length"
+                (click)="openSplitBill()"
+            ></button>
         </div>
-        <div class="flex align-items-center gap-2 w-full">
+        <div class="pos-mobile-bar-main">
             <div class="pos-mobile-bar-total">
-                <small class="text-500 block">Total Amount</small>
+                <small class="text-500 block">Total</small>
                 <strong>{{ grandTotal | number: '1.2-2' }}</strong>
             </div>
             <button
@@ -997,8 +1001,8 @@
                 pButton
                 pRipple
                 type="button"
-                [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : 'Settle & Close') : 'Complete Sale'"
-                class="flex-grow-1"
+                [label]="isRestaurantMode ? (isCarService ? 'Settle' : 'Settle') : 'Complete Sale'"
+                class="flex-grow-1 p-button-sm"
                 [disabled]="!canSave()"
                 [loading]="saving"
                 (click)="completeSale()"
@@ -1009,7 +1013,7 @@
                 pButton
                 pRipple
                 type="button"
-                [label]="isCarService ? '🚗 Send to Car (KOT)' : (orderType === 'takeaway' ? '🍳 Send to KOT' : '🍽️ Send to Table')"
+                [label]="isCarService ? '🚗 Send to Car' : (orderType === 'takeaway' ? '🍳 Send to KOT' : '🍽️ Send to Table')"
                 class="p-button-warning flex-grow-1 font-bold"
                 [disabled]="!cart.length || sendingKOT"
                 [loading]="sendingKOT"

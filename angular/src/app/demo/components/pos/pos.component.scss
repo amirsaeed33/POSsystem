@@ -636,24 +636,40 @@
 }
 
 .pos-mobile-bar {
-    position: sticky;
+    position: fixed;
+    left: 0;
+    right: 0;
     bottom: 0;
     z-index: 1030;
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.65rem 0.75rem calc(0.65rem + env(safe-area-inset-bottom));
     background: var(--surface-card);
     border-top: 1px solid var(--surface-border);
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
-    margin: 1rem -1rem -1rem;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.pos-mobile-bar-actions,
+.pos-mobile-bar-main {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
 }
 
 .pos-mobile-bar-total {
-    min-width: 6.5rem;
+    min-width: 5.25rem;
+    flex-shrink: 0;
+
+    small {
+        font-size: 0.7rem;
+        line-height: 1.1;
+    }
 
     strong {
-        font-size: 1.2rem;
+        font-size: 1.05rem;
+        line-height: 1.15;
     }
 }
 
@@ -962,17 +978,26 @@
 
 @media (max-width: 767.98px) {
     .pos-page {
-        padding-bottom: 5rem;
+        /* Space for fixed 1-2 row mobile action bar */
+        padding-bottom: 8.5rem;
+    }
+
+    .pos-page--restaurant {
+        padding-bottom: 9.5rem;
+    }
+
+    .pos-order-card {
+        margin-bottom: 0.75rem !important;
+    }
+
+    .pos-checkout-card {
+        margin-bottom: 0 !important;
     }
 
     .pos-scan-card {
         top: 0.5rem;
     }
-}
 
-
-// Responsive mobile optimizations for Restaurant POS & Waiter mode
-@media (max-width: 767.98px) {
     .pos-menu-categories {
         flex-wrap: nowrap !important;
         overflow-x: auto !important;
@@ -990,7 +1015,11 @@
 
 @media (max-width: 576px) {
     .pos-page {
-        padding-bottom: 5.5rem;
+        padding-bottom: 9rem;
+    }
+
+    .pos-page--restaurant {
+        padding-bottom: 10rem;
     }
 
     .pos-resto-bar {

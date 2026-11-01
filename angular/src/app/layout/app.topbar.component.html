@@ -1,6 +1,6 @@
 <div class="layout-topbar">
     <div class="topbar-start">
-        <a class="app-logo" [routerLink]="isDeliveryRider ? '/rider/dashboard' : (isWaiter ? '/pos' : '/')" [title]="branchDisplayName">
+        <a class="app-logo" [routerLink]="homeLink" [title]="branchDisplayName">
             <img alt="app logo" [src]="logo" (error)="onLogoError()" style="max-height: 2.75rem; max-width: 3.5rem; width: auto; object-fit: contain; border-radius: 4px;">
             <!-- Full shop name on tablet/desktop; hidden on mobile to free topbar space -->
             <span class="app-name hidden sm:inline" style="font-size: 1.5rem; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ branchDisplayName }}</span>
@@ -12,9 +12,9 @@
 
         <a
             class="p-link hidden sm:flex align-items-center px-3 py-2 border-round hover:surface-hover font-medium white-space-nowrap"
-            [routerLink]="isDeliveryRider ? '/rider/dashboard' : (isWaiter ? '/pos' : '/')"
+            [routerLink]="homeLink"
         >
-            {{ isDeliveryRider ? 'Dashboard' : (isWaiter ? 'POS' : 'Home') }}
+            {{ homeLinkLabel }}
         </a>
 
         <ul class="topbar-menu">
@@ -39,15 +39,42 @@
     </div>
 
     <div class="topbar-center">
-        <!-- Static Branch Badge for Waiter (No branch switching) -->
-        <div class="flex align-items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 border-round surface-100 text-xs sm:text-sm font-semibold text-700 max-w-9rem sm:max-w-none overflow-hidden" *ngIf="isWaiter && currentBranch">
+        <!-- Static Branch Badge for Waiter (No branch switching) — click opens POS home -->
+        <a
+            class="flex align-items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 border-round surface-100 text-xs sm:text-sm font-semibold text-700 max-w-9rem sm:max-w-none overflow-hidden no-underline text-700 hover:surface-200"
+            *ngIf="isWaiter && currentBranch"
+            [routerLink]="homeLink"
+            [title]="currentBranch.name"
+        >
             <i class="pi pi-map-marker text-primary flex-shrink-0"></i>
             <span class="white-space-nowrap overflow-hidden text-overflow-ellipsis">{{ currentBranch.name }}</span>
             <span class="text-xs px-1.5 py-0.5 border-round font-medium bg-yellow-100 text-yellow-900 flex-shrink-0 hidden sm:inline">🍽️ Restaurant</span>
-        </div>
+        </a>
 
         <div class="topbar-branch relative" *ngIf="branches?.length && !isWaiter">
+            <!-- Single branch / no switch: branch name opens role home -->
+            <a
+                *ngIf="!canSwitchLocations || branches.length <= 1"
+                class="p-link flex align-items-center gap-2 px-3 py-2 border-round hover:surface-hover no-underline text-color"
+                [routerLink]="homeLink"
+                [title]="locationLabel"
+            >
+                <i class="pi pi-map-marker text-xl"></i>
+                <span class="hidden sm:inline text-sm text-500 white-space-nowrap">Branch</span>
+                <span class="font-medium white-space-nowrap sm:hidden" [title]="locationLabel">
+                    {{ locationLabelShort }}
+                </span>
+                <span class="font-medium white-space-nowrap hidden sm:inline">
+                    {{ locationLabel }}
+                </span>
+                <span
+                    *ngIf="currentBranch?.businessType === 2"
+                    class="text-xs px-2 py-1 border-round font-medium bg-yellow-100 text-yellow-900"
+                    title="Active Restaurant & Dining Table Mode"
+                >🍽️ Restaurant</span>
+            </a>
             <button
+                *ngIf="canSwitchLocations && branches.length > 1"
                 class="p-link flex align-items-center gap-2 px-3 py-2 border-round hover:surface-hover"
                 type="button"
                 pStyleClass="@next"
@@ -56,7 +83,7 @@
                 leaveToClass="hidden"
                 leaveActiveClass="fadeout"
                 [hideOnOutsideClick]="true"
-                [disabled]="changingBranch || !canSwitchLocations || branches.length <= 1"
+                [disabled]="changingBranch"
             >
                 <i class="pi pi-map-marker text-xl"></i>
                 <span class="hidden sm:inline text-sm text-500 white-space-nowrap">Branch</span>
@@ -80,7 +107,7 @@
                         'bg-red-100 text-red-700': currentBranch?.status === BranchStatuses.Rejected
                     }"
                 >{{ currentBranch?.status }}</span>
-                <i class="pi pi-angle-down" *ngIf="canSwitchLocations && branches.length > 1"></i>
+                <i class="pi pi-angle-down"></i>
             </button>
             <ul
                 class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-2 left-0 top-auto z-5"

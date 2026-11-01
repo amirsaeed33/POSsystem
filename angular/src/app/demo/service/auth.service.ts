@@ -5,6 +5,7 @@ import { AuthenticateModel, AuthenticateResultModel } from '../api/auth';
 import { environment } from '../../../environments/environment';
 import { PermissionService } from './permission.service';
 import { TenantContextService } from './tenant-context.service';
+import { BranchContextService } from './branch-context.service';
 
 const TOKEN_KEY = 'accessToken';
 const ENCRYPTED_TOKEN_KEY = 'encryptedAccessToken';
@@ -226,6 +227,61 @@ export class AuthService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * True for Admin / Super Admin / other back-office staff (not rider, waiter, or storefront-only customer).
+     */
+    isAdminOrStaff(): boolean {
+        if (!this.isAuthenticated() || this.isDeliveryRider() || this.isWaiter()) {
+            return false;
+        }
+        const user = this.getUserInfo();
+        if (!user) {
+            return false;
+        }
+        const roleMatch = (r: string) =>
+            !!r &&
+            (r.toLowerCase().includes('admin') ||
+                r.toLowerCase().includes('manager') ||
+                r.toLowerCase().includes('cashier') ||
+                r.toLowerCase().includes('staff') ||
+                r.toLowerCase() === 'user');
+        if (user.roles && Array.isArray(user.roles) && user.roles.some(roleMatch)) {
+            return true;
+        }
+        if (user.roleNames && Array.isArray(user.roleNames) && user.roleNames.some(roleMatch)) {
+            return true;
+        }
+        if (BranchContextService.isHostAdminSession()) {
+            return true;
+        }
+        // Back-office sessions have granted permissions; storefront customers usually do not.
+        return this.permissionService.isGranted('Pages.Users')
+            || this.permissionService.isGranted('Pages.Products')
+            || this.permissionService.isGranted('Pages.Tenants')
+            || this.permissionService.isGranted('Pages.CustomerOrders');
+    }
+
+    /** True when logo/home should open a staff portal (not the public storefront). */
+    isStaffPortalUser(): boolean {
+        return this.isDeliveryRider() || this.isWaiter() || this.isAdminOrStaff();
+    }
+
+    /**
+     * Role home: rider → rider dashboard, waiter → POS, admin/super admin → SaaS dashboard, customer/guest → online order.
+     */
+    getHomeRoute(): string {
+        if (this.isDeliveryRider()) {
+            return '/rider/dashboard';
+        }
+        if (this.isWaiter()) {
+            return '/pos';
+        }
+        if (this.isAdminOrStaff()) {
+            return '/dashboard';
+        }
+        return '/online-order';
     }
 
     getPrinterIdentity(): { id: number; name: string; role: string; text: string; time: Date } {

@@ -5,7 +5,7 @@
         <div class="hidden md:flex align-items-center justify-content-between gap-3 max-w-7xl mx-auto w-full">
             <!-- Left: Brand Logo, Name & Location Selector -->
             <div class="flex align-items-center gap-3 overflow-hidden">
-                <div class="fp-brand-group cursor-pointer" (click)="scrollToSection('home', $event)">
+                <div class="fp-brand-group cursor-pointer" (click)="onBrandClick($event)">
                     <div class="brand-logo-sq">
                         <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
                     </div>
@@ -157,11 +157,11 @@
         <div class="flex md:hidden align-items-center justify-content-between gap-2 w-full fp-mobile-top-bar">
             <!-- Left: Brand Logo + Branch / City Selector -->
             <div class="flex align-items-center gap-2 overflow-hidden flex-grow-1 min-w-0">
-                <div class="brand-logo-sq flex-shrink-0" (click)="scrollToSection('home', $event)">
+                <div class="brand-logo-sq flex-shrink-0 cursor-pointer" (click)="onBrandClick($event)">
                     <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
                 </div>
                 <div class="fp-mobile-header-info min-w-0 flex-grow-1">
-                    <div class="flex align-items-center gap-1">
+                    <div class="flex align-items-center gap-1 cursor-pointer" (click)="onBrandClick($event)">
                         <span class="mobile-store-title text-900 font-extrabold">{{ branchName || 'Online Store' }}</span>
                         <span class="fp-live-pill-mini">
                             <span class="pulse-dot"></span>

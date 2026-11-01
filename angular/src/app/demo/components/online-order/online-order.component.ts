@@ -808,6 +808,22 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return 'cat-section-' + clean;
     }
 
+    /**
+     * Logo / branch name: staff → their portal home; customer/guest → storefront home.
+     */
+    onBrandClick(event?: Event): void {
+        if (this.authService.isStaffPortalUser()) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            this.mobileNavOpen = false;
+            void this.router.navigateByUrl(this.authService.getHomeRoute());
+            return;
+        }
+        this.scrollToSection('home', event);
+    }
+
     scrollToSection(sectionId: string, event?: Event): void {
         if (event) {
             event.preventDefault();
