@@ -520,6 +520,9 @@ export class ProductFormDialogComponent implements OnChanges {
     }
 
     serializeSpecs(): string | undefined {
+        if (this.isRestaurant) {
+            return undefined;
+        }
         const valid = this.specItems
             .map((i) => ({ key: (i.key || '').trim(), value: (i.value || '').trim() }))
             .filter((i) => i.key && i.value);

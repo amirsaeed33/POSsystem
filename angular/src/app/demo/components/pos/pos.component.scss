@@ -2,6 +2,238 @@
     padding-bottom: 0.5rem;
 }
 
+/* Product grid: exactly 3 rows visible, then scroll inside. */
+.pos-menu-products-scroll {
+    --pos-menu-gap: 0.75rem;
+    --pos-tile-h: 13.75rem;
+    height: calc(3 * var(--pos-tile-h) + 2 * var(--pos-menu-gap));
+    max-height: calc(3 * var(--pos-tile-h) + 2 * var(--pos-menu-gap));
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-right: 0.2rem;
+    margin-right: -0.1rem;
+    flex: 0 0 auto;
+
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--text-color) 25%, transparent);
+        border-radius: 999px;
+    }
+}
+
+@media (min-width: 992px) {
+    :host:has(.pos-page--restaurant) {
+        display: block;
+        height: calc(100vh - 5rem - 4rem);
+        min-height: 0;
+    }
+
+    .pos-page--restaurant {
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 0;
+
+        .pos-main-grid {
+            flex: 1 1 auto;
+            min-height: 0;
+            margin-bottom: 0 !important;
+            align-items: stretch;
+        }
+
+        .pos-main-left,
+        .pos-main-right {
+            height: 100%;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .pos-menu-card,
+        .pos-order-card {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 0 !important;
+            overflow: hidden;
+        }
+
+        .pos-menu-products-scroll {
+            flex: 0 0 auto;
+        }
+
+        .pos-order-card {
+            overflow: auto;
+        }
+
+        .pos-checkout-card {
+            height: 100%;
+            min-height: 0;
+            overflow: auto;
+            margin-bottom: 0 !important;
+        }
+    }
+}
+
+@media (max-width: 575.98px) {
+    .pos-menu-products-scroll {
+        --pos-tile-h: 12.5rem;
+        --pos-menu-gap: 0.5rem;
+    }
+}
+
+.pos-left-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    flex: 0 0 auto;
+}
+
+.pos-left-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.4rem;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 0.7rem;
+    background: var(--surface-card);
+    color: var(--text-color-secondary);
+    font-weight: 700;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+
+    &:hover {
+        border-color: var(--primary-color);
+        color: var(--text-color);
+    }
+
+    &.active {
+        border-color: var(--primary-color);
+        background: var(--primary-color);
+        color: var(--primary-color-text);
+    }
+
+    .pi {
+        font-size: 0.9rem;
+    }
+}
+
+.pos-left-tab-count {
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.22);
+    color: inherit;
+}
+
+.pos-left-tab:not(.active) .pos-left-tab-count {
+    background: var(--primary-color);
+    color: var(--primary-color-text);
+}
+
+.pos-kot-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    flex-wrap: nowrap;
+}
+
+.pos-kot-footer-actions {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+:host ::ng-deep {
+    .pos-kot-footer-btn.p-button {
+        height: 2.6rem;
+        min-height: 2.6rem;
+        margin: 0;
+        padding: 0 0.85rem;
+        white-space: nowrap;
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        .p-button-label {
+            white-space: nowrap;
+            line-height: 1.2;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .p-button-icon {
+            font-size: 0.9rem;
+        }
+    }
+
+    .pos-kot-footer-btn--primary.p-button {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    }
+
+    .pos-kot-dialog {
+        .p-dialog-footer {
+            padding-top: 0.75rem;
+        }
+    }
+}
+
+@media (max-width: 575.98px) {
+    .pos-kot-footer {
+        flex-wrap: wrap;
+    }
+
+    .pos-kot-footer-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    :host ::ng-deep .pos-kot-footer-btn.p-button {
+        flex: 1 1 auto;
+    }
+}
+
+.pos-settle-clear-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.pos-settle-config-btn {
+    width: 2.5rem !important;
+    min-width: 2.5rem !important;
+    height: 2.5rem !important;
+    padding: 0 !important;
+    flex-shrink: 0;
+
+    .p-button-icon {
+        font-size: 0.95rem;
+    }
+}
+
 .pos-waiter-assigned {
     border: 1px solid var(--surface-border);
     border-left: 4px solid var(--primary-color);
@@ -439,6 +671,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    align-self: center;
     border: 1px solid var(--surface-border);
     background: var(--surface-card);
     color: var(--text-color);
@@ -454,34 +687,29 @@
 
     i {
         font-size: 0.85rem;
+        line-height: 1;
     }
 }
 
 .pos-menu-categories {
     display: flex;
     flex-wrap: nowrap;
+    align-items: center;
     gap: 0.5rem;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(15, 23, 42, 0.25) transparent;
-    padding-bottom: 0.25rem;
+    /* Hide native scrollbar so < > stay visually centered with the pills. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 0;
     flex: 1;
     min-width: 0;
 
     &::-webkit-scrollbar {
-        height: 4px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background: rgba(15, 23, 42, 0.25);
-        border-radius: 999px;
-    }
-
-    &::-webkit-scrollbar-track {
-        background: transparent;
+        display: none;
+        height: 0;
     }
 }
 
@@ -522,7 +750,7 @@
 .pos-menu-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.75rem;
+    gap: var(--pos-menu-gap, 0.75rem);
 }
 
 @media (min-width: 576px) {
@@ -546,7 +774,9 @@
     border-radius: 0.85rem;
     padding: 0;
     overflow: hidden;
-    min-height: 11rem;
+    height: var(--pos-tile-h, 13.75rem);
+    min-height: var(--pos-tile-h, 13.75rem);
+    max-height: var(--pos-tile-h, 13.75rem);
     transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 
     &:hover {
@@ -564,7 +794,8 @@
 .pos-menu-tile-main {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     width: 100%;
     border: 0;
     background: transparent;
@@ -572,6 +803,7 @@
     text-align: left;
     cursor: pointer;
     color: inherit;
+    overflow: hidden;
 
     &:disabled {
         opacity: 0.55;
@@ -581,7 +813,8 @@
 
 .pos-menu-tile-media {
     position: relative;
-    height: 5.5rem;
+    height: 4.85rem;
+    flex: 0 0 4.85rem;
     background: var(--surface-100);
     display: flex;
     align-items: center;
@@ -618,33 +851,38 @@
 .pos-menu-tile-body {
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
-    padding: 0.65rem 0.7rem 0.75rem;
-    flex: 1;
+    gap: 0.1rem;
+    padding: 0.45rem 0.65rem 0.4rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .pos-menu-tile-name {
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.86rem;
     color: var(--text-color);
-    line-height: 1.25;
+    line-height: 1.2;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
 .pos-menu-tile-meta {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--text-color-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pos-menu-tile-price {
     margin-top: auto;
-    padding-top: 0.35rem;
+    padding-top: 0.2rem;
     font-weight: 800;
     color: var(--primary-color);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .pos-menu-tile-qty-badge {
@@ -669,9 +907,10 @@
     grid-template-columns: 2.25rem 1fr 2.25rem;
     align-items: center;
     gap: 0.25rem;
-    padding: 0.45rem 0.55rem 0.55rem;
+    padding: 0.4rem 0.55rem 0.45rem;
     border-top: 1px solid var(--surface-border);
     background: var(--surface-ground);
+    flex: 0 0 auto;
 }
 
 .pos-menu-qty-btn {
@@ -795,18 +1034,21 @@
     }
 
     .pos-menu-grid {
-        gap: 0.5rem !important;
+        gap: var(--pos-menu-gap, 0.5rem) !important;
     }
 
     .pos-menu-tile {
-        min-height: 9.5rem !important;
+        height: var(--pos-tile-h, 12.5rem) !important;
+        min-height: var(--pos-tile-h, 12.5rem) !important;
+        max-height: var(--pos-tile-h, 12.5rem) !important;
 
         .pos-menu-tile-media {
-            height: 4.85rem !important;
+            height: 4.25rem !important;
+            flex-basis: 4.25rem !important;
         }
 
         .pos-menu-tile-body {
-            padding: 0.45rem 0.55rem !important;
+            padding: 0.4rem 0.55rem 0.35rem !important;
         }
 
         .pos-menu-tile-name {
@@ -821,6 +1063,7 @@
         .pos-menu-tile-qty {
             padding: 0.35rem 0.45rem !important;
             gap: 0.2rem !important;
+            flex: 0 0 auto !important;
 
             .pos-menu-qty-btn {
                 width: 2rem !important;

@@ -344,14 +344,17 @@ export class ProductListComponent implements OnInit {
         this.loadProducts();
     }
 
-    loadProducts(): void {
+    loadProducts(forceRefresh = false): void {
         this.loading = true;
         this.productService
-            .getAll({
-                keyword: this.keyword?.trim() || undefined,
-                skipCount: 0,
-                maxResultCount: 1000,
-            })
+            .getAll(
+                {
+                    keyword: this.keyword?.trim() || undefined,
+                    skipCount: 0,
+                    maxResultCount: 1000,
+                },
+                forceRefresh
+            )
             .then((result) => {
                 this.products = result.items || [];
                 this.totalRecords = this.listProducts.length;
@@ -882,7 +885,12 @@ export class ProductListComponent implements OnInit {
 
             this.dealDialogVisible = false;
             this.editingDealId = null;
-            this.loadProducts();
+            // Deals live on the Deals tab; switch so the new/updated deal is visible immediately.
+            if (this.isRestaurant) {
+                this.activeListTab = 1;
+                this.selectedProducts = [];
+            }
+            this.loadProducts(true);
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',

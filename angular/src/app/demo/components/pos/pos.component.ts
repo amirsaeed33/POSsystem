@@ -383,6 +383,8 @@ export class PosComponent implements OnInit, OnDestroy {
     menuProducts: ProductDto[] = [];
     selectedMenuCategoryId: number | null = null;
     loadingMenu = false;
+    /** Left panel: Menu products vs current order/cart lines. */
+    posLeftTab: 'menu' | 'order' = 'menu';
 
     private lastLoadedBranchId: number | null = null;
     private posInitDone = false;
@@ -410,7 +412,7 @@ export class PosComponent implements OnInit, OnDestroy {
             if (aDeal !== bDeal) {
                 return aDeal - bDeal;
             }
-            return a.name.localeCompare(b.name);
+            return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
         });
     }
 
@@ -1755,22 +1757,31 @@ export class PosComponent implements OnInit, OnDestroy {
                         dealSummary = dealMod.substring(5).trim();
                     }
 
-                    try {
-                        const dealInfo = await this.dealService.getByProductId(l.productId);
-                        if (dealInfo && dealInfo.items?.length) {
-                            isDeal = true;
-                            dealId = dealInfo.id;
-                            if (!dealSummary) {
-                                dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' â€¢ ');
+                    // Prefer catalog flags / DEAL: modifiers; only fetch deal details when already known as a deal.
+                    const catalogProduct = this.menuProducts?.find((p) => p.id === l.productId);
+                    if (!isDeal && catalogProduct && this.isDealProduct(catalogProduct)) {
+                        isDeal = true;
+                        dealId = catalogProduct.dealId || undefined;
+                    }
+                    if (isDeal && (!dealSummary || !dealId)) {
+                        try {
+                            const dealInfo = catalogProduct?.dealId
+                                ? await this.dealService.get(catalogProduct.dealId)
+                                : await this.dealService.getByProductId(l.productId);
+                            if (dealInfo && dealInfo.items?.length) {
+                                dealId = dealInfo.id;
+                                if (!dealSummary) {
+                                    dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' • ');
+                                }
+                                if (!selectedModifiers || !selectedModifiers.includes('DEAL:')) {
+                                    const extra = this.parseModifiers(selectedModifiers).filter(
+                                        (m: string) => typeof m === 'string' && !m.startsWith('DEAL:')
+                                    );
+                                    selectedModifiers = JSON.stringify([`DEAL: ${dealSummary}`, ...extra]);
+                                }
                             }
-                            if (!selectedModifiers || !selectedModifiers.includes('DEAL:')) {
-                                const extra = this.parseModifiers(selectedModifiers).filter(
-                                    (m: string) => typeof m === 'string' && !m.startsWith('DEAL:')
-                                );
-                                selectedModifiers = JSON.stringify([`DEAL: ${dealSummary}`, ...extra]);
-                            }
-                        }
-                    } catch {}
+                        } catch {}
+                    }
 
                     existingLines.push({
                         id: l.id,
@@ -2476,20 +2487,9 @@ export class PosComponent implements OnInit, OnDestroy {
 
     async addProduct(product: ProductDto): Promise<void> {
         if (this.isRestaurantMode) {
-            let isDeal = this.isDealProduct(product);
-            if (!isDeal) {
-                try {
-                    const d = await this.dealService.getByProductId(product.id);
-                    if (d && d.items?.length) {
-                        isDeal = true;
-                        product.isDeal = true;
-                        product.dealId = d.id;
-                    }
-                } catch {
-                    // Not a deal
-                }
-            }
-            if (isDeal) {
+            // Use flags already on the loaded product — do not probe Deal/GetByProductId
+            // for every add (non-deal products return 500 and slow the POS).
+            if (this.isDealProduct(product)) {
                 await this.openDealCustomiseDialog(product);
                 return;
             }
@@ -2739,11 +2739,18 @@ export class PosComponent implements OnInit, OnDestroy {
 
     async viewCartDealDetails(line: PosCartLine): Promise<void> {
         this.selectedCartDealLine = line;
-        if (!line.dealSummary && !this.getDealItemsFromLine(line).length) {
+        if (
+            this.isDealCartLine(line) &&
+            !line.dealSummary &&
+            !this.getDealItemsFromLine(line).length
+        ) {
             try {
-                const dealInfo = await this.dealService.getByProductId(line.productId);
+                const dealInfo = line.dealId
+                    ? await this.dealService.get(line.dealId)
+                    : await this.dealService.getByProductId(line.productId);
                 if (dealInfo && dealInfo.items?.length) {
-                    line.dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' â€¢ ');
+                    line.dealSummary = dealInfo.items.map((i) => `${i.quantity}x ${i.productName}`).join(' • ');
+                    line.dealId = dealInfo.id;
                 }
             } catch (err) {
                 console.warn('Could not load deal details for dialog:', err);

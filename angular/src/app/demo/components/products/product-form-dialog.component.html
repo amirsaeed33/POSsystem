@@ -203,8 +203,8 @@
             </div>
         </div>
 
-        <!-- Technical Specifications / Attributes -->
-        <div class="surface-card p-3 border-round border-1 surface-border flex flex-column gap-2">
+        <!-- Technical Specifications / Attributes (non-restaurant only) -->
+        <div class="surface-card p-3 border-round border-1 surface-border flex flex-column gap-2" *ngIf="!isRestaurant">
             <div class="flex align-items-center justify-content-between flex-wrap gap-2">
                 <div class="flex align-items-center gap-2">
                     <i class="pi pi-sliders-h text-primary font-bold"></i>

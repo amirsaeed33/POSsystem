@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
     CreateDealDto,
@@ -9,6 +9,9 @@ import {
 } from '../api/deal';
 import { environment } from '../../../environments/environment';
 import { TtlCache, branchCacheKey } from './ttl-cache';
+import { ProductService } from './product.service';
+import { SaleService } from './sale.service';
+import { CustomerOrderService } from './customer-order.service';
 
 @Injectable({
     providedIn: 'root',
@@ -17,19 +20,34 @@ export class DealService {
     private readonly apiUrl = `${environment.apiUrl}/api/services/app/Deal`;
     private readonly byProductCache = new TtlCache<DealDto>(5 * 60 * 1000);
 
-    constructor(private http: HttpClient) {}
+    constructor(
+        private http: HttpClient,
+        private injector: Injector
+    ) {}
 
     clearCache(): void {
         this.byProductCache.clear();
     }
 
+    private invalidateRelatedCaches(): void {
+        this.clearCache();
+        try {
+            this.injector.get(ProductService).clearCache();
+            this.injector.get(SaleService).clearPosCaches();
+            this.injector.get(CustomerOrderService).clearCache();
+        } catch {
+            // Ignore if services are unavailable during bootstrap.
+        }
+    }
+
     async create(input: CreateDealDto): Promise<DealDto> {
         try {
-            this.clearCache();
             const res: any = await firstValueFrom(
                 this.http.post<any>(`${this.apiUrl}/Create`, input)
             );
-            return this.unwrap(res, 'Failed to create deal');
+            const deal = this.unwrap(res, 'Failed to create deal');
+            this.invalidateRelatedCaches();
+            return deal;
         } catch (error) {
             throw new Error(
                 this.extractErrorMessage(error, 'Failed to create deal')
@@ -39,11 +57,12 @@ export class DealService {
 
     async update(input: UpdateDealDto): Promise<DealDto> {
         try {
-            this.clearCache();
             const res: any = await firstValueFrom(
                 this.http.put<any>(`${this.apiUrl}/Update`, input)
             );
-            return this.unwrap(res, 'Failed to update deal');
+            const deal = this.unwrap(res, 'Failed to update deal');
+            this.invalidateRelatedCaches();
+            return deal;
         } catch (error) {
             throw new Error(
                 this.extractErrorMessage(error, 'Failed to update deal')

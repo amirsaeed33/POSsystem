@@ -1,19 +1,4 @@
-<div class="pos-page">
-    <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <h4 class="m-0">POS</h4>
-        <div class="flex flex-wrap gap-2 pos-header-actions">
-            <button
-                pButton
-                pRipple
-                type="button"
-                label="Clear Cart"
-                class="p-button-outlined"
-                [disabled]="!cart.length || saving"
-                (click)="clearCart()"
-            ></button>
-        </div>
-    </div>
-
+<div class="pos-page" [class.pos-page--restaurant]="isRestaurantMode">
     <!-- Waiter: currently assigned open/billed tables & car orders -->
     <div *ngIf="isWaiter" class="pos-waiter-assigned card mb-3">
         <div class="pos-waiter-assigned-head">
@@ -245,8 +230,8 @@
         </div>
     </div>
 
-    <div class="grid">
-        <div class="col-12 lg:col-8">
+    <div class="grid pos-main-grid">
+        <div class="col-12 lg:col-8 pos-main-left">
             <!-- Retail barcode / search card -->
             <div class="card pos-scan-card mb-3" *ngIf="!isRestaurantMode">
                 <label class="font-bold block mb-2">Scan barcode or search by name</label>
@@ -322,8 +307,35 @@
                 </div>
             </div>
 
+            <!-- Restaurant left tabs: Menu | Order Details -->
+            <div class="pos-left-tabs mb-2" *ngIf="isRestaurantMode" role="tablist" aria-label="POS left panel">
+                <button
+                    type="button"
+                    class="pos-left-tab"
+                    role="tab"
+                    [class.active]="posLeftTab === 'menu'"
+                    [attr.aria-selected]="posLeftTab === 'menu'"
+                    (click)="posLeftTab = 'menu'"
+                >
+                    <i class="pi pi-th-large"></i>
+                    <span>Menu</span>
+                </button>
+                <button
+                    type="button"
+                    class="pos-left-tab"
+                    role="tab"
+                    [class.active]="posLeftTab === 'order'"
+                    [attr.aria-selected]="posLeftTab === 'order'"
+                    (click)="posLeftTab = 'order'"
+                >
+                    <i class="pi pi-list"></i>
+                    <span>Order Details</span>
+                    <span class="pos-left-tab-count" *ngIf="cart.length">{{ cart.length }}</span>
+                </button>
+            </div>
+
             <!-- Restaurant: search + categories + product grid in one Menu card -->
-            <div class="card mb-3" *ngIf="isRestaurantMode">
+            <div class="card mb-3 pos-menu-card" *ngIf="isRestaurantMode && posLeftTab === 'menu'">
                 <div class="flex align-items-center justify-content-between mb-2">
                     <h5 class="m-0">Menu</h5>
                     <span class="text-xs text-500 font-medium">
@@ -413,80 +425,82 @@
                     </button>
                 </div>
 
-                <div class="pos-menu-grid" *ngIf="filteredMenuProducts.length; else emptyMenu">
-                    <div
-                        class="pos-menu-tile"
-                        *ngFor="let product of filteredMenuProducts"
-                        [class.in-cart]="getMenuCartQty(product.id) > 0"
-                        [title]="product.name + ' — ' + (getUnitPrice(product) | number: '1.2-2')"
-                    >
-                        <button
-                            type="button"
-                            class="pos-menu-tile-main"
-                            (click)="bumpMenuProduct(product, 1)"
-                            [disabled]="scanning || saving"
+                <div class="pos-menu-products-scroll">
+                    <div class="pos-menu-grid" *ngIf="filteredMenuProducts.length; else emptyMenu">
+                        <div
+                            class="pos-menu-tile"
+                            *ngFor="let product of filteredMenuProducts"
+                            [class.in-cart]="getMenuCartQty(product.id) > 0"
+                            [title]="product.name + ' — ' + (getUnitPrice(product) | number: '1.2-2')"
                         >
-                            <div class="pos-menu-tile-media">
-                                <img
-                                    *ngIf="product.imagePath"
-                                    [src]="getMenuProductImage(product)"
-                                    [alt]="product.name"
-                                    loading="lazy"
-                                />
-                                <span *ngIf="!product.imagePath" class="pos-menu-tile-initials">
-                                    {{ getMenuProductInitials(product) }}
-                                </span>
-                                <span class="pos-menu-tile-deal" *ngIf="isDealProduct(product)">Deal</span>
-                                <span class="pos-menu-tile-qty-badge" *ngIf="getMenuCartQty(product.id) > 0">
-                                    {{ getMenuCartQty(product.id) }}
-                                </span>
-                            </div>
-                            <div class="pos-menu-tile-body">
-                                <span class="pos-menu-tile-name">{{ product.name }}</span>
-                                <span class="pos-menu-tile-meta" *ngIf="product.categoryName">{{ product.categoryName }}</span>
-                                <span class="pos-menu-tile-price">{{ getUnitPrice(product) | number: '1.2-2' }}</span>
-                            </div>
-                        </button>
-                        <div class="pos-menu-tile-qty" (click)="$event.stopPropagation()">
                             <button
                                 type="button"
-                                class="pos-menu-qty-btn"
-                                (click)="bumpMenuProduct(product, -1)"
-                                [disabled]="scanning || saving || getMenuCartQty(product.id) <= 0"
-                                title="Decrease quantity"
-                                aria-label="Decrease quantity"
-                            >
-                                <i class="pi pi-minus"></i>
-                            </button>
-                            <span class="pos-menu-qty-value">{{ getMenuCartQty(product.id) }}</span>
-                            <button
-                                type="button"
-                                class="pos-menu-qty-btn add"
+                                class="pos-menu-tile-main"
                                 (click)="bumpMenuProduct(product, 1)"
                                 [disabled]="scanning || saving"
-                                title="Increase quantity"
-                                aria-label="Increase quantity"
                             >
-                                <i class="pi pi-plus"></i>
+                                <div class="pos-menu-tile-media">
+                                    <img
+                                        *ngIf="product.imagePath"
+                                        [src]="getMenuProductImage(product)"
+                                        [alt]="product.name"
+                                        loading="lazy"
+                                    />
+                                    <span *ngIf="!product.imagePath" class="pos-menu-tile-initials">
+                                        {{ getMenuProductInitials(product) }}
+                                    </span>
+                                    <span class="pos-menu-tile-deal" *ngIf="isDealProduct(product)">Deal</span>
+                                    <span class="pos-menu-tile-qty-badge" *ngIf="getMenuCartQty(product.id) > 0">
+                                        {{ getMenuCartQty(product.id) }}
+                                    </span>
+                                </div>
+                                <div class="pos-menu-tile-body">
+                                    <span class="pos-menu-tile-name">{{ product.name }}</span>
+                                    <span class="pos-menu-tile-meta" *ngIf="product.categoryName">{{ product.categoryName }}</span>
+                                    <span class="pos-menu-tile-price">{{ getUnitPrice(product) | number: '1.2-2' }}</span>
+                                </div>
                             </button>
+                            <div class="pos-menu-tile-qty" (click)="$event.stopPropagation()">
+                                <button
+                                    type="button"
+                                    class="pos-menu-qty-btn"
+                                    (click)="bumpMenuProduct(product, -1)"
+                                    [disabled]="scanning || saving || getMenuCartQty(product.id) <= 0"
+                                    title="Decrease quantity"
+                                    aria-label="Decrease quantity"
+                                >
+                                    <i class="pi pi-minus"></i>
+                                </button>
+                                <span class="pos-menu-qty-value">{{ getMenuCartQty(product.id) }}</span>
+                                <button
+                                    type="button"
+                                    class="pos-menu-qty-btn add"
+                                    (click)="bumpMenuProduct(product, 1)"
+                                    [disabled]="scanning || saving"
+                                    title="Increase quantity"
+                                    aria-label="Increase quantity"
+                                >
+                                    <i class="pi pi-plus"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
+                    <ng-template #emptyMenu>
+                        <div class="text-center text-500 py-4 border-1 surface-border border-round">
+                            <div *ngIf="loadingMenu">Loading menu…</div>
+                            <div *ngIf="!loadingMenu">
+                                No items
+                                <span *ngIf="searchText"> matching “{{ searchText }}”</span>
+                                <span *ngIf="!searchText && selectedMenuCategoryId != null"> in this category</span>.
+                            </div>
+                        </div>
+                    </ng-template>
                 </div>
-                <ng-template #emptyMenu>
-                    <div class="text-center text-500 py-4 border-1 surface-border border-round">
-                        <div *ngIf="loadingMenu">Loading menu…</div>
-                        <div *ngIf="!loadingMenu">
-                            No items
-                            <span *ngIf="searchText"> matching “{{ searchText }}”</span>
-                            <span *ngIf="!searchText && selectedMenuCategoryId != null"> in this category</span>.
-                        </div>
-                    </div>
-                </ng-template>
             </div>
 
-            <div class="card">
+            <div class="card pos-order-card" *ngIf="!isRestaurantMode || posLeftTab === 'order'">
                 <div class="flex align-items-center justify-content-between mb-3">
-                    <h5 class="m-0">Cart</h5>
+                    <h5 class="m-0">{{ isRestaurantMode ? 'Order Details' : 'Cart' }}</h5>
                     <span class="text-500">{{ cart.length }} item(s)</span>
                 </div>
 
@@ -765,7 +779,7 @@
             </div>
         </div>
 
-        <div class="col-12 lg:col-4">
+        <div class="col-12 lg:col-4 pos-main-right">
             <div class="card pos-checkout-card">
                 <div class="field">
                     <label for="customerId">Customer</label>
@@ -811,8 +825,8 @@
                     </div>
                 </div>
 
-                <!-- Restaurant Actions Bar -->
-                <div class="flex flex-column gap-2 mt-3" *ngIf="isRestaurantMode">
+                <!-- Restaurant Actions Bar (desktop only — mobile uses bottom bar) -->
+                <div class="hidden md:flex flex-column gap-2 mt-3" *ngIf="isRestaurantMode">
                     <!-- Waiter Mode: ONLY Send to KOT / Send to Table allowed -->
                     <div *ngIf="isWaiter" class="w-full">
                         <button
@@ -895,19 +909,29 @@
                     </span>
                 </div>
 
-                <button
-                    *ngIf="!isWaiter"
-                    pButton
-                    pRipple
-                    type="button"
-                    [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : (orderType === 'takeaway' ? 'Settle & Close Takeaway' : 'Settle & Close Table')) : 'Complete Sale'"
-                    icon="pi pi-check"
-                    class="w-full mt-3 hidden md:flex"
-                    [disabled]="!canSave()"
-                    [loading]="saving"
-                    (click)="completeSale()"
-                    [title]="settleButtonTooltip"
-                ></button>
+                <div *ngIf="!isWaiter" class="align-items-stretch gap-2 mt-3 hidden md:flex">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : (orderType === 'takeaway' ? 'Settle & Close Takeaway' : 'Settle & Close Table')) : 'Complete Sale'"
+                        icon="pi pi-check"
+                        class="flex-grow-1"
+                        [disabled]="!canSave()"
+                        [loading]="saving"
+                        (click)="completeSale()"
+                        [title]="settleButtonTooltip"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Clear Cart"
+                        class="p-button-outlined pos-settle-clear-btn"
+                        [disabled]="!cart.length || saving"
+                        (click)="clearCart()"
+                    ></button>
+                </div>
                 <div *ngIf="isWaiter" class="p-2 border-round bg-yellow-50 border-1 border-yellow-200 text-center text-xs text-yellow-800 mt-3 font-medium">
                     <i class="pi pi-lock mr-1"></i> Waiter Account: Orders are sent to KOT / Table. Payments are settled by Cashier or Admin.
                 </div>
@@ -990,6 +1014,17 @@
                 [disabled]="!cart.length || sendingKOT"
                 [loading]="sendingKOT"
                 (click)="sendToTable()"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-trash"
+                class="p-button-outlined pos-settle-config-btn"
+                [disabled]="!cart.length || saving"
+                (click)="clearCart()"
+                title="Clear Cart"
+                aria-label="Clear Cart"
             ></button>
         </div>
     </div>
@@ -1683,9 +1718,10 @@
         header="🍽️ Table Order Ticket"
         [(visible)]="kotDialogVisible"
         [modal]="true"
-        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [style]="{ width: '36rem', maxWidth: '95vw' }"
         [draggable]="false"
         [resizable]="false"
+        styleClass="pos-kot-dialog"
     >
         <div class="flex flex-column gap-3">
             <div class="p-3 surface-50 border-round text-center">
@@ -1762,24 +1798,24 @@
         </div>
 
         <ng-template pTemplate="footer">
-            <div class="flex align-items-center justify-content-between gap-2 w-full pt-2">
+            <div class="pos-kot-footer">
                 <button
                     pButton
                     pRipple
                     type="button"
                     label="Close"
                     icon="pi pi-times"
-                    class="p-button-outlined p-button-secondary border-round-lg px-3"
+                    class="p-button-outlined p-button-secondary pos-kot-footer-btn"
                     (click)="kotDialogVisible = false"
                 ></button>
-                <div class="flex align-items-center gap-1">
+                <div class="pos-kot-footer-actions">
                     <button
                         pButton
                         pRipple
                         type="button"
                         label="Bar (BOT)"
                         icon="pi pi-compass"
-                        class="p-button-outlined p-button-secondary border-round-lg px-2 text-xs font-semibold"
+                        class="p-button-outlined p-button-secondary pos-kot-footer-btn"
                         title="Print Bar Order Ticket for beverages only"
                         (click)="printCurrentModal('kotThermalPrint', 'bar')"
                     ></button>
@@ -1789,7 +1825,7 @@
                         type="button"
                         label="Kitchen (KOT)"
                         icon="pi pi-print"
-                        class="p-button-outlined p-button-warning border-round-lg px-2 text-xs font-semibold"
+                        class="p-button-outlined p-button-warning pos-kot-footer-btn"
                         title="Print Kitchen Order Ticket for food only"
                         (click)="printCurrentModal('kotThermalPrint', 'kitchen')"
                     ></button>
@@ -1799,7 +1835,7 @@
                         type="button"
                         label="Print All"
                         icon="pi pi-print"
-                        class="p-button-warning border-round-lg px-3 font-semibold shadow-2"
+                        class="p-button-warning pos-kot-footer-btn pos-kot-footer-btn--primary"
                         (click)="printCurrentModal('kotThermalPrint', 'all')"
                     ></button>
                 </div>
