@@ -1,45 +1,69 @@
+:host {
+    display: block;
+}
+
 .pos-page {
     padding-bottom: 0.5rem;
 }
 
-/* Product grid: exactly 3 rows visible, then scroll inside. */
+/* Product grid: fills available card space and scrolls smoothly */
 .pos-menu-products-scroll {
     --pos-menu-gap: 0.75rem;
     --pos-tile-h: 13.75rem;
-    height: calc(3 * var(--pos-tile-h) + 2 * var(--pos-menu-gap));
+    flex: 1 1 0;
+    min-height: 0;
     max-height: calc(3 * var(--pos-tile-h) + 2 * var(--pos-menu-gap));
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    padding-right: 0.2rem;
+    padding-top: 0.2rem;
+    padding-bottom: 0.85rem;
+    padding-right: 0.35rem;
     margin-right: -0.1rem;
-    flex: 0 0 auto;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--primary-color) 45%, #94a3b8) rgba(0, 0, 0, 0.05);
 
     &::-webkit-scrollbar {
-        width: 8px;
+        width: 7px;
+        display: block;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.04);
+        border-radius: 999px;
     }
 
     &::-webkit-scrollbar-thumb {
-        background: color-mix(in srgb, var(--text-color) 25%, transparent);
+        background: color-mix(in srgb, var(--primary-color) 40%, #94a3b8);
         border-radius: 999px;
+
+        &:hover {
+            background: var(--primary-color);
+        }
     }
 }
 
 @media (min-width: 992px) {
     :host:has(.pos-page--restaurant) {
         display: block;
-        height: calc(100vh - 5rem - 4rem);
+        height: calc(100vh - 9rem);
         min-height: 0;
     }
 
     .pos-page--restaurant {
         height: 100%;
+        max-height: calc(100vh - 9rem);
         min-height: 0;
         overflow: hidden;
         display: flex;
         flex-direction: column;
         padding-bottom: 0;
+
+        .pos-resto-bar,
+        .pos-waiter-assigned {
+            flex: 0 0 auto;
+        }
 
         .pos-main-grid {
             flex: 1 1 auto;
@@ -57,6 +81,10 @@
             overflow: hidden;
         }
 
+        .pos-left-tabs {
+            flex: 0 0 auto;
+        }
+
         .pos-menu-card,
         .pos-order-card {
             flex: 1 1 auto;
@@ -67,8 +95,19 @@
             overflow: hidden;
         }
 
+        .pos-menu-card {
+            > *:not(.pos-menu-products-scroll) {
+                flex: 0 0 auto;
+            }
+        }
+
         .pos-menu-products-scroll {
-            flex: 0 0 auto;
+            flex: 1 1 0px !important;
+            min-height: 0 !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
         }
 
         .pos-order-card {
