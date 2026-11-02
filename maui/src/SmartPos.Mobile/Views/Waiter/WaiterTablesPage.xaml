@@ -147,7 +147,7 @@
                             <Label Grid.Row="1"
                                    Grid.Column="1"
                                    Grid.ColumnSpan="2"
-                                   Text="{Binding WaiterDisplay, StringFormat='Waiter · {0}'}"
+                                   Text="{Binding WaiterDisplay, StringFormat='Waiter  /  {0}'}"
                                    FontSize="13"
                                    TextColor="#5C6B63"
                                    LineBreakMode="TailTruncation" />
@@ -167,7 +167,7 @@
     </Grid>
         <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
                                AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-56"
+                               TranslationY="-52"
                                Mode="Waiter"
                                SelectedIndex="0"
                                ZIndex="40"

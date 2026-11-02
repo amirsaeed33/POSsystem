@@ -94,8 +94,13 @@ public class OnlineOrderService
     public Task<CustomerOrderDto> CreateOnlineOrderAsync(CreateCustomerOrderDto input) =>
         _api.PostAsync<CustomerOrderDto>("api/services/app/CustomerOrder/CreateOnlineOrder", input);
 
+    /// <summary>
+    /// ABP maps TrackOrderAsync to HTTP POST (not Get*), matching the Angular client.
+    /// </summary>
     public Task<CustomerOrderDto> TrackOrderAsync(string orderNo) =>
-        _api.GetAsync<CustomerOrderDto>($"api/services/app/CustomerOrder/TrackOrder?orderNo={Uri.EscapeDataString(orderNo)}");
+        _api.PostAsync<CustomerOrderDto>(
+            $"api/services/app/CustomerOrder/TrackOrder?orderNo={Uri.EscapeDataString(orderNo)}",
+            null);
 
     public async Task<List<ProductModifierGroupDto>> GetModifiersForProductAsync(int productId, bool forceRefresh = false)
     {

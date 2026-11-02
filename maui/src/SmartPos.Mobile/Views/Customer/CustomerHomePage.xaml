@@ -93,8 +93,8 @@
 
         <!-- Home storefront (Cheezious-style layout) -->
         <RefreshView IsVisible="{Binding HasMenu}"
-                     IsRefreshing="{Binding IsBusy}"
-                     Command="{Binding AppearingCommand}"
+                     IsRefreshing="{Binding IsPullRefreshing}"
+                     Command="{Binding RefreshHomeCommand}"
                      BackgroundColor="#F5F5F5">
             <ScrollView BackgroundColor="#F5F5F5">
                 <VerticalStackLayout Spacing="14" Padding="0,0,0,16" BackgroundColor="#F5F5F5">
@@ -183,8 +183,8 @@
                         </Grid>
                     </Grid>
 
-                    <!-- Delivery / Pick-up toggle -->
-                    <Border Margin="14,0"
+                    <!-- Delivery / Pick-up toggle (top spacing under bag / menu bar) -->
+                    <Border Margin="14,10,14,0"
                             StrokeThickness="0"
                             BackgroundColor="White"
                             Padding="4"
@@ -318,7 +318,7 @@
                     <!-- Categories: text chips in one horizontal row -->
                     <CollectionView ItemsSource="{Binding Categories}"
                                     SelectionMode="None"
-                                    Margin="10,0"
+                                    Margin="10,6,10,12"
                                     BackgroundColor="Transparent"
                                     HeightRequest="44">
                         <CollectionView.ItemsLayout>
@@ -707,7 +707,7 @@
                         </Border>
 
                         <Button Grid.Column="2"
-                                Text="{Binding ModalTotalLabel, StringFormat='Add to Order · {0}'}"
+                                Text="{Binding ModalTotalLabel, StringFormat='Add to Order  /  {0}'}"
                                 Command="{Binding AddModalToCartCommand}"
                                 BackgroundColor="#E11D48"
                                 TextColor="White"
@@ -724,7 +724,7 @@
         <!-- True overlay: AbsoluteLayout pins nav to bottom without reserving content space -->
         <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
                                AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-56"
+                               TranslationY="-52"
                                Mode="Customer"
                                SelectedIndex="0"
                                ZIndex="40"

@@ -6,21 +6,29 @@
              VerticalOptions="End"
              HorizontalOptions="Fill"
              Margin="0"
-             Padding="0">
+             Padding="0"
+             HeightRequest="52">
     <!--
-      Overlay-only control. Parents must place this in AbsoluteLayout / same Grid cell
-      WITHOUT bottom padding on page content. This view must not reserve layout space
-      via a parent Auto row or page Padding.
+      Overlay control. Must sit on the physical bottom edge.
+      No bottom Margin/Padding here — Android inset flush is applied in code-behind.
     -->
-    <Grid Padding="18,0,18,6" BackgroundColor="Transparent" HeightRequest="52">
-        <Grid HeightRequest="46" VerticalOptions="End">
+    <Grid x:Name="BarHost"
+          Padding="16,0,16,0"
+          BackgroundColor="Transparent"
+          HeightRequest="52"
+          Margin="0"
+          VerticalOptions="End">
+        <Grid x:Name="PillHost"
+              HeightRequest="44"
+              VerticalOptions="End"
+              Margin="0">
             <Border StrokeThickness="0"
                     BackgroundColor="White"
-                    VerticalOptions="End"
-                    HeightRequest="42"
+                    VerticalOptions="Fill"
+                    HorizontalOptions="Fill"
                     InputTransparent="True">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="21" />
+                    <RoundRectangle CornerRadius="22" />
                 </Border.StrokeShape>
                 <Border.Shadow>
                     <Shadow Brush="#40000000" Offset="0,2" Radius="8" Opacity="0.16" />
@@ -28,44 +36,49 @@
             </Border>
 
             <Ellipse x:Name="ActiveBubble"
-                     WidthRequest="42"
-                     HeightRequest="42"
+                     WidthRequest="44"
+                     HeightRequest="44"
                      Fill="White"
                      VerticalOptions="Start"
                      HorizontalOptions="Start"
+                     TranslationY="-10"
                      InputTransparent="True">
                 <Ellipse.Shadow>
                     <Shadow Brush="#40000000" Offset="0,2" Radius="6" Opacity="0.14" />
                 </Ellipse.Shadow>
             </Ellipse>
 
-            <Grid ColumnDefinitions="*,*,*,*" VerticalOptions="End" HeightRequest="42" Padding="2,0">
+            <Grid x:Name="TabsGrid"
+                  ColumnDefinitions="*,*,*,*"
+                  VerticalOptions="Fill"
+                  HeightRequest="44"
+                  Padding="0">
                 <VerticalStackLayout x:Name="Tab0" Spacing="0" VerticalOptions="Center" HorizontalOptions="Fill">
                     <VerticalStackLayout.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnTab0Tapped" />
                     </VerticalStackLayout.GestureRecognizers>
-                    <Image x:Name="Icon0" WidthRequest="17" HeightRequest="17" HorizontalOptions="Center" />
+                    <Image x:Name="Icon0" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
                     <Label x:Name="Label0" Text="Home" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
                 <VerticalStackLayout x:Name="Tab1" Grid.Column="1" Spacing="0" VerticalOptions="Center" HorizontalOptions="Fill">
                     <VerticalStackLayout.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnTab1Tapped" />
                     </VerticalStackLayout.GestureRecognizers>
-                    <Image x:Name="Icon1" WidthRequest="17" HeightRequest="17" HorizontalOptions="Center" />
+                    <Image x:Name="Icon1" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
                     <Label x:Name="Label1" Text="Cart" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
                 <VerticalStackLayout x:Name="Tab2" Grid.Column="2" Spacing="0" VerticalOptions="Center" HorizontalOptions="Fill">
                     <VerticalStackLayout.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnTab2Tapped" />
                     </VerticalStackLayout.GestureRecognizers>
-                    <Image x:Name="Icon2" WidthRequest="17" HeightRequest="17" HorizontalOptions="Center" />
+                    <Image x:Name="Icon2" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
                     <Label x:Name="Label2" Text="Track" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
                 <VerticalStackLayout x:Name="Tab3" Grid.Column="3" Spacing="0" VerticalOptions="Center" HorizontalOptions="Fill">
                     <VerticalStackLayout.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnTab3Tapped" />
                     </VerticalStackLayout.GestureRecognizers>
-                    <Image x:Name="Icon3" WidthRequest="17" HeightRequest="17" HorizontalOptions="Center" />
+                    <Image x:Name="Icon3" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
                     <Label x:Name="Label3" Text="Profile" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
             </Grid>

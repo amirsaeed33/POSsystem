@@ -50,6 +50,10 @@ public partial class CustomerHomeViewModel : BaseViewModel
     [ObservableProperty]
     private bool isLoadingModifiers;
 
+    /// <summary>Pull-to-refresh only. Must stay separate from <see cref="BaseViewModel.IsBusy"/> or RefreshView traps forever.</summary>
+    [ObservableProperty]
+    private bool isPullRefreshing;
+
     [ObservableProperty]
     private int detailQuantity = 1;
 
@@ -115,6 +119,12 @@ public partial class CustomerHomeViewModel : BaseViewModel
         // Same as website public storefront: no tenancy cookie required.
         _session.ClearTenantHeader();
 
+        // Already on a branch: quiet re-appear (no center loader, no pull spinner).
+        if (SelectedBranch != null && !NeedsBranchSelection)
+        {
+            return;
+        }
+
         await RunBusyAsync(async () =>
         {
             await LoadBranchesAsync();
@@ -149,6 +159,49 @@ public partial class CustomerHomeViewModel : BaseViewModel
             ClearHeroSlides();
             _allProducts.Clear();
         });
+    }
+
+    [RelayCommand]
+    private async Task RefreshHomeAsync()
+    {
+        if (IsPullRefreshing || IsBusy)
+        {
+            return;
+        }
+
+        try
+        {
+            IsPullRefreshing = true;
+            _session.ClearTenantHeader();
+
+            if (SelectedBranch == null)
+            {
+                await LoadBranchesAsync();
+                return;
+            }
+
+            // Soft refresh: reload header/catalog without clearing the cart.
+            var branch = SelectedBranch;
+            StoreHeader = await _orders.GetStoreHeaderAsync(branch.Id);
+            await LoadHeroSlidesAsync(branch.Id);
+            _allProducts = await _orders.GetCatalogAsync(branch.Id, forceRefresh: true);
+            foreach (var p in _allProducts)
+            {
+                p.ImageUrl = _api.ResolveImageUrl(p.ImagePath);
+            }
+
+            RebuildCategories();
+            ApplyFilters();
+            _orders.PrefetchModifiersForCatalog(_allProducts);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsPullRefreshing = false;
+        }
     }
 
     private async Task LoadBranchesAsync()

@@ -63,7 +63,7 @@
     </Grid>
         <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
                                AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-56"
+                               TranslationY="-52"
                                Mode="Waiter"
                                SelectedIndex="2"
                                ZIndex="40"

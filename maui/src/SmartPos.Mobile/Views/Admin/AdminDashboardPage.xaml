@@ -17,7 +17,7 @@
             <VerticalStackLayout Padding="16" Spacing="14" BackgroundColor="#F5F5F5">
                 <VerticalStackLayout Spacing="2">
                     <Label Text="{Binding Greeting}" FontSize="22" FontAttributes="Bold" TextColor="#1F2A24" />
-                    <Label Text="Sales · Purchases · Orders · Restaurant status" FontSize="13" TextColor="#64748B" />
+                    <Label Text="Sales / Purchases / Orders / Restaurant status" FontSize="13" TextColor="#64748B" />
                 </VerticalStackLayout>
 
                 <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#0F6B4C" />
@@ -87,7 +87,7 @@
                         </BindableLayout.ItemTemplate>
                     </HorizontalStackLayout>
                 </ScrollView>
-                <Label Text="Green = sales · Orange = purchases" FontSize="11" TextColor="#94A3B8" />
+                <Label Text="Green = sales  /  Orange = purchases" FontSize="11" TextColor="#94A3B8" />
 
                 <!-- 3) Current orders -->
                 <Label Text="Current orders" FontAttributes="Bold" FontSize="16" TextColor="#1F2A24" />
@@ -187,7 +187,7 @@
 
         <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
                                AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-56"
+                               TranslationY="-52"
                                Mode="Admin"
                                SelectedIndex="0"
                                ZIndex="40"

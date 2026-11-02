@@ -48,6 +48,11 @@ public partial class CartCheckoutViewModel : BaseViewModel
     public string SubtotalText => Subtotal.ToString("0.00");
     public string DeliveryFeeText => DeliveryFee.ToString("0.00");
     public string GrandTotalText => GrandTotal.ToString("0.00");
+    public bool HasItems => Lines.Count > 0;
+    public bool IsEmpty => !HasItems;
+    public string ItemCountLabel => HasItems
+        ? $"{Lines.Count} item{(Lines.Count == 1 ? string.Empty : "s")}"
+        : "No items yet";
 
     public CartCheckoutViewModel(
         CartService cart,
@@ -76,6 +81,9 @@ public partial class CartCheckoutViewModel : BaseViewModel
         OnPropertyChanged(nameof(GrandTotal));
         OnPropertyChanged(nameof(SubtotalText));
         OnPropertyChanged(nameof(GrandTotalText));
+        OnPropertyChanged(nameof(HasItems));
+        OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(ItemCountLabel));
     }
 
     [RelayCommand]

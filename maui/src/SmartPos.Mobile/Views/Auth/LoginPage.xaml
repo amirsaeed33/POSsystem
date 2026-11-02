@@ -37,7 +37,7 @@
                                VerticalOptions="Center" />
                     </Border>
                     <Label Text="Aljannat" FontSize="32" FontAttributes="Bold" TextColor="White" />
-                    <Label Text="Food ordering · Waiter · Rider · Customer" FontSize="14" TextColor="#DBEAFE" />
+                    <Label Text="Food ordering  /  Waiter  /  Rider  /  Customer" FontSize="14" TextColor="#DBEAFE" />
                 </VerticalStackLayout>
 
                 <Border x:Name="LoginCard"
@@ -158,7 +158,7 @@
         <controls:BubbleTabBar x:Name="BottomNav"
                                AbsoluteLayout.LayoutBounds="0,1,1,52"
                                AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-56"
+                               TranslationY="-52"
                                Mode="Customer"
                                SelectedIndex="3"
                                ZIndex="40"

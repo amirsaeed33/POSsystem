@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SmartPos.Mobile.Models"
              xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
              x:Class="SmartPos.Mobile.Views.Customer.TrackOrderPage"
              x:DataType="vm:TrackOrderViewModel"
@@ -10,26 +11,100 @@
              Shell.TabBarIsVisible="False"
              BackgroundColor="#F5F5F5">
     <AbsoluteLayout BackgroundColor="#F5F5F5">
-        <VerticalStackLayout AbsoluteLayout.LayoutBounds="0,0,1,1"
-                             AbsoluteLayout.LayoutFlags="All"
-                             Padding="16"
-                             Spacing="12"
-                             BackgroundColor="#F5F5F5">
-            <Entry Placeholder="Order number" Text="{Binding OrderNo}" />
-            <Button Text="Track" Command="{Binding TrackCommand}" BackgroundColor="#0F6B4C" TextColor="White" />
-            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
-            <VerticalStackLayout Spacing="6" IsVisible="{Binding Order.OrderNo, TargetNullValue=False}">
-                <Label Text="{Binding Order.OrderNo}" FontAttributes="Bold" FontSize="20" />
-                <Label Text="{Binding Order.StatusName, StringFormat='Status: {0}'}" />
-                <Label Text="{Binding Order.TotalAmount, StringFormat='Total: {0:0.00}'}" />
-                <Label Text="{Binding Order.DeliveryAreaName}" />
-                <Label Text="{Binding Order.RiderName, StringFormat='Rider: {0}'}" />
+        <ScrollView AbsoluteLayout.LayoutBounds="0,0,1,1"
+                    AbsoluteLayout.LayoutFlags="All"
+                    BackgroundColor="#F5F5F5">
+            <VerticalStackLayout Padding="16,16,16,72" Spacing="14" BackgroundColor="#F5F5F5">
+                <Label Text="Track order"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="#1F2A24" />
+                <Label Text="Enter your order number (e.g. ORD-00012) or mobile number used at checkout."
+                       FontSize="13"
+                       TextColor="#64748B"
+                       LineBreakMode="WordWrap" />
+
+                <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="12,4">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <Entry Placeholder="Order number"
+                           Text="{Binding OrderNo}"
+                           FontSize="16"
+                           ReturnType="Search"
+                           ReturnCommand="{Binding TrackCommand}" />
+                </Border>
+
+                <Button Text="Track order"
+                        Command="{Binding TrackCommand}"
+                        BackgroundColor="#0F6B4C"
+                        TextColor="White"
+                        HeightRequest="48"
+                        CornerRadius="14"
+                        FontAttributes="Bold" />
+
+                <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                   IsVisible="{Binding IsBusy}"
+                                   Color="#0F6B4C" />
+
+                <Border IsVisible="{Binding HasOrder}"
+                        Stroke="#E2E8E4"
+                        StrokeThickness="1"
+                        BackgroundColor="#FAFBFA"
+                        Padding="16">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{Binding OrderTitle}"
+                               FontAttributes="Bold"
+                               FontSize="22"
+                               TextColor="#1F2A24" />
+                        <Border StrokeThickness="0" BackgroundColor="#E7F5EF" Padding="10,8">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Label Text="{Binding StatusText}"
+                                   FontAttributes="Bold"
+                                   TextColor="#0F6B4C" />
+                        </Border>
+                        <Label Text="{Binding StatusBanner}"
+                               FontSize="13"
+                               TextColor="#475569"
+                               LineBreakMode="WordWrap" />
+                        <Label Text="{Binding TotalText}"
+                               FontAttributes="Bold"
+                               FontSize="18"
+                               TextColor="#0F6B4C" />
+                        <Label Text="{Binding AreaText}" TextColor="#5C6B63" />
+                        <Label Text="{Binding RiderText}" TextColor="#5C6B63" />
+                        <Label Text="{Binding CustomerText}" TextColor="#5C6B63" />
+
+                        <Label Text="Items"
+                               FontAttributes="Bold"
+                               FontSize="15"
+                               TextColor="#1F2A24"
+                               Margin="0,6,0,0" />
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Lines}" Spacing="6">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:CustomerOrderLineDto">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding ProductName}" TextColor="#1F2A24" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Quantity, StringFormat='x{0:0.##}'}"
+                                               TextColor="#64748B" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
             </VerticalStackLayout>
-        </VerticalStackLayout>
+        </ScrollView>
 
         <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
                                AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-56"
+                               TranslationY="-52"
                                Mode="Customer"
                                SelectedIndex="2"
                                ZIndex="40"

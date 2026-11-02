@@ -5,6 +5,8 @@ namespace SmartPos.Mobile.Views.Customer;
 
 public partial class TrackOrderPage : ContentPage
 {
+    private readonly TrackOrderViewModel _vm;
+
     public TrackOrderPage() : this(ServiceHelper.Get<TrackOrderViewModel>())
     {
     }
@@ -12,6 +14,14 @@ public partial class TrackOrderPage : ContentPage
     public TrackOrderPage(TrackOrderViewModel vm)
     {
         InitializeComponent();
+        _vm = vm;
         BindingContext = vm;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        Shell.SetTabBarIsVisible(this, false);
+        await _vm.AppearingAsync();
     }
 }

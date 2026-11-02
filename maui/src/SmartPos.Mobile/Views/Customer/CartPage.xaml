@@ -16,41 +16,232 @@
               RowDefinitions="*,Auto"
               BackgroundColor="#F5F5F5">
             <ScrollView>
-                <VerticalStackLayout Padding="16" Spacing="12">
-                    <CollectionView ItemsSource="{Binding Lines}">
+                <VerticalStackLayout Padding="16,16,16,20" Spacing="14">
+
+                    <!-- Page title -->
+                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                        <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="#E7F5EF">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Image Source="icon_cart_bag.png"
+                                   WidthRequest="22"
+                                   HeightRequest="22"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                            <Label Text="Your cart"
+                                   FontSize="24"
+                                   FontAttributes="Bold"
+                                   TextColor="#1F2A24" />
+                            <Label Text="{Binding ItemCountLabel}"
+                                   FontSize="13"
+                                   TextColor="#64748B" />
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+
+                    <!-- Empty state -->
+                    <Border IsVisible="{Binding IsEmpty}"
+                            Stroke="#E2E8E4"
+                            StrokeThickness="1"
+                            BackgroundColor="#FAFBFA"
+                            Padding="28,32">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                            <Border WidthRequest="72"
+                                    HeightRequest="72"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#E7F5EF"
+                                    HorizontalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="36" />
+                                </Border.StrokeShape>
+                                <Image Source="icon_cart_bag.png"
+                                       WidthRequest="34"
+                                       HeightRequest="34"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+                            <Label Text="Your cart is empty"
+                                   FontSize="18"
+                                   FontAttributes="Bold"
+                                   TextColor="#1F2A24"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="Add items from the menu, then come back to checkout."
+                                   FontSize="13"
+                                   TextColor="#64748B"
+                                   HorizontalTextAlignment="Center"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Cart lines -->
+                    <CollectionView ItemsSource="{Binding Lines}"
+                                    IsVisible="{Binding HasItems}"
+                                    HeightRequest="180">
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:CartLine">
-                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" Padding="0,8" ColumnSpacing="8">
-                                    <VerticalStackLayout>
-                                        <Label Text="{Binding Name}" FontAttributes="Bold" />
-                                        <Label Text="{Binding UnitPriceText}" TextColor="#5C6B63" />
-                                    </VerticalStackLayout>
-                                    <Button Grid.Column="1" Text="-" Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=DecreaseCommand}" CommandParameter="{Binding .}" />
-                                    <Label Grid.Column="2" Text="{Binding Quantity}" VerticalOptions="Center" />
-                                    <Button Grid.Column="3" Text="+" Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=IncreaseCommand}" CommandParameter="{Binding .}" />
-                                </Grid>
+                                <Border Stroke="#E8ECEA"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAFBFA"
+                                        Padding="12"
+                                        Margin="0,0,0,8">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                                        <VerticalStackLayout>
+                                            <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="#1F2A24" />
+                                            <Label Text="{Binding UnitPriceText}" TextColor="#5C6B63" FontSize="12" />
+                                        </VerticalStackLayout>
+                                        <Button Grid.Column="1"
+                                                Text="-"
+                                                WidthRequest="40"
+                                                HeightRequest="40"
+                                                Padding="0"
+                                                CornerRadius="12"
+                                                BackgroundColor="#EEF2F0"
+                                                TextColor="#1F2A24"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=DecreaseCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        <Label Grid.Column="2"
+                                               Text="{Binding Quantity}"
+                                               VerticalOptions="Center"
+                                               FontAttributes="Bold"
+                                               WidthRequest="24"
+                                               HorizontalTextAlignment="Center" />
+                                        <Button Grid.Column="3"
+                                                Text="+"
+                                                WidthRequest="40"
+                                                HeightRequest="40"
+                                                Padding="0"
+                                                CornerRadius="12"
+                                                BackgroundColor="#E7F5EF"
+                                                TextColor="#0F6B4C"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=IncreaseCommand}"
+                                                CommandParameter="{Binding .}" />
+                                    </Grid>
+                                </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
-                    <Picker Title="Delivery area" ItemsSource="{Binding Areas}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedArea}" />
-                    <Entry Placeholder="Your name" Text="{Binding CustomerName}" />
-                    <Entry Placeholder="Mobile" Text="{Binding CustomerMobile}" Keyboard="Telephone" />
-                    <Entry Placeholder="Delivery address" Text="{Binding DeliveryAddress}" />
-                    <Entry Placeholder="Landmark" Text="{Binding DeliveryLandmark}" />
+
+                    <!-- Delivery section title -->
+                    <HorizontalStackLayout Spacing="8" Margin="0,6,0,0">
+                        <Image Source="icon_pin.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
+                        <Label Text="Delivery area"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#1F2A24"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                    <Label Text="Choose where this order should be delivered"
+                           FontSize="12"
+                           TextColor="#64748B"
+                           Margin="28,0,0,0" />
+
+                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="4,2">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Picker Title="Select delivery area"
+                                ItemsSource="{Binding Areas}"
+                                ItemDisplayBinding="{Binding Name}"
+                                SelectedItem="{Binding SelectedArea}" />
+                    </Border>
+
+                    <!-- Contact -->
+                    <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
+                        <Image Source="icon_person.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
+                        <Label Text="Your details" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
+                    </HorizontalStackLayout>
+                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="10,2">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Image Source="icon_person.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
+                            <Entry Grid.Column="1" Placeholder="Your name" Text="{Binding CustomerName}" />
+                        </Grid>
+                    </Border>
+                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="10,2">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Image Source="icon_phone.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
+                            <Entry Grid.Column="1" Placeholder="Mobile" Text="{Binding CustomerMobile}" Keyboard="Telephone" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Address -->
+                    <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
+                        <Image Source="icon_home_pin.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
+                        <Label Text="Delivery address" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
+                    </HorizontalStackLayout>
+                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="10,2">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Image Source="icon_home_pin.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
+                            <Entry Grid.Column="1" Placeholder="Street, house, block" Text="{Binding DeliveryAddress}" />
+                        </Grid>
+                    </Border>
+                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="10,2">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Image Source="icon_pin.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
+                            <Entry Grid.Column="1" Placeholder="Landmark" Text="{Binding DeliveryLandmark}" />
+                        </Grid>
+                    </Border>
+
                     <Label Text="{Binding LocationStatusText}"
                            FontSize="12"
                            TextColor="#475569"
                            LineBreakMode="WordWrap" />
                     <Button Text="Use my location"
                             Command="{Binding CaptureLocationCommand}"
+                            ImageSource="icon_gps.png"
                             BackgroundColor="#EFF6FF"
                             TextColor="#1D4ED8"
-                            HeightRequest="42"
-                            CornerRadius="12" />
-                    <Entry Placeholder="Notes" Text="{Binding Notes}" />
-                    <Label Text="{Binding SubtotalText, StringFormat='Subtotal: {0}'}" />
-                    <Label Text="{Binding DeliveryFeeText, StringFormat='Delivery: {0}'}" />
-                    <Label Text="{Binding GrandTotalText, StringFormat='Total: {0}'}" FontAttributes="Bold" FontSize="18" TextColor="#0F6B4C" />
+                            HeightRequest="44"
+                            CornerRadius="12"
+                            Padding="12,0"
+                            ContentLayout="Left,8" />
+
+                    <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
+                        <Image Source="icon_note.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
+                        <Label Text="Notes" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
+                    </HorizontalStackLayout>
+                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="10,2">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Image Source="icon_note.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
+                            <Entry Grid.Column="1" Placeholder="Anything we should know?" Text="{Binding Notes}" />
+                        </Grid>
+                    </Border>
+
+                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="#FAFBFA" Padding="14" IsVisible="{Binding HasItems}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="{Binding SubtotalText, StringFormat='Subtotal: {0}'}" TextColor="#475569" />
+                            <Label Text="{Binding DeliveryFeeText, StringFormat='Delivery: {0}'}" TextColor="#475569" />
+                            <Label Text="{Binding GrandTotalText, StringFormat='Total: {0}'}"
+                                   FontAttributes="Bold"
+                                   FontSize="18"
+                                   TextColor="#0F6B4C" />
+                        </VerticalStackLayout>
+                    </Border>
                 </VerticalStackLayout>
             </ScrollView>
             <Button Grid.Row="1"
@@ -58,12 +249,16 @@
                     Margin="16,8,16,64"
                     Command="{Binding PlaceOrderCommand}"
                     BackgroundColor="#0F6B4C"
-                    TextColor="White" />
+                    TextColor="White"
+                    IsVisible="{Binding HasItems}"
+                    HeightRequest="48"
+                    CornerRadius="14"
+                    FontAttributes="Bold" />
         </Grid>
 
         <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
                                AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-56"
+                               TranslationY="-52"
                                Mode="Customer"
                                SelectedIndex="1"
                                ZIndex="40"
