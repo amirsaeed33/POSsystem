@@ -135,3 +135,28 @@
     font-size: 0.75rem;
     font-weight: 700;
 }
+
+.deal-products-table-wrapper {
+    max-height: 300px;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    display: block;
+    position: relative;
+    background: var(--surface-0, #ffffff);
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background-color: var(--surface-50, #f8fafc) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
+}

@@ -905,10 +905,80 @@
                     </span>
                 </div>
 
-                <!-- Loading Modifiers Spinner (if fetching) -->
-                <div *ngIf="loadingModifiers" class="flex align-items-center gap-2 py-2 text-xs text-500 font-semibold">
+                <!-- Loading Modifiers / Deal Items Spinner -->
+                <div *ngIf="loadingModifiers || loadingDeal" class="flex align-items-center gap-2 py-2 text-xs text-500 font-semibold">
                     <i class="pi pi-spin pi-spinner text-red-500"></i>
-                    <span>Loading options...</span>
+                    <span>Loading deal options...</span>
+                </div>
+
+                <!-- Deal Items Included in Deal -->
+                <div *ngIf="dealCustomiseItems && dealCustomiseItems.length > 0" class="mb-3">
+                    <div class="detail-section-label">
+                        <i class="pi pi-box text-red-500"></i>
+                        <span>Items Included in Deal ({{ dealCustomiseItems.length }})</span>
+                    </div>
+
+                    <div class="flex flex-column gap-2 mt-2">
+                        <div
+                            *ngFor="let item of dealCustomiseItems"
+                            class="surface-card border-1 surface-border border-round-xl p-3 shadow-1"
+                        >
+                            <!-- Item Header: Quantity & Name -->
+                            <div class="flex align-items-center justify-content-between mb-2 pb-2 border-bottom-1 surface-border">
+                                <div class="flex align-items-center gap-2">
+                                    <span class="bg-red-500 text-white text-xs px-2 py-0.5 border-round-md font-bold shadow-1">
+                                        {{ item.quantity }}x
+                                    </span>
+                                    <span class="font-bold text-900 text-sm md:text-base">{{ item.productName }}</span>
+                                </div>
+                                <span class="text-xs text-green-700 bg-green-50 px-2 py-0.5 border-round font-semibold">Included in Deal</span>
+                            </div>
+
+                            <!-- Item Modifiers / Options (e.g. Portion: Half / Full) -->
+                            <div *ngIf="item.modifierGroups && item.modifierGroups.length > 0" class="flex flex-column gap-2 mt-2">
+                                <div
+                                    *ngFor="let group of item.modifierGroups"
+                                    class="surface-50 border-round-lg p-2"
+                                >
+                                    <div class="flex align-items-center justify-content-between mb-2">
+                                        <div class="flex align-items-center gap-2">
+                                            <span class="font-semibold text-800 text-xs">{{ group.name }}</span>
+                                            <small class="text-500 font-normal">({{ group.allowMultiple ? 'Multi-select' : 'Single-select' }})</small>
+                                        </div>
+                                        <span
+                                            class="text-xs px-2 py-0.5 border-round font-medium"
+                                            [style.background]="group.isRequired ? '#fee2e2' : '#f1f5f9'"
+                                            [style.color]="group.isRequired ? '#b91c1c' : '#475569'"
+                                        >
+                                            {{ group.isRequired ? 'Required' : 'Optional' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="option-pills">
+                                        <div
+                                            *ngFor="let opt of group.options"
+                                            class="opt-chip"
+                                            [class.selected]="isDealItemOptionSelected(item, group.id, opt.id)"
+                                            (click)="toggleDealItemOption(item, group, opt)"
+                                        >
+                                            <span>{{ opt.name }}</span>
+                                            <span *ngIf="getOptionPrice(opt) > 0" class="ml-1 font-bold text-xs">
+                                                +PKR {{ getOptionPrice(opt) | number: '1.0-0' }}
+                                            </span>
+                                            <span *ngIf="getOptionPrice(opt) === 0" class="ml-1 text-500 text-xs">
+                                                (Free)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- No Modifiers fallback -->
+                            <div *ngIf="!item.modifierGroups || item.modifierGroups.length === 0" class="text-xs text-500 italic py-1">
+                                <i class="pi pi-check text-xs text-green-500 mr-1"></i> Standard preparation (no options needed)
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Product Extra Options / Modifiers (from Manage Modifiers & Options) -->

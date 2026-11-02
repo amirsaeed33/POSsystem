@@ -34,6 +34,7 @@ namespace SmartPos.Restaurant
             _readCacheInvalidator = readCacheInvalidator;
         }
 
+        [AbpAllowAnonymous]
         public async Task<List<ProductModifierGroupDto>> GetByProductAsync(int productId)
         {
             var cacheKey = SmartPosAppCaches.ProductKey(productId);

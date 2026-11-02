@@ -146,6 +146,20 @@
                                 </div>
                             </div>
 
+                            <!-- Deal Items Included in Deal -->
+                            <div *ngIf="dealItems && dealItems.length > 0" class="mb-4">
+                                <span class="font-bold text-xs uppercase text-600 tracking-wider block mb-2">Items Included in Deal ({{ dealItems.length }})</span>
+                                <div class="flex flex-column gap-2">
+                                    <div *ngFor="let item of dealItems" class="surface-card p-3 border-round-xl border-1 surface-border flex align-items-center justify-content-between shadow-1">
+                                        <div class="flex align-items-center gap-2">
+                                            <span class="bg-red-500 text-white text-xs px-2 py-0.5 border-round-md font-bold shadow-1">{{ item.quantity }}x</span>
+                                            <span class="font-bold text-900 text-sm md:text-base">{{ item.productName }}</span>
+                                        </div>
+                                        <span class="text-xs text-green-700 bg-green-50 px-2 py-0.5 border-round font-semibold">Included in Deal</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Description Box -->
                             <div>
                                 <span class="font-bold text-xs uppercase text-600 tracking-wider block mb-2">Product Description</span>

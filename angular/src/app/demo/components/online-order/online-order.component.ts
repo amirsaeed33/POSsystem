@@ -17,9 +17,20 @@ import {
     MyOnlineOrdersService,
 } from 'src/app/demo/service/my-online-orders.service';
 import { ProductModifierGroupDto, ProductModifierOptionDto } from 'src/app/demo/api/product-modifier';
+import { DealService } from 'src/app/demo/service/deal.service';
+import { DealDto, DealDetailDto } from 'src/app/demo/api/deal';
 import { MessageService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
 import { CustomerOrderStatus } from 'src/app/demo/api/customer-order';
+
+export interface OnlineDealCustomiseItem {
+    productId: number;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    modifierGroups: ProductModifierGroupDto[];
+    selectedOptions: Record<number, number[]>;
+}
 
 export interface CategorySection {
     category: string;
@@ -99,6 +110,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     productModifierGroups: ProductModifierGroupDto[] = [];
     selectedModifierOptions: Record<number, number[]> = {};
     loadingModifiers = false;
+    dealCustomiseItems: OnlineDealCustomiseItem[] = [];
+    loadingDeal = false;
 
     // Store Chat Floating Drawer
     storeChatOpen = false;
@@ -212,7 +225,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         private deliveryAreaService: DeliveryAreaService,
         private onlineOrderHeroSlideService: OnlineOrderHeroSlideService,
         private productModifierService: ProductModifierService,
-        private myOnlineOrders: MyOnlineOrdersService
+        private myOnlineOrders: MyOnlineOrdersService,
+        private dealService: DealService
     ) {}
 
     currentHeroSlide = 0;
@@ -1661,29 +1675,113 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.detailQuantity = 1;
         this.productModifierGroups = [];
         this.selectedModifierOptions = {};
+        this.dealCustomiseItems = [];
         this.detailModalVisible = true;
         this.loadingModifiers = true;
+        this.loadingDeal = false;
 
-        try {
-            const groups = await this.productModifierService.getByProduct(product.id);
-            this.productModifierGroups = (groups || []).filter(
-                (g) => g.options && g.options.length > 0
+        const isDealCandidate =
+            !!product.isDeal ||
+            !!product.dealId ||
+            (product.categoryName || '').toLowerCase().includes('deal') ||
+            (product.name || '').toLowerCase().includes('deal');
+
+        const promises: Promise<any>[] = [];
+
+        // 1. Fetch product direct modifiers
+        promises.push(
+            this.productModifierService
+                .getByProduct(product.id)
+                .then((groups) => {
+                    this.productModifierGroups = (groups || []).filter(
+                        (g) => g.options && g.options.length > 0
+                    );
+                    for (const g of this.productModifierGroups) {
+                        this.selectedModifierOptions[g.id] = [];
+                        const defaultOpt = g.options.find((o) => o.isDefault);
+                        if (defaultOpt) {
+                            this.selectedModifierOptions[g.id] = [defaultOpt.id];
+                        } else if (g.isRequired && g.options.length > 0) {
+                            this.selectedModifierOptions[g.id] = [g.options[0].id];
+                        }
+                    }
+                })
+                .catch((err) => {
+                    console.warn('Failed to load modifiers for product', err);
+                    this.productModifierGroups = [];
+                })
+                .finally(() => {
+                    this.loadingModifiers = false;
+                })
+        );
+
+        // 2. If product is a deal, fetch deal items and their options
+        if (isDealCandidate) {
+            this.loadingDeal = true;
+            promises.push(
+                (async () => {
+                    try {
+                        let deal: DealDto | null = null;
+                        if (product.dealId) {
+                            deal = await this.dealService.get(product.dealId);
+                        } else {
+                            deal = await this.dealService.getByProductId(product.id);
+                        }
+
+                        if (deal && deal.items && deal.items.length > 0) {
+                            const seenIds = new Set<number>();
+                            const distinctItems = deal.items.filter((it) => {
+                                if (it.id && seenIds.has(it.id)) return false;
+                                if (it.id) seenIds.add(it.id);
+                                return true;
+                            });
+
+                            const itemsWithModifiers: OnlineDealCustomiseItem[] = [];
+                            for (const item of distinctItems) {
+                                let groups: ProductModifierGroupDto[] = [];
+                                try {
+                                    groups = await this.productModifierService.getByProduct(item.productId);
+                                } catch (e) {
+                                    console.warn('Could not load modifiers for deal item:', item.productId, e);
+                                }
+
+                                const filteredGroups = (groups || []).filter(
+                                    (g) => g.options && g.options.length > 0
+                                );
+
+                                const selectedOptions: Record<number, number[]> = {};
+                                for (const g of filteredGroups) {
+                                    selectedOptions[g.id] = [];
+                                    const defaultOpt = g.options.find((o) => o.isDefault);
+                                    if (defaultOpt) {
+                                        selectedOptions[g.id] = [defaultOpt.id];
+                                    } else if (g.isRequired && g.options.length > 0) {
+                                        selectedOptions[g.id] = [g.options[0].id];
+                                    }
+                                }
+
+                                itemsWithModifiers.push({
+                                    productId: item.productId,
+                                    productName: item.productName || 'Product #' + item.productId,
+                                    quantity: item.quantity,
+                                    unitPrice: item.unitPrice,
+                                    modifierGroups: filteredGroups,
+                                    selectedOptions,
+                                });
+                            }
+                            this.dealCustomiseItems = itemsWithModifiers;
+                        }
+                    } catch (err) {
+                        console.warn('Failed to load deal items for product', product.id, err);
+                        this.dealCustomiseItems = [];
+                    } finally {
+                        this.loadingDeal = false;
+                    }
+                })()
             );
-            for (const g of this.productModifierGroups) {
-                this.selectedModifierOptions[g.id] = [];
-                const defaultOpt = g.options.find((o) => o.isDefault);
-                if (defaultOpt) {
-                    this.selectedModifierOptions[g.id] = [defaultOpt.id];
-                } else if (g.isRequired && g.options.length > 0) {
-                    this.selectedModifierOptions[g.id] = [g.options[0].id];
-                }
-            }
-        } catch (err) {
-            console.warn('Failed to load modifiers for product', err);
-            this.productModifierGroups = [];
-        } finally {
-            this.loadingModifiers = false;
         }
+
+        await Promise.all(promises);
     }
 
     closeProductModal(): void {
@@ -1691,7 +1789,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.selectedProduct = null;
         this.productModifierGroups = [];
         this.selectedModifierOptions = {};
+        this.dealCustomiseItems = [];
         this.loadingModifiers = false;
+        this.loadingDeal = false;
     }
 
     updateDetailQuantity(change: number): void {
@@ -1735,6 +1835,47 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
     }
 
+    isDealItemOptionSelected(item: OnlineDealCustomiseItem, groupId: number, optionId: number): boolean {
+        const selected = item.selectedOptions[groupId] || [];
+        return selected.includes(optionId);
+    }
+
+    toggleDealItemOption(
+        item: OnlineDealCustomiseItem,
+        group: ProductModifierGroupDto,
+        option: ProductModifierOptionDto
+    ): void {
+        const isMulti = group.allowMultiple || (group.maxSelection != null && group.maxSelection > 1);
+        if (!item.selectedOptions[group.id]) {
+            item.selectedOptions[group.id] = [];
+        }
+        const current = [...item.selectedOptions[group.id]];
+        const idx = current.indexOf(option.id);
+
+        if (isMulti) {
+            if (idx > -1) {
+                if (group.isRequired && current.length <= 1) {
+                    return;
+                }
+                current.splice(idx, 1);
+            } else {
+                if (group.maxSelection && current.length >= group.maxSelection) {
+                    current.shift();
+                }
+                current.push(option.id);
+            }
+            item.selectedOptions[group.id] = current;
+        } else {
+            if (idx > -1) {
+                if (!group.isRequired) {
+                    item.selectedOptions[group.id] = [];
+                }
+            } else {
+                item.selectedOptions[group.id] = [option.id];
+            }
+        }
+    }
+
     getOptionPrice(opt: ProductModifierOptionDto): number {
         return opt.price ?? opt.extraPrice ?? 0;
     }
@@ -1748,6 +1889,17 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 const opt = g.options.find((o) => o.id === optId);
                 if (opt) {
                     price += this.getOptionPrice(opt);
+                }
+            }
+        }
+        for (const item of this.dealCustomiseItems) {
+            for (const g of item.modifierGroups || []) {
+                const selectedIds = item.selectedOptions[g.id] || [];
+                for (const optId of selectedIds) {
+                    const opt = g.options.find((o) => o.id === optId);
+                    if (opt) {
+                        price += this.getOptionPrice(opt);
+                    }
                 }
             }
         }
@@ -1786,6 +1938,44 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                     allSelectedIds.push(opt.id);
                     const extra = this.getOptionPrice(opt);
                     selectedOptionNames.push(extra > 0 ? `${opt.name} (+PKR ${extra})` : opt.name);
+                }
+            }
+        }
+
+        for (const item of this.dealCustomiseItems) {
+            for (const g of item.modifierGroups || []) {
+                if (g.isRequired) {
+                    const sel = item.selectedOptions[g.id] || [];
+                    if (!sel.length) {
+                        this.messageService.add({
+                            severity: 'warn',
+                            summary: 'Option Required',
+                            detail: `Please select an option for "${g.name}" on ${item.productName}`,
+                        });
+                        return;
+                    }
+                }
+            }
+        }
+
+        if (this.dealCustomiseItems.length > 0) {
+            for (const item of this.dealCustomiseItems) {
+                const itemOpts: string[] = [];
+                for (const g of item.modifierGroups || []) {
+                    const selectedIds = item.selectedOptions[g.id] || [];
+                    for (const optId of selectedIds) {
+                        const opt = g.options.find((o) => o.id === optId);
+                        if (opt) {
+                            allSelectedIds.push(opt.id);
+                            const extra = this.getOptionPrice(opt);
+                            itemOpts.push(extra > 0 ? `${opt.name} (+PKR ${extra})` : opt.name);
+                        }
+                    }
+                }
+                if (itemOpts.length > 0) {
+                    selectedOptionNames.push(`${item.quantity}x ${item.productName} (${itemOpts.join(', ')})`);
+                } else {
+                    selectedOptionNames.push(`${item.quantity}x ${item.productName}`);
                 }
             }
         }
