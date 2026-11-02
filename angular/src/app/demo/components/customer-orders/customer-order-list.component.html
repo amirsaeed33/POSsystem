@@ -138,7 +138,10 @@
                         </button>
                     </div>
                 </td>
-                <td>{{ order.orderDate | date: formatService.dateFormat }}</td>
+                <td>
+                    <div class="font-medium text-800">{{ order.orderDate | date: formatService.dateFormat }}</div>
+                    <div class="text-xs text-500 font-normal">{{ order.orderDate | date: 'shortTime' }}</div>
+                </td>
                 <td>{{ order.customerName || '—' }}</td>
                 <td>
                     <span *ngIf="order.deliveryAreaName" class="font-medium text-700">

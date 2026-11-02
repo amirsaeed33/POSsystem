@@ -11,6 +11,7 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Branches;
 using SmartPos.Orders.Dto;
+using Abp.Timing;
 
 namespace SmartPos.Orders
 {
@@ -171,7 +172,7 @@ namespace SmartPos.Orders
                 Message = input.Message.Trim(),
                 IsReadByCustomer = input.SenderType == ChatMessageSenderType.Customer,
                 IsReadByStore = input.SenderType == ChatMessageSenderType.Store,
-                CreationTime = DateTime.UtcNow,
+                CreationTime = Clock.Now,
                 CreatorUserId = AbpSession.UserId
             };
 

@@ -17,6 +17,7 @@ using SmartPos.Orders;
 using SmartPos.Orders.Dto;
 using SmartPos.Products;
 using SmartPos.Staffs;
+using Abp.Timing;
 
 namespace SmartPos.Orders
 {
@@ -49,8 +50,7 @@ namespace SmartPos.Orders
         {
             var staff = await GetCurrentRiderStaffAsync();
 
-            var todayLocal = DateTime.Today;
-            var todayUtc = DateTime.UtcNow.Date;
+            var today = Clock.Now.Date;
 
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
             {
@@ -73,13 +73,11 @@ namespace SmartPos.Orders
 
                 var deliveredOrdersToday = riderOrders
                     .Where(o => o.Status == CustomerOrderStatus.Delivered &&
-                                ((o.LastModificationTime.HasValue && (o.LastModificationTime.Value.Date == todayLocal || o.LastModificationTime.Value.Date == todayUtc)) ||
-                                 (o.OrderDate.Date == todayLocal || o.OrderDate.Date == todayUtc)))
+                                ((o.LastModificationTime.HasValue && o.LastModificationTime.Value.Date == today) || o.OrderDate.Date == today))
                     .ToList();
 
                 var totalAssignedToday = riderOrders
-                    .Count(o => (o.RiderAssignedTime.HasValue && (o.RiderAssignedTime.Value.Date == todayLocal || o.RiderAssignedTime.Value.Date == todayUtc)) ||
-                                (o.OrderDate.Date == todayLocal || o.OrderDate.Date == todayUtc));
+                    .Count(o => (o.RiderAssignedTime.HasValue && o.RiderAssignedTime.Value.Date == today) || o.OrderDate.Date == today);
 
                 var branch = await _branchRepository.FirstOrDefaultAsync(staff.BranchId.Value);
 
@@ -391,7 +389,7 @@ namespace SmartPos.Orders
                         g => g.Select(d => $"{d.Quantity}x {d.Product?.Name ?? "Item"}").ToList());
             }
 
-            var nowUtc = DateTime.UtcNow;
+            var now = Clock.Now;
 
             return orders.Select(o =>
             {
@@ -406,13 +404,22 @@ namespace SmartPos.Orders
                 };
 
                 string assignedTimeText = "Recently";
-                if (o.RiderAssignedTime.HasValue)
+                DateTime? effectiveAssignedTime = o.RiderAssignedTime;
+                if (effectiveAssignedTime.HasValue)
                 {
-                    var diff = nowUtc - o.RiderAssignedTime.Value.ToUniversalTime();
+                    var assigned = effectiveAssignedTime.Value;
+                    if (assigned < o.OrderDate.AddMinutes(-10))
+                    {
+                        assigned = assigned.Add(TimeZoneInfo.Local.GetUtcOffset(assigned));
+                        effectiveAssignedTime = assigned;
+                    }
+
+                    var diff = now - assigned;
+                    if (diff.TotalMinutes < 0) diff = TimeSpan.Zero;
                     if (diff.TotalMinutes < 1) assignedTimeText = "Just now";
                     else if (diff.TotalMinutes < 60) assignedTimeText = $"{(int)diff.TotalMinutes}m ago";
                     else if (diff.TotalHours < 24) assignedTimeText = $"{(int)diff.TotalHours}h ago";
-                    else assignedTimeText = o.RiderAssignedTime.Value.ToString("MMM dd, yyyy");
+                    else assignedTimeText = assigned.ToString("MMM dd, yyyy");
                 }
 
                 var items = (o.Lines ?? Enumerable.Empty<CustomerOrderLine>()).Select(l =>
@@ -449,7 +456,7 @@ namespace SmartPos.Orders
                     OrderDate = o.OrderDate,
                     Status = o.Status,
                     StatusText = statusText,
-                    RiderAssignedTime = o.RiderAssignedTime,
+                    RiderAssignedTime = effectiveAssignedTime,
                     RiderAssignedTimeText = assignedTimeText,
                     CustomerId = o.CustomerId,
                     CustomerName = o.Customer?.Name ?? "Guest Customer",

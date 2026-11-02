@@ -1,3 +1,4 @@
+using Abp.Timing;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -20,7 +21,7 @@ namespace SmartPos.Restaurant.Dto
 
         public string WaiterName { get; set; }
 
-        public DateTime PrintTime { get; set; } = DateTime.UtcNow;
+        public DateTime PrintTime { get; set; } = Clock.Now;
 
         public string PrintedBy { get; set; }
 

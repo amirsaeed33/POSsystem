@@ -24,7 +24,7 @@
             </div>
             <div class="col-12 md:col-6">
                 <div class="text-500 text-sm mb-1">Order Date</div>
-                <div class="font-medium text-900">{{ order.orderDate | date: formatService.dateFormat }}</div>
+                <div class="font-medium text-900">{{ order.orderDate | date: formatService.dateFormat }} <span class="text-xs text-500 font-normal">({{ order.orderDate | date: 'shortTime' }})</span></div>
             </div>
             <div class="col-12 md:col-6">
                 <div class="text-500 text-sm mb-1">Customer</div>
@@ -147,7 +147,7 @@
                 </div>
                 <div class="col-12 sm:col-4 p-2" *ngIf="order.riderAssignedTime">
                     <span class="text-600 block mb-1">Assigned At:</span>
-                    <span class="font-semibold text-900">{{ order.riderAssignedTime | date: 'short' }}</span>
+                    <span class="font-semibold text-900">{{ order.riderAssignedTime | date: formatService.dateFormat }} {{ order.riderAssignedTime | date: 'shortTime' }}</span>
                 </div>
             </div>
         </div>

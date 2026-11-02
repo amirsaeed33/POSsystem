@@ -14,6 +14,7 @@ using SmartPos.Branches;
 using SmartPos.Restaurant.Dto;
 using SmartPos.Sales;
 using SmartPos.Sales.Dto;
+using Abp.Timing;
 
 namespace SmartPos.Restaurant
 {
@@ -716,7 +717,7 @@ namespace SmartPos.Restaurant
                     CarNumber = order.CarNumber,
                     CarLocation = order.CarLocation,
                     WaiterName = order.WaiterName ?? "Staff",
-                    PrintTime = DateTime.UtcNow,
+                    PrintTime = Clock.Now,
                     PrintedBy = $"{printer.Name} ({printer.Role})",
                     PrintedByUserId = printer.UserId,
                     PrintedByName = printer.Name,
@@ -738,7 +739,7 @@ namespace SmartPos.Restaurant
                 CarNumber = order.CarNumber,
                 CarLocation = order.CarLocation,
                 WaiterName = order.WaiterName ?? "Staff",
-                PrintTime = DateTime.UtcNow,
+                PrintTime = Clock.Now,
                 PrintedBy = $"{printer.Name} ({printer.Role})",
                 PrintedByUserId = printer.UserId,
                 PrintedByName = printer.Name,
@@ -762,7 +763,7 @@ namespace SmartPos.Restaurant
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
 
-            var now = DateTime.UtcNow;
+            var now = Clock.Now;
             var targetLines = input.LineIds != null && input.LineIds.Any()
                 ? order.Lines.Where(l => input.LineIds.Contains(l.Id)).ToList()
                 : order.Lines.Where(l => l.Quantity > l.PrintedQuantity).ToList();
@@ -840,9 +841,9 @@ namespace SmartPos.Restaurant
 
             var printer = await GetCurrentPrinterIdentityAsync();
             order.LastPrintedBy = $"{printer.Name} ({printer.Role})";
-            order.LastPrintedTime = DateTime.UtcNow;
+            order.LastPrintedTime = Clock.Now;
             order.Status = RestaurantOrderStatus.Billed;
-            order.BilledTime = DateTime.UtcNow;
+            order.BilledTime = Clock.Now;
             await _orderRepository.UpdateAsync(order);
 
             if (order.TableId.HasValue)
@@ -862,7 +863,7 @@ namespace SmartPos.Restaurant
                 PrintedByUserId = printer.UserId,
                 PrintedByName = printer.Name,
                 PrintedByRole = printer.Role,
-                PrintTime = DateTime.UtcNow
+                PrintTime = Clock.Now
             });
 
             return ObjectMapper.Map<RestaurantOrderDto>(order);
@@ -926,7 +927,7 @@ namespace SmartPos.Restaurant
             var saleDto = new CreateSaleDto
             {
                 CustomerId = customerId,
-                SaleDate = DateTime.UtcNow,
+                SaleDate = Clock.Now,
                 Notes = finalNotes,
                 DiscountAmount = order.DiscountAmount,
                 DiscountPercent = order.DiscountPercent,
@@ -947,9 +948,9 @@ namespace SmartPos.Restaurant
             var printer = await GetCurrentPrinterIdentityAsync();
             order.Status = RestaurantOrderStatus.Settled;
             order.SaleId = createdSale.Id;
-            order.SettledTime = DateTime.UtcNow;
+            order.SettledTime = Clock.Now;
             order.LastPrintedBy = $"{printer.Name} ({printer.Role})";
-            order.LastPrintedTime = DateTime.UtcNow;
+            order.LastPrintedTime = Clock.Now;
             await _orderRepository.UpdateAsync(order);
 
             await _printLogRepository.InsertAsync(new RestaurantPrintLog
@@ -962,7 +963,7 @@ namespace SmartPos.Restaurant
                 PrintedByUserId = printer.UserId,
                 PrintedByName = printer.Name,
                 PrintedByRole = printer.Role,
-                PrintTime = DateTime.UtcNow
+                PrintTime = Clock.Now
             });
 
             // Free table back to Available
@@ -999,7 +1000,7 @@ namespace SmartPos.Restaurant
                 PrintedByUserId = printer.UserId,
                 PrintedByName = printer.Name,
                 PrintedByRole = printer.Role,
-                PrintTime = DateTime.UtcNow
+                PrintTime = Clock.Now
             };
             await _printLogRepository.InsertAsync(log);
 
@@ -1009,7 +1010,7 @@ namespace SmartPos.Restaurant
                 if (order != null)
                 {
                     order.LastPrintedBy = $"{printer.Name} ({printer.Role})";
-                    order.LastPrintedTime = DateTime.UtcNow;
+                    order.LastPrintedTime = Clock.Now;
                     await _orderRepository.UpdateAsync(order);
                 }
             }
@@ -1197,7 +1198,7 @@ namespace SmartPos.Restaurant
 
         private static string GenerateOrderNumber()
         {
-            var now = DateTime.UtcNow;
+            var now = Clock.Now;
             var rand = new Random().Next(100, 999);
             return $"ORD-{now:yyMMddHHmm}-{rand}";
         }

@@ -235,4 +235,21 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
         }
         return [];
     }
+
+    getTimeAgo(order: RiderOrderDto): string {
+        if (order.riderAssignedTimeText) {
+            return order.riderAssignedTimeText;
+        }
+        if (!order.riderAssignedTime) return 'Recently';
+        const d = new Date(order.riderAssignedTime);
+        if (isNaN(d.getTime())) return 'Recently';
+        const diffMs = Date.now() - d.getTime();
+        if (diffMs < 0) return 'Just now';
+        const diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return d.toLocaleDateString();
+    }
 }

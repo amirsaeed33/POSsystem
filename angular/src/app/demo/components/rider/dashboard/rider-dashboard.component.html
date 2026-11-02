@@ -149,7 +149,7 @@
                         <i class="pi mr-1 text-xs" [ngClass]="order.isAcceptedByRider ? 'pi-send' : 'pi-bell'"></i>
                         {{ order.isAcceptedByRider ? 'In Transit' : 'Assigned (New)' }}
                     </span>
-                    <span class="text-xs text-500 font-medium">{{ order.riderAssignedTimeText }}</span>
+                    <span class="text-xs text-500 font-medium">{{ getTimeAgo(order) }}</span>
                 </div>
             </div>
 

@@ -27,6 +27,7 @@ using Abp.Events.Bus;
 using SmartPos.Emailing;
 using SmartPos.Staffs;
 using SmartPos.Categories;
+using Abp.Timing;
 
 namespace SmartPos.Orders
 {
@@ -902,7 +903,7 @@ namespace SmartPos.Orders
                         order.RiderId = longestIdleRider.RiderId;
                         order.RiderName = longestIdleRider.RiderName;
                         order.RiderPhone = longestIdleRider.RiderPhone;
-                        order.RiderAssignedTime = DateTime.UtcNow;
+                        order.RiderAssignedTime = Clock.Now;
                         order.Status = CustomerOrderStatus.InProgress; // Out for delivery
                     }
                     else
@@ -1073,7 +1074,9 @@ namespace SmartPos.Orders
                 RiderId = entity.RiderId,
                 RiderName = entity.RiderName,
                 RiderPhone = entity.RiderPhone,
-                RiderAssignedTime = entity.RiderAssignedTime,
+                RiderAssignedTime = entity.RiderAssignedTime.HasValue && entity.RiderAssignedTime.Value < entity.OrderDate.AddMinutes(-10)
+                    ? entity.RiderAssignedTime.Value.Add(TimeZoneInfo.Local.GetUtcOffset(entity.RiderAssignedTime.Value))
+                    : entity.RiderAssignedTime,
                 Lines = new List<CustomerOrderLineDto>()
             };
 
@@ -1199,8 +1202,7 @@ namespace SmartPos.Orders
                 .GroupBy(o => o.RiderId)
                 .ToDictionary(g => g.Key, g => g.First());
 
-            var todayLocal = DateTime.Today;
-            var todayUtc = DateTime.UtcNow.Date;
+            var today = Clock.Now.Date;
 
             // Query previous order times for each rider to determine idle time and today's delivered count
             var riderIds = riders.Select(r => r.Id).ToList();
@@ -1226,11 +1228,11 @@ namespace SmartPos.Orders
 
             var todayDeliveredByRider = riderOrders
                 .Where(o => o.Status == CustomerOrderStatus.Delivered &&
-                            (o.DeliveryTime.Date == todayLocal || o.DeliveryTime.Date == todayUtc))
+                            (o.DeliveryTime.Date == today))
                 .GroupBy(o => o.RiderId)
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            var nowUtc = DateTime.UtcNow;
+            var now = Clock.Now;
 
             return riders.Select(r =>
             {
@@ -1242,7 +1244,12 @@ namespace SmartPos.Orders
 
                 if (lastOrderTime.HasValue)
                 {
-                    var diff = nowUtc - lastOrderTime.Value.ToUniversalTime();
+                    var effTime = lastOrderTime.Value;
+                    if (effTime < now.AddMinutes(-10) && (now - effTime).TotalHours >= 4 && (now - effTime).TotalHours <= 6)
+                    {
+                        effTime = effTime.Add(TimeZoneInfo.Local.GetUtcOffset(effTime));
+                    }
+                    var diff = now - effTime;
                     if (diff.TotalMinutes < 0) diff = TimeSpan.Zero;
                     idleMins = (int)diff.TotalMinutes;
 
@@ -1347,7 +1354,7 @@ namespace SmartPos.Orders
                 order.RiderId = rider.Id;
                 order.RiderName = rider.Name;
                 order.RiderPhone = rider.Phone;
-                order.RiderAssignedTime = DateTime.UtcNow;
+                order.RiderAssignedTime = Clock.Now;
 
                 // Advance status to InProgress (Out for delivery) if not already delivered/rejected
                 if (order.Status == CustomerOrderStatus.Approved || order.Status == CustomerOrderStatus.Pending)
