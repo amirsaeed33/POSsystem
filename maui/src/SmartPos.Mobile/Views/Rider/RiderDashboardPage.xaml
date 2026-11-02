@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SmartPos.Mobile.Models"
+             x:Class="SmartPos.Mobile.Views.Rider.RiderDashboardPage"
+             x:DataType="vm:RiderDashboardViewModel"
+             Title="Rider"
+             BackgroundColor="#F7F4EF">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Refresh" Command="{Binding RefreshCommand}" />
+        <ToolbarItem Text="Logout" Command="{Binding LogoutCommand}" />
+    </ContentPage.ToolbarItems>
+    <RefreshView Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsBusy}">
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="12">
+                <Label Text="{Binding Stats.RiderName}" FontSize="22" FontAttributes="Bold" />
+                <Label Text="{Binding Stats.BranchName}" TextColor="#5C6B63" />
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                    <Border Padding="12" BackgroundColor="White"><Label Text="{Binding Stats.ActiveAssignedCount, StringFormat='Active: {0}'}" /></Border>
+                    <Border Grid.Column="1" Padding="12" BackgroundColor="White"><Label Text="{Binding Stats.TodayDeliveredCount, StringFormat='Delivered: {0}'}" /></Border>
+                    <Border Grid.Row="1" Padding="12" BackgroundColor="White"><Label Text="{Binding Stats.ActivePendingAmount, StringFormat='Pending: {0:0.00}'}" /></Border>
+                    <Border Grid.Row="1" Grid.Column="1" Padding="12" BackgroundColor="White"><Label Text="{Binding Stats.TodayDeliveredAmount, StringFormat='Today: {0:0.00}'}" /></Border>
+                </Grid>
+                <CollectionView ItemsSource="{Binding Orders}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:RiderOrderDto">
+                            <Border Stroke="#E0E0E0" Padding="12" Margin="0,0,0,10" BackgroundColor="White">
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="{Binding OrderNo}" FontAttributes="Bold" FontSize="18" />
+                                    <Label Text="{Binding CustomerName}" />
+                                    <Label Text="{Binding CustomerAddress}" TextColor="#5C6B63" />
+                                    <Label Text="{Binding StatusText}" />
+                                    <Label Text="{Binding TotalText, StringFormat='Total {0}'}" TextColor="#0F6B4C" />
+                                    <FlexLayout Wrap="Wrap" JustifyContent="Start">
+                                        <Button Text="Accept" Margin="0,0,8,8"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=AcceptCommand}"
+                                                CommandParameter="{Binding .}" BackgroundColor="#0F6B4C" TextColor="White" />
+                                        <Button Text="Reject" Margin="0,0,8,8"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=RejectCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        <Button Text="Complete" Margin="0,0,8,8"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=CompleteCommand}"
+                                                CommandParameter="{Binding .}" BackgroundColor="#1F2A24" TextColor="White" />
+                                        <Button Text="Map" Margin="0,0,8,8"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=OpenMapsCommand}"
+                                                CommandParameter="{Binding .}" />
+                                    </FlexLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

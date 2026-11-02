@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SmartPos.Mobile.Models"
+             x:Class="SmartPos.Mobile.Views.Customer.CartPage"
+             x:DataType="vm:CartCheckoutViewModel"
+             Title="Cart"
+             BackgroundColor="White">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="12">
+                <CollectionView ItemsSource="{Binding Lines}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:CartLine">
+                            <Grid ColumnDefinitions="*,Auto,Auto,Auto" Padding="0,8" ColumnSpacing="8">
+                                <VerticalStackLayout>
+                                    <Label Text="{Binding Name}" FontAttributes="Bold" />
+                                    <Label Text="{Binding UnitPriceText}" TextColor="#5C6B63" />
+                                </VerticalStackLayout>
+                                <Button Grid.Column="1" Text="-" Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=DecreaseCommand}" CommandParameter="{Binding .}" />
+                                <Label Grid.Column="2" Text="{Binding Quantity}" VerticalOptions="Center" />
+                                <Button Grid.Column="3" Text="+" Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=IncreaseCommand}" CommandParameter="{Binding .}" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Picker Title="Delivery area" ItemsSource="{Binding Areas}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedArea}" />
+                <Entry Placeholder="Your name" Text="{Binding CustomerName}" />
+                <Entry Placeholder="Mobile" Text="{Binding CustomerMobile}" Keyboard="Telephone" />
+                <Entry Placeholder="Delivery address" Text="{Binding DeliveryAddress}" />
+                <Entry Placeholder="Landmark" Text="{Binding DeliveryLandmark}" />
+                <Entry Placeholder="Notes" Text="{Binding Notes}" />
+                <Label Text="{Binding SubtotalText, StringFormat='Subtotal: {0}'}" />
+                <Label Text="{Binding DeliveryFeeText, StringFormat='Delivery: {0}'}" />
+                <Label Text="{Binding GrandTotalText, StringFormat='Total: {0}'}" FontAttributes="Bold" FontSize="18" TextColor="#0F6B4C" />
+            </VerticalStackLayout>
+        </ScrollView>
+        <Button Grid.Row="1" Text="Place order" Margin="16" Command="{Binding PlaceOrderCommand}" BackgroundColor="#0F6B4C" TextColor="White" />
+    </Grid>
+</ContentPage>

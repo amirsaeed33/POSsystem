@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             x:Class="SmartPos.Mobile.Views.Auth.LoginPage"
+             x:DataType="vm:LoginViewModel"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0F6B4C">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16" VerticalOptions="Center">
+            <Border BackgroundColor="White" Padding="18" StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="20" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Email or Username" FontSize="12" TextColor="#5C6B63" />
+                    <Border Stroke="#E2E8E4"
+                            StrokeThickness="1"
+                            BackgroundColor="#F7FAF8"
+                            Padding="12,4">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Image Source="icon_user.png"
+                                   WidthRequest="22"
+                                   HeightRequest="22"
+                                   VerticalOptions="Center" />
+                            <Entry Grid.Column="1"
+                                   Placeholder="you@example.com"
+                                   Text="{Binding UserName}"
+                                   TextColor="#1F2A24"
+                                   BackgroundColor="Transparent"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <Label Text="Password" FontSize="12" TextColor="#5C6B63" />
+                    <Border Stroke="#E2E8E4"
+                            StrokeThickness="1"
+                            BackgroundColor="#F7FAF8"
+                            Padding="12,4">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Image Source="icon_lock.png"
+                                   WidthRequest="22"
+                                   HeightRequest="22"
+                                   VerticalOptions="Center" />
+                            <Entry Grid.Column="1"
+                                   Placeholder="Password"
+                                   Text="{Binding Password}"
+                                   IsPassword="True"
+                                   TextColor="#1F2A24"
+                                   BackgroundColor="Transparent"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <Button Text="Sign In"
+                            ImageSource="icon_login.png"
+                            ContentLayout="Left, 10"
+                            Command="{Binding LoginCommand}"
+                            BackgroundColor="#0F6B4C"
+                            TextColor="White"
+                            CornerRadius="14"
+                            HeightRequest="48"
+                            Padding="16,0" />
+
+                    <Button Text="Continue as customer"
+                            ImageSource="icon_customer.png"
+                            ContentLayout="Left, 10"
+                            Command="{Binding ContinueAsCustomerCommand}"
+                            BackgroundColor="#EEF2F0"
+                            TextColor="#0F6B4C"
+                            CornerRadius="14"
+                            HeightRequest="48"
+                            Padding="16,0" />
+
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#0F6B4C" />
+                    <Label Text="{Binding StatusText}" TextColor="#0F6B4C" FontSize="12" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

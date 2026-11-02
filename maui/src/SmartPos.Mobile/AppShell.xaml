@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="SmartPos.Mobile.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:auth="clr-namespace:SmartPos.Mobile.Views.Auth"
+    xmlns:customer="clr-namespace:SmartPos.Mobile.Views.Customer"
+    xmlns:rider="clr-namespace:SmartPos.Mobile.Views.Rider"
+    xmlns:waiter="clr-namespace:SmartPos.Mobile.Views.Waiter"
+    Title="SmartPos"
+    FlyoutBehavior="Disabled"
+    BackgroundColor="White"
+    Shell.BackgroundColor="White"
+    Shell.NavBarIsVisible="True"
+    Shell.TabBarBackgroundColor="White"
+    Shell.TabBarForegroundColor="#F15A29"
+    Shell.TabBarTitleColor="#F15A29"
+    Shell.TabBarUnselectedColor="#9AA3AB">
+
+    <!-- Customer bottom icon tabs -->
+    <TabBar Route="customer">
+        <ShellContent Route="home"
+                      Title="Home"
+                      Icon="tab_menu.png"
+                      ContentTemplate="{DataTemplate customer:CustomerHomePage}" />
+        <ShellContent Route="cart"
+                      Title="Cart"
+                      Icon="tab_cart.png"
+                      ContentTemplate="{DataTemplate customer:CartPage}" />
+        <ShellContent Route="track"
+                      Title="Track"
+                      Icon="tab_track.png"
+                      ContentTemplate="{DataTemplate customer:TrackOrderPage}" />
+        <ShellContent Route="account"
+                      Title="Account"
+                      Icon="tab_account.png"
+                      ContentTemplate="{DataTemplate auth:LoginPage}" />
+    </TabBar>
+
+    <!-- Rider bottom icon tabs -->
+    <TabBar Route="rider">
+        <ShellContent Route="dashboard"
+                      Title="Home"
+                      Icon="tab_rider.png"
+                      ContentTemplate="{DataTemplate rider:RiderDashboardPage}" />
+        <ShellContent Route="history"
+                      Title="History"
+                      Icon="tab_history.png"
+                      ContentTemplate="{DataTemplate rider:RiderHistoryPage}" />
+    </TabBar>
+
+    <!-- Waiter bottom icon tabs -->
+    <TabBar Route="waiter">
+        <ShellContent Route="tables"
+                      Title="Tables"
+                      Icon="tab_tables.png"
+                      ContentTemplate="{DataTemplate waiter:WaiterTablesPage}" />
+        <ShellContent Route="order"
+                      Title="Order"
+                      Icon="tab_order.png"
+                      ContentTemplate="{DataTemplate waiter:WaiterOrderPage}" />
+        <ShellContent Route="myorders"
+                      Title="Orders"
+                      Icon="tab_myorders.png"
+                      ContentTemplate="{DataTemplate waiter:WaiterMyOrdersPage}" />
+    </TabBar>
+
+    <ShellContent Route="unsupported"
+                  Title="Unsupported"
+                  ContentTemplate="{DataTemplate auth:UnsupportedStaffPage}" />
+
+</Shell>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             x:Class="SmartPos.Mobile.Views.Auth.UnsupportedStaffPage"
+             x:DataType="vm:UnsupportedStaffViewModel"
+             Title="Unsupported"
+             BackgroundColor="#F7F4EF">
+    <VerticalStackLayout Padding="24" Spacing="16" VerticalOptions="Center">
+        <Label Text="This mobile app is for customers, waiters, and riders." FontSize="20" FontAttributes="Bold" />
+        <Label Text="Admin / cashier features stay on the website." />
+        <Button Text="Browse as customer" Command="{Binding ContinueCustomerCommand}" BackgroundColor="#0F6B4C" TextColor="White" />
+        <Button Text="Back to login" Command="{Binding LogoutCommand}" />
+    </VerticalStackLayout>
+</ContentPage>
