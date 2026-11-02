@@ -21,6 +21,18 @@ public partial class LoginViewModel : BaseViewModel
     [ObservableProperty]
     private string statusText = string.Empty;
 
+    [ObservableProperty]
+    private bool isPasswordHidden = true;
+
+    [ObservableProperty]
+    private bool isLoggedIn;
+
+    [ObservableProperty]
+    private string welcomeName = string.Empty;
+
+    public string PasswordEyeIcon => IsPasswordHidden ? "icon_eye_off.png" : "icon_eye.png";
+    public bool ShowLoginForm => !IsLoggedIn;
+
     public LoginViewModel(AuthService auth, SessionService session, NavigationService navigation, AppSettings settings, CartService cart)
     {
         _auth = auth;
@@ -29,7 +41,25 @@ public partial class LoginViewModel : BaseViewModel
         _cart = cart;
         Title = "Staff Login";
         _ = settings;
+        _session.SessionChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RefreshSessionUi);
+        RefreshSessionUi();
     }
+
+    partial void OnIsPasswordHiddenChanged(bool value) => OnPropertyChanged(nameof(PasswordEyeIcon));
+    partial void OnIsLoggedInChanged(bool value) => OnPropertyChanged(nameof(ShowLoginForm));
+
+    public void RefreshSessionUi()
+    {
+        IsLoggedIn = _session.IsAuthenticated;
+        WelcomeName = _session.User?.Name
+            ?? _session.User?.UserName
+            ?? UserName
+            ?? "Staff";
+        StatusText = IsLoggedIn ? $"Signed in as {WelcomeName}" : string.Empty;
+    }
+
+    [RelayCommand]
+    private void TogglePasswordVisibility() => IsPasswordHidden = !IsPasswordHidden;
 
     [RelayCommand]
     private async Task LoginAsync()
@@ -43,7 +73,6 @@ public partial class LoginViewModel : BaseViewModel
         await RunBusyAsync(async () =>
         {
             var (lat, lng) = await LocationHelper.TryGetAsync();
-            // Tenancy omitted — API resolves it from username (same as web).
             var auth = await _auth.LoginAsync(null, UserName, Password, lat, lng);
             _cart.Clear();
             WaiterOrderSession.Clear();
@@ -51,6 +80,8 @@ public partial class LoginViewModel : BaseViewModel
             {
                 StatusText = "Attendance auto check-in recorded.";
             }
+
+            RefreshSessionUi();
 
             var mode = _session.ResolveRoleMode();
             if (mode == AppRoleMode.UnsupportedStaff)
@@ -60,6 +91,21 @@ public partial class LoginViewModel : BaseViewModel
             }
 
             await _navigation.GoToRoleHomeAsync();
+        });
+    }
+
+    [RelayCommand]
+    private async Task LogoutAsync()
+    {
+        await RunBusyAsync(async () =>
+        {
+            await _auth.LogoutAsync();
+            WaiterOrderSession.Clear();
+            _cart.Clear();
+            Password = string.Empty;
+            RefreshSessionUi();
+            StatusText = "Signed out.";
+            await Shell.Current.GoToAsync("//customer/account");
         });
     }
 

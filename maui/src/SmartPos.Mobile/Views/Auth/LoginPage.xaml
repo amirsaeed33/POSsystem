@@ -2,86 +2,166 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
              x:Class="SmartPos.Mobile.Views.Auth.LoginPage"
              x:DataType="vm:LoginViewModel"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#0F6B4C">
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="16" VerticalOptions="Center">
-            <Border BackgroundColor="White" Padding="18" StrokeThickness="0">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="20" />
-                </Border.StrokeShape>
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="Email or Username" FontSize="12" TextColor="#5C6B63" />
-                    <Border Stroke="#E2E8E4"
-                            StrokeThickness="1"
-                            BackgroundColor="#F7FAF8"
-                            Padding="12,4">
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#F8FAFC">
+    <AbsoluteLayout>
+        <Grid AbsoluteLayout.LayoutBounds="0,0,1,1" AbsoluteLayout.LayoutFlags="All">
+        <BoxView Color="#1D4ED8" VerticalOptions="Start" HeightRequest="320" />
+        <BoxView Color="#2563EB" VerticalOptions="Start" HeightRequest="220" Opacity="0.55" Margin="0,40,0,0" />
+        <Ellipse Fill="#33FFFFFF" WidthRequest="180" HeightRequest="180"
+                 HorizontalOptions="End" VerticalOptions="Start" Margin="0,-40,-50,0" />
+        <Ellipse Fill="#22FFFFFF" WidthRequest="120" HeightRequest="120"
+                 HorizontalOptions="Start" VerticalOptions="Start" Margin="-40,90,0,0" />
+
+        <ScrollView Padding="0">
+            <VerticalStackLayout Padding="20,36,20,24" Spacing="18">
+                <VerticalStackLayout x:Name="BrandHeader"
+                                     Spacing="10"
+                                     Margin="4,8,4,8"
+                                     Opacity="0"
+                                     TranslationY="-16">
+                    <Border WidthRequest="52" HeightRequest="52" StrokeThickness="0" BackgroundColor="White"
+                            HorizontalOptions="Start">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
+                            <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <Image Source="icon_user.png"
-                                   WidthRequest="22"
-                                   HeightRequest="22"
-                                   VerticalOptions="Center" />
-                            <Entry Grid.Column="1"
-                                   Placeholder="you@example.com"
-                                   Text="{Binding UserName}"
-                                   TextColor="#1F2A24"
-                                   BackgroundColor="Transparent"
-                                   VerticalOptions="Center" />
-                        </Grid>
+                        <Image Source="logo_aljannat.jpg"
+                               WidthRequest="36"
+                               HeightRequest="36"
+                               Aspect="AspectFill"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
                     </Border>
-
-                    <Label Text="Password" FontSize="12" TextColor="#5C6B63" />
-                    <Border Stroke="#E2E8E4"
-                            StrokeThickness="1"
-                            BackgroundColor="#F7FAF8"
-                            Padding="12,4">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <Image Source="icon_lock.png"
-                                   WidthRequest="22"
-                                   HeightRequest="22"
-                                   VerticalOptions="Center" />
-                            <Entry Grid.Column="1"
-                                   Placeholder="Password"
-                                   Text="{Binding Password}"
-                                   IsPassword="True"
-                                   TextColor="#1F2A24"
-                                   BackgroundColor="Transparent"
-                                   VerticalOptions="Center" />
-                        </Grid>
-                    </Border>
-
-                    <Button Text="Sign In"
-                            ImageSource="icon_login.png"
-                            ContentLayout="Left, 10"
-                            Command="{Binding LoginCommand}"
-                            BackgroundColor="#0F6B4C"
-                            TextColor="White"
-                            CornerRadius="14"
-                            HeightRequest="48"
-                            Padding="16,0" />
-
-                    <Button Text="Continue as customer"
-                            ImageSource="icon_customer.png"
-                            ContentLayout="Left, 10"
-                            Command="{Binding ContinueAsCustomerCommand}"
-                            BackgroundColor="#EEF2F0"
-                            TextColor="#0F6B4C"
-                            CornerRadius="14"
-                            HeightRequest="48"
-                            Padding="16,0" />
-
-                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#0F6B4C" />
-                    <Label Text="{Binding StatusText}" TextColor="#0F6B4C" FontSize="12" />
+                    <Label Text="Aljannat" FontSize="32" FontAttributes="Bold" TextColor="White" />
+                    <Label Text="Food ordering · Waiter · Rider · Customer" FontSize="14" TextColor="#DBEAFE" />
                 </VerticalStackLayout>
-            </Border>
-        </VerticalStackLayout>
-    </ScrollView>
+
+                <Border x:Name="LoginCard"
+                        BackgroundColor="White"
+                        StrokeThickness="0"
+                        Padding="20,22"
+                        Margin="0,4,0,0"
+                        Opacity="0"
+                        TranslationY="28">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="24" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#33000000" Offset="0,8" Radius="20" Opacity="0.18" />
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="14">
+                        <!-- Logged-in account / logout (same Profile tab for all roles) -->
+                        <VerticalStackLayout Spacing="12" IsVisible="{Binding IsLoggedIn}">
+                            <Label Text="Your account" FontSize="24" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Label Text="{Binding WelcomeName, StringFormat='Signed in as {0}'}"
+                                   FontSize="14"
+                                   TextColor="#64748B" />
+                            <Button Text="Log out"
+                                    Command="{Binding LogoutCommand}"
+                                    BackgroundColor="#FEE2E2"
+                                    TextColor="#B91C1C"
+                                    CornerRadius="24"
+                                    HeightRequest="50"
+                                    FontAttributes="Bold" />
+                            <Button Text="Continue as customer"
+                                    Command="{Binding ContinueAsCustomerCommand}"
+                                    BackgroundColor="#EFF6FF"
+                                    TextColor="#1D4ED8"
+                                    CornerRadius="24"
+                                    HeightRequest="46"
+                                    FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                        <!-- Login form -->
+                        <VerticalStackLayout Spacing="14" IsVisible="{Binding ShowLoginForm}">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Welcome back" FontSize="24" FontAttributes="Bold" TextColor="#0F172A" />
+                                <Label Text="Sign in to your Aljannat account." FontSize="13" TextColor="#64748B" />
+                            </VerticalStackLayout>
+
+                            <Label Text="Email" FontSize="12" TextColor="#64748B" />
+                            <Border Stroke="#E2E8F0" StrokeThickness="1" BackgroundColor="#F8FAFC" Padding="12,2">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" HeightRequest="46">
+                                    <Image Source="icon_email.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
+                                    <Entry Grid.Column="1"
+                                           Placeholder="name@email.com"
+                                           Text="{Binding UserName}"
+                                           TextColor="#0F172A"
+                                           PlaceholderColor="#94A3B8"
+                                           BackgroundColor="Transparent"
+                                           VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+
+                            <Label Text="Password" FontSize="12" TextColor="#64748B" />
+                            <Border Stroke="#E2E8F0" StrokeThickness="1" BackgroundColor="#F8FAFC" Padding="12,2">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" HeightRequest="46">
+                                    <Image Source="icon_lock.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
+                                    <Entry Grid.Column="1"
+                                           Placeholder="Enter your password"
+                                           Text="{Binding Password}"
+                                           IsPassword="{Binding IsPasswordHidden}"
+                                           TextColor="#0F172A"
+                                           PlaceholderColor="#94A3B8"
+                                           BackgroundColor="Transparent"
+                                           VerticalOptions="Center" />
+                                    <Image Grid.Column="2"
+                                           Source="{Binding PasswordEyeIcon}"
+                                           WidthRequest="22"
+                                           HeightRequest="22"
+                                           VerticalOptions="Center">
+                                        <Image.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding TogglePasswordVisibilityCommand}" />
+                                        </Image.GestureRecognizers>
+                                    </Image>
+                                </Grid>
+                            </Border>
+
+                            <Button Text="Sign in"
+                                    ImageSource="icon_login.png"
+                                    ContentLayout="Left, 10"
+                                    Command="{Binding LoginCommand}"
+                                    BackgroundColor="#2563EB"
+                                    TextColor="White"
+                                    CornerRadius="24"
+                                    HeightRequest="50"
+                                    Margin="0,6,0,0"
+                                    FontAttributes="Bold" />
+
+                            <Button Text="Continue as customer"
+                                    Command="{Binding ContinueAsCustomerCommand}"
+                                    BackgroundColor="#EFF6FF"
+                                    TextColor="#1D4ED8"
+                                    CornerRadius="24"
+                                    HeightRequest="46"
+                                    FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                        <Label Text="{Binding StatusText}" TextColor="#2563EB" FontSize="12" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <controls:TransparentBorderLoader IsRunning="{Binding IsBusy}" />
+        </Grid>
+        <controls:BubbleTabBar x:Name="BottomNav"
+                               AbsoluteLayout.LayoutBounds="0,1,1,52"
+                               AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
+                               TranslationY="-56"
+                               Mode="Customer"
+                               SelectedIndex="3"
+                               ZIndex="40"
+                               InputTransparent="False" />
+    </AbsoluteLayout>
 </ContentPage>

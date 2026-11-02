@@ -445,6 +445,9 @@ public class ProductDto : EntityDto
 
 public class ProductModifierGroupDto : EntityDto
 {
+    [JsonPropertyName("productId")]
+    public int ProductId { get; set; }
+
     [JsonPropertyName("name")]
     public string? Name { get; set; }
 
@@ -452,7 +455,13 @@ public class ProductModifierGroupDto : EntityDto
     public int MinSelection { get; set; }
 
     [JsonPropertyName("maxSelection")]
-    public int MaxSelection { get; set; }
+    public int MaxSelection { get; set; } = 1;
+
+    [JsonPropertyName("isRequired")]
+    public bool IsRequired { get; set; }
+
+    [JsonPropertyName("allowMultiple")]
+    public bool AllowMultiple { get; set; }
 
     [JsonPropertyName("options")]
     public List<ProductModifierOptionDto> Options { get; set; } = new();
@@ -460,13 +469,22 @@ public class ProductModifierGroupDto : EntityDto
 
 public class ProductModifierOptionDto : EntityDto
 {
+    [JsonPropertyName("modifierGroupId")]
+    public int ModifierGroupId { get; set; }
+
     [JsonPropertyName("name")]
     public string? Name { get; set; }
 
     [JsonPropertyName("price")]
     public decimal Price { get; set; }
 
-    public bool IsSelected { get; set; }
+    [JsonPropertyName("extraPrice")]
+    public decimal? ExtraPrice { get; set; }
+
+    [JsonPropertyName("isDefault")]
+    public bool IsDefault { get; set; }
+
+    public decimal EffectivePrice => ExtraPrice is > 0 ? ExtraPrice.Value : Price;
 }
 
 public class DealDto : EntityDto

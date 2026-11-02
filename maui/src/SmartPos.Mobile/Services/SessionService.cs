@@ -199,14 +199,10 @@ public class SessionService
             return AppRoleMode.Customer;
         }
 
-        // Logged-in users without waiter/rider staff roles: treat as customer storefront
-        // unless clearly admin/staff with back-office roles.
-        if (User.Roles.Any(r =>
-                r.Contains("admin", StringComparison.OrdinalIgnoreCase) ||
-                r.Contains("manager", StringComparison.OrdinalIgnoreCase) ||
-                r.Contains("cashier", StringComparison.OrdinalIgnoreCase)))
+        // Back-office roles open the mobile admin dashboard.
+        if (IsAdmin(User))
         {
-            return AppRoleMode.UnsupportedStaff;
+            return AppRoleMode.Admin;
         }
 
         return AppRoleMode.Customer;
@@ -242,6 +238,22 @@ public class SessionService
 
         var d = user.Designation?.ToLowerInvariant() ?? string.Empty;
         return d.Contains("waiter") || d.Contains("server");
+    }
+
+    public static bool IsAdmin(UserLoginInfoDto user)
+    {
+        if (user.Roles.Any(r =>
+                r.Contains("admin", StringComparison.OrdinalIgnoreCase) ||
+                r.Contains("manager", StringComparison.OrdinalIgnoreCase) ||
+                r.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+                r.Contains("cashier", StringComparison.OrdinalIgnoreCase) ||
+                r.Contains("owner", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        var d = user.Designation?.ToLowerInvariant() ?? string.Empty;
+        return d.Contains("admin") || d.Contains("manager") || d.Contains("owner");
     }
 }
 

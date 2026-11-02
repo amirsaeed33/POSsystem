@@ -15,6 +15,45 @@ public class OnlineBranchDto
 
     [JsonPropertyName("address")]
     public string? Address { get; set; }
+
+    [JsonPropertyName("imagePath")]
+    public string? ImagePath { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("website")]
+    public string? Website { get; set; }
+
+    [JsonPropertyName("code")]
+    public string? Code { get; set; }
+
+    public string? LogoUrl { get; set; }
+
+    public bool HasLogo => !string.IsNullOrWhiteSpace(LogoUrl);
+    public bool HasAddress => !string.IsNullOrWhiteSpace(Address);
+    public bool HasPhone => !string.IsNullOrWhiteSpace(Phone);
+    public bool HasEmail => !string.IsNullOrWhiteSpace(Email);
+    public bool HasWebsite => !string.IsNullOrWhiteSpace(Website);
+    public string BusinessTypeLabel => IsRestaurant ? "Restaurant" : "Store";
+
+    public string Initials
+    {
+        get
+        {
+            var name = (Name ?? "B").Trim();
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2)
+            {
+                return $"{parts[0][0]}{parts[1][0]}".ToUpperInvariant();
+            }
+
+            return name.Length >= 2 ? name[..2].ToUpperInvariant() : name.ToUpperInvariant();
+        }
+    }
 }
 
 public class OnlineStoreHeaderDto

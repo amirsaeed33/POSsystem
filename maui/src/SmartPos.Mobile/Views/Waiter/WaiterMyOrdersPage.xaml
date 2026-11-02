@@ -3,11 +3,18 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
              xmlns:models="clr-namespace:SmartPos.Mobile.Models"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
              x:Class="SmartPos.Mobile.Views.Waiter.WaiterMyOrdersPage"
              x:DataType="vm:WaiterMyOrdersViewModel"
              Title="My Orders"
-             BackgroundColor="#F3F6F4">
-    <Grid RowDefinitions="Auto,*">
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#F5F5F5">
+    <AbsoluteLayout BackgroundColor="#F5F5F5">
+    <Grid AbsoluteLayout.LayoutBounds="0,0,1,1"
+          AbsoluteLayout.LayoutFlags="All"
+          RowDefinitions="Auto,*"
+          BackgroundColor="#F5F5F5">
         <Border BackgroundColor="#0F6B4C" Padding="16,18" StrokeThickness="0">
             <VerticalStackLayout Spacing="4">
                 <Label Text="My Orders" FontSize="22" FontAttributes="Bold" TextColor="White" />
@@ -54,4 +61,12 @@
             </CollectionView>
         </RefreshView>
     </Grid>
+        <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
+                               AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
+                               TranslationY="-56"
+                               Mode="Waiter"
+                               SelectedIndex="2"
+                               ZIndex="40"
+                               InputTransparent="False" />
+    </AbsoluteLayout>
 </ContentPage>
