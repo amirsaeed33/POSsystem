@@ -340,6 +340,7 @@ namespace SmartPos.Deals
             }
         }
 
+        [AbpAllowAnonymous]
         public async Task<DealDto> GetAsync(EntityDto<int> input)
         {
             var deal = await _dealRepository.GetAllIncluding(d => d.Branch, d => d.Category, d => d.Product)
@@ -356,6 +357,7 @@ namespace SmartPos.Deals
             return MapToDealDto(deal, details);
         }
 
+        [AbpAllowAnonymous]
         public async Task<DealDto> GetByProductIdAsync(int productId)
         {
             var cacheKey = SmartPosAppCaches.ProductKey(productId);

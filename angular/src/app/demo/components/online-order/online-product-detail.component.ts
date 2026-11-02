@@ -5,6 +5,7 @@ import { CustomerOrderService } from 'src/app/demo/service/customer-order.servic
 import { OnlineCartService, CartItem } from 'src/app/demo/service/online-cart.service';
 import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
 import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
+import { DealService } from 'src/app/demo/service/deal.service';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -23,6 +24,7 @@ export class OnlineProductDetailComponent implements OnInit {
 
     product: any = null;
     specificationsList: { key: string; value: string }[] = [];
+    dealItems: any[] = [];
     relatedProducts: any[] = [];
     loading = false;
     quantity = 1;
@@ -64,7 +66,8 @@ export class OnlineProductDetailComponent implements OnInit {
         private route: ActivatedRoute,
         private router: Router,
         private messageService: MessageService,
-        private deliveryAreaService: DeliveryAreaService
+        private deliveryAreaService: DeliveryAreaService,
+        private dealService: DealService
     ) {}
 
     ngOnInit(): void {
@@ -141,6 +144,35 @@ export class OnlineProductDetailComponent implements OnInit {
             }
 
             this.specificationsList = this.parseSpecs(this.product?.specifications);
+
+            const isDealCandidate =
+                !!this.product?.isDeal ||
+                !!this.product?.dealId ||
+                (this.product?.categoryName || '').toLowerCase().includes('deal') ||
+                (this.product?.name || '').toLowerCase().includes('deal');
+
+            if (isDealCandidate) {
+                try {
+                    let deal: any = null;
+                    if (this.product.dealId) {
+                        deal = await this.dealService.get(this.product.dealId);
+                    } else {
+                        deal = await this.dealService.getByProductId(this.product.id);
+                    }
+                    if (deal && deal.items && deal.items.length > 0) {
+                        const seenIds = new Set<number>();
+                        this.dealItems = deal.items.filter((it: any) => {
+                            if (it.id && seenIds.has(it.id)) return false;
+                            if (it.id) seenIds.add(it.id);
+                            return true;
+                        });
+                    }
+                } catch {
+                    this.dealItems = [];
+                }
+            } else {
+                this.dealItems = [];
+            }
 
             // Load related products from catalog
             this.loadRelatedProducts();

@@ -34,7 +34,6 @@ namespace SmartPos.Restaurant
             _readCacheInvalidator = readCacheInvalidator;
         }
 
-        /// <summary>Public storefront needs size/modifier options without staff login.</summary>
         [AbpAllowAnonymous]
         public async Task<List<ProductModifierGroupDto>> GetByProductAsync(int productId)
         {

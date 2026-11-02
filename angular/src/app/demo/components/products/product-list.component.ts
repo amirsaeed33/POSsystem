@@ -124,6 +124,16 @@ export class ProductListComponent implements OnInit {
         );
     }
 
+    isGroceryInventoryItem(product: ProductDto): boolean {
+        if (!product) return false;
+        const catName = (product.categoryName || '').trim().toLowerCase();
+        return (
+            this.isGroceryProduct(product) ||
+            catName === 'permanent grocery' ||
+            catName.includes('grocery')
+        );
+    }
+
     constructor(
         private productService: ProductService,
         private productModifierService: ProductModifierService,
@@ -638,7 +648,7 @@ export class ProductListComponent implements OnInit {
         this.dealImagePreview = '';
         this.dealImageBase64 = undefined;
         this.availableDealProducts = this.products
-            .filter((p) => !this.isGroceryProduct(p) && !this.isDealProduct(p))
+            .filter((p) => !this.isGroceryInventoryItem(p) && !this.isDealProduct(p))
             .map((p) => ({
                 product: p,
                 selected: false,
@@ -707,7 +717,7 @@ export class ProductListComponent implements OnInit {
             }
 
             this.availableDealProducts = this.products
-                .filter((p) => !this.isGroceryProduct(p) && p.id !== product.id && (!this.isDealProduct(p) || dealItemsMap.has(p.id)))
+                .filter((p) => !this.isGroceryInventoryItem(p) && p.id !== product.id && (!this.isDealProduct(p) || dealItemsMap.has(p.id)))
                 .map((p) => {
                     const isSelected = dealItemsMap.has(p.id);
                     const qty = isSelected ? (dealItemsMap.get(p.id) || 1) : 1;
@@ -807,11 +817,14 @@ export class ProductListComponent implements OnInit {
     }
 
     get filteredAvailableProducts(): { product: ProductDto; selected: boolean; quantity: number }[] {
+        const available = (this.availableDealProducts || []).filter(
+            (x) => !this.isGroceryInventoryItem(x.product)
+        );
         if (!this.dealProductSearch?.trim()) {
-            return this.availableDealProducts || [];
+            return available;
         }
         const q = this.dealProductSearch.trim().toLowerCase();
-        return (this.availableDealProducts || []).filter(
+        return available.filter(
             (x) =>
                 (x.product.name || '').toLowerCase().includes(q) ||
                 (x.product.categoryName || '').toLowerCase().includes(q)

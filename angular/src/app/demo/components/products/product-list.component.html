@@ -441,6 +441,7 @@
         [(visible)]="dealDialogVisible"
         [modal]="true"
         [style]="{ width: '850px', maxWidth: '95vw' }"
+        [contentStyle]="{ 'max-height': '82vh', 'overflow-y': 'auto' }"
         [header]="editingDealId ? 'Edit Restaurant Deal' : 'Create Restaurant Deal'"
         [draggable]="false"
         [resizable]="false"
@@ -575,9 +576,9 @@
                 </div>
 
                 <!-- Table of available products -->
-                <div class="border-1 surface-border border-round overflow-hidden" style="max-height: 280px; overflow-y: auto;">
+                <div class="deal-products-table-wrapper">
                     <table class="w-full text-sm" style="border-collapse: collapse;">
-                        <thead class="bg-surface-50 text-700 sticky top-0" style="z-index: 1;">
+                        <thead class="bg-surface-50 text-700">
                             <tr>
                                 <th style="width: 3.5rem; padding: 0.5rem; text-align: center;">Select</th>
                                 <th style="padding: 0.5rem; text-align: left;">Product</th>
