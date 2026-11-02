@@ -4,6 +4,8 @@ import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { PaymentType, SaleDto } from 'src/app/demo/api/sale';
 import { SaleService } from 'src/app/demo/service/sale.service';
+import { SaleReturnDto } from 'src/app/demo/api/sale-return';
+import { SaleReturnService } from 'src/app/demo/service/sale-return.service';
 
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
@@ -14,10 +16,17 @@ import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions
     providers: [MessageService, ConfirmationService],
 })
 export class SaleListComponent implements OnInit {
+    activeTab: 'sales' | 'returns' = 'sales';
+
     sales: SaleDto[] = [];
     loading = false;
     totalRecords = 0;
     keyword = '';
+
+    returns: SaleReturnDto[] = [];
+    loadingReturns = false;
+    totalReturnRecords = 0;
+    returnKeyword = '';
 
     createDialogInstances: number[] = [];
     viewDialogVisible = false;
@@ -27,6 +36,8 @@ export class SaleListComponent implements OnInit {
     printAutoPrint = false;
     returnDialogVisible = false;
     returningSaleId: number | null = null;
+    viewReturnDialogVisible = false;
+    viewingReturnId: number | null = null;
 
     canCreate = false;
     canEdit = false;
@@ -39,6 +50,12 @@ export class SaleListComponent implements OnInit {
                 icon: 'pi pi-eye',
                 color: 'blue',
                 action: () => this.openViewDialog(sale),
+            },
+            {
+                label: 'Sale Return',
+                icon: 'pi pi-replay',
+                color: 'amber',
+                action: () => this.openReturnDialog(sale),
             },
             {
                 label: 'Print invoice',
@@ -58,8 +75,30 @@ export class SaleListComponent implements OnInit {
         return actions;
     }
 
-    constructor(public formatService: AppFormatService, 
+    getReturnRowActions(item: SaleReturnDto): RowActionItem[] {
+        const actions: RowActionItem[] = [
+            {
+                label: 'View details',
+                icon: 'pi pi-eye',
+                color: 'blue',
+                action: () => this.openViewReturnDialog(item),
+            }
+        ];
+        if (this.canDelete) {
+            actions.push({
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                color: 'red',
+                action: () => this.onDeleteReturn(item),
+            });
+        }
+        return actions;
+    }
+
+    constructor(
+        public formatService: AppFormatService,
         private saleService: SaleService,
+        private saleReturnService: SaleReturnService,
         private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
@@ -70,6 +109,16 @@ export class SaleListComponent implements OnInit {
         this.canEdit = this.permissionService.isGranted(PermissionNames.SalesEdit);
         this.canDelete = this.permissionService.isGranted(PermissionNames.SalesDelete);
         this.loadSales();
+        this.loadReturns();
+    }
+
+    switchTab(tab: 'sales' | 'returns'): void {
+        this.activeTab = tab;
+        if (tab === 'returns' && !this.returns.length && !this.loadingReturns) {
+            this.loadReturns();
+        } else if (tab === 'sales' && !this.sales.length && !this.loading) {
+            this.loadSales();
+        }
     }
 
     loadSales(): void {
@@ -96,8 +145,36 @@ export class SaleListComponent implements OnInit {
             });
     }
 
+    loadReturns(): void {
+        this.loadingReturns = true;
+        this.saleReturnService
+            .getAll({
+                keyword: this.returnKeyword?.trim() || undefined,
+                skipCount: 0,
+                maxResultCount: 1000,
+            })
+            .then((result) => {
+                this.returns = result.items || [];
+                this.totalReturnRecords = result.totalCount ?? this.returns.length;
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.message || 'Failed to load sale returns',
+                });
+            })
+            .finally(() => {
+                this.loadingReturns = false;
+            });
+    }
+
     onSearch(): void {
         this.loadSales();
+    }
+
+    onSearchReturns(): void {
+        this.loadReturns();
     }
 
     onGlobalFilter(table: Table, event: Event): void {
@@ -138,8 +215,34 @@ export class SaleListComponent implements OnInit {
         this.returnDialogVisible = true;
     }
 
+    openCreateReturnDialog(): void {
+        this.returningSaleId = null;
+        this.returnDialogVisible = true;
+    }
+
+    openViewReturnDialog(item: SaleReturnDto): void {
+        this.viewingReturnId = item.id;
+        this.viewReturnDialogVisible = true;
+    }
+
+    filterReturnsForSale(sale: SaleDto): void {
+        this.activeTab = 'returns';
+        this.returnKeyword = sale.invoiceNo || `#${sale.id}`;
+        this.loadReturns();
+    }
+
     onDialogSaved(): void {
         this.loadSales();
+        this.loadReturns();
+    }
+
+    formatReturnLines(item: SaleReturnDto): string {
+        if (!item?.lines?.length) {
+            return '—';
+        }
+        return item.lines
+            .map((line) => `${line.productName || '#' + line.productId} (x${line.quantity})`)
+            .join(', ');
     }
 
     paymentTypeLabel(paymentType: number): string {
@@ -174,12 +277,43 @@ export class SaleListComponent implements OnInit {
                             detail: 'Sale deleted successfully',
                         });
                         this.loadSales();
+                        this.loadReturns();
                     })
                     .catch((error) => {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
                             detail: error?.message || 'Failed to delete sale',
+                        });
+                    });
+            },
+        });
+    }
+
+    onDeleteReturn(item: SaleReturnDto): void {
+        const label = `#${item.id} (${item.saleInvoiceNo || 'Sale #' + item.saleId})`;
+        this.confirmationService.confirm({
+            message: `Are you sure you want to delete sale return ${label}?`,
+            header: 'Delete Return Confirmation',
+            icon: 'pi pi-exclamation-triangle',
+            acceptButtonStyleClass: 'p-button-danger',
+            accept: () => {
+                this.saleReturnService
+                    .delete(item.id)
+                    .then(() => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: 'Success',
+                            detail: 'Sale return deleted successfully',
+                        });
+                        this.loadReturns();
+                        this.loadSales();
+                    })
+                    .catch((error) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: error?.message || 'Failed to delete sale return',
                         });
                     });
             },

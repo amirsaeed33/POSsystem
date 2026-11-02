@@ -134,6 +134,12 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                                   ],
                               },
                               {
+                                  label: 'Sales',
+                                  icon: 'pi pi-shopping-cart',
+                                  routerLink: ['/sales'],
+                                  permission: PermissionNames.Sales,
+                              },
+                              {
                                   label: 'Online Orders',
                                   icon: 'pi pi-file',
                                   routerLink: ['/customer-orders'],

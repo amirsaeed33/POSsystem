@@ -1,4 +1,45 @@
-<div class="card">
+<div class="card mb-3 p-3">
+    <div class="flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="flex align-items-center gap-2">
+            <button
+                type="button"
+                class="p-button p-button-sm"
+                [ngClass]="activeTab === 'sales' ? 'p-button-primary' : 'p-button-outlined p-button-secondary'"
+                (click)="switchTab('sales')"
+            >
+                <i class="pi pi-shopping-cart mr-2"></i>
+                <span class="font-bold">Sales</span>
+                <span
+                    class="ml-2 px-2 py-0.5 border-round-pill text-xs font-bold"
+                    [ngClass]="activeTab === 'sales' ? 'bg-white text-primary' : 'surface-200 text-700'"
+                >
+                    {{ totalRecords }}
+                </span>
+            </button>
+            <button
+                type="button"
+                class="p-button p-button-sm"
+                [ngClass]="activeTab === 'returns' ? 'p-button-primary' : 'p-button-outlined p-button-secondary'"
+                (click)="switchTab('returns')"
+            >
+                <i class="pi pi-replay mr-2"></i>
+                <span class="font-bold">Return History</span>
+                <span
+                    class="ml-2 px-2 py-0.5 border-round-pill text-xs font-bold"
+                    [ngClass]="activeTab === 'returns' ? 'bg-white text-primary' : 'surface-200 text-700'"
+                >
+                    {{ totalReturnRecords }}
+                </span>
+            </button>
+        </div>
+        <div class="text-sm text-500">
+            <span *ngIf="activeTab === 'sales'">Manage customer sales & process sale returns</span>
+            <span *ngIf="activeTab === 'returns'">View return history, returned items, and return reasons</span>
+        </div>
+    </div>
+</div>
+
+<div class="card" *ngIf="activeTab === 'sales'">
     <p-table
         #dt
         [value]="sales"
@@ -36,18 +77,29 @@
                         (click)="onSearch()"
                     ></button>
                 </div>
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-plus"
-                    label="Create"
-                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
-                    (click)="openCreateDialog()"
-                    [disabled]="!canCreate"
-                    [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
-                    tooltipPosition="top"
-                ></button>
+                <div class="flex flex-wrap gap-2 align-items-center">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-replay"
+                        label="Return History"
+                        class="p-button-outlined p-button-warning font-semibold"
+                        (click)="switchTab('returns')"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        label="Create"
+                        class="p-button-primary w-full sm:w-auto font-semibold"
+                        (click)="openCreateDialog()"
+                        [disabled]="!canCreate"
+                        [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
+                        tooltipPosition="top"
+                    ></button>
+                </div>
             </div>
         </ng-template>
 
@@ -77,6 +129,10 @@
                         *ngIf="sale.hasReturns; else noReturn"
                         [value]="(sale.returnCount || 1) + ' return(s)'"
                         severity="warn"
+                        class="cursor-pointer"
+                        (click)="filterReturnsForSale(sale)"
+                        pTooltip="Click to view in Return History"
+                        tooltipPosition="top"
                     ></p-tag>
                     <ng-template #noReturn>
                         <span class="text-500">—</span>
@@ -108,34 +164,166 @@
             </tr>
         </ng-template>
     </p-table>
-
-    <app-sale-form-dialog
-        *ngFor="let instanceId of createDialogInstances; trackBy: trackByFn"
-        [visible]="true"
-        (visibleChange)="onDialogVisibleChange(instanceId, $event)"
-        (saved)="onDialogSaved()"
-    ></app-sale-form-dialog>
-
-    <app-sale-view-dialog
-        [(visible)]="viewDialogVisible"
-        [saleId]="viewingSaleId"
-        (printRequested)="openPrintDialog($event)"
-        (returnRequested)="openReturnDialogForSaleId($event)"
-        (changed)="onDialogSaved()"
-    ></app-sale-view-dialog>
-
-    <app-print-sale-invoice-dialog
-        [(visible)]="printDialogVisible"
-        [saleId]="printingSaleId"
-        [autoPrint]="printAutoPrint"
-    ></app-print-sale-invoice-dialog>
-
-    <app-sale-return-form-dialog
-        [(visible)]="returnDialogVisible"
-        [saleId]="returningSaleId"
-        (saved)="onDialogSaved()"
-    ></app-sale-return-form-dialog>
-
-    <p-toast></p-toast>
-    <p-confirmDialog></p-confirmDialog>
 </div>
+
+<!-- Return History Section -->
+<div class="card" *ngIf="activeTab === 'returns'">
+    <p-table
+        #dtReturns
+        [value]="returns"
+        [paginator]="true"
+        [rows]="10"
+        [showCurrentPageReport]="true"
+        responsiveLayout="scroll"
+        [loading]="loadingReturns"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['id', 'saleInvoiceNo', 'customerName', 'notes']"
+    >
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-22rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search invoice, customer, return reason..."
+                            [(ngModel)]="returnKeyword"
+                            (keyup.enter)="onSearchReturns()"
+                            (input)="onGlobalFilter(dtReturns, $event)"
+                        />
+                    </span>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="onSearchReturns()"
+                    ></button>
+                    <button
+                        *ngIf="returnKeyword"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-times"
+                        class="p-button-outlined p-button-secondary"
+                        label="Clear Filter"
+                        (click)="returnKeyword = ''; onSearchReturns()"
+                    ></button>
+                </div>
+                <div class="flex flex-wrap gap-2 align-items-center">
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-refresh"
+                        class="p-button-outlined"
+                        label="Refresh"
+                        (click)="loadReturns()"
+                    ></button>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-plus"
+                        label="New Return"
+                        class="p-button-warning font-semibold"
+                        (click)="openCreateReturnDialog()"
+                    ></button>
+                </div>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="id" style="width: 7rem">Return # <p-sortIcon field="id"></p-sortIcon></th>
+                <th pSortableColumn="returnDate" style="width: 10rem">Return Date <p-sortIcon field="returnDate"></p-sortIcon></th>
+                <th pSortableColumn="saleInvoiceNo" style="width: 11rem">Sale Invoice <p-sortIcon field="saleInvoiceNo"></p-sortIcon></th>
+                <th pSortableColumn="customerName">Customer <p-sortIcon field="customerName"></p-sortIcon></th>
+                <th>Returned Products</th>
+                <th>Return Reason / Note</th>
+                <th pSortableColumn="totalAmount" style="width: 9rem">Refund Total <p-sortIcon field="totalAmount"></p-sortIcon></th>
+                <th class="text-center" style="width: 4.5rem">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-item>
+            <tr>
+                <td>
+                    <span class="font-bold text-primary">#{{ item.id }}</span>
+                </td>
+                <td>{{ item.returnDate | date: formatService.dateFormat }}</td>
+                <td>
+                    <span class="font-semibold">{{ item.saleInvoiceNo || ('Sale #' + item.saleId) }}</span>
+                </td>
+                <td>{{ item.customerName || '—' }}</td>
+                <td>
+                    <span class="text-sm font-medium">{{ formatReturnLines(item) }}</span>
+                </td>
+                <td>
+                    <span
+                        *ngIf="item.notes"
+                        class="inline-flex align-items-center gap-1 bg-yellow-50 text-yellow-900 border-1 border-yellow-200 border-round px-2 py-1 text-xs font-semibold"
+                        [title]="item.notes"
+                    >
+                        <i class="pi pi-comment text-xs"></i>
+                        {{ item.notes }}
+                    </span>
+                    <span *ngIf="!item.notes" class="text-500">—</span>
+                </td>
+                <td class="font-bold text-orange-600">{{ item.totalAmount | number: '1.2-2' }}</td>
+                <td class="text-center">
+                    <app-row-actions [items]="getReturnRowActions(item)"></app-row-actions>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="8" class="text-center p-4">
+                    <div class="text-500">No sale returns found in history</div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<app-sale-form-dialog
+    *ngFor="let instanceId of createDialogInstances; trackBy: trackByFn"
+    [visible]="true"
+    (visibleChange)="onDialogVisibleChange(instanceId, $event)"
+    (saved)="onDialogSaved()"
+></app-sale-form-dialog>
+
+<app-sale-view-dialog
+    [(visible)]="viewDialogVisible"
+    [saleId]="viewingSaleId"
+    (printRequested)="openPrintDialog($event)"
+    (returnRequested)="openReturnDialogForSaleId($event)"
+    (changed)="onDialogSaved()"
+></app-sale-view-dialog>
+
+<app-print-sale-invoice-dialog
+    [(visible)]="printDialogVisible"
+    [saleId]="printingSaleId"
+    [autoPrint]="printAutoPrint"
+></app-print-sale-invoice-dialog>
+
+<app-sale-return-form-dialog
+    [(visible)]="returnDialogVisible"
+    [saleId]="returningSaleId"
+    (saved)="onDialogSaved()"
+></app-sale-return-form-dialog>
+
+<app-sale-return-view-dialog
+    [(visible)]="viewReturnDialogVisible"
+    [saleReturnId]="viewingReturnId"
+    (deleted)="onDialogSaved()"
+></app-sale-return-view-dialog>
+
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>

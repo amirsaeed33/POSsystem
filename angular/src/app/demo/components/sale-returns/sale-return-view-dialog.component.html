@@ -38,8 +38,13 @@
                 <div class="font-medium">{{ saleReturn.totalAmount | number: '1.2-2' }}</div>
             </div>
             <div class="col-12">
-                <div class="text-500 mb-1">Notes</div>
-                <div class="font-medium">{{ saleReturn.notes || '—' }}</div>
+                <div class="text-500 mb-1">Return Reason / Note</div>
+                <div class="font-medium">
+                    <span *ngIf="saleReturn.notes" class="inline-flex align-items-center gap-1 bg-yellow-50 text-yellow-900 border-1 border-yellow-200 border-round px-2 py-1 text-sm font-medium">
+                        <i class="pi pi-comment text-xs"></i> {{ saleReturn.notes }}
+                    </span>
+                    <span *ngIf="!saleReturn.notes" class="text-500">—</span>
+                </div>
             </div>
         </div>
 

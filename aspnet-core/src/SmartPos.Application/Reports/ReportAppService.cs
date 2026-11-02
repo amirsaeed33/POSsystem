@@ -31,6 +31,8 @@ namespace SmartPos.Reports
     public class ReportAppService : ApplicationService, IReportAppService
     {
         private readonly IRepository<Sale> _saleRepository;
+        private readonly IRepository<SaleReturn> _saleReturnRepository;
+        private readonly IRepository<SaleReturnLine> _saleReturnLineRepository;
         private readonly IRepository<Purchase> _purchaseRepository;
         private readonly IRepository<Expense> _expenseRepository;
         private readonly IRepository<Product> _productRepository;
@@ -48,6 +50,8 @@ namespace SmartPos.Reports
 
         public ReportAppService(
             IRepository<Sale> saleRepository,
+            IRepository<SaleReturn> saleReturnRepository,
+            IRepository<SaleReturnLine> saleReturnLineRepository,
             IRepository<Purchase> purchaseRepository,
             IRepository<Expense> expenseRepository,
             IRepository<Product> productRepository,
@@ -64,6 +68,8 @@ namespace SmartPos.Reports
             IRepository<Branch> branchRepository)
         {
             _saleRepository = saleRepository;
+            _saleReturnRepository = saleReturnRepository;
+            _saleReturnLineRepository = saleReturnLineRepository;
             _purchaseRepository = purchaseRepository;
             _expenseRepository = expenseRepository;
             _productRepository = productRepository;
@@ -95,19 +101,54 @@ namespace SmartPos.Reports
                          || (x.Customer != null && x.Customer.Name.Contains(input.Keyword))
                          || (x.Notes != null && x.Notes.Contains(input.Keyword)));
 
-            var items = await query
+            var rawItems = await query
                 .OrderByDescending(x => x.SaleDate)
                 .ThenByDescending(x => x.Id)
-                .Select(x => new SaleReportRowDto
+                .Select(x => new
                 {
-                    Id = x.Id,
-                    InvoiceNo = x.InvoiceNo,
-                    SaleDate = x.SaleDate,
+                    x.Id,
+                    x.InvoiceNo,
+                    x.SaleDate,
                     CustomerName = x.Customer != null ? x.Customer.Name : null,
-                    TotalAmount = x.TotalAmount,
-                    Notes = x.Notes
+                    x.TotalAmount,
+                    x.Notes
                 })
                 .ToListAsync();
+
+            var saleIds = rawItems.Select(x => x.Id).ToList();
+            var returnsBySaleId = new Dictionary<int, decimal>();
+            if (saleIds.Count > 0)
+            {
+                returnsBySaleId = await _saleReturnRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => saleIds.Contains(x.SaleId))
+                    .GroupBy(x => x.SaleId)
+                    .Select(g => new { SaleId = g.Key, TotalReturned = g.Sum(r => r.TotalAmount) })
+                    .ToDictionaryAsync(x => x.SaleId, x => x.TotalReturned);
+            }
+
+            var items = new List<SaleReportRowDto>();
+            foreach (var raw in rawItems)
+            {
+                var returned = returnsBySaleId.GetValueOrDefault(raw.Id, 0m);
+                var netAmount = raw.TotalAmount - returned;
+
+                // If sale is return then sale amount does not add in anyplace even they not have any entry in sale report if the sale is return
+                if (netAmount <= 0)
+                {
+                    continue;
+                }
+
+                items.Add(new SaleReportRowDto
+                {
+                    Id = raw.Id,
+                    InvoiceNo = raw.InvoiceNo,
+                    SaleDate = raw.SaleDate,
+                    CustomerName = raw.CustomerName,
+                    TotalAmount = Math.Round(netAmount, 2),
+                    Notes = raw.Notes
+                });
+            }
 
             return new SaleReportDto
             {
@@ -330,10 +371,55 @@ namespace SmartPos.Reports
                 };
             }
 
-            // Get all sale lines for those sales, grouped and aggregated by product
-            var saleLines = await _saleRepository.GetAll()
+            // Get all sale lines for those sales, deducting returned items
+            var rawSaleLines = await _saleRepository.GetAll()
                 .Where(x => saleIds.Contains(x.Id))
                 .SelectMany(x => x.Lines)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.ProductId,
+                    x.Quantity,
+                    x.UnitPrice,
+                    x.LineTotal
+                })
+                .ToListAsync();
+
+            var returnedLines = await _saleReturnLineRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => saleIds.Contains(x.SaleReturn.SaleId))
+                .Select(x => new
+                {
+                    x.SaleLineId,
+                    x.Quantity,
+                    x.LineTotal
+                })
+                .ToListAsync();
+
+            var returnedQtyByLineId = returnedLines
+                .GroupBy(x => x.SaleLineId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+
+            var returnedAmountByLineId = returnedLines
+                .GroupBy(x => x.SaleLineId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.LineTotal));
+
+            var netSaleLines = rawSaleLines.Select(sl =>
+            {
+                var retQty = returnedQtyByLineId.GetValueOrDefault(sl.Id, 0m);
+                var retAmount = returnedAmountByLineId.GetValueOrDefault(sl.Id, 0m);
+                var netQty = Math.Max(0m, sl.Quantity - retQty);
+                var netTotal = Math.Max(0m, sl.LineTotal - retAmount);
+                return new
+                {
+                    sl.ProductId,
+                    Quantity = netQty,
+                    LineTotal = netTotal,
+                    sl.UnitPrice
+                };
+            }).Where(x => x.Quantity > 0).ToList();
+
+            var saleLines = netSaleLines
                 .GroupBy(x => x.ProductId)
                 .Select(g => new
                 {
@@ -342,7 +428,7 @@ namespace SmartPos.Reports
                     TotalRevenue = g.Sum(x => x.LineTotal),
                     AverageUnitPrice = g.Average(x => x.UnitPrice)
                 })
-                .ToListAsync();
+                .ToList();
 
             if (saleLines.Count == 0)
             {

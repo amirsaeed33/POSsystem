@@ -27,6 +27,7 @@ namespace SmartPos.NotificationEmails
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<BranchStock> _branchStockRepository;
         private readonly IRepository<Sale> _saleRepository;
+        private readonly IRepository<SaleReturn> _saleReturnRepository;
         private readonly IRepository<SaleLine> _saleLineRepository;
         private readonly IRepository<Purchase> _purchaseRepository;
         private readonly IRepository<Expense> _expenseRepository;
@@ -37,6 +38,7 @@ namespace SmartPos.NotificationEmails
             IRepository<Product> productRepository,
             IRepository<BranchStock> branchStockRepository,
             IRepository<Sale> saleRepository,
+            IRepository<SaleReturn> saleReturnRepository,
             IRepository<SaleLine> saleLineRepository,
             IRepository<Purchase> purchaseRepository,
             IRepository<Expense> expenseRepository,
@@ -46,6 +48,7 @@ namespace SmartPos.NotificationEmails
             _productRepository = productRepository;
             _branchStockRepository = branchStockRepository;
             _saleRepository = saleRepository;
+            _saleReturnRepository = saleReturnRepository;
             _saleLineRepository = saleLineRepository;
             _purchaseRepository = purchaseRepository;
             _expenseRepository = expenseRepository;
@@ -101,6 +104,31 @@ namespace SmartPos.NotificationEmails
 
             var todaySales = await salesQuery.ToListAsync();
 
+            var todaySaleIds = todaySales.Select(s => s.Id).ToList();
+            var todayReturnsBySaleId = new Dictionary<int, decimal>();
+            if (todaySaleIds.Count > 0)
+            {
+                todayReturnsBySaleId = await _saleReturnRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(x => todaySaleIds.Contains(x.SaleId))
+                    .GroupBy(x => x.SaleId)
+                    .Select(g => new { SaleId = g.Key, TotalReturned = g.Sum(r => r.TotalAmount) })
+                    .ToDictionaryAsync(x => x.SaleId, x => x.TotalReturned);
+            }
+
+            var netSales = todaySales.Select(s =>
+            {
+                var ret = todayReturnsBySaleId.GetValueOrDefault(s.Id, 0m);
+                return new
+                {
+                    Sale = s,
+                    NetTotal = Math.Max(0m, s.TotalAmount - ret),
+                    IsFullyReturned = ret >= s.TotalAmount
+                };
+            }).ToList();
+
+            var activeSales = netSales.Where(x => !x.IsFullyReturned).Select(x => x.Sale).ToList();
+
             // Query Today's Purchases
             var purchasesQuery = _purchaseRepository.GetAll()
                 .Where(p => p.CreationTime >= today && p.CreationTime < tomorrow);
@@ -134,11 +162,11 @@ namespace SmartPos.NotificationEmails
 
             var lowStockCount = await lowStockCountQuery.CountAsync();
 
-            // Compute Summary Aggregates
-            var totalSalesAmount = todaySales.Sum(s => s.TotalAmount);
-            var totalDiscountAmount = todaySales.Sum(s => s.DiscountAmount);
-            var netSalesAmount = totalSalesAmount - totalDiscountAmount;
-            var salesCount = todaySales.Count;
+            // Compute Summary Aggregates (net of returns)
+            var totalSalesAmount = netSales.Sum(s => s.NetTotal);
+            var totalDiscountAmount = activeSales.Sum(s => s.DiscountAmount);
+            var netSalesAmount = Math.Max(0m, totalSalesAmount - totalDiscountAmount);
+            var salesCount = activeSales.Count;
 
             var cashSales = todaySales.Sum(s => s.CashAmount);
             var cardSales = todaySales.Sum(s => s.CardAmount);
