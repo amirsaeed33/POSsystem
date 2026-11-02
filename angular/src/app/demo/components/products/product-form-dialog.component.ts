@@ -205,9 +205,15 @@ export class ProductFormDialogComponent implements OnChanges {
 
         const name = (this.product.name || '').trim();
         let barcode = (this.product.barcode || '').trim();
-        const price = Number(this.product.price);
+        let price = Number(this.product.price);
         let wholesalePrice = Number(this.product.wholesalePrice);
         let costPrice = Number(this.product.costPrice);
+
+        if (this.isPermanentGroceryCategory) {
+            price = 0;
+            wholesalePrice = 0;
+            costPrice = 0;
+        }
         let brandId = this.product.brandId;
 
         if (this.isRestaurant) {
@@ -338,13 +344,8 @@ export class ProductFormDialogComponent implements OnChanges {
         if (!this.isRestaurant && !(this.product.barcode || '').trim()) {
             return 'Barcode is required.';
         }
-        if (this.isGroceryInventory) {
-            if (this.product.price == null || Number(this.product.price) < 0) {
-                return 'Price cannot be negative.';
-            }
-            if (this.product.costPrice == null || Number(this.product.costPrice) < 0) {
-                return 'Purchase price is required.';
-            }
+        if (this.isPermanentGroceryCategory) {
+            // Permanent grocery items do not have sell or purchase price in this form
         } else if (this.product.price == null || Number(this.product.price) <= 0) {
             return 'Price is required.';
         }

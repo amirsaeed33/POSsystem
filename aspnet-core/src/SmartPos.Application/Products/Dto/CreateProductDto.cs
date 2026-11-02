@@ -21,7 +21,7 @@ namespace SmartPos.Products.Dto
         [StringLength(Product.MaxBarcodeLength)]
         public string Barcode { get; set; }
 
-        [Range(0.01, double.MaxValue, ErrorMessage = "Price is required.")]
+        [Range(0, double.MaxValue, ErrorMessage = "Price is required.")]
         public decimal Price { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Wholesale price is required.")]

@@ -124,7 +124,7 @@
                 [(ngModel)]="product.barcode" [disabled]="saving" />
         </div>
 
-        <div class="formgrid grid" *ngIf="!isRestaurant">
+        <div class="formgrid grid" *ngIf="!isRestaurant && !isPermanentGroceryCategory">
             <div class="field col-12 md:col-4 flex flex-column gap-2">
                 <label for="productCost" class="font-medium">Purchase Price <span class="p-error">*</span></label>
                 <p-inputNumber inputId="productCost" [(ngModel)]="product.costPrice" mode="decimal"
@@ -145,21 +145,7 @@
             </div>
         </div>
 
-        <div class="formgrid grid" *ngIf="isRestaurant && isGroceryInventory">
-            <div class="field col-12 md:col-6 flex flex-column gap-2">
-                <label for="productCostRestaurant" class="font-medium">Purchase Price <span class="p-error">*</span></label>
-                <p-inputNumber inputId="productCostRestaurant" [(ngModel)]="product.costPrice" mode="decimal"
-                    [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
-                    [disabled]="saving"></p-inputNumber>
-            </div>
-            <div class="field col-12 md:col-6 flex flex-column gap-2">
-                <label for="productPriceRestaurantGrocery" class="font-medium">Selling Price</label>
-                <p-inputNumber inputId="productPriceRestaurantGrocery" [(ngModel)]="product.price" mode="decimal"
-                    [minFractionDigits]="2" [min]="0" styleClass="w-full" inputStyleClass="w-full"
-                    [disabled]="saving"></p-inputNumber>
-                <small class="text-500">Optional for grocery ingredients (can be 0).</small>
-            </div>
-        </div>
+
 
         <div class="formgrid grid" *ngIf="isRestaurant && !isGroceryInventory">
             <div class="field col-12 md:col-6 flex flex-column gap-2">
@@ -177,7 +163,7 @@
             </div>
         </div>
 
-        <small class="text-color-secondary" *ngIf="product.price">
+        <small class="text-color-secondary" *ngIf="product.price && !isPermanentGroceryCategory">
             Profit/unit: {{ profitPerUnit | number: '1.2-2' }}
             <span *ngIf="profitMarginPercent !== null">
                 ({{ profitMarginPercent | number: '1.1-1' }}%)

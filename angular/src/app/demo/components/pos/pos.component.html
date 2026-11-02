@@ -2111,7 +2111,7 @@
                     <div class="flex align-items-center justify-content-between mb-2">
                         <div class="flex align-items-center gap-2">
                             <span class="font-bold text-900">{{ group.name }}</span>
-                            <small class="text-500 font-normal">(Multi-select)</small>
+                            <small class="text-500 font-normal">({{ isGroupSingleSelect(group) ? 'Single-choice' : 'Multi-select' }})</small>
                         </div>
                         <span
                             class="text-xs px-2 py-0.5 border-round font-medium"
@@ -2137,8 +2137,15 @@
                                 ></p-checkbox>
                                 <label class="cursor-pointer font-medium text-sm m-0">{{ opt.name }}</label>
                             </div>
-                            <span class="text-xs font-semibold" [class.text-primary]="opt.price > 0" [class.text-500]="!opt.price">
-                                {{ opt.price > 0 ? '+ ' + (opt.price | number: '1.2-2') : 'Free' }}
+                            <span
+                                class="text-xs font-semibold"
+                                [class.text-primary]="opt.price > 0 || (isPizzaProduct(selectedProductForModifiers) && (!opt.price || opt.price <= 0))"
+                                [class.text-500]="(!opt.price || opt.price <= 0) && !isPizzaProduct(selectedProductForModifiers)"
+                            >
+                                {{ opt.price > 0
+                                    ? '+ ' + (opt.price | number: '1.2-2')
+                                    : (isPizzaProduct(selectedProductForModifiers) ? (selectedProductForModifiers.price | number: '1.2-2') : 'Free')
+                                }}
                             </span>
                         </div>
                     </div>
@@ -2261,8 +2268,15 @@
                                         ></p-checkbox>
                                         <label class="cursor-pointer font-medium text-sm m-0">{{ opt.name }}</label>
                                     </div>
-                                    <span class="text-xs font-semibold" [class.text-primary]="opt.price > 0" [class.text-500]="!opt.price">
-                                        {{ opt.price > 0 ? '+ ' + (opt.price | number: '1.2-2') : 'Free' }}
+                                    <span
+                                        class="text-xs font-semibold"
+                                        [class.text-primary]="opt.price > 0 || (isPizzaProduct(item) && (!opt.price || opt.price <= 0))"
+                                        [class.text-500]="(!opt.price || opt.price <= 0) && !isPizzaProduct(item)"
+                                    >
+                                        {{ opt.price > 0
+                                            ? '+ ' + (opt.price | number: '1.2-2')
+                                            : (isPizzaProduct(item) ? (item.unitPrice | number: '1.2-2') : 'Free')
+                                        }}
                                     </span>
                                 </div>
                             </div>

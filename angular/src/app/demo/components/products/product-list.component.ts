@@ -223,6 +223,16 @@ export class ProductListComponent implements OnInit {
         return actions;
     }
 
+
+    isPizzaProduct(product?: any): boolean {
+        if (!product) return false;
+        const cat = (product.categoryName || '').trim().toLowerCase();
+        if (cat.includes('pizza')) return true;
+        const name = (product.name || '').trim().toLowerCase();
+        if (name.includes('pizza')) return true;
+        return false;
+    }
+
     async openModifierDialog(product: ProductDto): Promise<void> {
         this.modifierTargetProduct = product;
         this.modifierDialogVisible = true;

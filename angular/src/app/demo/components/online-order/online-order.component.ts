@@ -1801,6 +1801,16 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
     }
 
+
+    isPizzaProduct(product?: any): boolean {
+        if (!product) return false;
+        const cat = (product.categoryName || '').trim().toLowerCase();
+        if (cat.includes('pizza')) return true;
+        const name = (product.name || product.productName || '').trim().toLowerCase();
+        if (name.includes('pizza')) return true;
+        return false;
+    }
+
     isOptionSelected(group: ProductModifierGroupDto, option: ProductModifierOptionDto): boolean {
         const selected = this.selectedModifierOptions[group.id] || [];
         return selected.includes(option.id);

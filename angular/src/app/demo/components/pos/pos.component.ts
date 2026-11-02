@@ -2472,16 +2472,52 @@ export class PosComponent implements OnInit, OnDestroy {
         return !!list && list.includes(optionId);
     }
 
+
+    isPizzaProduct(product?: any): boolean {
+        if (!product) return false;
+        const cat = (product.categoryName || '').trim().toLowerCase();
+        if (cat.includes('pizza')) return true;
+        const name = (product.name || product.productName || '').trim().toLowerCase();
+        if (name.includes('pizza')) return true;
+        return false;
+    }
+
+    isGroupSingleSelect(group: ProductModifierGroupDto): boolean {
+        if (!group) return false;
+        if (group.maxSelection === 1 || group.allowMultiple === false) return true;
+        const name = (group.name || '').trim().toLowerCase();
+        if (name.includes('size') || name.includes('portion')) return true;
+        return false;
+    }
+
     toggleModifierOption(group: ProductModifierGroupDto, option: ProductModifierOptionDto): void {
         if (!this.selectedModifierOptions[group.id]) {
             this.selectedModifierOptions[group.id] = [];
         }
 
+        const isSingle = this.isGroupSingleSelect(group);
         const index = this.selectedModifierOptions[group.id].indexOf(option.id);
-        if (index > -1) {
-            this.selectedModifierOptions[group.id].splice(index, 1);
+
+        if (isSingle) {
+            if (index > -1) {
+                if (!group.isRequired) {
+                    this.selectedModifierOptions[group.id] = [];
+                }
+            } else {
+                this.selectedModifierOptions[group.id] = [option.id];
+            }
         } else {
-            this.selectedModifierOptions[group.id].push(option.id);
+            if (index > -1) {
+                if (group.isRequired && this.selectedModifierOptions[group.id].length <= 1) {
+                    return;
+                }
+                this.selectedModifierOptions[group.id].splice(index, 1);
+            } else {
+                if (group.maxSelection && this.selectedModifierOptions[group.id].length >= group.maxSelection) {
+                    this.selectedModifierOptions[group.id].shift();
+                }
+                this.selectedModifierOptions[group.id].push(option.id);
+            }
         }
     }
 
@@ -2590,13 +2626,27 @@ export class PosComponent implements OnInit, OnDestroy {
             item.selectedOptions[group.id] = [];
         }
         const list = item.selectedOptions[group.id];
+        const isSingle = this.isGroupSingleSelect(group);
         const index = list.indexOf(option.id);
-        if (index > -1) {
-            list.splice(index, 1);
-        } else {
-            if (!group.allowMultiple) {
-                item.selectedOptions[group.id] = [option.id];
+
+        if (isSingle) {
+            if (index > -1) {
+                if (!group.isRequired) {
+                    item.selectedOptions[group.id] = [];
+                }
             } else {
+                item.selectedOptions[group.id] = [option.id];
+            }
+        } else {
+            if (index > -1) {
+                if (group.isRequired && list.length <= 1) {
+                    return;
+                }
+                list.splice(index, 1);
+            } else {
+                if (group.maxSelection && list.length >= group.maxSelection) {
+                    list.shift();
+                }
                 list.push(option.id);
             }
         }
