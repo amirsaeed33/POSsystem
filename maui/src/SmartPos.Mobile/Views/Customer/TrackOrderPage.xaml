@@ -77,6 +77,53 @@
                                TextColor="#0F6B4C" />
                         <Label Text="{Binding AreaText}" TextColor="#5C6B63" />
                         <Label Text="{Binding RiderText}" TextColor="#5C6B63" />
+                        <Grid IsVisible="{Binding HasRiderPhone}"
+                              ColumnDefinitions="*,Auto,Auto"
+                              ColumnSpacing="8"
+                              Margin="0,2,0,0">
+                            <Label Text="{Binding RiderPhoneText}"
+                                   TextColor="#1F2A24"
+                                   FontAttributes="Bold"
+                                   FontSize="15"
+                                   VerticalOptions="Center" />
+                            <Border Grid.Column="1"
+                                    WidthRequest="40"
+                                    HeightRequest="40"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#E7F5EF"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding CallRiderCommand}" />
+                                </Border.GestureRecognizers>
+                                <Image Source="icon_phone.png"
+                                       WidthRequest="20"
+                                       HeightRequest="20"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+                            <Border Grid.Column="2"
+                                    WidthRequest="40"
+                                    HeightRequest="40"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#25D366"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding WhatsAppRiderCommand}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="WA"
+                                       TextColor="White"
+                                       FontAttributes="Bold"
+                                       FontSize="12"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </Grid>
                         <Label Text="{Binding CustomerText}" TextColor="#5C6B63" />
 
                         <Label Text="Items"

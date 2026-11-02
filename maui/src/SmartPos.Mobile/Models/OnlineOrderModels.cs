@@ -316,6 +316,9 @@ public class CustomerOrderDto : EntityDto
     [JsonPropertyName("riderName")]
     public string? RiderName { get; set; }
 
+    [JsonPropertyName("riderPhone")]
+    public string? RiderPhone { get; set; }
+
     [JsonPropertyName("lines")]
     public List<CustomerOrderLineDto> Lines { get; set; } = new();
 }

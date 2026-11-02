@@ -34,6 +34,8 @@ public partial class TrackOrderViewModel : BaseViewModel
     public string RiderText => string.IsNullOrWhiteSpace(Order?.RiderName)
         ? "Rider not assigned yet"
         : $"Rider: {Order!.RiderName}";
+    public string RiderPhoneText => Order?.RiderPhone?.Trim() ?? string.Empty;
+    public bool HasRiderPhone => !string.IsNullOrWhiteSpace(RiderPhoneText);
     public string CustomerText => Order?.CustomerName ?? string.Empty;
 
     public TrackOrderViewModel(OnlineOrderService orders)
@@ -61,6 +63,8 @@ public partial class TrackOrderViewModel : BaseViewModel
         OnPropertyChanged(nameof(TotalText));
         OnPropertyChanged(nameof(AreaText));
         OnPropertyChanged(nameof(RiderText));
+        OnPropertyChanged(nameof(RiderPhoneText));
+        OnPropertyChanged(nameof(HasRiderPhone));
         OnPropertyChanged(nameof(CustomerText));
 
         Lines.Clear();
@@ -119,6 +123,72 @@ public partial class TrackOrderViewModel : BaseViewModel
         {
             await TrackAsync();
         }
+    }
+
+    [RelayCommand]
+    private async Task CallRiderAsync()
+    {
+        if (!HasRiderPhone)
+        {
+            return;
+        }
+
+        try
+        {
+            var uri = new Uri($"tel:{NormalizeDialNumber(RiderPhoneText)}");
+            await Launcher.Default.OpenAsync(uri);
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Call", $"Could not start the call. {ex.Message}", "OK");
+        }
+    }
+
+    [RelayCommand]
+    private async Task WhatsAppRiderAsync()
+    {
+        if (!HasRiderPhone)
+        {
+            return;
+        }
+
+        try
+        {
+            var phone = ToWhatsAppNumber(RiderPhoneText);
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                return;
+            }
+
+            var message = Uri.EscapeDataString($"Hi, regarding order {Order?.OrderNo}");
+            var uri = new Uri($"https://wa.me/{phone}?text={message}");
+            await Launcher.Default.OpenAsync(uri);
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("WhatsApp", $"Could not open WhatsApp. {ex.Message}", "OK");
+        }
+    }
+
+    private static string NormalizeDialNumber(string phone) =>
+        new string(phone.Where(c => char.IsDigit(c) || c == '+').ToArray());
+
+    /// <summary>WhatsApp expects digits with country code (no + / spaces).</summary>
+    private static string ToWhatsAppNumber(string phone)
+    {
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("00", StringComparison.Ordinal))
+        {
+            digits = digits[2..];
+        }
+
+        // Local PK mobiles: 03xxxxxxxxx → 923xxxxxxxxx
+        if (digits.Length == 11 && digits.StartsWith('0'))
+        {
+            digits = "92" + digits[1..];
+        }
+
+        return digits;
     }
 
     [RelayCommand]
