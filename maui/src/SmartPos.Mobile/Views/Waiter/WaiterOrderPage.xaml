@@ -4,16 +4,23 @@
              xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
              xmlns:models="clr-namespace:SmartPos.Mobile.Models"
              xmlns:helpers="clr-namespace:SmartPos.Mobile.Helpers"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
              x:Class="SmartPos.Mobile.Views.Waiter.WaiterOrderPage"
              x:DataType="vm:WaiterOrderViewModel"
              Title="Order"
-             BackgroundColor="#F3F6F4">
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#F5F5F5">
 
     <ContentPage.Resources>
         <helpers:InvertedBoolConverter x:Key="InvertedBoolConverter" />
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <AbsoluteLayout BackgroundColor="#F5F5F5">
+    <Grid AbsoluteLayout.LayoutBounds="0,0,1,1"
+          AbsoluteLayout.LayoutFlags="All"
+          RowDefinitions="Auto,*,Auto"
+          BackgroundColor="#F5F5F5">
         <Border BackgroundColor="#0F6B4C" Padding="16,14" StrokeThickness="0">
             <VerticalStackLayout Spacing="8">
                 <Label Text="{Binding OrderTitle}" FontAttributes="Bold" FontSize="18" TextColor="White" LineBreakMode="TailTruncation" />
@@ -182,7 +189,7 @@
             </Border>
         </Grid>
 
-        <ScrollView Grid.Row="2" Orientation="Horizontal" HeightRequest="64" BackgroundColor="#F3F6F4">
+        <ScrollView Grid.Row="2" Orientation="Horizontal" HeightRequest="64" BackgroundColor="#F5F5F5">
             <HorizontalStackLayout Padding="12,8" Spacing="8">
                 <Button Text="Save" Command="{Binding SaveOrderCommand}" BackgroundColor="#0F6B4C" TextColor="White" CornerRadius="12" Padding="16,10" />
                 <Button Text="KOT" Command="{Binding SendToKitchenCommand}" BackgroundColor="#1F2A24" TextColor="White" CornerRadius="12" Padding="16,10" />
@@ -193,4 +200,12 @@
             </HorizontalStackLayout>
         </ScrollView>
     </Grid>
+        <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
+                               AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
+                               TranslationY="-56"
+                               Mode="Waiter"
+                               SelectedIndex="1"
+                               ZIndex="40"
+                               InputTransparent="False" />
+    </AbsoluteLayout>
 </ContentPage>

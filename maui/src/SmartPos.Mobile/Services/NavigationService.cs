@@ -11,6 +11,8 @@ public class NavigationService
         _session = session;
     }
 
+    public Task GoToLoginAsync() => Shell.Current.GoToAsync("//customer/account");
+
     public async Task GoToRoleHomeAsync()
     {
         var mode = _session.ResolveRoleMode();
@@ -22,11 +24,18 @@ public class NavigationService
             case AppRoleMode.Waiter:
                 await Shell.Current.GoToAsync("//waiter/tables");
                 break;
+            case AppRoleMode.Admin:
+                await Shell.Current.GoToAsync("//admin/home");
+                break;
             case AppRoleMode.UnsupportedStaff:
                 await Shell.Current.GoToAsync("//unsupported");
                 break;
-            default:
+            case AppRoleMode.Customer when _session.IsAuthenticated:
                 await Shell.Current.GoToAsync("//customer/home");
+                break;
+            default:
+                // Guests / cold start: stay on login unless they continue as customer.
+                await GoToLoginAsync();
                 break;
         }
     }

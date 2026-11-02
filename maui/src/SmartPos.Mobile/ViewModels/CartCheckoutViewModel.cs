@@ -11,6 +11,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
     private readonly CartService _cart;
     private readonly OnlineOrderService _orders;
     private readonly SessionService _session;
+    private readonly DeliveryLocationService _deliveryLocation;
 
     [ObservableProperty]
     private string customerName = string.Empty;
@@ -33,6 +34,12 @@ public partial class CartCheckoutViewModel : BaseViewModel
     [ObservableProperty]
     private decimal deliveryFee;
 
+    [ObservableProperty]
+    private string locationStatusText = string.Empty;
+
+    [ObservableProperty]
+    private bool isCapturingLocation;
+
     public ObservableCollection<CartLine> Lines => _cart.Lines;
     public ObservableCollection<DeliveryAreaDto> Areas { get; } = new();
 
@@ -42,14 +49,26 @@ public partial class CartCheckoutViewModel : BaseViewModel
     public string DeliveryFeeText => DeliveryFee.ToString("0.00");
     public string GrandTotalText => GrandTotal.ToString("0.00");
 
-    public CartCheckoutViewModel(CartService cart, OnlineOrderService orders, SessionService session)
+    public CartCheckoutViewModel(
+        CartService cart,
+        OnlineOrderService orders,
+        SessionService session,
+        DeliveryLocationService deliveryLocation)
     {
         _cart = cart;
         _orders = orders;
         _session = session;
+        _deliveryLocation = deliveryLocation;
         Title = "Cart";
         _cart.CartChanged += (_, _) => NotifyTotals();
+        _deliveryLocation.Changed += (_, _) =>
+        {
+            MainThread.BeginInvokeOnMainThread(RefreshLocationStatus);
+        };
+        RefreshLocationStatus();
     }
+
+    private void RefreshLocationStatus() => LocationStatusText = _deliveryLocation.StatusText;
 
     private void NotifyTotals()
     {
@@ -62,6 +81,8 @@ public partial class CartCheckoutViewModel : BaseViewModel
     [RelayCommand]
     private async Task AppearingAsync()
     {
+        Shell.SetTabBarIsVisible(Shell.Current.CurrentPage, false);
+
         if (_session.BranchId is not int branchId)
         {
             return;
@@ -78,6 +99,16 @@ public partial class CartCheckoutViewModel : BaseViewModel
             SelectedArea = Areas.FirstOrDefault();
             DeliveryFee = SelectedArea?.DeliveryFee ?? 0;
             NotifyTotals();
+
+            // Pin live location as soon as checkout opens.
+            if (!_deliveryLocation.HasFix)
+            {
+                await CaptureLocationAsync();
+            }
+            else
+            {
+                RefreshLocationStatus();
+            }
         });
     }
 
@@ -86,6 +117,43 @@ public partial class CartCheckoutViewModel : BaseViewModel
         DeliveryFee = value?.DeliveryFee ?? 0;
         OnPropertyChanged(nameof(DeliveryFeeText));
         NotifyTotals();
+    }
+
+    partial void OnDeliveryAddressChanged(string value)
+    {
+        // As the customer types/selects an address, refresh GPS for the delivery pin.
+        if (!string.IsNullOrWhiteSpace(value) && value.Trim().Length >= 3)
+        {
+            _deliveryLocation.CaptureDebounced();
+        }
+    }
+
+    [RelayCommand]
+    private async Task CaptureLocationAsync()
+    {
+        if (IsCapturingLocation)
+        {
+            return;
+        }
+
+        try
+        {
+            IsCapturingLocation = true;
+            LocationStatusText = "📍 Getting your location…";
+            var ok = await _deliveryLocation.CaptureAsync();
+            if (!ok)
+            {
+                LocationStatusText = "📍 Couldn’t get location — check permission and GPS, then try again.";
+            }
+            else
+            {
+                RefreshLocationStatus();
+            }
+        }
+        finally
+        {
+            IsCapturingLocation = false;
+        }
     }
 
     [RelayCommand]
@@ -135,7 +203,11 @@ public partial class CartCheckoutViewModel : BaseViewModel
 
         await RunBusyAsync(async () =>
         {
-            var (lat, lng) = await LocationHelper.TryGetAsync();
+            if (!_deliveryLocation.HasFix)
+            {
+                await _deliveryLocation.CaptureAsync();
+            }
+
             var input = new CreateCustomerOrderDto
             {
                 CustomerName = CustomerName.Trim(),
@@ -150,8 +222,8 @@ public partial class CartCheckoutViewModel : BaseViewModel
                 Subtotal = Subtotal,
                 DeliveryCharges = DeliveryFee,
                 GrandTotal = GrandTotal,
-                Latitude = lat,
-                Longitude = lng,
+                Latitude = _deliveryLocation.Latitude,
+                Longitude = _deliveryLocation.Longitude,
                 Lines = _cart.Lines.Select(l => new CreateCustomerOrderLineDto
                 {
                     ProductId = l.ProductId,

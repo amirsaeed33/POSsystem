@@ -18,7 +18,7 @@ public static class LocationHelper
             }
 
             var location = await Geolocation.Default.GetLocationAsync(
-                new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(8)),
+                new GeolocationRequest(GeolocationAccuracy.Best, TimeSpan.FromSeconds(12)),
                 ct);
             return location == null ? (null, null) : (location.Latitude, location.Longitude);
         }

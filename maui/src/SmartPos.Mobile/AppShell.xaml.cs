@@ -19,6 +19,7 @@ public partial class AppShell : Shell
     public async Task InitializeNavigationAsync()
     {
         await _session.LoadAsync();
-        await _navigation.GoToRoleHomeAsync();
+        // Always open on login/profile first; role home is after sign-in.
+        await _navigation.GoToLoginAsync();
     }
 }

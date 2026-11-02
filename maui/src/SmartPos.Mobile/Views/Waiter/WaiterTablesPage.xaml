@@ -4,22 +4,24 @@
              xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
              xmlns:models="clr-namespace:SmartPos.Mobile.Models"
              xmlns:helpers="clr-namespace:SmartPos.Mobile.Helpers"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
              x:Class="SmartPos.Mobile.Views.Waiter.WaiterTablesPage"
              x:DataType="vm:WaiterTablesViewModel"
              Title="Tables"
-             BackgroundColor="#F3F6F4">
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#F5F5F5">
 
     <ContentPage.Resources>
         <helpers:StatusToColorConverter x:Key="StatusBg" />
         <helpers:StatusToAccentConverter x:Key="StatusAccent" />
     </ContentPage.Resources>
 
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Refresh" Command="{Binding RefreshCommand}" />
-        <ToolbarItem Text="Logout" Command="{Binding LogoutCommand}" />
-    </ContentPage.ToolbarItems>
-
-    <Grid RowDefinitions="Auto,*">
+    <AbsoluteLayout BackgroundColor="#F5F5F5">
+    <Grid AbsoluteLayout.LayoutBounds="0,0,1,1"
+          AbsoluteLayout.LayoutFlags="All"
+          RowDefinitions="Auto,*"
+          BackgroundColor="#F5F5F5">
         <!-- Mobile header -->
         <Border BackgroundColor="#0F6B4C"
                 Padding="16,18"
@@ -29,9 +31,20 @@
                        FontSize="22"
                        FontAttributes="Bold"
                        TextColor="White" />
-                <Label Text="Tap a table or car bay to open the order"
-                       FontSize="13"
-                       TextColor="#D7EDE4" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Text="Tap a table or car bay to open the order"
+                           FontSize="13"
+                           TextColor="#D7EDE4"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="Refresh"
+                            Command="{Binding RefreshCommand}"
+                            BackgroundColor="#FFFFFF33"
+                            TextColor="White"
+                            HeightRequest="36"
+                            Padding="12,0"
+                            CornerRadius="10" />
+                </Grid>
                 <Border BackgroundColor="#FFFFFF22"
                         StrokeThickness="0"
                         Padding="12,8">
@@ -152,4 +165,12 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
     </Grid>
+        <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
+                               AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
+                               TranslationY="-56"
+                               Mode="Waiter"
+                               SelectedIndex="0"
+                               ZIndex="40"
+                               InputTransparent="False" />
+    </AbsoluteLayout>
 </ContentPage>

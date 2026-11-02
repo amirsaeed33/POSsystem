@@ -4,22 +4,22 @@
              xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
              xmlns:models="clr-namespace:SmartPos.Mobile.Models"
              xmlns:helpers="clr-namespace:SmartPos.Mobile.Helpers"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
              x:Class="SmartPos.Mobile.Views.Customer.CustomerHomePage"
              x:DataType="vm:CustomerHomeViewModel"
              Title="Home"
              Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
              BackgroundColor="#F5F5F5">
     <ContentPage.Resources>
         <helpers:InvertedBoolConverter x:Key="InvertedBoolConverter" />
     </ContentPage.Resources>
 
-    <Grid BackgroundColor="#F5F5F5">
-        <ActivityIndicator IsRunning="{Binding IsBusy}"
-                           IsVisible="{Binding IsBusy}"
-                           Color="#F15A29"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center"
-                           ZIndex="10" />
+    <AbsoluteLayout BackgroundColor="#F5F5F5">
+        <Grid AbsoluteLayout.LayoutBounds="0,0,1,1"
+              AbsoluteLayout.LayoutFlags="All"
+              BackgroundColor="#F5F5F5">
+        <controls:TransparentBorderLoader IsRunning="{Binding IsBusy}" />
 
         <!-- Branch picker -->
         <ScrollView IsVisible="{Binding NeedsBranchSelection}" BackgroundColor="#F5F5F5">
@@ -97,7 +97,7 @@
                      Command="{Binding AppearingCommand}"
                      BackgroundColor="#F5F5F5">
             <ScrollView BackgroundColor="#F5F5F5">
-                <VerticalStackLayout Spacing="14" Padding="0,0,0,24" BackgroundColor="#F5F5F5">
+                <VerticalStackLayout Spacing="14" Padding="0,0,0,16" BackgroundColor="#F5F5F5">
 
                     <!-- Top bar: menu + Deliver to + cart -->
                     <Grid ColumnDefinitions="Auto,*,Auto"
@@ -185,8 +185,7 @@
 
                     <!-- Delivery / Pick-up toggle -->
                     <Border Margin="14,0"
-                            Stroke="#F15A29"
-                            StrokeThickness="1.5"
+                            StrokeThickness="0"
                             BackgroundColor="White"
                             Padding="4"
                             HeightRequest="48">
@@ -533,5 +532,202 @@
                 </VerticalStackLayout>
             </ScrollView>
         </RefreshView>
-    </Grid>
+
+        <!-- Product size / options sheet (website parity) -->
+        <Grid IsVisible="{Binding IsProductModalVisible}"
+              ZIndex="50"
+              BackgroundColor="#99000000">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding CloseProductModalCommand}" />
+            </Grid.GestureRecognizers>
+
+            <Border VerticalOptions="End"
+                    BackgroundColor="White"
+                    StrokeThickness="0"
+                    Padding="0"
+                    Margin="0"
+                    MaximumHeightRequest="640">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="24,24,0,0" />
+                </Border.StrokeShape>
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <!-- Hero -->
+                    <Grid HeightRequest="180">
+                        <Image Source="{Binding ModalProduct.ImageUrl}"
+                               Aspect="AspectFill"
+                               BackgroundColor="#E2E8F0" />
+                        <BoxView Color="#66000000" />
+                        <VerticalStackLayout VerticalOptions="End" Padding="16,12" Spacing="4">
+                            <Label Text="{Binding ModalProduct.CategoryName}"
+                                   FontSize="11"
+                                   TextColor="#FECACA"
+                                   FontAttributes="Bold" />
+                            <Label Text="{Binding ModalProduct.Name}"
+                                   FontSize="22"
+                                   FontAttributes="Bold"
+                                   TextColor="White"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="2" />
+                        </VerticalStackLayout>
+                        <Border WidthRequest="34"
+                                HeightRequest="34"
+                                StrokeThickness="0"
+                                BackgroundColor="#CCFFFFFF"
+                                HorizontalOptions="End"
+                                VerticalOptions="Start"
+                                Margin="12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="17" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CloseProductModalCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="✕"
+                                   FontSize="14"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   TextColor="#0F172A" />
+                        </Border>
+                    </Grid>
+
+                    <ScrollView Grid.Row="1" Padding="16,12">
+                        <VerticalStackLayout Spacing="14">
+                            <HorizontalStackLayout Spacing="8" IsVisible="{Binding IsLoadingModifiers}">
+                                <ActivityIndicator IsRunning="True" Color="#E11D48" HeightRequest="18" WidthRequest="18" />
+                                <Label Text="Loading options..." FontSize="12" TextColor="#64748B" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+
+                            <CollectionView ItemsSource="{Binding ModalModifierGroups}"
+                                            SelectionMode="None"
+                                            IsVisible="{Binding IsLoadingModifiers, Converter={StaticResource InvertedBoolConverter}}">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:ModifierGroupItem">
+                                        <VerticalStackLayout Spacing="8" Margin="0,0,0,10">
+                                            <HorizontalStackLayout Spacing="6">
+                                                <Label Text="{Binding Name}"
+                                                       FontSize="14"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#0F172A" />
+                                                <Label Text="{Binding RequirementLabel}"
+                                                       FontSize="11"
+                                                       TextColor="#E11D48"
+                                                       VerticalOptions="Center" />
+                                            </HorizontalStackLayout>
+                                            <FlexLayout BindableLayout.ItemsSource="{Binding Options}"
+                                                        Wrap="Wrap"
+                                                        JustifyContent="Start">
+                                                <BindableLayout.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:ModifierOptionItem">
+                                                        <Border x:Name="OptChip"
+                                                                StrokeThickness="1.5"
+                                                                Padding="12,8"
+                                                                Margin="0,0,8,8"
+                                                                Stroke="#E2E8F0"
+                                                                BackgroundColor="#F8FAFC">
+                                                            <Border.StrokeShape>
+                                                                <RoundRectangle CornerRadius="20" />
+                                                            </Border.StrokeShape>
+                                                            <Border.Triggers>
+                                                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                                    <Setter Property="Stroke" Value="#E11D48" />
+                                                                    <Setter Property="BackgroundColor" Value="#FEE2E2" />
+                                                                </DataTrigger>
+                                                            </Border.Triggers>
+                                                            <Border.GestureRecognizers>
+                                                                <TapGestureRecognizer
+                                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=SelectModalOptionCommand}"
+                                                                    CommandParameter="{Binding .}" />
+                                                            </Border.GestureRecognizers>
+                                                            <HorizontalStackLayout Spacing="4">
+                                                                <Label Text="{Binding Name}"
+                                                                       FontSize="13"
+                                                                       FontAttributes="Bold"
+                                                                       TextColor="#0F172A" />
+                                                                <Label Text="{Binding PriceLabel}"
+                                                                       FontSize="11"
+                                                                       IsVisible="{Binding HasPrice}"
+                                                                       TextColor="#E11D48" />
+                                                            </HorizontalStackLayout>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </BindableLayout.ItemTemplate>
+                                            </FlexLayout>
+                                        </VerticalStackLayout>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                            <Label Text="Description &amp; Details"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="#0F172A" />
+                            <Label Text="{Binding ModalProduct.Description}"
+                                   FontSize="13"
+                                   TextColor="#64748B"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </ScrollView>
+
+                    <!-- Bottom bar -->
+                    <Grid Grid.Row="2"
+                          ColumnDefinitions="Auto,*,Auto"
+                          Padding="16,10,16,18"
+                          ColumnSpacing="12"
+                          BackgroundColor="White">
+                        <Border Stroke="#E2E8F0" StrokeThickness="1" BackgroundColor="#F8FAFC" Padding="6">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <HorizontalStackLayout Spacing="10">
+                                <Border WidthRequest="32" HeightRequest="32" StrokeThickness="0" BackgroundColor="White">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding DecreaseDetailQtyCommand}" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="−" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Text="{Binding DetailQuantity}"
+                                       FontAttributes="Bold"
+                                       FontSize="16"
+                                       VerticalOptions="Center"
+                                       WidthRequest="24"
+                                       HorizontalTextAlignment="Center" />
+                                <Border WidthRequest="32" HeightRequest="32" StrokeThickness="0" BackgroundColor="White">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding IncreaseDetailQtyCommand}" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="+" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                            </HorizontalStackLayout>
+                        </Border>
+
+                        <Button Grid.Column="2"
+                                Text="{Binding ModalTotalLabel, StringFormat='Add to Order · {0}'}"
+                                Command="{Binding AddModalToCartCommand}"
+                                BackgroundColor="#E11D48"
+                                TextColor="White"
+                                CornerRadius="16"
+                                FontAttributes="Bold"
+                                HeightRequest="48"
+                                Padding="18,0" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+        </Grid>
+
+        <!-- True overlay: AbsoluteLayout pins nav to bottom without reserving content space -->
+        <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
+                               AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
+                               TranslationY="-56"
+                               Mode="Customer"
+                               SelectedIndex="0"
+                               ZIndex="40"
+                               InputTransparent="False" />
+    </AbsoluteLayout>
 </ContentPage>

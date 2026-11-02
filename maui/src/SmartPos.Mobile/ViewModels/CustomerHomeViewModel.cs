@@ -13,6 +13,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
     private readonly CartService _cart;
     private readonly AbpApiClient _api;
     private readonly AppSettings _settings;
+    private readonly DeliveryLocationService _deliveryLocation;
     private List<OnlineProductDto> _allProducts = new();
     private IDispatcherTimer? _heroTimer;
 
@@ -40,11 +41,27 @@ public partial class CustomerHomeViewModel : BaseViewModel
     [ObservableProperty]
     private bool showProductGrid;
 
+    [ObservableProperty]
+    private bool isProductModalVisible;
+
+    [ObservableProperty]
+    private OnlineProductDto? modalProduct;
+
+    [ObservableProperty]
+    private bool isLoadingModifiers;
+
+    [ObservableProperty]
+    private int detailQuantity = 1;
+
+    [ObservableProperty]
+    private string modalTotalLabel = "PKR 0";
+
     public ObservableCollection<OnlineBranchDto> Branches { get; } = new();
     public ObservableCollection<CategoryChipItem> Categories { get; } = new();
     public ObservableCollection<CategoryChipItem> ExploreCategories { get; } = new();
     public ObservableCollection<OnlineProductDto> Products { get; } = new();
     public ObservableCollection<HeroSlideDto> HeroSlides { get; } = new();
+    public ObservableCollection<ModifierGroupItem> ModalModifierGroups { get; } = new();
 
     public int CartCount => _cart.ItemCount;
     public bool HasCartItems => CartCount > 0;
@@ -66,13 +83,15 @@ public partial class CustomerHomeViewModel : BaseViewModel
         SessionService session,
         CartService cart,
         AbpApiClient api,
-        AppSettings settings)
+        AppSettings settings,
+        DeliveryLocationService deliveryLocation)
     {
         _orders = orders;
         _session = session;
         _cart = cart;
         _api = api;
         _settings = settings;
+        _deliveryLocation = deliveryLocation;
         Title = "Online Order";
         _cart.CartChanged += (_, _) =>
         {
@@ -164,6 +183,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
         await LoadHeroSlidesAsync(branch.Id);
 
+        // Cached catalog: first open hits API; later visits / re-appear are instant.
         _allProducts = await _orders.GetCatalogAsync(branch.Id);
         foreach (var p in _allProducts)
         {
@@ -175,6 +195,12 @@ public partial class CustomerHomeViewModel : BaseViewModel
         ShowProductGrid = true;
         RebuildCategories();
         ApplyFilters();
+
+        // Warm size/modifier options so add-to-cart popup feels instant.
+        _orders.PrefetchModifiersForCatalog(_allProducts);
+
+        // Start live delivery pin early (Deliver-to / address flow).
+        _ = _deliveryLocation.CaptureAsync();
     }
 
     private void RebuildCategories()
@@ -504,14 +530,15 @@ public partial class CustomerHomeViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private void IncreaseCard(OnlineProductDto? product)
+    private async Task IncreaseCardAsync(OnlineProductDto? product)
     {
         if (product == null || !product.InStock)
         {
             return;
         }
 
-        _cart.AddOrIncrement(product, 1);
+        // Same as website: open size/options sheet before adding.
+        await OpenProductModalAsync(product);
     }
 
     [RelayCommand]
@@ -533,7 +560,230 @@ public partial class CustomerHomeViewModel : BaseViewModel
             return;
         }
 
-        await Shell.Current.GoToAsync($"productdetail?productId={product.Id}");
+        await OpenProductModalAsync(product);
+    }
+
+    [RelayCommand]
+    private void CloseProductModal()
+    {
+        IsProductModalVisible = false;
+        ModalProduct = null;
+        ModalModifierGroups.Clear();
+        IsLoadingModifiers = false;
+        DetailQuantity = 1;
+    }
+
+    [RelayCommand]
+    private void SelectModalOption(ModifierOptionItem? option)
+    {
+        if (option == null)
+        {
+            return;
+        }
+
+        var group = ModalModifierGroups.FirstOrDefault(g => g.Id == option.GroupId);
+        if (group == null)
+        {
+            return;
+        }
+
+        if (group.AllowMultiple || group.MaxSelection > 1)
+        {
+            if (option.IsSelected)
+            {
+                if (group.IsRequired && group.Options.Count(o => o.IsSelected) <= 1)
+                {
+                    return;
+                }
+
+                option.IsSelected = false;
+            }
+            else
+            {
+                var selectedCount = group.Options.Count(o => o.IsSelected);
+                if (group.MaxSelection > 0 && selectedCount >= group.MaxSelection)
+                {
+                    var first = group.Options.FirstOrDefault(o => o.IsSelected);
+                    if (first != null)
+                    {
+                        first.IsSelected = false;
+                    }
+                }
+
+                option.IsSelected = true;
+            }
+        }
+        else
+        {
+            foreach (var o in group.Options)
+            {
+                o.IsSelected = ReferenceEquals(o, option);
+            }
+        }
+
+        RefreshModalTotal();
+    }
+
+    [RelayCommand]
+    private void IncreaseDetailQty()
+    {
+        DetailQuantity++;
+        RefreshModalTotal();
+    }
+
+    [RelayCommand]
+    private void DecreaseDetailQty()
+    {
+        if (DetailQuantity <= 1)
+        {
+            return;
+        }
+
+        DetailQuantity--;
+        RefreshModalTotal();
+    }
+
+    [RelayCommand]
+    private void AddModalToCart()
+    {
+        if (ModalProduct == null)
+        {
+            return;
+        }
+
+        foreach (var group in ModalModifierGroups.Where(g => g.IsRequired))
+        {
+            if (!group.Options.Any(o => o.IsSelected))
+            {
+                _ = Shell.Current.DisplayAlert("Required", $"Please select {group.Name}.", "OK");
+                return;
+            }
+        }
+
+        var selected = ModalModifierGroups
+            .SelectMany(g => g.Options.Where(o => o.IsSelected))
+            .ToList();
+        var extra = selected.Sum(o => o.Price);
+        var modifiers = selected.Count == 0
+            ? null
+            : string.Join(", ", selected.Select(o => o.Name));
+
+        var lineProduct = new OnlineProductDto
+        {
+            Id = ModalProduct.Id,
+            Name = ModalProduct.Name,
+            Price = ModalProduct.Price + extra,
+            ImagePath = ModalProduct.ImagePath,
+            CategoryName = ModalProduct.CategoryName,
+            InStock = ModalProduct.InStock
+        };
+
+        _cart.AddOrIncrement(lineProduct, DetailQuantity, modifiers);
+        CloseProductModal();
+    }
+
+    private async Task OpenProductModalAsync(OnlineProductDto product)
+    {
+        ModalProduct = product;
+        DetailQuantity = 1;
+        ModalModifierGroups.Clear();
+        IsProductModalVisible = true;
+        IsLoadingModifiers = true;
+        RefreshModalTotal();
+
+        try
+        {
+            var groups = await _orders.GetModifiersForProductAsync(product.Id);
+            groups = groups.Where(g => g.Options is { Count: > 0 }).ToList();
+
+            if (groups.Count == 0 && LooksLikePizza(product))
+            {
+                groups =
+                [
+                    new ProductModifierGroupDto
+                    {
+                        Id = -1,
+                        Name = "Size",
+                        IsRequired = true,
+                        MaxSelection = 1,
+                        Options =
+                        [
+                            new ProductModifierOptionDto { Id = -11, Name = "Small", IsDefault = true },
+                            new ProductModifierOptionDto { Id = -12, Name = "Medium" },
+                            new ProductModifierOptionDto { Id = -13, Name = "Large" },
+                            new ProductModifierOptionDto { Id = -14, Name = "XL" }
+                        ]
+                    }
+                ];
+            }
+
+            foreach (var g in groups)
+            {
+                var groupItem = new ModifierGroupItem
+                {
+                    Id = g.Id,
+                    Name = string.IsNullOrWhiteSpace(g.Name) ? "Options" : g.Name!,
+                    IsRequired = g.IsRequired || g.MinSelection > 0,
+                    AllowMultiple = g.AllowMultiple || g.MaxSelection > 1,
+                    MaxSelection = g.MaxSelection <= 0 ? 1 : g.MaxSelection
+                };
+
+                var defaultApplied = false;
+                foreach (var opt in g.Options)
+                {
+                    var item = new ModifierOptionItem
+                    {
+                        Id = opt.Id,
+                        GroupId = g.Id,
+                        Name = opt.Name ?? "Option",
+                        Price = opt.EffectivePrice,
+                        AllowMultiple = groupItem.AllowMultiple,
+                        IsRequired = groupItem.IsRequired,
+                        MaxSelection = groupItem.MaxSelection,
+                        IsSelected = opt.IsDefault && !defaultApplied
+                    };
+                    if (item.IsSelected)
+                    {
+                        defaultApplied = true;
+                    }
+
+                    groupItem.Options.Add(item);
+                }
+
+                if (groupItem.IsRequired && !groupItem.Options.Any(o => o.IsSelected) && groupItem.Options.Count > 0)
+                {
+                    groupItem.Options[0].IsSelected = true;
+                }
+
+                ModalModifierGroups.Add(groupItem);
+            }
+        }
+        finally
+        {
+            IsLoadingModifiers = false;
+            RefreshModalTotal();
+        }
+    }
+
+    private static bool LooksLikePizza(OnlineProductDto product)
+    {
+        return (product.Name?.Contains("pizza", StringComparison.OrdinalIgnoreCase) ?? false)
+            || (product.CategoryName?.Contains("pizza", StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private void RefreshModalTotal()
+    {
+        if (ModalProduct == null)
+        {
+            ModalTotalLabel = "PKR 0";
+            return;
+        }
+
+        var extra = ModalModifierGroups
+            .SelectMany(g => g.Options.Where(o => o.IsSelected))
+            .Sum(o => o.Price);
+        var total = (ModalProduct.Price + extra) * DetailQuantity;
+        ModalTotalLabel = $"PKR {total:0}";
     }
 
     [RelayCommand]

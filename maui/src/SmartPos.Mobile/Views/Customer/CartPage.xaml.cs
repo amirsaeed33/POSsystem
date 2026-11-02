@@ -21,6 +21,7 @@ public partial class CartPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        Shell.SetTabBarIsVisible(this, false);
         if (_vm.AppearingCommand.CanExecute(null))
         {
             _vm.AppearingCommand.Execute(null);

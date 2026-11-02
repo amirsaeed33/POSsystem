@@ -135,5 +135,6 @@ public enum AppRoleMode
     Customer,
     Waiter,
     Rider,
+    Admin,
     UnsupportedStaff
 }

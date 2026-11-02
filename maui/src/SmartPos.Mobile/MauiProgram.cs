@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SmartPos.Mobile.Services;
 using SmartPos.Mobile.ViewModels;
+using SmartPos.Mobile.Views.Admin;
 using SmartPos.Mobile.Views.Auth;
 using SmartPos.Mobile.Views.Customer;
 using SmartPos.Mobile.Views.Rider;
@@ -21,6 +22,12 @@ public static class MauiProgram
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+            })
+            .ConfigureMauiHandlers(handlers =>
+            {
+#if ANDROID
+                handlers.AddHandler(typeof(Shell), typeof(SmartPos.Mobile.Platforms.Android.ShellTabBarCollapse));
+#endif
             });
 
         using var settingsStream = Assembly.GetExecutingAssembly()
@@ -42,6 +49,8 @@ public static class MauiProgram
         builder.Services.AddSingleton(settings);
         builder.Services.AddSingleton<SessionService>();
         builder.Services.AddSingleton<CartService>();
+        builder.Services.AddSingleton<ProductCatalogCache>();
+        builder.Services.AddSingleton<DeliveryLocationService>();
         builder.Services.AddSingleton<NavigationService>();
         builder.Services.AddSingleton(_ =>
         {
@@ -57,9 +66,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<OnlineOrderService>();
         builder.Services.AddSingleton<RiderOrderService>();
         builder.Services.AddSingleton<RestaurantService>();
+        builder.Services.AddSingleton<DashboardService>();
 
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<UnsupportedStaffViewModel>();
+        builder.Services.AddTransient<AdminDashboardViewModel>();
         builder.Services.AddTransient<CustomerHomeViewModel>();
         builder.Services.AddTransient<ProductDetailViewModel>();
         builder.Services.AddTransient<CartCheckoutViewModel>();
@@ -72,6 +83,7 @@ public static class MauiProgram
 
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<UnsupportedStaffPage>();
+        builder.Services.AddTransient<AdminDashboardPage>();
         builder.Services.AddTransient<CustomerHomePage>();
         builder.Services.AddTransient<ProductDetailPage>();
         builder.Services.AddTransient<CartPage>();
