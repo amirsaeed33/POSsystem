@@ -10,9 +10,8 @@
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
              BackgroundColor="#F5F5F5">
-    <AbsoluteLayout BackgroundColor="#F5F5F5">
-        <Grid AbsoluteLayout.LayoutBounds="0,0,1,1"
-              AbsoluteLayout.LayoutFlags="All"
+    <Grid BackgroundColor="#F5F5F5">
+        <Grid
               RowDefinitions="*,Auto"
               BackgroundColor="#F5F5F5">
             <ScrollView>
@@ -158,19 +157,31 @@
                         <Image Source="icon_person.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
                         <Label Text="Your details" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
                     </HorizontalStackLayout>
-                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="10,2">
+                    <Border Stroke="#E2E8E4" StrokeThickness="1.5" BackgroundColor="White" Padding="10,2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding NameInvalid}" Value="True">
+                                <Setter Property="Stroke" Value="#EF4444" />
+                                <Setter Property="BackgroundColor" Value="#FEF2F2" />
+                            </DataTrigger>
+                        </Border.Triggers>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                             <Image Source="icon_person.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
                             <Entry Grid.Column="1" Placeholder="Your name" Text="{Binding CustomerName}" />
                         </Grid>
                     </Border>
-                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="10,2">
+                    <Border Stroke="#E2E8E4" StrokeThickness="1.5" BackgroundColor="White" Padding="10,2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding MobileInvalid}" Value="True">
+                                <Setter Property="Stroke" Value="#EF4444" />
+                                <Setter Property="BackgroundColor" Value="#FEF2F2" />
+                            </DataTrigger>
+                        </Border.Triggers>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                             <Image Source="icon_phone.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
                             <Entry Grid.Column="1" Placeholder="Mobile" Text="{Binding CustomerMobile}" Keyboard="Telephone" />
@@ -182,10 +193,16 @@
                         <Image Source="icon_home_pin.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
                         <Label Text="Delivery address" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
                     </HorizontalStackLayout>
-                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="10,2">
+                    <Border Stroke="#E2E8E4" StrokeThickness="1.5" BackgroundColor="White" Padding="10,2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding AddressInvalid}" Value="True">
+                                <Setter Property="Stroke" Value="#EF4444" />
+                                <Setter Property="BackgroundColor" Value="#FEF2F2" />
+                            </DataTrigger>
+                        </Border.Triggers>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                             <Image Source="icon_home_pin.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
                             <Entry Grid.Column="1" Placeholder="Street, house, block" Text="{Binding DeliveryAddress}" />
@@ -256,12 +273,10 @@
                     FontAttributes="Bold" />
         </Grid>
 
-        <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
-                               AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-52"
-                               Mode="Customer"
+        <controls:BubbleTabBar Mode="Customer"
                                SelectedIndex="1"
-                               ZIndex="40"
-                               InputTransparent="False" />
-    </AbsoluteLayout>
+                               VerticalOptions="End"
+                               HorizontalOptions="Fill"
+                               ZIndex="40" />
+    </Grid>
 </ContentPage>

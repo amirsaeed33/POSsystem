@@ -10,9 +10,8 @@
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
              BackgroundColor="#F5F5F5">
-    <AbsoluteLayout BackgroundColor="#F5F5F5">
-        <VerticalStackLayout AbsoluteLayout.LayoutBounds="0,0,1,1"
-                             AbsoluteLayout.LayoutFlags="All"
+    <Grid BackgroundColor="#F5F5F5">
+        <VerticalStackLayout
                              Padding="16"
                              Spacing="10"
                              BackgroundColor="#F5F5F5">
@@ -39,12 +38,10 @@
             </CollectionView>
         </VerticalStackLayout>
 
-        <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
-                               AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-52"
-                               Mode="Rider"
+        <controls:BubbleTabBar Mode="Rider"
                                SelectedIndex="1"
-                               ZIndex="40"
-                               InputTransparent="False" />
-    </AbsoluteLayout>
+                               VerticalOptions="End"
+                               HorizontalOptions="Fill"
+                               ZIndex="40" />
+    </Grid>
 </ContentPage>

@@ -17,9 +17,8 @@
         <helpers:StatusToAccentConverter x:Key="StatusAccent" />
     </ContentPage.Resources>
 
-    <AbsoluteLayout BackgroundColor="#F5F5F5">
-    <Grid AbsoluteLayout.LayoutBounds="0,0,1,1"
-          AbsoluteLayout.LayoutFlags="All"
+    <Grid BackgroundColor="#F5F5F5">
+    <Grid
           RowDefinitions="Auto,*"
           BackgroundColor="#F5F5F5">
         <!-- Mobile header -->
@@ -165,12 +164,10 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
     </Grid>
-        <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
-                               AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-52"
-                               Mode="Waiter"
+        <controls:BubbleTabBar Mode="Waiter"
                                SelectedIndex="0"
-                               ZIndex="40"
-                               InputTransparent="False" />
-    </AbsoluteLayout>
+                               VerticalOptions="End"
+                               HorizontalOptions="Fill"
+                               ZIndex="40" />
+    </Grid>
 </ContentPage>

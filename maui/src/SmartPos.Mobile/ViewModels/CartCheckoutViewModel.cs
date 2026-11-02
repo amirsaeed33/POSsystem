@@ -40,6 +40,15 @@ public partial class CartCheckoutViewModel : BaseViewModel
     [ObservableProperty]
     private bool isCapturingLocation;
 
+    [ObservableProperty]
+    private bool nameInvalid;
+
+    [ObservableProperty]
+    private bool mobileInvalid;
+
+    [ObservableProperty]
+    private bool addressInvalid;
+
     public ObservableCollection<CartLine> Lines => _cart.Lines;
     public ObservableCollection<DeliveryAreaDto> Areas { get; } = new();
 
@@ -127,13 +136,42 @@ public partial class CartCheckoutViewModel : BaseViewModel
         NotifyTotals();
     }
 
+    partial void OnCustomerNameChanged(string value)
+    {
+        if (NameInvalid && !string.IsNullOrWhiteSpace(value))
+        {
+            NameInvalid = false;
+        }
+    }
+
+    partial void OnCustomerMobileChanged(string value)
+    {
+        if (MobileInvalid && !string.IsNullOrWhiteSpace(value))
+        {
+            MobileInvalid = false;
+        }
+    }
+
     partial void OnDeliveryAddressChanged(string value)
     {
+        if (AddressInvalid && !string.IsNullOrWhiteSpace(value))
+        {
+            AddressInvalid = false;
+        }
+
         // As the customer types/selects an address, refresh GPS for the delivery pin.
         if (!string.IsNullOrWhiteSpace(value) && value.Trim().Length >= 3)
         {
             _deliveryLocation.CaptureDebounced();
         }
+    }
+
+    private bool ValidateCheckoutFields()
+    {
+        NameInvalid = string.IsNullOrWhiteSpace(CustomerName);
+        MobileInvalid = string.IsNullOrWhiteSpace(CustomerMobile);
+        AddressInvalid = string.IsNullOrWhiteSpace(DeliveryAddress);
+        return !NameInvalid && !MobileInvalid && !AddressInvalid;
     }
 
     [RelayCommand]
@@ -197,15 +235,9 @@ public partial class CartCheckoutViewModel : BaseViewModel
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(CustomerName) || string.IsNullOrWhiteSpace(CustomerMobile))
+        // Field errors: red borders only — no alert popups.
+        if (!ValidateCheckoutFields())
         {
-            await Shell.Current.DisplayAlert("Checkout", "Name and mobile are required.", "OK");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(DeliveryAddress))
-        {
-            await Shell.Current.DisplayAlert("Checkout", "Delivery address is required.", "OK");
             return;
         }
 

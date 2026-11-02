@@ -5,30 +5,33 @@
              BackgroundColor="Transparent"
              VerticalOptions="End"
              HorizontalOptions="Fill"
-             Margin="0"
+             Margin="12,0,12,12"
              Padding="0"
-             HeightRequest="52">
+             InputTransparent="True"
+             HeightRequest="56">
     <!--
-      Overlay control. Must sit on the physical bottom edge.
-      No bottom Margin/Padding here — Android inset flush is applied in code-behind.
+      Overlay control: parent Grid places this with VerticalOptions=End.
+      Do NOT use AbsoluteLayout Y=1 + TranslationY (that drifts mid-screen on Windows/desktop).
     -->
     <Grid x:Name="BarHost"
-          Padding="16,0,16,0"
+          Padding="4,0"
           BackgroundColor="Transparent"
-          HeightRequest="52"
+          HeightRequest="56"
           Margin="0"
-          VerticalOptions="End">
+          VerticalOptions="End"
+          InputTransparent="False">
         <Grid x:Name="PillHost"
-              HeightRequest="44"
+              HeightRequest="48"
               VerticalOptions="End"
-              Margin="0">
+              Margin="0"
+              InputTransparent="False">
             <Border StrokeThickness="0"
                     BackgroundColor="White"
                     VerticalOptions="Fill"
                     HorizontalOptions="Fill"
                     InputTransparent="True">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="22" />
+                    <RoundRectangle CornerRadius="24" />
                 </Border.StrokeShape>
                 <Border.Shadow>
                     <Shadow Brush="#40000000" Offset="0,2" Radius="8" Opacity="0.16" />
@@ -41,7 +44,7 @@
                      Fill="White"
                      VerticalOptions="Start"
                      HorizontalOptions="Start"
-                     TranslationY="-10"
+                     TranslationY="-8"
                      InputTransparent="True">
                 <Ellipse.Shadow>
                     <Shadow Brush="#40000000" Offset="0,2" Radius="6" Opacity="0.14" />
@@ -51,8 +54,9 @@
             <Grid x:Name="TabsGrid"
                   ColumnDefinitions="*,*,*,*"
                   VerticalOptions="Fill"
-                  HeightRequest="44"
-                  Padding="0">
+                  HeightRequest="48"
+                  Padding="0"
+                  InputTransparent="False">
                 <VerticalStackLayout x:Name="Tab0" Spacing="0" VerticalOptions="Center" HorizontalOptions="Fill">
                     <VerticalStackLayout.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnTab0Tapped" />

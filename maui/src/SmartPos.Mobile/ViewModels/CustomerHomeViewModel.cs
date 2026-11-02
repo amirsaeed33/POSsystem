@@ -590,7 +590,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
             return;
         }
 
-        // Same as website: open size/options sheet before adding.
+        // Open options only when the product has modifiers; otherwise add straight to cart.
         await OpenProductModalAsync(product);
     }
 
@@ -737,85 +737,86 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
     private async Task OpenProductModalAsync(OnlineProductDto product)
     {
+        var groups = await _orders.GetModifiersForProductAsync(product.Id);
+        groups = groups.Where(g => g.Options is { Count: > 0 }).ToList();
+
+        if (groups.Count == 0 && LooksLikePizza(product))
+        {
+            groups =
+            [
+                new ProductModifierGroupDto
+                {
+                    Id = -1,
+                    Name = "Size",
+                    IsRequired = true,
+                    MaxSelection = 1,
+                    Options =
+                    [
+                        new ProductModifierOptionDto { Id = -11, Name = "Small", IsDefault = true },
+                        new ProductModifierOptionDto { Id = -12, Name = "Medium" },
+                        new ProductModifierOptionDto { Id = -13, Name = "Large" },
+                        new ProductModifierOptionDto { Id = -14, Name = "XL" }
+                    ]
+                }
+            ];
+        }
+
+        // No options to choose — add one unit immediately (no popup).
+        if (groups.Count == 0)
+        {
+            _cart.AddOrIncrement(product, 1);
+            return;
+        }
+
         ModalProduct = product;
         DetailQuantity = 1;
         ModalModifierGroups.Clear();
+        IsLoadingModifiers = false;
         IsProductModalVisible = true;
-        IsLoadingModifiers = true;
         RefreshModalTotal();
 
-        try
+        foreach (var g in groups)
         {
-            var groups = await _orders.GetModifiersForProductAsync(product.Id);
-            groups = groups.Where(g => g.Options is { Count: > 0 }).ToList();
-
-            if (groups.Count == 0 && LooksLikePizza(product))
+            var groupItem = new ModifierGroupItem
             {
-                groups =
-                [
-                    new ProductModifierGroupDto
-                    {
-                        Id = -1,
-                        Name = "Size",
-                        IsRequired = true,
-                        MaxSelection = 1,
-                        Options =
-                        [
-                            new ProductModifierOptionDto { Id = -11, Name = "Small", IsDefault = true },
-                            new ProductModifierOptionDto { Id = -12, Name = "Medium" },
-                            new ProductModifierOptionDto { Id = -13, Name = "Large" },
-                            new ProductModifierOptionDto { Id = -14, Name = "XL" }
-                        ]
-                    }
-                ];
-            }
+                Id = g.Id,
+                Name = string.IsNullOrWhiteSpace(g.Name) ? "Options" : g.Name!,
+                IsRequired = g.IsRequired || g.MinSelection > 0,
+                AllowMultiple = g.AllowMultiple || g.MaxSelection > 1,
+                MaxSelection = g.MaxSelection <= 0 ? 1 : g.MaxSelection
+            };
 
-            foreach (var g in groups)
+            var defaultApplied = false;
+            foreach (var opt in g.Options)
             {
-                var groupItem = new ModifierGroupItem
+                var item = new ModifierOptionItem
                 {
-                    Id = g.Id,
-                    Name = string.IsNullOrWhiteSpace(g.Name) ? "Options" : g.Name!,
-                    IsRequired = g.IsRequired || g.MinSelection > 0,
-                    AllowMultiple = g.AllowMultiple || g.MaxSelection > 1,
-                    MaxSelection = g.MaxSelection <= 0 ? 1 : g.MaxSelection
+                    Id = opt.Id,
+                    GroupId = g.Id,
+                    Name = opt.Name ?? "Option",
+                    Price = opt.EffectivePrice,
+                    AllowMultiple = groupItem.AllowMultiple,
+                    IsRequired = groupItem.IsRequired,
+                    MaxSelection = groupItem.MaxSelection,
+                    IsSelected = opt.IsDefault && !defaultApplied
                 };
-
-                var defaultApplied = false;
-                foreach (var opt in g.Options)
+                if (item.IsSelected)
                 {
-                    var item = new ModifierOptionItem
-                    {
-                        Id = opt.Id,
-                        GroupId = g.Id,
-                        Name = opt.Name ?? "Option",
-                        Price = opt.EffectivePrice,
-                        AllowMultiple = groupItem.AllowMultiple,
-                        IsRequired = groupItem.IsRequired,
-                        MaxSelection = groupItem.MaxSelection,
-                        IsSelected = opt.IsDefault && !defaultApplied
-                    };
-                    if (item.IsSelected)
-                    {
-                        defaultApplied = true;
-                    }
-
-                    groupItem.Options.Add(item);
+                    defaultApplied = true;
                 }
 
-                if (groupItem.IsRequired && !groupItem.Options.Any(o => o.IsSelected) && groupItem.Options.Count > 0)
-                {
-                    groupItem.Options[0].IsSelected = true;
-                }
-
-                ModalModifierGroups.Add(groupItem);
+                groupItem.Options.Add(item);
             }
+
+            if (groupItem.IsRequired && !groupItem.Options.Any(o => o.IsSelected) && groupItem.Options.Count > 0)
+            {
+                groupItem.Options[0].IsSelected = true;
+            }
+
+            ModalModifierGroups.Add(groupItem);
         }
-        finally
-        {
-            IsLoadingModifiers = false;
-            RefreshModalTotal();
-        }
+
+        RefreshModalTotal();
     }
 
     private static bool LooksLikePizza(OnlineProductDto product)

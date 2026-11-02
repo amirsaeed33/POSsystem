@@ -35,36 +35,18 @@ public partial class BubbleTabBar : ContentView
     private string[] _labels = [];
     private int _tabCount = 4;
 
-    /// <summary>Base Y from AbsoluteLayout dock (parent sets TranslationY="-52").</summary>
-    private double _dockTranslationY;
-
     public BubbleTabBar()
     {
         InitializeComponent();
-        _dockTranslationY = TranslationY;
-        SizeChanged += (_, _) =>
-        {
-            PositionBubble();
-            PlaceAboveSystemNavButtons();
-        };
+        // Never leave residual TranslationY from older AbsoluteLayout docking.
+        TranslationY = 0;
+        SizeChanged += (_, _) => PositionBubble();
         TabsGrid.SizeChanged += (_, _) => PositionBubble();
-        HandlerChanged += (_, _) =>
-        {
-            ClearPageBottomPadding();
-            PlaceAboveSystemNavButtons();
-        };
         Loaded += (_, _) =>
         {
-            _dockTranslationY = TranslationY;
+            TranslationY = 0;
             ApplyMode();
-            ClearPageBottomPadding();
-            Dispatcher.Dispatch(() =>
-            {
-                PositionBubble();
-                PlaceAboveSystemNavButtons();
-            });
-            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(50), PlaceAboveSystemNavButtons);
-            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(200), PlaceAboveSystemNavButtons);
+            Dispatcher.Dispatch(PositionBubble);
         };
     }
 
@@ -178,7 +160,7 @@ public partial class BubbleTabBar : ContentView
         {
             var iconCenterX = tab.X + icon.X + (icon.Width / 2.0);
             ActiveBubble.TranslationX = Math.Max(0, iconCenterX - (bubbleSize / 2.0));
-            ActiveBubble.TranslationY = -10;
+            ActiveBubble.TranslationY = -8;
             return;
         }
 
@@ -186,11 +168,11 @@ public partial class BubbleTabBar : ContentView
         {
             var centerInPill = tab.X + (tab.Width / 2.0);
             ActiveBubble.TranslationX = Math.Max(0, centerInPill - (bubbleSize / 2.0));
-            ActiveBubble.TranslationY = -10;
+            ActiveBubble.TranslationY = -8;
             return;
         }
 
-        var hostWidth = PillHost.Width > 0 ? PillHost.Width : Math.Max(0, Width - 32);
+        var hostWidth = PillHost.Width > 0 ? PillHost.Width : Math.Max(0, Width - 8);
         if (hostWidth <= 0 || _tabCount <= 0)
         {
             return;
@@ -198,69 +180,7 @@ public partial class BubbleTabBar : ContentView
 
         var slot = hostWidth / _tabCount;
         ActiveBubble.TranslationX = Math.Max(0, (slot * index) + ((slot - bubbleSize) / 2.0));
-        ActiveBubble.TranslationY = -10;
-    }
-
-    private void ClearPageBottomPadding()
-    {
-        Element? current = this;
-        while (current != null)
-        {
-            if (current is Page page)
-            {
-                if (page.Padding.Bottom > 0)
-                {
-                    page.Padding = new Thickness(page.Padding.Left, page.Padding.Top, page.Padding.Right, 0);
-                }
-
-                return;
-            }
-
-            current = current.Parent;
-        }
-    }
-
-    /// <summary>
-    /// Sit the floating bubble nav directly ABOVE the Android system nav buttons
-    /// (back / home / recent), with a small clear gap — never under or below them.
-    /// </summary>
-    private void PlaceAboveSystemNavButtons()
-    {
-#if ANDROID
-        if (Handler?.PlatformView is not Android.Views.View native)
-        {
-            return;
-        }
-
-        var root = native.RootView;
-        if (root == null || root.Height <= 0 || native.Height <= 0)
-        {
-            return;
-        }
-
-        var density = DeviceDisplay.MainDisplayInfo.Density;
-        if (density <= 0)
-        {
-            density = 1;
-        }
-
-        const double clearGapDip = 8;
-        var insets = AndroidX.Core.View.ViewCompat.GetRootWindowInsets(native);
-        var systemNavPx = insets?.GetInsets(AndroidX.Core.View.WindowInsetsCompat.Type.NavigationBars()).Bottom ?? 0;
-        var desiredBottomPx = root.Height - systemNavPx - (int)Math.Round(clearGapDip * density);
-
-        var loc = new int[2];
-        native.GetLocationOnScreen(loc);
-        var bottomOnScreen = loc[1] + native.Height;
-        var adjustPx = desiredBottomPx - bottomOnScreen;
-        if (Math.Abs(adjustPx) <= 1)
-        {
-            return;
-        }
-
-        // Negative TranslationY moves the bar UP (above system buttons).
-        TranslationY += adjustPx / density;
-#endif
+        ActiveBubble.TranslationY = -8;
     }
 
     private async void OnTab0Tapped(object? sender, TappedEventArgs e) => await GoAsync(0);

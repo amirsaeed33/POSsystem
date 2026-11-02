@@ -15,9 +15,8 @@
         <helpers:InvertedBoolConverter x:Key="InvertedBoolConverter" />
     </ContentPage.Resources>
 
-    <AbsoluteLayout BackgroundColor="#F5F5F5">
-        <Grid AbsoluteLayout.LayoutBounds="0,0,1,1"
-              AbsoluteLayout.LayoutFlags="All"
+    <Grid BackgroundColor="#F5F5F5">
+        <Grid
               BackgroundColor="#F5F5F5">
         <controls:TransparentBorderLoader IsRunning="{Binding IsBusy}" />
 
@@ -533,22 +532,33 @@
             </ScrollView>
         </RefreshView>
 
-        <!-- Product size / options sheet (website parity) -->
+        <!-- Product modal moved to root overlay (below) so it sits above BubbleTabBar -->
+        </Grid>
+
+        <controls:BubbleTabBar Mode="Customer"
+                               SelectedIndex="0"
+                               VerticalOptions="End"
+                               HorizontalOptions="Fill"
+                               ZIndex="40"
+                               IsVisible="{Binding IsProductModalVisible, Converter={StaticResource InvertedBoolConverter}}" />
+
+        <!-- Centered product popup above nav; sibling of BubbleTabBar so Add is never covered -->
         <Grid IsVisible="{Binding IsProductModalVisible}"
-              ZIndex="50"
+              ZIndex="100"
               BackgroundColor="#99000000">
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Command="{Binding CloseProductModalCommand}" />
             </Grid.GestureRecognizers>
 
-            <Border VerticalOptions="End"
+            <Border VerticalOptions="Center"
+                    HorizontalOptions="Fill"
                     BackgroundColor="White"
                     StrokeThickness="0"
                     Padding="0"
-                    Margin="0"
-                    MaximumHeightRequest="640">
+                    Margin="16,24"
+                    MaximumHeightRequest="620">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="24,24,0,0" />
+                    <RoundRectangle CornerRadius="24" />
                 </Border.StrokeShape>
                 <Grid RowDefinitions="Auto,*,Auto">
                     <!-- Hero -->
@@ -668,66 +678,64 @@
                         </VerticalStackLayout>
                     </ScrollView>
 
-                    <!-- Bottom bar -->
+                    <!-- Bottom bar: qty + compact Add that fills remaining width -->
                     <Grid Grid.Row="2"
-                          ColumnDefinitions="Auto,*,Auto"
-                          Padding="16,10,16,18"
-                          ColumnSpacing="12"
+                          ColumnDefinitions="Auto,*"
+                          Padding="14,10,14,14"
+                          ColumnSpacing="10"
                           BackgroundColor="White">
-                        <Border Stroke="#E2E8F0" StrokeThickness="1" BackgroundColor="#F8FAFC" Padding="6">
+                        <Border Stroke="#E2E8F0"
+                                StrokeThickness="1"
+                                BackgroundColor="#F8FAFC"
+                                Padding="4"
+                                VerticalOptions="Center">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="14" />
+                                <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
-                            <HorizontalStackLayout Spacing="10">
-                                <Border WidthRequest="32" HeightRequest="32" StrokeThickness="0" BackgroundColor="White">
+                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                <Border WidthRequest="28" HeightRequest="28" StrokeThickness="0" BackgroundColor="White">
                                     <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="10" />
+                                        <RoundRectangle CornerRadius="8" />
                                     </Border.StrokeShape>
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer Command="{Binding DecreaseDetailQtyCommand}" />
                                     </Border.GestureRecognizers>
-                                    <Label Text="−" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    <Label Text="−" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" />
                                 </Border>
                                 <Label Text="{Binding DetailQuantity}"
                                        FontAttributes="Bold"
-                                       FontSize="16"
+                                       FontSize="14"
                                        VerticalOptions="Center"
-                                       WidthRequest="24"
+                                       WidthRequest="20"
                                        HorizontalTextAlignment="Center" />
-                                <Border WidthRequest="32" HeightRequest="32" StrokeThickness="0" BackgroundColor="White">
+                                <Border WidthRequest="28" HeightRequest="28" StrokeThickness="0" BackgroundColor="White">
                                     <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="10" />
+                                        <RoundRectangle CornerRadius="8" />
                                     </Border.StrokeShape>
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer Command="{Binding IncreaseDetailQtyCommand}" />
                                     </Border.GestureRecognizers>
-                                    <Label Text="+" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    <Label Text="+" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" />
                                 </Border>
                             </HorizontalStackLayout>
                         </Border>
 
-                        <Button Grid.Column="2"
-                                Text="{Binding ModalTotalLabel, StringFormat='Add to Order  /  {0}'}"
+                        <Button Grid.Column="1"
+                                Text="{Binding ModalTotalLabel, StringFormat='Add / {0}'}"
                                 Command="{Binding AddModalToCartCommand}"
                                 BackgroundColor="#E11D48"
                                 TextColor="White"
-                                CornerRadius="16"
+                                CornerRadius="12"
                                 FontAttributes="Bold"
-                                HeightRequest="48"
-                                Padding="18,0" />
+                                FontSize="13"
+                                HeightRequest="40"
+                                Padding="10,0"
+                                HorizontalOptions="Fill"
+                                VerticalOptions="Center"
+                                LineBreakMode="TailTruncation" />
                     </Grid>
                 </Grid>
             </Border>
         </Grid>
-        </Grid>
-
-        <!-- True overlay: AbsoluteLayout pins nav to bottom without reserving content space -->
-        <controls:BubbleTabBar AbsoluteLayout.LayoutBounds="0,1,1,52"
-                               AbsoluteLayout.LayoutFlags="WidthProportional,YProportional"
-                               TranslationY="-52"
-                               Mode="Customer"
-                               SelectedIndex="0"
-                               ZIndex="40"
-                               InputTransparent="False" />
-    </AbsoluteLayout>
+    </Grid>
 </ContentPage>
