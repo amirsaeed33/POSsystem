@@ -466,6 +466,7 @@ export class ProductListComponent implements OnInit {
                     'Category Name': 'Main Course',
                     'Unit Name': 'Plate',
                     'Price (PKR)': 450,
+                    'Plate Cost (PKR)': 180,
                     'Description': 'Aromatic basmati rice cooked with tender spiced chicken'
                 },
                 {
@@ -473,6 +474,7 @@ export class ProductListComponent implements OnInit {
                     'Category Name': 'Fast Food',
                     'Unit Name': 'Pcs',
                     'Price (PKR)': 550,
+                    'Plate Cost (PKR)': 220,
                     'Description': 'Crispy fried chicken fillet with fries and coleslaw'
                 },
                 {
@@ -480,6 +482,7 @@ export class ProductListComponent implements OnInit {
                     'Category Name': 'Main Course',
                     'Unit Name': 'Serving',
                     'Price (PKR)': 1100,
+                    'Plate Cost (PKR)': 650,
                     'Description': 'Desi ghee cooked fresh chicken karahi'
                 },
                 {
@@ -487,6 +490,7 @@ export class ProductListComponent implements OnInit {
                     'Category Name': 'Beverages',
                     'Unit Name': 'Glass',
                     'Price (PKR)': 220,
+                    'Plate Cost (PKR)': 40,
                     'Description': 'Fresh mint, lemon, and soda blended drink'
                 }
             ];
@@ -562,7 +566,16 @@ export class ProductListComponent implements OnInit {
                     Barcode: String(r['Barcode'] || r['barcode'] || ''),
                     Price: Number(r['Price (PKR)'] || r['Price'] || r['price'] || 0),
                     WholesalePrice: this.isRestaurant ? 0 : Number(r['Wholesale Price (PKR)'] || r['WholesalePrice'] || r['wholesalePrice'] || 0),
-                    CostPrice: this.isRestaurant ? 0 : Number(r['Purchase Price (PKR)'] || r['Cost Price (PKR)'] || r['CostPrice'] || r['costPrice'] || 0),
+                    CostPrice: this.isRestaurant
+                        ? Number(
+                              r['Plate Cost (PKR)'] ||
+                                  r['Purchase Price (PKR)'] ||
+                                  r['Cost Price (PKR)'] ||
+                                  r['CostPrice'] ||
+                                  r['costPrice'] ||
+                                  0
+                          )
+                        : Number(r['Purchase Price (PKR)'] || r['Cost Price (PKR)'] || r['CostPrice'] || r['costPrice'] || 0),
                     StockQuantity: this.isRestaurant ? 0 : Number(r['Stock Quantity'] || r['StockQuantity'] || r['stockQuantity'] || 0),
                     AlertQuantityLimit: this.isRestaurant ? 0 : Number(r['Alert Limit'] || r['AlertQuantityLimit'] || r['alertQuantityLimit'] || 10),
                     CategoryName: r['Category Name'] || r['Category'] || r['category'] || '',

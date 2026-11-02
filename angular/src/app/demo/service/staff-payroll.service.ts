@@ -155,6 +155,7 @@ export class StaffPayrollService {
             netSalary: item.netSalary ?? item.NetSalary ?? 0,
             paymentStatus: item.paymentStatus ?? item.PaymentStatus ?? 0,
             paymentDate: item.paymentDate ?? item.PaymentDate ?? null,
+            isAccountingPosted: !!(item.isAccountingPosted ?? item.IsAccountingPosted),
             remarks: item.remarks ?? item.Remarks,
         };
     }

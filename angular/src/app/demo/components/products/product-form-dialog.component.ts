@@ -218,10 +218,24 @@ export class ProductFormDialogComponent implements OnChanges {
                 brandId = this.brands[0].id;
             }
             wholesalePrice = 0;
-            if (!this.isGroceryInventory) {
-                costPrice = 0;
-            } else {
-                costPrice = Number.isFinite(costPrice) ? Math.max(0, costPrice) : 0;
+            // Menu dishes: optional estimated plate cost for Profit Report.
+            // Grocery inventory: purchase/cost price for stock valuation.
+            costPrice = Number.isFinite(costPrice) ? Math.max(0, costPrice) : 0;
+            if (this.isGroceryInventory && price > 0 && price < costPrice) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Validation',
+                    detail: 'Selling price cannot be lower than the purchase price.',
+                });
+                return;
+            }
+            if (!this.isGroceryInventory && costPrice > 0 && price < costPrice) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Validation',
+                    detail: 'Selling price cannot be lower than the estimated plate cost.',
+                });
+                return;
             }
         } else {
             if (price < costPrice) {

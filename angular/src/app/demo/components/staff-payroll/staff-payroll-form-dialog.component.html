@@ -136,14 +136,23 @@
         <div class="grid">
             <div class="col-12 md:col-6 flex flex-column gap-2">
                 <label class="font-medium">Payment Status</label>
-                <p-dropdown
-                    [options]="paymentStatusOptions"
-                    [(ngModel)]="record.paymentStatus"
-                    optionLabel="label"
-                    optionValue="value"
-                    styleClass="w-full"
-                    [disabled]="saving"
-                ></p-dropdown>
+                <div *ngIf="record.paymentStatus === 1" class="flex align-items-center gap-2 py-2">
+                    <p-tag value="Paid" severity="success"></p-tag>
+                    <small class="text-500">Use list action to post accounts if missing.</small>
+                </div>
+                <ng-container *ngIf="record.paymentStatus !== 1">
+                    <p-dropdown
+                        [options]="paymentStatusOptions"
+                        [(ngModel)]="record.paymentStatus"
+                        optionLabel="label"
+                        optionValue="value"
+                        styleClass="w-full"
+                        [disabled]="saving"
+                    ></p-dropdown>
+                    <small class="text-500">
+                        To mark as Paid and update accounts, use <strong>Pay salary</strong> on the list.
+                    </small>
+                </ng-container>
             </div>
             <div class="col-12 md:col-6 flex flex-column gap-2">
                 <label class="font-medium">Payment Date</label>

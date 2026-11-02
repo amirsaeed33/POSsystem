@@ -80,6 +80,7 @@ namespace SmartPos.StaffPayrolls
 
             ValidateMoney(input.BasicSalary ?? 0, input.Allowance, input.Bonus, input.Deduction, input.OvertimeAmount);
             ValidatePeriod(input.Month, input.Year);
+            EnsurePaymentStatusNotPaidViaForm(input.PaymentStatus);
 
             var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
             var staff = await GetActiveStaffAsync(input.StaffId);
@@ -133,6 +134,37 @@ namespace SmartPos.StaffPayrolls
 
             var previousBasic = entity.BasicSalary;
             var previousNet = entity.NetSalary;
+            var accountingPosted = await HasPayrollLedgerAsync(entity.Id);
+
+            // Do not allow marking Paid from the edit form — that skips Cash/Expense posting.
+            if (input.PaymentStatus == PayrollPaymentStatus.Paid
+                && entity.PaymentStatus != PayrollPaymentStatus.Paid)
+            {
+                throw new UserFriendlyException(
+                    "Use Pay salary to mark payroll as paid. That posts the amount to your Cash/Bank and Expense accounts.");
+            }
+
+            // Once accounting is posted, keep Paid and block amount changes that would desync the ledger.
+            if (accountingPosted)
+            {
+                if (input.PaymentStatus != PayrollPaymentStatus.Paid)
+                {
+                    throw new UserFriendlyException(
+                        "This payroll already has accounting entries. Delete the payroll to reverse the ledger, then recreate if needed.");
+                }
+
+                if (input.BasicSalary != entity.BasicSalary
+                    || input.Allowance != entity.Allowance
+                    || input.Bonus != entity.Bonus
+                    || input.Deduction != entity.Deduction
+                    || input.OvertimeAmount != entity.OvertimeAmount)
+                {
+                    throw new UserFriendlyException(
+                        "Salary amounts cannot be changed after payment was posted to accounts. Delete and recreate if needed.");
+                }
+
+                entity.PaymentStatus = PayrollPaymentStatus.Paid;
+            }
 
             entity.StaffId = staff.Id;
             entity.Month = input.Month;
@@ -144,7 +176,10 @@ namespace SmartPos.StaffPayrolls
             entity.OvertimeAmount = input.OvertimeAmount;
             entity.NetSalary = CalculateNetSalary(
                 input.BasicSalary, input.Allowance, input.Bonus, input.OvertimeAmount, input.Deduction);
-            entity.PaymentStatus = input.PaymentStatus;
+            if (!accountingPosted)
+            {
+                entity.PaymentStatus = input.PaymentStatus;
+            }
             entity.PaymentDate = input.PaymentDate;
             entity.Remarks = input.Remarks;
 
@@ -184,17 +219,13 @@ namespace SmartPos.StaffPayrolls
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(entity.BranchId);
 
-            if (entity.PaymentStatus == PayrollPaymentStatus.Paid)
-            {
-                throw new UserFriendlyException("This payroll record has already been marked as Paid.");
-            }
-
             if (entity.PaymentStatus == PayrollPaymentStatus.Cancelled)
             {
                 throw new UserFriendlyException("Cancelled payroll records cannot be paid.");
             }
 
-            // Concurrency & duplicate safety: verify no existing payment ledger entries for this voucher
+            // Concurrency & duplicate safety: verify no existing payment ledger entries for this voucher.
+            // Paid-without-ledger is allowed so older rows marked Paid from the form can still post accounts.
             var existingLedgerCandidates = await _ledgerRepository.GetAllListAsync(x => x.VoucherId == entity.Id);
             if (existingLedgerCandidates.Any(x => VoucherTypes.IsPayrollPayment(x.VoucherType, x.Description)))
             {
@@ -344,12 +375,66 @@ namespace SmartPos.StaffPayrolls
             return entity;
         }
 
+        public override async Task<PagedResultDto<StaffPayrollDto>> GetAllAsync(PagedStaffPayrollResultRequestDto input)
+        {
+            var result = await base.GetAllAsync(input);
+            await FillAccountingPostedFlagsAsync(result.Items);
+            return result;
+        }
+
+        public override async Task<StaffPayrollDto> GetAsync(EntityDto<int> input)
+        {
+            var dto = await base.GetAsync(input);
+            dto.IsAccountingPosted = await HasPayrollLedgerAsync(dto.Id);
+            return dto;
+        }
+
         protected override StaffPayrollDto MapToEntityDto(StaffPayroll entity)
         {
             var dto = base.MapToEntityDto(entity);
             dto.StaffName = entity.Staff?.Name;
             dto.BranchName = entity.Branch?.Name;
             return dto;
+        }
+
+        private async Task FillAccountingPostedFlagsAsync(System.Collections.Generic.IReadOnlyList<StaffPayrollDto> items)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return;
+            }
+
+            var ids = items.Select(x => x.Id).ToList();
+            var ledgerRows = await _ledgerRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => x.VoucherId.HasValue && ids.Contains(x.VoucherId.Value))
+                .Select(x => new { x.VoucherId, x.VoucherType, x.Description })
+                .ToListAsync();
+
+            var postedIds = ledgerRows
+                .Where(x => x.VoucherId.HasValue && VoucherTypes.IsPayrollPayment(x.VoucherType, x.Description))
+                .Select(x => x.VoucherId.Value)
+                .ToHashSet();
+
+            foreach (var item in items)
+            {
+                item.IsAccountingPosted = postedIds.Contains(item.Id);
+            }
+        }
+
+        private async Task<bool> HasPayrollLedgerAsync(int payrollId)
+        {
+            var rows = await _ledgerRepository.GetAllListAsync(x => x.VoucherId == payrollId);
+            return rows.Any(x => VoucherTypes.IsPayrollPayment(x.VoucherType, x.Description));
+        }
+
+        private static void EnsurePaymentStatusNotPaidViaForm(PayrollPaymentStatus status)
+        {
+            if (status == PayrollPaymentStatus.Paid)
+            {
+                throw new UserFriendlyException(
+                    "Use Pay salary to mark payroll as paid. That posts the amount to your Cash/Bank and Expense accounts.");
+            }
         }
 
         private void EnsureGranted(string childPermission, string parentPermission)
