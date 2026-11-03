@@ -1,107 +1,84 @@
-<div class="card mb-3 p-3">
-    <div class="flex flex-wrap align-items-center justify-content-between gap-3">
-        <div class="flex align-items-center gap-2">
-            <button
-                type="button"
-                class="p-button p-button-sm"
-                [ngClass]="activeTab === 'sales' ? 'p-button-primary' : 'p-button-outlined p-button-secondary'"
-                (click)="switchTab('sales')"
-            >
-                <i class="pi pi-shopping-cart mr-2"></i>
-                <span class="font-bold">Sales</span>
-                <span
-                    class="ml-2 px-2 py-0.5 border-round-pill text-xs font-bold"
-                    [ngClass]="activeTab === 'sales' ? 'bg-white text-primary' : 'surface-200 text-700'"
-                >
-                    {{ totalRecords }}
-                </span>
-            </button>
-            <button
-                type="button"
-                class="p-button p-button-sm"
-                [ngClass]="activeTab === 'returns' ? 'p-button-primary' : 'p-button-outlined p-button-secondary'"
-                (click)="switchTab('returns')"
-            >
-                <i class="pi pi-replay mr-2"></i>
-                <span class="font-bold">Return History</span>
-                <span
-                    class="ml-2 px-2 py-0.5 border-round-pill text-xs font-bold"
-                    [ngClass]="activeTab === 'returns' ? 'bg-white text-primary' : 'surface-200 text-700'"
-                >
-                    {{ totalReturnRecords }}
-                </span>
-            </button>
-        </div>
-        <div class="text-sm text-500">
-            <span *ngIf="activeTab === 'sales'">Manage customer sales & process sale returns</span>
-            <span *ngIf="activeTab === 'returns'">View return history, returned items, and return reasons</span>
-        </div>
-    </div>
-</div>
-
-<div class="card" *ngIf="activeTab === 'sales'">
-    <p-table
-        #dt
-        [value]="sales"
-        [paginator]="true"
-        [rows]="10"
-        [showCurrentPageReport]="true"
-        responsiveLayout="scroll"
-        [loading]="loading"
-        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-        [rowsPerPageOptions]="[10, 25, 50]"
-        [globalFilterFields]="['invoiceNo', 'customerName', 'notes']"
+<div class="card">
+    <p-tabView
+        [activeIndex]="activeListTab"
+        (activeIndexChange)="onListTabChange($event)"
+        styleClass="sale-list-tabs mb-2"
     >
-        <ng-template pTemplate="caption">
-            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
-                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
-                    <span class="p-input-icon-left w-full sm:w-20rem">
-                        <i class="pi pi-search"></i>
-                        <input
-                            pInputText
-                            type="text"
-                            class="w-full"
-                            placeholder="Search sales"
-                            [(ngModel)]="keyword"
-                            (keyup.enter)="onSearch()"
-                            (input)="onGlobalFilter(dt, $event)"
-                        />
-                    </span>
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-search"
-                        class="p-button-outlined"
-                        label="Search"
-                        (click)="onSearch()"
-                    ></button>
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-shopping-cart"></i>
+                    <span>Sales</span>
+                    <span class="sale-tab-count">{{ totalRecords }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-replay"></i>
+                    <span>Return History</span>
+                    <span class="sale-tab-count">{{ totalReturnRecords }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+    </p-tabView>
+
+    <!-- Sales Table -->
+    <div *ngIf="activeListTab === 0">
+        <p-table
+            #dt
+            [value]="sales"
+            [paginator]="true"
+            [rows]="10"
+            [showCurrentPageReport]="true"
+            responsiveLayout="scroll"
+            [loading]="loading"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            [rowsPerPageOptions]="[10, 25, 50]"
+            [globalFilterFields]="['invoiceNo', 'customerName', 'notes']"
+        >
+            <ng-template pTemplate="caption">
+                <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                    <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                        <span class="p-input-icon-left w-full sm:w-20rem">
+                            <i class="pi pi-search"></i>
+                            <input
+                                pInputText
+                                type="text"
+                                class="w-full"
+                                placeholder="Search sales"
+                                [(ngModel)]="keyword"
+                                (keyup.enter)="onSearch()"
+                                (input)="onGlobalFilter(dt, $event)"
+                            />
+                        </span>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-search"
+                            class="p-button-outlined"
+                            label="Search"
+                            (click)="onSearch()"
+                        ></button>
+                    </div>
+                    <div class="flex flex-wrap gap-2 align-items-center">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-plus"
+                            label="Create"
+                            class="p-button-primary w-full sm:w-auto font-semibold"
+                            (click)="openCreateDialog()"
+                            [disabled]="!canCreate"
+                            [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
+                            tooltipPosition="top"
+                        ></button>
+                    </div>
                 </div>
-                <div class="flex flex-wrap gap-2 align-items-center">
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-replay"
-                        label="Return History"
-                        class="p-button-outlined p-button-warning font-semibold"
-                        (click)="switchTab('returns')"
-                    ></button>
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-plus"
-                        label="Create"
-                        class="p-button-primary w-full sm:w-auto font-semibold"
-                        (click)="openCreateDialog()"
-                        [disabled]="!canCreate"
-                        [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
-                        tooltipPosition="top"
-                    ></button>
-                </div>
-            </div>
-        </ng-template>
+            </ng-template>
 
         <ng-template pTemplate="header">
             <tr>
@@ -163,12 +140,12 @@
                 </td>
             </tr>
         </ng-template>
-    </p-table>
-</div>
+        </p-table>
+    </div>
 
-<!-- Return History Section -->
-<div class="card" *ngIf="activeTab === 'returns'">
-    <p-table
+    <!-- Return History Table -->
+    <div *ngIf="activeListTab === 1">
+        <p-table
         #dtReturns
         [value]="returns"
         [paginator]="true"
@@ -289,7 +266,8 @@
                 </td>
             </tr>
         </ng-template>
-    </p-table>
+        </p-table>
+    </div>
 </div>
 
 <app-sale-form-dialog

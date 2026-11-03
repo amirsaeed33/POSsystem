@@ -13,10 +13,12 @@ import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions
 
 @Component({
     templateUrl: './sale-list.component.html',
+    styleUrls: ['./sale-list.component.scss'],
     providers: [MessageService, ConfirmationService],
 })
 export class SaleListComponent implements OnInit {
     activeTab: 'sales' | 'returns' = 'sales';
+    activeListTab = 0;
 
     sales: SaleDto[] = [];
     loading = false;
@@ -112,8 +114,19 @@ export class SaleListComponent implements OnInit {
         this.loadReturns();
     }
 
+    onListTabChange(index: number): void {
+        this.activeListTab = index;
+        this.activeTab = index === 1 ? 'returns' : 'sales';
+        if (this.activeTab === 'returns' && !this.returns.length && !this.loadingReturns) {
+            this.loadReturns();
+        } else if (this.activeTab === 'sales' && !this.sales.length && !this.loading) {
+            this.loadSales();
+        }
+    }
+
     switchTab(tab: 'sales' | 'returns'): void {
         this.activeTab = tab;
+        this.activeListTab = tab === 'returns' ? 1 : 0;
         if (tab === 'returns' && !this.returns.length && !this.loadingReturns) {
             this.loadReturns();
         } else if (tab === 'sales' && !this.sales.length && !this.loading) {
