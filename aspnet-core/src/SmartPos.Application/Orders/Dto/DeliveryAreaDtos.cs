@@ -24,6 +24,10 @@ namespace SmartPos.Orders.Dto
         [StringLength(DeliveryArea.MaxCoverageDetailsLength)]
         public string CoverageDetails { get; set; }
 
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
         public bool IsActive { get; set; }
     }
 
@@ -46,6 +50,10 @@ namespace SmartPos.Orders.Dto
 
         [StringLength(DeliveryArea.MaxCoverageDetailsLength)]
         public string CoverageDetails { get; set; }
+
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
 
         public bool IsActive { get; set; } = true;
     }

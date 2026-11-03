@@ -38,6 +38,7 @@ namespace SmartPos.Orders.Dto
         public decimal DeliveryFee { get; set; }
         public decimal TotalAmount { get; set; }
         public string Notes { get; set; }
+        public int? DeliveryRating { get; set; }
         public string PaymentMethod { get; set; }
         public bool IsAcceptedByRider { get; set; }
         public List<RiderOrderItemDto> Items { get; set; } = new List<RiderOrderItemDto>();
@@ -66,5 +67,16 @@ namespace SmartPos.Orders.Dto
     {
         public int OrderId { get; set; }
         public string Reason { get; set; }
+    }
+
+    public class CompleteRiderDeliveryDto
+    {
+        public int OrderId { get; set; }
+
+        /// <summary>Optional rider note after delivery (e.g. handed to guard, customer feedback).</summary>
+        public string Notes { get; set; }
+
+        /// <summary>Optional delivery rating from 1 to 5.</summary>
+        public int? Rating { get; set; }
     }
 }

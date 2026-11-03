@@ -1,11 +1,15 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MessageService, ConfirmationService } from 'primeng/api';
+import { Subscription } from 'rxjs';
 import {
     RiderDashboardStatsDto,
     RiderOrderDto,
     RiderOrderStatus,
 } from 'src/app/demo/api/rider';
 import { RiderService } from 'src/app/demo/service/rider.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { BranchService } from 'src/app/demo/service/branch.service';
+import { BranchDto } from 'src/app/demo/api/branch';
 
 @Component({
     selector: 'app-rider-dashboard',
@@ -18,6 +22,8 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
     orders: RiderOrderDto[] = [];
     loading = false;
     actionInProgress: { [key: number]: boolean } = {};
+    currentBranch: BranchDto | null = null;
+    branchLogoFailed = false;
 
     // Reject Dialog State
     rejectDialogVisible = false;
@@ -31,19 +37,44 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
         'Other Reason',
     ];
 
+    // Complete Delivery Dialog State
+    completeDialogVisible = false;
+    selectedOrderForComplete: RiderOrderDto | null = null;
+    deliveryNotes = '';
+    deliveryRating: number | null = null;
+
     // Auto-refresh interval
     private pollInterval: any;
+    private branchSub?: Subscription;
     autoRefreshEnabled = true;
 
     readonly OrderStatus = RiderOrderStatus;
 
     constructor(
         private riderService: RiderService,
+        private branchContext: BranchContextService,
+        private branchService: BranchService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) {}
 
+    get branchDisplayName(): string {
+        return this.currentBranch?.name || this.stats?.branchName || 'Delivery Portal';
+    }
+
+    get branchLogoUrl(): string | null {
+        if (this.branchLogoFailed || !this.currentBranch?.imagePath) {
+            return null;
+        }
+        return this.branchService.getImageUrl(this.currentBranch.imagePath) || null;
+    }
+
     ngOnInit(): void {
+        this.currentBranch = this.branchContext.getCurrentBranch();
+        this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
+            this.currentBranch = branch;
+            this.branchLogoFailed = false;
+        });
         this.loadData();
         this.pollInterval = setInterval(() => {
             if (this.autoRefreshEnabled && !this.loading) {
@@ -53,9 +84,14 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.branchSub?.unsubscribe();
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
         }
+    }
+
+    onBranchLogoError(): void {
+        this.branchLogoFailed = true;
     }
 
     async loadData(silent = false): Promise<void> {
@@ -150,28 +186,44 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
     }
 
     confirmCompleteDelivery(order: RiderOrderDto): void {
-        this.confirmationService.confirm({
-            message: `Are you sure you want to mark Order ${order.orderNo} as DELIVERED?`,
-            header: 'Confirm Delivery Completion',
-            icon: 'pi pi-check-circle',
-            acceptLabel: 'Yes, Delivered',
-            rejectLabel: 'Cancel',
-            acceptButtonStyleClass: 'p-button-success',
-            accept: async () => {
-                await this.completeDelivery(order);
-            },
-        });
+        this.selectedOrderForComplete = order;
+        this.deliveryNotes = '';
+        this.deliveryRating = null;
+        this.completeDialogVisible = true;
     }
 
-    private async completeDelivery(order: RiderOrderDto): Promise<void> {
+    cancelCompleteDelivery(): void {
+        if (this.actionInProgress[this.selectedOrderForComplete?.id || 0]) {
+            return;
+        }
+        this.completeDialogVisible = false;
+        this.selectedOrderForComplete = null;
+        this.deliveryNotes = '';
+        this.deliveryRating = null;
+    }
+
+    async submitCompleteDelivery(): Promise<void> {
+        const order = this.selectedOrderForComplete;
+        if (!order) {
+            return;
+        }
+
         this.actionInProgress[order.id] = true;
         try {
-            await this.riderService.completeDelivery(order.id);
+            await this.riderService.completeDelivery(
+                order.id,
+                this.deliveryNotes,
+                this.deliveryRating
+            );
             this.messageService.add({
                 severity: 'success',
                 summary: 'Delivery Completed',
                 detail: `Order ${order.orderNo} marked as Delivered!`,
             });
+            this.completeDialogVisible = false;
+            this.selectedOrderForComplete = null;
+            this.deliveryNotes = '';
+            this.deliveryRating = null;
             await this.loadData(true);
         } catch (error: any) {
             this.messageService.add({

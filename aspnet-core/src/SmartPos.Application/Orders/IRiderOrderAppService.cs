@@ -13,6 +13,6 @@ namespace SmartPos.Orders
         Task<PagedResultDto<RiderOrderDto>> GetOrderHistoryAsync(RiderOrderHistoryInput input);
         Task<RiderOrderDto> AcceptOrderAsync(EntityDto<int> input);
         Task<RiderOrderDto> RejectOrderAsync(RejectRiderOrderDto input);
-        Task<RiderOrderDto> CompleteDeliveryAsync(EntityDto<int> input);
+        Task<RiderOrderDto> CompleteDeliveryAsync(CompleteRiderDeliveryDto input);
     }
 }

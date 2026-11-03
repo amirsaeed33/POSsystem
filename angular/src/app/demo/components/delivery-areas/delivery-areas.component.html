@@ -72,6 +72,7 @@
                 </th>
                 <th class="white-space-nowrap">Est. Time</th>
                 <th>Coverage Details</th>
+                <th class="white-space-nowrap">Map Pin</th>
                 <th pSortableColumn="isActive" class="text-center white-space-nowrap">
                     Status <p-sortIcon field="isActive"></p-sortIcon>
                 </th>
@@ -119,6 +120,19 @@
                         {{ area.coverageDetails || '—' }}
                     </span>
                 </td>
+                <td>
+                    <a
+                        *ngIf="area.latitude != null && area.longitude != null"
+                        class="text-primary text-sm font-medium hover:underline"
+                        [href]="'https://maps.google.com/?q=' + area.latitude + ',' + area.longitude"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [pTooltip]="(area.latitude | number: '1.4-6') + ', ' + (area.longitude | number: '1.4-6')"
+                    >
+                        <i class="pi pi-map-marker mr-1"></i>View
+                    </a>
+                    <span *ngIf="area.latitude == null || area.longitude == null" class="text-400">—</span>
+                </td>
                 <td class="text-center">
                     <p-tag
                         [value]="area.isActive ? 'Active' : 'Inactive'"
@@ -135,7 +149,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="7" class="text-center p-4">
+                <td colspan="8" class="text-center p-4">
                     <div class="text-500">No delivery areas found</div>
                 </td>
             </tr>
@@ -149,8 +163,8 @@
         [modal]="true"
         appendTo="body"
         [blockScroll]="true"
-        styleClass="dialog-sm"
-        [breakpoints]="{ '960px': '75vw', '640px': '95vw' }"
+        styleClass="dialog-md"
+        [breakpoints]="{ '960px': '85vw', '640px': '95vw' }"
         [draggable]="false"
         [resizable]="false"
     >
@@ -229,6 +243,129 @@
                     maxlength="512"
                     [disabled]="saving"
                 ></textarea>
+            </div>
+
+            <div class="surface-50 border-1 surface-border border-round p-3 flex flex-column gap-3">
+                <div class="flex flex-wrap align-items-start justify-content-between gap-2">
+                    <div>
+                        <span class="font-bold text-900 block">Area GPS Location</span>
+                        <small class="text-500">Pick the area pin from Google Maps or use device GPS</small>
+                    </div>
+                    <div class="flex flex-wrap align-items-center gap-2">
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            class="p-button-outlined p-button-sm p-button-info"
+                            icon="pi pi-map"
+                            label="Open Google Maps"
+                            (click)="openGoogleMapsPicker()"
+                            [disabled]="saving"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            class="p-button-outlined p-button-sm p-button-success"
+                            [icon]="locating ? 'pi pi-spin pi-spinner' : 'pi pi-compass'"
+                            [label]="locating ? 'Detecting...' : 'Pin Current Location'"
+                            (click)="detectCurrentLocation()"
+                            [disabled]="saving || locating"
+                        ></button>
+                        <a
+                            *ngIf="googleMapsAreaLink"
+                            [href]="googleMapsAreaLink"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="p-button p-button-outlined p-button-sm p-button-help text-decoration-none"
+                        >
+                            <i class="pi pi-external-link mr-1"></i>
+                            View Map
+                        </a>
+                        <button
+                            *ngIf="form.latitude != null || form.longitude != null"
+                            pButton
+                            type="button"
+                            icon="pi pi-times"
+                            class="p-button-text p-button-danger p-button-sm"
+                            (click)="clearAreaLocation()"
+                            [disabled]="saving"
+                            title="Clear coordinates"
+                        ></button>
+                    </div>
+                </div>
+
+                <div class="formgrid grid mb-0">
+                    <div class="field col-12 md:col-6 mb-0 flex flex-column gap-2">
+                        <label for="areaLatitude" class="font-medium text-sm">Latitude</label>
+                        <p-inputNumber
+                            inputId="areaLatitude"
+                            [(ngModel)]="form.latitude"
+                            mode="decimal"
+                            [minFractionDigits]="2"
+                            [maxFractionDigits]="8"
+                            [min]="-90"
+                            [max]="90"
+                            placeholder="e.g. 31.5204"
+                            styleClass="w-full"
+                            [disabled]="saving"
+                        ></p-inputNumber>
+                    </div>
+                    <div class="field col-12 md:col-6 mb-0 flex flex-column gap-2">
+                        <label for="areaLongitude" class="font-medium text-sm">Longitude</label>
+                        <p-inputNumber
+                            inputId="areaLongitude"
+                            [(ngModel)]="form.longitude"
+                            mode="decimal"
+                            [minFractionDigits]="2"
+                            [maxFractionDigits]="8"
+                            [min]="-180"
+                            [max]="180"
+                            placeholder="e.g. 74.3587"
+                            styleClass="w-full"
+                            [disabled]="saving"
+                        ></p-inputNumber>
+                    </div>
+                </div>
+
+                <div class="flex flex-column gap-2">
+                    <label for="mapsPasteUrl" class="font-medium text-sm">Paste Google Maps URL / coordinates</label>
+                    <div class="flex flex-wrap gap-2">
+                        <input
+                            id="mapsPasteUrl"
+                            pInputText
+                            type="text"
+                            class="flex-1 min-w-0"
+                            [(ngModel)]="mapsPasteUrl"
+                            placeholder="https://www.google.com/maps/@31.52,74.35,16z or 31.52, 74.35"
+                            [disabled]="saving"
+                        />
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            class="p-button-sm"
+                            icon="pi pi-check"
+                            label="Apply"
+                            (click)="applyMapsPasteUrl()"
+                            [disabled]="saving || !(mapsPasteUrl || '').trim()"
+                        ></button>
+                    </div>
+                    <small class="text-500">
+                        In Google Maps: right-click the place → copy coordinates, or copy the browser URL and Apply.
+                    </small>
+                </div>
+
+                <div
+                    *ngIf="form.latitude != null && form.longitude != null"
+                    class="text-xs text-green-700 bg-green-50 border-round p-2 flex align-items-center gap-2"
+                >
+                    <i class="pi pi-check-circle"></i>
+                    <span>
+                        Area pin:
+                        <strong>{{ form.latitude | number: '1.4-6' }}, {{ form.longitude | number: '1.4-6' }}</strong>
+                    </span>
+                </div>
             </div>
 
             <div class="flex align-items-center gap-2 pt-1">

@@ -2,8 +2,12 @@
     <div class="topbar-start">
         <a class="app-logo" [routerLink]="homeLink" [title]="branchDisplayName">
             <img alt="app logo" [src]="logo" (error)="onLogoError()" style="max-height: 2.75rem; max-width: 3.5rem; width: auto; object-fit: contain; border-radius: 4px;">
-            <!-- Full shop name on tablet/desktop; hidden on mobile to free topbar space -->
-            <span class="app-name hidden sm:inline" style="font-size: 1.5rem; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ branchDisplayName }}</span>
+            <!-- Branch name: always visible for rider/waiter; desktop-only for others to save mobile space -->
+            <span
+                class="app-name"
+                [ngClass]="(isDeliveryRider || isWaiter) ? 'inline' : 'hidden sm:inline'"
+                style="font-size: 1.5rem; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+            >{{ branchDisplayName }}</span>
         </a>
 
         <button #menubutton class="topbar-menubutton p-link" type="button" (click)="onMenuButtonClick()">
@@ -39,19 +43,26 @@
     </div>
 
     <div class="topbar-center">
-        <!-- Static Branch Badge for Waiter (No branch switching) — click opens POS home -->
+        <!-- Static Branch Badge for Waiter / Rider (locked to assigned branch) -->
         <a
             class="flex align-items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 border-round surface-100 text-xs sm:text-sm font-semibold text-700 max-w-9rem sm:max-w-none overflow-hidden no-underline text-700 hover:surface-200"
-            *ngIf="isWaiter && currentBranch"
+            *ngIf="(isWaiter || isDeliveryRider) && currentBranch"
             [routerLink]="homeLink"
             [title]="currentBranch.name"
         >
             <i class="pi pi-map-marker text-primary flex-shrink-0"></i>
             <span class="white-space-nowrap overflow-hidden text-overflow-ellipsis">{{ currentBranch.name }}</span>
-            <span class="text-xs px-1.5 py-0.5 border-round font-medium bg-yellow-100 text-yellow-900 flex-shrink-0 hidden sm:inline">🍽️ Restaurant</span>
+            <span
+                *ngIf="isWaiter"
+                class="text-xs px-1.5 py-0.5 border-round font-medium bg-yellow-100 text-yellow-900 flex-shrink-0 hidden sm:inline"
+            >🍽️ Restaurant</span>
+            <span
+                *ngIf="isDeliveryRider"
+                class="text-xs px-1.5 py-0.5 border-round font-medium bg-blue-100 text-blue-900 flex-shrink-0 hidden sm:inline"
+            >Delivery</span>
         </a>
 
-        <div class="topbar-branch relative" *ngIf="branches?.length && !isWaiter">
+        <div class="topbar-branch relative" *ngIf="branches?.length && !isWaiter && !isDeliveryRider">
             <!-- Single branch / no switch: branch name opens role home -->
             <a
                 *ngIf="!canSwitchLocations || branches.length <= 1"

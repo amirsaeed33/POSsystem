@@ -29,7 +29,9 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
     dialogVisible = false;
     dialogTitle = 'Add Delivery Area';
     saving = false;
+    locating = false;
     editingAreaId: number | null = null;
+    mapsPasteUrl = '';
 
     form: CreateDeliveryAreaDto = {
         branchId: undefined,
@@ -38,6 +40,8 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
         minimumOrderAmount: 0,
         estimatedDeliveryTime: '30-45 mins',
         coverageDetails: '',
+        latitude: null,
+        longitude: null,
         isActive: true,
     };
 
@@ -138,6 +142,7 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
     openCreateDialog(): void {
         this.dialogTitle = 'Add Delivery Area';
         this.editingAreaId = null;
+        this.mapsPasteUrl = '';
         this.form = {
             branchId: this.selectedBranchId ?? this.branchContext.getBranchId() ?? undefined,
             name: '',
@@ -145,6 +150,8 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
             minimumOrderAmount: 0,
             estimatedDeliveryTime: '30-45 mins',
             coverageDetails: '',
+            latitude: null,
+            longitude: null,
             isActive: true,
         };
         this.dialogVisible = true;
@@ -153,6 +160,7 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
     openEditDialog(area: DeliveryAreaDto): void {
         this.dialogTitle = `Edit Delivery Area - ${area.name}`;
         this.editingAreaId = area.id;
+        this.mapsPasteUrl = '';
         this.form = {
             branchId: area.branchId,
             name: area.name,
@@ -160,9 +168,134 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
             minimumOrderAmount: area.minimumOrderAmount,
             estimatedDeliveryTime: area.estimatedDeliveryTime || '',
             coverageDetails: area.coverageDetails || '',
+            latitude: area.latitude ?? null,
+            longitude: area.longitude ?? null,
             isActive: area.isActive,
         };
         this.dialogVisible = true;
+    }
+
+    get googleMapsAreaLink(): string | null {
+        if (this.form.latitude != null && this.form.longitude != null) {
+            return `https://maps.google.com/?q=${this.form.latitude},${this.form.longitude}`;
+        }
+        return null;
+    }
+
+    openGoogleMapsPicker(): void {
+        const url =
+            this.form.latitude != null && this.form.longitude != null
+                ? `https://www.google.com/maps/@${this.form.latitude},${this.form.longitude},16z`
+                : 'https://www.google.com/maps';
+        window.open(url, '_blank', 'noopener,noreferrer');
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Google Maps',
+            detail: 'Right-click a point → copy coordinates, or paste the Maps URL below.',
+            life: 6000,
+        });
+    }
+
+    detectCurrentLocation(): void {
+        if (!navigator.geolocation) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS Not Supported',
+                detail: 'Geolocation is not supported by your browser.',
+            });
+            return;
+        }
+        this.locating = true;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                this.form.latitude = Number(pos.coords.latitude.toFixed(6));
+                this.form.longitude = Number(pos.coords.longitude.toFixed(6));
+                this.locating = false;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Location Captured',
+                    detail: `Coordinates set to (${this.form.latitude}, ${this.form.longitude})`,
+                });
+            },
+            () => {
+                this.locating = false;
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'GPS Detection',
+                    detail: 'Unable to detect GPS. Open Google Maps and paste the URL or enter lat/lng manually.',
+                });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    clearAreaLocation(): void {
+        this.form.latitude = null;
+        this.form.longitude = null;
+        this.mapsPasteUrl = '';
+    }
+
+    applyMapsPasteUrl(): void {
+        const parsed = this.parseLatLngFromText(this.mapsPasteUrl);
+        if (!parsed) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Invalid Maps Link',
+                detail: 'Paste a Google Maps URL or coordinates like 31.5204, 74.3587',
+            });
+            return;
+        }
+        this.form.latitude = parsed.lat;
+        this.form.longitude = parsed.lng;
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Location Set',
+            detail: `Coordinates set to (${parsed.lat}, ${parsed.lng})`,
+        });
+    }
+
+    private parseLatLngFromText(raw: string): { lat: number; lng: number } | null {
+        const text = (raw || '').trim();
+        if (!text) {
+            return null;
+        }
+
+        const atMatch = text.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+        if (atMatch) {
+            return this.toLatLng(atMatch[1], atMatch[2]);
+        }
+
+        const qMatch = text.match(/[?&]q=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/i);
+        if (qMatch) {
+            return this.toLatLng(qMatch[1], qMatch[2]);
+        }
+
+        const queryMatch = text.match(/[?&]query=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/i);
+        if (queryMatch) {
+            return this.toLatLng(queryMatch[1], queryMatch[2]);
+        }
+
+        const plainMatch = text.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+        if (plainMatch) {
+            return this.toLatLng(plainMatch[1], plainMatch[2]);
+        }
+
+        return null;
+    }
+
+    private toLatLng(latRaw: string, lngRaw: string): { lat: number; lng: number } | null {
+        const lat = Number(latRaw);
+        const lng = Number(lngRaw);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            return null;
+        }
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            return null;
+        }
+        return {
+            lat: Number(lat.toFixed(6)),
+            lng: Number(lng.toFixed(6)),
+        };
     }
 
     async saveArea(): Promise<void> {
@@ -188,6 +321,15 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
 
         this.saving = true;
         try {
+            const latitude =
+                this.form.latitude != null && Number.isFinite(Number(this.form.latitude))
+                    ? Number(this.form.latitude)
+                    : null;
+            const longitude =
+                this.form.longitude != null && Number.isFinite(Number(this.form.longitude))
+                    ? Number(this.form.longitude)
+                    : null;
+
             if (this.editingAreaId) {
                 await this.deliveryAreaService.update({
                     id: this.editingAreaId,
@@ -197,6 +339,8 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
                     minimumOrderAmount: this.form.minimumOrderAmount || 0,
                     estimatedDeliveryTime: this.form.estimatedDeliveryTime?.trim(),
                     coverageDetails: this.form.coverageDetails?.trim(),
+                    latitude,
+                    longitude,
                     isActive: this.form.isActive,
                 });
                 this.messageService.add({
@@ -212,6 +356,8 @@ export class DeliveryAreasComponent implements OnInit, OnDestroy {
                     minimumOrderAmount: this.form.minimumOrderAmount || 0,
                     estimatedDeliveryTime: this.form.estimatedDeliveryTime?.trim(),
                     coverageDetails: this.form.coverageDetails?.trim(),
+                    latitude,
+                    longitude,
                     isActive: this.form.isActive,
                 });
                 this.messageService.add({

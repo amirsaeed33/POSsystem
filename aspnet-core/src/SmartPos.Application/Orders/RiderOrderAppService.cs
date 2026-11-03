@@ -278,7 +278,7 @@ namespace SmartPos.Orders
             }
         }
 
-        public async Task<RiderOrderDto> CompleteDeliveryAsync(EntityDto<int> input)
+        public async Task<RiderOrderDto> CompleteDeliveryAsync(CompleteRiderDeliveryDto input)
         {
             var staff = await GetCurrentRiderStaffAsync();
 
@@ -289,7 +289,7 @@ namespace SmartPos.Orders
                     .Include(o => o.Sale)
                     .Include(o => o.Lines)
                         .ThenInclude(l => l.Product)
-                    .FirstOrDefaultAsync(o => o.Id == input.Id);
+                    .FirstOrDefaultAsync(o => o.Id == input.OrderId);
 
                 if (order == null)
                 {
@@ -307,6 +307,38 @@ namespace SmartPos.Orders
                 }
 
                 order.Status = CustomerOrderStatus.Delivered;
+
+                if (input.Rating.HasValue)
+                {
+                    if (input.Rating.Value < 1 || input.Rating.Value > 5)
+                    {
+                        throw new UserFriendlyException("Delivery rating must be between 1 and 5.");
+                    }
+
+                    order.DeliveryRating = input.Rating.Value;
+                }
+
+                if (!string.IsNullOrWhiteSpace(input.Notes))
+                {
+                    var note = input.Notes.Trim();
+                    if (note.Length > 400)
+                    {
+                        note = note.Substring(0, 400);
+                    }
+
+                    var deliveryNote = $"[Rider {staff.Name} delivery note: {note}]";
+                    var combined = string.IsNullOrWhiteSpace(order.Notes)
+                        ? deliveryNote
+                        : $"{order.Notes.Trim()} {deliveryNote}";
+
+                    if (combined.Length > CustomerOrder.MaxNotesLength)
+                    {
+                        combined = combined.Substring(0, CustomerOrder.MaxNotesLength);
+                    }
+
+                    order.Notes = combined;
+                }
+
                 await CurrentUnitOfWork.SaveChangesAsync();
 
                 await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
@@ -470,6 +502,7 @@ namespace SmartPos.Orders
                     DeliveryFee = o.DeliveryFee,
                     TotalAmount = o.TotalAmount,
                     Notes = o.Notes,
+                    DeliveryRating = o.DeliveryRating,
                     PaymentMethod = paymentMethod,
                     IsAcceptedByRider = o.Status == CustomerOrderStatus.InProgress,
                     Items = items

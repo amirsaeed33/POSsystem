@@ -2958,6 +2958,9 @@ namespace SmartPos.Migrations
                     b.Property<int?>("DeliveryPromotionId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("DeliveryRating")
+                        .HasColumnType("int");
+
                     b.Property<double?>("DistanceKm")
                         .HasColumnType("float");
 
@@ -3149,6 +3152,12 @@ namespace SmartPos.Migrations
 
                     b.Property<long?>("LastModifierUserId")
                         .HasColumnType("bigint");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
 
                     b.Property<decimal>("MinimumOrderAmount")
                         .HasPrecision(18, 2)

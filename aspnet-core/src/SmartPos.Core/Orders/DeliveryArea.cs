@@ -36,6 +36,12 @@ namespace SmartPos.Orders
         [StringLength(MaxCoverageDetailsLength)]
         public virtual string CoverageDetails { get; set; }
 
+        /// <summary>Optional GPS latitude for this delivery area (picked from Google Maps).</summary>
+        public virtual double? Latitude { get; set; }
+
+        /// <summary>Optional GPS longitude for this delivery area (picked from Google Maps).</summary>
+        public virtual double? Longitude { get; set; }
+
         public virtual bool IsActive { get; set; } = true;
     }
 }

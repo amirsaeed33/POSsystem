@@ -12,6 +12,7 @@ import { PaginatorModule } from 'primeng/paginator';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { CardModule } from 'primeng/card';
+import { RatingModule } from 'primeng/rating';
 import { RiderRoutingModule } from './rider-routing.module';
 import { RiderDashboardComponent } from './dashboard/rider-dashboard.component';
 import { RiderHistoryComponent } from './history/rider-history.component';
@@ -35,6 +36,7 @@ import { RiderHistoryComponent } from './history/rider-history.component';
         TagModule,
         TooltipModule,
         CardModule,
+        RatingModule,
     ],
     providers: [
         MessageService,

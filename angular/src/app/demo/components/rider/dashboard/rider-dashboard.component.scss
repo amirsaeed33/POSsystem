@@ -241,3 +241,28 @@
         }
     }
 }
+
+::ng-deep .rider-complete-dialog {
+    .p-dialog-header {
+        padding: 0.65rem 0.85rem !important;
+    }
+
+    .p-dialog-content {
+        padding: 0.65rem 0.85rem !important;
+    }
+
+    .p-dialog-footer {
+        padding: 0.5rem 0.85rem !important;
+    }
+
+    textarea {
+        min-height: 2.5rem !important;
+        max-height: 4.5rem !important;
+        resize: vertical;
+    }
+
+    .p-rating .p-rating-icon {
+        font-size: 1.15rem;
+        color: #f59e0b;
+    }
+}

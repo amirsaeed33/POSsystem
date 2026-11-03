@@ -14,6 +14,8 @@ export interface DeliveryAreaDto {
     minimumOrderAmount: number;
     estimatedDeliveryTime?: string;
     coverageDetails?: string;
+    latitude?: number | null;
+    longitude?: number | null;
     isActive: boolean;
 }
 
@@ -24,6 +26,8 @@ export interface CreateDeliveryAreaDto {
     minimumOrderAmount: number;
     estimatedDeliveryTime?: string;
     coverageDetails?: string;
+    latitude?: number | null;
+    longitude?: number | null;
     isActive: boolean;
 }
 
@@ -89,6 +93,8 @@ export class DeliveryAreaService {
                 minimumOrderAmount: input.minimumOrderAmount,
                 estimatedDeliveryTime: input.estimatedDeliveryTime,
                 coverageDetails: input.coverageDetails,
+                latitude: input.latitude ?? null,
+                longitude: input.longitude ?? null,
                 isActive: input.isActive,
             })
         );
@@ -106,6 +112,8 @@ export class DeliveryAreaService {
                 minimumOrderAmount: input.minimumOrderAmount,
                 estimatedDeliveryTime: input.estimatedDeliveryTime,
                 coverageDetails: input.coverageDetails,
+                latitude: input.latitude ?? null,
+                longitude: input.longitude ?? null,
                 isActive: input.isActive,
             })
         );
@@ -168,6 +176,8 @@ export class DeliveryAreaService {
             minimumOrderAmount: item.minimumOrderAmount ?? item.MinimumOrderAmount ?? 0,
             estimatedDeliveryTime: item.estimatedDeliveryTime ?? item.EstimatedDeliveryTime,
             coverageDetails: item.coverageDetails ?? item.CoverageDetails,
+            latitude: item.latitude ?? item.Latitude ?? null,
+            longitude: item.longitude ?? item.Longitude ?? null,
             isActive: item.isActive ?? item.IsActive ?? true,
         };
     }

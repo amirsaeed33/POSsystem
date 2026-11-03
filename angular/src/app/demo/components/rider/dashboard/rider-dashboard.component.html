@@ -5,17 +5,30 @@
     <!-- Top Header Banner -->
     <div class="surface-card p-3 md:p-4 border-round-xl shadow-2 mb-3">
         <div class="flex flex-column sm:flex-row align-items-start sm:align-items-center justify-content-between gap-3">
-            <div>
+            <div class="min-w-0">
                 <div class="flex flex-wrap align-items-center gap-2 mb-1">
-                    <span class="inline-flex align-items-center justify-content-center bg-primary-100 text-primary border-circle w-2rem h-2rem">
-                        <i class="pi pi-compass text-lg"></i>
+                    <img
+                        *ngIf="branchLogoUrl"
+                        [src]="branchLogoUrl"
+                        [alt]="branchDisplayName"
+                        (error)="onBranchLogoError()"
+                        class="border-round"
+                        style="width: 2.25rem; height: 2.25rem; object-fit: contain;"
+                    />
+                    <span
+                        *ngIf="!branchLogoUrl"
+                        class="inline-flex align-items-center justify-content-center bg-primary-100 text-primary border-circle w-2rem h-2rem flex-shrink-0"
+                    >
+                        <i class="pi pi-map-marker text-lg"></i>
                     </span>
-                    <h2 class="text-xl md:text-2xl font-bold text-900 m-0">Rider Delivery Portal</h2>
+                    <h2 class="text-xl md:text-2xl font-bold text-900 m-0 white-space-nowrap overflow-hidden text-overflow-ellipsis">
+                        {{ branchDisplayName }}
+                    </h2>
                     <span class="badge-status online">On Duty</span>
                 </div>
                 <p class="text-600 text-sm m-0">
                     Welcome back, <span class="font-semibold text-900">{{ stats?.riderName || 'Rider' }}</span>
-                    <span *ngIf="stats?.branchName" class="text-500 font-normal"> &bull; {{ stats?.branchName }}</span>
+                    <span class="text-500 font-normal"> &bull; Delivery Rider</span>
                 </p>
             </div>
 
@@ -310,6 +323,80 @@
         </div>
     </div>
 </div>
+
+<!-- Complete Delivery Dialog -->
+<p-dialog
+    header="Confirm Delivery Completion"
+    [(visible)]="completeDialogVisible"
+    [modal]="true"
+    [style]="{ width: '320px', maxWidth: '90vw' }"
+    styleClass="rider-complete-dialog"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="!actionInProgress[selectedOrderForComplete?.id || 0]"
+    (onHide)="cancelCompleteDelivery()"
+>
+    <div class="p-fluid">
+        <div class="flex align-items-center gap-2 mb-2">
+            <i class="pi pi-check-circle text-green-500 text-lg"></i>
+            <p class="text-sm text-700 m-0">
+                Mark <strong>{{ selectedOrderForComplete?.orderNo }}</strong> as delivered?
+            </p>
+        </div>
+
+        <div class="field mb-2">
+            <label class="text-xs font-bold text-700 mb-1 block">
+                Rating <span class="text-500 font-medium">(optional)</span>
+            </label>
+            <div class="flex align-items-center gap-2">
+                <p-rating
+                    [(ngModel)]="deliveryRating"
+                    [stars]="5"
+                    [cancel]="true"
+                    [readonly]="actionInProgress[selectedOrderForComplete?.id || 0]"
+                ></p-rating>
+                <span class="text-xs text-500" *ngIf="deliveryRating">{{ deliveryRating }}/5</span>
+            </div>
+        </div>
+
+        <div class="field mb-0">
+            <label for="deliveryNotes" class="text-xs font-bold text-700 mb-1 block">
+                Notes <span class="text-500 font-medium">(optional)</span>
+            </label>
+            <textarea
+                id="deliveryNotes"
+                pInputTextarea
+                [(ngModel)]="deliveryNotes"
+                rows="2"
+                maxlength="400"
+                placeholder="Optional delivery note..."
+                class="w-full border-round p-2 text-sm"
+                [disabled]="actionInProgress[selectedOrderForComplete?.id || 0]"
+            ></textarea>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-content-end gap-2">
+            <button
+                pButton
+                label="Cancel"
+                icon="pi pi-times"
+                class="p-button-text p-button-sm"
+                (click)="cancelCompleteDelivery()"
+                [disabled]="actionInProgress[selectedOrderForComplete?.id || 0]"
+            ></button>
+            <button
+                pButton
+                label="Yes, Delivered"
+                icon="pi pi-check"
+                class="p-button-success p-button-sm"
+                (click)="submitCompleteDelivery()"
+                [loading]="actionInProgress[selectedOrderForComplete?.id || 0]"
+            ></button>
+        </div>
+    </ng-template>
+</p-dialog>
 
 <!-- Reject Order Dialog -->
 <p-dialog

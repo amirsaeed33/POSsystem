@@ -72,6 +72,9 @@ namespace SmartPos.Orders
         [StringLength(MaxNotesLength)]
         public virtual string Notes { get; set; }
 
+        /// <summary>Optional 1–5 star rating captured when rider marks delivery complete.</summary>
+        public virtual int? DeliveryRating { get; set; }
+
         public virtual int? SaleId { get; set; }
 
         [ForeignKey(nameof(SaleId))]

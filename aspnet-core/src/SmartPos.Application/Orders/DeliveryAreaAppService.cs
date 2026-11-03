@@ -143,6 +143,8 @@ namespace SmartPos.Orders
                     MinimumOrderAmount = Math.Max(0, input.MinimumOrderAmount),
                     EstimatedDeliveryTime = input.EstimatedDeliveryTime?.Trim(),
                     CoverageDetails = input.CoverageDetails?.Trim(),
+                    Latitude = input.Latitude,
+                    Longitude = input.Longitude,
                     IsActive = input.IsActive
                 };
 
@@ -182,6 +184,8 @@ namespace SmartPos.Orders
                 entity.MinimumOrderAmount = Math.Max(0, input.MinimumOrderAmount);
                 entity.EstimatedDeliveryTime = input.EstimatedDeliveryTime?.Trim();
                 entity.CoverageDetails = input.CoverageDetails?.Trim();
+                entity.Latitude = input.Latitude;
+                entity.Longitude = input.Longitude;
                 entity.IsActive = input.IsActive;
 
                 await Repository.UpdateAsync(entity);
@@ -271,6 +275,8 @@ namespace SmartPos.Orders
                 MinimumOrderAmount = entity.MinimumOrderAmount,
                 EstimatedDeliveryTime = entity.EstimatedDeliveryTime,
                 CoverageDetails = entity.CoverageDetails,
+                Latitude = entity.Latitude,
+                Longitude = entity.Longitude,
                 IsActive = entity.IsActive
             };
         }
