@@ -75,6 +75,9 @@ namespace SmartPos.Orders
         /// <summary>Optional 1–5 star rating captured when rider marks delivery complete.</summary>
         public virtual int? DeliveryRating { get; set; }
 
+        /// <summary>Optional 1–5 star rating given by the customer for this delivery.</summary>
+        public virtual int? CustomerRating { get; set; }
+
         public virtual int? SaleId { get; set; }
 
         [ForeignKey(nameof(SaleId))]

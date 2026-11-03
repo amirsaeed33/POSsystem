@@ -49,6 +49,7 @@ export interface RiderOrderDto {
     totalAmount: number;
     notes?: string;
     deliveryRating?: number | null;
+    customerRating?: number | null;
     paymentMethod: string;
     isAcceptedByRider: boolean;
     items: RiderOrderItemDto[];

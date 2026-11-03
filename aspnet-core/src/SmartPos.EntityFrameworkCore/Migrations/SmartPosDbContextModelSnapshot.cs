@@ -3001,6 +3001,9 @@ namespace SmartPos.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("CustomerRating")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("RiderAssignedTime")
                         .HasColumnType("datetime2");
 

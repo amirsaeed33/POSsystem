@@ -503,6 +503,7 @@ namespace SmartPos.Orders
                     TotalAmount = o.TotalAmount,
                     Notes = o.Notes,
                     DeliveryRating = o.DeliveryRating,
+                    CustomerRating = o.CustomerRating,
                     PaymentMethod = paymentMethod,
                     IsAcceptedByRider = o.Status == CustomerOrderStatus.InProgress,
                     Items = items

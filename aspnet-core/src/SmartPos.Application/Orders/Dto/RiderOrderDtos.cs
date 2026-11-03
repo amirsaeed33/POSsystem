@@ -39,6 +39,7 @@ namespace SmartPos.Orders.Dto
         public decimal TotalAmount { get; set; }
         public string Notes { get; set; }
         public int? DeliveryRating { get; set; }
+        public int? CustomerRating { get; set; }
         public string PaymentMethod { get; set; }
         public bool IsAcceptedByRider { get; set; }
         public List<RiderOrderItemDto> Items { get; set; } = new List<RiderOrderItemDto>();

@@ -185,6 +185,12 @@ namespace SmartPos.Orders.Dto
 
         public string Notes { get; set; }
 
+        /// <summary>1–5 stars given by the rider when completing delivery.</summary>
+        public int? DeliveryRating { get; set; }
+
+        /// <summary>1–5 stars given by the customer for this delivery.</summary>
+        public int? CustomerRating { get; set; }
+
         public int? SaleId { get; set; }
 
         public string SaleInvoiceNo { get; set; }
@@ -212,6 +218,13 @@ namespace SmartPos.Orders.Dto
         public int RiderId { get; set; }
         public string RiderName { get; set; }
         public string RiderPhone { get; set; }
+    }
+
+    public class RateCustomerOrderInput
+    {
+        public string OrderNo { get; set; }
+
+        public int Rating { get; set; }
     }
 
     public class DeliveryRiderStatusDto

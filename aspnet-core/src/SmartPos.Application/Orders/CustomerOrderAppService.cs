@@ -1066,6 +1066,8 @@ namespace SmartPos.Orders
                 DeliveryFeeOverrideTime = entity.DeliveryFeeOverrideTime,
                 TotalAmount = entity.TotalAmount,
                 Notes = entity.Notes,
+                DeliveryRating = entity.DeliveryRating,
+                CustomerRating = entity.CustomerRating,
                 SaleId = entity.SaleId,
                 SaleInvoiceNo = entity.Sale?.InvoiceNo,
                 Latitude = entity.Latitude,
@@ -1166,6 +1168,53 @@ namespace SmartPos.Orders
                 }
 
                 return dto;
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<CustomerOrderDto> RateOrderAsync(RateCustomerOrderInput input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                if (input == null || string.IsNullOrWhiteSpace(input.OrderNo))
+                {
+                    throw new UserFriendlyException("Please provide a valid Order Number.");
+                }
+
+                if (input.Rating < 1 || input.Rating > 5)
+                {
+                    throw new UserFriendlyException("Rating must be between 1 and 5.");
+                }
+
+                var clean = input.OrderNo.Trim();
+                var query = Repository.GetAll()
+                    .Include(x => x.Customer)
+                    .Include(x => x.Sale)
+                    .Include(x => x.Lines)
+                        .ThenInclude(l => l.Product)
+                    .Include(x => x.Branch);
+
+                var order = await query.FirstOrDefaultAsync(x => x.OrderNo == clean);
+
+                if (order == null)
+                {
+                    order = await query.FirstOrDefaultAsync(x => x.OrderNo.ToLower() == clean.ToLower());
+                }
+
+                if (order == null)
+                {
+                    throw new UserFriendlyException($"No order found matching '{clean}'.");
+                }
+
+                if (order.Status != CustomerOrderStatus.Delivered)
+                {
+                    throw new UserFriendlyException("You can only rate a delivered order.");
+                }
+
+                order.CustomerRating = input.Rating;
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                return MapToEntityDto(order);
             }
         }
 

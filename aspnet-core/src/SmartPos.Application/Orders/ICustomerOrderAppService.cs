@@ -38,6 +38,9 @@ namespace SmartPos.Orders
 
         Task<CustomerOrderDto> TrackOrderAsync(string orderNo);
 
+        [AbpAllowAnonymous]
+        Task<CustomerOrderDto> RateOrderAsync(RateCustomerOrderInput input);
+
         Task<List<DeliveryRiderStatusDto>> GetAvailableRidersAsync(int? branchId, int? currentOrderId = null);
 
         Task<CustomerOrderDto> AssignRiderAsync(AssignRiderDto input);

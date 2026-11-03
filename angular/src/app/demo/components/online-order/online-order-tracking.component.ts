@@ -29,6 +29,8 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
     autoRefreshSeconds = 8;
     countdown = 8;
     previousStatus: number | null = null;
+    customerRatingDraft: number | null = null;
+    ratingSubmitting = false;
 
     constructor(
         private route: ActivatedRoute,
@@ -132,6 +134,7 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
 
             this.previousStatus = result.status;
             this.order = result;
+            this.customerRatingDraft = result.customerRating ?? null;
             this.lastUpdated = new Date();
             this.errorMessage = '';
             this.view = 'detail';
@@ -244,6 +247,39 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
             });
         } else {
             this.router.navigate(['/online-order']);
+        }
+    }
+
+    async submitCustomerRating(): Promise<void> {
+        if (!this.order?.orderNo || !this.customerRatingDraft) {
+            return;
+        }
+        if (this.order.customerRating) {
+            return;
+        }
+
+        this.ratingSubmitting = true;
+        try {
+            const updated = await this.customerOrderService.rateOrder({
+                orderNo: this.order.orderNo,
+                rating: this.customerRatingDraft,
+            });
+            this.order = updated;
+            this.customerRatingDraft = updated.customerRating ?? this.customerRatingDraft;
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Thanks!',
+                detail: 'Your delivery rating was saved.',
+                life: 4000,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Rating failed',
+                detail: err?.message || 'Could not save your rating. Please try again.',
+            });
+        } finally {
+            this.ratingSubmitting = false;
         }
     }
 

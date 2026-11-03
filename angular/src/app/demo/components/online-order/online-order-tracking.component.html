@@ -130,6 +130,37 @@
                     </a>
                 </div>
 
+                <div class="ot-panel ot-rate-panel" *ngIf="isDelivered(order)">
+                    <div class="ot-panel-head">
+                        <span>Rate your delivery</span>
+                        <span *ngIf="order.customerRating">{{ order.customerRating }}/5</span>
+                    </div>
+                    <p class="ot-rate-hint" *ngIf="!order.customerRating">
+                        How was your experience with this delivery?
+                    </p>
+                    <p class="ot-rate-hint" *ngIf="order.customerRating">
+                        Thanks — you rated this delivery.
+                    </p>
+                    <div class="ot-rate-row">
+                        <p-rating
+                            [(ngModel)]="customerRatingDraft"
+                            [stars]="5"
+                            [cancel]="false"
+                            [readonly]="!!order.customerRating || ratingSubmitting"
+                        ></p-rating>
+                        <button
+                            *ngIf="!order.customerRating"
+                            type="button"
+                            class="ot-primary-btn ot-rate-btn"
+                            [disabled]="!customerRatingDraft || ratingSubmitting"
+                            (click)="submitCustomerRating()"
+                        >
+                            <i class="pi" [class.pi-spin]="ratingSubmitting" [class.pi-spinner]="ratingSubmitting" [class.pi-star-fill]="!ratingSubmitting"></i>
+                            {{ ratingSubmitting ? 'Saving…' : 'Submit rating' }}
+                        </button>
+                    </div>
+                </div>
+
                 <div class="ot-chat-wrap">
                     <app-order-chat
                         [orderNo]="order.orderNo || ('#' + order.id)"

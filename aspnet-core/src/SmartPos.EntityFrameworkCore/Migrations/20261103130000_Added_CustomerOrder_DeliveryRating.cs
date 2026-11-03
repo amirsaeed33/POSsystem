@@ -18,6 +18,11 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppCusto
 BEGIN
     ALTER TABLE [AppCustomerOrders] ADD [DeliveryRating] int NULL;
 END
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppCustomerOrders]') AND name = N'CustomerRating')
+BEGIN
+    ALTER TABLE [AppCustomerOrders] ADD [CustomerRating] int NULL;
+END
 ");
         }
 
@@ -25,6 +30,11 @@ END
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppCustomerOrders]') AND name = N'CustomerRating')
+BEGIN
+    ALTER TABLE [AppCustomerOrders] DROP COLUMN [CustomerRating];
+END
+
 IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppCustomerOrders]') AND name = N'DeliveryRating')
 BEGIN
     ALTER TABLE [AppCustomerOrders] DROP COLUMN [DeliveryRating];

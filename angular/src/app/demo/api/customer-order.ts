@@ -38,6 +38,8 @@ export interface CustomerOrderDto {
     deliveryFeeOverrideTime?: string | Date;
     totalAmount: number;
     notes?: string;
+    deliveryRating?: number | null;
+    customerRating?: number | null;
     latitude?: number;
     longitude?: number;
     distanceKm?: number;
@@ -50,6 +52,11 @@ export interface CustomerOrderDto {
     riderPhone?: string;
     riderAssignedTime?: string | Date;
     lines?: CustomerOrderLineDto[];
+}
+
+export interface RateCustomerOrderInput {
+    orderNo: string;
+    rating: number;
 }
 
 export interface AssignRiderDto {

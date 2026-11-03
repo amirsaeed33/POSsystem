@@ -6,6 +6,7 @@ import {
     CreateCustomerOrderDto,
     CustomerOrderDto,
     CustomerOrderLineDto,
+    RateCustomerOrderInput,
     DeliveryRiderStatusDto,
     OverrideDeliveryFeeInput,
     PagedCustomerOrderResultRequestDto,
@@ -199,6 +200,16 @@ export class CustomerOrderService {
         return this.map(this.unwrap(res, 'Order not found'));
     }
 
+    async rateOrder(input: RateCustomerOrderInput): Promise<CustomerOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/RateOrder`, {
+                orderNo: input.orderNo,
+                rating: input.rating,
+            })
+        );
+        return this.map(this.unwrap(res, 'Failed to submit rating'));
+    }
+
     async overrideDeliveryFee(
         input: OverrideDeliveryFeeInput
     ): Promise<CustomerOrderDto> {
@@ -337,6 +348,8 @@ export class CustomerOrderService {
             deliveryFeeOverrideTime: item.deliveryFeeOverrideTime ?? item.DeliveryFeeOverrideTime,
             totalAmount: item.totalAmount ?? item.TotalAmount ?? 0,
             notes: item.notes ?? item.Notes,
+            deliveryRating: item.deliveryRating ?? item.DeliveryRating ?? null,
+            customerRating: item.customerRating ?? item.CustomerRating ?? null,
             saleId: item.saleId ?? item.SaleId,
             saleInvoiceNo: item.saleInvoiceNo ?? item.SaleInvoiceNo,
             branchId: item.branchId ?? item.BranchId,

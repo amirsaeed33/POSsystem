@@ -143,6 +143,44 @@
                 </div>
             </div>
 
+            <!-- Rider & Customer reviews -->
+            <div class="history-reviews mb-3">
+                <div class="review-chip rider-review">
+                    <div class="review-chip-head">
+                        <i class="pi pi-user"></i>
+                        <span>Your review</span>
+                    </div>
+                    <div class="review-chip-body" *ngIf="order.deliveryRating">
+                        <p-rating
+                            [ngModel]="order.deliveryRating"
+                            [readonly]="true"
+                            [stars]="5"
+                            [cancel]="false"
+                        ></p-rating>
+                        <span class="review-score">{{ order.deliveryRating }}/5</span>
+                    </div>
+                    <span class="review-empty" *ngIf="!order.deliveryRating">Not rated</span>
+                    <p class="review-note" *ngIf="order.notes" [title]="order.notes">{{ order.notes }}</p>
+                </div>
+
+                <div class="review-chip customer-review">
+                    <div class="review-chip-head">
+                        <i class="pi pi-heart"></i>
+                        <span>Customer review</span>
+                    </div>
+                    <div class="review-chip-body" *ngIf="order.customerRating">
+                        <p-rating
+                            [ngModel]="order.customerRating"
+                            [readonly]="true"
+                            [stars]="5"
+                            [cancel]="false"
+                        ></p-rating>
+                        <span class="review-score">{{ order.customerRating }}/5</span>
+                    </div>
+                    <span class="review-empty" *ngIf="!order.customerRating">Awaiting rating</span>
+                </div>
+            </div>
+
             <!-- Items Brief Preview -->
             <div class="items-preview p-2 border-round-lg bg-surface-50 mb-2 text-xs flex justify-content-between align-items-center gap-2">
                 <span class="text-700">
@@ -208,6 +246,42 @@
                 <i class="pi pi-map-marker text-red-500 mr-1"></i>
                 {{ selectedOrder.customerAddress || 'No address' }}
                 <span *ngIf="selectedOrder.deliveryAreaName">({{ selectedOrder.deliveryAreaName }})</span>
+            </div>
+        </div>
+
+        <!-- Reviews -->
+        <div class="history-reviews mb-3">
+            <div class="review-chip rider-review">
+                <div class="review-chip-head">
+                    <i class="pi pi-user"></i>
+                    <span>Your review</span>
+                </div>
+                <div class="review-chip-body" *ngIf="selectedOrder.deliveryRating">
+                    <p-rating
+                        [ngModel]="selectedOrder.deliveryRating"
+                        [readonly]="true"
+                        [stars]="5"
+                        [cancel]="false"
+                    ></p-rating>
+                    <span class="review-score">{{ selectedOrder.deliveryRating }}/5</span>
+                </div>
+                <span class="review-empty" *ngIf="!selectedOrder.deliveryRating">Not rated</span>
+            </div>
+            <div class="review-chip customer-review">
+                <div class="review-chip-head">
+                    <i class="pi pi-heart"></i>
+                    <span>Customer review</span>
+                </div>
+                <div class="review-chip-body" *ngIf="selectedOrder.customerRating">
+                    <p-rating
+                        [ngModel]="selectedOrder.customerRating"
+                        [readonly]="true"
+                        [stars]="5"
+                        [cancel]="false"
+                    ></p-rating>
+                    <span class="review-score">{{ selectedOrder.customerRating }}/5</span>
+                </div>
+                <span class="review-empty" *ngIf="!selectedOrder.customerRating">Awaiting rating</span>
             </div>
         </div>
 
