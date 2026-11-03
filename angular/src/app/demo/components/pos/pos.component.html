@@ -918,7 +918,7 @@
                         pButton
                         pRipple
                         type="button"
-                        [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : (orderType === 'takeaway' ? 'Settle & Close Takeaway' : 'Settle & Close Table')) : 'Complete Sale'"
+                        [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : (orderType === 'takeaway' ? 'Settle & Close Takeaway' : 'Complete Bill')) : 'Complete Sale'"
                         icon="pi pi-check"
                         class="flex-grow-1"
                         [disabled]="!canSave()"

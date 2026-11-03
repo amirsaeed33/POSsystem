@@ -11,6 +11,10 @@ import { CategoryDto } from 'src/app/demo/api/category';
 import { UnitDto } from 'src/app/demo/api/unit';
 import { CategoryService } from 'src/app/demo/service/category.service';
 import { UnitService } from 'src/app/demo/service/unit.service';
+import {
+    isEntityNameValid,
+    validateEntityName,
+} from 'src/app/shared/utils/name-validation';
 import { MessageService } from 'primeng/api';
 
 @Component({
@@ -52,6 +56,10 @@ export class CategoryFormDialogComponent implements OnChanges {
         return this.categoryId ? 'Edit Category' : 'Create Category';
     }
 
+    get canSave(): boolean {
+        return isEntityNameValid(this.category?.name);
+    }
+
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.resetForm();
@@ -77,11 +85,12 @@ export class CategoryFormDialogComponent implements OnChanges {
         }
 
         const name = (this.category.name || '').trim();
-        if (!name) {
+        const nameError = validateEntityName(name, 'Category name');
+        if (nameError) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Validation',
-                detail: 'Name is required',
+                detail: nameError,
             });
             return;
         }

@@ -15,6 +15,7 @@ using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Units.Dto;
+using SmartPos.Validation;
 
 namespace SmartPos.Units
 {
@@ -47,11 +48,7 @@ namespace SmartPos.Units
         {
             CheckCreatePermission();
             var branchId = RequireCurrentBranchId();
-            var name = input.Name?.Trim();
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new UserFriendlyException("Unit name is required.");
-            }
+            var name = EntityNameValidation.EnsureValid(input.Name, "Unit");
 
             var existing = await Repository.FirstOrDefaultAsync(u =>
                 u.BranchId == branchId &&
@@ -86,11 +83,7 @@ namespace SmartPos.Units
                 entity.BranchId = RequireCurrentBranchId();
             }
 
-            var name = input.Name?.Trim();
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new UserFriendlyException("Unit name is required.");
-            }
+            var name = EntityNameValidation.EnsureValid(input.Name, "Unit");
 
             var existing = await Repository.FirstOrDefaultAsync(u =>
                 u.Id != input.Id &&

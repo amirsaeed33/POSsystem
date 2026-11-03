@@ -18,11 +18,13 @@
                 type="text"
                 pInputText
                 class="w-full"
+                minlength="2"
                 maxlength="128"
                 [(ngModel)]="category.name"
                 [disabled]="saving"
                 (keyup.enter)="save()"
             />
+            <small class="text-500">At least 2 characters, including one letter (not symbols only).</small>
         </div>
 
         <div class="flex flex-column gap-2">
@@ -81,7 +83,7 @@
             label="Save"
             icon="pi pi-check"
             (click)="save()"
-            [disabled]="saving || loading || !(category.name || '').trim()"
+            [disabled]="saving || loading || !canSave"
             [loading]="saving"
         ></button>
     </ng-template>

@@ -15,6 +15,7 @@ using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Categories.Dto;
 using SmartPos.Products;
+using SmartPos.Validation;
 
 namespace SmartPos.Categories
 {
@@ -50,11 +51,7 @@ namespace SmartPos.Categories
         {
             CheckCreatePermission();
             var branchId = RequireCurrentBranchId();
-            var name = input.Name?.Trim();
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new UserFriendlyException("Category name is required.");
-            }
+            var name = EntityNameValidation.EnsureValid(input.Name, "Category");
 
             var existing = await Repository.FirstOrDefaultAsync(c =>
                 c.BranchId == branchId &&
@@ -90,11 +87,7 @@ namespace SmartPos.Categories
                 entity.BranchId = RequireCurrentBranchId();
             }
 
-            var name = input.Name?.Trim();
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new UserFriendlyException("Category name is required.");
-            }
+            var name = EntityNameValidation.EnsureValid(input.Name, "Category");
 
             var existing = await Repository.FirstOrDefaultAsync(c =>
                 c.Id != input.Id &&

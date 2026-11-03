@@ -28,10 +28,19 @@ namespace SmartPos
         private readonly IWebHostEnvironment _env;
         private readonly IConfigurationRoot _appConfiguration;
 
-        public SmartPosWebCoreModule(IWebHostEnvironment env)
+        public SmartPosWebCoreModule(
+            IWebHostEnvironment env,
+            SmartPosEntityFrameworkModule entityFrameworkModule)
         {
             _env = env;
             _appConfiguration = env.GetAppConfiguration();
+
+            // App:RunDbSeed = true → seed on startup; false/missing → skip seeding.
+            var runDbSeed = string.Equals(
+                _appConfiguration["App:RunDbSeed"],
+                "true",
+                StringComparison.OrdinalIgnoreCase);
+            entityFrameworkModule.SkipDbSeed = !runDbSeed;
         }
 
         public override void PreInitialize()

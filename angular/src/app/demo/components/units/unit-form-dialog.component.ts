@@ -9,6 +9,10 @@ import {
 } from '@angular/core';
 import { UnitDto } from 'src/app/demo/api/unit';
 import { UnitService } from 'src/app/demo/service/unit.service';
+import {
+    isEntityNameValid,
+    validateEntityName,
+} from 'src/app/shared/utils/name-validation';
 import { MessageService } from 'primeng/api';
 
 @Component({
@@ -48,6 +52,10 @@ export class UnitFormDialogComponent implements OnChanges {
         return this.unitId ? 'Edit Unit' : 'Create Unit';
     }
 
+    get canSave(): boolean {
+        return isEntityNameValid(this.unit?.name);
+    }
+
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.resetForm();
@@ -72,11 +80,12 @@ export class UnitFormDialogComponent implements OnChanges {
         }
 
         const name = (this.unit.name || '').trim();
-        if (!name) {
+        const nameError = validateEntityName(name, 'Unit name');
+        if (nameError) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Validation',
-                detail: 'Name is required',
+                detail: nameError,
             });
             return;
         }

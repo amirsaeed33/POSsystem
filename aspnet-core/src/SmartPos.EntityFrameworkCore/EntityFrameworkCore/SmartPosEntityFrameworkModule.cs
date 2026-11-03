@@ -41,10 +41,13 @@ namespace SmartPos.EntityFrameworkCore
 
         public override void PostInitialize()
         {
-            if (!SkipDbSeed)
+            // Controlled by App:RunDbSeed in appsettings (see SmartPosWebCoreModule).
+            if (SkipDbSeed)
             {
-                SeedHelper.SeedHostDb(IocManager);
+                return;
             }
+
+            SeedHelper.SeedHostDb(IocManager);
         }
     }
 }
