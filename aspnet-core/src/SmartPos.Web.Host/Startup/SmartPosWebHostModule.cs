@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Abp.Dependency;
@@ -6,6 +6,7 @@ using Abp.Modules;
 using Abp.Reflection.Extensions;
 using SmartPos.Configuration;
 using SmartPos.EntityFrameworkCore;
+using SmartPos.EntityFrameworkCore.Seed;
 
 namespace SmartPos.Web.Host.Startup
 {
@@ -32,14 +33,24 @@ namespace SmartPos.Web.Host.Startup
             // Code First: apply pending EF Core migrations when the API starts.
             // Set "App:SkipDbMigration": true in appsettings to disable.
             var skip = _appConfiguration["App:SkipDbMigration"];
-            if (string.Equals(skip, "true", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(skip, "true", StringComparison.OrdinalIgnoreCase))
             {
-                return;
+                using (var migrator = IocManager.ResolveAsDisposable<AbpZeroDbMigrator>())
+                {
+                    migrator.Object.CreateOrMigrateForHost();
+                }
             }
 
-            using (var migrator = IocManager.ResolveAsDisposable<AbpZeroDbMigrator>())
+            // CRITICAL: After migrations run on a new or existing database,
+            // ensure essential host seed (Admin user "admin" / "123qwe", Admin role,
+            // default languages, lookups) is seeded so the user can log in immediately.
+            try
             {
-                migrator.Object.CreateOrMigrateForHost();
+                SeedHelper.SeedHostDb(IocManager);
+            }
+            catch (Exception ex)
+            {
+                // Already seeded or handled
             }
         }
     }

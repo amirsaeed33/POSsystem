@@ -1,4 +1,7 @@
-﻿using Abp.EntityFrameworkCore.Configuration;
+using System;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using Abp.EntityFrameworkCore.Configuration;
 using Abp.Modules;
 using Abp.Reflection.Extensions;
 using Abp.Zero.EntityFrameworkCore;
@@ -41,13 +44,34 @@ namespace SmartPos.EntityFrameworkCore
 
         public override void PostInitialize()
         {
-            // Controlled by App:RunDbSeed in appsettings (see SmartPosWebCoreModule).
+            // If SkipDbSeed is true, still ensure essential host data (admin user, roles, languages)
+            // is seeded if this is a newly created database with no host admin.
             if (SkipDbSeed)
             {
+                EnsureEssentialSeed();
                 return;
             }
 
             SeedHelper.SeedHostDb(IocManager);
+        }
+
+        private void EnsureEssentialSeed()
+        {
+            try
+            {
+                SeedHelper.WithDbContext<SmartPosDbContext>(IocManager, context =>
+                {
+                    var hasAdmin = context.Users.IgnoreQueryFilters().Any(u => u.TenantId == null && u.UserName == "admin");
+                    if (!hasAdmin)
+                    {
+                        SeedHelper.SeedHostDb(context);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn("EnsureEssentialSeed exception: " + ex.Message);
+            }
         }
     }
 }

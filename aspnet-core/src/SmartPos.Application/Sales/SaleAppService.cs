@@ -23,7 +23,7 @@ using SmartPos.Products;
 using SmartPos.Products.Dto;
 using SmartPos.Sales.Dto;
 using SmartPos.BranchNotificationSettings;
-
+using SmartPos.Orders;
 using SmartPos.Authorization.Roles;
 
 namespace SmartPos.Sales
@@ -36,6 +36,7 @@ namespace SmartPos.Sales
         private readonly IRepository<Customer> _customerRepository;
         private readonly IRepository<LedgerEntry> _ledgerRepository;
         private readonly IRepository<SaleReturn> _saleReturnRepository;
+        private readonly IRepository<CustomerOrder> _customerOrderRepository;
         private readonly IRepository<User, long> _userRepository;
         private readonly IRepository<Role> _roleRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
@@ -56,6 +57,7 @@ namespace SmartPos.Sales
             IRepository<Customer> customerRepository,
             IRepository<LedgerEntry> ledgerRepository,
             IRepository<SaleReturn> saleReturnRepository,
+            IRepository<CustomerOrder> customerOrderRepository,
             IRepository<User, long> userRepository,
             IRepository<Role> roleRepository,
             IBranchAccessChecker branchAccessChecker,
@@ -75,6 +77,7 @@ namespace SmartPos.Sales
             _customerRepository = customerRepository;
             _ledgerRepository = ledgerRepository;
             _saleReturnRepository = saleReturnRepository;
+            _customerOrderRepository = customerOrderRepository;
             _userRepository = userRepository;
             _roleRepository = roleRepository;
             _branchAccessChecker = branchAccessChecker;
@@ -288,6 +291,8 @@ namespace SmartPos.Sales
             return await CreateSaleInternalAsync(input);
         }
 
+        [AbpAllowAnonymous]
+        [RemoteService(false)]
         public async Task<SaleDto> CreateSaleInternalAsync(CreateSaleDto input)
         {
             if (input.Lines == null || !input.Lines.Any())
@@ -324,7 +329,10 @@ namespace SmartPos.Sales
                     : input.SaleDate.Date.Add(now.TimeOfDay);
             }
 
-            var branchId = await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+            var branchId = input.BranchId.HasValue && input.BranchId.Value > 0
+                ? input.BranchId.Value
+                : await _branchAccessChecker.RequireEffectiveBranchIdAsync();
+
             if (customer.BranchId == 0 || customer.BranchId != branchId)
             {
                 customer.BranchId = branchId;
@@ -332,6 +340,7 @@ namespace SmartPos.Sales
             }
 
             var branch = await _branchRepository.GetAsync(branchId);
+            var tenantId = branch.TenantId ?? AbpSession.TenantId;
 
             if (branch.BusinessType == BusinessType.Restaurant && AbpSession.UserId.HasValue)
             {
@@ -353,7 +362,7 @@ namespace SmartPos.Sales
 
             var sale = new Sale
             {
-                TenantId = AbpSession.TenantId,
+                TenantId = tenantId,
                 BranchId = branchId,
                 CustomerId = input.CustomerId,
                 SaleDate = input.SaleDate,
@@ -642,14 +651,174 @@ namespace SmartPos.Sales
 
             var dto = MapToEntityDto(entity);
             await PopulateReturnFlagsAsync(new[] { dto });
+            await PopulateSaleTypesAsync(new[] { dto });
             return dto;
         }
 
         public override async Task<PagedResultDto<SaleDto>> GetAllAsync(PagedSaleResultRequestDto input)
         {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+            await SyncDeliveredCustomerOrderSalesAsync(branchId);
             var result = await base.GetAllAsync(input);
             await PopulateReturnFlagsAsync(result.Items);
+            await PopulateSaleTypesAsync(result.Items);
             return result;
+        }
+
+        [AbpAllowAnonymous]
+        [RemoteService(false)]
+        public async Task<SaleDto> CreateSaleForCustomerOrderAsync(int orderId)
+        {
+            var order = await _customerOrderRepository.GetAllIncluding(o => o.Lines)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (order == null)
+            {
+                throw new UserFriendlyException("Customer order not found.");
+            }
+
+            // Until the order is successfully delivered, do not create or add to any sale
+            if (order.Status != CustomerOrderStatus.Delivered)
+            {
+                return null;
+            }
+
+            if (order.SaleId.HasValue && order.SaleId.Value > 0)
+            {
+                var existing = await Repository.FirstOrDefaultAsync(order.SaleId.Value);
+                if (existing != null)
+                {
+                    var existingDto = MapToEntityDto(existing);
+                    existingDto.SaleType = SaleTypeResolver.OnlineOrder;
+                    return existingDto;
+                }
+            }
+
+            if (order.Lines == null || !order.Lines.Any())
+            {
+                return null;
+            }
+
+            var orderNoLabel = !string.IsNullOrWhiteSpace(order.OrderNo) ? order.OrderNo : $"#{order.Id}";
+            var notePrefix = $"[Online Order - {orderNoLabel}]";
+            var combinedNotes = string.IsNullOrWhiteSpace(order.Notes)
+                ? notePrefix
+                : (order.Notes.Contains(notePrefix) ? order.Notes : $"{notePrefix} {order.Notes.Trim()}");
+
+            if (combinedNotes.Length > Sale.MaxNotesLength)
+            {
+                combinedNotes = combinedNotes.Substring(0, Sale.MaxNotesLength);
+            }
+
+            var saleDate = order.LastModificationTime.HasValue
+                ? order.LastModificationTime.Value
+                : (order.OrderDate != default ? order.OrderDate : Abp.Timing.Clock.Now);
+
+            var saleDto = await CreateSaleInternalAsync(new CreateSaleDto
+            {
+                BranchId = order.BranchId,
+                CustomerId = order.CustomerId,
+                SaleDate = saleDate,
+                PaymentType = PaymentTypes.Cash,
+                CashAmount = order.TotalAmount,
+                DeliveryCharges = order.DeliveryFee,
+                DeliveryAreaName = order.DeliveryAreaName,
+                Notes = combinedNotes,
+                Lines = order.Lines.Select(l => new CreateSaleLineDto
+                {
+                    ProductId = l.ProductId,
+                    Quantity = l.Quantity,
+                    UnitPrice = l.UnitPrice
+                }).ToList()
+            });
+
+            order.SaleId = saleDto.Id;
+            await _customerOrderRepository.UpdateAsync(order);
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            saleDto.SaleType = SaleTypeResolver.OnlineOrder;
+            return saleDto;
+        }
+
+        [AbpAllowAnonymous]
+        [RemoteService(false)]
+        public async Task SyncDeliveredCustomerOrderSalesAsync(int? branchId = null)
+        {
+            // 1. Cleanup: If any order is NOT delivered (Pending, Approved, InProgress, Rejected)
+            // but currently has a SaleId linked, unlink and delete that premature sale so it does
+            // not appear on Sale page, Report, or Dashboard!
+            var unearnedSales = await _customerOrderRepository.GetAll()
+                .Where(o => o.Status != CustomerOrderStatus.Delivered && o.SaleId != null)
+                .WhereIf(branchId.HasValue && branchId.Value > 0, o => o.BranchId == branchId.Value)
+                .ToListAsync();
+
+            foreach (var order in unearnedSales)
+            {
+                try
+                {
+                    var saleIdToDelete = order.SaleId.Value;
+                    order.SaleId = null;
+                    await _customerOrderRepository.UpdateAsync(order);
+                    await CurrentUnitOfWork.SaveChangesAsync();
+
+                    var existingSale = await Repository.FirstOrDefaultAsync(saleIdToDelete);
+                    if (existingSale != null)
+                    {
+                        await Repository.DeleteAsync(existingSale);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Failed to cleanup premature sale for undelivered order #{order.Id}: {ex.Message}");
+                }
+            }
+
+            // 2. Sync: Ensure all successfully DELIVERED orders have a corresponding Sale record
+            var deliveredOrders = await _customerOrderRepository.GetAllIncluding(o => o.Lines)
+                .Where(o => o.Status == CustomerOrderStatus.Delivered && o.SaleId == null)
+                .WhereIf(branchId.HasValue && branchId.Value > 0, o => o.BranchId == branchId.Value)
+                .ToListAsync();
+
+            foreach (var order in deliveredOrders)
+            {
+                try
+                {
+                    await CreateSaleForCustomerOrderAsync(order.Id);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Failed to auto-create sale for online order #{order.Id}: {ex.Message}");
+                }
+            }
+        }
+
+        private async Task PopulateSaleTypesAsync(IReadOnlyList<SaleDto> items)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return;
+            }
+
+            var saleIds = items.Select(x => x.Id).ToList();
+            var onlineOrderSaleIds = await _customerOrderRepository.GetAll()
+                .AsNoTracking()
+                .Where(o => o.SaleId.HasValue && saleIds.Contains(o.SaleId.Value))
+                .Select(o => o.SaleId.Value)
+                .ToListAsync();
+
+            var onlineSet = new HashSet<int>(onlineOrderSaleIds);
+
+            foreach (var item in items)
+            {
+                if (onlineSet.Contains(item.Id))
+                {
+                    item.SaleType = SaleTypeResolver.OnlineOrder;
+                }
+                else
+                {
+                    item.SaleType = SaleTypeResolver.Resolve(item.Notes, item.DeliveryCharges, item.DeliveryAreaName);
+                }
+            }
         }
 
         private async Task PopulateReturnFlagsAsync(IReadOnlyList<SaleDto> items)

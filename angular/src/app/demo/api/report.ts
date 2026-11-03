@@ -8,6 +8,7 @@ export interface SaleReportRowDto {
     id: number;
     invoiceNo?: string;
     saleDate: string | Date;
+    saleType?: string;
     customerName?: string;
     totalAmount: number;
     notes?: string;

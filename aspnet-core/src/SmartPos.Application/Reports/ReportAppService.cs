@@ -24,6 +24,7 @@ using SmartPos.Accounts;
 using SmartPos.Customers;
 using SmartPos.Sales;
 using SmartPos.Suppliers;
+using SmartPos.Orders;
 
 namespace SmartPos.Reports
 {
@@ -47,6 +48,8 @@ namespace SmartPos.Reports
         private readonly IRepository<Supplier> _supplierRepository;
         private readonly IReportPdfBuilder _reportPdfBuilder;
         private readonly IRepository<Branch> _branchRepository;
+        private readonly IRepository<CustomerOrder> _customerOrderRepository;
+        private readonly ISaleAppService _saleAppService;
 
         public ReportAppService(
             IRepository<Sale> saleRepository,
@@ -65,7 +68,9 @@ namespace SmartPos.Reports
             IRepository<Customer> customerRepository,
             IRepository<Supplier> supplierRepository,
             IReportPdfBuilder reportPdfBuilder,
-            IRepository<Branch> branchRepository)
+            IRepository<Branch> branchRepository,
+            IRepository<CustomerOrder> customerOrderRepository,
+            ISaleAppService saleAppService)
         {
             _saleRepository = saleRepository;
             _saleReturnRepository = saleReturnRepository;
@@ -84,6 +89,8 @@ namespace SmartPos.Reports
             _supplierRepository = supplierRepository;
             _reportPdfBuilder = reportPdfBuilder;
             _branchRepository = branchRepository;
+            _customerOrderRepository = customerOrderRepository;
+            _saleAppService = saleAppService;
         }
 
         public async Task<SaleReportDto> GetSaleReportAsync(ReportDateRangeInput input)
@@ -91,6 +98,11 @@ namespace SmartPos.Reports
             input ??= new ReportDateRangeInput();
             var (from, to) = NormalizeRange(input);
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
+            if (_saleAppService != null)
+            {
+                await _saleAppService.SyncDeliveredCustomerOrderSalesAsync(branchId);
+            }
 
             var query = _saleRepository.GetAllIncluding(x => x.Customer)
                 .AsNoTracking()
@@ -117,6 +129,7 @@ namespace SmartPos.Reports
 
             var saleIds = rawItems.Select(x => x.Id).ToList();
             var returnsBySaleId = new Dictionary<int, decimal>();
+            var onlineSaleIds = new HashSet<int>();
             if (saleIds.Count > 0)
             {
                 returnsBySaleId = await _saleReturnRepository.GetAll()
@@ -125,6 +138,16 @@ namespace SmartPos.Reports
                     .GroupBy(x => x.SaleId)
                     .Select(g => new { SaleId = g.Key, TotalReturned = g.Sum(r => r.TotalAmount) })
                     .ToDictionaryAsync(x => x.SaleId, x => x.TotalReturned);
+
+                if (_customerOrderRepository != null)
+                {
+                    var linked = await _customerOrderRepository.GetAll()
+                        .AsNoTracking()
+                        .Where(x => x.SaleId.HasValue && saleIds.Contains(x.SaleId.Value))
+                        .Select(x => x.SaleId.Value)
+                        .ToListAsync();
+                    onlineSaleIds = new HashSet<int>(linked);
+                }
             }
 
             var items = new List<SaleReportRowDto>();
@@ -139,6 +162,10 @@ namespace SmartPos.Reports
                     continue;
                 }
 
+                var saleType = onlineSaleIds.Contains(raw.Id)
+                    ? SaleTypeResolver.OnlineOrder
+                    : SaleTypeResolver.Resolve(raw.Notes);
+
                 items.Add(new SaleReportRowDto
                 {
                     Id = raw.Id,
@@ -146,7 +173,8 @@ namespace SmartPos.Reports
                     SaleDate = raw.SaleDate,
                     CustomerName = raw.CustomerName,
                     TotalAmount = Math.Round(netAmount, 2),
-                    Notes = raw.Notes
+                    Notes = raw.Notes,
+                    SaleType = saleType
                 });
             }
 

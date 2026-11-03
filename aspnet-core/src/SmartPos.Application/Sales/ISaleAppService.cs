@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Abp.Application.Services;
 using Abp.Application.Services.Dto;
+using Abp.Authorization;
 using SmartPos.Customers.Dto;
 using SmartPos.Products.Dto;
 using SmartPos.Sales.Dto;
@@ -31,6 +32,16 @@ namespace SmartPos.Sales
 
         Task<ListResultDto<ProductDto>> GetTopSellingProductsAsync(int maxCount = 5);
 
+        [AbpAllowAnonymous]
+        [RemoteService(false)]
         Task<SaleDto> CreateSaleInternalAsync(CreateSaleDto input);
+
+        [AbpAllowAnonymous]
+        [RemoteService(false)]
+        Task<SaleDto> CreateSaleForCustomerOrderAsync(int orderId);
+
+        [AbpAllowAnonymous]
+        [RemoteService(false)]
+        Task SyncDeliveredCustomerOrderSalesAsync(int? branchId = null);
     }
 }

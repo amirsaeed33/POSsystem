@@ -865,24 +865,6 @@ namespace SmartPos.Orders
 
                 await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
 
-                var sale = await _saleAppService.CreateSaleInternalAsync(new CreateSaleDto
-                {
-                    CustomerId = order.CustomerId,
-                    SaleDate = Abp.Timing.Clock.Now,
-                    PaymentType = PaymentTypes.Credit,
-                    DeliveryCharges = order.DeliveryFee,
-                    DeliveryAreaName = order.DeliveryAreaName,
-                    Notes = string.IsNullOrWhiteSpace(order.Notes)
-                        ? "From order " + (order.OrderNo ?? ("#" + order.Id))
-                        : order.Notes + " (Order " + (order.OrderNo ?? ("#" + order.Id)) + ")",
-                    Lines = order.Lines.Select(x => new CreateSaleLineDto
-                    {
-                        ProductId = x.ProductId,
-                        Quantity = x.Quantity,
-                        UnitPrice = x.UnitPrice
-                    }).ToList()
-                });
-
                 var branch = await _branchRepository.FirstOrDefaultAsync(order.BranchId);
                 var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
 
@@ -916,7 +898,6 @@ namespace SmartPos.Orders
                     order.Status = CustomerOrderStatus.Approved;
                 }
 
-                order.SaleId = sale.Id;
                 await CurrentUnitOfWork.SaveChangesAsync();
 
                 await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
@@ -925,7 +906,7 @@ namespace SmartPos.Orders
                     order.BranchId,
                     order.Status));
 
-                return sale;
+                return null;
             }
         }
 
@@ -976,6 +957,11 @@ namespace SmartPos.Orders
 
                 order.Status = CustomerOrderStatus.Delivered;
                 await CurrentUnitOfWork.SaveChangesAsync();
+
+                if (order.SaleId == null)
+                {
+                    await _saleAppService.CreateSaleForCustomerOrderAsync(order.Id);
+                }
 
                 await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
                     order.Id,
@@ -1499,6 +1485,7 @@ namespace SmartPos.Orders
                 }
 
                 await CurrentUnitOfWork.SaveChangesAsync();
+
                 return MapToEntityDto(order);
             }
         }

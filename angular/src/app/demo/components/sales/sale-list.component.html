@@ -84,6 +84,7 @@
             <tr>
                 <th pSortableColumn="invoiceNo">Invoice No <p-sortIcon field="invoiceNo"></p-sortIcon></th>
                 <th pSortableColumn="saleDate">Sale Date <p-sortIcon field="saleDate"></p-sortIcon></th>
+                <th pSortableColumn="saleType">Sale Type <p-sortIcon field="saleType"></p-sortIcon></th>
                 <th pSortableColumn="customerName">Customer <p-sortIcon field="customerName"></p-sortIcon></th>
                 <th>Return</th>
                 <th pSortableColumn="paymentType">Payment <p-sortIcon field="paymentType"></p-sortIcon></th>
@@ -100,6 +101,26 @@
             <tr>
                 <td>{{ sale.invoiceNo || ('#' + sale.id) }}</td>
                 <td>{{ sale.saleDate | date: formatService.dateFormat }}</td>
+                <td>
+                    <span
+                        *ngIf="sale.saleType === 'Online Order'"
+                        class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-blue-50 text-blue-700 border-1 border-blue-200"
+                    >
+                        <i class="pi pi-globe text-xs"></i> Online Order
+                    </span>
+                    <span
+                        *ngIf="sale.saleType === 'Dine-In'"
+                        class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-purple-50 text-purple-700 border-1 border-purple-200"
+                    >
+                        <i class="pi pi-table text-xs"></i> Dine-In
+                    </span>
+                    <span
+                        *ngIf="!sale.saleType || sale.saleType === 'Takeaway'"
+                        class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-bluegray-50 text-bluegray-700 border-1 border-bluegray-200"
+                    >
+                        <i class="pi pi-shopping-bag text-xs"></i> Takeaway
+                    </span>
+                </td>
                 <td>{{ sale.customerName || '—' }}</td>
                 <td>
                     <p-tag
@@ -135,7 +156,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="11" class="text-center p-4">
+                <td colspan="12" class="text-center p-4">
                     <div class="text-500">No sales found</div>
                 </td>
             </tr>

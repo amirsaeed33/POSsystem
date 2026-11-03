@@ -32,6 +32,7 @@ export interface SaleDto {
     cardAmount: number;
     creditAmount: number;
     notes?: string;
+    saleType?: string;
     deliveryCharges?: number;
     deliveryAreaName?: string;
     hasReturns?: boolean;
@@ -50,6 +51,7 @@ export interface CreateSaleDto {
     saleDate: string | Date;
     invoiceNo?: string;
     notes?: string;
+    saleType?: string;
     deliveryCharges?: number;
     deliveryAreaName?: string;
     discountAmount: number;

@@ -85,6 +85,7 @@
             <tr>
                 <th>Invoice No</th>
                 <th>Sale Date</th>
+                <th>Sale Type</th>
                 <th>Customer</th>
                 <th class="text-right">Total Amount</th>
                 <th>Notes</th>
@@ -95,6 +96,26 @@
             <tr>
                 <td>{{ row.invoiceNo || ('#' + row.id) }}</td>
                 <td>{{ row.saleDate | date: formatService.dateFormat }}</td>
+                <td>
+                    <span
+                        *ngIf="row.saleType === 'Online Order'"
+                        class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-blue-50 text-blue-700 border-1 border-blue-200"
+                    >
+                        <i class="pi pi-globe text-xs"></i> Online Order
+                    </span>
+                    <span
+                        *ngIf="row.saleType === 'Dine-In'"
+                        class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-purple-50 text-purple-700 border-1 border-purple-200"
+                    >
+                        <i class="pi pi-table text-xs"></i> Dine-In
+                    </span>
+                    <span
+                        *ngIf="!row.saleType || row.saleType === 'Takeaway'"
+                        class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-bluegray-50 text-bluegray-700 border-1 border-bluegray-200"
+                    >
+                        <i class="pi pi-shopping-bag text-xs"></i> Takeaway
+                    </span>
+                </td>
                 <td>{{ row.customerName || '—' }}</td>
                 <td class="text-right">{{ row.totalAmount | number: '1.2-2' }}</td>
                 <td>{{ row.notes || '—' }}</td>
@@ -114,12 +135,12 @@
         </ng-template>
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="6" class="text-center p-4 text-500">No data</td>
+                <td colspan="7" class="text-center p-4 text-500">No data</td>
             </tr>
         </ng-template>
         <ng-template pTemplate="footer">
             <tr>
-                <td colspan="3" class="text-right font-bold">Total Amount</td>
+                <td colspan="4" class="text-right font-bold">Total Amount</td>
                 <td class="text-right font-bold">{{ report.totalAmount | number: '1.2-2' }}</td>
                 <td colspan="2"></td>
             </tr>

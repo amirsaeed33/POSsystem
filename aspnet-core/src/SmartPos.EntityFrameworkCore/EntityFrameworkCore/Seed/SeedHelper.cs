@@ -73,7 +73,7 @@ namespace SmartPos.EntityFrameworkCore.Seed
             context.SaveChanges();
         }
 
-        private static void WithDbContext<TDbContext>(IIocResolver iocResolver, Action<TDbContext> contextAction)
+        public static void WithDbContext<TDbContext>(IIocResolver iocResolver, Action<TDbContext> contextAction)
             where TDbContext : DbContext
         {
             using (var uowManager = iocResolver.ResolveAsDisposable<IUnitOfWorkManager>())

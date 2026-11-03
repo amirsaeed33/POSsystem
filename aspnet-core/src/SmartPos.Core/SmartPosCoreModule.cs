@@ -1,4 +1,4 @@
-﻿using Abp.Localization;
+using Abp.Localization;
 using Abp.Modules;
 using Abp.Reflection.Extensions;
 using Abp.Runtime.Security;
@@ -36,7 +36,19 @@ namespace SmartPos
 
             Configuration.Settings.Providers.Add<AppSettingProvider>();
             
+            Configuration.Localization.Languages.Add(new LanguageInfo("en", "English", "famfamfam-flags us", isDefault: true));
+            Configuration.Localization.Languages.Add(new LanguageInfo("ar", "العربية", "famfamfam-flags sa"));
+            Configuration.Localization.Languages.Add(new LanguageInfo("de", "German", "famfamfam-flags de"));
+            Configuration.Localization.Languages.Add(new LanguageInfo("it", "Italiano", "famfamfam-flags it"));
             Configuration.Localization.Languages.Add(new LanguageInfo("fa", "فارسی", "famfamfam-flags ir"));
+            Configuration.Localization.Languages.Add(new LanguageInfo("fr", "Français", "famfamfam-flags fr"));
+            Configuration.Localization.Languages.Add(new LanguageInfo("pt-BR", "Português", "famfamfam-flags br"));
+            Configuration.Localization.Languages.Add(new LanguageInfo("tr", "Türkçe", "famfamfam-flags tr"));
+            Configuration.Localization.Languages.Add(new LanguageInfo("ru", "Русский", "famfamfam-flags ru"));
+            Configuration.Localization.Languages.Add(new LanguageInfo("zh-Hans", "简体中文", "famfamfam-flags cn"));
+            Configuration.Localization.Languages.Add(new LanguageInfo("es-MX", "Español México", "famfamfam-flags mx"));
+            Configuration.Localization.Languages.Add(new LanguageInfo("nl", "Nederlands", "famfamfam-flags nl"));
+            Configuration.Localization.Languages.Add(new LanguageInfo("ja", "日本語", "famfamfam-flags jp"));
             
             Configuration.Settings.SettingEncryptionConfiguration.DefaultPassPhrase = SmartPosConsts.DefaultPassPhrase;
             SimpleStringCipher.DefaultPassPhrase = SmartPosConsts.DefaultPassPhrase;

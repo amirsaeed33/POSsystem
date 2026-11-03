@@ -32,6 +32,8 @@ namespace SmartPos.Reports.Dto
         public decimal TotalAmount { get; set; }
 
         public string Notes { get; set; }
+
+        public string SaleType { get; set; }
     }
 
     public class PurchaseReportDto

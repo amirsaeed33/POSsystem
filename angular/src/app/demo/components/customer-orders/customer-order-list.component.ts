@@ -1,4 +1,4 @@
-﻿import { AppFormatService } from 'src/app/demo/service/app-format.service';
+import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Table } from 'primeng/table';
@@ -441,7 +441,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         const label = order.orderNo || `#${order.id}`;
         const confirmMsg = this.isRestaurant
             ? `Approve customer order "${label}"? An available delivery rider will be automatically assigned.`
-            : `Approve customer order "${label}"? This will create a sale invoice.`;
+            : `Approve customer order "${label}"?`;
 
         this.confirmationService.confirm({
             message: confirmMsg,
@@ -563,7 +563,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
     onDeliver(order: CustomerOrderDto): void {
         const label = order.orderNo || `#${order.id}`;
         this.confirmationService.confirm({
-            message: `Mark customer order "${label}" as Delivered?`,
+            message: `Mark customer order "${label}" as Delivered? This will complete the order and add it to Sales.`,
             header: 'Deliver Confirmation',
             icon: 'pi pi-check-circle',
             accept: () => {
@@ -573,7 +573,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'success',
                             summary: 'Delivered',
-                            detail: `Order ${label} marked as Delivered successfully.`,
+                            detail: `Order ${label} marked as Delivered and added to Sales successfully.`,
                         });
                         this.loadOrders();
                     })

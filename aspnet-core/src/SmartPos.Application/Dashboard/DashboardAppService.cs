@@ -36,6 +36,7 @@ namespace SmartPos.Dashboard
         private readonly IRepository<BranchStock> _branchStockRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchStockManager _branchStockManager;
+        private readonly ISaleAppService _saleAppService;
 
         public DashboardAppService(
             IRepository<Product> productRepository,
@@ -49,7 +50,8 @@ namespace SmartPos.Dashboard
             IRepository<Branch> branchRepository,
             IRepository<BranchStock> branchStockRepository,
             IBranchAccessChecker branchAccessChecker,
-            IBranchStockManager branchStockManager)
+            IBranchStockManager branchStockManager,
+            ISaleAppService saleAppService)
         {
             _productRepository = productRepository;
             _saleRepository = saleRepository;
@@ -63,11 +65,13 @@ namespace SmartPos.Dashboard
             _branchStockRepository = branchStockRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchStockManager = branchStockManager;
+            _saleAppService = saleAppService;
         }
 
         public async Task<DashboardDto> GetAsync()
         {
             var branchId = await _branchAccessChecker.GetEffectiveBranchIdAsync();
+            await _saleAppService.SyncDeliveredCustomerOrderSalesAsync(branchId);
 
             var productQuery = _productRepository.GetAllIncluding(x => x.Category, x => x.Brand, x=>x.Unit)
                 .AsNoTracking();

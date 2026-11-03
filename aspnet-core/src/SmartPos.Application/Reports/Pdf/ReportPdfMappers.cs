@@ -95,11 +95,12 @@ namespace SmartPos.Reports.Pdf
 
             model.Columns = new List<ReportPdfColumn>
             {
-                new ReportPdfColumn("Invoice No", 2.2f, ReportColumnAlignment.Left),
-                new ReportPdfColumn("Sale Date", 2.0f, ReportColumnAlignment.Center),
-                new ReportPdfColumn("Customer", 3.5f, ReportColumnAlignment.Left),
-                new ReportPdfColumn("Total Amount", 2.5f, ReportColumnAlignment.Right),
-                new ReportPdfColumn("Notes", 4.0f, ReportColumnAlignment.Left)
+                new ReportPdfColumn("Invoice No", 2.0f, ReportColumnAlignment.Left),
+                new ReportPdfColumn("Sale Date", 1.8f, ReportColumnAlignment.Center),
+                new ReportPdfColumn("Sale Type", 1.8f, ReportColumnAlignment.Center),
+                new ReportPdfColumn("Customer", 3.0f, ReportColumnAlignment.Left),
+                new ReportPdfColumn("Total Amount", 2.2f, ReportColumnAlignment.Right),
+                new ReportPdfColumn("Notes", 3.5f, ReportColumnAlignment.Left)
             };
 
             foreach (var item in dto.Items ?? Enumerable.Empty<SaleReportRowDto>())
@@ -108,6 +109,7 @@ namespace SmartPos.Reports.Pdf
                 {
                     item.InvoiceNo ?? ("#" + item.Id),
                     item.SaleDate.ToString("yyyy-MM-dd"),
+                    item.SaleType ?? "Takeaway",
                     item.CustomerName ?? "—",
                     item.TotalAmount.ToString("N2"),
                     item.Notes ?? "—"
@@ -117,6 +119,7 @@ namespace SmartPos.Reports.Pdf
             model.FooterRows.Add(new string[]
             {
                 "Total",
+                "",
                 "",
                 "",
                 dto.TotalAmount.ToString("N2"),

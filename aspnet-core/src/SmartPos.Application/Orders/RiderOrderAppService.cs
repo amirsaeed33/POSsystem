@@ -17,6 +17,7 @@ using SmartPos.Orders;
 using SmartPos.Orders.Dto;
 using SmartPos.Products;
 using SmartPos.Staffs;
+using SmartPos.Sales;
 using Abp.Timing;
 
 namespace SmartPos.Orders
@@ -31,19 +32,22 @@ namespace SmartPos.Orders
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<Deal> _dealRepository;
         private readonly IRepository<DealDetail> _dealDetailRepository;
+        private readonly ISaleAppService _saleAppService;
 
         public RiderOrderAppService(
             IRepository<CustomerOrder> orderRepository,
             IRepository<Staff> staffRepository,
             IRepository<Branch> branchRepository,
             IRepository<Deal> dealRepository,
-            IRepository<DealDetail> dealDetailRepository)
+            IRepository<DealDetail> dealDetailRepository,
+            ISaleAppService saleAppService)
         {
             _orderRepository = orderRepository;
             _staffRepository = staffRepository;
             _branchRepository = branchRepository;
             _dealRepository = dealRepository;
             _dealDetailRepository = dealDetailRepository;
+            _saleAppService = saleAppService;
         }
 
         public async Task<RiderDashboardStatsDto> GetDashboardStatsAsync()
@@ -340,6 +344,11 @@ namespace SmartPos.Orders
                 }
 
                 await CurrentUnitOfWork.SaveChangesAsync();
+
+                if (order.SaleId == null)
+                {
+                    await _saleAppService.CreateSaleForCustomerOrderAsync(order.Id);
+                }
 
                 await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
                     order.Id,

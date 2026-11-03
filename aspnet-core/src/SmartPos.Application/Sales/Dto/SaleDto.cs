@@ -42,6 +42,8 @@ namespace SmartPos.Sales.Dto
 
         public string Notes { get; set; }
 
+        public string SaleType { get; set; }
+
         /// <summary>True when at least one sale return exists for this sale.</summary>
         public bool HasReturns { get; set; }
 
