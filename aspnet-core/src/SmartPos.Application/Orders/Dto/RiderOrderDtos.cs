@@ -79,5 +79,8 @@ namespace SmartPos.Orders.Dto
 
         /// <summary>Optional delivery rating from 1 to 5.</summary>
         public int? Rating { get; set; }
+
+        /// <summary>Payment amount received in cash by rider upon delivery.</summary>
+        public decimal? PaymentReceivedAmount { get; set; }
     }
 }

@@ -123,6 +123,11 @@ namespace SmartPos.Reports
                     x.SaleDate,
                     CustomerName = x.Customer != null ? x.Customer.Name : null,
                     x.TotalAmount,
+                    x.CashAmount,
+                    x.CardAmount,
+                    x.CreditAmount,
+                    x.DeliveryCharges,
+                    x.DeliveryAreaName,
                     x.Notes
                 })
                 .ToListAsync();
@@ -164,7 +169,10 @@ namespace SmartPos.Reports
 
                 var saleType = onlineSaleIds.Contains(raw.Id)
                     ? SaleTypeResolver.OnlineOrder
-                    : SaleTypeResolver.Resolve(raw.Notes);
+                    : SaleTypeResolver.Resolve(raw.Notes, raw.DeliveryCharges, raw.DeliveryAreaName);
+
+                var paid = Math.Round(raw.CashAmount + raw.CardAmount, 2);
+                var due = Math.Round(Math.Max(0m, netAmount - paid), 2);
 
                 items.Add(new SaleReportRowDto
                 {
@@ -173,6 +181,8 @@ namespace SmartPos.Reports
                     SaleDate = raw.SaleDate,
                     CustomerName = raw.CustomerName,
                     TotalAmount = Math.Round(netAmount, 2),
+                    PaidAmount = paid,
+                    DueAmount = due,
                     Notes = raw.Notes,
                     SaleType = saleType
                 });
@@ -181,7 +191,9 @@ namespace SmartPos.Reports
             return new SaleReportDto
             {
                 Items = items,
-                TotalAmount = items.Sum(x => x.TotalAmount)
+                TotalAmount = items.Sum(x => x.TotalAmount),
+                TotalPaidAmount = items.Sum(x => x.PaidAmount),
+                TotalDueAmount = items.Sum(x => x.DueAmount)
             };
         }
 

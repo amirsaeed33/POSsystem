@@ -1056,6 +1056,8 @@ namespace SmartPos.Orders
                 CustomerRating = entity.CustomerRating,
                 SaleId = entity.SaleId,
                 SaleInvoiceNo = entity.Sale?.InvoiceNo,
+                PaidAmount = entity.Sale != null ? Math.Round(entity.Sale.CashAmount + entity.Sale.CardAmount, 2) : (entity.Status == CustomerOrderStatus.Delivered ? entity.TotalAmount : 0m),
+                DueAmount = entity.Sale != null ? Math.Round(Math.Max(0m, entity.Sale.TotalAmount - (entity.Sale.CashAmount + entity.Sale.CardAmount)), 2) : (entity.Status == CustomerOrderStatus.Delivered ? 0m : entity.TotalAmount),
                 Latitude = entity.Latitude,
                 Longitude = entity.Longitude,
                 DistanceKm = entity.DistanceKm,

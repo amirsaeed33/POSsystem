@@ -195,6 +195,10 @@ namespace SmartPos.Orders.Dto
 
         public string SaleInvoiceNo { get; set; }
 
+        public decimal PaidAmount { get; set; }
+
+        public decimal DueAmount { get; set; }
+
         public double? Latitude { get; set; }
 
         public double? Longitude { get; set; }

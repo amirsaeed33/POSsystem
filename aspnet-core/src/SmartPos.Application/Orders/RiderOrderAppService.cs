@@ -347,7 +347,11 @@ namespace SmartPos.Orders
 
                 if (order.SaleId == null)
                 {
-                    await _saleAppService.CreateSaleForCustomerOrderAsync(order.Id);
+                    await _saleAppService.CreateSaleForCustomerOrderAsync(order.Id, input.PaymentReceivedAmount);
+                }
+                else if (input.PaymentReceivedAmount.HasValue)
+                {
+                    await _saleAppService.CreateSaleForCustomerOrderAsync(order.Id, input.PaymentReceivedAmount);
                 }
 
                 await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(

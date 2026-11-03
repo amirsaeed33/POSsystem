@@ -88,6 +88,8 @@
                 <th>Sale Type</th>
                 <th>Customer</th>
                 <th class="text-right">Total Amount</th>
+                <th class="text-right">Paid Amount</th>
+                <th class="text-right">Due Amount</th>
                 <th>Notes</th>
                 <th class="no-print" style="width: 5rem">Invoice</th>
             </tr>
@@ -98,26 +100,35 @@
                 <td>{{ row.saleDate | date: formatService.dateFormat }}</td>
                 <td>
                     <span
-                        *ngIf="row.saleType === 'Online Order'"
+                        *ngIf="getSaleType(row) === 'Online Order'"
                         class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-blue-50 text-blue-700 border-1 border-blue-200"
                     >
                         <i class="pi pi-globe text-xs"></i> Online Order
                     </span>
                     <span
-                        *ngIf="row.saleType === 'Dine-In'"
+                        *ngIf="getSaleType(row) === 'Dine-In'"
                         class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-purple-50 text-purple-700 border-1 border-purple-200"
                     >
                         <i class="pi pi-table text-xs"></i> Dine-In
                     </span>
                     <span
-                        *ngIf="!row.saleType || row.saleType === 'Takeaway'"
+                        *ngIf="getSaleType(row) === 'Takeaway'"
                         class="inline-flex align-items-center gap-1 px-2 py-1 border-round-lg text-xs font-semibold bg-bluegray-50 text-bluegray-700 border-1 border-bluegray-200"
                     >
                         <i class="pi pi-shopping-bag text-xs"></i> Takeaway
                     </span>
                 </td>
                 <td>{{ row.customerName || '—' }}</td>
-                <td class="text-right">{{ row.totalAmount | number: '1.2-2' }}</td>
+                <td class="text-right font-bold">{{ row.totalAmount | number: '1.2-2' }}</td>
+                <td class="text-right font-semibold text-green-700">{{ (row.paidAmount || 0) | number: '1.2-2' }}</td>
+                <td class="text-right">
+                    <span *ngIf="row.dueAmount && row.dueAmount > 0" class="inline-flex align-items-center px-2 py-1 border-round font-bold text-xs bg-red-50 text-red-700 border-1 border-red-200">
+                        {{ row.dueAmount | number: '1.2-2' }}
+                    </span>
+                    <span *ngIf="!row.dueAmount || row.dueAmount <= 0" class="text-xs text-500 font-medium">
+                        0.00
+                    </span>
+                </td>
                 <td>{{ row.notes || '—' }}</td>
                 <td class="no-print">
                     <button
@@ -135,13 +146,15 @@
         </ng-template>
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="7" class="text-center p-4 text-500">No data</td>
+                <td colspan="9" class="text-center p-4 text-500">No data</td>
             </tr>
         </ng-template>
         <ng-template pTemplate="footer">
             <tr>
-                <td colspan="4" class="text-right font-bold">Total Amount</td>
+                <td colspan="4" class="text-right font-bold">Total</td>
                 <td class="text-right font-bold">{{ report.totalAmount | number: '1.2-2' }}</td>
+                <td class="text-right font-bold text-green-700">{{ (report.totalPaidAmount || 0) | number: '1.2-2' }}</td>
+                <td class="text-right font-bold text-red-600">{{ (report.totalDueAmount || 0) | number: '1.2-2' }}</td>
                 <td colspan="2"></td>
             </tr>
         </ng-template>

@@ -13,6 +13,9 @@ namespace SmartPos.Sales
             if (!string.IsNullOrWhiteSpace(notes))
             {
                 if (notes.IndexOf("[Online Order", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    notes.IndexOf("Online Order", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    notes.IndexOf("Online Delivery", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    notes.IndexOf("ORD-", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     notes.IndexOf("From order ORD-", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     notes.IndexOf("Order ORD-", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
@@ -20,12 +23,16 @@ namespace SmartPos.Sales
                 }
 
                 if (notes.IndexOf("[Dine-In", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    notes.IndexOf("[Car Service", StringComparison.OrdinalIgnoreCase) >= 0)
+                    notes.IndexOf("Dine-In", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    notes.IndexOf("Dine In", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    notes.IndexOf("[Car Service", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    notes.IndexOf("Car Service", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     return DineIn;
                 }
 
-                if (notes.IndexOf("[Takeaway", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (notes.IndexOf("[Takeaway", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    notes.IndexOf("Takeaway", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     return Takeaway;
                 }
@@ -40,4 +47,3 @@ namespace SmartPos.Sales
         }
     }
 }
-

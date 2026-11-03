@@ -45,6 +45,8 @@ export interface CustomerOrderDto {
     distanceKm?: number;
     saleId?: number;
     saleInvoiceNo?: string;
+    paidAmount?: number;
+    dueAmount?: number;
     branchId?: number;
     branchName?: string;
     riderId?: number | null;

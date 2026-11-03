@@ -92,15 +92,19 @@ namespace SmartPos.Reports.Pdf
 
             model.SummaryItems.Add(new KeyValuePair<string, string>("Total Sales", (dto.Items?.Count ?? 0).ToString("N0")));
             model.SummaryItems.Add(new KeyValuePair<string, string>("Total Amount", dto.TotalAmount.ToString("N2")));
+            model.SummaryItems.Add(new KeyValuePair<string, string>("Total Paid", dto.TotalPaidAmount.ToString("N2")));
+            model.SummaryItems.Add(new KeyValuePair<string, string>("Total Due", dto.TotalDueAmount.ToString("N2")));
 
             model.Columns = new List<ReportPdfColumn>
             {
-                new ReportPdfColumn("Invoice No", 2.0f, ReportColumnAlignment.Left),
-                new ReportPdfColumn("Sale Date", 1.8f, ReportColumnAlignment.Center),
-                new ReportPdfColumn("Sale Type", 1.8f, ReportColumnAlignment.Center),
-                new ReportPdfColumn("Customer", 3.0f, ReportColumnAlignment.Left),
-                new ReportPdfColumn("Total Amount", 2.2f, ReportColumnAlignment.Right),
-                new ReportPdfColumn("Notes", 3.5f, ReportColumnAlignment.Left)
+                new ReportPdfColumn("Invoice No", 1.8f, ReportColumnAlignment.Left),
+                new ReportPdfColumn("Sale Date", 1.4f, ReportColumnAlignment.Center),
+                new ReportPdfColumn("Sale Type", 1.5f, ReportColumnAlignment.Center),
+                new ReportPdfColumn("Customer", 2.2f, ReportColumnAlignment.Left),
+                new ReportPdfColumn("Total Amount", 1.8f, ReportColumnAlignment.Right),
+                new ReportPdfColumn("Paid Amount", 1.8f, ReportColumnAlignment.Right),
+                new ReportPdfColumn("Due Amount", 1.8f, ReportColumnAlignment.Right),
+                new ReportPdfColumn("Notes", 2.8f, ReportColumnAlignment.Left)
             };
 
             foreach (var item in dto.Items ?? Enumerable.Empty<SaleReportRowDto>())
@@ -112,6 +116,8 @@ namespace SmartPos.Reports.Pdf
                     item.SaleType ?? "Takeaway",
                     item.CustomerName ?? "—",
                     item.TotalAmount.ToString("N2"),
+                    item.PaidAmount.ToString("N2"),
+                    item.DueAmount.ToString("N2"),
                     item.Notes ?? "—"
                 });
             }
@@ -123,6 +129,8 @@ namespace SmartPos.Reports.Pdf
                 "",
                 "",
                 dto.TotalAmount.ToString("N2"),
+                dto.TotalPaidAmount.ToString("N2"),
+                dto.TotalDueAmount.ToString("N2"),
                 ""
             });
 

@@ -1,7 +1,7 @@
 import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MessageService } from 'primeng/api';
-import { SaleReportDto } from 'src/app/demo/api/report';
+import { SaleReportDto, SaleReportRowDto } from 'src/app/demo/api/report';
 import { ReportService } from 'src/app/demo/service/report.service';
 import { NotificationEmailService } from '../../service/notification-email.service';
 
@@ -28,6 +28,20 @@ export class SaleReportComponent implements OnInit {
             toDate: this.toDate || undefined,
             keyword: this.keyword?.trim() || undefined,
         });
+
+        getSaleType(row: SaleReportRowDto): string {
+        if (row.saleType === 'Online Order' || row.saleType === 'Dine-In' || row.saleType === 'Takeaway') {
+            return row.saleType;
+        }
+        const notes = row.notes || '';
+        if (notes.includes('[Online Order') || notes.toLowerCase().includes('online order') || notes.includes('ORD-')) {
+            return 'Online Order';
+        }
+        if (notes.includes('[Dine-In') || notes.toLowerCase().includes('dine-in') || notes.includes('[Car Service')) {
+            return 'Dine-In';
+        }
+        return 'Takeaway';
+    }
 
     constructor(public formatService: AppFormatService, 
         private reportService: ReportService,

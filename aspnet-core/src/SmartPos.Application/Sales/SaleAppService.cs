@@ -592,6 +592,8 @@ namespace SmartPos.Sales
 
         protected override SaleDto MapToEntityDto(Sale entity)
         {
+            var paidAmount = Math.Round(entity.CashAmount + entity.CardAmount, 2);
+            var dueAmount = Math.Round(Math.Max(0m, entity.TotalAmount - paidAmount), 2);
             var dto = new SaleDto
             {
                 Id = entity.Id,
@@ -604,11 +606,16 @@ namespace SmartPos.Sales
                 DiscountPercent = entity.DiscountPercent,
                 TaxPercent = entity.TaxPercent,
                 TaxAmount = entity.TaxAmount,
+                DeliveryCharges = entity.DeliveryCharges,
+                DeliveryAreaName = entity.DeliveryAreaName,
                 TotalAmount = entity.TotalAmount,
                 PaymentType = entity.PaymentType,
                 CashAmount = entity.CashAmount,
                 CardAmount = entity.CardAmount,
                 CreditAmount = entity.CreditAmount,
+                PaidAmount = paidAmount,
+                DueAmount = dueAmount,
+                SaleType = SaleTypeResolver.Resolve(entity.Notes, entity.DeliveryCharges, entity.DeliveryAreaName),
                 Notes = entity.Notes,
                 Lines = new List<SaleLineDto>()
             };
@@ -667,7 +674,7 @@ namespace SmartPos.Sales
 
         [AbpAllowAnonymous]
         [RemoteService(false)]
-        public async Task<SaleDto> CreateSaleForCustomerOrderAsync(int orderId)
+        public async Task<SaleDto> CreateSaleForCustomerOrderAsync(int orderId, decimal? paymentReceivedAmount = null)
         {
             var order = await _customerOrderRepository.GetAllIncluding(o => o.Lines)
                 .FirstOrDefaultAsync(o => o.Id == orderId);
@@ -688,6 +695,17 @@ namespace SmartPos.Sales
                 var existing = await Repository.FirstOrDefaultAsync(order.SaleId.Value);
                 if (existing != null)
                 {
+                    if (paymentReceivedAmount.HasValue)
+                    {
+                        var rec = Math.Max(0m, paymentReceivedAmount.Value);
+                        existing.CashAmount = Math.Min(existing.TotalAmount, rec);
+                        existing.CardAmount = 0;
+                        existing.CreditAmount = Math.Max(0m, existing.TotalAmount - existing.CashAmount);
+                        existing.PaymentType = existing.CreditAmount <= 0 ? PaymentTypes.Cash : (existing.CashAmount > 0 ? PaymentTypes.Mixed : PaymentTypes.Credit);
+                        await Repository.UpdateAsync(existing);
+                        await CurrentUnitOfWork.SaveChangesAsync();
+                    }
+
                     var existingDto = MapToEntityDto(existing);
                     existingDto.SaleType = SaleTypeResolver.OnlineOrder;
                     return existingDto;
@@ -714,13 +732,20 @@ namespace SmartPos.Sales
                 ? order.LastModificationTime.Value
                 : (order.OrderDate != default ? order.OrderDate : Abp.Timing.Clock.Now);
 
+            var total = order.TotalAmount;
+            var received = paymentReceivedAmount.HasValue ? Math.Max(0m, paymentReceivedAmount.Value) : total;
+            var cash = Math.Min(total, received);
+            var credit = Math.Max(0m, total - cash);
+            var paymentType = credit <= 0 ? PaymentTypes.Cash : (cash > 0 ? PaymentTypes.Mixed : PaymentTypes.Credit);
+
             var saleDto = await CreateSaleInternalAsync(new CreateSaleDto
             {
                 BranchId = order.BranchId,
                 CustomerId = order.CustomerId,
                 SaleDate = saleDate,
-                PaymentType = PaymentTypes.Cash,
-                CashAmount = order.TotalAmount,
+                PaymentType = paymentType,
+                CashAmount = cash,
+                CreditAmount = credit,
                 DeliveryCharges = order.DeliveryFee,
                 DeliveryAreaName = order.DeliveryAreaName,
                 Notes = combinedNotes,
@@ -737,6 +762,8 @@ namespace SmartPos.Sales
             await CurrentUnitOfWork.SaveChangesAsync();
 
             saleDto.SaleType = SaleTypeResolver.OnlineOrder;
+            saleDto.PaidAmount = Math.Round(cash, 2);
+            saleDto.DueAmount = Math.Round(credit, 2);
             return saleDto;
         }
 
@@ -810,6 +837,9 @@ namespace SmartPos.Sales
 
             foreach (var item in items)
             {
+                item.PaidAmount = Math.Round(item.CashAmount + item.CardAmount, 2);
+                item.DueAmount = Math.Round(Math.Max(0m, item.TotalAmount - item.PaidAmount), 2);
+
                 if (onlineSet.Contains(item.Id))
                 {
                     item.SaleType = SaleTypeResolver.OnlineOrder;
@@ -846,20 +876,162 @@ namespace SmartPos.Sales
             }
         }
 
+        public async Task<SaleDto> CollectPaymentAsync(CollectSalePaymentDto input)
+        {
+            if (input == null)
+            {
+                throw new ArgumentNullException(nameof(input));
+            }
+
+            if (input.Amount <= 0)
+            {
+                throw new UserFriendlyException("Payment amount must be greater than zero.");
+            }
+
+            var sale = await Repository.GetAllIncluding(s => s.Customer, s => s.Lines)
+                .FirstOrDefaultAsync(s => s.Id == input.SaleId);
+
+            if (sale == null)
+            {
+                throw new UserFriendlyException("Sale not found.");
+            }
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(sale.BranchId);
+
+            var currentPaid = sale.CashAmount + sale.CardAmount;
+            var currentDue = Math.Max(0m, sale.TotalAmount - currentPaid);
+
+            if (currentDue <= 0.001m)
+            {
+                throw new UserFriendlyException("This sale is already fully paid. No pending due amount.");
+            }
+
+            if (input.Amount > currentDue + 0.01m)
+            {
+                throw new UserFriendlyException($"Collected amount ({input.Amount:N2}) exceeds remaining due amount ({currentDue:N2}).");
+            }
+
+            var payAmount = Math.Min(input.Amount, currentDue);
+            var isCard = input.PaymentMethod == PaymentTypes.Card;
+
+            if (isCard)
+            {
+                sale.CardAmount += payAmount;
+            }
+            else
+            {
+                sale.CashAmount += payAmount;
+            }
+
+            sale.CreditAmount = Math.Max(0m, sale.TotalAmount - (sale.CashAmount + sale.CardAmount));
+
+            if (sale.CreditAmount <= 0.001m)
+            {
+                sale.CreditAmount = 0;
+                if (sale.PaymentType == PaymentTypes.Credit)
+                {
+                    sale.PaymentType = isCard ? PaymentTypes.Card : PaymentTypes.Cash;
+                }
+                else if (sale.CashAmount > 0 && sale.CardAmount > 0)
+                {
+                    sale.PaymentType = PaymentTypes.Mixed;
+                }
+            }
+            else
+            {
+                sale.PaymentType = PaymentTypes.Mixed;
+            }
+
+            var methodLabel = isCard ? "Card" : "Cash";
+            var paymentNote = $"[Collected PKR {payAmount:N2} via {methodLabel}" + (!string.IsNullOrWhiteSpace(input.Notes) ? $": {input.Notes.Trim()}" : "") + "]";
+            sale.Notes = string.IsNullOrWhiteSpace(sale.Notes) ? paymentNote : $"{sale.Notes} | {paymentNote}";
+            if (sale.Notes.Length > Sale.MaxNotesLength)
+            {
+                sale.Notes = sale.Notes.Substring(0, Sale.MaxNotesLength);
+            }
+
+            await Repository.UpdateAsync(sale);
+
+            // Post Ledger Entries
+            var now = Abp.Timing.Clock.Now;
+            var description = $"Payment collected for Sale {sale.InvoiceNo}";
+            var paymentAccount = isCard
+                ? await _systemAccountManager.GetBankAccountAsync()
+                : await _systemAccountManager.GetCashAccountAsync();
+
+            await _ledgerRepository.InsertAsync(new LedgerEntry
+            {
+                TenantId = AbpSession.TenantId,
+                BranchId = sale.BranchId,
+                AccountId = paymentAccount.Id,
+                TransactionDate = now,
+                VoucherType = "SalePayment",
+                VoucherId = sale.Id,
+                Debit = payAmount,
+                Credit = 0,
+                Description = $"{description} ({methodLabel})"
+            });
+
+            if (sale.Customer?.AccountId.HasValue == true)
+            {
+                await _ledgerRepository.InsertAsync(new LedgerEntry
+                {
+                    TenantId = AbpSession.TenantId,
+                    BranchId = sale.BranchId,
+                    AccountId = sale.Customer.AccountId.Value,
+                    TransactionDate = now,
+                    VoucherType = "SalePayment",
+                    VoucherId = sale.Id,
+                    Debit = 0,
+                    Credit = payAmount,
+                    Description = $"{description} (AR reduction)"
+                });
+            }
+
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            _readCacheInvalidator?.ClearAllHotPathAsync();
+
+            var dto = MapToEntityDto(sale);
+            await PopulateReturnFlagsAsync(new[] { dto });
+            await PopulateSaleTypesAsync(new[] { dto });
+            return dto;
+        }
+
         private static void ApplyPaymentSplit(Sale sale, CreateSaleDto input)
         {
             var total = sale.TotalAmount;
             switch (input.PaymentType)
             {
                 case PaymentTypes.Cash:
-                    sale.CashAmount = total;
-                    sale.CardAmount = 0;
-                    sale.CreditAmount = 0;
+                    if (input.CashAmount > 0 && input.CashAmount < total)
+                    {
+                        sale.CashAmount = Math.Round(input.CashAmount, 2);
+                        sale.CardAmount = 0;
+                        sale.CreditAmount = Math.Round(total - sale.CashAmount, 2);
+                        sale.PaymentType = PaymentTypes.Mixed;
+                    }
+                    else
+                    {
+                        sale.CashAmount = total;
+                        sale.CardAmount = 0;
+                        sale.CreditAmount = 0;
+                    }
                     break;
                 case PaymentTypes.Card:
-                    sale.CashAmount = 0;
-                    sale.CardAmount = total;
-                    sale.CreditAmount = 0;
+                    if (input.CardAmount > 0 && input.CardAmount < total)
+                    {
+                        sale.CashAmount = 0;
+                        sale.CardAmount = Math.Round(input.CardAmount, 2);
+                        sale.CreditAmount = Math.Round(total - sale.CardAmount, 2);
+                        sale.PaymentType = PaymentTypes.Mixed;
+                    }
+                    else
+                    {
+                        sale.CashAmount = 0;
+                        sale.CardAmount = total;
+                        sale.CreditAmount = 0;
+                    }
                     break;
                 case PaymentTypes.Mixed:
                     sale.CashAmount = Math.Max(0, input.CashAmount);

@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+    CollectSalePaymentDto,
     CreateSaleDto,
     PagedResultDto,
     PagedSaleResultRequestDto,
@@ -97,6 +98,13 @@ export class SaleService {
             return;
         }
         this.unwrap(res, 'Failed to delete sale');
+    }
+
+    async collectPayment(input: CollectSalePaymentDto): Promise<SaleDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/CollectPayment`, input)
+        );
+        return this.mapSale(this.unwrap(res, 'Failed to collect payment'));
     }
 
     async getProductByBarcode(barcode: string): Promise<ProductDto> {

@@ -31,6 +31,8 @@ export interface SaleDto {
     cashAmount: number;
     cardAmount: number;
     creditAmount: number;
+    paidAmount?: number;
+    dueAmount?: number;
     notes?: string;
     saleType?: string;
     deliveryCharges?: number;
@@ -68,6 +70,13 @@ export interface PagedSaleResultRequestDto {
     customerId?: number;
     skipCount?: number;
     maxResultCount?: number;
+}
+
+export interface CollectSalePaymentDto {
+    saleId: number;
+    amount: number;
+    paymentMethod: number; // 1 = Cash, 2 = Card
+    notes?: string;
 }
 
 export interface PagedResultDto<T> {

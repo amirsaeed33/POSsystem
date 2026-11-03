@@ -38,10 +38,12 @@ namespace SmartPos.Sales
 
         [AbpAllowAnonymous]
         [RemoteService(false)]
-        Task<SaleDto> CreateSaleForCustomerOrderAsync(int orderId);
+        Task<SaleDto> CreateSaleForCustomerOrderAsync(int orderId, decimal? paymentReceivedAmount = null);
 
         [AbpAllowAnonymous]
         [RemoteService(false)]
         Task SyncDeliveredCustomerOrderSalesAsync(int? branchId = null);
+
+        Task<SaleDto> CollectPaymentAsync(CollectSalePaymentDto input);
     }
 }

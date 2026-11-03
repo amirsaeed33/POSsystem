@@ -39,6 +39,9 @@ namespace SmartPos.Sales.Dto
         public decimal CardAmount { get; set; }
 
         [Range(0, double.MaxValue)]
+        public decimal CreditAmount { get; set; }
+
+        [Range(0, double.MaxValue)]
         public decimal DeliveryCharges { get; set; }
 
         [StringLength(128)]

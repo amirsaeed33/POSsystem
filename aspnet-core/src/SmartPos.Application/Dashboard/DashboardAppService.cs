@@ -8,6 +8,7 @@ using Abp.Domain.Repositories;
 using Abp.Linq.Extensions;
 using Abp.Timing;
 using Microsoft.EntityFrameworkCore;
+using SmartPos.Accounts;
 using SmartPos.Branches;
 using SmartPos.Dashboard.Dto;
 using SmartPos.Expenses;
@@ -37,6 +38,7 @@ namespace SmartPos.Dashboard
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchStockManager _branchStockManager;
         private readonly ISaleAppService _saleAppService;
+        private readonly IRepository<LedgerEntry> _ledgerRepository;
 
         public DashboardAppService(
             IRepository<Product> productRepository,
@@ -51,7 +53,8 @@ namespace SmartPos.Dashboard
             IRepository<BranchStock> branchStockRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchStockManager branchStockManager,
-            ISaleAppService saleAppService)
+            ISaleAppService saleAppService,
+            IRepository<LedgerEntry> ledgerRepository)
         {
             _productRepository = productRepository;
             _saleRepository = saleRepository;
@@ -66,6 +69,7 @@ namespace SmartPos.Dashboard
             _branchAccessChecker = branchAccessChecker;
             _branchStockManager = branchStockManager;
             _saleAppService = saleAppService;
+            _ledgerRepository = ledgerRepository;
         }
 
         public async Task<DashboardDto> GetAsync()
@@ -109,7 +113,7 @@ namespace SmartPos.Dashboard
                 .AsNoTracking()
                 .Where(x => x.SaleDate >= startMonth)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .Select(x => new { x.Id, x.SaleDate, x.TotalAmount })
+                .Select(x => new { x.Id, x.SaleDate, x.TotalAmount, x.CashAmount, x.CardAmount, x.CreditAmount })
                 .ToListAsync();
 
             var saleIdsInWindow = sales.Select(x => x.Id).ToList();
@@ -128,11 +132,13 @@ namespace SmartPos.Dashboard
             {
                 var returned = returnsBySaleId.GetValueOrDefault(s.Id, 0m);
                 var netAmount = Math.Max(0m, s.TotalAmount - returned);
+                var paidAmount = Math.Max(0m, (s.CashAmount + s.CardAmount) - returned);
                 return new
                 {
                     s.Id,
                     s.SaleDate,
                     TotalAmount = netAmount,
+                    PaidAmount = paidAmount,
                     IsFullyReturned = returned >= s.TotalAmount
                 };
             }).ToList();
@@ -151,9 +157,18 @@ namespace SmartPos.Dashboard
                 .Select(x => new { x.ExpenseDate, x.Amount })
                 .ToListAsync();
 
+            var olderSaleIds = sales.Where(x => x.SaleDate < todayStart).Select(x => x.Id).ToList();
+            var todayLaterCollectedPayments = olderSaleIds.Count == 0 ? 0m : await _ledgerRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => x.TransactionDate >= todayStart && x.TransactionDate < tomorrow)
+                .Where(x => x.VoucherType == "SalePayment" && x.Debit > 0 && x.VoucherId.HasValue && olderSaleIds.Contains(x.VoucherId.Value))
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
+                .SumAsync(x => (decimal?)x.Debit) ?? 0m;
+
+            // Only actual received amounts (rider collections + admin collections), pending credit/due excluded!
             var todaySales = netSales
                 .Where(x => x.SaleDate >= todayStart && x.SaleDate < tomorrow)
-                .Sum(x => x.TotalAmount);
+                .Sum(x => x.PaidAmount) + todayLaterCollectedPayments;
 
             var todayPurchases = purchases
                 .Where(x => x.PurchaseDate >= todayStart && x.PurchaseDate < tomorrow)

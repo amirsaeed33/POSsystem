@@ -30,6 +30,27 @@ export class SaleListComponent implements OnInit {
     totalReturnRecords = 0;
     returnKeyword = '';
 
+    // Sale Type Filter
+    selectedSaleType = 'All';
+    saleTypeOptions = [
+        { label: 'All Types', value: 'All' },
+        { label: 'Dine-In', value: 'Dine-In' },
+        { label: 'Takeaway', value: 'Takeaway' },
+        { label: 'Online Order', value: 'Online Order' }
+    ];
+
+    // Collect Payment Dialog State
+    collectDialogVisible = false;
+    selectedSaleForPayment: SaleDto | null = null;
+    collectAmount = 0;
+    collectPaymentMethod = 1;
+    paymentMethodOptions = [
+        { label: 'Cash', value: 1 },
+        { label: 'Card', value: 2 }
+    ]; // 1 = Cash, 2 = Card
+    collectNotes = '';
+    collectingPayment = false;
+
     createDialogInstances: number[] = [];
     viewDialogVisible = false;
     viewingSaleId: number | null = null;
@@ -53,6 +74,18 @@ export class SaleListComponent implements OnInit {
                 color: 'blue',
                 action: () => this.openViewDialog(sale),
             },
+        ];
+
+        if (this.getDueAmount(sale) > 0) {
+            actions.push({
+                label: 'Collect Payment',
+                icon: 'pi pi-dollar',
+                color: 'green',
+                action: () => this.openCollectPaymentDialog(sale),
+            });
+        }
+
+        actions.push(
             {
                 label: 'Sale Return',
                 icon: 'pi pi-replay',
@@ -65,7 +98,7 @@ export class SaleListComponent implements OnInit {
                 color: 'indigo',
                 action: () => this.openPrintDialog(sale.id),
             }
-        ];
+        );
         if (this.canDelete) {
             actions.push({
                 label: 'Delete',
@@ -95,6 +128,96 @@ export class SaleListComponent implements OnInit {
             });
         }
         return actions;
+    }
+
+    get filteredSales(): SaleDto[] {
+        if (!this.selectedSaleType || this.selectedSaleType === 'All') {
+            return this.sales;
+        }
+        return this.sales.filter(s => this.getSaleType(s) === this.selectedSaleType);
+    }
+
+    getSaleType(sale: SaleDto): string {
+        if (sale.saleType === 'Online Order' || sale.saleType === 'Dine-In' || sale.saleType === 'Takeaway') {
+            return sale.saleType;
+        }
+        const notes = sale.notes || '';
+        if (notes.includes('[Online Order') || notes.toLowerCase().includes('online order') || notes.includes('ORD-') || (sale.deliveryCharges && sale.deliveryCharges > 0) || sale.deliveryAreaName) {
+            return 'Online Order';
+        }
+        if (notes.includes('[Dine-In') || notes.toLowerCase().includes('dine-in') || notes.includes('[Car Service')) {
+            return 'Dine-In';
+        }
+        return 'Takeaway';
+    }
+
+    getPaidAmount(sale: SaleDto): number {
+        if (sale.paidAmount !== undefined && sale.paidAmount !== null) {
+            return sale.paidAmount;
+        }
+        return (sale.cashAmount || 0) + (sale.cardAmount || 0);
+    }
+
+    getDueAmount(sale: SaleDto): number {
+        if (sale.dueAmount !== undefined && sale.dueAmount !== null) {
+            return sale.dueAmount;
+        }
+        return Math.max(0, (sale.totalAmount || 0) - this.getPaidAmount(sale));
+    }
+
+    openCollectPaymentDialog(sale: SaleDto): void {
+        this.selectedSaleForPayment = sale;
+        this.collectAmount = this.getDueAmount(sale);
+        this.collectPaymentMethod = 1;
+        this.collectNotes = '';
+        this.collectDialogVisible = true;
+    }
+
+    cancelCollectPayment(): void {
+        this.collectDialogVisible = false;
+        this.selectedSaleForPayment = null;
+        this.collectAmount = 0;
+        this.collectNotes = '';
+    }
+
+    async submitCollectPayment(): Promise<void> {
+        if (!this.selectedSaleForPayment) return;
+        const due = this.getDueAmount(this.selectedSaleForPayment);
+        if (this.collectAmount <= 0) {
+            this.messageService.add({ severity: 'warn', summary: 'Invalid Amount', detail: 'Please enter an amount greater than 0.' });
+            return;
+        }
+        if (this.collectAmount > due + 0.01) {
+            this.messageService.add({ severity: 'error', summary: 'Amount Exceeded', detail: `Amount cannot exceed remaining due (PKR ${due.toFixed(2)}).` });
+            return;
+        }
+
+        this.collectingPayment = true;
+        try {
+            await this.saleService.collectPayment({
+                saleId: this.selectedSaleForPayment.id,
+                amount: this.collectAmount,
+                paymentMethod: this.collectPaymentMethod,
+                notes: this.collectNotes?.trim() || undefined
+            });
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Payment Collected',
+                detail: `Collected PKR ${this.collectAmount.toFixed(2)} for ${this.selectedSaleForPayment.invoiceNo || '#' + this.selectedSaleForPayment.id}`
+            });
+            this.collectDialogVisible = false;
+            this.selectedSaleForPayment = null;
+            this.loadSales();
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Failed',
+                detail: err?.message || 'Failed to collect payment.'
+            });
+        } finally {
+            this.collectingPayment = false;
+        }
     }
 
     constructor(

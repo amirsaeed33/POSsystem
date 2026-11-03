@@ -73,3 +73,10 @@ export interface PagedRiderOrderResultDto {
     totalCount: number;
     items: RiderOrderDto[];
 }
+
+export interface CompleteRiderDeliveryDto {
+    orderId: number;
+    notes?: string | null;
+    rating?: number | null;
+    paymentReceivedAmount?: number | null;
+}
