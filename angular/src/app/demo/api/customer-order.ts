@@ -59,6 +59,12 @@ export interface RateCustomerOrderInput {
     rating: number;
 }
 
+export interface CustomerOrderHistoryInput {
+    phone: string;
+    branchId?: number | null;
+    maxResultCount?: number;
+}
+
 export interface AssignRiderDto {
     orderId: number;
     riderId: number;

@@ -1,0 +1,115 @@
+<div class="oh-page">
+    <header class="oh-top">
+        <button type="button" class="oh-back" (click)="backToStore()">
+            <i class="pi pi-arrow-left"></i>
+            <span>Back to Menu</span>
+        </button>
+        <div class="oh-top-title">My Orders</div>
+        <div class="oh-top-spacer"></div>
+    </header>
+
+    <main class="oh-main">
+        <section class="oh-lookup">
+            <h1>Order history</h1>
+            <p>Enter the phone number used when placing your order.</p>
+
+            <div class="oh-lookup-row">
+                <span class="p-input-icon-left flex-grow-1">
+                    <i class="pi pi-phone"></i>
+                    <input
+                        pInputText
+                        type="tel"
+                        class="w-full oh-phone-input"
+                        placeholder="e.g. 03001234567"
+                        [(ngModel)]="phone"
+                        (keyup.enter)="search()"
+                        maxlength="20"
+                    />
+                </span>
+                <button
+                    type="button"
+                    class="oh-primary-btn"
+                    [disabled]="loading"
+                    (click)="search()"
+                >
+                    <i
+                        class="pi"
+                        [class.pi-spin]="loading"
+                        [class.pi-spinner]="loading"
+                        [class.pi-search]="!loading"
+                    ></i>
+                    {{ loading ? 'Searching…' : 'Find orders' }}
+                </button>
+            </div>
+        </section>
+
+        <div *ngIf="loading" class="oh-loading">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Loading your orders…</span>
+        </div>
+
+        <div *ngIf="!loading && errorMessage" class="oh-error">
+            <i class="pi pi-exclamation-circle"></i>
+            <span>{{ errorMessage }}</span>
+        </div>
+
+        <div
+            *ngIf="!loading && searched && !errorMessage && orders.length === 0"
+            class="oh-empty"
+        >
+            <i class="pi pi-inbox"></i>
+            <strong>No orders found</strong>
+            <p>We couldn’t find orders for this phone number.</p>
+        </div>
+
+        <div *ngIf="!loading && orders.length > 0" class="oh-list">
+            <div
+                class="oh-card"
+                *ngFor="let order of orders"
+                (click)="openOrder(order)"
+                role="button"
+                tabindex="0"
+                (keyup.enter)="openOrder(order)"
+            >
+                <div class="oh-card-top">
+                    <div>
+                        <div class="oh-order-no">#{{ order.orderNo || order.id }}</div>
+                        <div class="oh-date">
+                            {{ order.orderDate | date: 'MMM d, y · h:mm a' }}
+                        </div>
+                    </div>
+                    <span class="oh-status" [ngClass]="statusClass(order)">
+                        {{ statusLabel(order) }}
+                    </span>
+                </div>
+
+                <div class="oh-card-body">
+                    <div class="oh-items">{{ itemSummary(order) }}</div>
+                    <div class="oh-meta" *ngIf="order.branchName || order.riderName">
+                        <span *ngIf="order.branchName">
+                            <i class="pi pi-map-marker"></i> {{ order.branchName }}
+                        </span>
+                        <span *ngIf="order.riderName">
+                            <i class="pi pi-user"></i> {{ order.riderName }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="oh-card-foot">
+                    <div class="oh-amount">
+                        PKR {{ order.totalAmount | number: '1.0-0' }}
+                    </div>
+                    <div class="oh-ratings" *ngIf="order.customerRating || order.deliveryRating">
+                        <span *ngIf="order.customerRating" title="Your rating">
+                            <i class="pi pi-star-fill"></i> {{ order.customerRating }}/5
+                        </span>
+                    </div>
+                    <span class="oh-open">
+                        View <i class="pi pi-angle-right"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<p-toast></p-toast>

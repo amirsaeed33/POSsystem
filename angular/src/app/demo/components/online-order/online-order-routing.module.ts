@@ -3,6 +3,7 @@ import { RouterModule } from '@angular/router';
 import { OnlineOrderComponent } from './online-order.component';
 import { OnlineProductDetailComponent } from './online-product-detail.component';
 import { OnlineOrderTrackingComponent } from './online-order-tracking.component';
+import { OnlineOrderHistoryComponent } from './online-order-history.component';
 
 @NgModule({
     imports: [
@@ -13,6 +14,7 @@ import { OnlineOrderTrackingComponent } from './online-order-tracking.component'
             // Detail only — empty /track redirects back to menu (no standalone track list page).
             { path: 'track', redirectTo: '', pathMatch: 'full' },
             { path: 'track/:orderNo', component: OnlineOrderTrackingComponent },
+            { path: 'history', component: OnlineOrderHistoryComponent },
         ]),
     ],
     exports: [RouterModule],

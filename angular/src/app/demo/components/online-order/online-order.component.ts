@@ -487,6 +487,12 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return order.statusName || 'Active';
     }
 
+    openOrderHistory(): void {
+        this.router.navigate(['/online-order/history'], {
+            queryParams: this.branchId ? { branchId: this.branchId } : {},
+        });
+    }
+
     openActiveOrder(order: MyOnlineOrderRef): void {
         if (!order?.orderNo) {
             return;
@@ -2046,6 +2052,16 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             });
             return;
         }
+        if (!this.customerMobile?.trim()) {
+            try {
+                const saved = localStorage.getItem('smartpos_customer_phone');
+                if (saved) {
+                    this.customerMobile = saved;
+                }
+            } catch {
+                /* ignore */
+            }
+        }
         this.cartService.sidebarVisible = false;
         this.checkoutModalVisible = true;
     }
@@ -2329,6 +2345,14 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 status: createdOrder.status ?? CustomerOrderStatus.Pending,
                 statusName: createdOrder.statusName || 'Pending',
             });
+            try {
+                localStorage.setItem(
+                    'smartpos_customer_phone',
+                    input.customerMobile || ''
+                );
+            } catch {
+                /* ignore */
+            }
             void this.refreshActiveOrders();
 
             // Reset cart & checkout modal state

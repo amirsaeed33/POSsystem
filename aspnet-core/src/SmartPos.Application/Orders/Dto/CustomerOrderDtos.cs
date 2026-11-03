@@ -227,6 +227,15 @@ namespace SmartPos.Orders.Dto
         public int Rating { get; set; }
     }
 
+    public class CustomerOrderHistoryInput
+    {
+        public string Phone { get; set; }
+
+        public int? BranchId { get; set; }
+
+        public int MaxResultCount { get; set; } = 30;
+    }
+
     public class DeliveryRiderStatusDto
     {
         public int RiderId { get; set; }

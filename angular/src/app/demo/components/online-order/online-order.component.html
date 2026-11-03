@@ -76,6 +76,14 @@
                     <i class="pi pi-phone text-xs mr-1"></i>
                     <span>Contact</span>
                 </button>
+                <button
+                    type="button"
+                    class="fp-nav-link-btn"
+                    (click)="openOrderHistory()"
+                >
+                    <i class="pi pi-history text-xs mr-1"></i>
+                    <span>My Orders</span>
+                </button>
             </nav>
 
             <!-- Center Search Bar (Desktop) -->
@@ -314,6 +322,14 @@
                 <i class="pi pi-phone"></i>
                 <span>Contact & Hours</span>
             </button>
+            <button
+                type="button"
+                class="fp-mobile-drawer-link"
+                (click)="mobileNavOpen = false; openOrderHistory()"
+            >
+                <i class="pi pi-history"></i>
+                <span>My Orders</span>
+            </button>
 
             <div class="border-top-1 surface-border my-2"></div>
 
@@ -482,15 +498,25 @@
                     </div>
                     <div class="fp-active-orders-sub">Tap an order to see live status</div>
                 </div>
-                <button
-                    type="button"
-                    class="fp-active-refresh"
-                    [disabled]="loadingActiveOrders"
-                    (click)="refreshActiveOrders()"
-                    title="Refresh"
-                >
-                    <i class="pi" [ngClass]="loadingActiveOrders ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
-                </button>
+                <div class="flex align-items-center gap-2">
+                    <button
+                        type="button"
+                        class="fp-active-refresh"
+                        title="Order history"
+                        (click)="openOrderHistory()"
+                    >
+                        <i class="pi pi-history"></i>
+                    </button>
+                    <button
+                        type="button"
+                        class="fp-active-refresh"
+                        [disabled]="loadingActiveOrders"
+                        (click)="refreshActiveOrders()"
+                        title="Refresh"
+                    >
+                        <i class="pi" [ngClass]="loadingActiveOrders ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="fp-active-orders-list" *ngIf="activeOrders.length">

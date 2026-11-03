@@ -5,6 +5,7 @@ import { OnlineOrderRoutingModule } from './online-order-routing.module';
 import { OnlineOrderComponent } from './online-order.component';
 import { OnlineProductDetailComponent } from './online-product-detail.component';
 import { OnlineOrderTrackingComponent } from './online-order-tracking.component';
+import { OnlineOrderHistoryComponent } from './online-order-history.component';
 
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -45,6 +46,7 @@ import { OrderChatComponent } from 'src/app/shared/components/order-chat/order-c
         OnlineOrderComponent,
         OnlineProductDetailComponent,
         OnlineOrderTrackingComponent,
+        OnlineOrderHistoryComponent,
     ],
 })
 export class OnlineOrderModule {}

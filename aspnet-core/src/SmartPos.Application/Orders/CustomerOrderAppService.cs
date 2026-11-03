@@ -1171,6 +1171,93 @@ namespace SmartPos.Orders
             }
         }
 
+        /// <summary>
+        /// Anonymous customer order history lookup by phone number.
+        /// Matches exact phone or the same trailing digits (handles 03xx / +92 formats).
+        /// </summary>
+        [AbpAllowAnonymous]
+        public async Task<List<CustomerOrderDto>> GetOrdersByPhoneAsync(CustomerOrderHistoryInput input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                if (input == null || string.IsNullOrWhiteSpace(input.Phone))
+                {
+                    throw new UserFriendlyException("Please enter your phone number.");
+                }
+
+                var phone = input.Phone.Trim();
+                var digits = NormalizePhoneDigits(phone);
+                if (digits.Length < 7)
+                {
+                    throw new UserFriendlyException("Please enter a valid phone number (at least 7 digits).");
+                }
+
+                var take = input.MaxResultCount > 0 ? Math.Min(input.MaxResultCount, 50) : 30;
+                var tail10 = digits.Length >= 10 ? digits.Substring(digits.Length - 10) : digits;
+                var tail7 = digits.Length >= 7 ? digits.Substring(digits.Length - 7) : digits;
+
+                var query = Repository.GetAll()
+                    .AsNoTracking()
+                    .Include(x => x.Customer)
+                    .Include(x => x.Sale)
+                    .Include(x => x.Lines)
+                        .ThenInclude(l => l.Product)
+                    .Include(x => x.Branch)
+                    .Where(x => x.Customer != null && x.Customer.Phone != null && x.Customer.Phone != "")
+                    .Where(x =>
+                        x.Customer.Phone == phone ||
+                        x.Customer.Phone.EndsWith(tail7) ||
+                        x.Customer.Phone.Contains(tail7));
+
+                if (input.BranchId.HasValue && input.BranchId.Value > 0)
+                {
+                    query = query.Where(x => x.BranchId == input.BranchId.Value);
+                }
+
+                var candidates = await query
+                    .OrderByDescending(x => x.OrderDate)
+                    .Take(100)
+                    .ToListAsync();
+
+                var matched = candidates
+                    .Where(o => PhoneDigitsMatch(o.Customer?.Phone, digits, tail10))
+                    .Take(take)
+                    .ToList();
+
+                return matched.Select(MapToEntityDto).ToList();
+            }
+        }
+
+        private static string NormalizePhoneDigits(string phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                return string.Empty;
+            }
+
+            return new string(phone.Where(char.IsDigit).ToArray());
+        }
+
+        private static bool PhoneDigitsMatch(string storedPhone, string lookupDigits, string lookupTail)
+        {
+            var storedDigits = NormalizePhoneDigits(storedPhone);
+            if (string.IsNullOrEmpty(storedDigits))
+            {
+                return false;
+            }
+
+            if (storedDigits == lookupDigits)
+            {
+                return true;
+            }
+
+            var storedTail = storedDigits.Length >= 10
+                ? storedDigits.Substring(storedDigits.Length - 10)
+                : storedDigits;
+
+            return storedTail == lookupTail;
+        }
+
         [AbpAllowAnonymous]
         public async Task<CustomerOrderDto> RateOrderAsync(RateCustomerOrderInput input)
         {

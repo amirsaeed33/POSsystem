@@ -7,6 +7,7 @@ import {
     CustomerOrderDto,
     CustomerOrderLineDto,
     RateCustomerOrderInput,
+    CustomerOrderHistoryInput,
     DeliveryRiderStatusDto,
     OverrideDeliveryFeeInput,
     PagedCustomerOrderResultRequestDto,
@@ -208,6 +209,25 @@ export class CustomerOrderService {
             })
         );
         return this.map(this.unwrap(res, 'Failed to submit rating'));
+    }
+
+    async getOrdersByPhone(
+        input: CustomerOrderHistoryInput
+    ): Promise<CustomerOrderDto[]> {
+        // ABP maps Get* actions to HTTP GET — query params, not POST body.
+        const params: Record<string, string> = {
+            Phone: (input.phone || '').trim(),
+            MaxResultCount: String(input.maxResultCount ?? 30),
+        };
+        if (input.branchId) {
+            params['BranchId'] = String(input.branchId);
+        }
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetOrdersByPhone`, { params })
+        );
+        const result = this.unwrap(res, 'Failed to load order history');
+        const list = Array.isArray(result) ? result : result?.items || [];
+        return list.map((item: any) => this.map(item));
     }
 
     async overrideDeliveryFee(

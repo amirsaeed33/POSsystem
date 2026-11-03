@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SmartPos.Web.Core</name>
+    </assembly>
+    <members>
+        <member name="T:SmartPos.Chat.OrderChatHub">
+            <summary>
+            Real-time order/session chat hub. Persistence goes through <see cref="T:SmartPos.Orders.ICustomerChatAppService"/>
+            so UnitOfWork + SignalR broadcast (via domain event) stay consistent for hub and HTTP paths.
+            </summary>
+        </member>
+        <member name="P:SmartPos.Models.TokenAuth.AuthenticateModel.Latitude">
+            <summary>Optional client GPS latitude (waiter/rider auto attendance check-in).</summary>
+        </member>
+        <member name="P:SmartPos.Models.TokenAuth.AuthenticateModel.Longitude">
+            <summary>Optional client GPS longitude (waiter/rider auto attendance check-in).</summary>
+        </member>
+        <member name="P:SmartPos.Models.TokenAuth.AuthenticateResultModel.TenantId">
+            <summary>
+            Tenant of the authenticated user (null for host users). Client should store this in session/cookie.
+            </summary>
+        </member>
+        <member name="P:SmartPos.Models.TokenAuth.AuthenticateResultModel.AttendanceAutoCheckedIn">
+            <summary>
+            True when waiter/rider attendance was auto-checked-in because login GPS was within branch radius.
+            </summary>
+        </member>
+    </members>
+</doc>
