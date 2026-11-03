@@ -617,6 +617,7 @@ namespace SmartPos.Sales
                 DueAmount = dueAmount,
                 SaleType = SaleTypeResolver.Resolve(entity.Notes, entity.DeliveryCharges, entity.DeliveryAreaName),
                 Notes = entity.Notes,
+                PaymentHistory = new List<SalePaymentHistoryItemDto>(),
                 Lines = new List<SaleLineDto>()
             };
 
@@ -659,7 +660,96 @@ namespace SmartPos.Sales
             var dto = MapToEntityDto(entity);
             await PopulateReturnFlagsAsync(new[] { dto });
             await PopulateSaleTypesAsync(new[] { dto });
+            await PopulatePaymentHistoryAsync(dto);
             return dto;
+        }
+
+        /// <summary>
+        /// Builds payment history from ledger cash/bank debits for this sale
+        /// (original sale tender + later CollectPayment rows). Display-only.
+        /// </summary>
+        private async Task PopulatePaymentHistoryAsync(SaleDto dto)
+        {
+            if (dto == null)
+            {
+                return;
+            }
+
+            var entries = await _ledgerRepository.GetAll()
+                .AsNoTracking()
+                .Where(x =>
+                    x.VoucherId == dto.Id &&
+                    x.Debit > 0 &&
+                    (x.VoucherType == VoucherTypes.Sale || x.VoucherType == VoucherTypes.SalePayment))
+                .OrderBy(x => x.TransactionDate)
+                .ThenBy(x => x.Id)
+                .ToListAsync();
+
+            var history = new List<SalePaymentHistoryItemDto>();
+            foreach (var entry in entries)
+            {
+                var desc = entry.Description ?? string.Empty;
+                // Skip AR / credit receivable postings — only cash & card receipts.
+                if (desc.IndexOf("(Credit)", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    continue;
+                }
+
+                var method = "Cash";
+                if (desc.IndexOf("(Card)", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    desc.IndexOf("via Card", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    method = "Card";
+                }
+                else if (desc.IndexOf("(Cash)", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                         desc.IndexOf("via Cash", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    method = "Cash";
+                }
+
+                history.Add(new SalePaymentHistoryItemDto
+                {
+                    PaymentDate = entry.TransactionDate,
+                    Amount = entry.Debit,
+                    Method = method,
+                    Description = desc,
+                    IsAdditionalCollection = string.Equals(
+                        entry.VoucherType,
+                        VoucherTypes.SalePayment,
+                        StringComparison.OrdinalIgnoreCase)
+                });
+            }
+
+            // Fallback when ledger has no cash/card rows but sale totals show payments
+            // (e.g. older data before ledger posting, or notes-only collections).
+            if (history.Count == 0 && (dto.CashAmount > 0 || dto.CardAmount > 0))
+            {
+                if (dto.CashAmount > 0)
+                {
+                    history.Add(new SalePaymentHistoryItemDto
+                    {
+                        PaymentDate = dto.SaleDate,
+                        Amount = dto.CashAmount,
+                        Method = "Cash",
+                        Description = $"Sale {dto.InvoiceNo} (Cash)",
+                        IsAdditionalCollection = false
+                    });
+                }
+
+                if (dto.CardAmount > 0)
+                {
+                    history.Add(new SalePaymentHistoryItemDto
+                    {
+                        PaymentDate = dto.SaleDate,
+                        Amount = dto.CardAmount,
+                        Method = "Card",
+                        Description = $"Sale {dto.InvoiceNo} (Card)",
+                        IsAdditionalCollection = false
+                    });
+                }
+            }
+
+            dto.PaymentHistory = history;
         }
 
         public override async Task<PagedResultDto<SaleDto>> GetAllAsync(PagedSaleResultRequestDto input)
@@ -965,7 +1055,7 @@ namespace SmartPos.Sales
                 BranchId = sale.BranchId,
                 AccountId = paymentAccount.Id,
                 TransactionDate = now,
-                VoucherType = "SalePayment",
+                VoucherType = VoucherTypes.SalePayment,
                 VoucherId = sale.Id,
                 Debit = payAmount,
                 Credit = 0,
@@ -980,7 +1070,7 @@ namespace SmartPos.Sales
                     BranchId = sale.BranchId,
                     AccountId = sale.Customer.AccountId.Value,
                     TransactionDate = now,
-                    VoucherType = "SalePayment",
+                    VoucherType = VoucherTypes.SalePayment,
                     VoucherId = sale.Id,
                     Debit = 0,
                     Credit = payAmount,
@@ -995,6 +1085,7 @@ namespace SmartPos.Sales
             var dto = MapToEntityDto(sale);
             await PopulateReturnFlagsAsync(new[] { dto });
             await PopulateSaleTypesAsync(new[] { dto });
+            await PopulatePaymentHistoryAsync(dto);
             return dto;
         }
 

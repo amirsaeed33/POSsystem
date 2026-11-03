@@ -348,11 +348,25 @@ export class SaleService {
             cashAmount: item.cashAmount ?? item.CashAmount ?? 0,
             cardAmount: item.cardAmount ?? item.CardAmount ?? 0,
             creditAmount: item.creditAmount ?? item.CreditAmount ?? 0,
+            paidAmount: item.paidAmount ?? item.PaidAmount,
+            dueAmount: item.dueAmount ?? item.DueAmount,
             notes: item.notes ?? item.Notes,
             deliveryCharges: item.deliveryCharges ?? item.DeliveryCharges ?? 0,
             deliveryAreaName: item.deliveryAreaName ?? item.DeliveryAreaName,
             hasReturns: !!(item.hasReturns ?? item.HasReturns),
             returnCount: item.returnCount ?? item.ReturnCount ?? 0,
+            paymentHistory: (Array.isArray(item.paymentHistory ?? item.PaymentHistory)
+                ? item.paymentHistory ?? item.PaymentHistory
+                : []
+            ).map((p: any) => ({
+                paymentDate: p.paymentDate ?? p.PaymentDate,
+                amount: p.amount ?? p.Amount ?? 0,
+                method: p.method ?? p.Method ?? 'Cash',
+                description: p.description ?? p.Description,
+                isAdditionalCollection: !!(
+                    p.isAdditionalCollection ?? p.IsAdditionalCollection
+                ),
+            })),
             lines: (Array.isArray(lines) ? lines : []).map((line: any) =>
                 this.mapLine(line)
             ),

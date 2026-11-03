@@ -34,6 +34,7 @@ namespace SmartPos.Accounts
         public const string Adjustment = "Adjustment";
         public const string Expense = "Expense";
         public const string Sale = "Sale";
+        public const string SalePayment = "SalePayment";
         public const string SaleReturn = "SaleReturn";
         public const string PurchaseReturn = "PurchaseReturn";
 

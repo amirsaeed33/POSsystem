@@ -15,6 +15,14 @@ export interface SaleLineDto {
     lineTotal: number;
 }
 
+export interface SalePaymentHistoryItemDto {
+    paymentDate: string | Date;
+    amount: number;
+    method: string;
+    description?: string;
+    isAdditionalCollection?: boolean;
+}
+
 export interface SaleDto {
     id: number;
     customerId: number;
@@ -39,6 +47,7 @@ export interface SaleDto {
     deliveryAreaName?: string;
     hasReturns?: boolean;
     returnCount?: number;
+    paymentHistory?: SalePaymentHistoryItemDto[];
     lines?: SaleLineDto[];
 }
 

@@ -49,9 +49,23 @@
                 <div class="text-500 mb-1">Total Amount</div>
                 <div class="font-medium">{{ sale.totalAmount | number: '1.2-2' }}</div>
             </div>
-            <div class="col-12">
+            <div class="col-12 md:col-4">
+                <div class="text-500 mb-1">Paid</div>
+                <div class="font-medium text-green-700">{{ paidAmount | number: '1.2-2' }}</div>
+            </div>
+            <div class="col-12 md:col-4">
+                <div class="text-500 mb-1">Due</div>
+                <div class="font-medium" [class.text-orange-600]="dueAmount > 0">{{ dueAmount | number: '1.2-2' }}</div>
+            </div>
+            <div class="col-12 md:col-4">
+                <div class="text-500 mb-1">Cash / Card</div>
+                <div class="font-medium">
+                    {{ sale.cashAmount | number: '1.2-2' }} / {{ sale.cardAmount | number: '1.2-2' }}
+                </div>
+            </div>
+            <div class="col-12" *ngIf="displayNotes">
                 <div class="text-500 mb-1">Notes</div>
-                <div class="font-medium">{{ sale.notes || '—' }}</div>
+                <div class="font-medium">{{ displayNotes }}</div>
             </div>
         </div>
 
@@ -76,6 +90,55 @@
                         <td colspan="4" class="p-3 text-center text-500">No line items</td>
                     </tr>
                 </tbody>
+            </table>
+        </div>
+
+        <h5 class="mt-0 mb-2">Payment History</h5>
+        <div *ngIf="!(sale.paymentHistory || []).length" class="text-500 mb-3">No payment records</div>
+        <div
+            *ngIf="(sale.paymentHistory || []).length"
+            class="surface-border border-1 border-round overflow-auto mb-4"
+        >
+            <table class="w-full">
+                <thead>
+                    <tr class="surface-100">
+                        <th class="text-left p-2">Date</th>
+                        <th class="text-left p-2">Method</th>
+                        <th class="text-left p-2">Type</th>
+                        <th class="text-right p-2">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let pay of sale.paymentHistory">
+                        <td class="p-2">
+                            {{ pay.paymentDate | date: formatService.dateFormat }}
+                            <span class="text-500 text-xs ml-1">{{ pay.paymentDate | date: 'hh:mm a' }}</span>
+                        </td>
+                        <td class="p-2">
+                            <span
+                                class="px-2 py-1 border-round text-xs font-semibold"
+                                [class.bg-green-100]="pay.method === 'Cash'"
+                                [class.text-green-800]="pay.method === 'Cash'"
+                                [class.bg-blue-100]="pay.method === 'Card'"
+                                [class.text-blue-800]="pay.method === 'Card'"
+                            >
+                                {{ pay.method }}
+                            </span>
+                        </td>
+                        <td class="p-2 text-sm text-600">
+                            {{ pay.isAdditionalCollection ? 'Collected later' : 'At sale' }}
+                        </td>
+                        <td class="p-2 text-right font-semibold">{{ pay.amount | number: '1.2-2' }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="surface-50">
+                        <td colspan="3" class="p-2 text-right font-semibold">Total paid</td>
+                        <td class="p-2 text-right font-bold text-green-700">
+                            {{ paymentHistoryTotal | number: '1.2-2' }}
+                        </td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
 
