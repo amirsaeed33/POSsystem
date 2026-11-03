@@ -59,7 +59,7 @@
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                                    <Border WidthRequest="58" HeightRequest="58" StrokeThickness="0" BackgroundColor="#FFF4EC">
+                                    <Border WidthRequest="58" HeightRequest="58" StrokeThickness="0" BackgroundColor="#E8F5EF">
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="16" />
                                         </Border.StrokeShape>
@@ -68,7 +68,7 @@
                                                    IsVisible="{Binding HasLogo, Converter={StaticResource InvertedBoolConverter}}"
                                                    FontAttributes="Bold"
                                                    FontSize="16"
-                                                   TextColor="#F15A29"
+                                                   TextColor="#0F6B4C"
                                                    HorizontalOptions="Center"
                                                    VerticalOptions="Center" />
                                             <Image Source="{Binding LogoUrl}" IsVisible="{Binding HasLogo}" Aspect="AspectFill" />
@@ -76,12 +76,12 @@
                                     </Border>
                                     <VerticalStackLayout Grid.Column="1" Spacing="3">
                                         <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" TextColor="#1A2B4A" />
-                                        <Label Text="{Binding BusinessTypeLabel}" FontSize="11" TextColor="#F15A29" FontAttributes="Bold" />
+                                        <Label Text="{Binding BusinessTypeLabel}" FontSize="11" TextColor="#0F6B4C" FontAttributes="Bold" />
                                         <Label Text="{Binding Address}" IsVisible="{Binding HasAddress}" FontSize="11" TextColor="#6B7A82" MaxLines="2" LineBreakMode="TailTruncation" />
                                         <Label Text="{Binding Phone, StringFormat='📞 {0}'}" IsVisible="{Binding HasPhone}" FontSize="11" TextColor="#3D4A44" MaxLines="1" />
                                         <Label Text="{Binding Email, StringFormat='✉ {0}'}" IsVisible="{Binding HasEmail}" FontSize="11" TextColor="#3D4A44" MaxLines="1" />
                                     </VerticalStackLayout>
-                                    <Label Grid.Column="2" Text="›" FontSize="24" TextColor="#F15A29" VerticalOptions="Center" />
+                                    <Label Grid.Column="2" Text="›" FontSize="24" TextColor="#0F6B4C" VerticalOptions="Center" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -105,7 +105,7 @@
                         <Border WidthRequest="40"
                                 HeightRequest="40"
                                 StrokeThickness="0"
-                                BackgroundColor="#F15A29"
+                                BackgroundColor="#0F6B4C"
                                 VerticalOptions="Center">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="20" />
@@ -139,14 +139,14 @@
                                        VerticalOptions="Center" />
                                 <Label Text="▼"
                                        FontSize="10"
-                                       TextColor="#F15A29"
+                                       TextColor="#0F6B4C"
                                        VerticalOptions="Center" />
                             </HorizontalStackLayout>
                         </VerticalStackLayout>
 
                         <Grid Grid.Column="2" WidthRequest="44" HeightRequest="44">
                             <Border StrokeThickness="0"
-                                    BackgroundColor="#F15A29"
+                                    BackgroundColor="#0F6B4C"
                                     WidthRequest="40"
                                     HeightRequest="40"
                                     HorizontalOptions="Center"
@@ -164,7 +164,7 @@
                                        VerticalOptions="Center" />
                             </Border>
                             <Border IsVisible="{Binding HasCartItems}"
-                                    BackgroundColor="#FFE14A"
+                                    BackgroundColor="#0F6B4C"
                                     StrokeThickness="0"
                                     Padding="4,1"
                                     HorizontalOptions="End"
@@ -176,7 +176,7 @@
                                 <Label Text="{Binding CartCount}"
                                        FontSize="10"
                                        FontAttributes="Bold"
-                                       TextColor="#1A2B4A"
+                                       TextColor="White"
                                        HorizontalTextAlignment="Center" />
                             </Border>
                         </Grid>
@@ -195,7 +195,7 @@
                             <Border StrokeThickness="0" BackgroundColor="Transparent">
                                 <Border.Triggers>
                                     <DataTrigger TargetType="Border" Binding="{Binding IsDeliveryMode}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="#FFE14A" />
+                                        <Setter Property="BackgroundColor" Value="#0F6B4C" />
                                     </DataTrigger>
                                     <DataTrigger TargetType="Border" Binding="{Binding IsDeliveryMode}" Value="False">
                                         <Setter Property="BackgroundColor" Value="Transparent" />
@@ -207,17 +207,23 @@
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding SetDeliveryModeCommand}" />
                                 </Border.GestureRecognizers>
-                                <Label Text="🛵  DELIVERY"
+                                <Label Text="DELIVERY"
                                        FontAttributes="Bold"
                                        FontSize="13"
-                                       TextColor="#1A2B4A"
+                                       TextColor="#0F2A1F"
                                        HorizontalTextAlignment="Center"
-                                       VerticalOptions="Center" />
+                                       VerticalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsDeliveryMode}" Value="True">
+                                            <Setter Property="TextColor" Value="White" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
                             </Border>
                             <Border Grid.Column="1" StrokeThickness="0">
                                 <Border.Triggers>
                                     <DataTrigger TargetType="Border" Binding="{Binding IsPickupMode}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="#FFE14A" />
+                                        <Setter Property="BackgroundColor" Value="#0F6B4C" />
                                     </DataTrigger>
                                     <DataTrigger TargetType="Border" Binding="{Binding IsPickupMode}" Value="False">
                                         <Setter Property="BackgroundColor" Value="Transparent" />
@@ -229,12 +235,18 @@
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding SetPickupModeCommand}" />
                                 </Border.GestureRecognizers>
-                                <Label Text="🏪  PICK-UP"
+                                <Label Text="PICK-UP"
                                        FontAttributes="Bold"
                                        FontSize="13"
-                                       TextColor="#F15A29"
+                                       TextColor="#0F6B4C"
                                        HorizontalTextAlignment="Center"
-                                       VerticalOptions="Center" />
+                                       VerticalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsPickupMode}" Value="True">
+                                            <Setter Property="TextColor" Value="White" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
                             </Border>
                         </Grid>
                     </Border>
@@ -268,7 +280,7 @@
                                                 <Label Text="{Binding DisplayBadge}"
                                                        FontSize="10"
                                                        FontAttributes="Bold"
-                                                       TextColor="#FFE14A"
+                                                       TextColor="#0F6B4C"
                                                        MaxLines="1"
                                                        LineBreakMode="TailTruncation" />
                                                 <Label FontSize="20" FontAttributes="Bold" TextColor="White" MaxLines="2" LineBreakMode="TailTruncation">
@@ -276,7 +288,7 @@
                                                         <FormattedString>
                                                             <Span Text="{Binding TitleMain}" />
                                                             <Span Text=" " />
-                                                            <Span Text="{Binding TitleHighlight}" TextColor="#FFE14A" />
+                                                            <Span Text="{Binding TitleHighlight}" TextColor="#0F6B4C" />
                                                         </FormattedString>
                                                     </Label.FormattedText>
                                                 </Label>
@@ -287,7 +299,7 @@
                             </CarouselView>
                             <IndicatorView x:Name="HeroIndicators"
                                            IndicatorColor="#66FFFFFF"
-                                           SelectedIndicatorColor="#FFE14A"
+                                           SelectedIndicatorColor="#0F6B4C"
                                            IndicatorsShape="Circle"
                                            HorizontalOptions="Center"
                                            VerticalOptions="End"
@@ -295,18 +307,37 @@
                         </Grid>
                     </Border>
 
-                    <!-- Explore Menu header -->
-                    <Grid ColumnDefinitions="*,Auto" Padding="14,4,14,0">
+                    <!-- Explore Menu header + category search -->
+                    <Grid ColumnDefinitions="*,Auto,Auto"
+                          ColumnSpacing="10"
+                          Padding="14,4,14,0">
                         <Label Text="Explore Menu"
                                FontAttributes="Bold"
                                FontSize="20"
                                TextColor="#1A2B4A"
                                VerticalOptions="Center" />
-                        <Label Grid.Column="1"
+                        <Border Grid.Column="1"
+                                StrokeThickness="0"
+                                BackgroundColor="#E8F5EF"
+                                Padding="12,8"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleCategorySearchCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="Search"
+                                   FontAttributes="Bold"
+                                   FontSize="12"
+                                   TextColor="#0F6B4C"
+                                   VerticalOptions="Center" />
+                        </Border>
+                        <Label Grid.Column="2"
                                Text="VIEW ALL"
                                FontAttributes="Bold"
                                FontSize="12"
-                               TextColor="#F15A29"
+                               TextColor="#0F6B4C"
                                VerticalOptions="Center">
                             <Label.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding ViewAllMenuCommand}" />
@@ -314,7 +345,43 @@
                         </Label>
                     </Grid>
 
-                    <!-- Categories: text chips in one horizontal row -->
+                    <Border IsVisible="{Binding IsCategorySearchVisible}"
+                            Margin="14,8,14,0"
+                            Stroke="#E4EBE6"
+                            StrokeThickness="1"
+                            BackgroundColor="White"
+                            Padding="10,2">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Entry Placeholder="Search categories…"
+                                   Text="{Binding CategorySearchText}"
+                                   FontSize="14"
+                                   TextColor="#1F2A24"
+                                   PlaceholderColor="#8A9690"
+                                   ReturnType="Search" />
+                            <Border Grid.Column="1"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#FEECEC"
+                                    Padding="10,6"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="8" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ClearCategorySearchCommand}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Clear"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="#B42318"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Categories: filtered chips in one horizontal row -->
                     <CollectionView ItemsSource="{Binding Categories}"
                                     SelectionMode="None"
                                     Margin="10,6,10,12"
@@ -413,7 +480,7 @@
                                                          HeightRequest="46"
                                                          VerticalOptions="End" />
                                                 <Border IsVisible="{Binding HasTag}"
-                                                        BackgroundColor="#F5C542"
+                                                        BackgroundColor="#3558C7"
                                                         StrokeThickness="0"
                                                         Padding="8,3"
                                                         Margin="8"
@@ -425,7 +492,7 @@
                                                     <Label Text="{Binding DisplayTag}"
                                                            FontSize="9"
                                                            FontAttributes="Bold"
-                                                           TextColor="#1A1408"
+                                                           TextColor="White"
                                                            LineBreakMode="TailTruncation"
                                                            MaxLines="1" />
                                                 </Border>

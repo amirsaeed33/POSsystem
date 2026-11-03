@@ -5,25 +5,26 @@
              BackgroundColor="Transparent"
              VerticalOptions="End"
              HorizontalOptions="Fill"
-             Margin="12,0,12,12"
+             Margin="0"
              Padding="0"
-             InputTransparent="True"
-             HeightRequest="56">
+             InputTransparent="False"
+             HeightRequest="72">
     <!--
-      Overlay control: parent Grid places this with VerticalOptions=End.
-      Do NOT use AbsoluteLayout Y=1 + TranslationY (that drifts mid-screen on Windows/desktop).
+      Full-width hit shield at the bottom so taps never fall through to product cards,
+      category chips, or qty controls underneath. Visual pill is inset; buttons own each tab.
     -->
     <Grid x:Name="BarHost"
-          Padding="4,0"
           BackgroundColor="Transparent"
-          HeightRequest="56"
-          Margin="0"
+          InputTransparent="False"
           VerticalOptions="End"
-          InputTransparent="False">
+          HeightRequest="72"
+          Padding="12,0,12,12">
+        <!-- Blocks residual touches in the bar strip -->
+        <BoxView Color="Transparent" InputTransparent="False" />
+
         <Grid x:Name="PillHost"
-              HeightRequest="48"
+              HeightRequest="52"
               VerticalOptions="End"
-              Margin="0"
               InputTransparent="False">
             <Border StrokeThickness="0"
                     BackgroundColor="White"
@@ -31,7 +32,7 @@
                     HorizontalOptions="Fill"
                     InputTransparent="True">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="24" />
+                    <RoundRectangle CornerRadius="26" />
                 </Border.StrokeShape>
                 <Border.Shadow>
                     <Shadow Brush="#40000000" Offset="0,2" Radius="8" Opacity="0.16" />
@@ -54,34 +55,71 @@
             <Grid x:Name="TabsGrid"
                   ColumnDefinitions="*,*,*,*"
                   VerticalOptions="Fill"
-                  HeightRequest="48"
-                  Padding="0"
+                  HeightRequest="52"
                   InputTransparent="False">
-                <VerticalStackLayout x:Name="Tab0" Spacing="0" VerticalOptions="Center" HorizontalOptions="Fill">
-                    <VerticalStackLayout.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnTab0Tapped" />
-                    </VerticalStackLayout.GestureRecognizers>
+                <!-- Buttons consume the gesture exclusively — no pass-through to page content -->
+                <Button x:Name="Tab0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        Padding="0"
+                        Margin="0"
+                        Clicked="OnTab0Clicked" />
+                <VerticalStackLayout x:Name="Tab0Visual"
+                                    InputTransparent="True"
+                                    Spacing="0"
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Fill">
                     <Image x:Name="Icon0" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
                     <Label x:Name="Label0" Text="Home" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
-                <VerticalStackLayout x:Name="Tab1" Grid.Column="1" Spacing="0" VerticalOptions="Center" HorizontalOptions="Fill">
-                    <VerticalStackLayout.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnTab1Tapped" />
-                    </VerticalStackLayout.GestureRecognizers>
+
+                <Button x:Name="Tab1"
+                        Grid.Column="1"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        Padding="0"
+                        Margin="0"
+                        Clicked="OnTab1Clicked" />
+                <VerticalStackLayout x:Name="Tab1Visual"
+                                    Grid.Column="1"
+                                    InputTransparent="True"
+                                    Spacing="0"
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Fill">
                     <Image x:Name="Icon1" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
                     <Label x:Name="Label1" Text="Cart" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
-                <VerticalStackLayout x:Name="Tab2" Grid.Column="2" Spacing="0" VerticalOptions="Center" HorizontalOptions="Fill">
-                    <VerticalStackLayout.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnTab2Tapped" />
-                    </VerticalStackLayout.GestureRecognizers>
+
+                <Button x:Name="Tab2"
+                        Grid.Column="2"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        Padding="0"
+                        Margin="0"
+                        Clicked="OnTab2Clicked" />
+                <VerticalStackLayout x:Name="Tab2Visual"
+                                    Grid.Column="2"
+                                    InputTransparent="True"
+                                    Spacing="0"
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Fill">
                     <Image x:Name="Icon2" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
                     <Label x:Name="Label2" Text="Track" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
-                <VerticalStackLayout x:Name="Tab3" Grid.Column="3" Spacing="0" VerticalOptions="Center" HorizontalOptions="Fill">
-                    <VerticalStackLayout.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnTab3Tapped" />
-                    </VerticalStackLayout.GestureRecognizers>
+
+                <Button x:Name="Tab3"
+                        Grid.Column="3"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        Padding="0"
+                        Margin="0"
+                        Clicked="OnTab3Clicked" />
+                <VerticalStackLayout x:Name="Tab3Visual"
+                                    Grid.Column="3"
+                                    InputTransparent="True"
+                                    Spacing="0"
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Fill">
                     <Image x:Name="Icon3" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
                     <Label x:Name="Label3" Text="Profile" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>

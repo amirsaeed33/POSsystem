@@ -13,11 +13,12 @@ public class StatusToColorConverter : IValueConverter
             _ => -1
         };
 
+        // Soft brand greens / cool slate — no yellow or peach.
         return status switch
         {
-            0 => Color.FromArgb("#E7F6EE"), // Available
-            1 => Color.FromArgb("#FFF1E0"), // Occupied
-            2 => Color.FromArgb("#E8EEFF"), // Billed
+            0 => Color.FromArgb("#E8F5EF"), // Available
+            1 => Color.FromArgb("#FEECEC"), // Occupied
+            2 => Color.FromArgb("#E8EEF9"), // Billed
             _ => Color.FromArgb("#F1F3F2")
         };
     }
@@ -40,7 +41,7 @@ public class StatusToAccentConverter : IValueConverter
         return status switch
         {
             0 => Color.FromArgb("#0F6B4C"),
-            1 => Color.FromArgb("#C45C16"),
+            1 => Color.FromArgb("#B42318"),
             2 => Color.FromArgb("#3558C7"),
             _ => Color.FromArgb("#5C6B63")
         };

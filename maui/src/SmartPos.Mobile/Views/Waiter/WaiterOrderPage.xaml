@@ -10,195 +10,258 @@
              Title="Order"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F5F5F5">
+             BackgroundColor="#F4F7F5">
 
     <ContentPage.Resources>
         <helpers:InvertedBoolConverter x:Key="InvertedBoolConverter" />
     </ContentPage.Resources>
 
-    <Grid BackgroundColor="#F5F5F5">
-    <Grid
-          RowDefinitions="Auto,*,Auto"
-          BackgroundColor="#F5F5F5">
-        <Border BackgroundColor="#0F6B4C" Padding="16,14" StrokeThickness="0">
-            <VerticalStackLayout Spacing="8">
-                <Label Text="{Binding OrderTitle}" FontAttributes="Bold" FontSize="18" TextColor="White" LineBreakMode="TailTruncation" />
-                <Entry Placeholder="Search menu"
-                       Text="{Binding SearchText}"
-                       BackgroundColor="White"
-                       TextColor="#1F2A24"
-                       PlaceholderColor="#8A9690" />
-                <CollectionView ItemsSource="{Binding Categories}" HeightRequest="40">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="x:String">
-                            <Border BackgroundColor="#FFFFFF22" Padding="12,6" StrokeThickness="0">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="16" />
-                                </Border.StrokeShape>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=SelectCategoryCommand}"
-                                        CommandParameter="{Binding .}" />
-                                </Border.GestureRecognizers>
-                                <Label Text="{Binding .}" TextColor="White" FontSize="13" />
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </VerticalStackLayout>
-        </Border>
-
-        <Grid Grid.Row="1" RowDefinitions="*,Auto">
-            <!-- Website-style product card grid -->
-            <CollectionView ItemsSource="{Binding Products}" Margin="10,10,10,0">
-                <CollectionView.ItemsLayout>
-                    <GridItemsLayout Orientation="Vertical"
-                                     Span="2"
-                                     HorizontalItemSpacing="8"
-                                     VerticalItemSpacing="8" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:ProductDto">
-                        <Border Stroke="#E2E8E4"
-                                BackgroundColor="White"
-                                StrokeThickness="1"
-                                Padding="0">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="14" />
-                            </Border.StrokeShape>
-                            <VerticalStackLayout Spacing="0">
-                                <!-- Image area -->
-                                <Grid HeightRequest="118" BackgroundColor="#E7EEE9">
-                                    <Label Text="{Binding Initials}"
-                                           IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}"
-                                           TextColor="#0F6B4C"
-                                           FontAttributes="Bold"
-                                           FontSize="22"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                    <Image Source="{Binding ImageUrl}"
-                                           IsVisible="{Binding HasImage}"
-                                           Aspect="AspectFill"
-                                           HorizontalOptions="Fill"
-                                           VerticalOptions="Fill" />
-                                    <!-- Qty badge -->
-                                    <Border IsVisible="{Binding InCart}"
-                                            BackgroundColor="#0F6B4C"
-                                            Padding="8,2"
-                                            StrokeThickness="0"
-                                            HorizontalOptions="End"
-                                            VerticalOptions="Start"
-                                            Margin="8">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="10" />
-                                        </Border.StrokeShape>
-                                        <Label Text="{Binding CartQtyText}"
-                                               TextColor="White"
-                                               FontAttributes="Bold"
-                                               FontSize="12" />
-                                    </Border>
-                                    <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=IncreaseCardCommand}"
-                                            CommandParameter="{Binding .}" />
-                                    </Grid.GestureRecognizers>
-                                </Grid>
-
-                                <!-- Body -->
-                                <VerticalStackLayout Padding="10,8,10,6" Spacing="2">
-                                    <Label Text="{Binding Name}"
-                                           FontAttributes="Bold"
-                                           FontSize="13"
-                                           TextColor="#1F2A24"
-                                           LineBreakMode="TailTruncation"
-                                           MaxLines="2" />
-                                    <Label Text="{Binding CategoryName}"
-                                           FontSize="11"
-                                           TextColor="#7A8A82"
-                                           LineBreakMode="TailTruncation" />
-                                    <Label Text="{Binding PriceText, StringFormat='Rs {0}'}"
-                                           FontAttributes="Bold"
-                                           FontSize="14"
-                                           TextColor="#0F6B4C" />
-                                </VerticalStackLayout>
-
-                                <!-- Qty controls like website -->
-                                <Grid ColumnDefinitions="*,*,*"
-                                      Padding="8,0,8,10"
-                                      ColumnSpacing="6">
-                                    <Button Text="−"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=DecreaseCardCommand}"
-                                            CommandParameter="{Binding .}"
-                                            BackgroundColor="#EEF2F0"
-                                            TextColor="#1F2A24"
-                                            CornerRadius="10"
-                                            HeightRequest="36"
-                                            Padding="0" />
-                                    <Label Grid.Column="1"
-                                           Text="{Binding CartQtyText}"
-                                           HorizontalTextAlignment="Center"
-                                           VerticalOptions="Center"
-                                           FontAttributes="Bold"
-                                           TextColor="#1F2A24" />
-                                    <Button Grid.Column="2"
-                                            Text="+"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=IncreaseCardCommand}"
-                                            CommandParameter="{Binding .}"
-                                            BackgroundColor="#0F6B4C"
-                                            TextColor="White"
-                                            CornerRadius="10"
-                                            HeightRequest="36"
-                                            Padding="0" />
-                                </Grid>
-                            </VerticalStackLayout>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-
-            <Border Grid.Row="1"
-                    BackgroundColor="White"
-                    Stroke="#E2E8E4"
-                    StrokeThickness="1"
-                    Padding="12">
-                <VerticalStackLayout Spacing="8">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="Current order" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
-                        <Label Grid.Column="1"
-                               Text="{Binding SubtotalText, StringFormat='Rs {0}'}"
-                               FontAttributes="Bold"
-                               TextColor="#0F6B4C" />
-                    </Grid>
-                    <CollectionView ItemsSource="{Binding Lines}" HeightRequest="100">
+    <Grid BackgroundColor="#F4F7F5">
+        <Grid RowDefinitions="Auto,*,Auto" BackgroundColor="#F4F7F5">
+            <Border BackgroundColor="#0F6B4C"
+                    Padding="14,14,14,12"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="0,0,18,18" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{Binding OrderTitle}"
+                           FontAttributes="Bold"
+                           FontSize="18"
+                           TextColor="White"
+                           LineBreakMode="TailTruncation" />
+                    <Border StrokeThickness="0"
+                            BackgroundColor="White"
+                            Padding="12,2">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Entry Placeholder="Search menu"
+                               Text="{Binding SearchText}"
+                               BackgroundColor="Transparent"
+                               TextColor="#1F2A24"
+                               PlaceholderColor="#8A9690" />
+                    </Border>
+                    <CollectionView ItemsSource="{Binding Categories}" HeightRequest="36">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
+                        </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="models:CartLine">
-                                <Grid ColumnDefinitions="*,Auto" Padding="0,4">
-                                    <Label Text="{Binding Name}" FontSize="13" TextColor="#1F2A24" LineBreakMode="TailTruncation" />
-                                    <Label Grid.Column="1"
-                                           Text="{Binding Quantity, StringFormat='x{0}'}"
-                                           TextColor="#5C6B63" />
-                                </Grid>
+                            <DataTemplate x:DataType="x:String">
+                                <Border BackgroundColor="#FFFFFF22"
+                                        Padding="12,6"
+                                        StrokeThickness="0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=SelectCategoryCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="{Binding .}"
+                                           TextColor="White"
+                                           FontSize="12"
+                                           FontAttributes="Bold" />
+                                </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
                 </VerticalStackLayout>
             </Border>
+
+            <Grid Grid.Row="1" RowDefinitions="*,Auto">
+                <CollectionView ItemsSource="{Binding Products}" Margin="10,10,10,0">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Vertical"
+                                         Span="2"
+                                         HorizontalItemSpacing="8"
+                                         VerticalItemSpacing="8" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:ProductDto">
+                            <Border Stroke="#E4EBE6"
+                                    BackgroundColor="White"
+                                    StrokeThickness="1"
+                                    Padding="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="0">
+                                    <Grid HeightRequest="112" BackgroundColor="#E8F0EB">
+                                        <Label Text="{Binding Initials}"
+                                               IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}"
+                                               TextColor="#0F6B4C"
+                                               FontAttributes="Bold"
+                                               FontSize="22"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                        <Image Source="{Binding ImageUrl}"
+                                               IsVisible="{Binding HasImage}"
+                                               Aspect="AspectFill"
+                                               HorizontalOptions="Fill"
+                                               VerticalOptions="Fill" />
+                                        <Border IsVisible="{Binding InCart}"
+                                                BackgroundColor="#0F6B4C"
+                                                Padding="8,2"
+                                                StrokeThickness="0"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Start"
+                                                Margin="8">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="10" />
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding CartQtyText}"
+                                                   TextColor="White"
+                                                   FontAttributes="Bold"
+                                                   FontSize="12" />
+                                        </Border>
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=IncreaseCardCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        </Grid.GestureRecognizers>
+                                    </Grid>
+
+                                    <VerticalStackLayout Padding="10,8,10,6" Spacing="2">
+                                        <Label Text="{Binding Name}"
+                                               FontAttributes="Bold"
+                                               FontSize="13"
+                                               TextColor="#1F2A24"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="2" />
+                                        <Label Text="{Binding CategoryName}"
+                                               FontSize="11"
+                                               TextColor="#8A9690"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding PriceText, StringFormat='Rs {0}'}"
+                                               FontAttributes="Bold"
+                                               FontSize="14"
+                                               TextColor="#0F6B4C" />
+                                    </VerticalStackLayout>
+
+                                    <Grid ColumnDefinitions="*,*,*"
+                                          Padding="8,0,8,10"
+                                          ColumnSpacing="6">
+                                        <Button Text="−"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=DecreaseCardCommand}"
+                                                CommandParameter="{Binding .}"
+                                                BackgroundColor="#EEF2F0"
+                                                TextColor="#1F2A24"
+                                                CornerRadius="10"
+                                                HeightRequest="34"
+                                                Padding="0" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding CartQtyText}"
+                                               HorizontalTextAlignment="Center"
+                                               VerticalOptions="Center"
+                                               FontAttributes="Bold"
+                                               TextColor="#1F2A24" />
+                                        <Button Grid.Column="2"
+                                                Text="+"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=IncreaseCardCommand}"
+                                                CommandParameter="{Binding .}"
+                                                BackgroundColor="#0F6B4C"
+                                                TextColor="White"
+                                                CornerRadius="10"
+                                                HeightRequest="34"
+                                                Padding="0" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Border Grid.Row="1"
+                        BackgroundColor="White"
+                        Stroke="#E4EBE6"
+                        StrokeThickness="1"
+                        Padding="12,10"
+                        Margin="10,8,10,0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="6">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Current order"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   TextColor="#1F2A24" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding SubtotalText, StringFormat='Rs {0}'}"
+                                   FontAttributes="Bold"
+                                   TextColor="#0F6B4C" />
+                        </Grid>
+                        <CollectionView ItemsSource="{Binding Lines}" HeightRequest="88">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:CartLine">
+                                    <Grid ColumnDefinitions="*,Auto" Padding="0,3">
+                                        <Label Text="{Binding Name}"
+                                               FontSize="13"
+                                               TextColor="#1F2A24"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Quantity, StringFormat='x{0}'}"
+                                               TextColor="#5C6B63" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <ScrollView Grid.Row="2"
+                        Orientation="Horizontal"
+                        HeightRequest="58"
+                        Margin="0,0,0,64"
+                        BackgroundColor="#F4F7F5">
+                <HorizontalStackLayout Padding="12,8" Spacing="8">
+                    <Button Text="Save"
+                            Command="{Binding SaveOrderCommand}"
+                            BackgroundColor="#0F6B4C"
+                            TextColor="White"
+                            CornerRadius="12"
+                            Padding="16,10"
+                            FontAttributes="Bold" />
+                    <Button Text="KOT"
+                            Command="{Binding SendToKitchenCommand}"
+                            BackgroundColor="#1F2A24"
+                            TextColor="White"
+                            CornerRadius="12"
+                            Padding="16,10"
+                            FontAttributes="Bold" />
+                    <Button Text="Bill"
+                            Command="{Binding PrintBillCommand}"
+                            BackgroundColor="#3558C7"
+                            TextColor="White"
+                            CornerRadius="12"
+                            Padding="16,10"
+                            FontAttributes="Bold" />
+                    <Button Text="Settle"
+                            Command="{Binding SettleCommand}"
+                            BackgroundColor="#0F6B4C"
+                            TextColor="White"
+                            CornerRadius="12"
+                            Padding="16,10"
+                            FontAttributes="Bold" />
+                    <Button Text="Split"
+                            Command="{Binding SplitBillCommand}"
+                            BackgroundColor="#EEF2F0"
+                            TextColor="#1F2A24"
+                            CornerRadius="12"
+                            Padding="16,10" />
+                    <Button Text="Cancel"
+                            Command="{Binding CancelOrderCommand}"
+                            BackgroundColor="#B42318"
+                            TextColor="White"
+                            CornerRadius="12"
+                            Padding="16,10" />
+                </HorizontalStackLayout>
+            </ScrollView>
         </Grid>
 
-        <ScrollView Grid.Row="2" Orientation="Horizontal" HeightRequest="64" BackgroundColor="#F5F5F5">
-            <HorizontalStackLayout Padding="12,8" Spacing="8">
-                <Button Text="Save" Command="{Binding SaveOrderCommand}" BackgroundColor="#0F6B4C" TextColor="White" CornerRadius="12" Padding="16,10" />
-                <Button Text="KOT" Command="{Binding SendToKitchenCommand}" BackgroundColor="#1F2A24" TextColor="White" CornerRadius="12" Padding="16,10" />
-                <Button Text="Bill" Command="{Binding PrintBillCommand}" BackgroundColor="#3558C7" TextColor="White" CornerRadius="12" Padding="16,10" />
-                <Button Text="Settle" Command="{Binding SettleCommand}" BackgroundColor="#0F6B4C" TextColor="White" CornerRadius="12" Padding="16,10" />
-                <Button Text="Split" Command="{Binding SplitBillCommand}" BackgroundColor="#EEF2F0" TextColor="#1F2A24" CornerRadius="12" Padding="16,10" />
-                <Button Text="Cancel" Command="{Binding CancelOrderCommand}" BackgroundColor="#8B2E2E" TextColor="White" CornerRadius="12" Padding="16,10" />
-            </HorizontalStackLayout>
-        </ScrollView>
-    </Grid>
         <controls:BubbleTabBar Mode="Waiter"
                                SelectedIndex="1"
                                VerticalOptions="End"

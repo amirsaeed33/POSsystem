@@ -10,160 +10,184 @@
              Title="Tables"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F5F5F5">
+             BackgroundColor="#F4F7F5">
 
     <ContentPage.Resources>
         <helpers:StatusToColorConverter x:Key="StatusBg" />
         <helpers:StatusToAccentConverter x:Key="StatusAccent" />
     </ContentPage.Resources>
 
-    <Grid BackgroundColor="#F5F5F5">
-    <Grid
-          RowDefinitions="Auto,*"
-          BackgroundColor="#F5F5F5">
-        <!-- Mobile header -->
-        <Border BackgroundColor="#0F6B4C"
-                Padding="16,18"
-                StrokeThickness="0">
-            <VerticalStackLayout Spacing="10">
-                <Label Text="{Binding BranchName}"
-                       FontSize="22"
-                       FontAttributes="Bold"
-                       TextColor="White" />
-                <Grid ColumnDefinitions="*,Auto">
-                    <Label Text="Tap a table or car bay to open the order"
-                           FontSize="13"
-                           TextColor="#D7EDE4"
-                           VerticalOptions="Center" />
-                    <Button Grid.Column="1"
-                            Text="Refresh"
-                            Command="{Binding RefreshCommand}"
-                            BackgroundColor="#FFFFFF33"
-                            TextColor="White"
-                            HeightRequest="36"
-                            Padding="12,0"
-                            CornerRadius="10" />
-                </Grid>
-                <Border BackgroundColor="#FFFFFF22"
-                        StrokeThickness="0"
-                        Padding="12,8">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="14" />
-                    </Border.StrokeShape>
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="My tables only"
+    <Grid BackgroundColor="#F4F7F5">
+        <Grid RowDefinitions="Auto,*" BackgroundColor="#F4F7F5">
+            <Border BackgroundColor="#0F6B4C"
+                    Padding="16,14,16,14"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="0,0,20,20" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="12">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="{Binding BranchName}"
+                               FontSize="22"
+                               FontAttributes="Bold"
                                TextColor="White"
-                               VerticalOptions="Center"
-                               FontSize="14" />
-                        <Switch Grid.Column="1"
-                                IsToggled="{Binding MyTablesOnly}"
-                                OnColor="#A7E0C6"
-                                ThumbColor="White" />
-                    </Grid>
-                </Border>
-            </VerticalStackLayout>
-        </Border>
+                               LineBreakMode="TailTruncation" />
+                        <Label Text="Tap a table to open the order"
+                               FontSize="13"
+                               TextColor="#C8E6D9" />
+                    </VerticalStackLayout>
 
-        <!-- Single-column mobile list -->
-        <CollectionView Grid.Row="1"
-                        ItemsSource="{Binding Tables}"
-                        SelectionMode="None"
-                        Margin="12,12,12,8">
-            <CollectionView.ItemsLayout>
-                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
-            </CollectionView.ItemsLayout>
-            <CollectionView.EmptyView>
-                <VerticalStackLayout VerticalOptions="Center" Padding="24" Spacing="8">
-                    <Label Text="No tables yet"
-                           FontAttributes="Bold"
-                           FontSize="18"
-                           TextColor="#1F2A24"
-                           HorizontalTextAlignment="Center" />
-                    <Label Text="Pull refresh or ask admin to set up dining tables."
-                           TextColor="#5C6B63"
-                           HorizontalTextAlignment="Center" />
-                </VerticalStackLayout>
-            </CollectionView.EmptyView>
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:RestaurantTableDto">
-                    <Border Stroke="#E2E8E4"
+                    <!-- Light card: dark text for contrast (no white-on-yellow/peach) -->
+                    <Border BackgroundColor="#F0F7F3"
+                            Stroke="#C8E6D9"
                             StrokeThickness="1"
-                            BackgroundColor="White"
-                            Padding="14"
-                            Margin="0,0,0,2">
+                            Padding="12,10">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
+                            <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterTablesViewModel}}, Path=OpenTableCommand}"
-                                CommandParameter="{Binding .}" />
-                        </Border.GestureRecognizers>
-
-                        <Grid ColumnDefinitions="Auto,*,Auto"
-                              ColumnSpacing="12"
-                              RowDefinitions="Auto,Auto,Auto"
-                              RowSpacing="6">
-
-                            <Border Grid.RowSpan="3"
-                                    WidthRequest="54"
-                                    HeightRequest="54"
-                                    BackgroundColor="{Binding Status, Converter={StaticResource StatusBg}}"
-                                    VerticalOptions="Center"
-                                    StrokeThickness="0">
+                        <Grid ColumnDefinitions="*,Auto,Auto"
+                              ColumnSpacing="10">
+                            <Label Text="My tables only"
+                                   TextColor="#0F2A1F"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center"
+                                   FontSize="14" />
+                            <Switch Grid.Column="1"
+                                    IsToggled="{Binding MyTablesOnly}"
+                                    OnColor="#0F6B4C"
+                                    ThumbColor="White"
+                                    VerticalOptions="Center" />
+                            <Border Grid.Column="2"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#0F6B4C"
+                                    Padding="12,8"
+                                    VerticalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="14" />
+                                    <RoundRectangle CornerRadius="10" />
                                 </Border.StrokeShape>
-                                <Label Text="{Binding TypeLabel}"
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding RefreshCommand}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Refresh"
+                                       TextColor="White"
                                        FontAttributes="Bold"
-                                       FontSize="11"
-                                       TextColor="{Binding Status, Converter={StaticResource StatusAccent}}"
-                                       HorizontalOptions="Center"
+                                       FontSize="12"
                                        VerticalOptions="Center" />
                             </Border>
-
-                            <Label Grid.Column="1"
-                                   Text="{Binding DisplayTitle}"
-                                   FontAttributes="Bold"
-                                   FontSize="18"
-                                   TextColor="#1F2A24"
-                                   LineBreakMode="TailTruncation" />
-
-                            <Border Grid.Column="2"
-                                    BackgroundColor="{Binding Status, Converter={StaticResource StatusBg}}"
-                                    Padding="10,4"
-                                    StrokeThickness="0"
-                                    VerticalOptions="Start">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="20" />
-                                </Border.StrokeShape>
-                                <Label Text="{Binding StatusDisplay}"
-                                       FontSize="12"
-                                       FontAttributes="Bold"
-                                       TextColor="{Binding Status, Converter={StaticResource StatusAccent}}" />
-                            </Border>
-
-                            <Label Grid.Row="1"
-                                   Grid.Column="1"
-                                   Grid.ColumnSpan="2"
-                                   Text="{Binding WaiterDisplay, StringFormat='Waiter  /  {0}'}"
-                                   FontSize="13"
-                                   TextColor="#5C6B63"
-                                   LineBreakMode="TailTruncation" />
-
-                            <Label Grid.Row="2"
-                                   Grid.Column="1"
-                                   Grid.ColumnSpan="2"
-                                   Text="{Binding AreaDisplay}"
-                                   FontSize="12"
-                                   TextColor="#7A8A82"
-                                   LineBreakMode="TailTruncation" />
                         </Grid>
                     </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <CollectionView Grid.Row="1"
+                            ItemsSource="{Binding Tables}"
+                            SelectionMode="None"
+                            Margin="14,14,14,72">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout VerticalOptions="Center" Padding="28" Spacing="8">
+                        <Label Text="No tables yet"
+                               FontAttributes="Bold"
+                               FontSize="18"
+                               TextColor="#1F2A24"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="Ask admin to set up dining tables, then refresh."
+                               TextColor="#5C6B63"
+                               HorizontalTextAlignment="Center"
+                               FontSize="13" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:RestaurantTableDto">
+                        <Border Stroke="#E4EBE6"
+                                StrokeThickness="1"
+                                BackgroundColor="White"
+                                Padding="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterTablesViewModel}}, Path=OpenTableCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+
+                            <Grid ColumnDefinitions="6,*,Auto"
+                                  ColumnSpacing="0"
+                                  Padding="0">
+                                <BoxView Color="{Binding Status, Converter={StaticResource StatusAccent}}"
+                                         WidthRequest="6"
+                                         HorizontalOptions="Start" />
+
+                                <Grid Grid.Column="1"
+                                      ColumnDefinitions="Auto,*,Auto"
+                                      ColumnSpacing="12"
+                                      RowDefinitions="Auto,Auto,Auto"
+                                      RowSpacing="4"
+                                      Padding="12,14,8,14">
+                                    <Border Grid.RowSpan="3"
+                                            WidthRequest="50"
+                                            HeightRequest="50"
+                                            BackgroundColor="{Binding Status, Converter={StaticResource StatusBg}}"
+                                            VerticalOptions="Center"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="13" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding TypeLabel}"
+                                               FontAttributes="Bold"
+                                               FontSize="11"
+                                               TextColor="{Binding Status, Converter={StaticResource StatusAccent}}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
+
+                                    <Label Grid.Column="1"
+                                           Text="{Binding DisplayTitle}"
+                                           FontAttributes="Bold"
+                                           FontSize="17"
+                                           TextColor="#1F2A24"
+                                           LineBreakMode="TailTruncation" />
+
+                                    <Border Grid.Column="2"
+                                            BackgroundColor="{Binding Status, Converter={StaticResource StatusBg}}"
+                                            Padding="10,5"
+                                            StrokeThickness="0"
+                                            VerticalOptions="Start">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="20" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding StatusDisplay}"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               TextColor="{Binding Status, Converter={StaticResource StatusAccent}}" />
+                                    </Border>
+
+                                    <Label Grid.Row="1"
+                                           Grid.Column="1"
+                                           Grid.ColumnSpan="2"
+                                           Text="{Binding WaiterDisplay, StringFormat='Waiter  ·  {0}'}"
+                                           FontSize="13"
+                                           TextColor="#5C6B63"
+                                           LineBreakMode="TailTruncation" />
+
+                                    <Label Grid.Row="2"
+                                           Grid.Column="1"
+                                           Grid.ColumnSpan="2"
+                                           Text="{Binding AreaDisplay}"
+                                           FontSize="12"
+                                           TextColor="#8A9690"
+                                           LineBreakMode="TailTruncation" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
         <controls:BubbleTabBar Mode="Waiter"
                                SelectedIndex="0"
                                VerticalOptions="End"

@@ -9,57 +9,98 @@
              Title="My Orders"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F5F5F5">
-    <Grid BackgroundColor="#F5F5F5">
-    <Grid
-          RowDefinitions="Auto,*"
-          BackgroundColor="#F5F5F5">
-        <Border BackgroundColor="#0F6B4C" Padding="16,18" StrokeThickness="0">
-            <VerticalStackLayout Spacing="4">
-                <Label Text="My Orders" FontSize="22" FontAttributes="Bold" TextColor="White" />
-                <Label Text="Open tickets assigned to you" FontSize="13" TextColor="#D7EDE4" />
-            </VerticalStackLayout>
-        </Border>
+             BackgroundColor="#F4F7F5">
+    <Grid BackgroundColor="#F4F7F5">
+        <Grid RowDefinitions="Auto,*" BackgroundColor="#F4F7F5">
+            <Border BackgroundColor="#0F6B4C"
+                    Padding="16,18,16,16"
+                    StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="0,0,20,20" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="My Orders"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="White" />
+                    <Label Text="Open tickets assigned to you"
+                           FontSize="13"
+                           TextColor="#C8E6D9" />
+                </VerticalStackLayout>
+            </Border>
 
-        <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsBusy}">
-            <CollectionView ItemsSource="{Binding Orders}" Margin="12">
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.EmptyView>
-                    <Label Text="No active orders"
-                           TextColor="#5C6B63"
-                           HorizontalOptions="Center"
-                           Margin="24"
-                           FontSize="15" />
-                </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:RestaurantOrderDto">
-                        <Border Stroke="#E2E8E4" BackgroundColor="White" Padding="14" StrokeThickness="1">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="16" />
-                            </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterMyOrdersViewModel}}, Path=OpenOrderCommand}"
-                                    CommandParameter="{Binding .}" />
-                            </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-                                <Label Text="{Binding OrderNo}" FontAttributes="Bold" FontSize="17" TextColor="#1F2A24" />
-                                <Label Grid.Column="1"
-                                       Text="{Binding GrandTotalText, StringFormat='Rs {0}'}"
-                                       FontAttributes="Bold"
-                                       TextColor="#0F6B4C"
-                                       FontSize="15" />
-                                <Label Grid.Row="1" Text="{Binding TableNo, StringFormat='Table {0}'}" TextColor="#5C6B63" />
-                                <Label Grid.Row="2" Text="{Binding StatusName}" TextColor="#0F6B4C" FontSize="13" />
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </RefreshView>
-    </Grid>
+            <RefreshView Grid.Row="1"
+                         Command="{Binding RefreshCommand}"
+                         IsRefreshing="{Binding IsBusy}">
+                <CollectionView ItemsSource="{Binding Orders}" Margin="14,14,14,72">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout VerticalOptions="Center" Padding="28" Spacing="8">
+                            <Label Text="No active orders"
+                                   FontAttributes="Bold"
+                                   FontSize="18"
+                                   TextColor="#1F2A24"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="Orders you open from a table will show up here."
+                                   TextColor="#5C6B63"
+                                   FontSize="13"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:RestaurantOrderDto">
+                            <Border Stroke="#E4EBE6"
+                                    BackgroundColor="White"
+                                    Padding="14"
+                                    StrokeThickness="1">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterMyOrdersViewModel}}, Path=OpenOrderCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto"
+                                      RowDefinitions="Auto,Auto,Auto"
+                                      RowSpacing="6">
+                                    <Label Text="{Binding OrderNo}"
+                                           FontAttributes="Bold"
+                                           FontSize="17"
+                                           TextColor="#1F2A24" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding GrandTotalText, StringFormat='Rs {0}'}"
+                                           FontAttributes="Bold"
+                                           TextColor="#0F6B4C"
+                                           FontSize="15"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Row="1"
+                                           Text="{Binding TableNo, StringFormat='Table {0}'}"
+                                           TextColor="#5C6B63"
+                                           FontSize="13" />
+                                    <Border Grid.Row="2"
+                                            StrokeThickness="0"
+                                            BackgroundColor="#E8F5EF"
+                                            Padding="10,4"
+                                            HorizontalOptions="Start">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding StatusName}"
+                                               TextColor="#0F6B4C"
+                                               FontSize="12"
+                                               FontAttributes="Bold" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+        </Grid>
+
         <controls:BubbleTabBar Mode="Waiter"
                                SelectedIndex="2"
                                VerticalOptions="End"

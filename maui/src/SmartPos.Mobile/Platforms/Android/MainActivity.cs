@@ -23,26 +23,33 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnCreate(savedInstanceState);
 
-        // Draw edge-to-edge so the floating BubbleTabBar can sit on the physical bottom bezel.
-        // MAUI 9 Android otherwise reserves the system navigation / gesture inset as empty gap.
         if (Window is null)
         {
             return;
         }
 
-        WindowCompat.SetDecorFitsSystemWindows(Window, false);
-        Window.SetStatusBarColor(Android.Graphics.Color.Transparent);
-        Window.SetNavigationBarColor(Android.Graphics.Color.Transparent);
+        // Respect system insets so the status bar (battery / signal / clock) stays visible,
+        // matching apps like WhatsApp. Content starts below the status bar.
+        WindowCompat.SetDecorFitsSystemWindows(Window, true);
+
+        var brandGreen = Android.Graphics.Color.ParseColor("#0F6B4C");
+        Window.SetStatusBarColor(brandGreen);
+        Window.SetNavigationBarColor(Android.Graphics.Color.White);
 
         if (OperatingSystem.IsAndroidVersionAtLeast(29))
         {
-            Window.NavigationBarDividerColor = Android.Graphics.Color.Transparent;
+            Window.NavigationBarDividerColor = Android.Graphics.Color.ParseColor("#E4EBE6");
         }
 
-        var decor = Window.DecorView;
-        decor.SystemUiFlags =
-            SystemUiFlags.LayoutStable |
-            SystemUiFlags.LayoutFullscreen |
-            SystemUiFlags.LayoutHideNavigation;
+        // Light icons on the green status bar.
+        var controller = WindowCompat.GetInsetsController(Window, Window.DecorView);
+        if (controller != null)
+        {
+            controller.AppearanceLightStatusBars = false;
+            controller.AppearanceLightNavigationBars = true;
+        }
+
+        // Do not use LayoutFullscreen — that draws under the status bar and hides battery/signal.
+        Window.DecorView.SystemUiFlags = SystemUiFlags.Visible;
     }
 }

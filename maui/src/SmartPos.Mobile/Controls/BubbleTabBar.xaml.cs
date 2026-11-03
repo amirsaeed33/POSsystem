@@ -26,19 +26,22 @@ public partial class BubbleTabBar : ContentView
             BubbleTabMode.Customer,
             propertyChanged: OnConfigChanged);
 
-    private static readonly Color Accent = Color.FromArgb("#F15A29");
+    private static readonly Color CustomerAccent = Color.FromArgb("#F15A29");
+    private static readonly Color StaffAccent = Color.FromArgb("#0F6B4C");
     private static readonly Color Inactive = Color.FromArgb("#9CA3AF");
+
+    private Color Accent => Mode == BubbleTabMode.Customer ? CustomerAccent : StaffAccent;
 
     private string[] _routes = [];
     private string[] _activeIcons = [];
     private string[] _inactiveIcons = [];
     private string[] _labels = [];
     private int _tabCount = 4;
+    private bool _navigating;
 
     public BubbleTabBar()
     {
         InitializeComponent();
-        // Never leave residual TranslationY from older AbsoluteLayout docking.
         TranslationY = 0;
         SizeChanged += (_, _) => PositionBubble();
         TabsGrid.SizeChanged += (_, _) => PositionBubble();
@@ -78,21 +81,22 @@ public partial class BubbleTabBar : ContentView
                 _tabCount = 3;
                 _labels = ["Home", "History", "Profile"];
                 _routes = ["//rider/dashboard", "//rider/history", "//rider/account"];
-                _activeIcons = ["tab_home_active.png", "tab_history_active.png", "tab_account_active.png"];
+                _activeIcons = ["tab_home_staff_active.png", "tab_history_staff_active.png", "tab_account_staff_active.png"];
                 _inactiveIcons = ["tab_home_idle.png", "tab_history_idle.png", "tab_account_idle.png"];
                 break;
             case BubbleTabMode.Waiter:
+                // Full waiter menu — all four routes are live Shell pages; green active icons (no orange/yellow).
                 _tabCount = 4;
                 _labels = ["Tables", "Order", "Orders", "Profile"];
                 _routes = ["//waiter/tables", "//waiter/order", "//waiter/myorders", "//waiter/account"];
-                _activeIcons = ["tab_tables_active.png", "tab_order_active.png", "tab_myorders_active.png", "tab_account_active.png"];
+                _activeIcons = ["tab_tables_active.png", "tab_order_active.png", "tab_myorders_active.png", "tab_account_staff_active.png"];
                 _inactiveIcons = ["tab_tables_idle.png", "tab_order_idle.png", "tab_myorders_idle.png", "tab_account_idle.png"];
                 break;
             case BubbleTabMode.Admin:
                 _tabCount = 2;
                 _labels = ["Dashboard", "Profile"];
                 _routes = ["//admin/home", "//admin/account"];
-                _activeIcons = ["tab_home_active.png", "tab_account_active.png"];
+                _activeIcons = ["tab_home_staff_active.png", "tab_account_staff_active.png"];
                 _inactiveIcons = ["tab_home_idle.png", "tab_account_idle.png"];
                 break;
             default:
@@ -109,8 +113,15 @@ public partial class BubbleTabBar : ContentView
         Label2.Text = _labels.ElementAtOrDefault(2) ?? string.Empty;
         Label3.Text = _labels.ElementAtOrDefault(3) ?? string.Empty;
 
-        Tab2.IsVisible = _tabCount >= 3;
-        Tab3.IsVisible = _tabCount >= 4;
+        var buttons = new[] { Tab0, Tab1, Tab2, Tab3 };
+        var visuals = new[] { Tab0Visual, Tab1Visual, Tab2Visual, Tab3Visual };
+        for (var i = 0; i < 4; i++)
+        {
+            var on = i < _tabCount;
+            buttons[i].IsVisible = on;
+            buttons[i].IsEnabled = on;
+            visuals[i].IsVisible = on;
+        }
 
         TabsGrid.ColumnDefinitions.Clear();
         for (var i = 0; i < _tabCount; i++)
@@ -125,17 +136,18 @@ public partial class BubbleTabBar : ContentView
     {
         var icons = new[] { Icon0, Icon1, Icon2, Icon3 };
         var labels = new[] { Label0, Label1, Label2, Label3 };
-        var tabs = new[] { Tab0, Tab1, Tab2, Tab3 };
+        var buttons = new[] { Tab0, Tab1, Tab2, Tab3 };
 
         for (var i = 0; i < 4; i++)
         {
             if (i >= _tabCount)
             {
-                tabs[i].IsVisible = false;
+                buttons[i].IsVisible = false;
                 continue;
             }
 
-            tabs[i].IsVisible = true;
+            buttons[i].IsVisible = true;
+            buttons[i].IsEnabled = true;
             var active = i == SelectedIndex;
             icons[i].Source = active ? _activeIcons[i] : _inactiveIcons[i];
             labels[i].TextColor = active ? Accent : Inactive;
@@ -149,16 +161,16 @@ public partial class BubbleTabBar : ContentView
 
     private void PositionBubble()
     {
-        var tabs = new[] { Tab0, Tab1, Tab2, Tab3 };
+        var buttons = new[] { Tab0, Tab1, Tab2, Tab3 };
         var icons = new[] { Icon0, Icon1, Icon2, Icon3 };
         var index = Math.Clamp(SelectedIndex, 0, Math.Max(0, _tabCount - 1));
-        var tab = tabs[index];
+        var tab = buttons[index];
         var icon = icons[index];
         var bubbleSize = ActiveBubble.WidthRequest;
 
         if (tab.Width > 0 && TabsGrid.Width > 0 && icon.Width > 0)
         {
-            var iconCenterX = tab.X + icon.X + (icon.Width / 2.0);
+            var iconCenterX = tab.X + (tab.Width / 2.0);
             ActiveBubble.TranslationX = Math.Max(0, iconCenterX - (bubbleSize / 2.0));
             ActiveBubble.TranslationY = -8;
             return;
@@ -172,7 +184,7 @@ public partial class BubbleTabBar : ContentView
             return;
         }
 
-        var hostWidth = PillHost.Width > 0 ? PillHost.Width : Math.Max(0, Width - 8);
+        var hostWidth = PillHost.Width > 0 ? PillHost.Width : Math.Max(0, Width - 24);
         if (hostWidth <= 0 || _tabCount <= 0)
         {
             return;
@@ -183,31 +195,44 @@ public partial class BubbleTabBar : ContentView
         ActiveBubble.TranslationY = -8;
     }
 
-    private async void OnTab0Tapped(object? sender, TappedEventArgs e) => await GoAsync(0);
-    private async void OnTab1Tapped(object? sender, TappedEventArgs e) => await GoAsync(1);
-    private async void OnTab2Tapped(object? sender, TappedEventArgs e) => await GoAsync(2);
-    private async void OnTab3Tapped(object? sender, TappedEventArgs e) => await GoAsync(3);
+    private async void OnTab0Clicked(object? sender, EventArgs e) => await GoAsync(0);
+    private async void OnTab1Clicked(object? sender, EventArgs e) => await GoAsync(1);
+    private async void OnTab2Clicked(object? sender, EventArgs e) => await GoAsync(2);
+    private async void OnTab3Clicked(object? sender, EventArgs e) => await GoAsync(3);
 
+    /// <summary>Navigate only — never mutates cart, qty, or category selection.</summary>
     private async Task GoAsync(int index)
     {
-        if (index >= _tabCount)
+        if (_navigating || index < 0 || index >= _tabCount)
         {
             return;
         }
 
+        var route = _routes[index];
+        if (string.IsNullOrWhiteSpace(route))
+        {
+            return;
+        }
+
+        // Same tab: still navigate to refresh shell state, but skip when already there.
         if (index == SelectedIndex)
         {
             return;
         }
 
+        _navigating = true;
         SelectedIndex = index;
         try
         {
-            await Shell.Current.GoToAsync(_routes[index]);
+            await Shell.Current.GoToAsync(route);
         }
         catch
         {
-            // ignore navigation races
+            // ignore navigation races between Shell tabs
+        }
+        finally
+        {
+            _navigating = false;
         }
     }
 }

@@ -15,6 +15,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
     private readonly AppSettings _settings;
     private readonly DeliveryLocationService _deliveryLocation;
     private List<OnlineProductDto> _allProducts = new();
+    private readonly List<CategoryChipItem> _allCategoryChips = new();
     private IDispatcherTimer? _heroTimer;
 
     [ObservableProperty]
@@ -28,6 +29,12 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
     [ObservableProperty]
     private string searchText = string.Empty;
+
+    [ObservableProperty]
+    private string categorySearchText = string.Empty;
+
+    [ObservableProperty]
+    private bool isCategorySearchVisible;
 
     [ObservableProperty]
     private bool needsBranchSelection = true;
@@ -245,6 +252,8 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
         SelectedCategory = "All";
         SearchText = string.Empty;
+        CategorySearchText = string.Empty;
+        IsCategorySearchVisible = false;
         ShowProductGrid = true;
         RebuildCategories();
         ApplyFilters();
@@ -278,10 +287,10 @@ public partial class CustomerHomeViewModel : BaseViewModel
             }
         }
 
-        Categories.Clear();
+        _allCategoryChips.Clear();
         ExploreCategories.Clear();
 
-        Categories.Add(new CategoryChipItem
+        _allCategoryChips.Add(new CategoryChipItem
         {
             Name = "All",
             Count = _allProducts.Count,
@@ -303,11 +312,31 @@ public partial class CustomerHomeViewModel : BaseViewModel
                 ImageUrl = cover?.ImageUrl,
                 IsSelected = string.Equals(SelectedCategory, name, StringComparison.OrdinalIgnoreCase)
             };
-            Categories.Add(chip);
+            _allCategoryChips.Add(chip);
             ExploreCategories.Add(chip);
         }
 
+        ApplyCategorySearchFilter();
         OnPropertyChanged(nameof(DeliverToLabel));
+    }
+
+    private void ApplyCategorySearchFilter()
+    {
+        Categories.Clear();
+        IEnumerable<CategoryChipItem> query = _allCategoryChips;
+        if (!string.IsNullOrWhiteSpace(CategorySearchText))
+        {
+            var q = CategorySearchText.Trim();
+            query = _allCategoryChips.Where(c =>
+                c.IsAll ||
+                (c.Name?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        foreach (var chip in query)
+        {
+            chip.IsSelected = string.Equals(chip.Name, SelectedCategory, StringComparison.OrdinalIgnoreCase);
+            Categories.Add(chip);
+        }
     }
 
     private async Task LoadHeroSlidesAsync(int branchId)
@@ -503,7 +532,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
     private void SelectCategory(CategoryChipItem? category)
     {
         SelectedCategory = string.IsNullOrWhiteSpace(category?.Name) ? "All" : category!.Name;
-        foreach (var chip in Categories)
+        foreach (var chip in _allCategoryChips)
         {
             chip.IsSelected = string.Equals(chip.Name, SelectedCategory, StringComparison.OrdinalIgnoreCase);
         }
@@ -513,14 +542,34 @@ public partial class CustomerHomeViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private void ToggleCategorySearch()
+    {
+        IsCategorySearchVisible = !IsCategorySearchVisible;
+        if (!IsCategorySearchVisible)
+        {
+            CategorySearchText = string.Empty;
+            ApplyCategorySearchFilter();
+        }
+    }
+
+    [RelayCommand]
+    private void ClearCategorySearch()
+    {
+        CategorySearchText = string.Empty;
+        ApplyCategorySearchFilter();
+    }
+
+    [RelayCommand]
     private void ViewAllMenu()
     {
         SelectedCategory = "All";
-        foreach (var chip in Categories)
+        CategorySearchText = string.Empty;
+        foreach (var chip in _allCategoryChips)
         {
             chip.IsSelected = chip.IsAll;
         }
 
+        ApplyCategorySearchFilter();
         ShowProductGrid = true;
         ApplyFilters();
     }
@@ -540,6 +589,8 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
         ApplyFilters();
     }
+
+    partial void OnCategorySearchTextChanged(string value) => ApplyCategorySearchFilter();
 
     partial void OnSelectedCategoryChanged(string value)
     {

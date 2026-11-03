@@ -13,8 +13,8 @@
 
 		<ApplicationTitle>Aljannat</ApplicationTitle>
 		<ApplicationId>com.aljannat.mobile</ApplicationId>
-		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-		<ApplicationVersion>1</ApplicationVersion>
+		<ApplicationDisplayVersion>1.0.2</ApplicationDisplayVersion>
+		<ApplicationVersion>3</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
