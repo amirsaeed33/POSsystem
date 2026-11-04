@@ -43,4 +43,24 @@ public partial class CustomerHomePage : ContentPage
             await view.ScaleTo(1.0, 100, Easing.SpringOut);
         }
     }
+
+    private void OnFeedbackPointerPressed(object? sender, PointerEventArgs e)
+    {
+        _vm.PauseFeedbackAutoAdvanceCommand.Execute(null);
+    }
+
+    private void OnFeedbackPointerReleased(object? sender, PointerEventArgs e)
+    {
+        _vm.ResumeFeedbackAutoAdvanceCommand.Execute(null);
+    }
+
+    private void OnFeedbackPointerEntered(object? sender, PointerEventArgs e)
+    {
+        _vm.PauseFeedbackAutoAdvanceCommand.Execute(null);
+    }
+
+    private void OnFeedbackPointerExited(object? sender, PointerEventArgs e)
+    {
+        _vm.ResumeFeedbackAutoAdvanceCommand.Execute(null);
+    }
 }

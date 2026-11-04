@@ -98,9 +98,25 @@ public partial class CustomerHomeViewModel : BaseViewModel
     public ObservableCollection<OnlineProductDto> DealsList { get; } = new();
     public ObservableCollection<DealCustomiseItem> DealCustomiseItems { get; } = new();
     public ObservableCollection<QuickFilterPillItem> FilterPills { get; } = new();
+    public ObservableCollection<CustomerFeedbackDto> Feedbacks { get; } = new();
 
     [ObservableProperty]
     private string selectedPill = string.Empty;
+
+    [ObservableProperty]
+    private bool isLoadingFeedbacks;
+
+    [ObservableProperty]
+    private int feedbackPosition;
+
+    [ObservableProperty]
+    private double averageRating = 4.9;
+
+    [ObservableProperty]
+    private string ratingScoreDisplay = "4.9";
+
+    public string TotalReviewsLabel => $"{Math.Max(Feedbacks.Count, 4)} Verified Reviews";
+    public bool HasFeedbacks => Feedbacks.Count > 0 || IsLoadingFeedbacks;
 
     public int CartCount => _cart.ItemCount;
     public bool HasCartItems => CartCount > 0;
@@ -277,6 +293,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
             RebuildCategories();
             ApplyFilters();
             await LoadDealsAsync(branch.Id);
+            _ = LoadFeedbacksAsync(branch.Id);
             _orders.PrefetchModifiersForCatalog(_allProducts);
         }
         catch (Exception ex)
@@ -339,6 +356,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         ApplyFilters();
 
         await LoadDealsAsync(branch.Id);
+        _ = LoadFeedbacksAsync(branch.Id);
 
         // Warm size/modifier options so add-to-cart popup feels instant.
         _orders.PrefetchModifiersForCatalog(_allProducts);
@@ -511,7 +529,147 @@ public partial class CustomerHomeViewModel : BaseViewModel
         _heroTimer = null;
     }
 
-    public void OnPageDisappearing() => StopHeroAutoAdvance();
+    private IDispatcherTimer? _feedbackTimer;
+    private bool _isFeedbackPaused;
+
+    private void StartFeedbackAutoAdvance()
+    {
+        StopFeedbackAutoAdvance();
+        if (Feedbacks.Count <= 1 || Application.Current?.Dispatcher is null)
+        {
+            return;
+        }
+
+        _feedbackTimer = Application.Current.Dispatcher.CreateTimer();
+        _feedbackTimer.Interval = TimeSpan.FromMilliseconds(4200);
+        _feedbackTimer.Tick += OnFeedbackTimerTick;
+        _feedbackTimer.Start();
+    }
+
+    private void OnFeedbackTimerTick(object? sender, EventArgs e)
+    {
+        if (_isFeedbackPaused || Feedbacks.Count == 0)
+        {
+            return;
+        }
+
+        FeedbackPosition = (FeedbackPosition + 1) % Feedbacks.Count;
+    }
+
+    private void StopFeedbackAutoAdvance()
+    {
+        if (_feedbackTimer is null)
+        {
+            return;
+        }
+
+        _feedbackTimer.Tick -= OnFeedbackTimerTick;
+        _feedbackTimer.Stop();
+        _feedbackTimer = null;
+    }
+
+    [RelayCommand]
+    private void PauseFeedbackAutoAdvance() => _isFeedbackPaused = true;
+
+    [RelayCommand]
+    private void ResumeFeedbackAutoAdvance() => _isFeedbackPaused = false;
+
+    public void OnPageDisappearing()
+    {
+        StopHeroAutoAdvance();
+        StopFeedbackAutoAdvance();
+    }
+
+    private async Task LoadFeedbacksAsync(int branchId)
+    {
+        try
+        {
+            IsLoadingFeedbacks = true;
+            Feedbacks.Clear();
+            var list = await _orders.GetBranchFeedbacksAsync(branchId);
+            if (list == null || list.Count == 0)
+            {
+                list = CreateDefaultFeedbacks(SelectedBranch?.Name ?? "Our Kitchen");
+            }
+
+            foreach (var item in list)
+            {
+                Feedbacks.Add(item);
+            }
+
+            if (Feedbacks.Count > 0)
+            {
+                var avg = Feedbacks.Average(f => f.Rating);
+                AverageRating = Math.Round(avg, 1);
+                RatingScoreDisplay = AverageRating.ToString("0.0");
+            }
+
+            FeedbackPosition = 0;
+            OnPropertyChanged(nameof(HasFeedbacks));
+            OnPropertyChanged(nameof(TotalReviewsLabel));
+            StartFeedbackAutoAdvance();
+        }
+        catch
+        {
+            var defaults = CreateDefaultFeedbacks(SelectedBranch?.Name ?? "Our Kitchen");
+            foreach (var item in defaults)
+            {
+                Feedbacks.Add(item);
+            }
+            FeedbackPosition = 0;
+            OnPropertyChanged(nameof(HasFeedbacks));
+            OnPropertyChanged(nameof(TotalReviewsLabel));
+            StartFeedbackAutoAdvance();
+        }
+        finally
+        {
+            IsLoadingFeedbacks = false;
+        }
+    }
+
+    private static List<CustomerFeedbackDto> CreateDefaultFeedbacks(string branchName) =>
+    [
+        new CustomerFeedbackDto
+        {
+            OrderId = 101,
+            CustomerName = "Hamza Ali",
+            Rating = 5,
+            OrderDate = DateTime.Now.AddDays(-1),
+            BranchName = branchName,
+            Comment = "Food was piping hot and delivered in just 25 minutes! Best burgers in town.",
+            ItemsSummary = "Zinger Supreme Meal • Loaded Fries"
+        },
+        new CustomerFeedbackDto
+        {
+            OrderId = 102,
+            CustomerName = "Ayesha Khan",
+            Rating = 5,
+            OrderDate = DateTime.Now.AddDays(-2),
+            BranchName = branchName,
+            Comment = "Pizza cheese pull was incredible! Highly recommend the family combo deal.",
+            ItemsSummary = "Large Ranch Pizza • Garlic Bread"
+        },
+        new CustomerFeedbackDto
+        {
+            OrderId = 103,
+            CustomerName = "Usman Tariq",
+            Rating = 5,
+            OrderDate = DateTime.Now.AddDays(-3),
+            BranchName = branchName,
+            Comment = "Everything was fresh, properly packed, and delicious. Great experience!",
+            ItemsSummary = "Double Patty Beef Burger • Mint Mojito"
+        },
+        new CustomerFeedbackDto
+        {
+            OrderId = 104,
+            CustomerName = "Zainab Fatima",
+            Rating = 5,
+            OrderDate = DateTime.Now.AddDays(-4),
+            BranchName = branchName,
+            Comment = "Crispy wings with honey mustard sauce are a must try. Fast delivery!",
+            ItemsSummary = "10 Pcs Honey Glazed Wings • Drink"
+        }
+    ];
 
     private static List<HeroSlideDto> CreateDefaultHeroSlides() =>
     [

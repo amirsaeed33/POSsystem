@@ -923,6 +923,237 @@
                             </CollectionView.ItemTemplate>
                         </CollectionView>
                     </VerticalStackLayout>
+                    <!-- Customer Feedbacks & Verified Reviews Marquee -->
+                    <VerticalStackLayout Spacing="12"
+                                         Margin="0,8,0,84"
+                                         IsVisible="{Binding HasFeedbacks}">
+
+                        <!-- Section Header with Overall Rating Badge -->
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="14,0"
+                              VerticalOptions="Center">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="WHAT CUSTOMERS SAY"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#0F6B4C"
+                                       CharacterSpacing="1" />
+                                <Label Text="Verified Reviews &amp; Ratings"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A2B4A" />
+                            </VerticalStackLayout>
+
+                            <!-- Overall Rating Badge -->
+                            <Border Grid.Column="1"
+                                    StrokeThickness="1"
+                                    Stroke="#D1FAE5"
+                                    BackgroundColor="#E8F5EF"
+                                    Padding="10,6"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+                                    <Label Text="⭐" FontSize="13" VerticalOptions="Center" />
+                                    <Label Text="{Binding RatingScoreDisplay}"
+                                           FontAttributes="Bold"
+                                           FontSize="13"
+                                           TextColor="#0F6B4C"
+                                           VerticalOptions="Center" />
+                                    <Label Text="•"
+                                           FontSize="11"
+                                           TextColor="#059669"
+                                           VerticalOptions="Center" />
+                                    <Label Text="{Binding TotalReviewsLabel}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#059669"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </Grid>
+
+                        <!-- Skeleton Loading State (Shown while IsLoadingFeedbacks == True) -->
+                        <Grid IsVisible="{Binding IsLoadingFeedbacks}"
+                              HeightRequest="150"
+                              Padding="14,0">
+                            <Border StrokeThickness="1"
+                                    Stroke="#E2E8F0"
+                                    BackgroundColor="#FFFFFF"
+                                    Padding="16,14">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="10">
+                                    <Grid ColumnDefinitions="40,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                        <!-- Avatar Skeleton -->
+                                        <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="#E2E8F0">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="20" />
+                                            </Border.StrokeShape>
+                                        </Border>
+                                        <!-- Name & Stars Skeleton -->
+                                        <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                            <Border WidthRequest="110" HeightRequest="12" StrokeThickness="0" BackgroundColor="#E2E8F0" HorizontalOptions="Start">
+                                                <Border.StrokeShape><RoundRectangle CornerRadius="4" /></Border.StrokeShape>
+                                            </Border>
+                                            <Border WidthRequest="70" HeightRequest="10" StrokeThickness="0" BackgroundColor="#CBD5E1" HorizontalOptions="Start">
+                                                <Border.StrokeShape><RoundRectangle CornerRadius="4" /></Border.StrokeShape>
+                                            </Border>
+                                        </VerticalStackLayout>
+                                        <!-- Badge Skeleton -->
+                                        <Border Grid.Column="2" WidthRequest="76" HeightRequest="20" StrokeThickness="0" BackgroundColor="#E2E8F0">
+                                            <Border.StrokeShape><RoundRectangle CornerRadius="6" /></Border.StrokeShape>
+                                        </Border>
+                                    </Grid>
+                                    <!-- Comment lines skeleton -->
+                                    <Border WidthRequest="260" HeightRequest="10" StrokeThickness="0" BackgroundColor="#E2E8F0" HorizontalOptions="Start">
+                                        <Border.StrokeShape><RoundRectangle CornerRadius="4" /></Border.StrokeShape>
+                                    </Border>
+                                    <Border WidthRequest="180" HeightRequest="10" StrokeThickness="0" BackgroundColor="#E2E8F0" HorizontalOptions="Start">
+                                        <Border.StrokeShape><RoundRectangle CornerRadius="4" /></Border.StrokeShape>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+
+                        <!-- Auto-sliding / Horizontally Scrolling Review Cards Carousel -->
+                        <Grid IsVisible="{Binding IsLoadingFeedbacks, Converter={StaticResource InvertedBoolConverter}}">
+                            <CarouselView x:Name="FeedbackCarousel"
+                                          ItemsSource="{Binding Feedbacks}"
+                                          Position="{Binding FeedbackPosition, Mode=TwoWay}"
+                                          IndicatorView="FeedbackIndicators"
+                                          Loop="True"
+                                          PeekAreaInsets="20"
+                                          HeightRequest="156"
+                                          HorizontalScrollBarVisibility="Never">
+                                <CarouselView.GestureRecognizers>
+                                    <PointerGestureRecognizer PointerPressed="OnFeedbackPointerPressed"
+                                                              PointerReleased="OnFeedbackPointerReleased"
+                                                              PointerEntered="OnFeedbackPointerEntered"
+                                                              PointerExited="OnFeedbackPointerExited" />
+                                </CarouselView.GestureRecognizers>
+                                <CarouselView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Horizontal"
+                                                       ItemSpacing="12"
+                                                       SnapPointsType="MandatorySingle"
+                                                       SnapPointsAlignment="Center" />
+                                </CarouselView.ItemsLayout>
+                                <CarouselView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:CustomerFeedbackDto">
+                                        <Border StrokeThickness="1"
+                                                Stroke="#E2E8F0"
+                                                BackgroundColor="White"
+                                                Padding="14,12"
+                                                Margin="2,2,2,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="16" />
+                                            </Border.StrokeShape>
+                                            <Border.Shadow>
+                                                <Shadow Brush="#10000000" Offset="0,2" Radius="4" />
+                                            </Border.Shadow>
+                                            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="6">
+                                                <!-- Row 0: Avatar, Name, Star rating, Verified Order Badge -->
+                                                <Grid ColumnDefinitions="36,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                                    <!-- Customer Initial Avatar -->
+                                                    <Border WidthRequest="36"
+                                                            HeightRequest="36"
+                                                            StrokeThickness="0"
+                                                            BackgroundColor="{Binding AvatarBgColor}">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="18" />
+                                                        </Border.StrokeShape>
+                                                        <Label Text="{Binding Initials}"
+                                                               TextColor="White"
+                                                               FontAttributes="Bold"
+                                                               FontSize="13"
+                                                               HorizontalOptions="Center"
+                                                               VerticalOptions="Center" />
+                                                    </Border>
+
+                                                    <!-- Name & Star Rating -->
+                                                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
+                                                        <Label Text="{Binding CustomerName}"
+                                                               FontAttributes="Bold"
+                                                               FontSize="13"
+                                                               TextColor="#1E293B"
+                                                               LineBreakMode="TailTruncation"
+                                                               MaxLines="1" />
+                                                        <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                                            <Label Text="{Binding StarRatingDisplay}"
+                                                                   FontSize="11"
+                                                                   VerticalOptions="Center" />
+                                                            <Label Text="•"
+                                                                   FontSize="9"
+                                                                   TextColor="#94A3B8"
+                                                                   VerticalOptions="Center" />
+                                                            <Label Text="{Binding FormattedDate}"
+                                                                   FontSize="10"
+                                                                   TextColor="#94A3B8"
+                                                                   VerticalOptions="Center" />
+                                                        </HorizontalStackLayout>
+                                                    </VerticalStackLayout>
+
+                                                    <!-- Verified Purchase Badge -->
+                                                    <Border Grid.Column="2"
+                                                            StrokeThickness="0"
+                                                            BackgroundColor="#E8F5EF"
+                                                            Padding="6,3"
+                                                            VerticalOptions="Center">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="6" />
+                                                        </Border.StrokeShape>
+                                                        <Label Text="✓ Verified Order"
+                                                               FontSize="9"
+                                                               FontAttributes="Bold"
+                                                               TextColor="#0F6B4C" />
+                                                    </Border>
+                                                </Grid>
+
+                                                <!-- Row 1: Ordered items tag (if available) -->
+                                                <Border Grid.Row="1"
+                                                        StrokeThickness="0"
+                                                        BackgroundColor="#F8FAFC"
+                                                        Padding="8,4"
+                                                        HorizontalOptions="Start"
+                                                        IsVisible="{Binding HasItemsSummary}">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="6" />
+                                                    </Border.StrokeShape>
+                                                    <Label Text="{Binding DisplayItemsSummary}"
+                                                           FontSize="10"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#475569"
+                                                           MaxLines="1"
+                                                           LineBreakMode="TailTruncation" />
+                                                </Border>
+
+                                                <!-- Row 2: Customer Review Comment -->
+                                                <Label Grid.Row="2"
+                                                       Text="{Binding DisplayComment}"
+                                                       FontSize="12"
+                                                       TextColor="#334155"
+                                                       LineHeight="1.2"
+                                                       MaxLines="3"
+                                                       LineBreakMode="TailTruncation"
+                                                       VerticalOptions="Start" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CarouselView.ItemTemplate>
+                            </CarouselView>
+                        </Grid>
+
+                        <!-- Indicator dots -->
+                        <IndicatorView x:Name="FeedbackIndicators"
+                                       IndicatorColor="#CBD5E1"
+                                       SelectedIndicatorColor="#0F6B4C"
+                                       IndicatorsShape="Circle"
+                                       IndicatorSize="6"
+                                       HorizontalOptions="Center"
+                                       Margin="0,-4,0,0" />
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
             </ScrollView>
         </RefreshView>

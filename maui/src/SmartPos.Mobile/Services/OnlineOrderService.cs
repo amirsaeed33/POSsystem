@@ -234,4 +234,18 @@ public class OnlineOrderService
             return null;
         }
     }
+
+    public async Task<List<CustomerFeedbackDto>> GetBranchFeedbacksAsync(int branchId, int maxResultCount = 10)
+    {
+        try
+        {
+            var result = await _api.GetAsync<List<CustomerFeedbackDto>>(
+                $"api/services/app/CustomerOrder/GetBranchFeedbacks?branchId={branchId}&maxResultCount={maxResultCount}");
+            return result ?? new List<CustomerFeedbackDto>();
+        }
+        catch
+        {
+            return new List<CustomerFeedbackDto>();
+        }
+    }
 }
