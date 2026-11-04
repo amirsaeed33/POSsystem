@@ -311,7 +311,7 @@
     <section
         class="fp-hero-banner"
         id="storeHomeSection"
-        *ngIf="!searchKeyword"
+        *ngIf="!isMenuFiltering"
         (mouseenter)="stopHeroSlider()"
         (mouseleave)="startHeroSlider()"
     >
@@ -486,42 +486,63 @@
     <!-- 3. CATEGORY & FILTER BARS (Sticky / Smooth Horizontal Track) -->
     <section class="fp-categories-nav-section" id="storeMenuSection">
         <div class="max-w-7xl mx-auto">
-            <!-- Section Header Title -->
-            <div class="flex align-items-center justify-content-between px-3 pt-3 pb-2">
+            <!-- Section Header Title + Search -->
+            <div class="flex align-items-center justify-content-between px-3 pt-3 pb-2 flex-wrap gap-3">
                 <div class="flex align-items-center gap-2">
                     <span class="cat-sec-icon">🍽️</span>
                     <div>
                         <h2 class="cat-sec-heading">Explore Food Menu</h2>
-                        <span class="cat-sec-sub">Select a category to view freshly cooked meals</span>
+                        <span class="cat-sec-sub">Search or select one or more categories</span>
                     </div>
+                </div>
+                <div class="fp-menu-search-wrap">
+                    <i class="pi pi-search fp-menu-search-icon"></i>
+                    <input
+                        type="search"
+                        class="fp-menu-search-input"
+                        placeholder="Search meals, deals, categories…"
+                        [(ngModel)]="searchKeyword"
+                        (ngModelChange)="onMenuSearchChange()"
+                        autocomplete="off"
+                    />
+                    <button
+                        type="button"
+                        class="fp-menu-search-clear"
+                        *ngIf="searchKeyword"
+                        (click)="searchKeyword = ''; onMenuSearchChange()"
+                        aria-label="Clear search"
+                    >
+                        <i class="pi pi-times"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- DESKTOP CATEGORY TRACK (Horizontal Chips) -->
+            <!-- DESKTOP CATEGORY TRACK (Horizontal Chips — multi-select) -->
             <div class="fp-category-bar hidden md:flex">
                 <div class="fp-category-track" id="fpStoreFilterTrack">
                     <button
                         type="button"
                         *ngFor="let cat of categories"
                         class="fp-cat-chip"
-                        [class.active]="selectedCategory === cat"
+                        [class.active]="isCategorySelected(cat)"
                         (click)="selectCategory(cat, $event)"
                     >
                         <i [class]="getCategoryVisual(cat).icon" class="mr-1 text-xs"></i>
                         <span>{{ cat }}</span>
+                        <i class="pi pi-check text-xs ml-1" *ngIf="cat !== 'All' && isCategorySelected(cat)"></i>
                     </button>
                 </div>
             </div>
 
             <!-- MOBILE CIRCULAR CATEGORY & PILL BADGES (< 768px) -->
             <div class="fp-mobile-filter-container md:hidden">
-                <!-- Circular Category Icons Track -->
+                <!-- Circular Category Icons Track (multi-select) -->
                 <div class="fp-circle-category-track" id="fpMobileCircleTrack">
                     <button
                         type="button"
                         *ngFor="let cat of categories"
                         class="fp-circle-cat-item"
-                        [class.active]="selectedCategory === cat"
+                        [class.active]="isCategorySelected(cat)"
                         (click)="selectCategory(cat, $event)"
                     >
                         <div class="circle-avatar-box">
@@ -535,7 +556,7 @@
                             <div *ngIf="!getCategoryVisual(cat).image" class="circle-cat-icon-fallback" [style.background-color]="getCategoryVisual(cat).color">
                                 <i [class]="getCategoryVisual(cat).icon"></i>
                             </div>
-                            <span class="active-check-badge" *ngIf="selectedCategory === cat">
+                            <span class="active-check-badge" *ngIf="isCategorySelected(cat)">
                                 <i class="pi pi-check text-xs"></i>
                             </span>
                         </div>
@@ -560,7 +581,7 @@
     </section>
 
     <!-- 4. DEDICATED DEALS & SPECIAL OFFERS SECTION -->
-    <section class="fp-deals-showcase-section" id="storeDealsSection" *ngIf="!searchKeyword && dealsList.length > 0">
+    <section class="fp-deals-showcase-section" id="storeDealsSection" *ngIf="!isMenuFiltering && dealsList.length > 0">
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
             <div class="deals-header-row flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
                 <div>
@@ -652,7 +673,7 @@
     </section>
 
     <!-- 5. MAIN MENU CATALOG BODY: CATEGORY SECTIONS GRID -->
-    <main class="max-w-7xl mx-auto pb-8" *ngIf="!searchKeyword">
+    <main class="max-w-7xl mx-auto pb-8" *ngIf="!isMenuFiltering">
         <!-- Section 1: 🔥 Hot Deals & Trending Items -->
         <section class="fp-store-section" id="storeTrendingSection" *ngIf="trendingDeals.length > 0">
             <div class="section-header-row">
@@ -770,12 +791,12 @@
         </div>
     </main>
 
-    <!-- FILTERED / SEARCHED PRODUCTS GRID -->
-    <main class="max-w-7xl mx-auto p-2 sm:p-4 pb-8" *ngIf="searchKeyword">
+    <!-- FILTERED / SEARCHED PRODUCTS GRID (search and/or multi-category) -->
+    <main class="max-w-7xl mx-auto p-2 sm:p-4 pb-8" id="storeFilteredMenu" *ngIf="isMenuFiltering">
         <div class="flex align-items-center justify-content-between mb-3 sm:mb-4 flex-wrap gap-2">
-            <div class="font-bold text-base sm:text-xl text-900 flex align-items-center gap-2">
+            <div class="font-bold text-base sm:text-xl text-900 flex align-items-center gap-2 flex-wrap">
                 <span *ngIf="searchKeyword">Search: "{{ searchKeyword }}"</span>
-                <span *ngIf="!searchKeyword">{{ selectedCategory }}</span>
+                <span *ngIf="selectedCategories.length">{{ selectedCategoryLabel }}</span>
                 <span class="text-500 text-xs sm:text-sm font-normal">({{ filteredProducts.length }} items)</span>
             </div>
             <div class="flex align-items-center gap-1 sm:gap-2">
@@ -785,10 +806,21 @@
                     icon="pi pi-times"
                     label="Clear"
                     class="p-button-outlined p-button-secondary p-button-sm font-semibold border-round-3xl"
-                    *ngIf="selectedCategory !== 'All' || searchKeyword"
                     (click)="clearFilter()"
                 ></button>
             </div>
+        </div>
+
+        <div
+            class="flex flex-wrap gap-2 mb-3"
+            *ngIf="selectedCategories.length > 1"
+        >
+            <span
+                *ngFor="let cat of selectedCategories"
+                class="badge bg-primary-50 text-primary px-2 py-1 border-round-3xl text-xs font-semibold"
+            >
+                {{ cat }}
+            </span>
         </div>
 
         <div class="fp-menu-grid">
@@ -808,7 +840,7 @@
                 <i class="pi pi-filter-slash text-5xl text-400 mb-3 block"></i>
                 <h4 class="text-900 font-bold mb-1">
                     <span *ngIf="searchKeyword">No items matched "{{ searchKeyword }}"</span>
-                    <span *ngIf="!searchKeyword">No products found in "{{ selectedCategory }}"</span>
+                    <span *ngIf="!searchKeyword">No products found in "{{ selectedCategoryLabel }}"</span>
                 </h4>
                 <p class="text-600 mb-3">Try choosing another category or clearing your search filters.</p>
                 <button

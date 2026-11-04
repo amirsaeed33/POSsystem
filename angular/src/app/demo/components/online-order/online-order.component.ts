@@ -70,7 +70,30 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     filteredProducts: any[] = [];
     categories: string[] = [];
     backendCategories: string[] = [];
-    selectedCategory = 'All';
+    /** Empty = All categories. Multiple chips can be active at once. */
+    selectedCategories: string[] = [];
+
+    get selectedCategoryLabel(): string {
+        if (!this.selectedCategories.length) {
+            return 'All';
+        }
+        if (this.selectedCategories.length === 1) {
+            return this.selectedCategories[0];
+        }
+        return `${this.selectedCategories.length} categories`;
+    }
+
+    /** True when search text or one+ category chips are filtering the menu. */
+    get isMenuFiltering(): boolean {
+        return !!(this.searchKeyword || '').trim() || this.selectedCategories.length > 0;
+    }
+
+    isCategorySelected(cat: string): boolean {
+        if (!cat || cat === 'All') {
+            return this.selectedCategories.length === 0;
+        }
+        return this.selectedCategories.includes(cat);
+    }
 
     get heroSpotlightItem(): any {
         if (this.dealsList && this.dealsList.length > 0) {
@@ -609,6 +632,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             );
             if (profile) {
                 this.applyProfileToForm(profile);
+                await this.syncFavoritesFromServer();
             }
         } catch {
             /* keep local draft */
@@ -923,6 +947,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 customerMobile: saved.phone,
                 deliveryAddress: saved.address,
             });
+            await this.syncFavoritesFromServer();
             this.messageService.add({
                 severity: 'success',
                 summary: 'Profile saved',
@@ -1417,11 +1442,11 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.mobileNavOpen = false;
 
         if (sectionId === 'home') {
-            this.selectedCategory = 'All';
+            this.selectedCategories = [];
             if (this.searchKeyword) {
                 this.searchKeyword = '';
-                this.applyFilter();
             }
+            this.applyFilter();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (sectionId === 'menu') {
             const el = document.getElementById('storeMenuSection');
@@ -1453,57 +1478,39 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             event.stopPropagation();
         }
 
-        this.selectedCategory = cat;
-
-        if (this.searchKeyword) {
-            this.searchKeyword = '';
-            this.applyFilter();
-        }
-
         if (this.activeMobileTab === 'favorites') {
             this.activeMobileTab = 'home';
         }
+
+        const lower = (cat || '').toLowerCase().trim();
+        if (!cat || lower === 'all') {
+            this.selectedCategories = [];
+            this.applyFilter();
+            const menuEl = document.getElementById('storeMenuSection');
+            if (menuEl) {
+                menuEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            return;
+        }
+
+        const idx = this.selectedCategories.indexOf(cat);
+        if (idx >= 0) {
+            this.selectedCategories = this.selectedCategories.filter((c) => c !== cat);
+        } else {
+            this.selectedCategories = [...this.selectedCategories, cat];
+        }
+        this.applyFilter();
 
         setTimeout(() => {
             const activeChip = document.querySelector('.fp-cat-chip.active, .fp-circle-cat-item.active');
             if (activeChip) {
                 activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             }
+            const resultsEl = document.getElementById('storeFilteredMenu');
+            if (resultsEl && this.isMenuFiltering) {
+                resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }, 50);
-
-        const lower = (cat || '').toLowerCase().trim();
-        if (!cat || lower === 'all') {
-            const menuEl = document.getElementById('storeMenuSection');
-            if (menuEl) {
-                menuEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-            return;
-        }
-
-        const targetId = this.getCategorySectionId(cat);
-        const targetEl = document.getElementById(targetId);
-        if (targetEl) {
-            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-            const allSections = document.querySelectorAll('.fp-store-section');
-            let found = false;
-            allSections.forEach((section) => {
-                if (found) return;
-                const titleEl = section.querySelector('.section-title');
-                if (titleEl && titleEl.textContent && titleEl.textContent.toLowerCase().includes(lower.replace(/[^a-z0-9]/g, ''))) {
-                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    found = true;
-                }
-            });
-            if (!found) {
-                const menuEl = document.getElementById('storeMenuSection');
-                if (menuEl) {
-                    menuEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }
-        }
     }
     selectPill(pill: string): void {
         if (this.selectedPill === pill) {
@@ -1524,12 +1531,16 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     clearFilter(): void {
-        this.selectedCategory = 'All';
+        this.selectedCategories = [];
         this.selectedPill = '';
         this.searchKeyword = '';
         if (this.activeMobileTab === 'favorites') {
             this.activeMobileTab = 'home';
         }
+        this.applyFilter();
+    }
+
+    onMenuSearchChange(): void {
         this.applyFilter();
     }
 
@@ -1547,8 +1558,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     applyFilter(): void {
         const query = (this.searchKeyword || '').toLowerCase().trim();
-        const selectedCat = (this.selectedCategory || 'All').trim();
-        const targetCatLower = selectedCat.toLowerCase();
+        const selectedCats = this.selectedCategories || [];
         const pill = this.selectedPill;
 
         this.filteredProducts = (this.products || []).filter((p) => {
@@ -1559,17 +1569,23 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 }
             }
 
-            // Category filtering: Deals only matches items that are deals or have deal category
+            // Multi-category: product must match at least one selected category
             let matchesCat = true;
-            if (selectedCat === 'All') {
-                matchesCat = true;
-            } else if (selectedCat === '🔥 Deals' || targetCatLower.includes('deal')) {
-                matchesCat = p.isDeal === true || ((p.categoryName || '').toLowerCase().includes('deal'));
-            } else if (selectedCat === '✨ Popular') {
-                matchesCat = true;
-            } else {
+            if (selectedCats.length > 0) {
                 const pCatLower = (p.categoryName || '').trim().toLowerCase();
-                matchesCat = pCatLower === targetCatLower;
+                matchesCat = selectedCats.some((cat) => {
+                    const target = (cat || '').trim().toLowerCase();
+                    if (!target || target === 'all') {
+                        return true;
+                    }
+                    if (cat === '🔥 Deals' || target.includes('deal')) {
+                        return p.isDeal === true || pCatLower.includes('deal');
+                    }
+                    if (cat === '✨ Popular') {
+                        return true;
+                    }
+                    return pCatLower === target;
+                });
             }
 
             // Pill filtering (Foodies Pakistan pills)
@@ -1604,20 +1620,20 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     onMobileTabSelect(tab: 'home' | 'deals' | 'cart' | 'favorites' | 'account'): void {
         this.activeMobileTab = tab;
         if (tab === 'home') {
-            this.selectedCategory = 'All';
+            this.selectedCategories = [];
             this.selectedPill = '';
             this.searchKeyword = '';
             this.applyFilter();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (tab === 'deals') {
-            this.selectedCategory = '🔥 Deals';
+            this.selectedCategories = ['🔥 Deals'];
             this.selectedPill = '🔥 Top Deals';
             this.applyFilter();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (tab === 'cart') {
             this.cartService.sidebarVisible = true;
         } else if (tab === 'favorites') {
-            this.selectedCategory = 'All';
+            this.selectedCategories = [];
             this.selectedPill = '';
             this.applyFilter();
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1626,49 +1642,170 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
     }
 
-    // Favorites persistence & toggling
+    // Favorites: local cache + server sync by phone/branch
+    private favoritesStorageKey(): string {
+        const branch = this.branchId || 0;
+        return `smartpos_store_favorites_${branch}`;
+    }
+
     loadFavorites(): void {
         try {
-            const raw = localStorage.getItem('smartpos_store_favorites');
+            const raw =
+                localStorage.getItem(this.favoritesStorageKey()) ||
+                localStorage.getItem('smartpos_store_favorites');
             if (raw) {
                 const arr = JSON.parse(raw);
                 if (Array.isArray(arr)) {
-                    this.favorites = new Set(arr);
+                    this.favorites = new Set(
+                        arr.map((id: any) => Number(id)).filter((id: number) => id > 0)
+                    );
                 }
             }
         } catch {}
+        void this.syncFavoritesFromServer();
     }
 
     saveFavorites(): void {
         try {
-            localStorage.setItem('smartpos_store_favorites', JSON.stringify(Array.from(this.favorites)));
+            localStorage.setItem(
+                this.favoritesStorageKey(),
+                JSON.stringify(Array.from(this.favorites))
+            );
+            // Legacy key for older builds
+            localStorage.setItem(
+                'smartpos_store_favorites',
+                JSON.stringify(Array.from(this.favorites))
+            );
         } catch {}
     }
 
-    toggleFavorite(productId: number, event?: Event): void {
+    private resolveFavoritePhone(): string {
+        return (
+            this.profilePhone?.trim() ||
+            this.customerMobile?.trim() ||
+            this.readLocal('smartpos_customer_phone') ||
+            ''
+        ).trim();
+    }
+
+    async syncFavoritesFromServer(): Promise<void> {
+        const phone = this.resolveFavoritePhone();
+        if (!this.branchId || phone.replace(/\D/g, '').length < 7) {
+            return;
+        }
+        try {
+            const ids = await this.customerOrderService.getFavoriteProductIds({
+                phone,
+                branchId: this.branchId,
+                customerId: this.profileId || undefined,
+            });
+            // Merge local-only ids up to server, then prefer server as source of truth.
+            const localOnly = Array.from(this.favorites).filter((id) => !ids.includes(id));
+            for (const productId of localOnly) {
+                try {
+                    await this.customerOrderService.toggleFavorite({
+                        productId,
+                        phone,
+                        branchId: this.branchId,
+                        customerId: this.profileId || undefined,
+                    });
+                    ids.push(productId);
+                } catch {
+                    /* keep local if upload fails */
+                }
+            }
+            this.favorites = new Set(ids);
+            this.saveFavorites();
+            if (this.activeMobileTab === 'favorites') {
+                this.applyFilter();
+            }
+        } catch {
+            /* keep local cache */
+        }
+    }
+
+    async toggleFavorite(productId: number, event?: Event): Promise<void> {
         if (event) {
             event.stopPropagation();
         }
-        if (this.favorites.has(productId)) {
-            this.favorites.delete(productId);
+        if (!productId) {
+            return;
+        }
+
+        const phone = this.resolveFavoritePhone();
+        if (!this.branchId || phone.replace(/\D/g, '').length < 7) {
             this.messageService.add({
-                severity: 'info',
-                summary: 'Removed',
-                detail: 'Item removed from favorites',
-                life: 1400,
+                severity: 'warn',
+                summary: 'Phone required',
+                detail: 'Open Account and save your phone number to sync favorites.',
+                life: 3200,
             });
+            this.openCustomerProfile();
+            return;
+        }
+
+        const wasFavorite = this.favorites.has(productId);
+        // Optimistic UI
+        if (wasFavorite) {
+            this.favorites.delete(productId);
         } else {
             this.favorites.add(productId);
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Saved',
-                detail: 'Item added to your favorites',
-                life: 1400,
-            });
         }
         this.saveFavorites();
         if (this.activeMobileTab === 'favorites') {
             this.applyFilter();
+        }
+
+        try {
+            const result = await this.customerOrderService.toggleFavorite({
+                productId,
+                phone,
+                branchId: this.branchId,
+                customerId: this.profileId || undefined,
+            });
+            if (result.isFavorite) {
+                this.favorites.add(productId);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Saved',
+                    detail: 'Item added to your favorites',
+                    life: 1400,
+                });
+            } else {
+                this.favorites.delete(productId);
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Removed',
+                    detail: 'Item removed from favorites',
+                    life: 1400,
+                });
+            }
+            this.saveFavorites();
+            if (this.activeMobileTab === 'favorites') {
+                this.applyFilter();
+            }
+        } catch (error: any) {
+            // Roll back optimistic change
+            if (wasFavorite) {
+                this.favorites.add(productId);
+            } else {
+                this.favorites.delete(productId);
+            }
+            this.saveFavorites();
+            if (this.activeMobileTab === 'favorites') {
+                this.applyFilter();
+            }
+            const message =
+                error?.error?.error?.message ||
+                error?.error?.message ||
+                error?.message ||
+                'Failed to update favorite';
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Favorites',
+                detail: message,
+                life: 4000,
+            });
         }
     }
 

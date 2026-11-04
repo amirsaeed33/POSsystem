@@ -887,7 +887,8 @@
     position: relative;
     z-index: 2;
     width: 100%;
-    padding-top: 4.35rem;
+    /* Clear fixed .fp-store-navbar so headline/CTAs are not covered */
+    padding-top: 6.5rem;
     padding-bottom: 0.35rem;
     display: flex;
     flex-direction: column;
@@ -895,7 +896,7 @@
     flex: 1;
 
     @media (max-width: 767px) {
-      padding-top: 4rem;
+      padding-top: 5.75rem;
       justify-content: flex-start;
     }
   }
@@ -1396,6 +1397,68 @@
   .cat-sec-sub {
     font-size: 0.78rem;
     color: #64748b;
+  }
+
+  .fp-menu-search-wrap {
+    position: relative;
+    flex: 1 1 16rem;
+    max-width: 22rem;
+    min-width: 12rem;
+  }
+
+  .fp-menu-search-icon {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 0.85rem;
+    pointer-events: none;
+  }
+
+  .fp-menu-search-input {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    padding: 0.6rem 2.25rem 0.6rem 2.35rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    color: #0f172a;
+    background: #f8fafc;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+    &::placeholder {
+      color: #94a3b8;
+    }
+
+    &:focus {
+      background: #fff;
+      border-color: #fb923c;
+      box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.18);
+    }
+  }
+
+  .fp-menu-search-clear {
+    position: absolute;
+    right: 0.45rem;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      color: #0f172a;
+      background: #e2e8f0;
+    }
   }
 }
 

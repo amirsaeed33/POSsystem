@@ -437,6 +437,46 @@ export class CustomerOrderService {
         this.unwrap(res, 'Failed to delete address');
     }
 
+    async getFavoriteProductIds(input: {
+        phone?: string;
+        branchId?: number | null;
+        customerId?: number | null;
+    }): Promise<number[]> {
+        const params: Record<string, string> = {};
+        if (input.customerId) params['CustomerId'] = String(input.customerId);
+        if (input.branchId) params['BranchId'] = String(input.branchId);
+        if (input.phone) params['Phone'] = input.phone.trim();
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetFavoriteProductIds`, { params })
+        );
+        const result = this.unwrap(res, 'Failed to load favorites');
+        const items = Array.isArray(result) ? result : result?.items || result?.Items || [];
+        return (Array.isArray(items) ? items : [])
+            .map((id: any) => Number(id))
+            .filter((id: number) => id > 0);
+    }
+
+    async toggleFavorite(input: {
+        productId: number;
+        phone?: string;
+        branchId?: number | null;
+        customerId?: number | null;
+    }): Promise<{ productId: number; isFavorite: boolean }> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/ToggleFavorite`, {
+                productId: input.productId,
+                phone: input.phone || undefined,
+                branchId: input.branchId ?? undefined,
+                customerId: input.customerId ?? undefined,
+            })
+        );
+        const result = this.unwrap(res, 'Failed to update favorite');
+        return {
+            productId: Number(result?.productId ?? result?.ProductId ?? input.productId),
+            isFavorite: !!(result?.isFavorite ?? result?.IsFavorite),
+        };
+    }
+
     private mapSavedAddress(item: any): CustomerSavedAddressDto {
         return {
             id: item.id ?? item.Id,

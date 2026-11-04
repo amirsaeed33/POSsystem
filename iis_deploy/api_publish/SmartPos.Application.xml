@@ -581,6 +581,12 @@
         <member name="M:SmartPos.Orders.ICustomerOrderAppService.DeleteSavedAddressAsync(SmartPos.Customers.Dto.DeleteCustomerSavedAddressInput)">
             <summary>Delete a saved address (owner via phone match, or staff).</summary>
         </member>
+        <member name="M:SmartPos.Orders.ICustomerOrderAppService.GetFavoriteProductIdsAsync(SmartPos.Customers.Dto.GetCustomerFavoritesInput)">
+            <summary>Product ids favorited by customer (phone + branch).</summary>
+        </member>
+        <member name="M:SmartPos.Orders.ICustomerOrderAppService.ToggleFavoriteAsync(SmartPos.Customers.Dto.ToggleCustomerFavoriteInput)">
+            <summary>Add or remove a favorite product for the customer.</summary>
+        </member>
         <member name="M:SmartPos.Orders.OnlineOrderHeroImageStore.ResolveExistingFile(System.String)">
             <summary>
             Resolves a stored hero image path (e.g. /OnlineOrderHeroImages/x.jpg or defaults/x.jpg)

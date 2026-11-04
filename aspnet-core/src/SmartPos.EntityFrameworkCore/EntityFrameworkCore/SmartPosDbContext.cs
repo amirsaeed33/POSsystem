@@ -55,6 +55,8 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<Customer> Customers { get; set; }
 
+        public virtual DbSet<CustomerFavorite> CustomerFavorites { get; set; }
+
         public virtual DbSet<SavedAddress> SavedAddresses { get; set; }
 
         public virtual DbSet<Staff> Staff { get; set; }
@@ -362,6 +364,26 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.AccountId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CustomerFavorite>(b =>
+            {
+                b.HasIndex(x => new { x.CustomerId, x.ProductId, x.BranchId }).IsUnique();
+                b.HasIndex(x => x.ProductId);
+                b.HasIndex(x => x.BranchId);
+                b.HasIndex(x => x.TenantId);
+                b.HasOne(x => x.Customer)
+                    .WithMany()
+                    .HasForeignKey(x => x.CustomerId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Product)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<SavedAddress>(b =>

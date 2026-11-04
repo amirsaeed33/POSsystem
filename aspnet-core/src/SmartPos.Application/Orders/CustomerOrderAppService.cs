@@ -55,6 +55,7 @@ namespace SmartPos.Orders
         private readonly IRepository<DeliveryArea> _deliveryAreaRepository;
         private readonly IRepository<DeliveryPromotion> _deliveryPromotionRepository;
         private readonly SavedAddressManager _savedAddresses;
+        private readonly IRepository<CustomerFavorite> _customerFavoriteRepository;
         private readonly IRepository<Staff> _staffRepository;
         private readonly IRepository<Category> _categoryRepository;
         private readonly ICacheManager _cacheManager;
@@ -76,6 +77,7 @@ namespace SmartPos.Orders
             IRepository<DeliveryArea> deliveryAreaRepository,
             IRepository<DeliveryPromotion> deliveryPromotionRepository,
             SavedAddressManager savedAddresses,
+            IRepository<CustomerFavorite> customerFavoriteRepository,
             IRepository<Staff> staffRepository,
             IRepository<Category> categoryRepository,
             ICacheManager cacheManager)
@@ -96,6 +98,7 @@ namespace SmartPos.Orders
             _deliveryAreaRepository = deliveryAreaRepository;
             _deliveryPromotionRepository = deliveryPromotionRepository;
             _savedAddresses = savedAddresses;
+            _customerFavoriteRepository = customerFavoriteRepository;
             _staffRepository = staffRepository;
             _categoryRepository = categoryRepository;
             _cacheManager = cacheManager;
@@ -1557,6 +1560,137 @@ namespace SmartPos.Orders
 
                 await _savedAddresses.DeleteAsync(entity.Id);
             }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<List<int>> GetFavoriteProductIdsAsync(GetCustomerFavoritesInput input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var branchId = input?.BranchId.GetValueOrDefault() ?? 0;
+                var customerId = await ResolveCustomerIdForSavedAddressAsync(
+                    input?.CustomerId,
+                    input?.Phone,
+                    branchId > 0 ? branchId : (int?)null);
+
+                if (!customerId.HasValue)
+                {
+                    return new List<int>();
+                }
+
+                var query = _customerFavoriteRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(f => f.CustomerId == customerId.Value);
+
+                if (branchId > 0)
+                {
+                    query = query.Where(f => f.BranchId == branchId);
+                }
+
+                return await query
+                    .OrderByDescending(f => f.Id)
+                    .Select(f => f.ProductId)
+                    .Distinct()
+                    .ToListAsync();
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<ToggleCustomerFavoriteResultDto> ToggleFavoriteAsync(ToggleCustomerFavoriteInput input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                if (input == null || input.ProductId <= 0)
+                {
+                    throw new UserFriendlyException("Product is required.");
+                }
+
+                var branchId = input.BranchId.GetValueOrDefault();
+                if (branchId <= 0)
+                {
+                    throw new UserFriendlyException("Please select a branch.");
+                }
+
+                var productExists = await _productRepository.GetAll()
+                    .AsNoTracking()
+                    .AnyAsync(p => p.Id == input.ProductId);
+                if (!productExists)
+                {
+                    throw new UserFriendlyException("Product not found.");
+                }
+
+                var customer = await EnsureCustomerForFavoritesAsync(input.CustomerId, input.Phone, branchId);
+                var existing = await _customerFavoriteRepository.FirstOrDefaultAsync(f =>
+                    f.CustomerId == customer.Id &&
+                    f.ProductId == input.ProductId &&
+                    f.BranchId == branchId);
+
+                if (existing != null)
+                {
+                    await _customerFavoriteRepository.DeleteAsync(existing);
+                    return new ToggleCustomerFavoriteResultDto
+                    {
+                        ProductId = input.ProductId,
+                        IsFavorite = false
+                    };
+                }
+
+                await _customerFavoriteRepository.InsertAsync(new CustomerFavorite
+                {
+                    TenantId = customer.TenantId ?? AbpSession.TenantId,
+                    CustomerId = customer.Id,
+                    ProductId = input.ProductId,
+                    BranchId = branchId
+                });
+
+                return new ToggleCustomerFavoriteResultDto
+                {
+                    ProductId = input.ProductId,
+                    IsFavorite = true
+                };
+            }
+        }
+
+        private async Task<Customer> EnsureCustomerForFavoritesAsync(int? customerId, string phone, int branchId)
+        {
+            if (customerId.HasValue && customerId.Value > 0 && AbpSession.UserId.HasValue)
+            {
+                var existing = await _customerRepository.GetAsync(customerId.Value);
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(existing.BranchId);
+                return existing;
+            }
+
+            var digits = NormalizePhoneDigits(phone);
+            if (digits.Length < 7)
+            {
+                throw new UserFriendlyException("Please enter your phone number in Account to save favorites.");
+            }
+
+            var match = await FindCustomerByPhoneAsync(branchId, digits);
+            if (match != null)
+            {
+                return match;
+            }
+
+            var branch = await _branchRepository.GetAll()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.Id == branchId);
+            if (branch == null)
+            {
+                throw new UserFriendlyException("Branch not found.");
+            }
+
+            var created = new Customer
+            {
+                TenantId = branch.TenantId ?? AbpSession.TenantId,
+                BranchId = branchId,
+                Name = "Online Customer",
+                Phone = (phone ?? string.Empty).Trim(),
+                CustomerType = CustomerTypes.Direct
+            };
+            await _customerRepository.InsertAsync(created);
+            await CurrentUnitOfWork.SaveChangesAsync();
+            return created;
         }
 
         private OnlineCustomerProfileDto MapOnlineCustomerProfile(Customer customer)

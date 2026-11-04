@@ -2199,6 +2199,46 @@ namespace SmartPos.Migrations
                     b.ToTable("AppCustomers");
                 });
 
+            modelBuilder.Entity("SmartPos.Customers.CustomerFavorite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatorUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("CustomerId", "ProductId", "BranchId")
+                        .IsUnique();
+
+                    b.ToTable("AppCustomerFavorites");
+                });
+
             modelBuilder.Entity("SmartPos.Deals.Deal", b =>
                 {
                     b.Property<int>("Id")
@@ -5322,6 +5362,33 @@ namespace SmartPos.Migrations
                     b.Navigation("Account");
 
                     b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("SmartPos.Customers.CustomerFavorite", b =>
+                {
+                    b.HasOne("SmartPos.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SmartPos.Customers.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SmartPos.Products.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("SmartPos.Deals.Deal", b =>

@@ -60,6 +60,14 @@ namespace SmartPos.Orders
         [AbpAllowAnonymous]
         Task DeleteSavedAddressAsync(DeleteCustomerSavedAddressInput input);
 
+        /// <summary>Product ids favorited by customer (phone + branch).</summary>
+        [AbpAllowAnonymous]
+        Task<List<int>> GetFavoriteProductIdsAsync(GetCustomerFavoritesInput input);
+
+        /// <summary>Add or remove a favorite product for the customer.</summary>
+        [AbpAllowAnonymous]
+        Task<ToggleCustomerFavoriteResultDto> ToggleFavoriteAsync(ToggleCustomerFavoriteInput input);
+
         [AbpAllowAnonymous]
         Task<List<BranchFeedbackDto>> GetBranchFeedbacksAsync(int branchId, int maxResultCount = 20);
 
