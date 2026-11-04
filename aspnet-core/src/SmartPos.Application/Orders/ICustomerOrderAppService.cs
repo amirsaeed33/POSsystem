@@ -42,6 +42,12 @@ namespace SmartPos.Orders
         Task<List<CustomerOrderDto>> GetOrdersByPhoneAsync(CustomerOrderHistoryInput input);
 
         [AbpAllowAnonymous]
+        Task<OnlineCustomerProfileDto> GetOnlineCustomerProfileAsync(string phone, int branchId);
+
+        [AbpAllowAnonymous]
+        Task<OnlineCustomerProfileDto> UpsertOnlineCustomerProfileAsync(UpsertOnlineCustomerProfileInput input);
+
+        [AbpAllowAnonymous]
         Task<CustomerOrderDto> RateOrderAsync(RateCustomerOrderInput input);
 
         Task<List<DeliveryRiderStatusDto>> GetAvailableRidersAsync(int? branchId, int? currentOrderId = null);

@@ -9,9 +9,11 @@ import {
     RateCustomerOrderInput,
     CustomerOrderHistoryInput,
     DeliveryRiderStatusDto,
+    OnlineCustomerProfileDto,
     OverrideDeliveryFeeInput,
     PagedCustomerOrderResultRequestDto,
     PagedResultDto,
+    UpsertOnlineCustomerProfileInput,
 } from '../api/customer-order';
 import { SaleDto } from '../api/sale';
 import { environment } from '../../../environments/environment';
@@ -229,6 +231,60 @@ export class CustomerOrderService {
         const result = this.unwrap(res, 'Failed to load order history');
         const list = Array.isArray(result) ? result : result?.items || [];
         return list.map((item: any) => this.map(item));
+    }
+
+    async getOnlineCustomerProfile(
+        phone: string,
+        branchId: number
+    ): Promise<OnlineCustomerProfileDto | null> {
+        const params: Record<string, string> = {
+            phone: (phone || '').trim(),
+            branchId: String(branchId),
+        };
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetOnlineCustomerProfile`, { params })
+        );
+        if (!res) throw new Error('No response from server');
+        if (res.success === false || res.error) {
+            throw new Error(
+                res.error?.message || res.error?.details || 'Failed to load customer profile'
+            );
+        }
+        // ABP returns result: null when not found — do not fall back to the wrapper object.
+        const result = res.result;
+        if (result == null) return null;
+        return this.mapProfile(result);
+    }
+
+    async upsertOnlineCustomerProfile(
+        input: UpsertOnlineCustomerProfileInput
+    ): Promise<OnlineCustomerProfileDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/UpsertOnlineCustomerProfile`, {
+                branchId: input.branchId,
+                name: input.name,
+                phone: input.phone,
+                email: input.email,
+                address: input.address,
+                imageBase64: input.imageBase64,
+                clearImage: !!input.clearImage,
+            })
+        );
+        return this.mapProfile(
+            this.unwrap(res, 'Failed to save customer profile')
+        );
+    }
+
+    private mapProfile(item: any): OnlineCustomerProfileDto {
+        return {
+            id: item.id ?? item.Id,
+            branchId: item.branchId ?? item.BranchId,
+            name: item.name ?? item.Name,
+            phone: item.phone ?? item.Phone,
+            email: item.email ?? item.Email,
+            address: item.address ?? item.Address,
+            imagePath: item.imagePath ?? item.ImagePath,
+        };
     }
 
     async overrideDeliveryFee(

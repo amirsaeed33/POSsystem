@@ -2576,6 +2576,109 @@
 }
 
 
+/* Customer profile dialog */
+.fp-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #fff7ed, #fff);
+  border: 1px solid #fed7aa;
+}
+
+.fp-profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.fp-profile-avatar {
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #e23744, #be123c);
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 8px 18px rgba(226, 55, 68, 0.28);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &.has-photo {
+    background: #e2e8f0;
+  }
+}
+
+.fp-profile-camera {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+
+  i {
+    font-size: 0.75rem;
+  }
+}
+
+.fp-profile-hero-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.fp-profile-saved-pill {
+  display: inline-flex;
+  margin-top: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fp-nav-profile-avatar,
+.dock-profile-avatar {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  overflow: hidden;
+  display: inline-flex;
+  margin-right: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.dock-profile-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-right: 0;
+}
+
 /* Single-page smooth scroll margins below sticky header */
 :host {
   scroll-behavior: smooth;

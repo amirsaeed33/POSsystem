@@ -158,6 +158,21 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     confirmedTotal = 0;
     orderCopied = false;
 
+    // Online customer profile (Account)
+    profileModalVisible = false;
+    profileSaving = false;
+    profileLoading = false;
+    profileId: number | null = null;
+    profileName = '';
+    profilePhone = '';
+    profileEmail = '';
+    profileAddress = '';
+    profileImagePath: string | null = null;
+    profileImagePreview: string | null = null;
+    profileImageBase64: string | null = null;
+    profileClearImage = false;
+    profilePhotoBroken = false;
+
     loading = false;
 
     // Curated high quality imagery for Solar Panels, Inverters, Batteries and general retail
@@ -426,6 +441,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 void this.loadHeroSlides(this.branchId);
                 this.loadCatalog(this.branchId, paramProductId ? Number(paramProductId) : undefined);
                 void this.refreshActiveOrders();
+                void this.hydrateCustomerProfile();
             } else {
                 this.activeOrders = [];
                 this.handleMissingBranchId();
@@ -489,9 +505,249 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     openOrderHistory(): void {
+        const phone =
+            this.profilePhone?.trim() ||
+            this.readLocal('smartpos_customer_phone') ||
+            '';
         this.router.navigate(['/online-order/history'], {
-            queryParams: this.branchId ? { branchId: this.branchId } : {},
+            queryParams: {
+                ...(this.branchId ? { branchId: this.branchId } : {}),
+                ...(phone ? { phone } : {}),
+            },
         });
+    }
+
+    openCustomerProfile(): void {
+        this.profileModalVisible = true;
+        void this.hydrateCustomerProfile();
+    }
+
+    get hasCustomerProfile(): boolean {
+        return !!(this.profileName?.trim() && this.profilePhone?.trim());
+    }
+
+    async hydrateCustomerProfile(): Promise<void> {
+        const savedPhone = this.readLocal('smartpos_customer_phone');
+        const savedName = this.readLocal('smartpos_customer_name');
+        const savedEmail = this.readLocal('smartpos_customer_email');
+        const savedAddress = this.readLocal('smartpos_customer_address');
+        const savedImage = this.readLocal('smartpos_customer_image');
+
+        // Always show last local profile immediately when opening Account.
+        this.profileName = savedName || this.profileName;
+        this.profilePhone = savedPhone || this.profilePhone;
+        this.profileEmail = savedEmail || this.profileEmail;
+        this.profileAddress = savedAddress || this.profileAddress;
+        if (savedImage && !this.profileImagePath) {
+            this.profileImagePath = savedImage;
+        }
+
+        const lookupPhone = (this.profilePhone || savedPhone || '').trim();
+        if (!this.branchId || lookupPhone.replace(/\D/g, '').length < 7) {
+            return;
+        }
+
+        this.profileLoading = true;
+        try {
+            const profile = await this.customerOrderService.getOnlineCustomerProfile(
+                lookupPhone,
+                this.branchId
+            );
+            if (profile) {
+                this.applyProfileToForm(profile);
+            }
+        } catch {
+            /* keep local draft */
+        } finally {
+            this.profileLoading = false;
+        }
+    }
+
+    applyProfileToForm(profile: {
+        id?: number;
+        name?: string;
+        phone?: string;
+        email?: string;
+        address?: string;
+        imagePath?: string;
+    }): void {
+        this.profileId = profile.id ?? this.profileId;
+        this.profileName = (profile.name || this.profileName || '').trim();
+        this.profilePhone = (profile.phone || this.profilePhone || '').trim();
+        this.profileEmail = (profile.email || this.profileEmail || '').trim();
+        this.profileAddress = (profile.address || this.profileAddress || '').trim();
+        if (profile.imagePath) {
+            this.profileImagePath = profile.imagePath;
+            this.profilePhotoBroken = false;
+        }
+        // Keep camera preview only while uploading a new photo; after save use server path.
+        if (!this.profileImageBase64) {
+            this.profileImagePreview = null;
+        }
+        this.profileClearImage = false;
+        this.persistLocalProfile();
+    }
+
+    onProfilePhotoSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input?.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Invalid file',
+                detail: 'Please choose an image file.',
+            });
+            return;
+        }
+        if (file.size > 3 * 1024 * 1024) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Too large',
+                detail: 'Photo must be under 3 MB.',
+            });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = String(reader.result || '');
+            this.profileImageBase64 = result;
+            this.profileImagePreview = result;
+            this.profileClearImage = false;
+            this.profilePhotoBroken = false;
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+    }
+
+    clearProfilePhoto(): void {
+        this.profileImageBase64 = null;
+        this.profileImagePreview = null;
+        if (this.profileImagePath) {
+            this.profileClearImage = true;
+            this.profileImagePath = null;
+        }
+    }
+
+    get profilePhotoUrl(): string {
+        if (this.profilePhotoBroken) return '';
+        if (this.profileImagePreview) return this.profileImagePreview;
+        if (this.profileImagePath) {
+            const url = this.getImageUrl(this.profileImagePath);
+            // Cache-bust so a newly uploaded photo shows immediately.
+            const sep = url.includes('?') ? '&' : '?';
+            return `${url}${sep}v=${encodeURIComponent(this.profileImagePath)}`;
+        }
+        return '';
+    }
+
+    onProfilePhotoError(): void {
+        // Show initials instead of a broken-image icon.
+        this.profilePhotoBroken = true;
+    }
+
+    async saveCustomerProfile(): Promise<void> {
+        const name = (this.profileName || '').trim();
+        const phone = (this.profilePhone || '').trim();
+        if (!name) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Name required',
+                detail: 'Please enter your full name.',
+            });
+            return;
+        }
+        if (phone.replace(/\D/g, '').length < 7) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Phone required',
+                detail: 'Please enter a valid phone / WhatsApp number (digits).',
+            });
+            return;
+        }
+        if (phone.includes('@')) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Check phone number',
+                detail: 'Mobile field needs your phone number. Put email in the Email field.',
+            });
+            return;
+        }
+        if (!this.branchId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Select branch',
+                detail: 'Please choose a store location first.',
+            });
+            return;
+        }
+
+        this.profileSaving = true;
+        try {
+            const saved = await this.customerOrderService.upsertOnlineCustomerProfile({
+                branchId: this.branchId,
+                name,
+                phone,
+                email: (this.profileEmail || '').trim() || undefined,
+                address: (this.profileAddress || '').trim() || undefined,
+                imageBase64: this.profileImageBase64 || undefined,
+                clearImage: this.profileClearImage,
+            });
+            // Drop local preview so the saved server photo path is used.
+            this.profileImageBase64 = null;
+            this.profileImagePreview = null;
+            this.applyProfileToForm(saved);
+            this.cartService.setCheckoutDraft({
+                customerName: saved.name,
+                customerMobile: saved.phone,
+                deliveryAddress: saved.address,
+            });
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Profile saved',
+                detail: 'Your name, phone, and photo are saved. Open Account anytime to see them.',
+                life: 4000,
+            });
+            // Keep dialog open so the user can see the saved profile immediately.
+            this.profileModalVisible = true;
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Save failed',
+                detail: err?.message || 'Could not save your profile.',
+            });
+        } finally {
+            this.profileSaving = false;
+        }
+    }
+
+    private persistLocalProfile(): void {
+        try {
+            if (this.profilePhone) {
+                localStorage.setItem('smartpos_customer_phone', this.profilePhone);
+            }
+            if (this.profileName) {
+                localStorage.setItem('smartpos_customer_name', this.profileName);
+            }
+            if (this.profileEmail) {
+                localStorage.setItem('smartpos_customer_email', this.profileEmail);
+            } else {
+                localStorage.removeItem('smartpos_customer_email');
+            }
+            if (this.profileAddress) {
+                localStorage.setItem('smartpos_customer_address', this.profileAddress);
+            } else {
+                localStorage.removeItem('smartpos_customer_address');
+            }
+            if (this.profileImagePath) {
+                localStorage.setItem('smartpos_customer_image', this.profileImagePath);
+            } else {
+                localStorage.removeItem('smartpos_customer_image');
+            }
+        } catch {
+            /* ignore */
+        }
     }
 
     openActiveOrder(order: MyOnlineOrderRef): void {
@@ -1061,16 +1317,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             this.applyFilter();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (tab === 'account') {
-            if (this.isLoggedIn) {
-                this.messageService.add({
-                    severity: 'info',
-                    summary: 'Profile',
-                    detail: `Signed in as ${this.userName}`,
-                    life: 2500,
-                });
-            } else {
-                this.router.navigate(['/auth/login']);
-            }
+            this.openCustomerProfile();
         }
     }
 
@@ -2058,24 +2305,30 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.checkoutModalVisible = true;
     }
 
-    /** Prefill name / phone / address from reorder draft or last saved customer details. */
+    /** Prefill name / phone / address from profile, reorder draft, or local storage. */
     private applyCheckoutDraft(): void {
         const draft = this.cartService.getCheckoutDraft();
 
         if (!this.customerName?.trim()) {
             this.customerName =
+                this.profileName?.trim() ||
                 draft?.customerName?.trim() ||
                 this.readLocal('smartpos_customer_name') ||
                 '';
         }
         if (!this.customerMobile?.trim()) {
             this.customerMobile =
+                this.profilePhone?.trim() ||
                 draft?.customerMobile?.trim() ||
                 this.readLocal('smartpos_customer_phone') ||
                 '';
         }
-        if (!this.deliveryAddress?.trim() && draft?.deliveryAddress) {
-            this.deliveryAddress = draft.deliveryAddress;
+        if (!this.deliveryAddress?.trim()) {
+            this.deliveryAddress =
+                this.profileAddress?.trim() ||
+                draft?.deliveryAddress ||
+                this.readLocal('smartpos_customer_address') ||
+                '';
         }
         if (!this.deliveryLandmark?.trim() && draft?.deliveryLandmark) {
             this.deliveryLandmark = draft.deliveryLandmark;

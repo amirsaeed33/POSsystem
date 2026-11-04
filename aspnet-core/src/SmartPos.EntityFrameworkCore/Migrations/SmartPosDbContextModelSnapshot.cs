@@ -2091,6 +2091,10 @@ namespace SmartPos.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<string>("ImagePath")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 

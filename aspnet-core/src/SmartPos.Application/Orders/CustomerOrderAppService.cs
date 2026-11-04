@@ -397,6 +397,16 @@ namespace SmartPos.Orders
                     if (existingCustomer != null)
                     {
                         customerId = existingCustomer.Id;
+                        if (!string.IsNullOrWhiteSpace(name) &&
+                            !string.Equals(existingCustomer.Name, name, StringComparison.Ordinal))
+                        {
+                            existingCustomer.Name = name;
+                        }
+                        if (!string.IsNullOrWhiteSpace(input.DeliveryAddress) &&
+                            string.IsNullOrWhiteSpace(existingCustomer.Address))
+                        {
+                            existingCustomer.Address = input.DeliveryAddress.Trim();
+                        }
                     }
                     else
                     {
@@ -405,7 +415,10 @@ namespace SmartPos.Orders
                             TenantId = tenantId,
                             BranchId = branchId,
                             Name = name,
-                            Phone = mobile
+                            Phone = mobile,
+                            Address = string.IsNullOrWhiteSpace(input.DeliveryAddress)
+                                ? null
+                                : input.DeliveryAddress.Trim()
                         };
                         customerId = await _customerRepository.InsertAndGetIdAsync(newCust);
                     }
@@ -1219,6 +1232,156 @@ namespace SmartPos.Orders
 
                 return matched.Select(MapToEntityDto).ToList();
             }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<OnlineCustomerProfileDto> GetOnlineCustomerProfileAsync(string phone, int branchId)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                if (branchId <= 0)
+                {
+                    throw new UserFriendlyException("Please select a branch.");
+                }
+
+                var mobile = (phone ?? string.Empty).Trim();
+                var digits = NormalizePhoneDigits(mobile);
+                if (digits.Length < 7)
+                {
+                    throw new UserFriendlyException("Please enter a valid phone number.");
+                }
+
+                var customers = await _customerRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(c => c.BranchId == branchId && c.Phone != null && c.Phone != "")
+                    .OrderByDescending(c => c.Id)
+                    .Take(50)
+                    .ToListAsync();
+
+                var match = customers.FirstOrDefault(c =>
+                {
+                    var stored = NormalizePhoneDigits(c.Phone);
+                    return stored == digits ||
+                           (stored.Length >= 10 && digits.Length >= 10 &&
+                            stored.Substring(stored.Length - 10) == digits.Substring(digits.Length - 10));
+                });
+
+                return match == null ? null : MapOnlineCustomerProfile(match);
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<OnlineCustomerProfileDto> UpsertOnlineCustomerProfileAsync(UpsertOnlineCustomerProfileInput input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                if (input == null)
+                {
+                    throw new UserFriendlyException("Profile details are required.");
+                }
+
+                var branchId = input.BranchId.GetValueOrDefault();
+                if (branchId <= 0)
+                {
+                    throw new UserFriendlyException("Please select a branch.");
+                }
+
+                var branch = await _branchRepository.GetAll()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(b => b.Id == branchId);
+                if (branch == null)
+                {
+                    throw new UserFriendlyException("Branch not found.");
+                }
+
+                var name = (input.Name ?? string.Empty).Trim();
+                var mobile = (input.Phone ?? string.Empty).Trim();
+                var email = (input.Email ?? string.Empty).Trim();
+                var address = (input.Address ?? string.Empty).Trim();
+                var digits = NormalizePhoneDigits(mobile);
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    throw new UserFriendlyException("Please enter your name.");
+                }
+
+                if (digits.Length < 7)
+                {
+                    throw new UserFriendlyException("Please enter a valid phone number.");
+                }
+
+                var candidates = await _customerRepository.GetAll()
+                    .Where(c => c.BranchId == branchId && c.Phone != null && c.Phone != "")
+                    .OrderByDescending(c => c.Id)
+                    .Take(50)
+                    .ToListAsync();
+
+                var customer = candidates.FirstOrDefault(c =>
+                {
+                    var stored = NormalizePhoneDigits(c.Phone);
+                    return stored == digits ||
+                           (stored.Length >= 10 && digits.Length >= 10 &&
+                            stored.Substring(stored.Length - 10) == digits.Substring(digits.Length - 10));
+                });
+
+                if (customer == null)
+                {
+                    customer = new Customer
+                    {
+                        TenantId = branch.TenantId ?? AbpSession.TenantId,
+                        BranchId = branchId,
+                        Name = name,
+                        Phone = mobile,
+                        Email = string.IsNullOrWhiteSpace(email) ? null : email,
+                        Address = string.IsNullOrWhiteSpace(address) ? null : address,
+                        CustomerType = CustomerTypes.Direct
+                    };
+                    await _customerRepository.InsertAsync(customer);
+                }
+                else
+                {
+                    customer.Name = name;
+                    customer.Phone = mobile;
+                    customer.Email = string.IsNullOrWhiteSpace(email) ? null : email;
+                    if (!string.IsNullOrWhiteSpace(address))
+                    {
+                        customer.Address = address;
+                    }
+                }
+
+                if (input.ClearImage)
+                {
+                    CustomerImageStore.DeleteIfExists(customer.ImagePath);
+                    customer.ImagePath = null;
+                }
+                else if (CustomerImageStore.IsNewImagePayload(input.ImageBase64))
+                {
+                    var oldPath = customer.ImagePath;
+                    customer.ImagePath = CustomerImageStore.SaveBase64Image(input.ImageBase64);
+                    if (!string.IsNullOrWhiteSpace(oldPath) &&
+                        !string.Equals(oldPath, customer.ImagePath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        CustomerImageStore.DeleteIfExists(oldPath);
+                    }
+                }
+
+                await CurrentUnitOfWork.SaveChangesAsync();
+                return MapOnlineCustomerProfile(customer);
+            }
+        }
+
+        private static OnlineCustomerProfileDto MapOnlineCustomerProfile(Customer customer)
+        {
+            return new OnlineCustomerProfileDto
+            {
+                Id = customer.Id,
+                BranchId = customer.BranchId,
+                Name = customer.Name,
+                Phone = customer.Phone,
+                Email = customer.Email,
+                Address = customer.Address,
+                ImagePath = customer.ImagePath
+            };
         }
 
         private static string NormalizePhoneDigits(string phone)

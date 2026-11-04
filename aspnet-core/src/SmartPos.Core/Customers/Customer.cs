@@ -15,6 +15,7 @@ namespace SmartPos.Customers
         public const int MaxEmailLength = 256;
         public const int MaxAddressLength = 512;
         public const int MaxDescriptionLength = 512;
+        public const int MaxImagePathLength = 512;
 
         public virtual int? TenantId { get; set; }
 
@@ -48,5 +49,9 @@ namespace SmartPos.Customers
 
         [StringLength(MaxDescriptionLength)]
         public virtual string Description { get; set; }
+
+        /// <summary>Optional customer profile photo for online store account.</summary>
+        [StringLength(MaxImagePathLength)]
+        public virtual string ImagePath { get; set; }
     }
 }

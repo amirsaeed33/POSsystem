@@ -84,6 +84,17 @@
                     <i class="pi pi-history text-xs mr-1"></i>
                     <span>My Orders</span>
                 </button>
+                <button
+                    type="button"
+                    class="fp-nav-link-btn"
+                    (click)="openCustomerProfile()"
+                >
+                    <span class="fp-nav-profile-avatar" *ngIf="profilePhotoUrl">
+                        <img [src]="profilePhotoUrl" alt="" (error)="onProfilePhotoError()" />
+                    </span>
+                    <i *ngIf="!profilePhotoUrl" class="pi pi-user text-xs mr-1"></i>
+                    <span>{{ hasCustomerProfile ? (profileName | slice:0:12) : 'Profile' }}</span>
+                </button>
             </nav>
 
             <!-- Center Search Bar (Desktop) -->
@@ -329,6 +340,14 @@
             >
                 <i class="pi pi-history"></i>
                 <span>My Orders</span>
+            </button>
+            <button
+                type="button"
+                class="fp-mobile-drawer-link"
+                (click)="mobileNavOpen = false; openCustomerProfile()"
+            >
+                <i class="pi pi-user"></i>
+                <span>My Profile</span>
             </button>
 
             <div class="border-top-1 surface-border my-2"></div>
@@ -1711,8 +1730,13 @@
             [class.active]="activeMobileTab === 'account'"
             (click)="onMobileTabSelect('account')"
         >
-            <i class="pi pi-user"></i>
-            <span class="dock-label">Account</span>
+            <div class="dock-icon-wrap">
+                <span class="dock-profile-avatar" *ngIf="profilePhotoUrl">
+                    <img [src]="profilePhotoUrl" alt="" (error)="onProfilePhotoError()" />
+                </span>
+                <i *ngIf="!profilePhotoUrl" class="pi pi-user"></i>
+            </div>
+            <span class="dock-label">{{ hasCustomerProfile ? 'Profile' : 'Account' }}</span>
             <span class="dock-active-dot" *ngIf="activeMobileTab === 'account'"></span>
         </button>
     </nav>
@@ -1851,6 +1875,96 @@
             </div>
         </div>
     </footer>
+
+    <!-- Customer Profile Dialog -->
+    <p-dialog
+        [(visible)]="profileModalVisible"
+        [modal]="true"
+        [draggable]="false"
+        [resizable]="false"
+        [style]="{ width: '440px', maxWidth: '95vw' }"
+        styleClass="fp-profile-dialog"
+        header="My Profile"
+    >
+        <div class="p-fluid py-2">
+            <div class="fp-profile-hero mb-3">
+                <div class="fp-profile-avatar-wrap">
+                    <div class="fp-profile-avatar" [class.has-photo]="!!profilePhotoUrl">
+                        <img *ngIf="profilePhotoUrl" [src]="profilePhotoUrl" alt="Profile" (error)="onProfilePhotoError()" />
+                        <span *ngIf="!profilePhotoUrl">{{ (profileName || 'C').charAt(0).toUpperCase() }}</span>
+                    </div>
+                    <label class="fp-profile-camera" title="Upload photo">
+                        <i class="pi pi-camera"></i>
+                        <input type="file" accept="image/*" hidden (change)="onProfilePhotoSelected($event)" />
+                    </label>
+                </div>
+                <div class="fp-profile-hero-text">
+                    <div class="font-bold text-900">{{ profileName || 'Customer' }}</div>
+                    <div class="text-xs text-600 font-semibold" *ngIf="profilePhone">{{ profilePhone }}</div>
+                    <div class="text-xs text-500" *ngIf="profileEmail">{{ profileEmail }}</div>
+                    <div class="text-xs text-500" *ngIf="!profilePhone">
+                        Save your details for faster checkout & order history
+                    </div>
+                    <span class="fp-profile-saved-pill" *ngIf="hasCustomerProfile && profileId">Saved profile</span>
+                    <button
+                        *ngIf="profilePhotoUrl"
+                        type="button"
+                        class="p-link text-xs text-red-500 font-bold mt-1"
+                        (click)="clearProfilePhoto()"
+                    >
+                        Remove photo
+                    </button>
+                </div>
+            </div>
+
+            <div *ngIf="profileLoading" class="text-xs text-500 mb-2 flex align-items-center gap-2">
+                <i class="pi pi-spin pi-spinner"></i> Loading saved profile…
+            </div>
+
+            <div class="field mb-3">
+                <label class="font-bold text-xs text-700">Full Name *</label>
+                <input pInputText [(ngModel)]="profileName" placeholder="e.g. Salman Ahmed" class="border-round-xl" />
+            </div>
+            <div class="field mb-3">
+                <label class="font-bold text-xs text-700">Mobile / WhatsApp *</label>
+                <input pInputText [(ngModel)]="profilePhone" placeholder="e.g. 03001234567" class="border-round-xl" />
+            </div>
+            <div class="field mb-3">
+                <label class="font-bold text-xs text-700">Email</label>
+                <input pInputText type="email" [(ngModel)]="profileEmail" placeholder="e.g. you@email.com" class="border-round-xl" />
+            </div>
+            <div class="field mb-3">
+                <label class="font-bold text-xs text-700">Default Address</label>
+                <textarea
+                    pInputTextarea
+                    rows="2"
+                    [(ngModel)]="profileAddress"
+                    placeholder="House / street / area"
+                    class="border-round-xl"
+                ></textarea>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                type="button"
+                label="My Orders"
+                icon="pi pi-history"
+                class="p-button-text font-bold"
+                (click)="profileModalVisible = false; openOrderHistory()"
+            ></button>
+            <button
+                pButton
+                type="button"
+                label="Save Profile"
+                icon="pi pi-check"
+                class="p-button-danger border-round-xl font-bold"
+                [loading]="profileSaving"
+                (click)="saveCustomerProfile()"
+            ></button>
+        </ng-template>
+    </p-dialog>
 
     <!-- Floating Store Chat Widget Button (icon only) -->
     <div class="store-chat-fab-wrap">

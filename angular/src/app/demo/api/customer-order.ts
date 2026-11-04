@@ -68,6 +68,26 @@ export interface CustomerOrderHistoryInput {
     maxResultCount?: number;
 }
 
+export interface OnlineCustomerProfileDto {
+    id: number;
+    branchId: number;
+    name?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    imagePath?: string;
+}
+
+export interface UpsertOnlineCustomerProfileInput {
+    branchId?: number | null;
+    name: string;
+    phone: string;
+    email?: string;
+    address?: string;
+    imageBase64?: string;
+    clearImage?: boolean;
+}
+
 export interface AssignRiderDto {
     orderId: number;
     riderId: number;

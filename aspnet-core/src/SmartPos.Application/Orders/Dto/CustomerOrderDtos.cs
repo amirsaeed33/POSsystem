@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Abp.Application.Services.Dto;
+using SmartPos.Customers;
 using SmartPos.Orders;
 
 namespace SmartPos.Orders.Dto
@@ -245,6 +246,47 @@ namespace SmartPos.Orders.Dto
         public int? BranchId { get; set; }
 
         public int MaxResultCount { get; set; } = 30;
+    }
+
+    public class OnlineCustomerProfileDto
+    {
+        public int Id { get; set; }
+
+        public int BranchId { get; set; }
+
+        public string Name { get; set; }
+
+        public string Phone { get; set; }
+
+        public string Email { get; set; }
+
+        public string Address { get; set; }
+
+        public string ImagePath { get; set; }
+    }
+
+    public class UpsertOnlineCustomerProfileInput
+    {
+        public int? BranchId { get; set; }
+
+        [Required]
+        [StringLength(Customer.MaxNameLength)]
+        public string Name { get; set; }
+
+        [Required]
+        [StringLength(Customer.MaxPhoneLength)]
+        public string Phone { get; set; }
+
+        [StringLength(Customer.MaxEmailLength)]
+        public string Email { get; set; }
+
+        [StringLength(Customer.MaxAddressLength)]
+        public string Address { get; set; }
+
+        /// <summary>data:image... payload for a new photo, or leave empty to keep existing.</summary>
+        public string ImageBase64 { get; set; }
+
+        public bool ClearImage { get; set; }
     }
 
     public class DeliveryRiderStatusDto

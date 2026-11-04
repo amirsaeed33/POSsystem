@@ -29,6 +29,9 @@ namespace SmartPos.Customers.Dto
         [StringLength(Customer.MaxDescriptionLength)]
         public string Description { get; set; }
 
+        [StringLength(Customer.MaxImagePathLength)]
+        public string ImagePath { get; set; }
+
         public int? AccountId { get; set; }
 
         public decimal Balance { get; set; }
