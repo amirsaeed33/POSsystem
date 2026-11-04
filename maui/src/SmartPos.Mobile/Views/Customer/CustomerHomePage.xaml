@@ -632,6 +632,47 @@
                         </CollectionView.ItemTemplate>
                     </CollectionView>
 
+                    <!-- Smart Filter Quick Capsules (Horizontal Scroll, No Scrollbars) -->
+                    <CollectionView ItemsSource="{Binding FilterPills}"
+                                    SelectionMode="None"
+                                    Margin="10,0,10,12"
+                                    BackgroundColor="Transparent"
+                                    HeightRequest="38"
+                                    HorizontalScrollBarVisibility="Never"
+                                    VerticalScrollBarVisibility="Never">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="6" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:QuickFilterPillItem">
+                                <Border StrokeThickness="1"
+                                        Stroke="{Binding StrokeColor}"
+                                        BackgroundColor="{Binding BackgroundColor}"
+                                        Padding="12,6"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=SelectPillCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+                                        <Label Text="{Binding Icon}"
+                                               FontSize="12"
+                                               VerticalOptions="Center" />
+                                        <Label Text="{Binding Title}"
+                                               FontAttributes="Bold"
+                                               FontSize="12"
+                                               TextColor="{Binding TextColor}"
+                                               VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
                     <!-- Products (cards) -->
                     <VerticalStackLayout IsVisible="{Binding ShowProductGrid}"
                                          Spacing="10"

@@ -97,6 +97,10 @@ public partial class CustomerHomeViewModel : BaseViewModel
     // Dedicated Hot Deals & Combo Items
     public ObservableCollection<OnlineProductDto> DealsList { get; } = new();
     public ObservableCollection<DealCustomiseItem> DealCustomiseItems { get; } = new();
+    public ObservableCollection<QuickFilterPillItem> FilterPills { get; } = new();
+
+    [ObservableProperty]
+    private string selectedPill = string.Empty;
 
     public int CartCount => _cart.ItemCount;
     public bool HasCartItems => CartCount > 0;
@@ -125,12 +129,16 @@ public partial class CustomerHomeViewModel : BaseViewModel
     public string EmptyStateTitle =>
         IsFavoritesCategorySelected
             ? "No Favorites Yet"
-            : (!string.IsNullOrWhiteSpace(SearchText) ? "No matching products" : "No products available");
+            : (!string.IsNullOrWhiteSpace(SelectedPill)
+                ? $"No items found for '{SelectedPill}'"
+                : (!string.IsNullOrWhiteSpace(SearchText) ? "No matching products" : "No products available"));
 
     public string EmptyStateSubtitle =>
         IsFavoritesCategorySelected
             ? "No favorite items yet. Tap ❤️ on items to add them here!"
-            : "Try selecting another category or adjusting your search.";
+            : (!string.IsNullOrWhiteSpace(SelectedPill)
+                ? "Try tapping the active capsule again to clear the filter."
+                : "Try selecting another category or adjusting your search.");
 
     public CustomerHomeViewModel(
         OnlineOrderService orders,
@@ -162,6 +170,18 @@ public partial class CustomerHomeViewModel : BaseViewModel
                 SyncFavorites();
             });
         };
+
+        InitializeFilterPills();
+    }
+
+    private void InitializeFilterPills()
+    {
+        FilterPills.Clear();
+        FilterPills.Add(new QuickFilterPillItem { Id = "near_me", Icon = "📍", Title = "Near Me" });
+        FilterPills.Add(new QuickFilterPillItem { Id = "top_deals", Icon = "🔥", Title = "Top Deals" });
+        FilterPills.Add(new QuickFilterPillItem { Id = "highly_rated", Icon = "⭐", Title = "Highly Rated" });
+        FilterPills.Add(new QuickFilterPillItem { Id = "fast_delivery", Icon = "⚡", Title = "Fast Delivery" });
+        FilterPills.Add(new QuickFilterPillItem { Id = "budget_picks", Icon = "🏷️", Title = "Budget Picks" });
     }
 
     partial void OnNeedsBranchSelectionChanged(bool value) => OnPropertyChanged(nameof(HasMenu));
@@ -828,6 +848,41 @@ public partial class CustomerHomeViewModel : BaseViewModel
                 (p.Description?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false));
         }
 
+        // 3. Smart Quick Capsule Filters matching Web logic
+        if (!string.IsNullOrWhiteSpace(SelectedPill))
+        {
+            if (SelectedPill.Contains("Top Deals", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(p =>
+                    p.IsDeal ||
+                    (p.CategoryName?.Contains("deal", StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (p.Name?.Contains("deal", StringComparison.OrdinalIgnoreCase) ?? false));
+            }
+            else if (SelectedPill.Contains("Highly Rated", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query
+                    .Where(p => (4.7 + ((Math.Abs(p.Id) % 4) * 0.1)) >= 4.8)
+                    .OrderByDescending(p => 4.7 + ((Math.Abs(p.Id) % 4) * 0.1));
+            }
+            else if (SelectedPill.Contains("Budget Picks", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query
+                    .Where(p => p.Price > 0)
+                    .OrderBy(p => p.Price);
+            }
+            else if (SelectedPill.Contains("Fast Delivery", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query
+                    .Where(p => p.InStock)
+                    .OrderByDescending(p => p.IsFreeDelivery);
+            }
+            else if (SelectedPill.Contains("Near Me", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query
+                    .Where(p => p.InStock);
+            }
+        }
+
         foreach (var p in query)
         {
             p.CartQty = _cart.GetQty(p.Id);
@@ -840,6 +895,31 @@ public partial class CustomerHomeViewModel : BaseViewModel
         OnPropertyChanged(nameof(EmptyStateIcon));
         OnPropertyChanged(nameof(EmptyStateTitle));
         OnPropertyChanged(nameof(EmptyStateSubtitle));
+    }
+
+    [RelayCommand]
+    private void SelectPill(QuickFilterPillItem? pill)
+    {
+        if (pill == null)
+        {
+            return;
+        }
+
+        if (string.Equals(SelectedPill, pill.Title, StringComparison.OrdinalIgnoreCase))
+        {
+            SelectedPill = string.Empty;
+            pill.IsSelected = false;
+        }
+        else
+        {
+            SelectedPill = pill.Title;
+            foreach (var p in FilterPills)
+            {
+                p.IsSelected = string.Equals(p.Title, pill.Title, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        ApplyFilters();
     }
 
     [RelayCommand]
