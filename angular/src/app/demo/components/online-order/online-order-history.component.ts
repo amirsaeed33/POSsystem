@@ -202,10 +202,22 @@ export class OnlineOrderHistoryComponent implements OnInit {
         return match ? match[0] : null;
     }
 
+    canSaveCustomerRating(order: CustomerOrderDto): boolean {
+        if (!this.customerRatingDraft) {
+            return false;
+        }
+        const draftComment = (this.customerCommentDraft || '').trim();
+        const savedComment = (order.customerFeedbackComment || '').trim();
+        const ratingChanged = this.customerRatingDraft !== (order.customerRating ?? null);
+        const commentChanged = draftComment !== savedComment;
+        return ratingChanged || commentChanged;
+    }
+
     async submitCustomerRating(): Promise<void> {
         if (!this.detailOrder?.orderNo || !this.customerRatingDraft) return;
-        if (this.detailOrder.customerRating) return;
+        if (!this.canSaveCustomerRating(this.detailOrder)) return;
 
+        const isUpdate = !!this.detailOrder.customerRating;
         this.ratingSubmitting = true;
         try {
             const updated = await this.customerOrderService.rateOrder({
@@ -215,7 +227,7 @@ export class OnlineOrderHistoryComponent implements OnInit {
             });
             this.detailOrder = updated;
             this.customerRatingDraft = updated.customerRating ?? this.customerRatingDraft;
-            this.customerCommentDraft = updated.customerFeedbackComment || this.customerCommentDraft;
+            this.customerCommentDraft = updated.customerFeedbackComment || '';
             const idx = this.orders.findIndex((o) => o.id === updated.id);
             if (idx >= 0) {
                 this.orders[idx] = { ...this.orders[idx], ...updated };
@@ -223,7 +235,7 @@ export class OnlineOrderHistoryComponent implements OnInit {
             this.messageService.add({
                 severity: 'success',
                 summary: 'Thanks!',
-                detail: 'Your feedback was saved.',
+                detail: isUpdate ? 'Your feedback was updated.' : 'Your feedback was saved.',
                 life: 4000,
             });
         } catch (err: any) {

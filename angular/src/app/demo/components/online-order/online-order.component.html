@@ -1780,88 +1780,55 @@
             </div>
 
             <div
-                class="fp-feedbacks-carousel"
+                class="fp-feedbacks-marquee"
                 *ngIf="branchFeedbacks.length"
-                (mouseenter)="pauseFeedbackSlider()"
-                (mouseleave)="resumeFeedbackSlider()"
-                (touchstart)="pauseFeedbackSlider()"
-                (touchend)="resumeFeedbackSlider()"
+                [class.is-paused]="feedbackMarqueePaused"
+                [class.is-static]="!feedbackMarqueeEnabled"
+                (mouseenter)="pauseFeedbackMarquee()"
+                (mouseleave)="resumeFeedbackMarquee()"
+                (touchstart)="pauseFeedbackMarquee()"
+                (touchend)="resumeFeedbackMarquee()"
             >
-                <button
-                    type="button"
-                    class="fp-feedbacks-nav fp-feedbacks-nav--prev"
-                    *ngIf="branchFeedbacks.length > feedbackVisibleCount"
-                    (click)="prevFeedbackSlide()"
-                    aria-label="Previous feedbacks"
+                <div
+                    class="fp-feedbacks-track"
+                    [style.animation-duration]="feedbackMarqueeDuration"
                 >
-                    <i class="pi pi-chevron-left"></i>
-                </button>
-
-                <div class="fp-feedbacks-viewport">
-                    <div
-                        class="fp-feedbacks-track"
-                        [style.transform]="'translate3d(-' + feedbackTrackOffsetPct + '%, 0, 0)'"
-                        [style.--fb-visible]="feedbackVisibleCount"
+                    <article
+                        class="fp-feedback-card"
+                        *ngFor="let fb of feedbackMarqueeItems; let i = index"
                     >
-                        <article
-                            class="fp-feedback-card"
-                            *ngFor="let fb of branchFeedbacks; let i = index"
-                            [class.is-active]="i === currentFeedbackSlide"
-                        >
-                            <div class="fp-feedback-card-inner">
-                                <div class="fp-feedback-card-top">
-                                    <div
-                                        class="fp-feedback-avatar"
-                                        [class.has-photo]="!!feedbackPhotoUrl(fb)"
-                                    >
-                                        <img
-                                            *ngIf="feedbackPhotoUrl(fb) as photoUrl"
-                                            [src]="photoUrl"
-                                            [alt]="fb.customerName || 'Customer'"
-                                            (error)="onFeedbackPhotoError(fb.orderId)"
-                                        />
-                                        <span *ngIf="!feedbackPhotoUrl(fb)">
-                                            {{ feedbackInitial(fb.customerName) }}
-                                        </span>
-                                    </div>
-                                    <div class="fp-feedback-who">
-                                        <div class="fp-feedback-name">{{ fb.customerName || 'Customer' }}</div>
-                                        <div class="fp-feedback-date">{{ fb.orderDate | date: 'mediumDate' }}</div>
-                                    </div>
-                                    <div class="fp-feedback-rating">
-                                        <i class="pi pi-star-fill" *ngFor="let s of feedbackStars(fb.rating)"></i>
-                                        <i class="pi pi-star" *ngFor="let s of feedbackEmptyStars(fb.rating)"></i>
-                                    </div>
+                        <div class="fp-feedback-card-inner">
+                            <div class="fp-feedback-card-top">
+                                <div
+                                    class="fp-feedback-avatar"
+                                    [class.has-photo]="!!feedbackPhotoUrl(fb)"
+                                >
+                                    <img
+                                        *ngIf="feedbackPhotoUrl(fb) as photoUrl"
+                                        [src]="photoUrl"
+                                        [alt]="fb.customerName || 'Customer'"
+                                        (error)="onFeedbackPhotoError(fb.orderId)"
+                                    />
+                                    <span *ngIf="!feedbackPhotoUrl(fb)">
+                                        {{ feedbackInitial(fb.customerName) }}
+                                    </span>
                                 </div>
-                                <p class="fp-feedback-comment" *ngIf="fb.comment">{{ fb.comment }}</p>
-                                <p class="fp-feedback-comment fp-feedback-comment--muted" *ngIf="!fb.comment">
-                                    Rated their order{{ fb.orderNo ? ' #' + fb.orderNo : '' }}.
-                                </p>
+                                <div class="fp-feedback-who">
+                                    <div class="fp-feedback-name">{{ fb.customerName || 'Customer' }}</div>
+                                    <div class="fp-feedback-date">{{ fb.orderDate | date: 'mediumDate' }}</div>
+                                </div>
+                                <div class="fp-feedback-rating">
+                                    <i class="pi pi-star-fill" *ngFor="let s of feedbackStars(fb.rating)"></i>
+                                    <i class="pi pi-star" *ngFor="let s of feedbackEmptyStars(fb.rating)"></i>
+                                </div>
                             </div>
-                        </article>
-                    </div>
+                            <p class="fp-feedback-comment" *ngIf="fb.comment">{{ fb.comment }}</p>
+                            <p class="fp-feedback-comment fp-feedback-comment--muted" *ngIf="!fb.comment">
+                                Rated their order{{ fb.orderNo ? ' #' + fb.orderNo : '' }}.
+                            </p>
+                        </div>
+                    </article>
                 </div>
-
-                <button
-                    type="button"
-                    class="fp-feedbacks-nav fp-feedbacks-nav--next"
-                    *ngIf="branchFeedbacks.length > feedbackVisibleCount"
-                    (click)="nextFeedbackSlide(); startFeedbackSlider()"
-                    aria-label="Next feedbacks"
-                >
-                    <i class="pi pi-chevron-right"></i>
-                </button>
-            </div>
-
-            <div class="fp-feedbacks-dots" *ngIf="branchFeedbacks.length > 1">
-                <button
-                    type="button"
-                    class="fp-feedbacks-dot"
-                    *ngFor="let fb of branchFeedbacks; let i = index"
-                    [class.active]="i === currentFeedbackSlide"
-                    (click)="goToFeedbackSlide(i)"
-                    [attr.aria-label]="'Go to feedback ' + (i + 1)"
-                ></button>
             </div>
         </div>
     </section>

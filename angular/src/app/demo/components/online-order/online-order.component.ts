@@ -133,9 +133,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     private feedbackPhotoBroken = new Set<number>();
     loadingBranchFeedbacks = false;
     averageBranchRating = 0;
-    currentFeedbackSlide = 0;
-    private feedbackSlideTimer: ReturnType<typeof setInterval> | null = null;
-    feedbackSliderPaused = false;
+    feedbackMarqueePaused = false;
     loadingActiveOrders = false;
 
     // Checkout modal & state
@@ -467,10 +465,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 void this.loadBranchFeedbacks(this.branchId);
             } else {
                 this.activeOrders = [];
-                this.stopFeedbackSlider();
                 this.branchFeedbacks = [];
                 this.averageBranchRating = 0;
-                this.currentFeedbackSlide = 0;
+                this.feedbackMarqueePaused = false;
                 this.handleMissingBranchId();
             }
         });
@@ -871,18 +868,11 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.stopHeroSlider();
-        this.stopFeedbackSlider();
     }
 
     @HostListener('window:resize')
     onResize(): void {
         this.checkScreenSize();
-        if (this.branchFeedbacks.length) {
-            const visible = Math.max(1, this.feedbackVisibleCount);
-            const maxStart = Math.max(0, this.branchFeedbacks.length - visible);
-            this.currentFeedbackSlide = Math.min(this.currentFeedbackSlide, maxStart);
-            this.startFeedbackSlider();
-        }
     }
 
     @HostListener('window:scroll', [])
@@ -920,10 +910,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     async loadBranchFeedbacks(branchId: number): Promise<void> {
         if (!branchId || branchId <= 0) {
-            this.stopFeedbackSlider();
             this.branchFeedbacks = [];
             this.averageBranchRating = 0;
-            this.currentFeedbackSlide = 0;
             return;
         }
 
@@ -932,100 +920,49 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             const rows = await this.customerOrderService.getBranchFeedbacks(branchId, 40);
             this.feedbackPhotoBroken.clear();
             this.branchFeedbacks = rows || [];
-            this.currentFeedbackSlide = 0;
+            this.feedbackMarqueePaused = false;
             if (this.branchFeedbacks.length) {
                 const sum = this.branchFeedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
                 this.averageBranchRating = Math.round((sum / this.branchFeedbacks.length) * 10) / 10;
-                this.startFeedbackSlider();
             } else {
                 this.averageBranchRating = 0;
-                this.stopFeedbackSlider();
             }
         } catch {
             this.branchFeedbacks = [];
             this.averageBranchRating = 0;
-            this.stopFeedbackSlider();
         } finally {
             this.loadingBranchFeedbacks = false;
         }
     }
 
-    get feedbackVisibleCount(): number {
-        if (typeof window === 'undefined') {
-            return 3;
+    /** Duplicate cards so the continuous marquee loops seamlessly. */
+    get feedbackMarqueeItems(): typeof this.branchFeedbacks {
+        if (!this.branchFeedbacks.length) {
+            return [];
         }
-        if (window.innerWidth < 640) {
-            return 1;
+        if (!this.feedbackMarqueeEnabled) {
+            return this.branchFeedbacks;
         }
-        if (window.innerWidth < 1024) {
-            return 2;
-        }
-        return 3;
+        return [...this.branchFeedbacks, ...this.branchFeedbacks];
     }
 
-    /** Offset as % of the track (track width = viewport). One step = one card slot. */
-    get feedbackTrackOffsetPct(): number {
-        const visible = Math.max(1, this.feedbackVisibleCount);
-        const maxStart = Math.max(0, this.branchFeedbacks.length - visible);
-        const start = Math.min(this.currentFeedbackSlide, maxStart);
-        return (start * 100) / visible;
+    get feedbackMarqueeEnabled(): boolean {
+        return this.branchFeedbacks.length > 1;
     }
 
-    startFeedbackSlider(): void {
-        this.stopFeedbackSlider();
-        if (this.branchFeedbacks.length <= this.feedbackVisibleCount) {
-            return;
-        }
-        this.feedbackSlideTimer = setInterval(() => {
-            if (!this.feedbackSliderPaused) {
-                this.nextFeedbackSlide();
-            }
-        }, 3800);
+    /** ~4.5s per card, clamped for readability. */
+    get feedbackMarqueeDuration(): string {
+        const n = Math.max(2, this.branchFeedbacks.length);
+        const seconds = Math.min(60, Math.max(18, n * 4.5));
+        return `${seconds}s`;
     }
 
-    stopFeedbackSlider(): void {
-        if (this.feedbackSlideTimer) {
-            clearInterval(this.feedbackSlideTimer);
-            this.feedbackSlideTimer = null;
-        }
+    pauseFeedbackMarquee(): void {
+        this.feedbackMarqueePaused = true;
     }
 
-    pauseFeedbackSlider(): void {
-        this.feedbackSliderPaused = true;
-    }
-
-    resumeFeedbackSlider(): void {
-        this.feedbackSliderPaused = false;
-    }
-
-    nextFeedbackSlide(): void {
-        const visible = Math.max(1, this.feedbackVisibleCount);
-        const maxStart = Math.max(0, this.branchFeedbacks.length - visible);
-        if (maxStart <= 0) {
-            this.currentFeedbackSlide = 0;
-            return;
-        }
-        this.currentFeedbackSlide =
-            this.currentFeedbackSlide >= maxStart ? 0 : this.currentFeedbackSlide + 1;
-    }
-
-    prevFeedbackSlide(): void {
-        const visible = Math.max(1, this.feedbackVisibleCount);
-        const maxStart = Math.max(0, this.branchFeedbacks.length - visible);
-        if (maxStart <= 0) {
-            this.currentFeedbackSlide = 0;
-            return;
-        }
-        this.currentFeedbackSlide =
-            this.currentFeedbackSlide <= 0 ? maxStart : this.currentFeedbackSlide - 1;
-        this.startFeedbackSlider();
-    }
-
-    goToFeedbackSlide(index: number): void {
-        const visible = Math.max(1, this.feedbackVisibleCount);
-        const maxStart = Math.max(0, this.branchFeedbacks.length - visible);
-        this.currentFeedbackSlide = Math.max(0, Math.min(index, maxStart));
-        this.startFeedbackSlider();
+    resumeFeedbackMarquee(): void {
+        this.feedbackMarqueePaused = false;
     }
 
     feedbackStars(rating: number): number[] {

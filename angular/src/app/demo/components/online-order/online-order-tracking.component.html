@@ -132,25 +132,24 @@
 
                 <div class="ot-panel ot-rate-panel" *ngIf="isDelivered(order)">
                     <div class="ot-panel-head">
-                        <span>Rate your delivery</span>
+                        <span>{{ order.customerRating ? 'Your feedback' : 'Rate your delivery' }}</span>
                         <span *ngIf="order.customerRating">{{ order.customerRating }}/5</span>
                     </div>
                     <p class="ot-rate-hint" *ngIf="!order.customerRating">
                         How was your experience with this delivery?
                     </p>
                     <p class="ot-rate-hint" *ngIf="order.customerRating">
-                        Thanks — you rated this delivery.
+                        You can update your stars or comment anytime.
                     </p>
                     <div class="ot-rate-row">
                         <p-rating
                             [(ngModel)]="customerRatingDraft"
                             [stars]="5"
                             [cancel]="false"
-                            [readonly]="!!order.customerRating || ratingSubmitting"
+                            [readonly]="ratingSubmitting"
                         ></p-rating>
                     </div>
                     <textarea
-                        *ngIf="!order.customerRating"
                         class="ot-feedback-comment"
                         rows="3"
                         maxlength="500"
@@ -158,18 +157,20 @@
                         [disabled]="ratingSubmitting"
                         placeholder="Tell others about your experience (optional)"
                     ></textarea>
-                    <p class="ot-feedback-comment-readonly" *ngIf="order.customerRating && order.customerFeedbackComment">
-                        “{{ order.customerFeedbackComment }}”
-                    </p>
                     <button
-                        *ngIf="!order.customerRating"
                         type="button"
                         class="ot-primary-btn ot-rate-btn"
-                        [disabled]="!customerRatingDraft || ratingSubmitting"
+                        [disabled]="!customerRatingDraft || ratingSubmitting || !canSaveCustomerRating()"
                         (click)="submitCustomerRating()"
                     >
                         <i class="pi" [class.pi-spin]="ratingSubmitting" [class.pi-spinner]="ratingSubmitting" [class.pi-star-fill]="!ratingSubmitting"></i>
-                        {{ ratingSubmitting ? 'Saving…' : 'Submit feedback' }}
+                        {{
+                            ratingSubmitting
+                                ? 'Saving…'
+                                : order.customerRating
+                                  ? 'Update feedback'
+                                  : 'Submit feedback'
+                        }}
                     </button>
                 </div>
 

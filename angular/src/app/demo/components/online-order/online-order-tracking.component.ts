@@ -252,14 +252,26 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
         }
     }
 
+    canSaveCustomerRating(): boolean {
+        if (!this.order || !this.customerRatingDraft) {
+            return false;
+        }
+        const draftComment = (this.customerCommentDraft || '').trim();
+        const savedComment = (this.order.customerFeedbackComment || '').trim();
+        const ratingChanged = this.customerRatingDraft !== (this.order.customerRating ?? null);
+        const commentChanged = draftComment !== savedComment;
+        return ratingChanged || commentChanged;
+    }
+
     async submitCustomerRating(): Promise<void> {
         if (!this.order?.orderNo || !this.customerRatingDraft) {
             return;
         }
-        if (this.order.customerRating) {
+        if (!this.canSaveCustomerRating()) {
             return;
         }
 
+        const isUpdate = !!this.order.customerRating;
         this.ratingSubmitting = true;
         try {
             const updated = await this.customerOrderService.rateOrder({
@@ -269,11 +281,11 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
             });
             this.order = updated;
             this.customerRatingDraft = updated.customerRating ?? this.customerRatingDraft;
-            this.customerCommentDraft = updated.customerFeedbackComment || this.customerCommentDraft;
+            this.customerCommentDraft = updated.customerFeedbackComment || '';
             this.messageService.add({
                 severity: 'success',
                 summary: 'Thanks!',
-                detail: 'Your feedback was saved.',
+                detail: isUpdate ? 'Your feedback was updated.' : 'Your feedback was saved.',
                 life: 4000,
             });
         } catch (err: any) {
