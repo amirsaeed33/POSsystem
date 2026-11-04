@@ -22,6 +22,15 @@ public partial class TrackOrderViewModel : BaseViewModel
     [ObservableProperty]
     private string statusBanner = string.Empty;
 
+    [ObservableProperty]
+    private int customerRatingDraft = 5;
+
+    [ObservableProperty]
+    private string customerCommentDraft = string.Empty;
+
+    [ObservableProperty]
+    private bool isSubmittingRating;
+
     public ObservableCollection<CustomerOrderLineDto> Lines { get; } = new();
 
     public bool HasOrder => Order != null && !string.IsNullOrWhiteSpace(Order.OrderNo);
@@ -37,6 +46,56 @@ public partial class TrackOrderViewModel : BaseViewModel
     public string RiderPhoneText => Order?.RiderPhone?.Trim() ?? string.Empty;
     public bool HasRiderPhone => !string.IsNullOrWhiteSpace(RiderPhoneText);
     public string CustomerText => Order?.CustomerName ?? string.Empty;
+
+    public bool IsDelivered => Order?.Status == 4;
+    public bool HasExistingRating => Order?.CustomerRating.HasValue == true && Order.CustomerRating.Value > 0;
+    public string RatingSectionTitle => HasExistingRating ? "Your feedback" : "Rate your delivery";
+    public string RatingBadgeText => HasExistingRating ? $"{Order?.CustomerRating}/5" : string.Empty;
+    public string RatingHintText => HasExistingRating
+        ? "You can update your stars or comment anytime."
+        : "How was your experience with this delivery?";
+    public string SubmitButtonLabel => IsSubmittingRating
+        ? "Saving…"
+        : (HasExistingRating ? "Update feedback" : "Submit feedback");
+
+    public string Star1Glyph => CustomerRatingDraft >= 1 ? "★" : "☆";
+    public string Star2Glyph => CustomerRatingDraft >= 2 ? "★" : "☆";
+    public string Star3Glyph => CustomerRatingDraft >= 3 ? "★" : "☆";
+    public string Star4Glyph => CustomerRatingDraft >= 4 ? "★" : "☆";
+    public string Star5Glyph => CustomerRatingDraft >= 5 ? "★" : "☆";
+
+    public Color Star1Color => CustomerRatingDraft >= 1 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#CBD5E1");
+    public Color Star2Color => CustomerRatingDraft >= 2 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#CBD5E1");
+    public Color Star3Color => CustomerRatingDraft >= 3 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#CBD5E1");
+    public Color Star4Color => CustomerRatingDraft >= 4 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#CBD5E1");
+    public Color Star5Color => CustomerRatingDraft >= 5 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#CBD5E1");
+
+    public string RatingDescriptionText => CustomerRatingDraft switch
+    {
+        5 => "⭐⭐⭐⭐⭐ Excellent! Loved it",
+        4 => "⭐⭐⭐⭐ Very Good",
+        3 => "⭐⭐⭐ Average",
+        2 => "⭐⭐ Below Expectations",
+        1 => "⭐ Poor Experience",
+        _ => string.Empty
+    };
+
+    public bool CanSubmitRating
+    {
+        get
+        {
+            if (Order == null || string.IsNullOrWhiteSpace(Order.OrderNo) || IsSubmittingRating)
+            {
+                return false;
+            }
+
+            var draftComment = (CustomerCommentDraft ?? string.Empty).Trim();
+            var savedComment = (Order.CustomerFeedbackComment ?? string.Empty).Trim();
+            var ratingChanged = CustomerRatingDraft != (Order.CustomerRating ?? 0);
+            var commentChanged = draftComment != savedComment;
+            return ratingChanged || commentChanged;
+        }
+    }
 
     public TrackOrderViewModel(OnlineOrderService orders)
     {
@@ -86,6 +145,18 @@ public partial class TrackOrderViewModel : BaseViewModel
                 4 => "Delivered — enjoy your meal!",
                 _ => StatusText
             };
+
+        if (value?.CustomerRating.HasValue == true && value.CustomerRating.Value > 0)
+        {
+            CustomerRatingDraft = value.CustomerRating.Value;
+            CustomerCommentDraft = value.CustomerFeedbackComment ?? string.Empty;
+        }
+        else
+        {
+            CustomerRatingDraft = 5;
+            CustomerCommentDraft = string.Empty;
+        }
+        NotifyRatingProperties();
     }
 
     public async Task AppearingAsync()
@@ -225,6 +296,100 @@ public partial class TrackOrderViewModel : BaseViewModel
             {
                 await TrackAsync();
             }
+        }
+    }
+
+    partial void OnCustomerCommentDraftChanged(string value)
+    {
+        OnPropertyChanged(nameof(CanSubmitRating));
+    }
+
+    [RelayCommand]
+    private void SelectStar(string starParam)
+    {
+        if (int.TryParse(starParam, out var star) && star >= 1 && star <= 5)
+        {
+            CustomerRatingDraft = star;
+            NotifyRatingVisuals();
+        }
+    }
+
+    private void NotifyRatingVisuals()
+    {
+        OnPropertyChanged(nameof(Star1Glyph));
+        OnPropertyChanged(nameof(Star2Glyph));
+        OnPropertyChanged(nameof(Star3Glyph));
+        OnPropertyChanged(nameof(Star4Glyph));
+        OnPropertyChanged(nameof(Star5Glyph));
+        OnPropertyChanged(nameof(Star1Color));
+        OnPropertyChanged(nameof(Star2Color));
+        OnPropertyChanged(nameof(Star3Color));
+        OnPropertyChanged(nameof(Star4Color));
+        OnPropertyChanged(nameof(Star5Color));
+        OnPropertyChanged(nameof(RatingDescriptionText));
+        OnPropertyChanged(nameof(CanSubmitRating));
+    }
+
+    private void NotifyRatingProperties()
+    {
+        OnPropertyChanged(nameof(IsDelivered));
+        OnPropertyChanged(nameof(HasExistingRating));
+        OnPropertyChanged(nameof(RatingSectionTitle));
+        OnPropertyChanged(nameof(RatingBadgeText));
+        OnPropertyChanged(nameof(RatingHintText));
+        OnPropertyChanged(nameof(SubmitButtonLabel));
+        NotifyRatingVisuals();
+    }
+
+    [RelayCommand]
+    private async Task SubmitRatingAsync()
+    {
+        if (Order == null || string.IsNullOrWhiteSpace(Order.OrderNo) || IsSubmittingRating || !CanSubmitRating)
+        {
+            return;
+        }
+
+        var isUpdate = HasExistingRating;
+        IsSubmittingRating = true;
+        OnPropertyChanged(nameof(SubmitButtonLabel));
+        OnPropertyChanged(nameof(CanSubmitRating));
+
+        try
+        {
+            var updated = await _orders.RateOrderAsync(
+                Order.OrderNo,
+                CustomerRatingDraft,
+                CustomerCommentDraft?.Trim());
+
+            if (updated != null)
+            {
+                Order = updated;
+                CustomerRatingDraft = updated.CustomerRating ?? CustomerRatingDraft;
+                CustomerCommentDraft = updated.CustomerFeedbackComment ?? string.Empty;
+                NotifyRatingProperties();
+
+                await Shell.Current.DisplayAlert(
+                    "Thanks!",
+                    isUpdate ? "Your feedback was updated." : "Your feedback was saved and verified.",
+                    "OK");
+            }
+            else
+            {
+                await Shell.Current.DisplayAlert(
+                    "Rating",
+                    "Could not save your rating. Please check your connection and try again.",
+                    "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Rating", $"Error: {ex.Message}", "OK");
+        }
+        finally
+        {
+            IsSubmittingRating = false;
+            OnPropertyChanged(nameof(SubmitButtonLabel));
+            OnPropertyChanged(nameof(CanSubmitRating));
         }
     }
 }

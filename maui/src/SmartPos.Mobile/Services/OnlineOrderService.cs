@@ -248,4 +248,22 @@ public class OnlineOrderService
             return new List<CustomerFeedbackDto>();
         }
     }
+
+    public async Task<CustomerOrderDto?> RateOrderAsync(string orderNo, int rating, string? comment)
+    {
+        try
+        {
+            var input = new RateCustomerOrderInput
+            {
+                OrderNo = orderNo,
+                Rating = rating,
+                Comment = comment
+            };
+            return await _api.PostAsync<CustomerOrderDto>("api/services/app/CustomerOrder/RateOrder", input);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

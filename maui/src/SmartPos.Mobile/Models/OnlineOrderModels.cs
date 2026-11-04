@@ -374,8 +374,26 @@ public class CustomerOrderDto : EntityDto
     [JsonPropertyName("riderPhone")]
     public string? RiderPhone { get; set; }
 
+    [JsonPropertyName("customerRating")]
+    public int? CustomerRating { get; set; }
+
+    [JsonPropertyName("customerFeedbackComment")]
+    public string? CustomerFeedbackComment { get; set; }
+
     [JsonPropertyName("lines")]
     public List<CustomerOrderLineDto> Lines { get; set; } = new();
+}
+
+public class RateCustomerOrderInput
+{
+    [JsonPropertyName("orderNo")]
+    public string OrderNo { get; set; } = string.Empty;
+
+    [JsonPropertyName("rating")]
+    public int Rating { get; set; } = 5;
+
+    [JsonPropertyName("comment")]
+    public string? Comment { get; set; }
 }
 
 public class CustomerOrderLineDto : EntityDto

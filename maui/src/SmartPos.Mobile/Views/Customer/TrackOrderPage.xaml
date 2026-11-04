@@ -145,6 +145,157 @@
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
+
+                <!-- Customer Rating & Verified Feedback Card (Delivered Orders Only) -->
+                <Border IsVisible="{Binding IsDelivered}"
+                        Stroke="#D1FAE5"
+                        StrokeThickness="1.5"
+                        BackgroundColor="White"
+                        Padding="16"
+                        Margin="0,4,0,0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#18000000" Offset="0,4" Radius="8" Opacity="0.5" />
+                    </Border.Shadow>
+
+                    <VerticalStackLayout Spacing="12">
+                        <!-- Panel Header -->
+                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                <Label Text="⭐" FontSize="18" VerticalOptions="Center" />
+                                <Label Text="{Binding RatingSectionTitle}"
+                                       FontAttributes="Bold"
+                                       FontSize="17"
+                                       TextColor="#1A2B4A"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+
+                            <!-- Score Badge if already rated (e.g. 5/5) -->
+                            <Border Grid.Column="1"
+                                    IsVisible="{Binding HasExistingRating}"
+                                    BackgroundColor="#E8F5EF"
+                                    StrokeThickness="0"
+                                    Padding="10,4"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Label Text="{Binding RatingBadgeText}"
+                                       TextColor="#0F6B4C"
+                                       FontAttributes="Bold"
+                                       FontSize="13" />
+                            </Border>
+                        </Grid>
+
+                        <!-- Hint Text -->
+                        <Label Text="{Binding RatingHintText}"
+                               FontSize="13"
+                               TextColor="#64748B"
+                               LineBreakMode="WordWrap" />
+
+                        <!-- 5 Interactive Stars Row -->
+                        <Border BackgroundColor="#F8FAFC"
+                                StrokeThickness="1"
+                                Stroke="#E2E8F0"
+                                Padding="12,10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                                    <!-- Star 1 -->
+                                    <Border StrokeThickness="0" BackgroundColor="Transparent" Padding="4">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="1" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="{Binding Star1Glyph}"
+                                               TextColor="{Binding Star1Color}"
+                                               FontSize="32"
+                                               HorizontalOptions="Center" />
+                                    </Border>
+                                    <!-- Star 2 -->
+                                    <Border StrokeThickness="0" BackgroundColor="Transparent" Padding="4">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="2" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="{Binding Star2Glyph}"
+                                               TextColor="{Binding Star2Color}"
+                                               FontSize="32"
+                                               HorizontalOptions="Center" />
+                                    </Border>
+                                    <!-- Star 3 -->
+                                    <Border StrokeThickness="0" BackgroundColor="Transparent" Padding="4">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="3" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="{Binding Star3Glyph}"
+                                               TextColor="{Binding Star3Color}"
+                                               FontSize="32"
+                                               HorizontalOptions="Center" />
+                                    </Border>
+                                    <!-- Star 4 -->
+                                    <Border StrokeThickness="0" BackgroundColor="Transparent" Padding="4">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="4" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="{Binding Star4Glyph}"
+                                               TextColor="{Binding Star4Color}"
+                                               FontSize="32"
+                                               HorizontalOptions="Center" />
+                                    </Border>
+                                    <!-- Star 5 -->
+                                    <Border StrokeThickness="0" BackgroundColor="Transparent" Padding="4">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="5" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="{Binding Star5Glyph}"
+                                               TextColor="{Binding Star5Color}"
+                                               FontSize="32"
+                                               HorizontalOptions="Center" />
+                                    </Border>
+                                </HorizontalStackLayout>
+
+                                <!-- Rating Description -->
+                                <Label Text="{Binding RatingDescriptionText}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="#0F6B4C"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Feedback Comment Editor -->
+                        <Border Stroke="#E2E8F0"
+                                StrokeThickness="1"
+                                BackgroundColor="White"
+                                Padding="10,6">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Editor Text="{Binding CustomerCommentDraft}"
+                                    Placeholder="Tell others about your experience (optional)"
+                                    PlaceholderColor="#94A3B8"
+                                    TextColor="#1E293B"
+                                    FontSize="13"
+                                    HeightRequest="80"
+                                    MaxLength="500"
+                                    AutoSize="Disabled" />
+                        </Border>
+
+                        <!-- Submit Button -->
+                        <Button Text="{Binding SubmitButtonLabel}"
+                                Command="{Binding SubmitRatingCommand}"
+                                IsEnabled="{Binding CanSubmitRating}"
+                                BackgroundColor="#0F6B4C"
+                                TextColor="White"
+                                HeightRequest="46"
+                                CornerRadius="14"
+                                FontAttributes="Bold"
+                                FontSize="15" />
+                    </VerticalStackLayout>
+                </Border>
             </VerticalStackLayout>
         </ScrollView>
 
