@@ -330,11 +330,25 @@
                             </span>
                             <span class="font-bold text-primary text-sm">{{ order.totalAmount | currency:'PKR ':'symbol':'1.2-2' }}</span>
                         </div>
-                        <div class="flex align-items-center justify-content-between mt-2 pt-1 border-top-1 surface-border text-xs">
+                        <div class="flex align-items-center justify-content-between mt-2 pt-1 border-top-1 surface-border text-xs gap-2">
                             <span class="badge bg-orange-100 text-orange-700 px-2 py-1 border-round font-medium">Pending</span>
-                            <span class="text-primary font-bold hover:underline flex align-items-center gap-1">
-                                View Order <i class="pi pi-arrow-right text-xs"></i>
-                            </span>
+                            <div class="flex align-items-center gap-2" (click)="$event.stopPropagation()">
+                                <button
+                                    type="button"
+                                    class="p-0 border-none bg-transparent text-green-600 font-bold hover:underline flex align-items-center gap-1 cursor-pointer"
+                                    [disabled]="approvingOrderId === order.id"
+                                    (click)="approveOrder(order)"
+                                >
+                                    <i class="pi text-xs" [ngClass]="approvingOrderId === order.id ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+                                    Approve
+                                </button>
+                                <span
+                                    class="text-primary font-bold hover:underline flex align-items-center gap-1 cursor-pointer"
+                                    (click)="viewOrder(order)"
+                                >
+                                    View Order <i class="pi pi-arrow-right text-xs"></i>
+                                </span>
+                            </div>
                         </div>
                     </li>
                 </ul>

@@ -88,6 +88,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     todayPendingOrders: CustomerOrderDto[] = [];
     pendingOrdersCount = 0;
     loadingOrders = false;
+    approvingOrderId: number | null = null;
     private orderPollTimer: any;
 
     // Real-Time Customer Chat State (merged into bell notifications)
@@ -411,6 +412,40 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
 
     viewOrder(order: CustomerOrderDto): void {
         this.router.navigate(['/customer-orders'], { queryParams: { id: order.id } });
+    }
+
+    async approveOrder(order: CustomerOrderDto): Promise<void> {
+        if (!order?.id || this.approvingOrderId === order.id) {
+            return;
+        }
+
+        const label = order.orderNo || `#${order.id}`;
+        this.approvingOrderId = order.id;
+        try {
+            const sale = await this.customerOrderService.approve(order.id);
+            const invoice = sale?.invoiceNo ? ` Sale invoice: ${sale.invoiceNo}.` : '';
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Order Approved',
+                detail: `Order "${label}" approved.${invoice}`,
+                life: 5000,
+            });
+            await this.loadTodayOrders();
+        } catch (error: any) {
+            const message =
+                error?.error?.error?.message ||
+                error?.error?.message ||
+                error?.message ||
+                'Failed to approve order';
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Approve Failed',
+                detail: message,
+                life: 6000,
+            });
+        } finally {
+            this.approvingOrderId = null;
+        }
     }
 
     loadUserInfo(): void {
