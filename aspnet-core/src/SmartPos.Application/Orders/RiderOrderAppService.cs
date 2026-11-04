@@ -489,6 +489,14 @@ namespace SmartPos.Orders
                 }).ToList();
 
                 var paymentMethod = "Cash on Delivery";
+                if (!string.IsNullOrWhiteSpace(o.PaymentMethod))
+                {
+                    paymentMethod = string.Equals(o.PaymentMethod, "OnlinePayment", StringComparison.OrdinalIgnoreCase)
+                        ? "Online Payment"
+                        : (string.Equals(o.PaymentMethod, "CashOnDelivery", StringComparison.OrdinalIgnoreCase)
+                            ? "Cash on Delivery"
+                            : o.PaymentMethod);
+                }
                 if (o.Sale != null && !string.IsNullOrWhiteSpace(o.Sale.InvoiceNo))
                 {
                     paymentMethod = "POS Invoice Linked";

@@ -21,6 +21,10 @@ namespace SmartPos.Orders.Dto
         [StringLength(CustomerOrder.MaxNotesLength)]
         public string Notes { get; set; }
 
+        /// <summary>CashOnDelivery or OnlinePayment.</summary>
+        [StringLength(CustomerOrder.MaxPaymentMethodLength)]
+        public string PaymentMethod { get; set; }
+
         public double? Latitude { get; set; }
 
         public double? Longitude { get; set; }
@@ -184,6 +188,9 @@ namespace SmartPos.Orders.Dto
         public decimal TotalAmount { get; set; }
 
         public string Notes { get; set; }
+
+        /// <summary>CashOnDelivery or OnlinePayment.</summary>
+        public string PaymentMethod { get; set; }
 
         /// <summary>1–5 stars given by the rider when completing delivery.</summary>
         public int? DeliveryRating { get; set; }

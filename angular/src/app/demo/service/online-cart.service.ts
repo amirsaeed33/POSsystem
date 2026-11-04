@@ -12,9 +12,20 @@ export interface CartItem {
     selectedOptionIds?: number[];
 }
 
+/** Saved customer/checkout fields used to prefill reorder / returning customers. */
+export interface CheckoutDraft {
+    customerName?: string;
+    customerMobile?: string;
+    deliveryAddress?: string;
+    deliveryLandmark?: string;
+    paymentMethod?: 'CashOnDelivery' | 'OnlinePayment';
+    deliveryAreaId?: number | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OnlineCartService {
     private readonly STORAGE_KEY = 'pos_online_cart_items';
+    private readonly CHECKOUT_DRAFT_KEY = 'pos_online_checkout_draft';
     private cartSubject = new BehaviorSubject<CartItem[]>(this.loadCart());
     cart$ = this.cartSubject.asObservable();
     sidebarVisible = false;
@@ -89,6 +100,36 @@ export class OnlineCartService {
 
     clearCart(): void {
         this.saveCart([]);
+    }
+
+    getCheckoutDraft(): CheckoutDraft | null {
+        try {
+            const raw = localStorage.getItem(this.CHECKOUT_DRAFT_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? (parsed as CheckoutDraft) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    setCheckoutDraft(draft: CheckoutDraft): void {
+        try {
+            const current = this.getCheckoutDraft() || {};
+            const merged: CheckoutDraft = {
+                ...current,
+                ...draft,
+            };
+            localStorage.setItem(this.CHECKOUT_DRAFT_KEY, JSON.stringify(merged));
+            if (merged.customerMobile) {
+                localStorage.setItem('smartpos_customer_phone', merged.customerMobile);
+            }
+            if (merged.customerName) {
+                localStorage.setItem('smartpos_customer_name', merged.customerName);
+            }
+        } catch {
+            /* ignore quota / private mode */
+        }
     }
 
     private loadCart(): CartItem[] {

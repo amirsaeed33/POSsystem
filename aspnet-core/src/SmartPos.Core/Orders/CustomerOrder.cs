@@ -15,6 +15,7 @@ namespace SmartPos.Orders
     {
         public const int MaxOrderNoLength = 64;
         public const int MaxNotesLength = 512;
+        public const int MaxPaymentMethodLength = 32;
 
         public virtual int? TenantId { get; set; }
 
@@ -71,6 +72,10 @@ namespace SmartPos.Orders
 
         [StringLength(MaxNotesLength)]
         public virtual string Notes { get; set; }
+
+        /// <summary>Customer checkout choice: CashOnDelivery or OnlinePayment.</summary>
+        [StringLength(MaxPaymentMethodLength)]
+        public virtual string PaymentMethod { get; set; }
 
         /// <summary>Optional 1–5 star rating captured when rider marks delivery complete.</summary>
         public virtual int? DeliveryRating { get; set; }

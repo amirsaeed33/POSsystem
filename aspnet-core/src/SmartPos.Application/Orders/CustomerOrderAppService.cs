@@ -433,6 +433,9 @@ namespace SmartPos.Orders
                     noteParts.Add($"📏 Distance: {input.DistanceKm.Value:F1} km");
                 }
 
+                var paymentMethod = NormalizePaymentMethod(input.PaymentMethod);
+                noteParts.Add($"💳 Payment: {FormatPaymentMethodLabel(paymentMethod)}");
+
                 var finalNotes = string.Join(" | ", noteParts);
                 if (finalNotes.Length > CustomerOrder.MaxNotesLength)
                 {
@@ -446,6 +449,7 @@ namespace SmartPos.Orders
                     CustomerId = customerId,
                     OrderDate = input.OrderDate == default ? Abp.Timing.Clock.Now : input.OrderDate,
                     Notes = finalNotes,
+                    PaymentMethod = paymentMethod,
                     Status = CustomerOrderStatus.Pending,
                     Latitude = input.Latitude,
                     Longitude = input.Longitude,
@@ -1052,6 +1056,7 @@ namespace SmartPos.Orders
                 DeliveryFeeOverrideTime = entity.DeliveryFeeOverrideTime,
                 TotalAmount = entity.TotalAmount,
                 Notes = entity.Notes,
+                PaymentMethod = entity.PaymentMethod,
                 DeliveryRating = entity.DeliveryRating,
                 CustomerRating = entity.CustomerRating,
                 SaleId = entity.SaleId,
@@ -1490,6 +1495,26 @@ namespace SmartPos.Orders
 
                 return MapToEntityDto(order);
             }
+        }
+
+        private static string NormalizePaymentMethod(string paymentMethod)
+        {
+            var raw = (paymentMethod ?? string.Empty).Trim();
+            if (raw.Equals("OnlinePayment", StringComparison.OrdinalIgnoreCase) ||
+                raw.Equals("Online", StringComparison.OrdinalIgnoreCase) ||
+                raw.Equals("Card", StringComparison.OrdinalIgnoreCase))
+            {
+                return "OnlinePayment";
+            }
+
+            return "CashOnDelivery";
+        }
+
+        private static string FormatPaymentMethodLabel(string paymentMethod)
+        {
+            return string.Equals(paymentMethod, "OnlinePayment", StringComparison.OrdinalIgnoreCase)
+                ? "Online Payment"
+                : "Cash on Delivery";
         }
     }
 }

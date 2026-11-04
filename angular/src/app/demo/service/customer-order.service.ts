@@ -186,6 +186,7 @@ export class CustomerOrderService {
                 subtotal: input.subtotal,
                 deliveryCharges: input.deliveryCharges,
                 grandTotal: input.grandTotal,
+                paymentMethod: input.paymentMethod || 'CashOnDelivery',
                 lines: input.lines,
             })
         );
@@ -368,6 +369,7 @@ export class CustomerOrderService {
             deliveryFeeOverrideTime: item.deliveryFeeOverrideTime ?? item.DeliveryFeeOverrideTime,
             totalAmount: item.totalAmount ?? item.TotalAmount ?? 0,
             notes: item.notes ?? item.Notes,
+            paymentMethod: item.paymentMethod ?? item.PaymentMethod,
             deliveryRating: item.deliveryRating ?? item.DeliveryRating ?? null,
             customerRating: item.customerRating ?? item.CustomerRating ?? null,
             saleId: item.saleId ?? item.SaleId,

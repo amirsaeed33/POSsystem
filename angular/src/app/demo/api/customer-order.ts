@@ -38,6 +38,7 @@ export interface CustomerOrderDto {
     deliveryFeeOverrideTime?: string | Date;
     totalAmount: number;
     notes?: string;
+    paymentMethod?: string;
     deliveryRating?: number | null;
     customerRating?: number | null;
     latitude?: number;
@@ -120,6 +121,7 @@ export interface CreateCustomerOrderDto {
     subtotal?: number;
     deliveryCharges?: number;
     grandTotal?: number;
+    paymentMethod?: string;
     lines: CreateCustomerOrderLineDto[];
 }
 

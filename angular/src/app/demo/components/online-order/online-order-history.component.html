@@ -1,17 +1,138 @@
-<div class="oh-page">
-    <header class="oh-top">
-        <button type="button" class="oh-back" (click)="backToStore()">
-            <i class="pi pi-arrow-left"></i>
-            <span>Back to Menu</span>
-        </button>
-        <div class="oh-top-title">My Orders</div>
-        <div class="oh-top-spacer"></div>
+<div class="fp-store-wrapper oh-store-shell min-h-screen">
+    <!-- Store navbar (same chrome as online store) -->
+    <!-- Always use scrolled chrome: history has no dark hero behind the nav -->
+    <header class="fp-store-navbar fp-navbar-scrolled">
+        <div class="hidden md:flex align-items-center justify-content-between gap-3 max-w-7xl mx-auto w-full">
+            <div class="flex align-items-center gap-3 overflow-hidden">
+                <div class="fp-brand-group cursor-pointer" (click)="goStore()">
+                    <div class="brand-logo-sq">
+                        <i [class]="isRestaurant ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
+                    </div>
+                    <div class="brand-text-col">
+                        <div class="brand-name">
+                            <span class="brand-title-text">{{ branchName || 'Online Store' }}</span>
+                            <span class="fp-live-pill">
+                                <span class="pulse-dot"></span>
+                                Open
+                            </span>
+                        </div>
+                        <div class="brand-sub">
+                            {{ isRestaurant ? 'Fresh Food & Online Dining Menu' : 'Online Store & Delivery' }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fp-location-picker-pill cursor-pointer" (click)="goStore()" pTooltip="Back to store" tooltipPosition="bottom">
+                    <i class="pi pi-map-marker text-red-500 text-sm"></i>
+                    <div class="location-text-col">
+                        <span class="location-label">Location</span>
+                        <span class="location-val">{{ branchName || 'Select Branch' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="hidden lg:flex align-items-center gap-1 fp-nav-links">
+                <button type="button" class="fp-nav-link-btn" (click)="goStore('home')">
+                    <i class="pi pi-home text-xs mr-1"></i>
+                    <span>Home</span>
+                </button>
+                <button type="button" class="fp-nav-link-btn" (click)="goStore('menu')">
+                    <i class="pi pi-th-large text-xs mr-1"></i>
+                    <span>Menu</span>
+                </button>
+                <button type="button" class="fp-nav-link-btn" (click)="goStore('deals')">
+                    <i class="pi pi-tags text-xs mr-1"></i>
+                    <span>Deals</span>
+                </button>
+                <button type="button" class="fp-nav-link-btn active">
+                    <i class="pi pi-history text-xs mr-1"></i>
+                    <span>My Orders</span>
+                </button>
+                <button type="button" class="fp-nav-link-btn" (click)="goStore('contact')">
+                    <i class="pi pi-phone text-xs mr-1"></i>
+                    <span>Contact</span>
+                </button>
+            </nav>
+
+            <div class="flex align-items-center gap-2 flex-shrink-0">
+                <a *ngIf="!isLoggedIn" routerLink="/auth/login" class="fp-staff-login-btn" title="Staff / Admin Login">
+                    <i class="pi pi-sign-in"></i>
+                    <span>Staff Login</span>
+                </a>
+                <ng-container *ngIf="isLoggedIn">
+                    <div class="fp-auth-pill" pTooltip="Signed in as {{ userName }}" tooltipPosition="bottom">
+                        <div class="avatar-circle">{{ userInitials }}</div>
+                        <span class="font-bold text-xs">{{ userName }}</span>
+                    </div>
+                </ng-container>
+                <button
+                    type="button"
+                    class="fp-cart-trigger"
+                    (click)="openCart()"
+                    [attr.aria-label]="'Shopping cart with ' + cartService.totalItemsCount + ' items'"
+                >
+                    <div class="cart-trigger-icon-box">
+                        <i class="pi pi-shopping-bag"></i>
+                    </div>
+                    <div class="cart-trigger-text hidden xl:flex flex-column text-left">
+                        <span class="cart-trigger-label">My Cart</span>
+                        <span class="cart-trigger-total">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
+                    </div>
+                    <span class="cart-badge" *ngIf="cartService.totalItemsCount > 0">
+                        {{ cartService.totalItemsCount }}
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile header -->
+        <div class="flex md:hidden align-items-center justify-content-between gap-2 w-full fp-mobile-top-bar">
+            <div class="flex align-items-center gap-2 overflow-hidden flex-grow-1 min-w-0">
+                <div class="brand-logo-sq flex-shrink-0 cursor-pointer" (click)="goStore()">
+                    <i [class]="isRestaurant ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
+                </div>
+                <div class="fp-mobile-header-info min-w-0 flex-grow-1 cursor-pointer" (click)="goStore()">
+                    <div class="flex align-items-center gap-1">
+                        <span class="mobile-store-title font-extrabold">{{ branchName || 'Online Store' }}</span>
+                        <span class="fp-live-pill-mini"><span class="pulse-dot"></span></span>
+                    </div>
+                    <div class="fp-mobile-city-selector">
+                        <i class="pi pi-history text-red-500 text-xs"></i>
+                        <span class="city-name-text">My Orders</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex align-items-center gap-1 flex-shrink-0">
+                <button type="button" class="fp-mobile-action-btn" (click)="goStore()" aria-label="Back to menu">
+                    <i class="pi pi-arrow-left"></i>
+                </button>
+                <button
+                    type="button"
+                    class="fp-mobile-action-btn fp-mobile-cart-action-btn"
+                    (click)="openCart()"
+                    aria-label="Shopping Cart"
+                >
+                    <i class="pi pi-shopping-bag"></i>
+                    <span class="mobile-cart-badge" *ngIf="cartService.totalItemsCount > 0">
+                        {{ cartService.totalItemsCount }}
+                    </span>
+                </button>
+            </div>
+        </div>
     </header>
 
-    <main class="oh-main">
-        <section class="oh-lookup">
-            <h1>Order history</h1>
-            <p>Enter the phone number used when placing your order.</p>
+    <main class="oh-main oh-main--under-nav">
+        <section class="oh-lookup oh-lookup-card">
+            <div class="oh-lookup-head">
+                <div>
+                    <h1>My Orders</h1>
+                    <p>Enter the phone number used when placing your order.</p>
+                </div>
+                <button type="button" class="oh-ghost-btn" (click)="goStore()">
+                    <i class="pi pi-th-large"></i>
+                    Menu
+                </button>
+            </div>
 
             <div class="oh-lookup-row">
                 <span class="p-input-icon-left flex-grow-1">
@@ -43,73 +164,378 @@
             </div>
         </section>
 
-        <div *ngIf="loading" class="oh-loading">
+        <div *ngIf="loading" class="oh-state-card oh-loading">
             <i class="pi pi-spin pi-spinner"></i>
             <span>Loading your orders…</span>
         </div>
 
-        <div *ngIf="!loading && errorMessage" class="oh-error">
+        <div *ngIf="!loading && errorMessage" class="oh-state-card oh-error">
             <i class="pi pi-exclamation-circle"></i>
             <span>{{ errorMessage }}</span>
         </div>
 
         <div
             *ngIf="!loading && searched && !errorMessage && orders.length === 0"
-            class="oh-empty"
+            class="oh-state-card oh-empty"
         >
             <i class="pi pi-inbox"></i>
             <strong>No orders found</strong>
             <p>We couldn’t find orders for this phone number.</p>
         </div>
 
-        <div *ngIf="!loading && orders.length > 0" class="oh-list">
-            <div
-                class="oh-card"
+        <div *ngIf="!loading && orders.length > 0" class="oh-card-grid">
+            <article
+                class="oh-order-card"
                 *ngFor="let order of orders"
                 (click)="openOrder(order)"
                 role="button"
                 tabindex="0"
                 (keyup.enter)="openOrder(order)"
             >
-                <div class="oh-card-top">
-                    <div>
-                        <div class="oh-order-no">#{{ order.orderNo || order.id }}</div>
-                        <div class="oh-date">
-                            {{ order.orderDate | date: 'MMM d, y · h:mm a' }}
+                <div class="oh-order-card__accent" [ngClass]="statusClass(order)"></div>
+
+                <div class="oh-order-card__body">
+                    <div class="oh-order-card__top">
+                        <div class="oh-day-badge" [ngClass]="orderDayTone(order)">
+                            <span class="oh-day-badge__weekday">{{ orderWeekdayShort(order) }}</span>
+                            <span class="oh-day-badge__num">{{ orderDayNumber(order) }}</span>
+                            <span class="oh-day-badge__label">{{ orderDayLabel(order) }}</span>
+                        </div>
+                        <div class="oh-order-card__heading">
+                            <div class="oh-order-no-row">
+                                <div class="oh-order-no">#{{ order.orderNo || order.id }}</div>
+                                <span class="oh-status" [ngClass]="statusClass(order)">
+                                    {{ statusLabel(order) }}
+                                </span>
+                            </div>
+                            <div class="oh-date">
+                                <i class="pi pi-clock"></i>
+                                {{ order.orderDate | date: 'MMM d, y · h:mm a' }}
+                            </div>
                         </div>
                     </div>
-                    <span class="oh-status" [ngClass]="statusClass(order)">
-                        {{ statusLabel(order) }}
-                    </span>
-                </div>
 
-                <div class="oh-card-body">
-                    <div class="oh-items">{{ itemSummary(order) }}</div>
-                    <div class="oh-meta" *ngIf="order.branchName || order.riderName">
+                    <div class="oh-order-card__items">
+                        <div class="oh-items-label">Items</div>
+                        <div class="oh-items">{{ itemSummary(order) }}</div>
+                        <div class="oh-item-chips" *ngIf="(order.lines || []).length">
+                            <span class="oh-chip" *ngFor="let line of order.lines | slice:0:4">
+                                {{ line.quantity }}× {{ line.productName || 'Item' }}
+                            </span>
+                            <span class="oh-chip oh-chip--more" *ngIf="(order.lines || []).length > 4">
+                                +{{ (order.lines || []).length - 4 }} more
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="oh-meta" *ngIf="order.branchName || order.riderName || order.paymentMethod">
                         <span *ngIf="order.branchName">
                             <i class="pi pi-map-marker"></i> {{ order.branchName }}
                         </span>
                         <span *ngIf="order.riderName">
                             <i class="pi pi-user"></i> {{ order.riderName }}
                         </span>
+                        <span *ngIf="order.paymentMethod">
+                            <i class="pi pi-wallet"></i>
+                            {{ order.paymentMethod === 'OnlinePayment' ? 'Online Payment' : 'Cash on Delivery' }}
+                        </span>
+                    </div>
+
+                    <div class="oh-order-card__foot">
+                        <div class="oh-amount">
+                            PKR {{ order.totalAmount | number: '1.0-0' }}
+                        </div>
+                        <div class="oh-ratings" *ngIf="order.customerRating || order.deliveryRating">
+                            <span *ngIf="order.customerRating" title="Your rating">
+                                <i class="pi pi-star-fill"></i> {{ order.customerRating }}/5
+                            </span>
+                        </div>
+                        <div class="oh-foot-actions">
+                            <button
+                                *ngIf="canReorder(order)"
+                                type="button"
+                                class="oh-reorder-btn"
+                                [disabled]="reorderingId === order.id"
+                                (click)="reorder(order, $event)"
+                            >
+                                <i
+                                    class="pi"
+                                    [class.pi-spin]="reorderingId === order.id"
+                                    [class.pi-spinner]="reorderingId === order.id"
+                                    [class.pi-replay]="reorderingId !== order.id"
+                                ></i>
+                                Reorder
+                            </button>
+                            <span class="oh-open">
+                                Details <i class="pi pi-eye"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </main>
+
+    <!-- Order detail popup -->
+    <p-dialog
+        [(visible)]="detailVisible"
+        [modal]="true"
+        [draggable]="false"
+        [resizable]="false"
+        [style]="{ width: '520px', maxWidth: '96vw' }"
+        [contentStyle]="{ padding: '0', overflow: 'auto', maxHeight: '78vh' }"
+        styleClass="oh-detail-dialog"
+        (onHide)="closeDetail()"
+    >
+        <ng-template pTemplate="header">
+            <div class="oh-detail-header" *ngIf="detailOrder as order">
+                <div>
+                    <div class="oh-detail-kicker">Order details</div>
+                    <div class="oh-detail-title">#{{ order.orderNo || order.id }}</div>
+                </div>
+                <span class="oh-status" [ngClass]="statusClass(order)">{{ statusLabel(order) }}</span>
+            </div>
+        </ng-template>
+
+        <div class="oh-detail-body" *ngIf="detailOrder as order">
+            <div class="oh-detail-loading" *ngIf="detailLoading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Refreshing order…</span>
+            </div>
+
+            <div class="oh-detail-hero" [ngClass]="statusClass(order)">
+                <div class="oh-day-badge oh-day-badge--lg" [ngClass]="orderDayTone(order)">
+                    <span class="oh-day-badge__weekday">{{ orderWeekdayShort(order) }}</span>
+                    <span class="oh-day-badge__num">{{ orderDayNumber(order) }}</span>
+                    <span class="oh-day-badge__label">{{ orderDayLabel(order) }}</span>
+                </div>
+                <div class="oh-detail-hero-text">
+                    <div class="oh-detail-hero-status">{{ statusLabel(order) }}</div>
+                    <p>{{ statusHint(order) }}</p>
+                    <div class="oh-date">
+                        <i class="pi pi-clock"></i>
+                        {{ order.orderDate | date: 'EEE, MMM d, y · h:mm a' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="oh-detail-panel">
+                <div class="oh-detail-panel-head">
+                    <span>Items</span>
+                    <span>{{ (order.lines || []).length }} item(s)</span>
+                </div>
+                <div class="oh-detail-item" *ngFor="let line of order.lines || []">
+                    <div class="oh-detail-item-name">
+                        <strong>{{ line.quantity }}×</strong>
+                        {{ line.productName || ('Product #' + line.productId) }}
+                    </div>
+                    <div class="oh-detail-item-price">PKR {{ line.lineTotal | number: '1.0-0' }}</div>
+                </div>
+                <div class="oh-detail-total" *ngIf="order.subTotal != null">
+                    <span>Subtotal</span>
+                    <strong>PKR {{ order.subTotal | number: '1.0-0' }}</strong>
+                </div>
+                <div class="oh-detail-total" *ngIf="order.deliveryFee != null">
+                    <span>Delivery</span>
+                    <strong>
+                        <ng-container *ngIf="order.isFreeDelivery || order.deliveryFee === 0">FREE</ng-container>
+                        <ng-container *ngIf="!order.isFreeDelivery && order.deliveryFee > 0">
+                            PKR {{ order.deliveryFee | number: '1.0-0' }}
+                        </ng-container>
+                    </strong>
+                </div>
+                <div class="oh-detail-total oh-detail-total--grand">
+                    <span>Total</span>
+                    <strong>PKR {{ order.totalAmount | number: '1.0-0' }}</strong>
+                </div>
+            </div>
+
+            <div class="oh-detail-panel">
+                <div class="oh-detail-panel-head"><span>Delivery & payment</span></div>
+                <div class="oh-detail-row">
+                    <span>Customer</span>
+                    <strong>{{ order.customerName || 'Customer' }}</strong>
+                </div>
+                <div class="oh-detail-row" *ngIf="order.customerPhone">
+                    <span>Phone</span>
+                    <strong>{{ order.customerPhone }}</strong>
+                </div>
+                <div class="oh-detail-row" *ngIf="order.branchName">
+                    <span>Branch</span>
+                    <strong>{{ order.branchName }}</strong>
+                </div>
+                <div class="oh-detail-row" *ngIf="order.deliveryAreaName">
+                    <span>Area</span>
+                    <strong>{{ order.deliveryAreaName }}</strong>
+                </div>
+                <div class="oh-detail-row" *ngIf="order.paymentMethod">
+                    <span>Payment</span>
+                    <strong>
+                        {{ order.paymentMethod === 'OnlinePayment' ? 'Online Payment' : 'Cash on Delivery' }}
+                    </strong>
+                </div>
+                <div class="oh-detail-row" *ngIf="order.riderName">
+                    <span>Rider</span>
+                    <strong>{{ order.riderName }}{{ order.riderPhone ? ' · ' + order.riderPhone : '' }}</strong>
+                </div>
+                <div class="oh-detail-notes" *ngIf="order.notes">{{ order.notes }}</div>
+                <a
+                    *ngIf="getGoogleMapsLink(order.notes) as maps"
+                    class="oh-detail-maps"
+                    [href]="maps"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    (click)="$event.stopPropagation()"
+                >
+                    <i class="pi pi-map-marker"></i> Open location in Maps
+                </a>
+            </div>
+
+            <div class="oh-detail-panel" *ngIf="isDelivered(order)">
+                <div class="oh-detail-panel-head">
+                    <span>Rate your delivery</span>
+                    <span *ngIf="order.customerRating">{{ order.customerRating }}/5</span>
+                </div>
+                <p class="oh-detail-hint" *ngIf="!order.customerRating">
+                    How was your experience with this delivery?
+                </p>
+                <p class="oh-detail-hint" *ngIf="order.customerRating">
+                    Thanks — you rated this delivery.
+                </p>
+                <div class="oh-detail-rate-row">
+                    <p-rating
+                        [(ngModel)]="customerRatingDraft"
+                        [stars]="5"
+                        [cancel]="false"
+                        [readonly]="!!order.customerRating || ratingSubmitting"
+                    ></p-rating>
+                    <button
+                        *ngIf="!order.customerRating"
+                        type="button"
+                        class="oh-reorder-btn"
+                        [disabled]="!customerRatingDraft || ratingSubmitting"
+                        (click)="submitCustomerRating()"
+                    >
+                        <i
+                            class="pi"
+                            [class.pi-spin]="ratingSubmitting"
+                            [class.pi-spinner]="ratingSubmitting"
+                            [class.pi-star-fill]="!ratingSubmitting"
+                        ></i>
+                        {{ ratingSubmitting ? 'Saving…' : 'Submit rating' }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="oh-detail-chat" *ngIf="order.orderNo || order.id">
+                <app-order-chat
+                    [orderNo]="order.orderNo || ('#' + order.id)"
+                    [branchId]="order.branchId || branchId || undefined"
+                    [customerName]="order.customerName"
+                    [customerMobile]="order.customerPhone"
+                    mode="customer"
+                    height="220px"
+                    title="Chat with store"
+                ></app-order-chat>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="oh-detail-footer" *ngIf="detailOrder as order">
+                <button type="button" class="oh-ghost-btn" (click)="closeDetail()">Close</button>
+                <button
+                    *ngIf="canReorder(order)"
+                    type="button"
+                    class="oh-reorder-btn oh-reorder-btn--lg"
+                    [disabled]="reorderingId === order.id"
+                    (click)="reorder(order, $event); closeDetail()"
+                >
+                    <i class="pi pi-replay"></i>
+                    Reorder
+                </button>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Store footer -->
+    <footer class="fp-restaurant-footer" id="storeContactSection">
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <div class="grid">
+                <div class="col-12 md:col-4 mb-4 md:mb-0">
+                    <div class="flex align-items-center gap-2 mb-3">
+                        <div class="brand-logo-sq w-2.5rem h-2.5rem font-bold text-base">
+                            <i [class]="isRestaurant ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
+                        </div>
+                        <div>
+                            <span class="font-black text-xl text-white">{{ branchName || 'Online Restaurant' }}</span>
+                            <div class="text-xs text-400">Fresh & Hot Online Food Delivery</div>
+                        </div>
+                    </div>
+                    <p class="text-400 text-sm line-height-3 mb-3">
+                        Serving mouthwatering gourmet meals, handcrafted burgers, cheesy pizzas, and crispy sides made fresh to order. Fast, hygienic, and delivered with love.
+                    </p>
+                    <div class="flex align-items-center gap-2 mb-3">
+                        <span class="fp-badge-trust"><i class="pi pi-shield mr-1"></i>100% Halal</span>
+                        <span class="fp-badge-trust"><i class="pi pi-bolt mr-1"></i>Quick Delivery</span>
+                    </div>
+                    <div class="fp-social-links">
+                        <span class="fp-social-label">Follow us</span>
+                        <div class="fp-social-icons">
+                            <a class="fp-social-btn facebook" [href]="socialFacebookHref" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                                <i class="pi pi-facebook"></i>
+                            </a>
+                            <a class="fp-social-btn instagram" [href]="socialInstagramHref" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                                <i class="pi pi-instagram"></i>
+                            </a>
+                            <a class="fp-social-btn youtube" [href]="socialYoutubeHref" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+                                <i class="pi pi-youtube"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
 
-                <div class="oh-card-foot">
-                    <div class="oh-amount">
-                        PKR {{ order.totalAmount | number: '1.0-0' }}
+                <div class="col-6 md:col-2 mb-4 md:mb-0">
+                    <h4 class="text-white font-bold text-sm mb-3">Quick Navigation</h4>
+                    <ul class="list-none p-0 m-0 text-sm text-400 flex flex-column gap-2">
+                        <li><a (click)="goStore('home')" class="cursor-pointer hover:text-white transition-colors">Home</a></li>
+                        <li><a (click)="goStore('menu')" class="cursor-pointer hover:text-white transition-colors">Food Menu</a></li>
+                        <li><a (click)="goStore('deals')" class="cursor-pointer hover:text-white transition-colors">Super Deals</a></li>
+                        <li><a class="text-white font-semibold">My Orders</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-6 md:col-3 mb-4 md:mb-0">
+                    <h4 class="text-white font-bold text-sm mb-3">Help</h4>
+                    <ul class="list-none p-0 m-0 text-sm text-400 flex flex-column gap-2">
+                        <li>Track with your order number</li>
+                        <li>Reorder delivered orders in one tap</li>
+                        <li>Use the same phone number for history</li>
+                    </ul>
+                </div>
+
+                <div class="col-12 md:col-3">
+                    <h4 class="text-white font-bold text-sm mb-3">Branch & Contact</h4>
+                    <div class="flex flex-column gap-2 text-sm text-400">
+                        <div class="flex align-items-start gap-2" *ngIf="branchAddress">
+                            <i class="pi pi-map-marker text-red-500 mt-1"></i>
+                            <span>{{ branchAddress }}</span>
+                        </div>
+                        <div class="flex align-items-center gap-2" *ngIf="branchPhone">
+                            <i class="pi pi-phone text-green-500"></i>
+                            <span>{{ branchPhone }}</span>
+                        </div>
+                        <div class="flex align-items-center gap-2">
+                            <i class="pi pi-clock text-yellow-500"></i>
+                            <span>Mon - Sun: 11:00 AM - 02:00 AM</span>
+                        </div>
                     </div>
-                    <div class="oh-ratings" *ngIf="order.customerRating || order.deliveryRating">
-                        <span *ngIf="order.customerRating" title="Your rating">
-                            <i class="pi pi-star-fill"></i> {{ order.customerRating }}/5
-                        </span>
-                    </div>
-                    <span class="oh-open">
-                        View <i class="pi pi-angle-right"></i>
-                    </span>
                 </div>
             </div>
+
+            <div class="border-top-1 surface-border-dark pt-4 mt-4 flex flex-column sm:flex-row align-items-center justify-content-between gap-3 text-xs text-500">
+                <span>© {{ branchName || 'Online Store' }}. All rights reserved. Powered by SmartPOS SaaS.</span>
+            </div>
         </div>
-    </main>
+    </footer>
 </div>
 <p-toast></p-toast>

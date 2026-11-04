@@ -62,7 +62,15 @@
 
         <ng-template pTemplate="body" let-unit>
             <tr>
-                <td>{{ unit.name }}</td>
+                <td>
+                    <a
+                        href="javascript:void(0)"
+                        class="font-semibold text-primary cursor-pointer hover:underline"
+                        (click)="openEditDialog(unit); $event.preventDefault()"
+                        pTooltip="Edit unit"
+                        tooltipPosition="top"
+                    >{{ unit.name }}</a>
+                </td>
                 <td>{{ unit.description || '—' }}</td>
                 <td class="text-center">
                     <app-row-actions [items]="getRowActions(unit)"></app-row-actions>

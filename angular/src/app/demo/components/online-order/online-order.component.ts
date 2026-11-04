@@ -127,6 +127,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     deliveryAddress = '';
     deliveryLandmark = '';
     notes = '';
+    paymentMethod: 'CashOnDelivery' | 'OnlinePayment' = 'CashOnDelivery';
     submitting = false;
 
     // Delivery Location & Live GPS state
@@ -2052,18 +2053,52 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             });
             return;
         }
-        if (!this.customerMobile?.trim()) {
-            try {
-                const saved = localStorage.getItem('smartpos_customer_phone');
-                if (saved) {
-                    this.customerMobile = saved;
-                }
-            } catch {
-                /* ignore */
-            }
-        }
+        this.applyCheckoutDraft();
         this.cartService.sidebarVisible = false;
         this.checkoutModalVisible = true;
+    }
+
+    /** Prefill name / phone / address from reorder draft or last saved customer details. */
+    private applyCheckoutDraft(): void {
+        const draft = this.cartService.getCheckoutDraft();
+
+        if (!this.customerName?.trim()) {
+            this.customerName =
+                draft?.customerName?.trim() ||
+                this.readLocal('smartpos_customer_name') ||
+                '';
+        }
+        if (!this.customerMobile?.trim()) {
+            this.customerMobile =
+                draft?.customerMobile?.trim() ||
+                this.readLocal('smartpos_customer_phone') ||
+                '';
+        }
+        if (!this.deliveryAddress?.trim() && draft?.deliveryAddress) {
+            this.deliveryAddress = draft.deliveryAddress;
+        }
+        if (!this.deliveryLandmark?.trim() && draft?.deliveryLandmark) {
+            this.deliveryLandmark = draft.deliveryLandmark;
+        }
+        if (draft?.paymentMethod === 'OnlinePayment' || draft?.paymentMethod === 'CashOnDelivery') {
+            this.paymentMethod = draft.paymentMethod;
+        }
+        if (
+            !this.selectedDeliveryAreaId &&
+            draft?.deliveryAreaId &&
+            this.deliveryAreas.some((a) => a.id === draft.deliveryAreaId)
+        ) {
+            this.selectedDeliveryAreaId = draft.deliveryAreaId;
+            this.onDeliveryAreaChange(draft.deliveryAreaId);
+        }
+    }
+
+    private readLocal(key: string): string {
+        try {
+            return localStorage.getItem(key) || '';
+        } catch {
+            return '';
+        }
     }
 
     captureCurrentLocation(): void {
@@ -2322,6 +2357,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 deliveryAddress: this.deliveryAddress.trim() || undefined,
                 deliveryLandmark: this.deliveryLandmark.trim() || undefined,
                 deliveryAreaId: this.selectedDeliveryAreaId ?? (this.selectedDeliveryArea?.id || undefined),
+                paymentMethod: this.paymentMethod || 'CashOnDelivery',
                 lines: this.cartService.items.map((c) => ({
                     productId: c.productId,
                     quantity: c.quantity,
@@ -2345,23 +2381,24 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 status: createdOrder.status ?? CustomerOrderStatus.Pending,
                 statusName: createdOrder.statusName || 'Pending',
             });
-            try {
-                localStorage.setItem(
-                    'smartpos_customer_phone',
-                    input.customerMobile || ''
-                );
-            } catch {
-                /* ignore */
-            }
+            this.cartService.setCheckoutDraft({
+                customerName: input.customerName,
+                customerMobile: input.customerMobile,
+                deliveryAddress: input.deliveryAddress,
+                deliveryLandmark: input.deliveryLandmark,
+                paymentMethod: this.paymentMethod,
+                deliveryAreaId: input.deliveryAreaId ?? null,
+            });
             void this.refreshActiveOrders();
 
-            // Reset cart & checkout modal state
+            // Reset cart & checkout modal state (keep saved draft for next order / reorder)
             this.cartService.clearCart();
             this.customerName = '';
             this.customerMobile = '';
             this.deliveryAddress = '';
             this.deliveryLandmark = '';
             this.notes = '';
+            this.paymentMethod = 'CashOnDelivery';
             this.clearLocation();
             this.checkoutModalVisible = false;
             this.cartService.sidebarVisible = false;

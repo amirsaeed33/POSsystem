@@ -3,6 +3,8 @@ export interface CategoryDto {
     branchId?: number;
     name: string;
     description?: string;
+    imagePath?: string;
+    imageBase64?: string;
     defaultUnitId?: number;
     defaultUnitName?: string;
 }
@@ -10,6 +12,7 @@ export interface CategoryDto {
 export interface CreateCategoryDto {
     name: string;
     description?: string;
+    imageBase64?: string;
     defaultUnitId?: number;
 }
 

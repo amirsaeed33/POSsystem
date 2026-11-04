@@ -12,6 +12,7 @@ namespace SmartPos.Categories
     {
         public const int MaxNameLength = 128;
         public const int MaxDescriptionLength = 512;
+        public const int MaxImagePathLength = 512;
 
         public virtual int? TenantId { get; set; }
 
@@ -26,6 +27,9 @@ namespace SmartPos.Categories
 
         [StringLength(MaxDescriptionLength)]
         public virtual string Description { get; set; }
+
+        [StringLength(MaxImagePathLength)]
+        public virtual string ImagePath { get; set; }
 
         public virtual bool IsActive { get; set; } = true;
 

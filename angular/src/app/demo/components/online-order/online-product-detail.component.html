@@ -585,6 +585,50 @@
                 ></textarea>
             </div>
 
+            <!-- Payment Type -->
+            <div class="field mb-3">
+                <label class="font-bold text-xs text-700 flex align-items-center gap-1 mb-2">
+                    <i class="pi pi-wallet text-red-500 text-xs"></i>
+                    <span>Payment Type *</span>
+                </label>
+                <div class="fp-payment-options flex flex-column gap-2">
+                    <button
+                        type="button"
+                        class="fp-payment-option w-full flex align-items-center justify-content-between p-3 border-round-xl border-1 cursor-pointer text-left"
+                        [class.active]="paymentMethod === 'CashOnDelivery'"
+                        (click)="paymentMethod = 'CashOnDelivery'"
+                    >
+                        <div class="flex align-items-center gap-3">
+                            <div class="fp-payment-icon flex align-items-center justify-content-center border-round-circle">
+                                <i class="pi pi-money-bill"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-900">Cash on Delivery</div>
+                                <div class="text-xs text-500">Pay the rider when your order arrives</div>
+                            </div>
+                        </div>
+                        <i class="pi text-lg" [ngClass]="paymentMethod === 'CashOnDelivery' ? 'pi-check-circle text-green-600' : 'pi-circle text-300'"></i>
+                    </button>
+                    <button
+                        type="button"
+                        class="fp-payment-option w-full flex align-items-center justify-content-between p-3 border-round-xl border-1 cursor-pointer text-left"
+                        [class.active]="paymentMethod === 'OnlinePayment'"
+                        (click)="paymentMethod = 'OnlinePayment'"
+                    >
+                        <div class="flex align-items-center gap-3">
+                            <div class="fp-payment-icon online flex align-items-center justify-content-center border-round-circle">
+                                <i class="pi pi-credit-card"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-900">Online Payment</div>
+                                <div class="text-xs text-500">Pay online — card / wallet / transfer</div>
+                            </div>
+                        </div>
+                        <i class="pi text-lg" [ngClass]="paymentMethod === 'OnlinePayment' ? 'pi-check-circle text-green-600' : 'pi-circle text-300'"></i>
+                    </button>
+                </div>
+            </div>
+
             <div class="surface-100 p-3 border-round-xl mb-3">
                 <div class="flex align-items-center justify-content-between text-sm text-600 mb-1">
                     <span>Subtotal:</span>
@@ -596,7 +640,12 @@
                     <span *ngIf="!isFreeDeliveryEligible() && getDeliveryFee() > 0" class="font-bold text-800">PKR {{ getDeliveryFee() | number: '1.0-0' }}</span>
                 </div>
                 <div class="flex align-items-center justify-content-between pt-2 border-top-1 surface-border">
-                    <span class="font-bold text-base text-900">Total Order Price:</span>
+                    <span class="font-bold text-base text-900">
+                        Total Payable
+                        <span class="text-xs font-semibold text-500">
+                            ({{ paymentMethod === 'OnlinePayment' ? 'Online' : 'COD' }})
+                        </span>:
+                    </span>
                     <span class="font-bold text-xl text-red-500">PKR {{ getGrandTotal() | number: '1.0-0' }}</span>
                 </div>
             </div>

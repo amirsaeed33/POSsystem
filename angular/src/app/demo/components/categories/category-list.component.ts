@@ -42,6 +42,10 @@ export class CategoryListComponent implements OnInit {
         this.loadCategories();
     }
 
+    getImageUrl(category: CategoryDto): string {
+        return this.categoryService.getImageUrl(category?.imagePath);
+    }
+
     loadCategories(): void {
         this.loading = true;
         this.categoryService

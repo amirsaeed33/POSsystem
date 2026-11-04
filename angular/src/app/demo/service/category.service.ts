@@ -92,6 +92,7 @@ export class CategoryService {
                 name: input.name,
                 description: input.description,
                 defaultUnitId: input.defaultUnitId,
+                imageBase64: input.imageBase64,
             })
         );
         return this.mapCategory(this.unwrap(res, 'Failed to create category'));
@@ -106,9 +107,25 @@ export class CategoryService {
                 name: input.name,
                 description: input.description,
                 defaultUnitId: input.defaultUnitId,
+                imagePath: input.imagePath,
+                imageBase64: input.imageBase64,
             })
         );
         return this.mapCategory(this.unwrap(res, 'Failed to update category'));
+    }
+
+    getImageUrl(imagePath?: string): string {
+        if (!imagePath) {
+            return '';
+        }
+        if (
+            imagePath.startsWith('http://') ||
+            imagePath.startsWith('https://') ||
+            imagePath.startsWith('data:')
+        ) {
+            return imagePath;
+        }
+        return `${environment.apiUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
     }
 
     async delete(id: number): Promise<void> {
@@ -142,6 +159,7 @@ export class CategoryService {
             branchId: item.branchId ?? item.BranchId,
             name: item.name ?? item.Name,
             description: item.description ?? item.Description,
+            imagePath: item.imagePath ?? item.ImagePath,
             defaultUnitId: item.defaultUnitId ?? item.DefaultUnitId,
             defaultUnitName: item.defaultUnitName ?? item.DefaultUnitName,
         };

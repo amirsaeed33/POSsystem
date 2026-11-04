@@ -36,6 +36,7 @@ export class OnlineProductDetailComponent implements OnInit {
     deliveryAddress = '';
     deliveryLandmark = '';
     notes = '';
+    paymentMethod: 'CashOnDelivery' | 'OnlinePayment' = 'CashOnDelivery';
     submitting = false;
 
     // Delivery Location & Live GPS state
@@ -267,8 +268,51 @@ export class OnlineProductDetailComponent implements OnInit {
             });
             return;
         }
+        this.applyCheckoutDraft();
         this.cartService.sidebarVisible = false;
         this.checkoutModalVisible = true;
+    }
+
+    private applyCheckoutDraft(): void {
+        const draft = this.cartService.getCheckoutDraft();
+
+        if (!this.customerName?.trim()) {
+            this.customerName =
+                draft?.customerName?.trim() ||
+                this.readLocal('smartpos_customer_name') ||
+                '';
+        }
+        if (!this.customerMobile?.trim()) {
+            this.customerMobile =
+                draft?.customerMobile?.trim() ||
+                this.readLocal('smartpos_customer_phone') ||
+                '';
+        }
+        if (!this.deliveryAddress?.trim() && draft?.deliveryAddress) {
+            this.deliveryAddress = draft.deliveryAddress;
+        }
+        if (!this.deliveryLandmark?.trim() && draft?.deliveryLandmark) {
+            this.deliveryLandmark = draft.deliveryLandmark;
+        }
+        if (draft?.paymentMethod === 'OnlinePayment' || draft?.paymentMethod === 'CashOnDelivery') {
+            this.paymentMethod = draft.paymentMethod;
+        }
+        if (
+            !this.selectedAreaId &&
+            draft?.deliveryAreaId &&
+            this.deliveryAreas.some((a) => a.id === draft.deliveryAreaId)
+        ) {
+            this.selectedAreaId = draft.deliveryAreaId;
+            this.onAreaChange();
+        }
+    }
+
+    private readLocal(key: string): string {
+        try {
+            return localStorage.getItem(key) || '';
+        } catch {
+            return '';
+        }
     }
 
     captureCurrentLocation(): void {
@@ -438,6 +482,7 @@ export class OnlineProductDetailComponent implements OnInit {
                 deliveryAddress: this.deliveryAddress.trim() || undefined,
                 deliveryLandmark: this.deliveryLandmark.trim() || undefined,
                 deliveryAreaId: this.selectedAreaId ?? (this.selectedArea?.id || undefined),
+                paymentMethod: this.paymentMethod || 'CashOnDelivery',
                 lines: this.cartService.items.map((c) => ({
                     productId: c.productId,
                     quantity: c.quantity,
@@ -450,13 +495,23 @@ export class OnlineProductDetailComponent implements OnInit {
             this.confirmedOrderNo = createdOrder.orderNo || `ORD-${createdOrder.id}`;
             this.confirmedTotal = createdOrder.totalAmount;
 
-            // Reset cart & checkout modal
+            this.cartService.setCheckoutDraft({
+                customerName: input.customerName,
+                customerMobile: input.customerMobile,
+                deliveryAddress: input.deliveryAddress,
+                deliveryLandmark: input.deliveryLandmark,
+                paymentMethod: this.paymentMethod,
+                deliveryAreaId: input.deliveryAreaId ?? null,
+            });
+
+            // Reset cart & checkout modal (draft kept for next order / reorder)
             this.cartService.clearCart();
             this.customerName = '';
             this.customerMobile = '';
             this.deliveryAddress = '';
             this.deliveryLandmark = '';
             this.notes = '';
+            this.paymentMethod = 'CashOnDelivery';
             this.clearLocation();
             this.checkoutModalVisible = false;
             this.cartService.sidebarVisible = false;

@@ -2013,6 +2013,10 @@ namespace SmartPos.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
+                    b.Property<string>("ImagePath")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -2996,6 +3000,10 @@ namespace SmartPos.Migrations
                     b.Property<string>("OrderNo")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
 
                     b.Property<decimal?>("OriginalDeliveryFee")
                         .HasPrecision(18, 2)

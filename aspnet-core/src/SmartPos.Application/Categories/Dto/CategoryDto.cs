@@ -18,6 +18,12 @@ namespace SmartPos.Categories.Dto
         [StringLength(Category.MaxDescriptionLength)]
         public string Description { get; set; }
 
+        [StringLength(Category.MaxImagePathLength)]
+        public string ImagePath { get; set; }
+
+        /// <summary>New image as data URL; ignored by AutoMapper onto the entity.</summary>
+        public string ImageBase64 { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public int? DefaultUnitId { get; set; }

@@ -31,6 +31,8 @@ export class CategoryFormDialogComponent implements OnChanges {
     units: UnitDto[] = [];
     saving = false;
     loading = false;
+    imagePreview = '';
+    private imageCleared = false;
 
     @HostListener('window:keydown', ['$event'])
     handleKeyboardEvent(event: KeyboardEvent) {
@@ -38,9 +40,10 @@ export class CategoryFormDialogComponent implements OnChanges {
             return;
         }
 
-        // Alt + S or Ctrl + S to save without browser conflict
-        if ((event.altKey && (event.key === 's' || event.key === 'S')) ||
-            (event.ctrlKey && (event.key === 's' || event.key === 'S'))) {
+        if (
+            (event.altKey && (event.key === 's' || event.key === 'S')) ||
+            (event.ctrlKey && (event.key === 's' || event.key === 'S'))
+        ) {
             event.preventDefault();
             this.save();
         }
@@ -79,6 +82,44 @@ export class CategoryFormDialogComponent implements OnChanges {
         this.onVisibleChange(false);
     }
 
+    onFileSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (!input.files?.length) {
+            return;
+        }
+
+        const file = input.files[0];
+        if (file.size > 5 * 1024 * 1024) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Image too large',
+                detail: 'Please choose an image under 5 MB.',
+            });
+            input.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result as string;
+            if (!result?.startsWith('data:image')) {
+                return;
+            }
+            this.imagePreview = result;
+            this.category.imageBase64 = result;
+            this.imageCleared = false;
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+    }
+
+    clearImage(): void {
+        this.imagePreview = '';
+        this.category.imageBase64 = undefined;
+        this.category.imagePath = undefined;
+        this.imageCleared = true;
+    }
+
     save(): void {
         if (this.saving) {
             return;
@@ -96,17 +137,29 @@ export class CategoryFormDialogComponent implements OnChanges {
         }
 
         this.saving = true;
+        const imageBase64 = this.category.imageBase64?.startsWith('data:image')
+            ? this.category.imageBase64
+            : this.imageCleared
+              ? ''
+              : undefined;
+
         const request = this.categoryId
             ? this.categoryService.update({
                   id: this.categoryId,
+                  branchId: this.category.branchId,
                   name,
                   description: this.category.description?.trim() || undefined,
                   defaultUnitId: this.category.defaultUnitId || undefined,
+                  imagePath: this.imageCleared
+                      ? undefined
+                      : this.category.imagePath,
+                  imageBase64,
               })
             : this.categoryService.create({
                   name,
                   description: this.category.description?.trim() || undefined,
                   defaultUnitId: this.category.defaultUnitId || undefined,
+                  imageBase64,
               });
 
         request
@@ -146,6 +199,8 @@ export class CategoryFormDialogComponent implements OnChanges {
 
     private resetForm(): void {
         this.category = { id: 0, name: '', description: '' };
+        this.imagePreview = '';
+        this.imageCleared = false;
         this.saving = false;
         this.loading = false;
     }
@@ -155,7 +210,11 @@ export class CategoryFormDialogComponent implements OnChanges {
         this.categoryService
             .get(id)
             .then((category) => {
-                this.category = { ...category };
+                this.category = { ...category, imageBase64: undefined };
+                this.imagePreview = this.categoryService.getImageUrl(
+                    category.imagePath
+                );
+                this.imageCleared = false;
             })
             .catch((error) => {
                 this.messageService.add({

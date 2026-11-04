@@ -67,6 +67,7 @@ namespace SmartPos.Categories
             entity.BranchId = branchId;
             entity.IsActive = input.IsActive;
             entity.DefaultUnitId = input.DefaultUnitId;
+            entity.ImagePath = CategoryImageStore.SaveBase64Image(input.ImageBase64);
 
             if (string.IsNullOrWhiteSpace(entity.Description))
             {
@@ -105,6 +106,8 @@ namespace SmartPos.Categories
                     $"The '{PermanentGrocery.CategoryName}' category cannot be renamed.");
             }
 
+            var previousImagePath = entity.ImagePath;
+
             ObjectMapper.Map(input, entity);
             entity.Name = name;
             if (entity.BranchId <= 0)
@@ -112,6 +115,23 @@ namespace SmartPos.Categories
                 entity.BranchId = RequireCurrentBranchId();
             }
             entity.DefaultUnitId = input.DefaultUnitId;
+
+            if (CategoryImageStore.IsNewImagePayload(input.ImageBase64))
+            {
+                CategoryImageStore.DeleteIfExists(previousImagePath);
+                entity.ImagePath = CategoryImageStore.SaveBase64Image(input.ImageBase64);
+            }
+            else if (string.IsNullOrWhiteSpace(input.ImageBase64) && string.IsNullOrWhiteSpace(input.ImagePath))
+            {
+                // Explicit clear from client.
+                CategoryImageStore.DeleteIfExists(previousImagePath);
+                entity.ImagePath = null;
+            }
+            else
+            {
+                entity.ImagePath = previousImagePath;
+            }
+
             await Repository.UpdateAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
             await ClearLookupCacheAsync();
@@ -127,6 +147,7 @@ namespace SmartPos.Categories
                 throw new UserFriendlyException(
                     $"The '{PermanentGrocery.CategoryName}' category cannot be deleted.");
             }
+            CategoryImageStore.DeleteIfExists(entity.ImagePath);
             await base.DeleteAsync(input);
             await ClearLookupCacheAsync();
         }

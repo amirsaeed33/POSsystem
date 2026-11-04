@@ -308,4 +308,33 @@
     border: 1px solid #fecaca;
 }
 
+.fp-payment-option {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+        background: #fff7ed;
+        border-color: #fdba74;
+    }
+
+    &.active {
+        background: #fff1f2;
+        border-color: #e23744;
+        box-shadow: 0 0 0 1px rgba(226, 55, 68, 0.25);
+    }
+
+    .fp-payment-icon {
+        width: 36px;
+        height: 36px;
+        background: #e23744;
+        color: #ffffff;
+        flex-shrink: 0;
+
+        &.online {
+            background: #2563eb;
+        }
+    }
+}
+
 
