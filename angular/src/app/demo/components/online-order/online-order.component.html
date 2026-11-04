@@ -449,23 +449,22 @@
                             </p>
 
                             <!-- Highlights Row with Yellow Theme Accent -->
-                            <div class="fp-hero-features-row flex flex-wrap gap-2 sm:gap-3 mb-4">
+                            <div class="fp-hero-features-row flex flex-wrap gap-2">
                                 <div class="fp-feature-pill highlight-pill">
                                     <i class="pi pi-tag text-yellow-400"></i>
                                     <span>{{ slide.offerPill }}</span>
                                 </div>
                                 <div class="fp-feature-pill">
                                     <i class="pi pi-bolt text-yellow-400"></i>
-                                    <span>30-45 Min Express Delivery</span>
+                                    <span>30-45 Min Delivery</span>
                                 </div>
                                 <div class="fp-feature-pill">
                                     <i class="pi pi-star-fill text-yellow-400"></i>
-                                    <span>{{ slide.rating }} Customer Rating</span>
+                                    <span>{{ slide.rating }} Rating</span>
                                 </div>
                             </div>
 
-                            <!-- Prominent Yellow-Themed CTAs -->
-                            <div class="fp-hero-cta-group flex flex-wrap align-items-center gap-3">
+                            <div class="fp-hero-cta-group flex flex-wrap align-items-center gap-2">
                                 <button
                                     type="button"
                                     class="fp-btn-primary-hero"
@@ -490,7 +489,7 @@
             </div>
 
             <!-- Slide Pagination Indicator Dots -->
-            <div class="fp-hero-indicators flex align-items-center justify-content-center gap-2 mt-4">
+            <div class="fp-hero-indicators flex align-items-center justify-content-center gap-2">
                 <button
                     type="button"
                     *ngFor="let s of heroSlides; let idx = index"
@@ -1867,108 +1866,82 @@
         </div>
     </section>
 
-    <!-- 14. MODERN RESTAURANT FOOTER & CONTACT SECTION -->
+    <!-- 14. COMPACT FOOTER & CONTACT -->
     <footer class="fp-restaurant-footer" id="storeContactSection">
-        <div class="max-w-7xl mx-auto px-4 py-8">
-            <div class="grid">
-                <!-- Col 1: Brand & Bio -->
-                <div class="col-12 md:col-4 mb-4 md:mb-0">
-                    <div class="flex align-items-center gap-2 mb-3">
-                        <div class="brand-logo-sq w-2.5rem h-2.5rem font-bold text-base">
+        <div class="fp-footer-inner">
+            <div class="fp-footer-grid">
+                <div class="fp-footer-brand">
+                    <div class="fp-footer-brand-row">
+                        <div class="brand-logo-sq">
                             <i [class]="isRestaurantStore() ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
                         </div>
                         <div>
-                            <span class="font-black text-xl text-white">{{ branchName || 'Online Restaurant' }}</span>
-                            <div class="text-xs text-400">Fresh & Hot Online Food Delivery</div>
+                            <div class="fp-footer-brand-name">{{ branchName || 'Online Restaurant' }}</div>
+                            <div class="fp-footer-brand-tag">Fresh &amp; Hot Online Food Delivery</div>
                         </div>
                     </div>
-                    <p class="text-400 text-sm line-height-3 mb-3">
-                        Serving mouthwatering gourmet meals, handcrafted burgers, cheesy pizzas, and crispy sides made fresh to order. Fast, hygienic, and delivered with love.
+                    <p class="fp-footer-bio">
+                        Gourmet meals made fresh to order — fast, hygienic, and delivered with care.
                     </p>
-                    <div class="flex align-items-center gap-2 mb-3">
-                        <span class="fp-badge-trust"><i class="pi pi-shield mr-1"></i>100% Halal</span>
-                        <span class="fp-badge-trust"><i class="pi pi-bolt mr-1"></i>Quick Delivery</span>
+                    <div class="fp-footer-badges">
+                        <span class="fp-badge-trust"><i class="pi pi-shield"></i>100% Halal</span>
+                        <span class="fp-badge-trust"><i class="pi pi-bolt"></i>Quick Delivery</span>
                     </div>
                     <div class="fp-social-links">
                         <span class="fp-social-label">Follow us</span>
                         <div class="fp-social-icons">
-                            <a
-                                class="fp-social-btn facebook"
-                                [href]="socialFacebookHref"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="Facebook"
-                                pTooltip="Facebook"
-                                tooltipPosition="top"
-                            >
+                            <a class="fp-social-btn facebook" [href]="socialFacebookHref" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
                                 <i class="pi pi-facebook"></i>
                             </a>
-                            <a
-                                class="fp-social-btn instagram"
-                                [href]="socialInstagramHref"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="Instagram"
-                                pTooltip="Instagram"
-                                tooltipPosition="top"
-                            >
+                            <a class="fp-social-btn instagram" [href]="socialInstagramHref" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                                 <i class="pi pi-instagram"></i>
                             </a>
-                            <a
-                                class="fp-social-btn youtube"
-                                [href]="socialYoutubeHref"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="YouTube"
-                                pTooltip="YouTube"
-                                tooltipPosition="top"
-                            >
+                            <a class="fp-social-btn youtube" [href]="socialYoutubeHref" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
                                 <i class="pi pi-youtube"></i>
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Col 2: Quick Links -->
-                <div class="col-6 md:col-2 mb-4 md:mb-0">
-                    <h4 class="text-white font-bold text-sm mb-3">Quick Navigation</h4>
-                    <ul class="list-none p-0 m-0 text-sm text-400 flex flex-column gap-2">
-                        <li><a (click)="scrollToSection('home', $event)" class="cursor-pointer hover:text-white transition-colors">Home</a></li>
-                        <li><a (click)="scrollToSection('menu', $event)" class="cursor-pointer hover:text-white transition-colors">Food Menu</a></li>
-                        <li><a (click)="scrollToSection('deals', $event)" class="cursor-pointer hover:text-white transition-colors">Super Deals</a></li>
+                <div class="fp-footer-col">
+                    <h4>Quick Navigation</h4>
+                    <ul>
+                        <li><a (click)="scrollToSection('home', $event)">Home</a></li>
+                        <li><a (click)="scrollToSection('menu', $event)">Food Menu</a></li>
+                        <li><a (click)="scrollToSection('deals', $event)">Super Deals</a></li>
                     </ul>
                 </div>
 
-                <!-- Col 3: Popular Categories -->
-                <div class="col-6 md:col-3 mb-4 md:mb-0">
-                    <h4 class="text-white font-bold text-sm mb-3">Categories</h4>
-                    <ul class="list-none p-0 m-0 text-sm text-400 flex flex-column gap-2">
-                        <li *ngFor="let cat of categories.slice(0, 5)"><a (click)="selectCategory(cat, $event)" class="cursor-pointer hover:text-white transition-colors">{{ cat }}</a></li>
+                <div class="fp-footer-col">
+                    <h4>Categories</h4>
+                    <ul>
+                        <li *ngFor="let cat of categories.slice(0, 5)">
+                            <a (click)="selectCategory(cat, $event)">{{ cat }}</a>
+                        </li>
                     </ul>
                 </div>
 
-                <!-- Col 4: Branch Contact & Hours -->
-                <div class="col-12 md:col-3">
-                    <h4 class="text-white font-bold text-sm mb-3">Branch & Contact</h4>
-                    <div class="flex flex-column gap-2 text-sm text-400">
-                        <div class="flex align-items-start gap-2" *ngIf="branchAddress">
-                            <i class="pi pi-map-marker text-red-500 mt-1"></i>
+                <div class="fp-footer-col fp-footer-contact">
+                    <h4>Branch &amp; Contact</h4>
+                    <ul class="fp-footer-contact-list">
+                        <li *ngIf="branchAddress">
+                            <i class="pi pi-map-marker"></i>
                             <span>{{ branchAddress }}</span>
-                        </div>
-                        <div class="flex align-items-center gap-2" *ngIf="branchPhone">
-                            <i class="pi pi-phone text-green-500"></i>
+                        </li>
+                        <li *ngIf="branchPhone">
+                            <i class="pi pi-phone"></i>
                             <span>{{ branchPhone }}</span>
-                        </div>
-                        <div class="flex align-items-center gap-2">
-                            <i class="pi pi-clock text-yellow-500"></i>
-                            <span>Mon - Sun: 11:00 AM - 02:00 AM</span>
-                        </div>
-                    </div>
+                        </li>
+                        <li>
+                            <i class="pi pi-clock"></i>
+                            <span>Mon – Sun: 11:00 AM – 02:00 AM</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
 
-            <div class="border-top-1 surface-border-dark pt-4 mt-4 text-xs text-500">
-                <span>© {{ branchName || 'Online Store' }}. All rights reserved. Powered by SmartPOS SaaS.</span>
+            <div class="fp-footer-copy">
+                © {{ branchName || 'Online Store' }}. All rights reserved. Powered by SmartPOS SaaS.
             </div>
         </div>
     </footer>
