@@ -1,4 +1,4 @@
-﻿namespace SmartPos.Mobile;
+namespace SmartPos.Mobile;
 
 public partial class App : Application
 {
@@ -22,7 +22,6 @@ public partial class App : Application
             X = 80,
             Y = 40
         };
-        _ = _shell.InitializeNavigationAsync();
         return window;
     }
 }

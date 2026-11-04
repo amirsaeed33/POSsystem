@@ -133,6 +133,31 @@ public class OnlineProductDto
     [JsonPropertyName("cardTag")]
     public string? CardTag { get; set; }
 
+    [JsonPropertyName("dealId")]
+    public int? DealId { get; set; }
+
+    [JsonPropertyName("originalPrice")]
+    public decimal? OriginalPrice { get; set; }
+
+    [JsonPropertyName("dealItemsSummary")]
+    public string? DealItemsSummary { get; set; }
+
+    public bool HasDealSummary => !string.IsNullOrWhiteSpace(DealItemsSummary);
+    public bool HasOriginalPrice => OriginalPrice.HasValue && OriginalPrice.Value > Price;
+    public string OriginalPriceDisplay => OriginalPrice.HasValue ? $"Rs {OriginalPrice.Value:0}" : string.Empty;
+    public string DealDiscountBadge
+    {
+        get
+        {
+            if (OriginalPrice.HasValue && OriginalPrice.Value > Price && OriginalPrice.Value > 0)
+            {
+                var pct = (int)Math.Round((OriginalPrice.Value - Price) / OriginalPrice.Value * 100);
+                if (pct > 0) return $"SAVE {pct}%";
+            }
+            return "HOT DEAL";
+        }
+    }
+
     public string? ImageUrl { get; set; }
 
     public bool HasImage => !string.IsNullOrWhiteSpace(ImageUrl);
@@ -357,4 +382,5 @@ public class CartLine
     public decimal LineTotal => UnitPrice * Quantity;
     public string LineTotalText => LineTotal.ToString("0.00");
     public string UnitPriceText => UnitPrice.ToString("0.00");
+    public bool HasModifiers => !string.IsNullOrWhiteSpace(SelectedModifiers);
 }

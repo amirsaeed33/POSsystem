@@ -11,8 +11,7 @@
              Shell.TabBarIsVisible="False"
              BackgroundColor="#F5F5F5">
     <Grid BackgroundColor="#F5F5F5">
-        <Grid
-              RowDefinitions="*,Auto"
+        <Grid RowDefinitions="*,Auto"
               BackgroundColor="#F5F5F5">
             <ScrollView>
                 <VerticalStackLayout Padding="16,16,16,20" Spacing="14">
@@ -80,7 +79,7 @@
                     <!-- Cart lines -->
                     <CollectionView ItemsSource="{Binding Lines}"
                                     IsVisible="{Binding HasItems}"
-                                    HeightRequest="180">
+                                    HeightRequest="220">
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:CartLine">
                                 <Border Stroke="#E8ECEA"
@@ -92,9 +91,15 @@
                                         <RoundRectangle CornerRadius="14" />
                                     </Border.StrokeShape>
                                     <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
-                                        <VerticalStackLayout>
+                                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
                                             <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="#1F2A24" />
-                                            <Label Text="{Binding UnitPriceText}" TextColor="#5C6B63" FontSize="12" />
+                                            <Label Text="{Binding SelectedModifiers}"
+                                                   IsVisible="{Binding HasModifiers}"
+                                                   TextColor="#0F6B4C"
+                                                   FontSize="11"
+                                                   MaxLines="3"
+                                                   LineBreakMode="WordWrap" />
+                                            <Label Text="{Binding UnitPriceText, StringFormat='PKR {0}'}" TextColor="#5C6B63" FontSize="12" />
                                         </VerticalStackLayout>
                                         <Button Grid.Column="1"
                                                 Text="-"
@@ -107,11 +112,11 @@
                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=DecreaseCommand}"
                                                 CommandParameter="{Binding .}" />
                                         <Label Grid.Column="2"
-                                               Text="{Binding Quantity}"
-                                               VerticalOptions="Center"
-                                               FontAttributes="Bold"
-                                               WidthRequest="24"
-                                               HorizontalTextAlignment="Center" />
+                                                Text="{Binding Quantity}"
+                                                VerticalOptions="Center"
+                                                FontAttributes="Bold"
+                                                WidthRequest="24"
+                                                HorizontalTextAlignment="Center" />
                                         <Button Grid.Column="3"
                                                 Text="+"
                                                 WidthRequest="40"

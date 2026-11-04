@@ -91,6 +91,58 @@ public class OnlineOrderService
         }
     }
 
+    public async Task<DealDto?> GetDealByProductIdAsync(int productId)
+    {
+        try
+        {
+            var deal = await _api.GetAsync<DealDto>($"api/services/app/Deal/GetByProductId?productId={productId}");
+            if (deal != null)
+            {
+                deal.ImageUrl = _api.ResolveImageUrl(deal.ImagePath);
+            }
+            return deal;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<DealDto?> GetDealByIdAsync(int dealId)
+    {
+        try
+        {
+            var deal = await _api.GetAsync<DealDto>($"api/services/app/Deal/Get?Id={dealId}");
+            if (deal != null)
+            {
+                deal.ImageUrl = _api.ResolveImageUrl(deal.ImagePath);
+            }
+            return deal;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<List<DealDto>> GetActiveDealsAsync(int branchId)
+    {
+        try
+        {
+            var paged = await _api.GetAsync<AbpPagedResult<DealDto>>($"api/services/app/Deal/GetAll?branchId={branchId}");
+            var items = paged?.Items?.ToList() ?? new List<DealDto>();
+            foreach (var item in items)
+            {
+                item.ImageUrl = _api.ResolveImageUrl(item.ImagePath);
+            }
+            return items;
+        }
+        catch
+        {
+            return new List<DealDto>();
+        }
+    }
+
     public Task<CustomerOrderDto> CreateOnlineOrderAsync(CreateCustomerOrderDto input) =>
         _api.PostAsync<CustomerOrderDto>("api/services/app/CustomerOrder/CreateOnlineOrder", input);
 

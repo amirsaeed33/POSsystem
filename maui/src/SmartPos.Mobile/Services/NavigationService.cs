@@ -11,27 +11,43 @@ public class NavigationService
         _session = session;
     }
 
-    public Task GoToLoginAsync() => Shell.Current.GoToAsync("//customer/account");
+    private static Shell? GetShell() =>
+        Shell.Current ?? Application.Current?.Windows.FirstOrDefault()?.Page as Shell;
+
+    public async Task GoToLoginAsync()
+    {
+        var shell = GetShell();
+        if (shell != null)
+        {
+            await shell.GoToAsync("//customer/account");
+        }
+    }
 
     public async Task GoToRoleHomeAsync()
     {
+        var shell = GetShell();
+        if (shell == null)
+        {
+            return;
+        }
+
         var mode = _session.ResolveRoleMode();
         switch (mode)
         {
             case AppRoleMode.Rider:
-                await Shell.Current.GoToAsync("//rider/dashboard");
+                await shell.GoToAsync("//rider/dashboard");
                 break;
             case AppRoleMode.Waiter:
-                await Shell.Current.GoToAsync("//waiter/tables");
+                await shell.GoToAsync("//waiter/tables");
                 break;
             case AppRoleMode.Admin:
-                await Shell.Current.GoToAsync("//admin/home");
+                await shell.GoToAsync("//admin/home");
                 break;
             case AppRoleMode.UnsupportedStaff:
-                await Shell.Current.GoToAsync("//unsupported");
+                await shell.GoToAsync("//unsupported");
                 break;
             case AppRoleMode.Customer when _session.IsAuthenticated:
-                await Shell.Current.GoToAsync("//customer/home");
+                await shell.GoToAsync("//customer/home");
                 break;
             default:
                 // Guests / cold start: stay on login unless they continue as customer.

@@ -114,4 +114,10 @@ public partial class LoginViewModel : BaseViewModel
     {
         await Shell.Current.GoToAsync("//customer/home");
     }
+
+    [RelayCommand]
+    private async Task ContinueToRoleHomeAsync()
+    {
+        await _navigation.GoToRoleHomeAsync();
+    }
 }

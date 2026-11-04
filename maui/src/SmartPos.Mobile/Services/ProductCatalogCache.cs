@@ -101,7 +101,10 @@ public sealed class ProductCatalogCache
         IsFreeDelivery = p.IsFreeDelivery,
         IsDeal = p.IsDeal,
         CardTag = p.CardTag,
-        CartQty = p.CartQty
+        CartQty = p.CartQty,
+        DealId = p.DealId,
+        OriginalPrice = p.OriginalPrice,
+        DealItemsSummary = p.DealItemsSummary
     };
 
     private sealed class CacheEntry<T>

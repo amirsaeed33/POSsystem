@@ -60,10 +60,10 @@
                             <Label Text="{Binding WelcomeName, StringFormat='Signed in as {0}'}"
                                    FontSize="14"
                                    TextColor="#64748B" />
-                            <Button Text="Log out"
-                                    Command="{Binding LogoutCommand}"
-                                    BackgroundColor="#FEE2E2"
-                                    TextColor="#B91C1C"
+                            <Button Text="Continue to Home"
+                                    Command="{Binding ContinueToRoleHomeCommand}"
+                                    BackgroundColor="#2563EB"
+                                    TextColor="White"
                                     CornerRadius="24"
                                     HeightRequest="50"
                                     FontAttributes="Bold" />
@@ -73,6 +73,13 @@
                                     TextColor="#1D4ED8"
                                     CornerRadius="24"
                                     HeightRequest="46"
+                                    FontAttributes="Bold" />
+                            <Button Text="Log out"
+                                    Command="{Binding LogoutCommand}"
+                                    BackgroundColor="#FEE2E2"
+                                    TextColor="#B91C1C"
+                                    CornerRadius="24"
+                                    HeightRequest="50"
                                     FontAttributes="Bold" />
                         </VerticalStackLayout>
 

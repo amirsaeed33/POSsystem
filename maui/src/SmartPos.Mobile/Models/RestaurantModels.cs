@@ -487,17 +487,3 @@ public class ProductModifierOptionDto : EntityDto
     public decimal EffectivePrice => ExtraPrice is > 0 ? ExtraPrice.Value : Price;
 }
 
-public class DealDto : EntityDto
-{
-    [JsonPropertyName("name")]
-    public string? Name { get; set; }
-
-    [JsonPropertyName("productId")]
-    public int ProductId { get; set; }
-
-    [JsonPropertyName("price")]
-    public decimal Price { get; set; }
-
-    [JsonPropertyName("description")]
-    public string? Description { get; set; }
-}
