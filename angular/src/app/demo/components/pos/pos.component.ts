@@ -2204,6 +2204,9 @@ export class PosComponent implements OnInit, OnDestroy {
 
             const kotResult = await this.restaurantOrderService.sendToKitchen(savedOrder.id);
             this.kotResult = kotResult;
+            if (kotResult?.tokenNo != null) {
+                this.activeTokenNo = kotResult.tokenNo;
+            }
 
             this.cart.forEach((l) => (l.isSentToKitchen = true));
             if (!isTakeaway) {

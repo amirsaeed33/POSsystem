@@ -376,3 +376,29 @@
 .invoice-footer .mb-1 {
   margin-bottom: 0.25rem;
 }
+
+.thermal-store-tagline {
+  font-size: 11px;
+  color: #111;
+  margin-top: 1px;
+}
+.thermal-token-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 6px 0 2px 0;
+  font-weight: bold;
+}
+.thermal-token-num {
+  font-size: 15px;
+  font-family: monospace;
+}
+.thermal-token-type {
+  font-size: 14px;
+}
+.thermal-deal-items {
+  font-size: 9px;
+  color: #222;
+  margin-top: 1px;
+  padding-left: 6px;
+}

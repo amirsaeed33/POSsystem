@@ -36,6 +36,9 @@ namespace SmartPos.Orders
         [StringLength(MaxOrderNoLength)]
         public virtual string OrderNo { get; set; }
 
+        /// <summary>Daily queue/token number for online delivery orders (resets each calendar day per branch).</summary>
+        public virtual int? TokenNo { get; set; }
+
         public virtual CustomerOrderStatus Status { get; set; }
 
         public virtual decimal SubTotal { get; set; }

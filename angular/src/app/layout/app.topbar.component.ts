@@ -20,6 +20,8 @@ import { Subscription } from 'rxjs';
 import { RestaurantTakeawayAlarmService } from 'src/app/demo/service/restaurant-takeaway-alarm.service';
 import { AppSoundService } from 'src/app/demo/service/app-sound.service';
 import { UnpaidTakeawayOrderDto } from 'src/app/demo/api/restaurant-order';
+import { SaleService } from 'src/app/demo/service/sale.service';
+import { SaleDto } from 'src/app/demo/api/sale';
 
 @Component({
     selector: 'app-topbar',
@@ -105,6 +107,21 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     unpaidTakeawayOrders: UnpaidTakeawayOrderDto[] = [];
     takeawayAudioBlocked = false;
     takeawayOrdersDialogVisible = false;
+
+    // Unpaid Bills State
+    unpaidBills: SaleDto[] = [];
+    loadingUnpaidBills = false;
+    collectBillDialogVisible = false;
+    selectedBillForPayment: SaleDto | null = null;
+    collectBillAmount = 0;
+    collectBillPaymentMethod = 1;
+    collectBillNotes = '';
+    collectingBillPayment = false;
+    paymentMethodOptions = [
+        { label: 'Cash', value: 1 },
+        { label: 'Card', value: 2 }
+    ];
+    private unpaidBillsPollTimer: any;
     private takeawayAlarmSub?: Subscription;
     private takeawayAudioSub?: Subscription;
 
@@ -123,6 +140,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         public takeawayAlarmService: RestaurantTakeawayAlarmService,
         public appSound: AppSoundService,
         private messageService: MessageService,
+        private saleService: SaleService,
         private router: Router
     ) { }
 
@@ -136,6 +154,13 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     /** Tenant admin may switch among own locations; staff are locked. */
+    get canViewUnpaidBills(): boolean {
+        return !this.isWaiter && !this.isDeliveryRider && (
+            this.isHostAdmin ||
+            this.permissionService.isGranted(PermissionNames.Sales)
+        );
+    }
+
     get canSwitchLocations(): boolean {
         return (
             this.isHostAdmin ||
@@ -169,6 +194,9 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                 if (!this.isDeliveryRider && !this.isWaiter) {
                     this.loadTodayOrders();
                     if (b.id) {
+                        if (this.canViewUnpaidBills) {
+                            this.loadUnpaidBills();
+                        }
                         this.customerChatService.joinBranchChat(b.id);
                         this.loadUnreadChatCount();
                     }
@@ -190,12 +218,20 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         this.takeawayAlarmSub = this.takeawayAlarmService.unpaidOrders$.subscribe((orders) => {
             this.unpaidTakeawayOrders = orders || [];
         });
+        if (this.canViewUnpaidBills) {
+            this.loadUnpaidBills();
+            this.unpaidBillsPollTimer = setInterval(() => this.loadUnpaidBills(), 60000);
+        }
+
         this.takeawayAudioSub = this.takeawayAlarmService.audioBlocked$.subscribe((blocked) => {
             this.takeawayAudioBlocked = blocked;
         });
     }
 
     ngOnDestroy(): void {
+        if (this.unpaidBillsPollTimer) {
+            clearInterval(this.unpaidBillsPollTimer);
+        }
         if (this.orderPollTimer) {
             clearInterval(this.orderPollTimer);
         }
@@ -690,6 +726,110 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
 
     get tabs(): MenuItem[] {
         return this.layoutService.tabs;
+    }
+
+    async loadUnpaidBills(): Promise<void> {
+        if (!this.canViewUnpaidBills) {
+            this.unpaidBills = [];
+            return;
+        }
+        this.loadingUnpaidBills = true;
+        try {
+            this.unpaidBills = await this.saleService.getUnpaidSales();
+        } catch (err) {
+            console.warn('Failed to load unpaid sales in topbar', err);
+        } finally {
+            this.loadingUnpaidBills = false;
+        }
+    }
+
+    getBillType(bill: SaleDto | null): string {
+        if (!bill) return 'Takeaway';
+        if (bill.saleType) return bill.saleType;
+        const notes = bill.notes || '';
+        if (notes.includes('[Online Order') || notes.includes('ORD-') || (bill.deliveryCharges ?? 0) > 0 || bill.deliveryAreaName) {
+            return 'Online Order';
+        }
+        if (notes.includes('[Dine-In') || notes.includes('Dine-In')) {
+            return 'Dine-In';
+        }
+        return 'Takeaway';
+    }
+
+    getBillDueAmount(bill: SaleDto | null): number {
+        if (!bill) return 0;
+        if (bill.dueAmount !== undefined && bill.dueAmount !== null) {
+            return Math.max(0, bill.dueAmount);
+        }
+        const paid = bill.paidAmount ?? ((bill.cashAmount ?? 0) + (bill.cardAmount ?? 0));
+        return Math.max(0, (bill.totalAmount ?? 0) - paid);
+    }
+
+    openCollectBillDialog(bill: SaleDto): void {
+        this.selectedBillForPayment = bill;
+        this.collectBillAmount = this.getBillDueAmount(bill);
+        this.collectBillPaymentMethod = 1;
+        this.collectBillNotes = '';
+        this.collectBillDialogVisible = true;
+    }
+
+    cancelCollectBillDialog(): void {
+        this.collectBillDialogVisible = false;
+        this.selectedBillForPayment = null;
+        this.collectBillAmount = 0;
+        this.collectBillNotes = '';
+    }
+
+    async submitCollectBillPayment(): Promise<void> {
+        if (!this.selectedBillForPayment) return;
+        const due = this.getBillDueAmount(this.selectedBillForPayment);
+        if (this.collectBillAmount <= 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Invalid Amount',
+                detail: 'Please enter an amount greater than 0.'
+            });
+            return;
+        }
+        if (this.collectBillAmount > due + 0.01) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Amount Exceeded',
+                detail: `Amount cannot exceed remaining due (PKR ${due.toFixed(2)}).`
+            });
+            return;
+        }
+
+        this.collectingBillPayment = true;
+        try {
+            await this.saleService.collectPayment({
+                saleId: this.selectedBillForPayment.id,
+                amount: this.collectBillAmount,
+                paymentMethod: this.collectBillPaymentMethod,
+                notes: this.collectBillNotes?.trim() || undefined
+            });
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Payment Collected',
+                detail: `Collected PKR ${this.collectBillAmount.toFixed(2)} for invoice #${this.selectedBillForPayment.invoiceNo || this.selectedBillForPayment.id}`
+            });
+            this.collectBillDialogVisible = false;
+            this.selectedBillForPayment = null;
+            await this.loadUnpaidBills();
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Failed',
+                detail: err?.message || 'Failed to collect payment.'
+            });
+        } finally {
+            this.collectingBillPayment = false;
+        }
+    }
+
+    navigateToSales(): void {
+        this.router.navigate(['/sales']);
     }
 
     onSignOut(): void {

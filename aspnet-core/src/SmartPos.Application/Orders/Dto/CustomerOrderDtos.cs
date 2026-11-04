@@ -142,6 +142,10 @@ namespace SmartPos.Orders.Dto
         public decimal UnitPrice { get; set; }
 
         public decimal LineTotal { get; set; }
+
+        public bool IsDeal { get; set; }
+
+        public List<string> DealItems { get; set; } = new List<string>();
     }
 
     public class CustomerOrderDto : EntityDto
@@ -161,6 +165,8 @@ namespace SmartPos.Orders.Dto
         public DateTime OrderDate { get; set; }
 
         public string OrderNo { get; set; }
+
+        public int? TokenNo { get; set; }
 
         public CustomerOrderStatus Status { get; set; }
 

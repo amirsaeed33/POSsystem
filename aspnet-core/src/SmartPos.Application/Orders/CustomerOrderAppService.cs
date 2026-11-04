@@ -29,6 +29,7 @@ using Abp.Events.Bus;
 using SmartPos.Emailing;
 using SmartPos.Staffs;
 using SmartPos.Categories;
+using SmartPos.Deals;
 using Abp.Timing;
 
 namespace SmartPos.Orders
@@ -59,6 +60,9 @@ namespace SmartPos.Orders
         private readonly IRepository<Staff> _staffRepository;
         private readonly IRepository<Category> _categoryRepository;
         private readonly ICacheManager _cacheManager;
+        private readonly ITokenNumberManager _tokenNumberManager;
+        private readonly IRepository<Deal> _dealRepository;
+        private readonly IRepository<DealDetail> _dealDetailRepository;
 
         public CustomerOrderAppService(
             IRepository<CustomerOrder> repository,
@@ -80,10 +84,16 @@ namespace SmartPos.Orders
             IRepository<CustomerFavorite> customerFavoriteRepository,
             IRepository<Staff> staffRepository,
             IRepository<Category> categoryRepository,
-            ICacheManager cacheManager)
+            ICacheManager cacheManager,
+            ITokenNumberManager tokenNumberManager,
+            IRepository<Deal> dealRepository,
+            IRepository<DealDetail> dealDetailRepository)
             : base(repository)
         {
             _lineRepository = lineRepository;
+            _tokenNumberManager = tokenNumberManager;
+            _dealRepository = dealRepository;
+            _dealDetailRepository = dealDetailRepository;
             _productRepository = productRepository;
             _customerRepository = customerRepository;
             _userRepository = userRepository;
@@ -602,6 +612,7 @@ namespace SmartPos.Orders
                 order.FreeDeliveryReason = freeDeliveryReason;
                 order.DeliveryPromotionId = appliedPromotionId;
                 order.TotalAmount = Math.Round(subTotal + finalDeliveryFee, 2);
+                order.TokenNo = await _tokenNumberManager.AllocateNextTokenNoAsync(branchId);
 
                 var insertedId = await Repository.InsertAndGetIdAsync(order);
                 await CurrentUnitOfWork.SaveChangesAsync();
@@ -1077,6 +1088,7 @@ namespace SmartPos.Orders
                 CustomerAddress = GetDefaultSavedAddressText(entity.CustomerId),
                 OrderDate = entity.OrderDate,
                 OrderNo = entity.OrderNo,
+                TokenNo = entity.TokenNo,
                 Status = entity.Status,
                 StatusName = (entity.Status == CustomerOrderStatus.Approved || entity.Status == CustomerOrderStatus.InProgress)
                     ? "In Progress"
@@ -1115,8 +1127,58 @@ namespace SmartPos.Orders
 
             if (entity.Lines != null)
             {
+                var productIds = entity.Lines.Select(l => l.ProductId).Distinct().ToList();
+                var dealIds = entity.Lines
+                    .Where(l => l.Product != null && (l.Product.IsDeal || l.Product.DealId.HasValue))
+                    .Select(l => l.Product.DealId)
+                    .Where(id => id.HasValue)
+                    .Select(id => id.Value)
+                    .Distinct()
+                    .ToList();
+
+                var matchingDeals = _dealRepository.GetAll()
+                    .Where(d => d.ProductId.HasValue && productIds.Contains(d.ProductId.Value))
+                    .ToList();
+
+                foreach (var md in matchingDeals)
+                {
+                    if (!dealIds.Contains(md.Id))
+                    {
+                        dealIds.Add(md.Id);
+                    }
+                }
+
+                var dealBreakdowns = new Dictionary<int, List<string>>();
+                if (dealIds.Count > 0)
+                {
+                    var details = _dealDetailRepository.GetAll()
+                        .Include(d => d.Product)
+                        .Where(d => dealIds.Contains(d.DealId))
+                        .ToList();
+
+                    dealBreakdowns = details
+                        .GroupBy(d => d.DealId)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.Select(d => $"{d.Quantity:0.#}x {d.Product?.Name ?? "Item"}").ToList());
+                }
+
                 foreach (var line in entity.Lines)
                 {
+                    var dealId = line.Product?.DealId;
+                    if (!dealId.HasValue)
+                    {
+                        var matching = matchingDeals.FirstOrDefault(d => d.ProductId == line.ProductId);
+                        if (matching != null) dealId = matching.Id;
+                    }
+
+                    var isDeal = (line.Product != null && line.Product.IsDeal) || dealId.HasValue;
+                    var breakdowns = new List<string>();
+                    if (dealId.HasValue && dealBreakdowns.TryGetValue(dealId.Value, out var list))
+                    {
+                        breakdowns = list;
+                    }
+
                     dto.Lines.Add(new CustomerOrderLineDto
                     {
                         Id = line.Id,
@@ -1125,7 +1187,9 @@ namespace SmartPos.Orders
                         ProductName = line.Product?.Name,
                         Quantity = line.Quantity,
                         UnitPrice = line.UnitPrice,
-                        LineTotal = line.LineTotal
+                        LineTotal = line.LineTotal,
+                        IsDeal = isDeal,
+                        DealItems = breakdowns
                     });
                 }
             }

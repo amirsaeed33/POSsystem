@@ -42,6 +42,7 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
     selectedOrderForComplete: RiderOrderDto | null = null;
     deliveryNotes = '';
     deliveryRating: number | null = null;
+    paymentReceivedAmount: number = 0;
 
     // Auto-refresh interval
     private pollInterval: any;
@@ -189,6 +190,7 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
         this.selectedOrderForComplete = order;
         this.deliveryNotes = '';
         this.deliveryRating = null;
+        this.paymentReceivedAmount = order?.totalAmount ?? 0;
         this.completeDialogVisible = true;
     }
 
@@ -200,6 +202,7 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
         this.selectedOrderForComplete = null;
         this.deliveryNotes = '';
         this.deliveryRating = null;
+        this.paymentReceivedAmount = 0;
     }
 
     async submitCompleteDelivery(): Promise<void> {
@@ -213,7 +216,8 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
             await this.riderService.completeDelivery(
                 order.id,
                 this.deliveryNotes,
-                this.deliveryRating
+                this.deliveryRating,
+                this.paymentReceivedAmount
             );
             this.messageService.add({
                 severity: 'success',

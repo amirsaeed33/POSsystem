@@ -13,6 +13,7 @@ using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Restaurant.Dto;
 using SmartPos.Sales;
+using SmartPos.Orders;
 using SmartPos.Sales.Dto;
 using Abp.Timing;
 
@@ -29,6 +30,7 @@ namespace SmartPos.Restaurant
         private readonly IRepository<Branch> _branchRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly UserManager _userManager;
+        private readonly ITokenNumberManager _tokenNumberManager;
 
         public RestaurantOrderAppService(
             IRepository<RestaurantOrder> orderRepository,
@@ -38,7 +40,8 @@ namespace SmartPos.Restaurant
             IRepository<RestaurantPrintLog> printLogRepository,
             IRepository<Branch> branchRepository,
             IBranchAccessChecker branchAccessChecker,
-            UserManager userManager)
+            UserManager userManager,
+            ITokenNumberManager tokenNumberManager)
         {
             _orderRepository = orderRepository;
             _lineRepository = lineRepository;
@@ -48,6 +51,7 @@ namespace SmartPos.Restaurant
             _branchRepository = branchRepository;
             _branchAccessChecker = branchAccessChecker;
             _userManager = userManager;
+            _tokenNumberManager = tokenNumberManager;
         }
 
         private async Task<(long UserId, string Name, string Role)> GetCurrentPrinterIdentityAsync()
@@ -718,6 +722,8 @@ namespace SmartPos.Restaurant
                 {
                     OrderId = order.Id,
                     OrderNo = order.OrderNo,
+                    TokenNo = order.TokenNo,
+                    OrderTypeLabel = isCarOrder ? "Car Service" : (order.OrderType == OrderType.DineIn ? "Dine-In" : "Take-Away"),
                     TableNo = displayTableNo,
                     CarName = order.CarName,
                     CarNumber = order.CarNumber,
@@ -740,6 +746,8 @@ namespace SmartPos.Restaurant
             {
                 OrderId = order.Id,
                 OrderNo = order.OrderNo,
+                TokenNo = order.TokenNo,
+                OrderTypeLabel = isCarOrder ? "Car Service" : (order.OrderType == OrderType.DineIn ? "Dine-In" : "Take-Away"),
                 TableNo = displayTableNo,
                 CarName = order.CarName,
                 CarNumber = order.CarNumber,
@@ -810,6 +818,8 @@ namespace SmartPos.Restaurant
             {
                 OrderId = order.Id,
                 OrderNo = order.OrderNo,
+                TokenNo = order.TokenNo,
+                OrderTypeLabel = isCarOrder ? "Car Service" : (order.OrderType == OrderType.DineIn ? "Dine-In" : "Take-Away"),
                 TableNo = displayTableNo,
                 CarName = order.CarName,
                 CarNumber = order.CarNumber,
@@ -1222,7 +1232,7 @@ namespace SmartPos.Restaurant
         }
 
         /// <summary>
-        /// Assigns a daily kitchen token for dine-in and takeaway (resets each calendar day per branch).
+        /// Assigns a daily token across Dine-In, Takeaway, Online Delivery, and Car Service (resets at midnight every day).
         /// </summary>
         private async Task EnsureTokenAssignedAsync(RestaurantOrder order)
         {
@@ -1231,27 +1241,12 @@ namespace SmartPos.Restaurant
                 return;
             }
 
-            if (order.OrderType != OrderType.DineIn && order.OrderType != OrderType.Takeaway)
-            {
-                return;
-            }
-
-            order.TokenNo = await AllocateNextTokenNoAsync(order.BranchId);
+            order.TokenNo = await _tokenNumberManager.AllocateNextTokenNoAsync(order.BranchId);
         }
 
         private async Task<int> AllocateNextTokenNoAsync(int branchId)
         {
-            var today = Clock.Now.Date;
-            var tomorrow = today.AddDays(1);
-            var maxToken = await _orderRepository.GetAll()
-                .AsNoTracking()
-                .Where(o => o.BranchId == branchId
-                            && o.TokenNo != null
-                            && o.CreationTime >= today
-                            && o.CreationTime < tomorrow)
-                .MaxAsync(o => (int?)o.TokenNo);
-
-            return (maxToken ?? 0) + 1;
+            return await _tokenNumberManager.AllocateNextTokenNoAsync(branchId);
         }
     }
 }

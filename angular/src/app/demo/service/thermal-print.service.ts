@@ -387,108 +387,191 @@ export class ThermalPrintService {
     // =========================================================================
     // 1. POS SALES RECEIPT (Cash/Card Checkout)
     // =========================================================================
-    public printPosReceipt(receipt: any, paperSize?: ThermalPaperSize): void {
-        const branch = this.getBranchInfo();
-        const config = this.getConfig();
-        const size = paperSize || config.paperSize;
-        const is58 = size === '58mm';
+    // =========================================================================
+    // Format Date / Time matching thermal reference: 03/11/26' 07:46pm
+    // =========================================================================
+    private formatThermalDate(d: Date | string | number | undefined | null): { dateStr: string; timeStr: string; fullStr: string } {
+        const dt = d ? new Date(d) : new Date();
+        const valid = !isNaN(dt.getTime()) ? dt : new Date();
+        const day = String(valid.getDate()).padStart(2, '0');
+        const month = String(valid.getMonth() + 1).padStart(2, '0');
+        const year = String(valid.getFullYear()).slice(-2);
+        let hours = valid.getHours();
+        const minutes = String(valid.getMinutes()).padStart(2, '0');
+        const seconds = String(valid.getSeconds()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const hStr = String(hours).padStart(2, '0');
 
-        const logoHtml =
-            config.showLogo && branch.logoUrl
-                ? `<img src="${branch.logoUrl}" class="logo-img" alt="Logo" />`
+        const dateStr = `${day}/${month}/${year}'`;
+        const timeStr = `${hStr}:${minutes}:${seconds}${ampm}`;
+        const shortTimeStr = `${hStr}:${minutes}${ampm}`;
+        return {
+            dateStr,
+            timeStr,
+            fullStr: `${dateStr} ${shortTimeStr}`
+        };
+    }
+
+    // =========================================================================
+    // Standard Unified Reference Thermal Receipt Builder (Matches Al Meezan reference)
+    // =========================================================================
+    private buildReferenceReceiptHtml(params: {
+        size: ThermalPaperSize;
+        logoUrl?: string;
+        branchName: string;
+        tagline?: string;
+        city?: string;
+        statusLabel: string;
+        tokenNo?: number | null;
+        orderType: string;
+        orderId: string | number;
+        orderDate?: Date | string | null;
+        invoiceNo?: string | number | null;
+        userName?: string;
+        subLocation?: string;
+        lines: Array<{
+            productName: string;
+            quantity: number;
+            unitPrice: number;
+            lineTotal?: number;
+            isDeal?: boolean;
+            dealItems?: string[];
+            modifiers?: string[];
+            notes?: string;
+        }>;
+        subTotal: number;
+        discountAmount?: number;
+        discountPercent?: number;
+        taxAmount?: number;
+        taxPercent?: number;
+        deliveryFee?: number;
+        serviceChargeAmount?: number;
+        serviceChargePercent?: number;
+        grandTotal: number;
+        cashPaid?: number;
+        cardPaid?: number;
+        paidAmount?: number;
+        dueAmount?: number;
+        changeReturned?: number;
+        customerName?: string;
+        customerPhone?: string;
+        customerAddress?: string;
+        orderTaker?: string;
+        complaintPhone?: string;
+    }): string {
+        const is58 = params.size === '58mm';
+        const dateParts = this.formatThermalDate(params.orderDate);
+        const printParts = this.formatThermalDate(new Date());
+
+        const logoHtml = params.logoUrl
+            ? `<img src="${params.logoUrl}" class="logo-img" alt="Logo" />`
+            : '';
+
+        const linesHtml = (params.lines || []).map((l: any) => {
+            const qty = Number(l.quantity || 0);
+            const rate = Number(l.unitPrice || 0);
+            const total = Number(l.lineTotal != null ? l.lineTotal : qty * rate);
+            const dealBadge = l.isDeal ? `<span class="badge">DEAL</span>` : '';
+            const dealList = (l.dealItems && l.dealItems.length > 0)
+                ? `<div style="font-size: ${is58 ? '8px' : '9px'}; color: #222; margin-top: 1px; padding-left: 6px;">
+                    ${l.dealItems.map((d: string) => `<div>&bull; ${d}</div>`).join('')}
+                   </div>`
+                : '';
+            const mods = l.modifiers?.length
+                ? `<div style="font-size: ${is58 ? '8px' : '8.5px'}; color: #555;">Opts: ${l.modifiers.join(', ')}</div>`
+                : '';
+            const notes = l.notes
+                ? `<div style="font-size: ${is58 ? '8px' : '8.5px'}; color: #b91c1c; font-style: italic;">* ${l.notes}</div>`
                 : '';
 
-        const linesHtml = (receipt.lines || [])
-            .map((line: any) => {
-                const dealBadge = line.isDeal ? `<span class="badge">DEAL</span>` : '';
-                const dealHtml = line.dealItems?.length
-                    ? `<div style="font-size: 8.5px; color: #222; margin-top: 1px; padding-left: 3px; border-left: 2px solid #555;">
-                        <div style="font-weight: bold; color: #555;">INCLUDES:</div>
-                        ${line.dealItems.map((d: string) => `<div>&bull; ${d}</div>`).join('')}
-                       </div>`
-                    : '';
-                const mods = line.modifiers?.length
-                    ? `<div style="font-size: 8.5px; color: #555;">Opts: ${line.modifiers.join(', ')}</div>`
-                    : '';
-                const notes = line.notes
-                    ? `<div style="font-size: 8.5px; color: #b91c1c; font-style: italic;">* ${line.notes}</div>`
-                    : '';
+            return `
+                <tr>
+                    <td colspan="4" style="padding-top: 2px; padding-bottom: 0;">
+                        <span style="font-weight: bold;">${dealBadge}${l.productName || 'Item'}</span>
+                        ${dealList}${mods}${notes}
+                    </td>
+                </tr>
+                <tr style="border-bottom: 1px dotted #ccc;">
+                    <td style="width: 46%; padding-top: 0;"></td>
+                    <td style="width: 14%; text-align: center; font-weight: bold; padding-top: 0;">${qty}</td>
+                    <td style="width: 20%; text-align: right; padding-top: 0;">${rate.toFixed(0)}</td>
+                    <td style="width: 20%; text-align: right; font-weight: bold; padding-top: 0;">${total.toFixed(0)}</td>
+                </tr>
+            `;
+        }).join('');
 
-                return `
-                    <tr style="border-bottom: 1px dotted #ccc;">
-                        <td style="width: ${is58 ? '14%' : '12%'}; text-align: left; font-weight: bold;">${line.quantity}x</td>
-                        <td style="width: ${is58 ? '46%' : '48%'};">
-                            <div style="font-weight: 500;">${dealBadge}${line.productName}</div>
-                            ${dealHtml}${mods}${notes}
-                        </td>
-                        <td style="width: ${is58 ? '20%' : '20%'}; text-align: right; padding-right: 5px;">${Number(line.unitPrice).toFixed(2)}</td>
-                        <td style="width: ${is58 ? '20%' : '20%'}; text-align: right; font-weight: bold;">${Number(line.lineTotal).toFixed(2)}</td>
-                    </tr>
-                `;
-            })
-            .join('');
+        const discountHtml = (params.discountAmount && params.discountAmount > 0)
+            ? `<div class="row"><span>Discount${params.discountPercent ? ' (' + params.discountPercent + '%)' : ''}:</span><span>-${Number(params.discountAmount).toFixed(0)}</span></div>`
+            : '';
+        const taxHtml = (params.taxAmount && params.taxAmount > 0)
+            ? `<div class="row"><span>Tax${params.taxPercent ? ' (' + params.taxPercent + '%)' : ''}:</span><span>+${Number(params.taxAmount).toFixed(0)}</span></div>`
+            : '';
+        const deliveryHtml = (params.deliveryFee && params.deliveryFee > 0)
+            ? `<div class="row"><span>Delivery Charges:</span><span>+${Number(params.deliveryFee).toFixed(0)}</span></div>`
+            : '';
+        const serviceHtml = (params.serviceChargeAmount && params.serviceChargeAmount > 0)
+            ? `<div class="row"><span>Service Charge${params.serviceChargePercent ? ' (' + params.serviceChargePercent + '%)' : ''}:</span><span>+${Number(params.serviceChargeAmount).toFixed(0)}</span></div>`
+            : '';
 
-        const discountRow =
-            receipt.discountAmount > 0
-                ? `<div class="row"><span>Discount${receipt.discountPercent > 0 ? ' (' + receipt.discountPercent + '%)' : ''}:</span><span>-${Number(receipt.discountAmount).toFixed(2)}</span></div>`
-                : '';
-        const taxRow =
-            receipt.taxAmount > 0
-                ? `<div class="row"><span>Tax (${receipt.taxPercent}%):</span><span>+${Number(receipt.taxAmount).toFixed(2)}</span></div>`
-                : '';
-        const serviceRow =
-            receipt.serviceChargeAmount > 0
-                ? `<div class="row"><span>Service Charge (${receipt.serviceChargePercent}%):</span><span>+${Number(receipt.serviceChargeAmount).toFixed(2)}</span></div>`
-                : '';
-        const deliveryRow =
-            receipt.deliveryFee > 0
-                ? `<div class="row"><span>Delivery Charges:</span><span>+${Number(receipt.deliveryFee).toFixed(2)}</span></div>`
-                : '';
+        const cashPaidHtml = (params.cashPaid && params.cashPaid > 0)
+            ? `<div class="row text-xs"><span>Cash Paid:</span><span>${Number(params.cashPaid).toFixed(0)}</span></div>`
+            : '';
+        const cardPaidHtml = (params.cardPaid && params.cardPaid > 0)
+            ? `<div class="row text-xs"><span>Card Paid:</span><span>${Number(params.cardPaid).toFixed(0)}</span></div>`
+            : '';
+        const dueHtml = (params.dueAmount && params.dueAmount > 0.009)
+            ? `<div class="row bold" style="color: #b91c1c;"><span>Due Amount:</span><span>${Number(params.dueAmount).toFixed(0)} Rs</span></div>`
+            : '';
+        const changeHtml = (params.changeReturned && params.changeReturned > 0)
+            ? `<div class="row bold"><span>Change Returned:</span><span>${Number(params.changeReturned).toFixed(0)} Rs</span></div>`
+            : '';
 
-        const locationMeta = receipt.carNumber
-            ? `Car: <strong>${receipt.carName || ''} (${receipt.carNumber})</strong> ${receipt.carLocation ? '&bull; Spot: ' + receipt.carLocation : ''}`
-            : `Table: <strong>${receipt.tableNo || 'Takeaway'}</strong>`;
+        const tokenRowHtml = (params.tokenNo != null && params.tokenNo > 0)
+            ? `<div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 5px; margin-bottom: 2px; font-weight: bold;">
+                <span style="font-size: ${is58 ? '13px' : '15px'}; font-family: monospace;">Token# ${params.tokenNo}</span>
+                <span style="font-size: ${is58 ? '12px' : '14px'};">${params.orderType}</span>
+               </div>`
+            : `<div style="text-align: right; margin-top: 4px; font-weight: bold; font-size: ${is58 ? '12px' : '14px'};">${params.orderType}</div>`;
 
-        const printerIdentity = this.authService.getPrinterIdentity();
-        const posFooter =
-            receipt.branchFooter ||
-            branch.footer ||
-            (branch.phone
-                ? `For any Complaint & Suggestions Please Contact us @ ${branch.phone}`
-                : 'Thank you for your business!');
-        const tableLabel = String(receipt.tableNo || '').toLowerCase();
-        const orderTypeLabel = receipt.carNumber
-            ? 'Car Service'
-            : tableLabel.includes('takeaway') || tableLabel.includes('take-away')
-              ? 'Take-Away'
-              : tableLabel.includes('retail')
-                ? 'Retail'
-                : 'Dine-In';
-
-        const bodyHtml = `
+        return `
             <div class="text-center">
                 ${logoHtml}
-                <div class="header-title">${receipt.branchName || branch.name}</div>
-                ${(receipt.branchAddress || branch.address) ? `<div class="meta-text">${receipt.branchAddress || branch.address}</div>` : ''}
-                ${config.headerText ? `<div class="meta-text" style="font-style:italic;">${config.headerText}</div>` : ''}
-                <div class="meta-text bold uppercase" style="margin-top:3px;">Paid</div>
-                <div class="double-divider"></div>
-                ${receipt.tokenNo != null ? `<div class="row"><span class="bold">Token#:</span><span class="bold" style="font-size:16px;">${receipt.tokenNo}</span></div>` : ''}
-                <div class="row"><span>Order Type:</span><span class="bold">${orderTypeLabel}</span></div>
-                <div class="meta-text" style="margin-top:2px;">${locationMeta} &bull; Order: #${receipt.orderNo || receipt.id}</div>
-                <div class="meta-text">Server: ${receipt.serverName || 'Staff'} &bull; ${new Date(receipt.date || Date.now()).toLocaleString()}</div>
-                <div class="meta-text bold" style="margin-top:1px;">Cashier: ${printerIdentity.name} (${printerIdentity.role})</div>
-                <div class="divider"></div>
-                <div class="header-subtitle uppercase">Order Detail</div>
+                <div class="header-title uppercase bold" style="font-size: ${is58 ? '14px' : '16px'}; letter-spacing: 0.5px;">${params.branchName}</div>
+                <div class="meta-text" style="font-size: ${is58 ? '10px' : '11px'}; margin-top: 1px;">${params.tagline || 'Taste & Quality'}</div>
+                <div class="meta-text" style="font-size: ${is58 ? '9.5px' : '10.5px'}; margin-top: 1px;">${params.city || 'Faisalabad'}</div>
+                <div class="meta-text bold uppercase" style="font-size: ${is58 ? '10.5px' : '11.5px'}; margin-top: 3px;">${params.statusLabel}</div>
             </div>
 
-            <table>
+            ${tokenRowHtml}
+
+            <div style="font-size: ${is58 ? '8.5px' : '10px'}; margin-top: 3px; line-height: 1.35;">
+                <div class="row">
+                    <span>Order ID: <strong>${params.orderId}</strong></span>
+                    <span>Date: ${dateParts.fullStr}</span>
+                </div>
+                <div class="row">
+                    <span>Invoice#: <strong>${params.invoiceNo || '#' + params.orderId}</strong></span>
+                    <span>User: <strong>${params.userName || 'Staff'}</strong></span>
+                </div>
+                <div class="row">
+                    <span>Order Type : <strong>${params.orderType}</strong></span>
+                    ${params.subLocation ? `<span><strong>${params.subLocation}</strong></span>` : ''}
+                </div>
+            </div>
+
+            <div class="divider"></div>
+            <div class="text-center bold uppercase" style="font-size: ${is58 ? '10.5px' : '12px'}; margin: 2px 0;">Order Detail</div>
+            <div class="divider" style="margin: 2px 0 4px 0;"></div>
+
+            <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
                 <thead>
-                    <tr>
-                        <th style="width: ${is58 ? '14%' : '12%'}; text-align: left;">Qty</th>
-                        <th style="width: ${is58 ? '46%' : '48%'}; text-align: left;">Item</th>
-                        <th style="width: ${is58 ? '20%' : '20%'}; text-align: right; padding-right: 5px;">Price</th>
-                        <th style="width: ${is58 ? '20%' : '20%'}; text-align: right;">Total</th>
+                    <tr style="border-bottom: 1px dashed #000; font-size: ${is58 ? '9px' : '10.5px'};">
+                        <th style="width: 46%; text-align: left; padding: 2px 0;">Item</th>
+                        <th style="width: 14%; text-align: center; padding: 2px 0;">Qty</th>
+                        <th style="width: 20%; text-align: right; padding: 2px 0;">Rate</th>
+                        <th style="width: 20%; text-align: right; padding: 2px 0;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -498,25 +581,107 @@ export class ThermalPrintService {
 
             <div class="divider"></div>
 
-            <div class="row"><span>Subtotal:</span><span>${Number(receipt.subTotal || 0).toFixed(2)}</span></div>
-            ${discountRow}
-            ${taxRow}
-            ${serviceRow}
-            ${deliveryRow}
+            <div style="font-size: ${is58 ? '9.5px' : '10.5px'}; line-height: 1.35;">
+                <div class="row"><span>Sub Total</span><span class="bold">${Number(params.subTotal || 0).toFixed(0)} Rs</span></div>
+                ${discountHtml}
+                ${taxHtml}
+                ${serviceHtml}
+                ${deliveryHtml}
 
-            <div class="row grand-total">
-                <span>GRAND TOTAL:</span>
-                <span>${Number(receipt.grandTotal || receipt.totalAmount || 0).toFixed(2)}</span>
+                <div class="row grand-total bold" style="font-size: ${is58 ? '11px' : '13px'};">
+                    <span>GRAND TOTAL</span>
+                    <span>${Number(params.grandTotal || 0).toFixed(0)} Rs</span>
+                </div>
+
+                ${cashPaidHtml}
+                ${cardPaidHtml}
+                ${dueHtml}
+                ${changeHtml}
             </div>
 
-            <div class="row"><span>Payment (${receipt.paymentType || 'CASH'}):</span><span>${Number(receipt.paidAmount || receipt.cashAmount || receipt.grandTotal || 0).toFixed(2)}</span></div>
-            ${receipt.changeAmount > 0 ? `<div class="row bold"><span>Change Returned:</span><span>${Number(receipt.changeAmount).toFixed(2)}</span></div>` : ''}
+            <div class="divider"></div>
+            <div class="text-center bold uppercase" style="font-size: ${is58 ? '10.5px' : '12px'}; margin: 2px 0;">Customer Detail</div>
+            <div class="divider" style="margin: 2px 0 4px 0;"></div>
 
-            <div class="double-divider"></div>
-            <div class="text-center meta-text" style="margin-top: 5px;">
-                <div>${posFooter}</div>
+            <div style="font-size: ${is58 ? '9px' : '10.5px'}; line-height: 1.35;">
+                <div class="bold">${params.customerName || 'Walk-in'}</div>
+                ${params.customerPhone ? `<div>Phone: ${params.customerPhone}</div>` : ''}
+                ${params.customerAddress ? `<div>Address: ${params.customerAddress}</div>` : ''}
+                <div class="row" style="margin-top: 4px;">
+                    <span>Order-Taker: <strong>${params.orderTaker || 'Waiter'}</strong></span>
+                    <span style="text-align: right;">Printed: ${printParts.dateStr}<br>${printParts.timeStr}</span>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+            <div class="text-center meta-text" style="font-size: ${is58 ? '8.5px' : '10px'}; line-height: 1.3;">
+                <div>For any Complaint &amp; Suggestions</div>
+                <div>Please Contact us @ ${params.complaintPhone || '03080004248'}</div>
+            </div>
+            <div class="divider"></div>
+            <div class="text-center meta-text" style="font-size: 8.5px; margin-top: 2px; line-height: 1.35;">
+                <div>Software develop by AlNawabTech</div>
+                <div>03167854606</div>
             </div>
         `;
+    }
+
+    // =========================================================================
+    // 1. POS SALES RECEIPT (Cash/Card Checkout)
+    // =========================================================================
+    public printPosReceipt(receipt: any, paperSize?: ThermalPaperSize): void {
+        const branch = this.getBranchInfo();
+        const config = this.getConfig();
+        const size = paperSize || config.paperSize;
+
+        const tableLabel = String(receipt.tableNo || '').toLowerCase();
+        const orderTypeLabel = receipt.carNumber
+            ? 'Car Service'
+            : tableLabel.includes('takeaway') || tableLabel.includes('take-away')
+              ? 'Take-Away'
+              : tableLabel.includes('delivery')
+                ? 'Online Delivery'
+                : 'Dine-In';
+
+        const subLocation = receipt.carNumber
+            ? `Car: ${receipt.carName || ''} (${receipt.carNumber})`
+            : (orderTypeLabel === 'Dine-In' ? `Table: ${receipt.tableNo || 'Table'}` : '');
+
+        const printerIdentity = this.authService.getPrinterIdentity();
+        const cityParts = (branch.address || '').split(',').map((p) => p.trim()).filter(Boolean);
+        const city = cityParts.length ? cityParts[cityParts.length - 1] : 'Faisalabad';
+
+        const bodyHtml = this.buildReferenceReceiptHtml({
+            size,
+            logoUrl: config.showLogo && branch.logoUrl ? branch.logoUrl : undefined,
+            branchName: receipt.branchName || branch.name,
+            tagline: 'Taste & Quality',
+            city,
+            statusLabel: 'Paid',
+            tokenNo: receipt.tokenNo,
+            orderType: orderTypeLabel,
+            orderId: receipt.orderNo || receipt.id,
+            orderDate: receipt.date || new Date(),
+            invoiceNo: receipt.invoiceNo || receipt.orderNo || receipt.id,
+            userName: printerIdentity.name || receipt.branchName || branch.name,
+            subLocation,
+            lines: receipt.lines || [],
+            subTotal: Number(receipt.subTotal || 0),
+            discountAmount: Number(receipt.discountAmount || 0),
+            discountPercent: Number(receipt.discountPercent || 0),
+            taxAmount: Number(receipt.taxAmount || 0),
+            taxPercent: Number(receipt.taxPercent || 0),
+            deliveryFee: Number(receipt.deliveryFee || 0),
+            serviceChargeAmount: Number(receipt.serviceChargeAmount || 0),
+            serviceChargePercent: Number(receipt.serviceChargePercent || 0),
+            grandTotal: Number(receipt.grandTotal || receipt.totalAmount || 0),
+            cashPaid: Number(receipt.paidAmount || receipt.cashAmount || 0),
+            cardPaid: Number(receipt.cardAmount || 0),
+            changeReturned: Number(receipt.changeAmount || 0),
+            customerName: receipt.customerName || 'Walk-in',
+            orderTaker: receipt.serverName || printerIdentity.name || 'Waiter',
+            complaintPhone: receipt.branchPhone || branch.phone || '03080004248',
+        });
 
         this.executePrint(bodyHtml, `Receipt-${receipt.orderNo || receipt.id}`, size);
     }
@@ -562,8 +727,6 @@ export class ThermalPrintService {
         const slipTitle =
             filterType === 'bar'
                 ? '*** BAR ORDER TICKET (BOT) ***'
-                : filterType === 'kitchen'
-                ? '*** KITCHEN ORDER TICKET (KOT) ***'
                 : '*** KITCHEN ORDER TICKET (KOT) ***';
 
         const linesHtml = items.length
@@ -574,6 +737,11 @@ export class ThermalPrintService {
                           : '';
                       const mods = item.selectedModifiers
                           ? `<div style="font-size: 8.5px; color: #444;">Opts: ${item.selectedModifiers}</div>`
+                          : '';
+                      const dealList = item.dealItems?.length
+                          ? `<div style="font-size: 8.5px; color: #222; margin-top: 1px; padding-left: 6px;">
+                              ${item.dealItems.map((d: string) => `<div>&bull; ${d}</div>`).join('')}
+                             </div>`
                           : '';
                       const qtyChange =
                           item.previousQuantity && item.previousQuantity > 0
@@ -588,6 +756,7 @@ export class ThermalPrintService {
                             <td style="width: 75%; font-size: ${is58 ? '10px' : '12px'}; font-weight: bold;">
                                 <div>${item.productName}</div>
                                 ${qtyChange}
+                                ${dealList}
                                 ${mods}
                                 ${notes}
                             </td>
@@ -601,18 +770,28 @@ export class ThermalPrintService {
             ? `Car: <strong>${kot.carName || ''} (${kot.carNumber})</strong> ${kot.carLocation ? '&bull; Spot: ' + kot.carLocation : ''}`
             : `Table: <strong>${kot.tableNo || 'Takeaway'}</strong>`;
 
+        const tokenHtml = (kot.tokenNo != null && kot.tokenNo > 0)
+            ? `<div style="display: flex; justify-content: space-between; align-items: baseline; margin: 4px 0 2px 0; font-weight: bold;">
+                <span style="font-size: ${is58 ? '13px' : '15px'}; font-family: monospace;">Token# ${kot.tokenNo}</span>
+                <span style="font-size: ${is58 ? '12px' : '14px'};">${kot.orderTypeLabel || 'KOT'}</span>
+               </div>`
+            : '';
+
         const bodyHtml = `
             <div class="text-center">
                 <div class="header-title">${branch.name}</div>
                 <div class="double-divider"></div>
                 <div class="header-subtitle">${slipTitle}</div>
-                <div class="meta-text bold" style="font-size: ${is58 ? '11px' : '13px'}; margin: 3px 0;">
-                    ${locationMeta} &bull; Order: #${kot.orderNo || kot.orderId}
-                </div>
-                <div class="meta-text">Server: ${kot.waiterName || 'Staff'} &bull; ${kot.printTime || new Date().toLocaleTimeString()}</div>
-                ${kot.printedByName ? `<div class="meta-text">Sent By: ${kot.printedByName} (${kot.printedByRole || 'Staff'})</div>` : ''}
-                <div class="divider"></div>
             </div>
+
+            ${tokenHtml}
+
+            <div class="meta-text bold" style="font-size: ${is58 ? '11px' : '13px'}; margin: 3px 0;">
+                ${locationMeta} &bull; Order: #${kot.orderNo || kot.orderId}
+            </div>
+            <div class="meta-text">Server: ${kot.waiterName || 'Staff'} &bull; ${kot.printTime ? new Date(kot.printTime).toLocaleTimeString() : new Date().toLocaleTimeString()}</div>
+            ${kot.printedByName ? `<div class="meta-text">Sent By: ${kot.printedByName} (${kot.printedByRole || 'Staff'})</div>` : ''}
+            <div class="divider"></div>
 
             <table>
                 <thead>
@@ -630,6 +809,10 @@ export class ThermalPrintService {
             <div class="text-center meta-text">
                 <div>Print Time: ${new Date().toLocaleString()}</div>
                 <div class="bold" style="margin-top: 3px;">* * * END OF ORDER * * *</div>
+                <div style="font-size: 8.5px; margin-top: 4px; color: #444; line-height: 1.35;">
+                    <div>Software develop by AlNawabTech</div>
+                    <div>03167854606</div>
+                </div>
             </div>
         `;
 
@@ -643,102 +826,47 @@ export class ThermalPrintService {
         const branch = this.getBranchInfo();
         const config = this.getConfig();
         const size = paperSize || config.paperSize;
-        const is58 = size === '58mm';
 
-        const logoHtml =
-            config.showLogo && branch.logoUrl
-                ? `<img src="${branch.logoUrl}" class="logo-img" alt="Logo" />`
-                : '';
-
-        const linesHtml = (bill.lines || [])
-            .map((line: any) => {
-                const dealBadge = line.isDeal ? `<span class="badge">DEAL</span>` : '';
-                return `
-                    <tr style="border-bottom: 1px dotted #ccc;">
-                        <td style="width: ${is58 ? '16%' : '14%'}; text-align: center; font-weight: bold;">${line.quantity}x</td>
-                        <td style="width: ${is58 ? '48%' : '50%'};">
-                            <div>${dealBadge}${line.productName}</div>
-                            ${line.kitchenNotes ? `<div style="font-size: 8.5px; color:#b91c1c;">* ${line.kitchenNotes}</div>` : ''}
-                        </td>
-                        <td style="width: ${is58 ? '18%' : '18%'}; text-align: right;">${Number(line.unitPrice).toFixed(2)}</td>
-                        <td style="width: ${is58 ? '18%' : '18%'}; text-align: right; font-weight: bold;">${Number(line.quantity * line.unitPrice).toFixed(2)}</td>
-                    </tr>
-                `;
-            })
-            .join('');
-
-        const discountRow =
-            bill.discountAmount > 0
-                ? `<div class="row"><span>Discount:</span><span>-${Number(bill.discountAmount).toFixed(2)}</span></div>`
-                : '';
-        const taxRow =
-            bill.taxAmount > 0
-                ? `<div class="row"><span>Tax (${bill.taxPercent}%):</span><span>+${Number(bill.taxAmount).toFixed(2)}</span></div>`
-                : '';
-        const serviceRow =
-            bill.serviceChargeAmount > 0
-                ? `<div class="row"><span>Service Charge (${bill.serviceChargePercent}%):</span><span>+${Number(bill.serviceChargeAmount).toFixed(2)}</span></div>`
-                : '';
-
-        const locationMeta = bill.isCarService
-            ? `Car: <strong>${bill.carName || ''} (${bill.carNumber || ''})</strong>`
-            : `Table: <strong>${bill.tableNo || 'Takeaway'}</strong>`;
-        const orderTypeLabel = bill.isCarService
+        const isCar = !!bill.isCarService || !!bill.carNumber;
+        const orderTypeLabel = isCar
             ? 'Car Service'
             : bill.orderTypeLabel || (bill.tableNo && bill.tableNo !== 'Takeaway' ? 'Dine-In' : 'Take-Away');
-        const guestFooter =
-            branch.footer ||
-            (branch.phone
-                ? `For any Complaint & Suggestions Please Contact us @ ${branch.phone}`
-                : 'Thank you for dining with us!');
 
-        const bodyHtml = `
-            <div class="text-center">
-                ${logoHtml}
-                <div class="header-title">${branch.name}</div>
-                ${branch.address ? `<div class="meta-text">${branch.address}</div>` : ''}
-                <div class="meta-text bold uppercase" style="margin-top:3px;">Unpaid</div>
-                <div class="double-divider"></div>
-                ${bill.tokenNo != null ? `<div class="row"><span class="bold">Token#:</span><span class="bold" style="font-size:16px;">${bill.tokenNo}</span></div>` : ''}
-                <div class="row"><span>Order Type:</span><span class="bold">${orderTypeLabel}</span></div>
-                <div class="meta-text" style="margin-top:2px;">${locationMeta} &bull; Order: #${bill.orderNo || 'N/A'}</div>
-                <div class="meta-text">Server: ${bill.waiterName || 'Staff'} &bull; ${new Date().toLocaleString()}</div>
-                <div class="divider"></div>
-                <div class="header-subtitle uppercase">Order Detail</div>
-            </div>
+        const subLocation = isCar
+            ? `Car: ${bill.carName || ''} (${bill.carNumber || ''})`
+            : (orderTypeLabel === 'Dine-In' ? `Table: ${bill.tableNo || 'Table'}` : '');
 
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: ${is58 ? '14%' : '12%'}; text-align: left;">Qty</th>
-                        <th style="width: ${is58 ? '46%' : '48%'}; text-align: left;">Item</th>
-                        <th style="width: ${is58 ? '20%' : '20%'}; text-align: right; padding-right: 5px;">Price</th>
-                        <th style="width: ${is58 ? '20%' : '20%'}; text-align: right;">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${linesHtml}
-                </tbody>
-            </table>
+        const cityParts = (branch.address || '').split(',').map((p) => p.trim()).filter(Boolean);
+        const city = cityParts.length ? cityParts[cityParts.length - 1] : 'Faisalabad';
 
-            <div class="divider"></div>
-
-            <div class="row"><span>Subtotal:</span><span>${Number(bill.subTotal || 0).toFixed(2)}</span></div>
-            ${discountRow}
-            ${taxRow}
-            ${serviceRow}
-
-            <div class="row grand-total">
-                <span>ESTIMATED TOTAL:</span>
-                <span>${Number(bill.grandTotal || 0).toFixed(2)}</span>
-            </div>
-
-            <div class="double-divider"></div>
-            <div class="text-center meta-text" style="margin-top: 5px;">
-                <div>${guestFooter}</div>
-                <div class="bold" style="margin-top: 2px;">* PLEASE PRESENT THIS CHECK AT PAYMENT *</div>
-            </div>
-        `;
+        const bodyHtml = this.buildReferenceReceiptHtml({
+            size,
+            logoUrl: config.showLogo && branch.logoUrl ? branch.logoUrl : undefined,
+            branchName: branch.name,
+            tagline: 'Taste & Quality',
+            city,
+            statusLabel: 'Unpaid',
+            tokenNo: bill.tokenNo,
+            orderType: orderTypeLabel,
+            orderId: bill.orderNo || 'N/A',
+            orderDate: new Date(),
+            invoiceNo: bill.orderNo || 'N/A',
+            userName: bill.waiterName || 'Staff',
+            subLocation,
+            lines: bill.lines || [],
+            subTotal: Number(bill.subTotal || 0),
+            discountAmount: Number(bill.discountAmount || 0),
+            discountPercent: Number(bill.discountPercent || 0),
+            taxAmount: Number(bill.taxAmount || 0),
+            taxPercent: Number(bill.taxPercent || 0),
+            serviceChargeAmount: Number(bill.serviceChargeAmount || 0),
+            serviceChargePercent: Number(bill.serviceChargePercent || 0),
+            grandTotal: Number(bill.grandTotal || 0),
+            dueAmount: Number(bill.grandTotal || 0),
+            customerName: 'Walk-in',
+            orderTaker: bill.waiterName || 'Waiter',
+            complaintPhone: branch.phone || '03080004248',
+        });
 
         this.executePrint(bodyHtml, `GuestCheck-${bill.orderNo || 'Table'}`, size);
     }
@@ -754,99 +882,49 @@ export class ThermalPrintService {
         const branch = this.getBranchInfo();
         const config = this.getConfig();
         const size = paperSize || config.paperSize;
-        const is58 = size === '58mm';
 
-        const logoHtml =
-            config.showLogo && branch.logoUrl
-                ? `<img src="${branch.logoUrl}" class="logo-img" alt="Logo" />`
-                : '';
+        const isDelivered = order.status === 4; // CustomerOrderStatus.Delivered
+        const statusLabel = isDelivered ? 'Paid' : (order.dueAmount && order.dueAmount > 0 ? 'Unpaid' : 'Unpaid');
 
-        const lines = order.lines || [];
-        const itemsHtml = lines
-            .map((l: any) => {
-                const dealBadge = (l.productName || '').toLowerCase().includes('deal')
-                    ? `<span class="badge">DEAL</span>`
-                    : '';
-                return `
-                    <tr style="border-bottom: 1px dotted #ccc;">
-                        <td style="width: ${is58 ? '16%' : '14%'}; text-align: center; font-weight: bold;">${l.quantity}x</td>
-                        <td style="width: ${is58 ? '48%' : '50%'};">
-                            <div>${dealBadge}${l.productName || 'Item #' + l.productId}</div>
-                            ${l.notes ? `<div style="font-size: 8.5px; color:#b91c1c;">* ${l.notes}</div>` : ''}
-                        </td>
-                        <td style="width: ${is58 ? '18%' : '18%'}; text-align: right;">${Number(l.unitPrice).toFixed(2)}</td>
-                        <td style="width: ${is58 ? '18%' : '18%'}; text-align: right; font-weight: bold;">${Number(l.lineTotal || l.quantity * l.unitPrice).toFixed(2)}</td>
-                    </tr>
-                `;
-            })
-            .join('');
+        const cityParts = (branch.address || '').split(',').map((p) => p.trim()).filter(Boolean);
+        const city = cityParts.length ? cityParts[cityParts.length - 1] : 'Faisalabad';
 
-        const subTotal = order.subTotal || 0;
-        const deliveryFee = order.deliveryFee || 0;
-        const totalAmount = order.totalAmount || subTotal + deliveryFee;
+        const lines = (order.lines || []).map((l: any) => ({
+            productName: l.productName || `Item #${l.productId}`,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            lineTotal: l.lineTotal || (l.quantity * l.unitPrice),
+            isDeal: l.isDeal,
+            dealItems: l.dealItems || [],
+            notes: l.notes
+        }));
 
-        const customerInfoHtml = `
-            <div style="border: 1px dashed #000; padding: 4px; margin: 4px 0; font-size: ${is58 ? '8.5px' : '10.5px'}; background: #fafafa;">
-                <div class="bold uppercase" style="border-bottom: 1px dotted #666; margin-bottom: 2px;">CUSTOMER & DELIVERY DETAILS</div>
-                <div><strong>Name:</strong> ${order.customerName || 'Customer'}</div>
-                ${order.customerPhone ? `<div><strong>Phone:</strong> ${order.customerPhone}</div>` : ''}
-                ${order.deliveryAreaName ? `<div><strong>Area:</strong> ${order.deliveryAreaName}</div>` : ''}
-                ${order.customerAddress ? `<div><strong>Address:</strong> ${order.customerAddress}</div>` : ''}
-                ${order.notes ? `<div style="font-style: italic; color:#b91c1c;"><strong>Note:</strong> ${order.notes}</div>` : ''}
-                ${
-                    order.riderName
-                        ? `<div class="bold" style="margin-top: 2px; border-top: 1px dotted #666; padding-top: 2px;">Rider: ${order.riderName} ${order.riderPhone ? '(' + order.riderPhone + ')' : ''}</div>`
-                        : ''
-                }
-            </div>
-        `;
-
-        const bodyHtml = `
-            <div class="text-center">
-                ${logoHtml}
-                <div class="header-title">${branch.name}</div>
-                ${branch.address ? `<div class="meta-text">${branch.address}</div>` : ''}
-                ${branch.phone ? `<div class="meta-text">Tel: ${branch.phone}</div>` : ''}
-                <div class="double-divider"></div>
-                <div class="header-subtitle uppercase">*** ONLINE DELIVERY ORDER ***</div>
-                <div class="meta-text bold" style="margin-top: 2px;">Order #: ${order.orderNo || '#' + order.id}</div>
-                ${invoiceNo ? `<div class="meta-text">Invoice #: ${invoiceNo}</div>` : ''}
-                <div class="meta-text">Date: ${new Date(order.orderDate).toLocaleString()}</div>
-                <div class="divider"></div>
-            </div>
-
-            ${customerInfoHtml}
-
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: ${is58 ? '14%' : '12%'}; text-align: left;">Qty</th>
-                        <th style="width: ${is58 ? '46%' : '48%'}; text-align: left;">Item</th>
-                        <th style="width: ${is58 ? '20%' : '20%'}; text-align: right; padding-right: 5px;">Price</th>
-                        <th style="width: ${is58 ? '20%' : '20%'}; text-align: right;">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${itemsHtml}
-                </tbody>
-            </table>
-
-            <div class="divider"></div>
-
-            <div class="row"><span>Subtotal:</span><span>PKR ${Number(subTotal).toFixed(2)}</span></div>
-            <div class="row"><span>Delivery Fee:</span><span>${deliveryFee > 0 ? 'PKR ' + Number(deliveryFee).toFixed(2) : 'FREE'}</span></div>
-
-            <div class="row grand-total">
-                <span>TOTAL AMOUNT:</span>
-                <span>PKR ${Number(totalAmount).toFixed(2)}</span>
-            </div>
-
-            <div class="double-divider"></div>
-            <div class="text-center meta-text" style="margin-top: 5px;">
-                <div>Thank you for ordering with us!</div>
-                <div style="margin-top: 3px; font-size: 8px;">* * * END OF RECEIPT * * *</div>
-            </div>
-        `;
+        const bodyHtml = this.buildReferenceReceiptHtml({
+            size,
+            logoUrl: config.showLogo && branch.logoUrl ? branch.logoUrl : undefined,
+            branchName: order.branchName || branch.name,
+            tagline: 'Taste & Quality',
+            city,
+            statusLabel,
+            tokenNo: order.tokenNo,
+            orderType: 'Online Delivery',
+            orderId: order.orderNo || '#' + order.id,
+            orderDate: order.orderDate,
+            invoiceNo: invoiceNo || order.saleInvoiceNo || order.orderNo || '#' + order.id,
+            userName: order.branchName || branch.name,
+            subLocation: order.deliveryAreaName ? `Area: ${order.deliveryAreaName}` : '',
+            lines,
+            subTotal: Number(order.subTotal || 0),
+            deliveryFee: Number(order.deliveryFee || 0),
+            grandTotal: Number(order.totalAmount || 0),
+            paidAmount: isDelivered ? Number(order.totalAmount || 0) : Number(order.paidAmount || 0),
+            dueAmount: isDelivered ? 0 : Number(order.dueAmount != null ? order.dueAmount : order.totalAmount),
+            customerName: order.customerName || 'Online Customer',
+            customerPhone: order.customerPhone,
+            customerAddress: order.customerAddress ? `${order.customerAddress}${order.notes ? ' (Note: ' + order.notes + ')' : ''}` : order.notes,
+            orderTaker: order.riderName ? `Rider: ${order.riderName}` : 'Online Ordering',
+            complaintPhone: branch.phone || '03080004248',
+        });
 
         this.executePrint(bodyHtml, `Order-${order.orderNo || order.id}`, size);
     }
@@ -862,121 +940,65 @@ export class ThermalPrintService {
         const branch = this.getBranchInfo(overrideCompany);
         const config = this.getConfig();
         const size = paperSize || config.paperSize;
-        const is58 = size === '58mm';
-
-        const logoHtml =
-            config.showLogo && branch.logoUrl
-                ? `<img src="${branch.logoUrl}" class="logo-img" alt="Logo" />`
-                : '';
-
-        const paymentName =
-            sale.paymentType === 0
-                ? 'CASH'
-                : sale.paymentType === 1
-                ? 'CARD'
-                : sale.paymentType === 2
-                ? 'CREDIT'
-                : 'SPLIT';
 
         const due = Number(sale.dueAmount ?? 0);
-        const payStatus = due > 0.009 ? 'Unpaid' : sale.paymentType === 2 ? 'Credit' : 'Paid';
+        const payStatus = due > 0.009 ? 'Unpaid' : (sale.paymentType === 2 ? 'Credit' : 'Paid');
         const notesLower = (sale.notes || '').toLowerCase();
-        let orderType = sale.saleType || 'Sale';
+        let orderType = sale.saleType || 'Take-Away';
         if (notesLower.includes('takeaway') || notesLower.includes('take-away') || notesLower.includes('take away')) {
             orderType = 'Take-Away';
         } else if (notesLower.includes('dine-in') || notesLower.includes('dine in') || notesLower.includes('table')) {
             orderType = 'Dine-In';
         } else if (notesLower.includes('car service') || notesLower.includes('car:')) {
             orderType = 'Car Service';
-        } else if (notesLower.includes('delivery')) {
-            orderType = 'Delivery';
+        } else if (notesLower.includes('online order') || notesLower.includes('delivery')) {
+            orderType = 'Online Delivery';
         }
 
-        const currency =
-            (overrideCompany && (overrideCompany as any).currencyFormat) ||
-            (this.branchContext.getCurrentBranch() as any)?.currencyFormat ||
-            'Rs';
-        const cityParts = (branch.address || '')
-            .split(',')
-            .map((p) => p.trim())
-            .filter(Boolean);
-        const cityLine = cityParts.length ? cityParts[cityParts.length - 1] : '';
-        const footerMsg =
-            branch.footer ||
-            (branch.phone
-                ? `For any Complaint & Suggestions Please Contact us @ ${branch.phone}`
-                : 'Thank you for your business!');
+        const cityParts = (branch.address || '').split(',').map((p) => p.trim()).filter(Boolean);
+        const city = cityParts.length ? cityParts[cityParts.length - 1] : 'Faisalabad';
 
-        const bodyHtml = `
-            <div class="text-center">
-                ${logoHtml}
-                <div class="header-title">${branch.name}</div>
-                ${branch.address ? `<div class="meta-text">${branch.address}</div>` : ''}
-                ${cityLine && cityLine !== branch.address ? `<div class="meta-text">${cityLine}</div>` : ''}
-                <div class="meta-text bold uppercase" style="margin-top:3px;">${payStatus}</div>
-                <div class="double-divider"></div>
-                ${sale.tokenNo != null ? `<div class="row"><span class="bold">Token#:</span><span class="bold" style="font-size:16px;">${sale.tokenNo}</span></div>` : ''}
-                <div class="row"><span>Order Type:</span><span class="bold">${orderType}</span></div>
-                <div class="row"><span>Order ID:</span><span>${sale.id}</span></div>
-                <div class="row"><span>Date:</span><span>${new Date(sale.saleDate).toLocaleString()}</span></div>
-                <div class="row"><span class="bold">Invoice#:</span><span class="bold">${sale.invoiceNo || '#' + sale.id}</span></div>
-                <div class="row"><span>Payment:</span><span class="bold">${paymentName}</span></div>
-                <div class="divider"></div>
-                <div class="header-subtitle uppercase">Order Detail</div>
-            </div>
+        const lines = (sale.lines || []).map((l: any) => ({
+            productName: l.productName || `Item #${l.productId}`,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            lineTotal: l.lineTotal || (l.quantity * l.unitPrice),
+            isDeal: l.isDeal,
+            dealItems: l.dealItems || []
+        }));
 
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: ${is58 ? '46%' : '48%'}; text-align: left;">Item</th>
-                        <th style="width: ${is58 ? '14%' : '12%'}; text-align: center;">Qty</th>
-                        <th style="width: ${is58 ? '20%' : '20%'}; text-align: right; padding-right: 5px;">Rate</th>
-                        <th style="width: ${is58 ? '20%' : '20%'}; text-align: right;">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${(sale.lines || [])
-                        .map(
-                            (l) => `
-                        <tr style="border-bottom: 1px dotted #ccc;">
-                            <td>${l.productName || 'Product #' + l.productId}</td>
-                            <td style="text-align: center; font-weight: bold;">${l.quantity}</td>
-                            <td style="text-align: right;">${Number(l.unitPrice).toFixed(2)}</td>
-                            <td style="text-align: right; font-weight: bold;">${Number(l.lineTotal).toFixed(2)}</td>
-                        </tr>`
-                        )
-                        .join('')}
-                </tbody>
-            </table>
-
-            <div class="divider"></div>
-
-            <div class="row"><span>Sub Total:</span><span>${Number(sale.subTotal || 0).toFixed(2)} ${currency}</span></div>
-            ${sale.discountAmount > 0 ? `<div class="row"><span>Discount:</span><span>-${Number(sale.discountAmount).toFixed(2)}</span></div>` : ''}
-            ${sale.taxAmount > 0 ? `<div class="row"><span>Tax (${sale.taxPercent}%):</span><span>+${Number(sale.taxAmount).toFixed(2)}</span></div>` : ''}
-            ${sale.deliveryCharges ? `<div class="row"><span>Delivery:</span><span>+${Number(sale.deliveryCharges).toFixed(2)}</span></div>` : ''}
-
-            <div class="row grand-total">
-                <span>GRAND TOTAL:</span>
-                <span>${Number(sale.totalAmount || 0).toFixed(2)} ${currency}</span>
-            </div>
-
-            <div class="divider"></div>
-            <div class="row"><span>Customer Detail:</span><span>${sale.customerName || 'Walk-in'}</span></div>
-            <div class="row"><span>Printed:</span><span>${new Date().toLocaleString()}</span></div>
-
-            <div class="double-divider"></div>
-            <div class="text-center meta-text" style="margin-top: 5px;">
-                <div>${footerMsg}</div>
-            </div>
-        `;
+        const bodyHtml = this.buildReferenceReceiptHtml({
+            size,
+            logoUrl: config.showLogo && branch.logoUrl ? branch.logoUrl : undefined,
+            branchName: overrideCompany?.name || branch.name,
+            tagline: 'Taste & Quality',
+            city,
+            statusLabel: payStatus,
+            tokenNo: sale.tokenNo,
+            orderType,
+            orderId: sale.id,
+            orderDate: sale.saleDate,
+            invoiceNo: sale.invoiceNo || '#' + sale.id,
+            userName: this.authService.getPrinterIdentity().name || overrideCompany?.name || branch.name,
+            subLocation: sale.deliveryAreaName ? `Area: ${sale.deliveryAreaName}` : '',
+            lines,
+            subTotal: Number(sale.subTotal || 0),
+            discountAmount: Number(sale.discountAmount || 0),
+            discountPercent: Number(sale.discountPercent || 0),
+            taxAmount: Number(sale.taxAmount || 0),
+            taxPercent: Number(sale.taxPercent || 0),
+            deliveryFee: Number(sale.deliveryCharges || 0),
+            grandTotal: Number(sale.totalAmount || 0),
+            cashPaid: Number(sale.cashAmount || 0),
+            cardPaid: Number(sale.cardAmount || 0),
+            dueAmount: due,
+            customerName: sale.customerName || 'Walk-in',
+            orderTaker: this.authService.getPrinterIdentity().name || 'Staff',
+            complaintPhone: branch.phone || '03080004248',
+        });
 
         this.executePrint(bodyHtml, `Sale-${sale.invoiceNo || sale.id}`, size);
     }
-
-    // =========================================================================
-    // 6. SALE RETURN RECEIPT
-    // =========================================================================
     public printSaleReturn(
         saleReturn: SaleReturnDto,
         overrideCompany?: BranchDto | null,

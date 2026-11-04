@@ -58,6 +58,17 @@ export class SaleService {
         };
     }
 
+    async getUnpaidSales(): Promise<SaleDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetUnpaidSales`)
+        );
+        const result = this.unwrap(res, 'Failed to load unpaid sales');
+        const items = result.items || result.Items || result || [];
+        return (Array.isArray(items) ? items : []).map((item: any) =>
+            this.mapSale(item)
+        );
+    }
+
     async get(id: number): Promise<SaleDto> {
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/Get`, { params: { Id: id } })
@@ -354,6 +365,7 @@ export class SaleService {
             creditAmount: item.creditAmount ?? item.CreditAmount ?? 0,
             paidAmount: item.paidAmount ?? item.PaidAmount,
             dueAmount: item.dueAmount ?? item.DueAmount,
+            saleType: item.saleType ?? item.SaleType,
             notes: item.notes ?? item.Notes,
             deliveryCharges: item.deliveryCharges ?? item.DeliveryCharges ?? 0,
             deliveryAreaName: item.deliveryAreaName ?? item.DeliveryAreaName,

@@ -100,6 +100,36 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
         return this.sale?.saleType || 'Sale';
     }
 
+    get formattedSaleDate(): string {
+        if (!this.sale?.saleDate) return '';
+        const d = new Date(this.sale.saleDate);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = String(d.getFullYear()).slice(-2);
+        let hours = d.getHours();
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12 || 12;
+        const hStr = String(hours).padStart(2, '0');
+        return `${day}/${month}/${year}' ${hStr}:${minutes}${ampm}`;
+    }
+
+    get printDateParts(): { dateStr: string; timeStr: string } {
+        const d = new Date();
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = String(d.getFullYear()).slice(-2);
+        let hours = d.getHours();
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const seconds = String(d.getSeconds()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12 || 12;
+        const hStr = String(hours).padStart(2, '0');
+        return {
+            dateStr: `${day}/${month}/${year}'`,
+            timeStr: `${hStr}:${minutes}:${seconds}${ampm}`
+        };
+    }
     get currencyLabel(): string {
         return this.company?.currencyFormat || 'Rs';
     }

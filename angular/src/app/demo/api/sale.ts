@@ -13,6 +13,8 @@ export interface SaleLineDto {
     quantity: number;
     unitPrice: number;
     lineTotal: number;
+    isDeal?: boolean;
+    dealItems?: string[];
 }
 
 export interface SalePaymentHistoryItemDto {
