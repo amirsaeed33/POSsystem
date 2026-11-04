@@ -409,22 +409,34 @@
                         [cancel]="false"
                         [readonly]="!!order.customerRating || ratingSubmitting"
                     ></p-rating>
-                    <button
-                        *ngIf="!order.customerRating"
-                        type="button"
-                        class="oh-reorder-btn"
-                        [disabled]="!customerRatingDraft || ratingSubmitting"
-                        (click)="submitCustomerRating()"
-                    >
-                        <i
-                            class="pi"
-                            [class.pi-spin]="ratingSubmitting"
-                            [class.pi-spinner]="ratingSubmitting"
-                            [class.pi-star-fill]="!ratingSubmitting"
-                        ></i>
-                        {{ ratingSubmitting ? 'Saving…' : 'Submit rating' }}
-                    </button>
                 </div>
+                <textarea
+                    *ngIf="!order.customerRating"
+                    class="oh-feedback-comment"
+                    rows="3"
+                    maxlength="500"
+                    [(ngModel)]="customerCommentDraft"
+                    [disabled]="ratingSubmitting"
+                    placeholder="Tell others about your experience (optional)"
+                ></textarea>
+                <p class="oh-feedback-comment-readonly" *ngIf="order.customerRating && order.customerFeedbackComment">
+                    “{{ order.customerFeedbackComment }}”
+                </p>
+                <button
+                    *ngIf="!order.customerRating"
+                    type="button"
+                    class="oh-reorder-btn oh-feedback-submit"
+                    [disabled]="!customerRatingDraft || ratingSubmitting"
+                    (click)="submitCustomerRating()"
+                >
+                    <i
+                        class="pi"
+                        [class.pi-spin]="ratingSubmitting"
+                        [class.pi-spinner]="ratingSubmitting"
+                        [class.pi-star-fill]="!ratingSubmitting"
+                    ></i>
+                    {{ ratingSubmitting ? 'Saving…' : 'Submit feedback' }}
+                </button>
             </div>
 
             <div class="oh-detail-chat" *ngIf="order.orderNo || order.id">

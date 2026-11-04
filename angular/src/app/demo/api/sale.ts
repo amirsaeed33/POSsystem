@@ -29,6 +29,7 @@ export interface SaleDto {
     customerName?: string;
     saleDate: string | Date;
     invoiceNo?: string;
+    tokenNo?: number | null;
     subTotal: number;
     discountAmount: number;
     discountPercent: number;
@@ -61,6 +62,7 @@ export interface CreateSaleDto {
     customerId: number;
     saleDate: string | Date;
     invoiceNo?: string;
+    tokenNo?: number | null;
     notes?: string;
     saleType?: string;
     deliveryCharges?: number;

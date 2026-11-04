@@ -16,6 +16,8 @@ namespace SmartPos.Sales.Dto
 
         public string InvoiceNo { get; set; }
 
+        public int? TokenNo { get; set; }
+
         public decimal SubTotal { get; set; }
 
         public decimal DiscountAmount { get; set; }

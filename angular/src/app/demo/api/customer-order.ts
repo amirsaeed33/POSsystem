@@ -41,6 +41,7 @@ export interface CustomerOrderDto {
     paymentMethod?: string;
     deliveryRating?: number | null;
     customerRating?: number | null;
+    customerFeedbackComment?: string | null;
     latitude?: number;
     longitude?: number;
     distanceKm?: number;
@@ -60,6 +61,7 @@ export interface CustomerOrderDto {
 export interface RateCustomerOrderInput {
     orderNo: string;
     rating: number;
+    comment?: string;
 }
 
 export interface CustomerOrderHistoryInput {
@@ -75,7 +77,20 @@ export interface OnlineCustomerProfileDto {
     phone?: string;
     email?: string;
     address?: string;
+    latitude?: number | null;
+    longitude?: number | null;
     imagePath?: string;
+}
+
+export interface BranchFeedbackDto {
+    orderId: number;
+    orderNo?: string;
+    customerName?: string;
+    customerImagePath?: string | null;
+    rating: number;
+    orderDate: string | Date;
+    branchName?: string;
+    comment?: string;
 }
 
 export interface UpsertOnlineCustomerProfileInput {
@@ -84,6 +99,8 @@ export interface UpsertOnlineCustomerProfileInput {
     phone: string;
     email?: string;
     address?: string;
+    latitude?: number | null;
+    longitude?: number | null;
     imageBase64?: string;
     clearImage?: boolean;
 }

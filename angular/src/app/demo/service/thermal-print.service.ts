@@ -438,21 +438,36 @@ export class ThermalPrintService {
             : `Table: <strong>${receipt.tableNo || 'Takeaway'}</strong>`;
 
         const printerIdentity = this.authService.getPrinterIdentity();
+        const posFooter =
+            receipt.branchFooter ||
+            branch.footer ||
+            (branch.phone
+                ? `For any Complaint & Suggestions Please Contact us @ ${branch.phone}`
+                : 'Thank you for your business!');
+        const tableLabel = String(receipt.tableNo || '').toLowerCase();
+        const orderTypeLabel = receipt.carNumber
+            ? 'Car Service'
+            : tableLabel.includes('takeaway') || tableLabel.includes('take-away')
+              ? 'Take-Away'
+              : tableLabel.includes('retail')
+                ? 'Retail'
+                : 'Dine-In';
 
         const bodyHtml = `
             <div class="text-center">
                 ${logoHtml}
-                <div class="header-title">${branch.name}</div>
-                ${branch.address ? `<div class="meta-text">${branch.address}</div>` : ''}
-                ${branch.phone ? `<div class="meta-text">Tel: ${branch.phone}</div>` : ''}
-                ${branch.taxNumber ? `<div class="meta-text bold">NTN/STRN: ${branch.taxNumber}</div>` : ''}
+                <div class="header-title">${receipt.branchName || branch.name}</div>
+                ${(receipt.branchAddress || branch.address) ? `<div class="meta-text">${receipt.branchAddress || branch.address}</div>` : ''}
                 ${config.headerText ? `<div class="meta-text" style="font-style:italic;">${config.headerText}</div>` : ''}
+                <div class="meta-text bold uppercase" style="margin-top:3px;">Paid</div>
                 <div class="double-divider"></div>
-                <div class="header-subtitle uppercase">*** SALES RECEIPT ***</div>
+                ${receipt.tokenNo != null ? `<div class="row"><span class="bold">Token#:</span><span class="bold" style="font-size:16px;">${receipt.tokenNo}</span></div>` : ''}
+                <div class="row"><span>Order Type:</span><span class="bold">${orderTypeLabel}</span></div>
                 <div class="meta-text" style="margin-top:2px;">${locationMeta} &bull; Order: #${receipt.orderNo || receipt.id}</div>
                 <div class="meta-text">Server: ${receipt.serverName || 'Staff'} &bull; ${new Date(receipt.date || Date.now()).toLocaleString()}</div>
                 <div class="meta-text bold" style="margin-top:1px;">Cashier: ${printerIdentity.name} (${printerIdentity.role})</div>
                 <div class="divider"></div>
+                <div class="header-subtitle uppercase">Order Detail</div>
             </div>
 
             <table>
@@ -478,7 +493,7 @@ export class ThermalPrintService {
             ${deliveryRow}
 
             <div class="row grand-total">
-                <span>TOTAL AMOUNT:</span>
+                <span>GRAND TOTAL:</span>
                 <span>${Number(receipt.grandTotal || receipt.totalAmount || 0).toFixed(2)}</span>
             </div>
 
@@ -487,8 +502,8 @@ export class ThermalPrintService {
 
             <div class="double-divider"></div>
             <div class="text-center meta-text" style="margin-top: 5px;">
-                <div>${branch.footer}</div>
-                <div style="margin-top: 3px; font-size: 8px;">* * * END OF RECEIPT * * *</div>
+                <div>${posFooter}</div>
+                <div style="margin-top: 4px; font-size: 8px;">Software by SmartPos</div>
             </div>
         `;
 
@@ -657,18 +672,28 @@ export class ThermalPrintService {
         const locationMeta = bill.isCarService
             ? `Car: <strong>${bill.carName || ''} (${bill.carNumber || ''})</strong>`
             : `Table: <strong>${bill.tableNo || 'Takeaway'}</strong>`;
+        const orderTypeLabel = bill.isCarService
+            ? 'Car Service'
+            : bill.orderTypeLabel || (bill.tableNo && bill.tableNo !== 'Takeaway' ? 'Dine-In' : 'Take-Away');
+        const guestFooter =
+            branch.footer ||
+            (branch.phone
+                ? `For any Complaint & Suggestions Please Contact us @ ${branch.phone}`
+                : 'Thank you for dining with us!');
 
         const bodyHtml = `
             <div class="text-center">
                 ${logoHtml}
                 <div class="header-title">${branch.name}</div>
                 ${branch.address ? `<div class="meta-text">${branch.address}</div>` : ''}
-                ${branch.phone ? `<div class="meta-text">Tel: ${branch.phone}</div>` : ''}
+                <div class="meta-text bold uppercase" style="margin-top:3px;">Unpaid</div>
                 <div class="double-divider"></div>
-                <div class="header-subtitle uppercase">*** GUEST CHECK / PRE-BILL ***</div>
+                ${bill.tokenNo != null ? `<div class="row"><span class="bold">Token#:</span><span class="bold" style="font-size:16px;">${bill.tokenNo}</span></div>` : ''}
+                <div class="row"><span>Order Type:</span><span class="bold">${orderTypeLabel}</span></div>
                 <div class="meta-text" style="margin-top:2px;">${locationMeta} &bull; Order: #${bill.orderNo || 'N/A'}</div>
                 <div class="meta-text">Server: ${bill.waiterName || 'Staff'} &bull; ${new Date().toLocaleString()}</div>
                 <div class="divider"></div>
+                <div class="header-subtitle uppercase">Order Detail</div>
             </div>
 
             <table>
@@ -699,8 +724,9 @@ export class ThermalPrintService {
 
             <div class="double-divider"></div>
             <div class="text-center meta-text" style="margin-top: 5px;">
-                <div>Thank you for dining with us!</div>
+                <div>${guestFooter}</div>
                 <div class="bold" style="margin-top: 2px;">* PLEASE PRESENT THIS CHECK AT PAYMENT *</div>
+                <div style="margin-top: 4px; font-size: 8px;">Software by SmartPos</div>
             </div>
         `;
 
@@ -833,19 +859,6 @@ export class ThermalPrintService {
                 ? `<img src="${branch.logoUrl}" class="logo-img" alt="Logo" />`
                 : '';
 
-        const linesHtml = (sale.lines || [])
-            .map(
-                (l) => `
-                <tr style="border-bottom: 1px dotted #ccc;">
-                    <td style="width: ${is58 ? '16%' : '14%'}; text-align: center; font-weight: bold;">${l.quantity}x</td>
-                    <td style="width: ${is58 ? '48%' : '50%'};">${l.productName || 'Product #' + l.productId}</td>
-                    <td style="width: ${is58 ? '18%' : '18%'}; text-align: right;">${Number(l.unitPrice).toFixed(2)}</td>
-                    <td style="width: ${is58 ? '18%' : '18%'}; text-align: right; font-weight: bold;">${Number(l.lineTotal).toFixed(2)}</td>
-                </tr>
-            `
-            )
-            .join('');
-
         const paymentName =
             sale.paymentType === 0
                 ? 'CASH'
@@ -855,53 +868,97 @@ export class ThermalPrintService {
                 ? 'CREDIT'
                 : 'SPLIT';
 
+        const due = Number(sale.dueAmount ?? 0);
+        const payStatus = due > 0.009 ? 'Unpaid' : sale.paymentType === 2 ? 'Credit' : 'Paid';
+        const notesLower = (sale.notes || '').toLowerCase();
+        let orderType = sale.saleType || 'Sale';
+        if (notesLower.includes('takeaway') || notesLower.includes('take-away') || notesLower.includes('take away')) {
+            orderType = 'Take-Away';
+        } else if (notesLower.includes('dine-in') || notesLower.includes('dine in') || notesLower.includes('table')) {
+            orderType = 'Dine-In';
+        } else if (notesLower.includes('car service') || notesLower.includes('car:')) {
+            orderType = 'Car Service';
+        } else if (notesLower.includes('delivery')) {
+            orderType = 'Delivery';
+        }
+
+        const currency =
+            (overrideCompany && (overrideCompany as any).currencyFormat) ||
+            (this.branchContext.getCurrentBranch() as any)?.currencyFormat ||
+            'Rs';
+        const cityParts = (branch.address || '')
+            .split(',')
+            .map((p) => p.trim())
+            .filter(Boolean);
+        const cityLine = cityParts.length ? cityParts[cityParts.length - 1] : '';
+        const footerMsg =
+            branch.footer ||
+            (branch.phone
+                ? `For any Complaint & Suggestions Please Contact us @ ${branch.phone}`
+                : 'Thank you for your business!');
+
         const bodyHtml = `
             <div class="text-center">
                 ${logoHtml}
                 <div class="header-title">${branch.name}</div>
                 ${branch.address ? `<div class="meta-text">${branch.address}</div>` : ''}
-                ${branch.phone ? `<div class="meta-text">Tel: ${branch.phone}</div>` : ''}
-                ${branch.taxNumber ? `<div class="meta-text bold">NTN/STRN: ${branch.taxNumber}</div>` : ''}
+                ${cityLine && cityLine !== branch.address ? `<div class="meta-text">${cityLine}</div>` : ''}
+                <div class="meta-text bold uppercase" style="margin-top:3px;">${payStatus}</div>
                 <div class="double-divider"></div>
-                <div class="header-subtitle uppercase">*** SALE INVOICE ***</div>
-                <div class="meta-text bold">INVOICE: ${sale.invoiceNo || '#' + sale.id}</div>
-                <div class="meta-text">Date: ${new Date(sale.saleDate).toLocaleString()}</div>
-                <div class="meta-text">Customer: ${sale.customerName || 'Walk-in Customer'}</div>
+                ${sale.tokenNo != null ? `<div class="row"><span class="bold">Token#:</span><span class="bold" style="font-size:16px;">${sale.tokenNo}</span></div>` : ''}
+                <div class="row"><span>Order Type:</span><span class="bold">${orderType}</span></div>
+                <div class="row"><span>Order ID:</span><span>${sale.id}</span></div>
+                <div class="row"><span>Date:</span><span>${new Date(sale.saleDate).toLocaleString()}</span></div>
+                <div class="row"><span class="bold">Invoice#:</span><span class="bold">${sale.invoiceNo || '#' + sale.id}</span></div>
+                <div class="row"><span>Payment:</span><span class="bold">${paymentName}</span></div>
                 <div class="divider"></div>
+                <div class="header-subtitle uppercase">Order Detail</div>
             </div>
 
             <table>
                 <thead>
                     <tr>
-                        <th style="width: ${is58 ? '14%' : '12%'}; text-align: left;">Qty</th>
                         <th style="width: ${is58 ? '46%' : '48%'}; text-align: left;">Item</th>
-                        <th style="width: ${is58 ? '20%' : '20%'}; text-align: right; padding-right: 5px;">Price</th>
+                        <th style="width: ${is58 ? '14%' : '12%'}; text-align: center;">Qty</th>
+                        <th style="width: ${is58 ? '20%' : '20%'}; text-align: right; padding-right: 5px;">Rate</th>
                         <th style="width: ${is58 ? '20%' : '20%'}; text-align: right;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${linesHtml}
+                    ${(sale.lines || [])
+                        .map(
+                            (l) => `
+                        <tr style="border-bottom: 1px dotted #ccc;">
+                            <td>${l.productName || 'Product #' + l.productId}</td>
+                            <td style="text-align: center; font-weight: bold;">${l.quantity}</td>
+                            <td style="text-align: right;">${Number(l.unitPrice).toFixed(2)}</td>
+                            <td style="text-align: right; font-weight: bold;">${Number(l.lineTotal).toFixed(2)}</td>
+                        </tr>`
+                        )
+                        .join('')}
                 </tbody>
             </table>
 
             <div class="divider"></div>
 
-            <div class="row"><span>Subtotal:</span><span>${Number(sale.subTotal || 0).toFixed(2)}</span></div>
+            <div class="row"><span>Sub Total:</span><span>${Number(sale.subTotal || 0).toFixed(2)} ${currency}</span></div>
             ${sale.discountAmount > 0 ? `<div class="row"><span>Discount:</span><span>-${Number(sale.discountAmount).toFixed(2)}</span></div>` : ''}
             ${sale.taxAmount > 0 ? `<div class="row"><span>Tax (${sale.taxPercent}%):</span><span>+${Number(sale.taxAmount).toFixed(2)}</span></div>` : ''}
             ${sale.deliveryCharges ? `<div class="row"><span>Delivery:</span><span>+${Number(sale.deliveryCharges).toFixed(2)}</span></div>` : ''}
 
             <div class="row grand-total">
-                <span>TOTAL AMOUNT:</span>
-                <span>${Number(sale.totalAmount || 0).toFixed(2)}</span>
+                <span>GRAND TOTAL:</span>
+                <span>${Number(sale.totalAmount || 0).toFixed(2)} ${currency}</span>
             </div>
 
-            <div class="row"><span>Paid By (${paymentName}):</span><span>${Number(sale.cashAmount || sale.cardAmount || sale.totalAmount).toFixed(2)}</span></div>
+            <div class="divider"></div>
+            <div class="row"><span>Customer Detail:</span><span>${sale.customerName || 'Walk-in'}</span></div>
+            <div class="row"><span>Printed:</span><span>${new Date().toLocaleString()}</span></div>
 
             <div class="double-divider"></div>
             <div class="text-center meta-text" style="margin-top: 5px;">
-                <div>${branch.footer}</div>
-                <div style="margin-top: 3px; font-size: 8px;">* * * END OF INVOICE * * *</div>
+                <div>${footerMsg}</div>
+                <div style="margin-top: 4px; font-size: 8px;">Software by SmartPos</div>
             </div>
         `;
 

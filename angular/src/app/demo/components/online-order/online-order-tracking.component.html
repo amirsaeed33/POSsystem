@@ -148,17 +148,29 @@
                             [cancel]="false"
                             [readonly]="!!order.customerRating || ratingSubmitting"
                         ></p-rating>
-                        <button
-                            *ngIf="!order.customerRating"
-                            type="button"
-                            class="ot-primary-btn ot-rate-btn"
-                            [disabled]="!customerRatingDraft || ratingSubmitting"
-                            (click)="submitCustomerRating()"
-                        >
-                            <i class="pi" [class.pi-spin]="ratingSubmitting" [class.pi-spinner]="ratingSubmitting" [class.pi-star-fill]="!ratingSubmitting"></i>
-                            {{ ratingSubmitting ? 'Saving…' : 'Submit rating' }}
-                        </button>
                     </div>
+                    <textarea
+                        *ngIf="!order.customerRating"
+                        class="ot-feedback-comment"
+                        rows="3"
+                        maxlength="500"
+                        [(ngModel)]="customerCommentDraft"
+                        [disabled]="ratingSubmitting"
+                        placeholder="Tell others about your experience (optional)"
+                    ></textarea>
+                    <p class="ot-feedback-comment-readonly" *ngIf="order.customerRating && order.customerFeedbackComment">
+                        “{{ order.customerFeedbackComment }}”
+                    </p>
+                    <button
+                        *ngIf="!order.customerRating"
+                        type="button"
+                        class="ot-primary-btn ot-rate-btn"
+                        [disabled]="!customerRatingDraft || ratingSubmitting"
+                        (click)="submitCustomerRating()"
+                    >
+                        <i class="pi" [class.pi-spin]="ratingSubmitting" [class.pi-spinner]="ratingSubmitting" [class.pi-star-fill]="!ratingSubmitting"></i>
+                        {{ ratingSubmitting ? 'Saving…' : 'Submit feedback' }}
+                    </button>
                 </div>
 
                 <div class="ot-chat-wrap">

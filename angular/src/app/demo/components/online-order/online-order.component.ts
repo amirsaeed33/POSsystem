@@ -118,6 +118,24 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     /** Active online orders for this device — shown in the menu (no separate track page). */
     activeOrders: MyOnlineOrderRef[] = [];
+
+    /** Public customer feedbacks for the selected branch. */
+    branchFeedbacks: Array<{
+        orderId: number;
+        orderNo?: string;
+        customerName?: string;
+        customerImagePath?: string | null;
+        rating: number;
+        orderDate: string | Date;
+        branchName?: string;
+        comment?: string;
+    }> = [];
+    private feedbackPhotoBroken = new Set<number>();
+    loadingBranchFeedbacks = false;
+    averageBranchRating = 0;
+    currentFeedbackSlide = 0;
+    private feedbackSlideTimer: ReturnType<typeof setInterval> | null = null;
+    feedbackSliderPaused = false;
     loadingActiveOrders = false;
 
     // Checkout modal & state
@@ -167,6 +185,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     profilePhone = '';
     profileEmail = '';
     profileAddress = '';
+    /** Hidden GPS for default address — stored in DB, not shown in the form. */
+    profileLatitude: number | null = null;
+    profileLongitude: number | null = null;
+    profileLocating = false;
     profileImagePath: string | null = null;
     profileImagePreview: string | null = null;
     profileImageBase64: string | null = null;
@@ -442,8 +464,13 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 this.loadCatalog(this.branchId, paramProductId ? Number(paramProductId) : undefined);
                 void this.refreshActiveOrders();
                 void this.hydrateCustomerProfile();
+                void this.loadBranchFeedbacks(this.branchId);
             } else {
                 this.activeOrders = [];
+                this.stopFeedbackSlider();
+                this.branchFeedbacks = [];
+                this.averageBranchRating = 0;
+                this.currentFeedbackSlide = 0;
                 this.handleMissingBranchId();
             }
         });
@@ -569,6 +596,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         phone?: string;
         email?: string;
         address?: string;
+        latitude?: number | null;
+        longitude?: number | null;
         imagePath?: string;
     }): void {
         this.profileId = profile.id ?? this.profileId;
@@ -576,6 +605,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.profilePhone = (profile.phone || this.profilePhone || '').trim();
         this.profileEmail = (profile.email || this.profileEmail || '').trim();
         this.profileAddress = (profile.address || this.profileAddress || '').trim();
+        if (profile.latitude != null && profile.longitude != null) {
+            this.profileLatitude = Number(profile.latitude);
+            this.profileLongitude = Number(profile.longitude);
+        }
         if (profile.imagePath) {
             this.profileImagePath = profile.imagePath;
             this.profilePhotoBroken = false;
@@ -586,6 +619,83 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
         this.profileClearImage = false;
         this.persistLocalProfile();
+    }
+
+    useCurrentLocationForProfile(): void {
+        if (!navigator.geolocation) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS not supported',
+                detail: 'Please type your address manually.',
+            });
+            return;
+        }
+
+        this.profileLocating = true;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = Number(pos.coords.latitude.toFixed(6));
+                const lng = Number(pos.coords.longitude.toFixed(6));
+                this.profileLatitude = lat;
+                this.profileLongitude = lng;
+                void this.fillProfileAddressFromCoords(lat, lng).finally(() => {
+                    this.profileLocating = false;
+                });
+            },
+            (err) => {
+                this.profileLocating = false;
+                let detail = 'Location access denied. Please type your address.';
+                if (err.code === err.TIMEOUT) {
+                    detail = 'GPS timed out. Please type your address.';
+                } else if (err.code === err.POSITION_UNAVAILABLE) {
+                    detail = 'GPS unavailable. Please type your address.';
+                }
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Location',
+                    detail,
+                    life: 4000,
+                });
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
+    }
+
+    private async fillProfileAddressFromCoords(lat: number, lng: number): Promise<void> {
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+                { headers: { Accept: 'application/json' } }
+            );
+            if (res.ok) {
+                const data = await res.json();
+                if (data?.display_name) {
+                    const parts = String(data.display_name).split(',').slice(0, 4).join(', ');
+                    this.profileAddress = parts.trim();
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Address filled',
+                        detail: 'Current location added. Tap Save Profile to keep it.',
+                        life: 3000,
+                    });
+                    return;
+                }
+            }
+        } catch {
+            /* fall through */
+        }
+
+        // Still keep coords even if reverse geocode fails — user can type address.
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Location ready',
+            detail: 'GPS saved. Please type your street / area if the address is empty.',
+            life: 3500,
+        });
     }
 
     onProfilePhotoSelected(event: Event): void {
@@ -691,6 +801,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 phone,
                 email: (this.profileEmail || '').trim() || undefined,
                 address: (this.profileAddress || '').trim() || undefined,
+                latitude: this.profileLatitude,
+                longitude: this.profileLongitude,
                 imageBase64: this.profileImageBase64 || undefined,
                 clearImage: this.profileClearImage,
             });
@@ -759,11 +871,18 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.stopHeroSlider();
+        this.stopFeedbackSlider();
     }
 
     @HostListener('window:resize')
     onResize(): void {
         this.checkScreenSize();
+        if (this.branchFeedbacks.length) {
+            const visible = Math.max(1, this.feedbackVisibleCount);
+            const maxStart = Math.max(0, this.branchFeedbacks.length - visible);
+            this.currentFeedbackSlide = Math.min(this.currentFeedbackSlide, maxStart);
+            this.startFeedbackSlider();
+        }
     }
 
     @HostListener('window:scroll', [])
@@ -797,6 +916,144 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             .catch(() => {
                 this.isLoggedIn = false;
             });
+    }
+
+    async loadBranchFeedbacks(branchId: number): Promise<void> {
+        if (!branchId || branchId <= 0) {
+            this.stopFeedbackSlider();
+            this.branchFeedbacks = [];
+            this.averageBranchRating = 0;
+            this.currentFeedbackSlide = 0;
+            return;
+        }
+
+        this.loadingBranchFeedbacks = true;
+        try {
+            const rows = await this.customerOrderService.getBranchFeedbacks(branchId, 40);
+            this.feedbackPhotoBroken.clear();
+            this.branchFeedbacks = rows || [];
+            this.currentFeedbackSlide = 0;
+            if (this.branchFeedbacks.length) {
+                const sum = this.branchFeedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
+                this.averageBranchRating = Math.round((sum / this.branchFeedbacks.length) * 10) / 10;
+                this.startFeedbackSlider();
+            } else {
+                this.averageBranchRating = 0;
+                this.stopFeedbackSlider();
+            }
+        } catch {
+            this.branchFeedbacks = [];
+            this.averageBranchRating = 0;
+            this.stopFeedbackSlider();
+        } finally {
+            this.loadingBranchFeedbacks = false;
+        }
+    }
+
+    get feedbackVisibleCount(): number {
+        if (typeof window === 'undefined') {
+            return 3;
+        }
+        if (window.innerWidth < 640) {
+            return 1;
+        }
+        if (window.innerWidth < 1024) {
+            return 2;
+        }
+        return 3;
+    }
+
+    /** Offset as % of the track (track width = viewport). One step = one card slot. */
+    get feedbackTrackOffsetPct(): number {
+        const visible = Math.max(1, this.feedbackVisibleCount);
+        const maxStart = Math.max(0, this.branchFeedbacks.length - visible);
+        const start = Math.min(this.currentFeedbackSlide, maxStart);
+        return (start * 100) / visible;
+    }
+
+    startFeedbackSlider(): void {
+        this.stopFeedbackSlider();
+        if (this.branchFeedbacks.length <= this.feedbackVisibleCount) {
+            return;
+        }
+        this.feedbackSlideTimer = setInterval(() => {
+            if (!this.feedbackSliderPaused) {
+                this.nextFeedbackSlide();
+            }
+        }, 3800);
+    }
+
+    stopFeedbackSlider(): void {
+        if (this.feedbackSlideTimer) {
+            clearInterval(this.feedbackSlideTimer);
+            this.feedbackSlideTimer = null;
+        }
+    }
+
+    pauseFeedbackSlider(): void {
+        this.feedbackSliderPaused = true;
+    }
+
+    resumeFeedbackSlider(): void {
+        this.feedbackSliderPaused = false;
+    }
+
+    nextFeedbackSlide(): void {
+        const visible = Math.max(1, this.feedbackVisibleCount);
+        const maxStart = Math.max(0, this.branchFeedbacks.length - visible);
+        if (maxStart <= 0) {
+            this.currentFeedbackSlide = 0;
+            return;
+        }
+        this.currentFeedbackSlide =
+            this.currentFeedbackSlide >= maxStart ? 0 : this.currentFeedbackSlide + 1;
+    }
+
+    prevFeedbackSlide(): void {
+        const visible = Math.max(1, this.feedbackVisibleCount);
+        const maxStart = Math.max(0, this.branchFeedbacks.length - visible);
+        if (maxStart <= 0) {
+            this.currentFeedbackSlide = 0;
+            return;
+        }
+        this.currentFeedbackSlide =
+            this.currentFeedbackSlide <= 0 ? maxStart : this.currentFeedbackSlide - 1;
+        this.startFeedbackSlider();
+    }
+
+    goToFeedbackSlide(index: number): void {
+        const visible = Math.max(1, this.feedbackVisibleCount);
+        const maxStart = Math.max(0, this.branchFeedbacks.length - visible);
+        this.currentFeedbackSlide = Math.max(0, Math.min(index, maxStart));
+        this.startFeedbackSlider();
+    }
+
+    feedbackStars(rating: number): number[] {
+        const n = Math.max(0, Math.min(5, Math.round(rating || 0)));
+        return Array.from({ length: n }, (_, i) => i + 1);
+    }
+
+    feedbackEmptyStars(rating: number): number[] {
+        const filled = Math.max(0, Math.min(5, Math.round(rating || 0)));
+        return Array.from({ length: 5 - filled }, (_, i) => i + 1);
+    }
+
+    feedbackInitial(name?: string): string {
+        const n = (name || 'C').trim();
+        return (n.charAt(0) || 'C').toUpperCase();
+    }
+
+    feedbackPhotoUrl(fb: { orderId: number; customerImagePath?: string | null }): string {
+        if (!fb?.customerImagePath || this.feedbackPhotoBroken.has(fb.orderId)) {
+            return '';
+        }
+        return this.getImageUrl(fb.customerImagePath);
+    }
+
+    onFeedbackPhotoError(orderId: number): void {
+        if (orderId) {
+            this.feedbackPhotoBroken.add(orderId);
+        }
     }
 
     async resolveBranchName(bId: number): Promise<void> {

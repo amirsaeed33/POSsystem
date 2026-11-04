@@ -199,6 +199,9 @@ namespace SmartPos.Orders.Dto
         /// <summary>1–5 stars given by the customer for this delivery.</summary>
         public int? CustomerRating { get; set; }
 
+        /// <summary>Optional written feedback left with the customer rating.</summary>
+        public string CustomerFeedbackComment { get; set; }
+
         public int? SaleId { get; set; }
 
         public string SaleInvoiceNo { get; set; }
@@ -237,6 +240,10 @@ namespace SmartPos.Orders.Dto
         public string OrderNo { get; set; }
 
         public int Rating { get; set; }
+
+        /// <summary>Optional written comment (max 500 chars).</summary>
+        [StringLength(CustomerOrder.MaxCustomerFeedbackCommentLength)]
+        public string Comment { get; set; }
     }
 
     public class CustomerOrderHistoryInput
@@ -262,7 +269,30 @@ namespace SmartPos.Orders.Dto
 
         public string Address { get; set; }
 
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
         public string ImagePath { get; set; }
+    }
+
+    public class BranchFeedbackDto
+    {
+        public int OrderId { get; set; }
+
+        public string OrderNo { get; set; }
+
+        public string CustomerName { get; set; }
+
+        public string CustomerImagePath { get; set; }
+
+        public int Rating { get; set; }
+
+        public DateTime OrderDate { get; set; }
+
+        public string BranchName { get; set; }
+
+        public string Comment { get; set; }
     }
 
     public class UpsertOnlineCustomerProfileInput
@@ -282,6 +312,12 @@ namespace SmartPos.Orders.Dto
 
         [StringLength(Customer.MaxAddressLength)]
         public string Address { get; set; }
+
+        /// <summary>GPS latitude for the default address (not shown in UI).</summary>
+        public double? Latitude { get; set; }
+
+        /// <summary>GPS longitude for the default address (not shown in UI).</summary>
+        public double? Longitude { get; set; }
 
         /// <summary>data:image... payload for a new photo, or leave empty to keep existing.</summary>
         public string ImageBase64 { get; set; }

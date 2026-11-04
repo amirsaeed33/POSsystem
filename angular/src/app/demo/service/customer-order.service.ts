@@ -209,6 +209,7 @@ export class CustomerOrderService {
             this.http.post<any>(`${this.apiUrl}/RateOrder`, {
                 orderNo: input.orderNo,
                 rating: input.rating,
+                comment: (input.comment || '').trim() || null,
             })
         );
         return this.map(this.unwrap(res, 'Failed to submit rating'));
@@ -231,6 +232,47 @@ export class CustomerOrderService {
         const result = this.unwrap(res, 'Failed to load order history');
         const list = Array.isArray(result) ? result : result?.items || [];
         return list.map((item: any) => this.map(item));
+    }
+
+    async getBranchFeedbacks(
+        branchId: number,
+        maxResultCount = 20
+    ): Promise<
+        Array<{
+            orderId: number;
+            orderNo?: string;
+            customerName?: string;
+            customerImagePath?: string | null;
+            rating: number;
+            orderDate: string | Date;
+            branchName?: string;
+            comment?: string;
+        }>
+    > {
+        if (!branchId || branchId <= 0) {
+            return [];
+        }
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetBranchFeedbacks`, {
+                params: {
+                    branchId: String(branchId),
+                    maxResultCount: String(maxResultCount),
+                },
+            })
+        );
+        const result = this.unwrap(res, 'Failed to load branch feedbacks');
+        const list = Array.isArray(result) ? result : result?.items || [];
+        return (Array.isArray(list) ? list : []).map((item: any) => ({
+            orderId: item.orderId ?? item.OrderId,
+            orderNo: item.orderNo ?? item.OrderNo,
+            customerName: item.customerName ?? item.CustomerName ?? 'Customer',
+            customerImagePath:
+                item.customerImagePath ?? item.CustomerImagePath ?? null,
+            rating: Number(item.rating ?? item.Rating ?? 0),
+            orderDate: item.orderDate ?? item.OrderDate,
+            branchName: item.branchName ?? item.BranchName,
+            comment: item.comment ?? item.Comment ?? '',
+        }));
     }
 
     async getOnlineCustomerProfile(
@@ -266,6 +308,8 @@ export class CustomerOrderService {
                 phone: input.phone,
                 email: input.email,
                 address: input.address,
+                latitude: input.latitude ?? null,
+                longitude: input.longitude ?? null,
                 imageBase64: input.imageBase64,
                 clearImage: !!input.clearImage,
             })
@@ -283,6 +327,8 @@ export class CustomerOrderService {
             phone: item.phone ?? item.Phone,
             email: item.email ?? item.Email,
             address: item.address ?? item.Address,
+            latitude: item.latitude ?? item.Latitude ?? null,
+            longitude: item.longitude ?? item.Longitude ?? null,
             imagePath: item.imagePath ?? item.ImagePath,
         };
     }
@@ -428,6 +474,8 @@ export class CustomerOrderService {
             paymentMethod: item.paymentMethod ?? item.PaymentMethod,
             deliveryRating: item.deliveryRating ?? item.DeliveryRating ?? null,
             customerRating: item.customerRating ?? item.CustomerRating ?? null,
+            customerFeedbackComment:
+                item.customerFeedbackComment ?? item.CustomerFeedbackComment ?? null,
             saleId: item.saleId ?? item.SaleId,
             saleInvoiceNo: item.saleInvoiceNo ?? item.SaleInvoiceNo,
             branchId: item.branchId ?? item.BranchId,

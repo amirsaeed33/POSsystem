@@ -16,6 +16,7 @@ namespace SmartPos.Orders
         public const int MaxOrderNoLength = 64;
         public const int MaxNotesLength = 512;
         public const int MaxPaymentMethodLength = 32;
+        public const int MaxCustomerFeedbackCommentLength = 500;
 
         public virtual int? TenantId { get; set; }
 
@@ -82,6 +83,10 @@ namespace SmartPos.Orders
 
         /// <summary>Optional 1–5 star rating given by the customer for this delivery.</summary>
         public virtual int? CustomerRating { get; set; }
+
+        /// <summary>Optional written feedback left by the customer with their rating.</summary>
+        [StringLength(MaxCustomerFeedbackCommentLength)]
+        public virtual string CustomerFeedbackComment { get; set; }
 
         public virtual int? SaleId { get; set; }
 

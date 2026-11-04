@@ -72,6 +72,47 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
         }
     }
 
+    get paymentStatusLabel(): string {
+        const due = Number(this.sale?.dueAmount ?? 0);
+        if (due > 0.009) {
+            return 'Unpaid';
+        }
+        if (this.sale?.paymentType === 2) {
+            return 'Credit';
+        }
+        return 'Paid';
+    }
+
+    get orderTypeLabel(): string {
+        const notes = (this.sale?.notes || '').toLowerCase();
+        if (notes.includes('takeaway') || notes.includes('take-away') || notes.includes('take away')) {
+            return 'Take-Away';
+        }
+        if (notes.includes('dine-in') || notes.includes('dine in') || notes.includes('table')) {
+            return 'Dine-In';
+        }
+        if (notes.includes('car service') || notes.includes('car:')) {
+            return 'Car Service';
+        }
+        if (notes.includes('delivery')) {
+            return 'Delivery';
+        }
+        return this.sale?.saleType || 'Sale';
+    }
+
+    get currencyLabel(): string {
+        return this.company?.currencyFormat || 'Rs';
+    }
+
+    get cityOrAddressLine(): string {
+        const addr = (this.company?.invoiceAddress || '').trim();
+        if (!addr) {
+            return '';
+        }
+        const parts = addr.split(',').map((p) => p.trim()).filter(Boolean);
+        return parts.length ? parts[parts.length - 1] : addr;
+    }
+
     setPrintFormat(format: InvoicePrintFormat): void {
         this.printFormat = format;
         localStorage.setItem('smartpos_invoice_print_format', format);

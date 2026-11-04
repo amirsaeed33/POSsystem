@@ -11,6 +11,8 @@ namespace SmartPos.Restaurant.Dto
 
         public string OrderNo { get; set; }
 
+        public int? TokenNo { get; set; }
+
         public int? TableId { get; set; }
 
         public string TableNo { get; set; }

@@ -33,6 +33,9 @@ namespace SmartPos.Sales
         [StringLength(MaxInvoiceNoLength)]
         public virtual string InvoiceNo { get; set; }
 
+        /// <summary>Restaurant kitchen/queue token copied from dine-in or takeaway order.</summary>
+        public virtual int? TokenNo { get; set; }
+
         /// <summary>Sum of line totals before discount/tax.</summary>
         public virtual decimal SubTotal { get; set; }
 

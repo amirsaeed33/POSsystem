@@ -2104,6 +2104,12 @@ namespace SmartPos.Migrations
                     b.Property<long?>("LastModifierUserId")
                         .HasColumnType("bigint");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -3016,6 +3022,10 @@ namespace SmartPos.Migrations
                     b.Property<int?>("CustomerRating")
                         .HasColumnType("int");
 
+                    b.Property<string>("CustomerFeedbackComment")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime?>("RiderAssignedTime")
                         .HasColumnType("datetime2");
 
@@ -3918,6 +3928,9 @@ namespace SmartPos.Migrations
                     b.Property<int?>("SaleId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("TokenNo")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("ServiceChargeAmount")
                         .HasColumnType("decimal(18,2)");
 
@@ -4238,6 +4251,9 @@ namespace SmartPos.Migrations
                         .HasColumnType("nvarchar(512)");
 
                     b.Property<int>("PaymentType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TokenNo")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("SaleDate")

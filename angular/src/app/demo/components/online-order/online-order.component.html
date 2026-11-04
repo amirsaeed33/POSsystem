@@ -1741,6 +1741,132 @@
         </button>
     </nav>
 
+    <!-- Customer Feedbacks (public, branch-scoped) -->
+    <section
+        class="fp-feedbacks-section"
+        id="storeFeedbacksSection"
+        *ngIf="branchId && (branchFeedbacks.length || loadingBranchFeedbacks)"
+    >
+        <div class="max-w-7xl mx-auto px-3">
+            <div class="fp-feedbacks-head">
+                <div>
+                    <div class="fp-feedbacks-eyebrow">What customers say</div>
+                    <h2 class="fp-feedbacks-title">Customer Feedbacks</h2>
+                    <p class="fp-feedbacks-sub">
+                        Recent delivery ratings from orders at
+                        {{ branchName || 'this branch' }}.
+                    </p>
+                </div>
+                <div class="fp-feedbacks-avg" *ngIf="branchFeedbacks.length">
+                    <div class="fp-feedbacks-avg-score">{{ averageBranchRating | number: '1.0-1' }}</div>
+                    <div class="fp-feedbacks-avg-stars">
+                        <i
+                            class="pi pi-star-fill"
+                            *ngFor="let s of feedbackStars(averageBranchRating)"
+                        ></i>
+                        <i
+                            class="pi pi-star"
+                            *ngFor="let s of feedbackEmptyStars(averageBranchRating)"
+                        ></i>
+                    </div>
+                    <div class="fp-feedbacks-avg-count">
+                        {{ branchFeedbacks.length }} review{{ branchFeedbacks.length === 1 ? '' : 's' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="fp-feedbacks-loading" *ngIf="loadingBranchFeedbacks && !branchFeedbacks.length">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Loading feedbacks…</span>
+            </div>
+
+            <div
+                class="fp-feedbacks-carousel"
+                *ngIf="branchFeedbacks.length"
+                (mouseenter)="pauseFeedbackSlider()"
+                (mouseleave)="resumeFeedbackSlider()"
+                (touchstart)="pauseFeedbackSlider()"
+                (touchend)="resumeFeedbackSlider()"
+            >
+                <button
+                    type="button"
+                    class="fp-feedbacks-nav fp-feedbacks-nav--prev"
+                    *ngIf="branchFeedbacks.length > feedbackVisibleCount"
+                    (click)="prevFeedbackSlide()"
+                    aria-label="Previous feedbacks"
+                >
+                    <i class="pi pi-chevron-left"></i>
+                </button>
+
+                <div class="fp-feedbacks-viewport">
+                    <div
+                        class="fp-feedbacks-track"
+                        [style.transform]="'translate3d(-' + feedbackTrackOffsetPct + '%, 0, 0)'"
+                        [style.--fb-visible]="feedbackVisibleCount"
+                    >
+                        <article
+                            class="fp-feedback-card"
+                            *ngFor="let fb of branchFeedbacks; let i = index"
+                            [class.is-active]="i === currentFeedbackSlide"
+                        >
+                            <div class="fp-feedback-card-inner">
+                                <div class="fp-feedback-card-top">
+                                    <div
+                                        class="fp-feedback-avatar"
+                                        [class.has-photo]="!!feedbackPhotoUrl(fb)"
+                                    >
+                                        <img
+                                            *ngIf="feedbackPhotoUrl(fb) as photoUrl"
+                                            [src]="photoUrl"
+                                            [alt]="fb.customerName || 'Customer'"
+                                            (error)="onFeedbackPhotoError(fb.orderId)"
+                                        />
+                                        <span *ngIf="!feedbackPhotoUrl(fb)">
+                                            {{ feedbackInitial(fb.customerName) }}
+                                        </span>
+                                    </div>
+                                    <div class="fp-feedback-who">
+                                        <div class="fp-feedback-name">{{ fb.customerName || 'Customer' }}</div>
+                                        <div class="fp-feedback-date">{{ fb.orderDate | date: 'mediumDate' }}</div>
+                                    </div>
+                                    <div class="fp-feedback-rating">
+                                        <i class="pi pi-star-fill" *ngFor="let s of feedbackStars(fb.rating)"></i>
+                                        <i class="pi pi-star" *ngFor="let s of feedbackEmptyStars(fb.rating)"></i>
+                                    </div>
+                                </div>
+                                <p class="fp-feedback-comment" *ngIf="fb.comment">{{ fb.comment }}</p>
+                                <p class="fp-feedback-comment fp-feedback-comment--muted" *ngIf="!fb.comment">
+                                    Rated their order{{ fb.orderNo ? ' #' + fb.orderNo : '' }}.
+                                </p>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    class="fp-feedbacks-nav fp-feedbacks-nav--next"
+                    *ngIf="branchFeedbacks.length > feedbackVisibleCount"
+                    (click)="nextFeedbackSlide(); startFeedbackSlider()"
+                    aria-label="Next feedbacks"
+                >
+                    <i class="pi pi-chevron-right"></i>
+                </button>
+            </div>
+
+            <div class="fp-feedbacks-dots" *ngIf="branchFeedbacks.length > 1">
+                <button
+                    type="button"
+                    class="fp-feedbacks-dot"
+                    *ngFor="let fb of branchFeedbacks; let i = index"
+                    [class.active]="i === currentFeedbackSlide"
+                    (click)="goToFeedbackSlide(i)"
+                    [attr.aria-label]="'Go to feedback ' + (i + 1)"
+                ></button>
+            </div>
+        </div>
+    </section>
+
     <!-- 14. MODERN RESTAURANT FOOTER & CONTACT SECTION -->
     <footer class="fp-restaurant-footer" id="storeContactSection">
         <div class="max-w-7xl mx-auto px-4 py-8">
@@ -1841,37 +1967,8 @@
                 </div>
             </div>
 
-            <div class="border-top-1 surface-border-dark pt-4 mt-4 flex flex-column sm:flex-row align-items-center justify-content-between gap-3 text-xs text-500">
+            <div class="border-top-1 surface-border-dark pt-4 mt-4 text-xs text-500">
                 <span>© {{ branchName || 'Online Store' }}. All rights reserved. Powered by SmartPOS SaaS.</span>
-                <div class="fp-social-icons fp-social-icons--footer">
-                    <a
-                        class="fp-social-btn facebook"
-                        [href]="socialFacebookHref"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Facebook"
-                    >
-                        <i class="pi pi-facebook"></i>
-                    </a>
-                    <a
-                        class="fp-social-btn instagram"
-                        [href]="socialInstagramHref"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Instagram"
-                    >
-                        <i class="pi pi-instagram"></i>
-                    </a>
-                    <a
-                        class="fp-social-btn youtube"
-                        [href]="socialYoutubeHref"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="YouTube"
-                    >
-                        <i class="pi pi-youtube"></i>
-                    </a>
-                </div>
             </div>
         </div>
     </footer>
@@ -1934,7 +2031,19 @@
                 <input pInputText type="email" [(ngModel)]="profileEmail" placeholder="e.g. you@email.com" class="border-round-xl" />
             </div>
             <div class="field mb-3">
-                <label class="font-bold text-xs text-700">Default Address</label>
+                <div class="flex align-items-center justify-content-between gap-2 mb-1">
+                    <label class="font-bold text-xs text-700 m-0">Default Address</label>
+                    <button
+                        pButton
+                        type="button"
+                        class="p-button-text p-button-sm font-bold fp-profile-locate-btn"
+                        icon="pi pi-map-marker"
+                        [label]="profileLocating ? 'Finding…' : 'Use my location'"
+                        [loading]="profileLocating"
+                        [disabled]="profileLocating || profileSaving"
+                        (click)="useCurrentLocationForProfile()"
+                    ></button>
+                </div>
                 <textarea
                     pInputTextarea
                     rows="2"
@@ -1942,6 +2051,9 @@
                     placeholder="House / street / area"
                     class="border-round-xl"
                 ></textarea>
+                <small class="text-500 block mt-1">
+                    Tap <strong>Use my location</strong> to fill this from GPS. Coordinates are saved in the background.
+                </small>
             </div>
         </div>
 

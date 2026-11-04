@@ -105,6 +105,19 @@
   margin-bottom: 3px;
 }
 
+.thermal-pay-status {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.thermal-token {
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
 .thermal-store-info {
   font-size: 11px;
   color: #222222;

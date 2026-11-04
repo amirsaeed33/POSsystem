@@ -1072,6 +1072,7 @@ namespace SmartPos.Orders
                 PaymentMethod = entity.PaymentMethod,
                 DeliveryRating = entity.DeliveryRating,
                 CustomerRating = entity.CustomerRating,
+                CustomerFeedbackComment = entity.CustomerFeedbackComment,
                 SaleId = entity.SaleId,
                 SaleInvoiceNo = entity.Sale?.InvoiceNo,
                 PaidAmount = entity.Sale != null ? Math.Round(entity.Sale.CashAmount + entity.Sale.CardAmount, 2) : (entity.Status == CustomerOrderStatus.Delivered ? entity.TotalAmount : 0m),
@@ -1299,6 +1300,9 @@ namespace SmartPos.Orders
                 var email = (input.Email ?? string.Empty).Trim();
                 var address = (input.Address ?? string.Empty).Trim();
                 var digits = NormalizePhoneDigits(mobile);
+                var hasCoords = input.Latitude.HasValue && input.Longitude.HasValue
+                    && Math.Abs(input.Latitude.Value) <= 90
+                    && Math.Abs(input.Longitude.Value) <= 180;
 
                 if (string.IsNullOrWhiteSpace(name))
                 {
@@ -1334,6 +1338,8 @@ namespace SmartPos.Orders
                         Phone = mobile,
                         Email = string.IsNullOrWhiteSpace(email) ? null : email,
                         Address = string.IsNullOrWhiteSpace(address) ? null : address,
+                        Latitude = hasCoords ? input.Latitude : null,
+                        Longitude = hasCoords ? input.Longitude : null,
                         CustomerType = CustomerTypes.Direct
                     };
                     await _customerRepository.InsertAsync(customer);
@@ -1346,6 +1352,11 @@ namespace SmartPos.Orders
                     if (!string.IsNullOrWhiteSpace(address))
                     {
                         customer.Address = address;
+                    }
+                    if (hasCoords)
+                    {
+                        customer.Latitude = input.Latitude;
+                        customer.Longitude = input.Longitude;
                     }
                 }
 
@@ -1380,8 +1391,46 @@ namespace SmartPos.Orders
                 Phone = customer.Phone,
                 Email = customer.Email,
                 Address = customer.Address,
+                Latitude = customer.Latitude,
+                Longitude = customer.Longitude,
                 ImagePath = customer.ImagePath
             };
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<List<BranchFeedbackDto>> GetBranchFeedbacksAsync(int branchId, int maxResultCount = 20)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                if (branchId <= 0)
+                {
+                    return new List<BranchFeedbackDto>();
+                }
+
+                var take = maxResultCount > 0 ? Math.Min(maxResultCount, 50) : 20;
+
+                var rows = await Repository.GetAll()
+                    .AsNoTracking()
+                    .Include(o => o.Customer)
+                    .Include(o => o.Branch)
+                    .Where(o => o.BranchId == branchId && o.CustomerRating != null && o.CustomerRating > 0)
+                    .OrderByDescending(o => o.OrderDate)
+                    .Take(take)
+                    .Select(o => new BranchFeedbackDto
+                    {
+                        OrderId = o.Id,
+                        OrderNo = o.OrderNo,
+                        CustomerName = o.Customer != null ? o.Customer.Name : "Customer",
+                        CustomerImagePath = o.Customer != null ? o.Customer.ImagePath : null,
+                        Rating = o.CustomerRating.Value,
+                        OrderDate = o.OrderDate,
+                        BranchName = o.Branch != null ? o.Branch.Name : null,
+                        Comment = o.CustomerFeedbackComment
+                    })
+                    .ToListAsync();
+
+                return rows;
+            }
         }
 
         private static string NormalizePhoneDigits(string phone)
@@ -1455,6 +1504,12 @@ namespace SmartPos.Orders
                 }
 
                 order.CustomerRating = input.Rating;
+                var comment = (input.Comment ?? string.Empty).Trim();
+                if (comment.Length > CustomerOrder.MaxCustomerFeedbackCommentLength)
+                {
+                    comment = comment.Substring(0, CustomerOrder.MaxCustomerFeedbackCommentLength);
+                }
+                order.CustomerFeedbackComment = string.IsNullOrWhiteSpace(comment) ? null : comment;
                 await CurrentUnitOfWork.SaveChangesAsync();
 
                 return MapToEntityDto(order);

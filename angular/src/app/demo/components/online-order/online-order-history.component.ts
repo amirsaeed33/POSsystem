@@ -34,6 +34,7 @@ export class OnlineOrderHistoryComponent implements OnInit {
     detailOrder: CustomerOrderDto | null = null;
     detailLoading = false;
     customerRatingDraft: number | null = null;
+    customerCommentDraft = '';
     ratingSubmitting = false;
 
     // Store chrome
@@ -138,6 +139,7 @@ export class OnlineOrderHistoryComponent implements OnInit {
     openOrder(order: CustomerOrderDto): void {
         this.detailOrder = { ...order, lines: [...(order.lines || [])] };
         this.customerRatingDraft = order.customerRating ?? null;
+        this.customerCommentDraft = order.customerFeedbackComment || '';
         this.detailVisible = true;
         void this.refreshDetailOrder(order.orderNo || String(order.id));
     }
@@ -146,6 +148,7 @@ export class OnlineOrderHistoryComponent implements OnInit {
         this.detailVisible = false;
         this.detailOrder = null;
         this.customerRatingDraft = null;
+        this.customerCommentDraft = '';
         this.ratingSubmitting = false;
     }
 
@@ -157,6 +160,9 @@ export class OnlineOrderHistoryComponent implements OnInit {
             if (live && this.detailVisible) {
                 this.detailOrder = live;
                 this.customerRatingDraft = live.customerRating ?? this.customerRatingDraft;
+                if (live.customerFeedbackComment) {
+                    this.customerCommentDraft = live.customerFeedbackComment;
+                }
                 // Keep list card in sync with latest status/total.
                 const idx = this.orders.findIndex(
                     (o) =>
@@ -205,9 +211,11 @@ export class OnlineOrderHistoryComponent implements OnInit {
             const updated = await this.customerOrderService.rateOrder({
                 orderNo: this.detailOrder.orderNo,
                 rating: this.customerRatingDraft,
+                comment: this.customerCommentDraft,
             });
             this.detailOrder = updated;
             this.customerRatingDraft = updated.customerRating ?? this.customerRatingDraft;
+            this.customerCommentDraft = updated.customerFeedbackComment || this.customerCommentDraft;
             const idx = this.orders.findIndex((o) => o.id === updated.id);
             if (idx >= 0) {
                 this.orders[idx] = { ...this.orders[idx], ...updated };
@@ -215,7 +223,7 @@ export class OnlineOrderHistoryComponent implements OnInit {
             this.messageService.add({
                 severity: 'success',
                 summary: 'Thanks!',
-                detail: 'Your delivery rating was saved.',
+                detail: 'Your feedback was saved.',
                 life: 4000,
             });
         } catch (err: any) {

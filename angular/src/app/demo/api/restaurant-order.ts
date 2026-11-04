@@ -21,6 +21,7 @@ export interface RestaurantOrderDto {
     id: number;
     branchId: number;
     orderNo: string;
+    tokenNo?: number | null;
     tableId?: number | null;
     tableNo?: string;
     orderType: OrderType;

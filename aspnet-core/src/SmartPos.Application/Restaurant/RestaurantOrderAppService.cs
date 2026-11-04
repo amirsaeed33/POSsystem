@@ -423,11 +423,16 @@ namespace SmartPos.Restaurant
 
             if (isNew)
             {
+                await EnsureTokenAssignedAsync(order);
                 var id = await _orderRepository.InsertAndGetIdAsync(order);
                 order.Id = id;
             }
             else
             {
+                if (!order.TokenNo.HasValue)
+                {
+                    await EnsureTokenAssignedAsync(order);
+                }
                 await _orderRepository.UpdateAsync(order);
             }
 
@@ -625,6 +630,7 @@ namespace SmartPos.Restaurant
                 Lines = new List<RestaurantOrderLine>()
             };
 
+            await EnsureTokenAssignedAsync(order);
             var id = await _orderRepository.InsertAndGetIdAsync(order);
 
             table.Status = TableStatus.Occupied;
@@ -839,6 +845,11 @@ namespace SmartPos.Restaurant
 
             await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
 
+            if (!order.TokenNo.HasValue)
+            {
+                await EnsureTokenAssignedAsync(order);
+            }
+
             var printer = await GetCurrentPrinterIdentityAsync();
             order.LastPrintedBy = $"{printer.Name} ({printer.Role})";
             order.LastPrintedTime = Clock.Now;
@@ -923,12 +934,19 @@ namespace SmartPos.Restaurant
                 ? input.CustomerId 
                 : (order.CustomerId.HasValue && order.CustomerId.Value > 0 ? order.CustomerId.Value : 1);
 
+            if (!order.TokenNo.HasValue)
+            {
+                await EnsureTokenAssignedAsync(order);
+            }
+
             // Settle order via SaleAppService
             var saleDto = new CreateSaleDto
             {
                 CustomerId = customerId,
+                BranchId = order.BranchId,
                 SaleDate = Clock.Now,
                 Notes = finalNotes,
+                TokenNo = order.TokenNo,
                 DiscountAmount = order.DiscountAmount,
                 DiscountPercent = order.DiscountPercent,
                 TaxPercent = order.TaxPercent,
@@ -1201,6 +1219,39 @@ namespace SmartPos.Restaurant
             var now = Clock.Now;
             var rand = new Random().Next(100, 999);
             return $"ORD-{now:yyMMddHHmm}-{rand}";
+        }
+
+        /// <summary>
+        /// Assigns a daily kitchen token for dine-in and takeaway (resets each calendar day per branch).
+        /// </summary>
+        private async Task EnsureTokenAssignedAsync(RestaurantOrder order)
+        {
+            if (order == null || order.TokenNo.HasValue)
+            {
+                return;
+            }
+
+            if (order.OrderType != OrderType.DineIn && order.OrderType != OrderType.Takeaway)
+            {
+                return;
+            }
+
+            order.TokenNo = await AllocateNextTokenNoAsync(order.BranchId);
+        }
+
+        private async Task<int> AllocateNextTokenNoAsync(int branchId)
+        {
+            var today = Clock.Now.Date;
+            var tomorrow = today.AddDays(1);
+            var maxToken = await _orderRepository.GetAll()
+                .AsNoTracking()
+                .Where(o => o.BranchId == branchId
+                            && o.TokenNo != null
+                            && o.CreationTime >= today
+                            && o.CreationTime < tomorrow)
+                .MaxAsync(o => (int?)o.TokenNo);
+
+            return (maxToken ?? 0) + 1;
         }
     }
 }

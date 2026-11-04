@@ -39,65 +39,73 @@
     <!-- 1. THERMAL 80MM RECEIPT SHEET (Clean, high-contrast, thermal roll layout) -->
     <!-- ========================================================================= -->
     <div *ngIf="!loading && sale && (printFormat === 'thermal-80' || printFormat === 'thermal-58')" class="print-area thermal-sheet" [class.thermal-58]="printFormat === 'thermal-58'">
-        <!-- Receipt Header -->
+        <!-- Receipt Header (dynamic branch/company) -->
         <div class="thermal-header text-center">
             <img *ngIf="companyLogoUrl" [src]="companyLogoUrl" alt="Logo" class="thermal-logo" />
             <div class="thermal-store-name">{{ company?.name || 'SMARTPOS STORE' }}</div>
             <div class="thermal-store-info" *ngIf="company?.invoiceAddress">{{ company?.invoiceAddress }}</div>
-            <div class="thermal-store-info" *ngIf="company?.invoiceContactPhone">Tel: {{ company?.invoiceContactPhone }}
+            <div class="thermal-store-info" *ngIf="cityOrAddressLine && cityOrAddressLine !== company?.invoiceAddress">
+                {{ cityOrAddressLine }}
             </div>
-            <div class="thermal-store-info" *ngIf="company?.invoiceContactEmail">Email: {{ company?.invoiceContactEmail
-                }}</div>
-            <div class="thermal-store-info font-bold" *ngIf="company?.taxNumber">NTN/STRN: {{ company?.taxNumber }}
-            </div>
+            <div class="thermal-pay-status">{{ paymentStatusLabel }}</div>
         </div>
 
         <div class="thermal-divider-dashed"></div>
 
         <!-- Receipt Meta Details -->
         <div class="thermal-meta">
+            <div class="thermal-meta-row" *ngIf="sale.tokenNo">
+                <span class="font-bold">Token#:</span>
+                <span class="font-bold font-mono thermal-token">{{ sale.tokenNo }}</span>
+            </div>
             <div class="thermal-meta-row">
-                <span class="font-bold">INVOICE:</span>
+                <span>Order Type:</span>
+                <span class="font-bold">{{ orderTypeLabel }}</span>
+            </div>
+            <div class="thermal-meta-row">
+                <span>Order ID:</span>
+                <span class="font-mono">{{ sale.id }}</span>
+            </div>
+            <div class="thermal-meta-row">
+                <span>Date:</span>
+                <span>{{ sale.saleDate | date: formatService.dateFormat }} {{ sale.saleDate | date: 'shortTime' }}</span>
+            </div>
+            <div class="thermal-meta-row">
+                <span class="font-bold">Invoice#:</span>
                 <span class="font-bold font-mono">{{ sale.invoiceNo || ('#' + sale.id) }}</span>
             </div>
             <div class="thermal-meta-row">
-                <span>DATE:</span>
-                <span>{{ sale.saleDate | date: formatService.dateFormat }} {{ today | date: 'shortTime' }}</span>
-            </div>
-            <div class="thermal-meta-row">
-                <span>CUSTOMER:</span>
-                <span>{{ sale.customerName || 'Walk Customer' }}</span>
+                <span>User:</span>
+                <span>{{ printerText || company?.name || 'Staff' }}</span>
             </div>
             <div class="thermal-meta-row" *ngIf="sale.deliveryAreaName">
-                <span>DELIVERY AREA:</span>
+                <span>Delivery Area:</span>
                 <span class="font-bold">{{ sale.deliveryAreaName }}</span>
             </div>
             <div class="thermal-meta-row">
-                <span>PAYMENT:</span>
+                <span>Payment:</span>
                 <span class="font-bold">{{ paymentTypeName }}</span>
-            </div>
-            <div class="thermal-meta-row" *ngIf="company?.businessType === 2" style="font-weight: bold; margin-top: 3px;">
-                <span>PRINTED BY:</span>
-                <span>{{ printerText }}</span>
             </div>
         </div>
 
         <div class="thermal-divider-double"></div>
 
+        <div class="text-center font-bold" style="margin-bottom: 4px;">Order Detail</div>
+
         <!-- Items Table -->
         <div class="thermal-items-header">
-            <span class="col-item">ITEM DESCRIPTION</span>
-            <span class="col-qty text-center">QTY</span>
-            <span class="col-price text-right">PRICE</span>
-            <span class="col-total text-right">TOTAL</span>
+            <span class="col-item">Item</span>
+            <span class="col-qty text-center">Qty</span>
+            <span class="col-price text-right">Rate</span>
+            <span class="col-total text-right">Total</span>
         </div>
         <div class="thermal-divider-dashed"></div>
 
         <div class="thermal-items-list">
             <div class="thermal-item-entry" *ngFor="let line of sale.lines || []; let i = index">
-                <div class="thermal-item-name">{{ i + 1 }}. {{ line.productName || ('#' + line.productId) }}</div>
+                <div class="thermal-item-name">{{ line.productName || ('#' + line.productId) }}</div>
                 <div class="thermal-item-row">
-                    <span class="col-item text-muted">Rate: {{ line.unitPrice | number:'1.0-2' }}</span>
+                    <span class="col-item text-muted"></span>
                     <span class="col-qty text-center font-bold">{{ line.quantity }}</span>
                     <span class="col-price text-right">{{ line.unitPrice | number:'1.0-2' }}</span>
                     <span class="col-total text-right font-bold">{{ line.lineTotal | number:'1.0-2' }}</span>
@@ -111,7 +119,7 @@
         <div class="thermal-totals">
             <div class="thermal-total-row">
                 <span>Sub Total:</span>
-                <span>{{ sale.subTotal | number:'1.0-2' }}</span>
+                <span>{{ sale.subTotal | number:'1.0-2' }} {{ currencyLabel }}</span>
             </div>
             <div class="thermal-total-row" *ngIf="sale.discountAmount && sale.discountAmount > 0">
                 <span>Discount ({{ sale.discountPercent || 0 }}%):</span>
@@ -129,13 +137,12 @@
             <div class="thermal-divider-double"></div>
 
             <div class="thermal-grand-total">
-                <span>TOTAL:</span>
-                <span>{{ company?.currencyFormat || 'PKR' }} {{ sale.totalAmount | number:'1.0-2' }}</span>
+                <span>GRAND TOTAL:</span>
+                <span>{{ sale.totalAmount | number:'1.0-2' }} {{ currencyLabel }}</span>
             </div>
 
             <div class="thermal-divider-dashed"></div>
 
-            <!-- Payment Breakdown -->
             <div class="thermal-total-row text-xs" *ngIf="sale.cashAmount">
                 <span>Cash Paid:</span>
                 <span>{{ sale.cashAmount | number:'1.0-2' }}</span>
@@ -146,29 +153,36 @@
             </div>
         </div>
 
-        <!-- Notes if present -->
-        <div *ngIf="sale.notes" class="thermal-notes">
-            <strong>Note:</strong> {{ sale.notes }}
+        <div class="thermal-divider-dashed"></div>
+
+        <div class="thermal-meta">
+            <div class="thermal-meta-row">
+                <span>Customer Detail:</span>
+                <span>{{ sale.customerName || 'Walk-in' }}</span>
+            </div>
+            <div class="thermal-meta-row" *ngIf="company?.businessType === 2">
+                <span>Order-Taker:</span>
+                <span>{{ printerText || 'Staff' }}</span>
+            </div>
+            <div class="thermal-meta-row">
+                <span>Printed:</span>
+                <span>{{ today }}</span>
+            </div>
         </div>
 
         <div class="thermal-divider-dashed"></div>
 
-        <!-- Receipt Footer -->
+        <!-- Receipt Footer (dynamic) -->
         <div class="thermal-footer text-center">
             <div class="thermal-footer-msg" *ngIf="company?.invoiceFooter">
                 {{ company?.invoiceFooter }}
             </div>
-            <div class="thermal-footer-msg" *ngIf="!company?.invoiceFooter">
+            <div class="thermal-footer-msg" *ngIf="!company?.invoiceFooter && company?.invoiceContactPhone">
+                For any Complaint &amp; Suggestions Please Contact us &#64; {{ company?.invoiceContactPhone }}
+            </div>
+            <div class="thermal-footer-msg" *ngIf="!company?.invoiceFooter && !company?.invoiceContactPhone">
                 Thank you for your business! Please visit again.
             </div>
-
-            <!-- Barcode representation -->
-            <div class="thermal-barcode-box">
-                <div class="barcode-lines">-------------------------</div>
-                <div class="barcode-text">*{{ sale.invoiceNo || ('#' + sale.id) }}*</div>
-            </div>
-
-            <div class="thermal-timestamp">Printed On: {{ today }}</div>
             <div class="thermal-branding">Software by SmartPos</div>
         </div>
     </div>
@@ -196,13 +210,25 @@
             </div>
             <div class="invoice-meta">
                 <div class="doc-title">Sale Invoice</div>
+                <div *ngIf="sale.tokenNo">
+                    <strong>Token#:</strong>
+                    {{ sale.tokenNo }}
+                </div>
                 <div>
                     <strong>Invoice No:</strong>
                     {{ sale.invoiceNo || ('#' + sale.id) }}
                 </div>
                 <div>
+                    <strong>Order Type:</strong>
+                    {{ orderTypeLabel }}
+                </div>
+                <div>
                     <strong>Sale Date:</strong>
                     {{ sale.saleDate | date: formatService.dateFormat }}
+                </div>
+                <div>
+                    <strong>Status:</strong>
+                    {{ paymentStatusLabel }}
                 </div>
             </div>
         </div>

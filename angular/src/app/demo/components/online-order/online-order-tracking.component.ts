@@ -30,6 +30,7 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
     countdown = 8;
     previousStatus: number | null = null;
     customerRatingDraft: number | null = null;
+    customerCommentDraft = '';
     ratingSubmitting = false;
 
     constructor(
@@ -135,6 +136,7 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
             this.previousStatus = result.status;
             this.order = result;
             this.customerRatingDraft = result.customerRating ?? null;
+            this.customerCommentDraft = result.customerFeedbackComment || this.customerCommentDraft || '';
             this.lastUpdated = new Date();
             this.errorMessage = '';
             this.view = 'detail';
@@ -263,13 +265,15 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
             const updated = await this.customerOrderService.rateOrder({
                 orderNo: this.order.orderNo,
                 rating: this.customerRatingDraft,
+                comment: this.customerCommentDraft,
             });
             this.order = updated;
             this.customerRatingDraft = updated.customerRating ?? this.customerRatingDraft;
+            this.customerCommentDraft = updated.customerFeedbackComment || this.customerCommentDraft;
             this.messageService.add({
                 severity: 'success',
                 summary: 'Thanks!',
-                detail: 'Your delivery rating was saved.',
+                detail: 'Your feedback was saved.',
                 life: 4000,
             });
         } catch (err: any) {

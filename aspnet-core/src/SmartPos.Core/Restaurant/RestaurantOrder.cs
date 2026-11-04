@@ -31,6 +31,9 @@ namespace SmartPos.Restaurant
         [StringLength(MaxOrderNoLength)]
         public virtual string OrderNo { get; set; }
 
+        /// <summary>Daily queue/token number for dine-in and takeaway kitchen slips and invoices.</summary>
+        public virtual int? TokenNo { get; set; }
+
         public virtual int? TableId { get; set; }
 
         [ForeignKey(nameof(TableId))]

@@ -47,6 +47,12 @@ namespace SmartPos.Customers
         [StringLength(MaxAddressLength)]
         public virtual string Address { get; set; }
 
+        /// <summary>Optional GPS latitude for the customer's default delivery address.</summary>
+        public virtual double? Latitude { get; set; }
+
+        /// <summary>Optional GPS longitude for the customer's default delivery address.</summary>
+        public virtual double? Longitude { get; set; }
+
         [StringLength(MaxDescriptionLength)]
         public virtual string Description { get; set; }
 

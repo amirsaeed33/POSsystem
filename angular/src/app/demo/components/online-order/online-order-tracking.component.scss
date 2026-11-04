@@ -444,9 +444,39 @@
   }
 
   .ot-rate-btn {
+    margin-top: 0.75rem;
     padding: 0.55rem 0.95rem;
     font-size: 0.78rem;
     min-width: 8.5rem;
+  }
+
+  .ot-feedback-comment {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: #0f172a;
+    resize: vertical;
+    min-height: 4.5rem;
+    background: #fff;
+  }
+
+  .ot-feedback-comment:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  }
+
+  .ot-feedback-comment-readonly {
+    margin: 0.75rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: #334155;
+    font-style: italic;
   }
 
   ::ng-deep .p-rating .p-rating-icon {

@@ -17,6 +17,8 @@ namespace SmartPos.Sales.Dto
         [StringLength(Sale.MaxInvoiceNoLength)]
         public string InvoiceNo { get; set; }
 
+        public int? TokenNo { get; set; }
+
         [StringLength(Sale.MaxNotesLength)]
         public string Notes { get; set; }
 

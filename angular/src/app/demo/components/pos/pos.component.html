@@ -1154,6 +1154,9 @@
                     <div *ngIf="completedReceipt.ntn" class="text-xs font-bold text-900 mt-1">NTN/STRN: {{ completedReceipt.ntn }}</div>
                     <div class="border-top-1 surface-border my-2 border-dashed"></div>
                     <div class="font-bold text-xs uppercase">*** SALES RECEIPT ***</div>
+                    <div class="text-sm font-bold text-900" *ngIf="completedReceipt.tokenNo != null">
+                        Token#: {{ completedReceipt.tokenNo }}
+                    </div>
                     <div class="text-xs text-700">Order: #{{ completedReceipt.orderNo }}</div>
                     <div class="text-xs text-700 font-semibold">{{ completedReceipt.tableNo }}</div>
                     <div class="text-xs text-700">Server: {{ completedReceipt.serverName }} &bull; {{ completedReceipt.date | date:'short' }}</div>
@@ -1863,8 +1866,13 @@
                 style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.4;"
             >
                 <div class="text-center pb-2 border-bottom-1 border-dashed border-400 mb-2">
-                    <div class="font-bold text-base uppercase">SmartPOS Restaurant</div>
-                    <div class="text-xs font-semibold mt-1">*** GUEST CHECK ***</div>
+                    <div class="font-bold text-base uppercase">{{ invoiceBranchName }}</div>
+                    <div class="text-xs" *ngIf="invoiceBranchAddress">{{ invoiceBranchAddress }}</div>
+                    <div class="text-xs font-bold uppercase mt-1">Unpaid</div>
+                    <div class="text-sm font-bold mt-2" *ngIf="activeTokenNo != null">
+                        Token#: {{ activeTokenNo }}
+                    </div>
+                    <div class="text-xs mt-1">Order Type: <strong>{{ guestOrderTypeLabel }}</strong></div>
                     <div class="text-xs">
                         <span *ngIf="isCarService">
                             Car: <strong>{{ carServiceLabel }}</strong><span *ngIf="selectedCarLocation"> &bull; {{ selectedCarLocation }}</span> &bull; Order: #{{ activeOrderNo || 'N/A' }}
@@ -1939,8 +1947,9 @@
                 </div>
 
                 <div class="text-center pt-3 border-top-1 border-dashed border-400 text-xs text-600 mt-2">
-                    Thank you for dining with us!<br />
-                    * Please present this check at payment *
+                    {{ invoiceBranchFooter }}<br />
+                    * Please present this check at payment *<br />
+                    <span class="text-500">Software by SmartPos</span>
                 </div>
             </div>
         </div>
