@@ -1822,6 +1822,9 @@
                                     <i class="pi pi-star" *ngFor="let s of feedbackEmptyStars(fb.rating)"></i>
                                 </div>
                             </div>
+                            <div class="fp-feedback-items" *ngIf="fb.itemsSummary" [title]="fb.itemsSummary">
+                                {{ fb.itemsSummary }}
+                            </div>
                             <p class="fp-feedback-comment" *ngIf="fb.comment">{{ fb.comment }}</p>
                             <p class="fp-feedback-comment fp-feedback-comment--muted" *ngIf="!fb.comment">
                                 Rated their order{{ fb.orderNo ? ' #' + fb.orderNo : '' }}.

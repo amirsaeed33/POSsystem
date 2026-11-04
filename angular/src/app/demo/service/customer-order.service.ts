@@ -247,6 +247,8 @@ export class CustomerOrderService {
             orderDate: string | Date;
             branchName?: string;
             comment?: string;
+            itemNames?: string[];
+            itemsSummary?: string;
         }>
     > {
         if (!branchId || branchId <= 0) {
@@ -262,17 +264,30 @@ export class CustomerOrderService {
         );
         const result = this.unwrap(res, 'Failed to load branch feedbacks');
         const list = Array.isArray(result) ? result : result?.items || [];
-        return (Array.isArray(list) ? list : []).map((item: any) => ({
-            orderId: item.orderId ?? item.OrderId,
-            orderNo: item.orderNo ?? item.OrderNo,
-            customerName: item.customerName ?? item.CustomerName ?? 'Customer',
-            customerImagePath:
-                item.customerImagePath ?? item.CustomerImagePath ?? null,
-            rating: Number(item.rating ?? item.Rating ?? 0),
-            orderDate: item.orderDate ?? item.OrderDate,
-            branchName: item.branchName ?? item.BranchName,
-            comment: item.comment ?? item.Comment ?? '',
-        }));
+        return (Array.isArray(list) ? list : []).map((item: any) => {
+            const rawNames = item.itemNames ?? item.ItemNames;
+            const itemNames = Array.isArray(rawNames)
+                ? rawNames
+                      .map((n: any) => String(n ?? '').trim())
+                      .filter((n: string) => !!n)
+                : [];
+            const itemsSummary =
+                (item.itemsSummary ?? item.ItemsSummary ?? '').trim() ||
+                (itemNames.length ? itemNames.join(', ') : '');
+            return {
+                orderId: item.orderId ?? item.OrderId,
+                orderNo: item.orderNo ?? item.OrderNo,
+                customerName: item.customerName ?? item.CustomerName ?? 'Customer',
+                customerImagePath:
+                    item.customerImagePath ?? item.CustomerImagePath ?? null,
+                rating: Number(item.rating ?? item.Rating ?? 0),
+                orderDate: item.orderDate ?? item.OrderDate,
+                branchName: item.branchName ?? item.BranchName,
+                comment: item.comment ?? item.Comment ?? '',
+                itemNames,
+                itemsSummary,
+            };
+        });
     }
 
     async getOnlineCustomerProfile(

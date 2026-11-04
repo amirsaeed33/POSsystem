@@ -129,6 +129,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         orderDate: string | Date;
         branchName?: string;
         comment?: string;
+        itemNames?: string[];
+        itemsSummary?: string;
     }> = [];
     private feedbackPhotoBroken = new Set<number>();
     loadingBranchFeedbacks = false;

@@ -1409,14 +1409,26 @@ namespace SmartPos.Orders
 
                 var take = maxResultCount > 0 ? Math.Min(maxResultCount, 50) : 20;
 
-                var rows = await Repository.GetAll()
+                var orders = await Repository.GetAll()
                     .AsNoTracking()
                     .Include(o => o.Customer)
                     .Include(o => o.Branch)
+                    .Include(o => o.Lines)
+                        .ThenInclude(l => l.Product)
                     .Where(o => o.BranchId == branchId && o.CustomerRating != null && o.CustomerRating > 0)
                     .OrderByDescending(o => o.OrderDate)
                     .Take(take)
-                    .Select(o => new BranchFeedbackDto
+                    .ToListAsync();
+
+                return orders.Select(o =>
+                {
+                    var itemNames = (o.Lines ?? Enumerable.Empty<CustomerOrderLine>())
+                        .Where(l => l.Product != null && !string.IsNullOrWhiteSpace(l.Product.Name))
+                        .Select(l => l.Product.Name.Trim())
+                        .Distinct()
+                        .ToList();
+
+                    return new BranchFeedbackDto
                     {
                         OrderId = o.Id,
                         OrderNo = o.OrderNo,
@@ -1425,11 +1437,13 @@ namespace SmartPos.Orders
                         Rating = o.CustomerRating.Value,
                         OrderDate = o.OrderDate,
                         BranchName = o.Branch != null ? o.Branch.Name : null,
-                        Comment = o.CustomerFeedbackComment
-                    })
-                    .ToListAsync();
-
-                return rows;
+                        Comment = o.CustomerFeedbackComment,
+                        ItemNames = itemNames,
+                        ItemsSummary = itemNames.Count == 0
+                            ? null
+                            : string.Join(", ", itemNames)
+                    };
+                }).ToList();
             }
         }
 

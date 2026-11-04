@@ -183,6 +183,29 @@
             <p>We couldn’t find orders for this phone number.</p>
         </div>
 
+        <section *ngIf="!loading && orders.length > 0" class="oh-stats-row" aria-label="Order summary">
+            <article class="oh-stat-card oh-stat-card--spend">
+                <div class="oh-stat-card__icon">
+                    <i class="pi pi-wallet"></i>
+                </div>
+                <div class="oh-stat-card__body">
+                    <span class="oh-stat-card__label">Total money spent</span>
+                    <strong class="oh-stat-card__value">PKR {{ totalMoneySpent | number: '1.0-0' }}</strong>
+                    <span class="oh-stat-card__hint">Delivered orders only</span>
+                </div>
+            </article>
+            <article class="oh-stat-card oh-stat-card--orders">
+                <div class="oh-stat-card__icon">
+                    <i class="pi pi-shopping-bag"></i>
+                </div>
+                <div class="oh-stat-card__body">
+                    <span class="oh-stat-card__label">Orders</span>
+                    <strong class="oh-stat-card__value">{{ totalOrdersCount }}</strong>
+                    <span class="oh-stat-card__hint">{{ pendingOrdersCount }} pending</span>
+                </div>
+            </article>
+        </section>
+
         <div *ngIf="!loading && orders.length > 0" class="oh-card-grid">
             <article
                 class="oh-order-card"

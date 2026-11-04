@@ -293,6 +293,11 @@ namespace SmartPos.Orders.Dto
         public string BranchName { get; set; }
 
         public string Comment { get; set; }
+
+        /// <summary>Ordered product names shown on public feedback cards.</summary>
+        public List<string> ItemNames { get; set; } = new List<string>();
+
+        public string ItemsSummary { get; set; }
     }
 
     public class UpsertOnlineCustomerProfileInput

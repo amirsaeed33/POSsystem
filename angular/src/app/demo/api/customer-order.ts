@@ -91,6 +91,8 @@ export interface BranchFeedbackDto {
     orderDate: string | Date;
     branchName?: string;
     comment?: string;
+    itemNames?: string[];
+    itemsSummary?: string;
 }
 
 export interface UpsertOnlineCustomerProfileInput {

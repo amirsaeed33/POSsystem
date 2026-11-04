@@ -102,6 +102,27 @@ export class OnlineOrderHistoryComponent implements OnInit {
         this.goStore();
     }
 
+    /** Delivered order totals only (actual spend). */
+    get totalMoneySpent(): number {
+        return this.orders
+            .filter((o) => o.status === CustomerOrderStatus.Delivered)
+            .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+    }
+
+    get totalOrdersCount(): number {
+        return this.orders.length;
+    }
+
+    /** Not finished yet: pending / approved / out for delivery. */
+    get pendingOrdersCount(): number {
+        return this.orders.filter(
+            (o) =>
+                o.status === CustomerOrderStatus.Pending ||
+                o.status === CustomerOrderStatus.Approved ||
+                o.status === CustomerOrderStatus.InProgress
+        ).length;
+    }
+
     async search(): Promise<void> {
         const phone = (this.phone || '').trim();
         if (phone.replace(/\D/g, '').length < 7) {
