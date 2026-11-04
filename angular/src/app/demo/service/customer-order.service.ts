@@ -6,6 +6,8 @@ import {
     CreateCustomerOrderDto,
     CustomerOrderDto,
     CustomerOrderLineDto,
+    CustomerSavedAddressDto,
+    GetCustomerSavedAddressesInput,
     RateCustomerOrderInput,
     CustomerOrderHistoryInput,
     DeliveryRiderStatusDto,
@@ -13,6 +15,7 @@ import {
     OverrideDeliveryFeeInput,
     PagedCustomerOrderResultRequestDto,
     PagedResultDto,
+    SaveCustomerAddressInput,
     UpsertOnlineCustomerProfileInput,
 } from '../api/customer-order';
 import { SaleDto } from '../api/sale';
@@ -70,6 +73,13 @@ export class CustomerOrderService {
                 customerId: input.customerId,
                 orderDate: this.toApiDate(input.orderDate),
                 notes: input.notes,
+                deliveryAddress: input.deliveryAddress,
+                deliveryLandmark: input.deliveryLandmark,
+                deliveryAreaId: input.deliveryAreaId,
+                deliveryArea: input.deliveryArea,
+                deliveryCharges: input.deliveryCharges,
+                latitude: input.latitude,
+                longitude: input.longitude,
                 lines: input.lines,
             })
         );
@@ -240,6 +250,7 @@ export class CustomerOrderService {
     ): Promise<
         Array<{
             orderId: number;
+            customerId?: number;
             orderNo?: string;
             customerName?: string;
             customerImagePath?: string | null;
@@ -258,13 +269,13 @@ export class CustomerOrderService {
             this.http.get<any>(`${this.apiUrl}/GetBranchFeedbacks`, {
                 params: {
                     branchId: String(branchId),
-                    maxResultCount: String(maxResultCount),
+                    maxResultCount: String(Math.min(maxResultCount || 5, 5)),
                 },
             })
         );
         const result = this.unwrap(res, 'Failed to load branch feedbacks');
         const list = Array.isArray(result) ? result : result?.items || [];
-        return (Array.isArray(list) ? list : []).map((item: any) => {
+        const mapped = (Array.isArray(list) ? list : []).map((item: any) => {
             const rawNames = item.itemNames ?? item.ItemNames;
             const itemNames = Array.isArray(rawNames)
                 ? rawNames
@@ -276,6 +287,7 @@ export class CustomerOrderService {
                 (itemNames.length ? itemNames.join(', ') : '');
             return {
                 orderId: item.orderId ?? item.OrderId,
+                customerId: Number(item.customerId ?? item.CustomerId ?? 0) || undefined,
                 orderNo: item.orderNo ?? item.OrderNo,
                 customerName: item.customerName ?? item.CustomerName ?? 'Customer',
                 customerImagePath:
@@ -288,6 +300,22 @@ export class CustomerOrderService {
                 itemsSummary,
             };
         });
+
+        // Keep one card per customer (newest already preferred by API), max 5.
+        const seen = new Set<number>();
+        const distinct: typeof mapped = [];
+        for (const row of mapped) {
+            const key = row.customerId || row.orderId;
+            if (seen.has(key)) {
+                continue;
+            }
+            seen.add(key);
+            distinct.push(row);
+            if (distinct.length >= 5) {
+                break;
+            }
+        }
+        return distinct;
     }
 
     async getOnlineCustomerProfile(
@@ -335,6 +363,8 @@ export class CustomerOrderService {
     }
 
     private mapProfile(item: any): OnlineCustomerProfileDto {
+        const rawAddresses =
+            item.savedAddresses ?? item.SavedAddresses ?? [];
         return {
             id: item.id ?? item.Id,
             branchId: item.branchId ?? item.BranchId,
@@ -345,6 +375,80 @@ export class CustomerOrderService {
             latitude: item.latitude ?? item.Latitude ?? null,
             longitude: item.longitude ?? item.Longitude ?? null,
             imagePath: item.imagePath ?? item.ImagePath,
+            savedAddresses: (Array.isArray(rawAddresses) ? rawAddresses : []).map(
+                (a: any) => this.mapSavedAddress(a)
+            ),
+        };
+    }
+
+    async getSavedAddresses(
+        input: GetCustomerSavedAddressesInput
+    ): Promise<CustomerSavedAddressDto[]> {
+        const params: Record<string, string> = {};
+        if (input.customerId) params['CustomerId'] = String(input.customerId);
+        if (input.branchId) params['BranchId'] = String(input.branchId);
+        if (input.phone) params['Phone'] = input.phone.trim();
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetSavedAddresses`, { params })
+        );
+        const result = this.unwrap(res, 'Failed to load saved addresses');
+        const items = Array.isArray(result) ? result : result?.items || result?.Items || [];
+        return (Array.isArray(items) ? items : []).map((a: any) =>
+            this.mapSavedAddress(a)
+        );
+    }
+
+    async saveSavedAddress(
+        input: SaveCustomerAddressInput
+    ): Promise<CustomerSavedAddressDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/SaveSavedAddress`, {
+                id: input.id ?? null,
+                customerId: input.customerId ?? null,
+                branchId: input.branchId ?? null,
+                phone: input.phone,
+                label: input.label,
+                address: input.address,
+                landmark: input.landmark,
+                deliveryAreaId: input.deliveryAreaId ?? null,
+                deliveryAreaName: input.deliveryAreaName,
+                latitude: input.latitude ?? null,
+                longitude: input.longitude ?? null,
+                isDefault: !!input.isDefault,
+            })
+        );
+        return this.mapSavedAddress(
+            this.unwrap(res, 'Failed to save address')
+        );
+    }
+
+    async deleteSavedAddress(
+        id: number,
+        phone?: string,
+        branchId?: number | null
+    ): Promise<void> {
+        const params: Record<string, string> = { Id: String(id) };
+        if (phone) params['Phone'] = phone.trim();
+        if (branchId) params['BranchId'] = String(branchId);
+        const res: any = await firstValueFrom(
+            this.http.delete<any>(`${this.apiUrl}/DeleteSavedAddress`, { params })
+        );
+        if (res == null) return;
+        this.unwrap(res, 'Failed to delete address');
+    }
+
+    private mapSavedAddress(item: any): CustomerSavedAddressDto {
+        return {
+            id: item.id ?? item.Id,
+            customerId: item.customerId ?? item.CustomerId,
+            label: item.label ?? item.Label,
+            address: item.address ?? item.Address,
+            landmark: item.landmark ?? item.Landmark,
+            deliveryAreaId: item.deliveryAreaId ?? item.DeliveryAreaId ?? null,
+            deliveryAreaName: item.deliveryAreaName ?? item.DeliveryAreaName,
+            latitude: item.latitude ?? item.Latitude ?? null,
+            longitude: item.longitude ?? item.Longitude ?? null,
+            isDefault: !!(item.isDefault ?? item.IsDefault),
         };
     }
 

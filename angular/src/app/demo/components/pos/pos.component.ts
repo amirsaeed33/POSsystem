@@ -1,4 +1,5 @@
 import {
+    ChangeDetectorRef,
     Component,
     ElementRef,
     OnDestroy,
@@ -40,6 +41,19 @@ import { AuthService } from 'src/app/demo/service/auth.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RestaurantTakeawayAlarmService } from 'src/app/demo/service/restaurant-takeaway-alarm.service';
 import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
+import { CustomerService } from 'src/app/demo/service/customer.service';
+import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
+import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
+import { CustomerSavedAddressDto } from 'src/app/demo/api/customer-order';
+import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart';
+
+/** POS third-party delivery channel (runs as takeaway with a named customer). */
+export type PosThirdPartyChannel = 'foodpanda' | null;
+
+/** Single UI source of truth for Dine-In / Takeaway / Foodpanda button highlight. */
+export type PosOrderChannelUi = 'dineIn' | 'takeaway' | 'foodpanda';
+
+const FOODPANDA_CUSTOMER_NAME = 'Foodpanda';
 
 export interface DealCustomiseItem {
     productId: number;
@@ -75,10 +89,26 @@ export class PosComponent implements OnInit, OnDestroy {
     discountPercent = 0;
     taxPercent = 0;
 
+    /** Staff delivery address + zone (takeaway / retail delivery). */
+    deliveryAreas: DeliveryAreaDto[] = [];
+    selectedDeliveryAreaId: number | null = null;
+    deliveryAddress = '';
+    deliveryLandmark = '';
+    savedAddresses: CustomerSavedAddressDto[] = [];
+    selectedSavedAddressId: number | null = null;
+    loadingSavedAddresses = false;
+
     // Restaurant Mode
     isRestaurantMode = false;
     serviceChargePercent = 0;
     orderType: 'dineIn' | 'takeaway' = 'dineIn';
+    /** When set (e.g. Foodpanda), order runs as takeaway with that partner as customer. */
+    thirdPartyChannel: PosThirdPartyChannel = null;
+    /**
+     * Exclusive selected chip for the order-type toggle.
+     * Do not derive highlight from orderType alone — Foodpanda also uses takeaway.
+     */
+    selectedChannel: PosOrderChannelUi = 'dineIn';
     tables: RestaurantTableDto[] = [];
     selectedTable: RestaurantTableDto | null = null;
     tableDialogVisible = false;
@@ -159,10 +189,17 @@ export class PosComponent implements OnInit, OnDestroy {
         if (this.isCarService) {
             return 'Car Service';
         }
+        if (this.thirdPartyChannel === 'foodpanda') {
+            return 'Foodpanda';
+        }
         if (this.orderType === 'takeaway') {
             return 'Take-Away';
         }
         return 'Dine-In';
+    }
+
+    get isFoodpandaOrder(): boolean {
+        return this.selectedChannel === 'foodpanda' || this.thirdPartyChannel === 'foodpanda';
     }
 
     private syncActiveOrderMeta(order: {
@@ -268,8 +305,24 @@ export class PosComponent implements OnInit, OnDestroy {
         private router: Router,
         public thermalPrintService: ThermalPrintService,
         public takeawayAlarmService: RestaurantTakeawayAlarmService,
-        private messageService: MessageService
+        private customerService: CustomerService,
+        private customerOrderService: CustomerOrderService,
+        private deliveryAreaService: DeliveryAreaService,
+        private messageService: MessageService,
+        private cdr: ChangeDetectorRef
     ) {}
+
+    get selectedDeliveryArea(): DeliveryAreaDto | null {
+        return this.deliveryAreas.find((a) => a.id === this.selectedDeliveryAreaId) || null;
+    }
+
+    get deliveryCharges(): number {
+        return this.selectedDeliveryArea?.deliveryFee ?? 0;
+    }
+
+    get showDeliveryAddressPanel(): boolean {
+        return !this.isRestaurantMode || this.orderType === 'takeaway';
+    }
 
     get isWaiter(): boolean {
         return this.isRestaurantMode && this.authService.isWaiter();
@@ -409,12 +462,17 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     get grandTotal(): number {
+        const delivery =
+            this.showDeliveryAddressPanel && this.deliveryAddress.trim()
+                ? this.deliveryCharges
+                : 0;
         return (
             Math.round(
                 (this.subTotal -
                     this.computedDiscount +
                     this.taxAmount +
-                    this.serviceChargeAmount) *
+                    this.serviceChargeAmount +
+                    delivery) *
                     100
             ) / 100
         );
@@ -536,6 +594,7 @@ export class PosComponent implements OnInit, OnDestroy {
         this.applyBranchPricing();
         this.loadTopProducts();
         this.loadPosCustomers();
+        void this.loadDeliveryAreasForPos();
 
         if (this.isRestaurantMode) {
             this.loadMenuProducts();
@@ -862,6 +921,190 @@ export class PosComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Dine-In / Takeaway / Foodpanda (third-party).
+     * UI highlight uses selectedChannel only (not orderType), because Foodpanda
+     * still sets orderType=takeaway for kitchen/settle flows.
+     */
+    async selectOrderChannel(channel: PosOrderChannelUi): Promise<void> {
+        // Set highlight synchronously first so Takeaway cannot keep .active.
+        this.selectedChannel = channel;
+        this.cdr.detectChanges();
+
+        if (channel === 'foodpanda') {
+            this.orderType = 'takeaway';
+            this.thirdPartyChannel = 'foodpanda';
+            this.clearTableSelection();
+            await this.ensureThirdPartyCustomer(FOODPANDA_CUSTOMER_NAME);
+            // Re-assert after async work in case anything touched order flags.
+            this.selectedChannel = 'foodpanda';
+            this.thirdPartyChannel = 'foodpanda';
+            this.orderType = 'takeaway';
+            this.cdr.detectChanges();
+            return;
+        }
+
+        const wasFoodpanda = this.thirdPartyChannel === 'foodpanda';
+        this.thirdPartyChannel = null;
+        this.orderType = channel;
+        this.selectedChannel = channel;
+
+        if (wasFoodpanda) {
+            this.selectWalkInCustomer();
+        }
+
+        if (channel === 'dineIn') {
+            this.onOrderTypeChange();
+        }
+        this.cdr.detectChanges();
+    }
+
+    /** Keep the chip highlight in sync when order type is set outside the toggle. */
+    private syncSelectedChannelFromOrderState(): void {
+        if (this.thirdPartyChannel === 'foodpanda' && this.orderType === 'takeaway') {
+            this.selectedChannel = 'foodpanda';
+            return;
+        }
+        this.selectedChannel = this.orderType === 'takeaway' ? 'takeaway' : 'dineIn';
+    }
+
+    private selectWalkInCustomer(): void {
+        const walkIn = this.customers.find((c) =>
+            (c.name || '').toLowerCase().includes('walk')
+        );
+        this.customerId = walkIn?.id || this.customers[0]?.id || null;
+        this.onCustomerSelected();
+    }
+
+    /** In-flight ensure so rapid Foodpanda clicks share one lookup/create. */
+    private thirdPartyEnsurePromise: Promise<void> | null = null;
+
+    private findThirdPartyCustomer(name: string): CustomerDto | undefined {
+        const key = (name || '').trim().toLowerCase();
+        if (!key) {
+            return undefined;
+        }
+        const matches = (this.customers || []).filter((c) => {
+            const n = (c.name || '').trim().toLowerCase();
+            return n === key || n.includes(key);
+        });
+        if (!matches.length) {
+            return undefined;
+        }
+        const exact = matches.find((c) => (c.name || '').trim().toLowerCase() === key);
+        // Prefer exact name, else oldest id so duplicates converge on one record.
+        return exact || [...matches].sort((a, b) => a.id - b.id)[0];
+    }
+
+    /** Find existing third-party customer (API + local); create only if none exists. */
+    private async ensureThirdPartyCustomer(name: string): Promise<void> {
+        if (this.thirdPartyEnsurePromise) {
+            return this.thirdPartyEnsurePromise;
+        }
+        this.thirdPartyEnsurePromise = this.ensureThirdPartyCustomerCore(name).finally(() => {
+            this.thirdPartyEnsurePromise = null;
+        });
+        return this.thirdPartyEnsurePromise;
+    }
+
+    private async ensureThirdPartyCustomerCore(name: string): Promise<void> {
+        const select = (c: CustomerDto) => {
+            if (!this.customers.some((x) => x.id === c.id)) {
+                this.customers = [
+                    ...this.customers,
+                    {
+                        id: c.id,
+                        name: c.name,
+                        customerType: c.customerType,
+                    } as CustomerDto,
+                ];
+            }
+            this.customerId = c.id;
+            this.onCustomerSelected();
+        };
+
+        let existing = this.findThirdPartyCustomer(name);
+        if (existing) {
+            select(existing);
+            return;
+        }
+
+        try {
+            const refreshed = await this.saleService.getPosCustomers(true);
+            this.customers = (refreshed || []).map((c) => ({
+                id: c.id,
+                name: c.name,
+                customerType: c.customerType,
+            })) as CustomerDto[];
+            existing = this.findThirdPartyCustomer(name);
+            if (existing) {
+                select(existing);
+                return;
+            }
+
+            const searched = await this.customerService.getAll({
+                keyword: name,
+                skipCount: 0,
+                maxResultCount: 50,
+            });
+            const fromApi = (searched.items || []).find((c) => {
+                const n = (c.name || '').trim().toLowerCase();
+                const key = name.trim().toLowerCase();
+                return n === key || n.includes(key);
+            });
+            if (fromApi) {
+                select(fromApi);
+                return;
+            }
+
+            const created = await this.customerService.create({
+                name,
+                customerType: CustomerType.Direct,
+                description: 'Third-party delivery partner (POS)',
+            });
+            select(created);
+            this.messageService.add({
+                severity: 'success',
+                summary: name,
+                detail: `${name} customer saved for third-party takeaway orders.`,
+                life: 2500,
+            });
+        } catch (err: any) {
+            try {
+                const refreshed = await this.saleService.getPosCustomers(true);
+                this.customers = (refreshed || []).map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    customerType: c.customerType,
+                })) as CustomerDto[];
+                const again = this.findThirdPartyCustomer(name);
+                if (again) {
+                    select(again);
+                    return;
+                }
+            } catch {
+                /* fall through */
+            }
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Customer',
+                detail: err?.message || `Failed to save ${name} customer`,
+            });
+        }
+    }
+
+    private syncThirdPartyFromCustomer(): void {
+        const selected = this.customers.find((c) => c.id === this.customerId);
+        const name = (selected?.name || '').trim().toLowerCase();
+        if (name === FOODPANDA_CUSTOMER_NAME.toLowerCase() && this.orderType === 'takeaway') {
+            this.thirdPartyChannel = 'foodpanda';
+            this.selectedChannel = 'foodpanda';
+        } else if (this.thirdPartyChannel === 'foodpanda') {
+            this.thirdPartyChannel = null;
+            this.syncSelectedChannelFromOrderState();
+        }
+    }
+
     openTableDialog(forSend: boolean = false): void {
         this.pendingSendToTable = forSend;
         this.loadTables();
@@ -883,6 +1126,8 @@ export class PosComponent implements OnInit, OnDestroy {
 
         this.clearTableSelection();
         this.orderType = 'dineIn';
+        this.thirdPartyChannel = null;
+        this.selectedChannel = 'dineIn';
         this.openTableDialog(false);
         this.messageService.add({
             severity: 'info',
@@ -1764,6 +2009,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.selectedTable = null;
             } else {
                 this.orderType = 'dineIn';
+                this.thirdPartyChannel = null;
                 this.selectedCarOrder = null;
                 this.selectedCarName = '';
                 this.selectedCarNumber = '';
@@ -1788,6 +2034,12 @@ export class PosComponent implements OnInit, OnDestroy {
             if (order.customerId) {
                 this.customerId = order.customerId;
             }
+            if (this.orderType === 'takeaway') {
+                this.syncThirdPartyFromCustomer();
+            } else {
+                this.thirdPartyChannel = null;
+            }
+            this.syncSelectedChannelFromOrderState();
             this.discountPercent = order.discountPercent || 0;
             this.discountAmount = order.discountAmount || 0;
             this.taxPercent = order.taxPercent || 0;
@@ -2001,6 +2253,10 @@ export class PosComponent implements OnInit, OnDestroy {
 
     sendTakeawayToKOT(): Promise<void> {
         this.orderType = 'takeaway';
+        if (this.selectedChannel !== 'foodpanda') {
+            this.selectedChannel = 'takeaway';
+            this.thirdPartyChannel = null;
+        }
         return this.sendToTable();
     }
 
@@ -2486,11 +2742,15 @@ export class PosComponent implements OnInit, OnDestroy {
             .reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
     }
 
-    async bumpMenuProduct(product: ProductDto, delta: number): Promise<void> {
+    /** Click/source for fly-to-cart when a menu add finally lands in the order. */
+    private pendingFlySource: Event | null = null;
+
+    async bumpMenuProduct(product: ProductDto, delta: number, event?: Event): Promise<void> {
         if (!product || this.scanning || this.saving) {
             return;
         }
         if (delta > 0) {
+            this.pendingFlySource = event ?? null;
             await this.addProduct(product);
             return;
         }
@@ -2910,12 +3170,37 @@ export class PosComponent implements OnInit, OnDestroy {
         this.focusSearch();
     }
 
+    /** Fly product image into the Order Details tab (#storeCartFlyTarget). */
+    private flyAddedProductToOrder(product: ProductDto, event?: Event | null): void {
+        if (!this.isRestaurantMode) {
+            return;
+        }
+        const source =
+            event ??
+            document.querySelector(
+                `.pos-menu-tile img[src], .pos-menu-tile.in-cart, .pos-menu-tile`
+            );
+        const tile =
+            (source instanceof Element && source.closest?.('.pos-menu-tile')) ||
+            (source instanceof Element ? source : null);
+        const imageEl =
+            findProductImageNear(source) ||
+            (tile instanceof Element ? tile.querySelector('img') : null);
+        flyToCart(source, {
+            imageEl,
+            imageUrl: product?.imagePath ? this.getMenuProductImage(product) : undefined,
+            targetSelector: '#storeCartFlyTarget',
+            highlightOnly: true,
+        });
+    }
+
     cancelModifiers(): void {
         this.modifierDialogVisible = false;
         this.selectedProductForModifiers = null;
         this.availableModifierGroups = [];
         this.selectedModifierOptions = {};
         this.pendingKitchenNote = '';
+        this.pendingFlySource = null;
         this.focusSearch();
     }
 
@@ -2940,6 +3225,7 @@ export class PosComponent implements OnInit, OnDestroy {
                     summary: 'Stock',
                     detail: 'Insufficient stock',
                 });
+                this.pendingFlySource = null;
                 return;
             }
             existing.quantity += 1;
@@ -2947,6 +3233,8 @@ export class PosComponent implements OnInit, OnDestroy {
             existing.wholesalePrice = wholesalePrice;
             existing.unitPrice = unitPrice;
             existing.stockQuantity = product.stockQuantity || 0;
+            this.flyAddedProductToOrder(product, this.pendingFlySource);
+            this.pendingFlySource = null;
             return;
         }
 
@@ -2956,6 +3244,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 summary: 'Stock',
                 detail: `"${product.name}" is out of stock. Add stock via Purchases first.`,
             });
+            this.pendingFlySource = null;
             return;
         }
 
@@ -2971,6 +3260,8 @@ export class PosComponent implements OnInit, OnDestroy {
             selectedModifiers: modJson,
             isSentToKitchen: false,
         });
+        this.flyAddedProductToOrder(product, this.pendingFlySource);
+        this.pendingFlySource = null;
     }
 
     getUnitPrice(product: ProductDto): number {
@@ -2990,7 +3281,98 @@ export class PosComponent implements OnInit, OnDestroy {
         for (const line of this.cart) {
             line.unitPrice = this.resolveUnitPrice(line.retailPrice, line.wholesalePrice);
         }
+        void this.loadSavedAddressesForPosCustomer();
         this.focusSearch();
+    }
+
+    async loadDeliveryAreasForPos(): Promise<void> {
+        const branchId = this.branchContext.getBranchId() || 0;
+        if (!branchId) {
+            this.deliveryAreas = [];
+            return;
+        }
+        try {
+            this.deliveryAreas = await this.deliveryAreaService.getActiveAreasForBranch(branchId);
+            if (this.deliveryAreas.length && !this.selectedDeliveryAreaId) {
+                this.selectedDeliveryAreaId = this.deliveryAreas[0].id;
+            }
+        } catch {
+            this.deliveryAreas = [];
+        }
+    }
+
+    async loadSavedAddressesForPosCustomer(): Promise<void> {
+        if (!this.customerId) {
+            this.savedAddresses = [];
+            this.selectedSavedAddressId = null;
+            return;
+        }
+        this.loadingSavedAddresses = true;
+        try {
+            this.savedAddresses = await this.customerOrderService.getSavedAddresses({
+                customerId: this.customerId,
+            });
+            const def = this.savedAddresses.find((a) => a.isDefault) || this.savedAddresses[0];
+            if (def && !this.deliveryAddress.trim()) {
+                this.applyPosSavedAddress(def);
+            }
+        } catch {
+            this.savedAddresses = [];
+        } finally {
+            this.loadingSavedAddresses = false;
+        }
+    }
+
+    onPosSavedAddressPicked(id: number | null): void {
+        const addr = id ? this.savedAddresses.find((a) => a.id === id) : null;
+        this.applyPosSavedAddress(addr || null);
+    }
+
+    applyPosSavedAddress(addr: CustomerSavedAddressDto | null): void {
+        if (!addr) {
+            this.selectedSavedAddressId = null;
+            return;
+        }
+        this.selectedSavedAddressId = addr.id;
+        this.deliveryAddress = addr.address || '';
+        this.deliveryLandmark = addr.landmark || '';
+        if (addr.deliveryAreaId && this.deliveryAreas.some((a) => a.id === addr.deliveryAreaId)) {
+            this.selectedDeliveryAreaId = addr.deliveryAreaId;
+        }
+    }
+
+    private async persistPosDeliveryAddress(): Promise<void> {
+        if (!this.customerId || !this.deliveryAddress.trim()) {
+            return;
+        }
+        const area = this.selectedDeliveryArea;
+        try {
+            await this.customerOrderService.saveSavedAddress({
+                customerId: this.customerId,
+                address: this.deliveryAddress.trim(),
+                landmark: this.deliveryLandmark.trim() || undefined,
+                deliveryAreaId: this.selectedDeliveryAreaId,
+                deliveryAreaName: area?.name,
+                isDefault: true,
+            });
+            void this.loadSavedAddressesForPosCustomer();
+        } catch {
+            /* non-blocking for settle */
+        }
+    }
+
+    private buildDeliveryNoteSuffix(): string {
+        const parts: string[] = [];
+        if (this.deliveryAddress.trim()) {
+            parts.push(`📍 ${this.deliveryAddress.trim()}`);
+        }
+        if (this.deliveryLandmark.trim()) {
+            parts.push(`🚩 ${this.deliveryLandmark.trim()}`);
+        }
+        if (this.selectedDeliveryArea?.name) {
+            parts.push(`Zone: ${this.selectedDeliveryArea.name}`);
+        }
+        return parts.join(' | ');
     }
 
     canRemoveLine(line: PosCartLine): boolean {
@@ -3099,6 +3481,8 @@ export class PosComponent implements OnInit, OnDestroy {
         this.selectedCarName = '';
         this.selectedCarNumber = '';
         this.selectedCarLocation = '';
+        this.thirdPartyChannel = null;
+        this.syncSelectedChannelFromOrderState();
         this.discountPercent = 0;
         this.discountAmount = 0;
         this.taxPercent = 0;
@@ -3234,10 +3618,16 @@ export class PosComponent implements OnInit, OnDestroy {
         const cashAmount = paid >= total ? 0 : appliedCash;
         const cardAmount = 0;
         let saleNote = this.notes?.trim() || '';
+        const deliveryNote = this.buildDeliveryNoteSuffix();
+        if (deliveryNote) {
+            saleNote = saleNote ? `${saleNote} | ${deliveryNote}` : deliveryNote;
+        }
 
         this.saving = true;
 
         try {
+            await this.persistPosDeliveryAddress();
+
             if (this.isRestaurantMode) {
                 const branchId = this.branchContext.getBranchId();
                 if (!this.activeOrderId && branchId) {
@@ -3387,6 +3777,11 @@ export class PosComponent implements OnInit, OnDestroy {
                     paymentType,
                     cashAmount,
                     cardAmount,
+                    deliveryCharges:
+                        this.showDeliveryAddressPanel && this.deliveryAddress.trim()
+                            ? this.deliveryCharges
+                            : 0,
+                    deliveryAreaName: this.selectedDeliveryArea?.name,
                     lines: this.cart.map((line) => ({
                         productId: line.productId,
                         quantity: line.quantity,

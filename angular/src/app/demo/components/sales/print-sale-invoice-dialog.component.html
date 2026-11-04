@@ -183,7 +183,6 @@
             <div class="thermal-footer-msg" *ngIf="!company?.invoiceFooter && !company?.invoiceContactPhone">
                 Thank you for your business! Please visit again.
             </div>
-            <div class="thermal-branding">Software by SmartPos</div>
         </div>
     </div>
 
@@ -308,7 +307,6 @@
                 {{ company?.invoiceFooter }}
             </div>
             <div>Printed On: {{ today }}</div>
-            <div *ngIf="company?.businessType === 2" class="font-bold">{{ printerText }}</div>
         </div>
     </div>
 

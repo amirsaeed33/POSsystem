@@ -4,6 +4,7 @@ export interface SupplierDto {
     name: string;
     phone?: string;
     email?: string;
+    /** Virtual — persisted in AppSavedAddresses. */
     address?: string;
     description?: string;
     accountId?: number;

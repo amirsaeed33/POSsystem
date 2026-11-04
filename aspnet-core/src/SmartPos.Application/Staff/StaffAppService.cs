@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Roles;
 using SmartPos.Branches;
+using SmartPos.Addresses;
 using SmartPos.Authorization.Users;
 using SmartPos.Staffs.Dto;
 using RoleManager = SmartPos.Authorization.Roles.RoleManager;
@@ -30,6 +31,7 @@ namespace SmartPos.Staffs
         private readonly IBranchContext _branchContext;
         private readonly IRepository<User, long> _userRepository;
         private readonly IRepository<Branch> _branchRepository;
+        private readonly SavedAddressManager _savedAddresses;
 
         public StaffAppService(
             IRepository<Staff> repository,
@@ -39,7 +41,8 @@ namespace SmartPos.Staffs
             IPasswordHasher<User> passwordHasher,
             IBranchContext branchContext,
             IRepository<User, long> userRepository,
-            IRepository<Branch> branchRepository)
+            IRepository<Branch> branchRepository,
+            SavedAddressManager savedAddresses)
             : base(repository)
         {
             _staffHistoryWriter = staffHistoryWriter;
@@ -49,6 +52,7 @@ namespace SmartPos.Staffs
             _branchContext = branchContext;
             _userRepository = userRepository;
             _branchRepository = branchRepository;
+            _savedAddresses = savedAddresses;
         }
 
         public override async Task<StaffDto> CreateAsync(CreateStaffDto input)
@@ -69,6 +73,12 @@ namespace SmartPos.Staffs
 
             await Repository.InsertAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
+
+            await _savedAddresses.UpsertDefaultAsync(
+                SavedAddressOwnerTypes.Staff,
+                entity.Id,
+                entity.TenantId,
+                input.Address);
 
             await _staffHistoryWriter.WriteAsync(
                 entity.Id,
@@ -96,6 +106,12 @@ namespace SmartPos.Staffs
 
             await Repository.UpdateAsync(entity);
             await CurrentUnitOfWork.SaveChangesAsync();
+
+            await _savedAddresses.UpsertDefaultAsync(
+                SavedAddressOwnerTypes.Staff,
+                entity.Id,
+                entity.TenantId,
+                input.Address);
 
             await _staffHistoryWriter.WriteAsync(
                 entity.Id,
@@ -320,7 +336,27 @@ namespace SmartPos.Staffs
         {
             var dto = base.MapToEntityDto(entity);
             dto.BranchName = entity.Branch?.Name;
+            dto.Address = _savedAddresses.GetDefaultAddressText(
+                SavedAddressOwnerTypes.Staff, entity.Id);
             return dto;
+        }
+
+        protected override void MapToEntity(StaffDto input, Staff entity)
+        {
+            // Address is virtual (AppSavedAddresses); do not map onto Staff entity.
+            var address = input.Address;
+            input.Address = null;
+            base.MapToEntity(input, entity);
+            input.Address = address;
+        }
+
+        protected override Staff MapToEntity(CreateStaffDto input)
+        {
+            var address = input.Address;
+            input.Address = null;
+            var entity = base.MapToEntity(input);
+            input.Address = address;
+            return entity;
         }
 
         private void CheckErrors(IdentityResult identityResult)

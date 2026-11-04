@@ -66,20 +66,31 @@
         <ng-template pTemplate="body" let-customer>
             <tr>
                 <td>
-                    <a
-                        *ngIf="canEdit"
-                        href="javascript:void(0)"
-                        class="text-primary hover:underline font-semibold cursor-pointer"
-                        style="text-decoration: none;"
-                        (click)="openEditDialog(customer)"
-                        [pTooltip]="'Click to edit ' + customer.name"
-                        tooltipPosition="top"
-                    >
-                        {{ customer.name }}
-                    </a>
-                    <span *ngIf="!canEdit" class="font-semibold text-900">
-                        {{ customer.name }}
-                    </span>
+                    <div class="customer-name-cell">
+                        <div class="customer-avatar" aria-hidden="true">
+                            <img
+                                *ngIf="customerPhotoUrl(customer) as photoUrl"
+                                [src]="photoUrl"
+                                [alt]="customer.name"
+                                (error)="onCustomerPhotoError(customer)"
+                            />
+                            <span *ngIf="!customerPhotoUrl(customer)">{{ customerInitials(customer) }}</span>
+                        </div>
+                        <a
+                            *ngIf="canEdit"
+                            href="javascript:void(0)"
+                            class="text-primary hover:underline font-semibold cursor-pointer"
+                            style="text-decoration: none;"
+                            (click)="openEditDialog(customer)"
+                            [pTooltip]="'Click to edit ' + customer.name"
+                            tooltipPosition="top"
+                        >
+                            {{ customer.name }}
+                        </a>
+                        <span *ngIf="!canEdit" class="font-semibold text-900">
+                            {{ customer.name }}
+                        </span>
+                    </div>
                 </td>
                 <td>
                     <span

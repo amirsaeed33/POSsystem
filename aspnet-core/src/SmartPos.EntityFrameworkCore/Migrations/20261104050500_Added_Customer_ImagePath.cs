@@ -1,10 +1,13 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using SmartPos.EntityFrameworkCore;
 
 #nullable disable
 
 namespace SmartPos.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(SmartPosDbContext))]
+    [Migration("20261104050500_Added_Customer_ImagePath")]
     public partial class Added_Customer_ImagePath : Migration
     {
         /// <inheritdoc />

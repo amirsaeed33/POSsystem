@@ -1503,6 +1503,84 @@ namespace SmartPos.Migrations
                     b.ToTable("AppLedgerEntries");
                 });
 
+            modelBuilder.Entity("SmartPos.Addresses.SavedAddress", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("CreatorUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("DeleterUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DeliveryAreaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DeliveryAreaName")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Landmark")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("LastModifierUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
+
+                    b.Property<int>("OwnerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OwnerType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliveryAreaId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("OwnerType", "OwnerId");
+
+                    b.ToTable("AppSavedAddresses");
+                });
+
             modelBuilder.Entity("SmartPos.Authorization.Roles.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -2061,10 +2139,6 @@ namespace SmartPos.Migrations
                     b.Property<int?>("AccountId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Address")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
                     b.Property<int>("BranchId")
                         .HasColumnType("int");
 
@@ -2103,12 +2177,6 @@ namespace SmartPos.Migrations
 
                     b.Property<long?>("LastModifierUserId")
                         .HasColumnType("bigint");
-
-                    b.Property<double?>("Latitude")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("Longitude")
-                        .HasColumnType("float");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -4476,10 +4544,6 @@ namespace SmartPos.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Address")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
                     b.Property<decimal?>("BasicSalary")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -4761,10 +4825,6 @@ namespace SmartPos.Migrations
 
                     b.Property<int?>("AccountId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Address")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
 
                     b.Property<int>("BranchId")
                         .HasColumnType("int");
@@ -5134,6 +5194,16 @@ namespace SmartPos.Migrations
                     b.Navigation("Account");
 
                     b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("SmartPos.Addresses.SavedAddress", b =>
+                {
+                    b.HasOne("SmartPos.Orders.DeliveryArea", "DeliveryArea")
+                        .WithMany()
+                        .HasForeignKey("DeliveryAreaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DeliveryArea");
                 });
 
             modelBuilder.Entity("SmartPos.Authorization.Roles.Role", b =>

@@ -44,14 +44,8 @@ namespace SmartPos.Customers
         [StringLength(MaxEmailLength)]
         public virtual string Email { get; set; }
 
-        [StringLength(MaxAddressLength)]
-        public virtual string Address { get; set; }
-
-        /// <summary>Optional GPS latitude for the customer's default delivery address.</summary>
-        public virtual double? Latitude { get; set; }
-
-        /// <summary>Optional GPS longitude for the customer's default delivery address.</summary>
-        public virtual double? Longitude { get; set; }
+        // Address / GPS live on AppSavedAddresses (OwnerType = Customer).
+        // MaxAddressLength is kept for DTO / saved-address string limits.
 
         [StringLength(MaxDescriptionLength)]
         public virtual string Description { get; set; }

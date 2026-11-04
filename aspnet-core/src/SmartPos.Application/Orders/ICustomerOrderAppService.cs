@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
+using SmartPos.Customers.Dto;
 using SmartPos.Orders.Dto;
 using SmartPos.Sales.Dto;
 
@@ -46,6 +47,18 @@ namespace SmartPos.Orders
 
         [AbpAllowAnonymous]
         Task<OnlineCustomerProfileDto> UpsertOnlineCustomerProfileAsync(UpsertOnlineCustomerProfileInput input);
+
+        /// <summary>Purchaser / customer: load by phone. Staff: pass customerId.</summary>
+        [AbpAllowAnonymous]
+        Task<List<CustomerSavedAddressDto>> GetSavedAddressesAsync(GetCustomerSavedAddressesInput input);
+
+        /// <summary>Save delivery address + zone onto the customer profile.</summary>
+        [AbpAllowAnonymous]
+        Task<CustomerSavedAddressDto> SaveSavedAddressAsync(SaveCustomerAddressInput input);
+
+        /// <summary>Delete a saved address (owner via phone match, or staff).</summary>
+        [AbpAllowAnonymous]
+        Task DeleteSavedAddressAsync(DeleteCustomerSavedAddressInput input);
 
         [AbpAllowAnonymous]
         Task<List<BranchFeedbackDto>> GetBranchFeedbacksAsync(int branchId, int maxResultCount = 20);

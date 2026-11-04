@@ -70,6 +70,40 @@ export interface CustomerOrderHistoryInput {
     maxResultCount?: number;
 }
 
+export interface CustomerSavedAddressDto {
+    id: number;
+    customerId: number;
+    label?: string;
+    address: string;
+    landmark?: string;
+    deliveryAreaId?: number | null;
+    deliveryAreaName?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    isDefault?: boolean;
+}
+
+export interface SaveCustomerAddressInput {
+    id?: number | null;
+    customerId?: number | null;
+    branchId?: number | null;
+    phone?: string;
+    label?: string;
+    address: string;
+    landmark?: string;
+    deliveryAreaId?: number | null;
+    deliveryAreaName?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    isDefault?: boolean;
+}
+
+export interface GetCustomerSavedAddressesInput {
+    customerId?: number | null;
+    branchId?: number | null;
+    phone?: string;
+}
+
 export interface OnlineCustomerProfileDto {
     id: number;
     branchId: number;
@@ -80,10 +114,12 @@ export interface OnlineCustomerProfileDto {
     latitude?: number | null;
     longitude?: number | null;
     imagePath?: string;
+    savedAddresses?: CustomerSavedAddressDto[];
 }
 
 export interface BranchFeedbackDto {
     orderId: number;
+    customerId?: number;
     orderNo?: string;
     customerName?: string;
     customerImagePath?: string | null;

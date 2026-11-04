@@ -10,12 +10,15 @@ import { MessageService } from 'primeng/api';
 import {
     CreateCustomerOrderDto,
     CreateCustomerOrderLineDto,
+    CustomerSavedAddressDto,
 } from 'src/app/demo/api/customer-order';
 import { ProductDto } from 'src/app/demo/api/product';
 import { CustomerDto, CustomerType } from 'src/app/demo/api/customer';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { ProductService } from 'src/app/demo/service/product.service';
 import { CustomerService } from 'src/app/demo/service/customer.service';
+import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 
 interface OrderCartLine {
     productId: number;
@@ -45,10 +48,20 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
     saving = false;
     loading = false;
 
+    deliveryAreas: DeliveryAreaDto[] = [];
+    selectedDeliveryAreaId: number | null = null;
+    deliveryAddress = '';
+    deliveryLandmark = '';
+    savedAddresses: CustomerSavedAddressDto[] = [];
+    selectedSavedAddressId: number | null = null;
+    loadingSavedAddresses = false;
+
     constructor(
         private customerOrderService: CustomerOrderService,
         private productService: ProductService,
         private customerService: CustomerService,
+        private deliveryAreaService: DeliveryAreaService,
+        private branchContext: BranchContextService,
         private messageService: MessageService
     ) {}
 
@@ -86,6 +99,61 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
                 line.unitPrice = this.getUnitPriceForCustomer(product);
             }
         });
+        void this.loadSavedAddressesForCustomer();
+    }
+
+    async loadSavedAddressesForCustomer(): Promise<void> {
+        const customerId = this.order.customerId;
+        if (!customerId) {
+            this.savedAddresses = [];
+            this.selectedSavedAddressId = null;
+            return;
+        }
+        this.loadingSavedAddresses = true;
+        try {
+            this.savedAddresses = await this.customerOrderService.getSavedAddresses({
+                customerId,
+            });
+            const def = this.savedAddresses.find((a) => a.isDefault) || this.savedAddresses[0];
+            if (def && !this.deliveryAddress.trim()) {
+                this.applySavedAddress(def);
+            }
+        } catch {
+            this.savedAddresses = [];
+        } finally {
+            this.loadingSavedAddresses = false;
+        }
+    }
+
+    onSavedAddressPicked(id: number | null): void {
+        const addr = id ? this.savedAddresses.find((a) => a.id === id) : null;
+        this.applySavedAddress(addr || null);
+    }
+
+    applySavedAddress(addr: CustomerSavedAddressDto | null): void {
+        if (!addr) {
+            this.selectedSavedAddressId = null;
+            return;
+        }
+        this.selectedSavedAddressId = addr.id;
+        this.deliveryAddress = addr.address || '';
+        this.deliveryLandmark = addr.landmark || '';
+        if (addr.deliveryAreaId && this.deliveryAreas.some((a) => a.id === addr.deliveryAreaId)) {
+            this.selectedDeliveryAreaId = addr.deliveryAreaId;
+        }
+    }
+
+    onDeliveryAreaChange(areaId: number | null): void {
+        this.selectedDeliveryAreaId = areaId;
+        this.selectedSavedAddressId = null;
+    }
+
+    get selectedDeliveryArea(): DeliveryAreaDto | null {
+        return this.deliveryAreas.find((a) => a.id === this.selectedDeliveryAreaId) || null;
+    }
+
+    get deliveryFee(): number {
+        return this.selectedDeliveryArea?.deliveryFee ?? 0;
     }
 
     onProductSearch(): void {
@@ -237,12 +305,23 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
             }
         }
 
+        const area = this.selectedDeliveryArea;
+        const noteParts: string[] = [];
+        if (this.order.notes?.trim()) noteParts.push(this.order.notes.trim());
+        if (this.deliveryAddress.trim()) noteParts.push(`📍 ${this.deliveryAddress.trim()}`);
+        if (this.deliveryLandmark.trim()) noteParts.push(`🚩 ${this.deliveryLandmark.trim()}`);
+
         this.saving = true;
         this.customerOrderService
             .create({
                 customerId: this.order.customerId,
                 orderDate: this.order.orderDate,
-                notes: this.order.notes?.trim() || undefined,
+                notes: noteParts.join(' | ') || undefined,
+                deliveryAddress: this.deliveryAddress.trim() || undefined,
+                deliveryLandmark: this.deliveryLandmark.trim() || undefined,
+                deliveryAreaId: this.selectedDeliveryAreaId || undefined,
+                deliveryArea: area?.name,
+                deliveryCharges: this.deliveryFee,
                 lines,
             })
             .then(() => {
@@ -293,6 +372,11 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
         this.filteredProducts = [];
         this.saving = false;
         this.loading = false;
+        this.deliveryAddress = '';
+        this.deliveryLandmark = '';
+        this.selectedDeliveryAreaId = null;
+        this.savedAddresses = [];
+        this.selectedSavedAddressId = null;
     }
 
     private toDateInputValue(date: Date = new Date()): string {
@@ -304,14 +388,20 @@ export class CustomerOrderFormDialogComponent implements OnChanges {
 
     private loadLookups(): void {
         this.loading = true;
+        const branchId = this.branchContext.getBranchId() || 0;
         Promise.all([
             this.productService.getAll({ skipCount: 0, maxResultCount: 1000 }),
             this.customerService.getAll({ skipCount: 0, maxResultCount: 1000 }),
+            this.deliveryAreaService.getActiveAreasForBranch(branchId).catch(() => [] as DeliveryAreaDto[]),
         ])
-            .then(([products, customers]) => {
+            .then(([products, customers, areas]) => {
                 this.products = products.items || [];
                 this.filteredProducts = [...this.products];
                 this.customers = customers.items || [];
+                this.deliveryAreas = areas || [];
+                if (this.deliveryAreas.length && !this.selectedDeliveryAreaId) {
+                    this.selectedDeliveryAreaId = this.deliveryAreas[0].id;
+                }
             })
             .catch((error) => {
                 this.messageService.add({

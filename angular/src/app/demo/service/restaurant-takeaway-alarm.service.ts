@@ -4,6 +4,7 @@ import { UnpaidTakeawayOrderDto } from '../api/restaurant-order';
 import { RestaurantOrderService } from './restaurant-order.service';
 import { BranchContextService } from './branch-context.service';
 import { AuthService } from './auth.service';
+import { AppSoundService } from './app-sound.service';
 
 @Injectable({
     providedIn: 'root',
@@ -15,18 +16,31 @@ export class RestaurantTakeawayAlarmService implements OnDestroy {
     private readonly audioBlockedSubject = new BehaviorSubject<boolean>(false);
     public readonly audioBlocked$: Observable<boolean> = this.audioBlockedSubject.asObservable();
 
-    public isMuted = false;
     private pollTimer: any = null;
     private branchSub?: Subscription;
+    private muteSub?: Subscription;
     private audioCtx: AudioContext | null = null;
     private lastAudioPlayTime = 0;
+    /** Active alarm oscillators so mute can cut them off immediately. */
+    private activeOscillators: OscillatorNode[] = [];
 
     constructor(
         private restaurantOrderService: RestaurantOrderService,
         private branchContext: BranchContextService,
-        private authService: AuthService
+        private authService: AuthService,
+        private appSound: AppSoundService
     ) {
+        this.muteSub = this.appSound.muted$.subscribe((muted) => {
+            if (muted) {
+                this.stopAlarmSound();
+            }
+        });
         this.init();
+    }
+
+    /** Proxy global mute so existing templates keep working. */
+    get isMuted(): boolean {
+        return this.appSound.isMuted;
     }
 
     private init(): void {
@@ -74,7 +88,7 @@ export class RestaurantTakeawayAlarmService implements OnDestroy {
             const orders = await this.restaurantOrderService.getUnpaidTakeawayOrders(branch.id);
             this.unpaidOrdersSubject.next(orders || []);
 
-            if (orders && orders.length > 0 && !this.isMuted) {
+            if (orders && orders.length > 0 && this.appSound.canPlay()) {
                 this.triggerAlarmSound();
             }
         } catch (err) {
@@ -83,8 +97,11 @@ export class RestaurantTakeawayAlarmService implements OnDestroy {
     }
 
     public toggleMute(): boolean {
-        this.isMuted = !this.isMuted;
-        return this.isMuted;
+        const muted = this.appSound.toggleMute();
+        if (muted) {
+            this.stopAlarmSound();
+        }
+        return muted;
     }
 
     public enableAudio(): void {
@@ -99,13 +116,39 @@ export class RestaurantTakeawayAlarmService implements OnDestroy {
                 this.audioCtx.resume();
             }
             this.audioBlockedSubject.next(false);
-            this.playSynthesizedBeep(true);
+            if (this.appSound.canPlay()) {
+                this.playSynthesizedBeep(true);
+            }
         } catch {
             this.audioBlockedSubject.next(true);
         }
     }
 
+    /** Immediately stop all takeaway alarm tones. */
+    public stopAlarmSound(): void {
+        for (const osc of this.activeOscillators) {
+            try {
+                osc.stop();
+                osc.disconnect();
+            } catch {
+                /* already stopped */
+            }
+        }
+        this.activeOscillators = [];
+
+        if (this.audioCtx && this.audioCtx.state === 'running') {
+            try {
+                void this.audioCtx.suspend();
+            } catch {
+                /* ignore */
+            }
+        }
+    }
+
     private triggerAlarmSound(): void {
+        if (!this.appSound.canPlay()) {
+            return;
+        }
         const now = Date.now();
         // Throttle sound to prevent overlapping bursts (min 15s between triggers if triggered multiple times)
         if (now - this.lastAudioPlayTime < 15000) {
@@ -116,6 +159,10 @@ export class RestaurantTakeawayAlarmService implements OnDestroy {
     }
 
     private playSynthesizedBeep(isTestPreview = false): void {
+        if (!this.appSound.canPlay()) {
+            return;
+        }
+
         try {
             const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
             if (!AudioContextClass) return;
@@ -134,13 +181,17 @@ export class RestaurantTakeawayAlarmService implements OnDestroy {
                 }
             }
 
+            if (!this.appSound.canPlay()) {
+                return;
+            }
+
             this.audioBlockedSubject.next(false);
             const ctx = this.audioCtx;
             const startTime = ctx.currentTime;
 
-            // Two distinct chime bursts for kitchen takeaway alert
-            const notes = isTestPreview ? [587.33, 880.00] : [659.25, 783.99, 1046.50, 659.25, 1046.50];
+            const notes = isTestPreview ? [587.33, 880.0] : [659.25, 783.99, 1046.5, 659.25, 1046.5];
             let offset = 0;
+            this.activeOscillators = [];
 
             notes.forEach((freq, index) => {
                 const osc = ctx.createOscillator();
@@ -158,6 +209,11 @@ export class RestaurantTakeawayAlarmService implements OnDestroy {
 
                 osc.start(startTime + offset);
                 osc.stop(startTime + offset + 0.22);
+                this.activeOscillators.push(osc);
+
+                osc.onended = () => {
+                    this.activeOscillators = this.activeOscillators.filter((o) => o !== osc);
+                };
 
                 offset += 0.18;
             });
@@ -168,8 +224,12 @@ export class RestaurantTakeawayAlarmService implements OnDestroy {
 
     ngOnDestroy(): void {
         this.stopPolling();
+        this.stopAlarmSound();
         if (this.branchSub) {
             this.branchSub.unsubscribe();
+        }
+        if (this.muteSub) {
+            this.muteSub.unsubscribe();
         }
         if (this.audioCtx && this.audioCtx.state !== 'closed') {
             try {

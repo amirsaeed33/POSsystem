@@ -9,6 +9,7 @@ import { PermissionService } from 'src/app/demo/service/permission.service';
 
 @Component({
     templateUrl: './customer-list.component.html',
+    styleUrls: ['./customer-list.component.scss'],
     providers: [MessageService, ConfirmationService],
 })
 export class CustomerListComponent implements OnInit {
@@ -23,6 +24,9 @@ export class CustomerListComponent implements OnInit {
     canCreate = false;
     canEdit = false;
     canDelete = false;
+
+    /** Track broken image URLs so we fall back to initials. */
+    private brokenPhotoIds = new Set<number>();
 
     constructor(
         private customerService: CustomerService,
@@ -86,6 +90,33 @@ export class CustomerListComponent implements OnInit {
 
     getCustomerTypeLabel(customerType: number): string {
         return customerType === CustomerType.Wholesaler ? 'Wholesaler' : 'Direct';
+    }
+
+    customerPhotoUrl(customer: CustomerDto): string {
+        if (!customer?.imagePath || this.brokenPhotoIds.has(customer.id)) {
+            return '';
+        }
+        return this.customerService.getImageUrl(customer.imagePath);
+    }
+
+    onCustomerPhotoError(customer: CustomerDto): void {
+        if (customer?.id != null) {
+            this.brokenPhotoIds.add(customer.id);
+        }
+    }
+
+    customerInitials(customer: CustomerDto): string {
+        const parts = (customer?.name || '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+        if (!parts.length) {
+            return '?';
+        }
+        if (parts.length === 1) {
+            return parts[0].slice(0, 2).toUpperCase();
+        }
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
 
     onDelete(customer: CustomerDto): void {

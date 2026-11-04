@@ -4,7 +4,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
 import { OnlineCartService, CartItem } from 'src/app/demo/service/online-cart.service';
-import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
+import {
+    CreateCustomerOrderDto,
+    CustomerSavedAddressDto,
+} from 'src/app/demo/api/customer-order';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { SessionService } from 'src/app/demo/service/session.service';
@@ -22,6 +25,7 @@ import { DealDto, DealDetailDto } from 'src/app/demo/api/deal';
 import { MessageService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
 import { CustomerOrderStatus } from 'src/app/demo/api/customer-order';
+import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart';
 
 export interface OnlineDealCustomiseItem {
     productId: number;
@@ -122,6 +126,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     /** Public customer feedbacks for the selected branch. */
     branchFeedbacks: Array<{
         orderId: number;
+        customerId?: number;
         orderNo?: string;
         customerName?: string;
         customerImagePath?: string | null;
@@ -169,6 +174,11 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     selectedDeliveryArea: DeliveryAreaDto | null = null;
     baseDeliveryFee = 100;
     freeDeliveryThreshold = 1500;
+
+    /** Purchaser/customer saved addresses (address + zone) for quick pick. */
+    savedAddresses: CustomerSavedAddressDto[] = [];
+    selectedSavedAddressId: number | null = null;
+    loadingSavedAddresses = false;
 
     // Success confirmation modal
     successModalVisible = false;
@@ -447,6 +457,11 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        // History/profile deep-link: /online-order?branchId=…&openProfile=1
+        if (this.route.snapshot.queryParamMap.get('openProfile') === '1') {
+            setTimeout(() => this.openCustomerProfile(), 0);
+        }
+
         this.heroSlides = [...this.defaultHeroSlides];
         this.checkScreenSize();
         this.checkAuthSession();
@@ -552,6 +567,19 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return !!(this.profileName?.trim() && this.profilePhone?.trim());
     }
 
+    /** Two-letter initials for the compact customer avatar (photo preferred when available). */
+    get customerProfileInitials(): string {
+        const name = (this.profileName || '').trim();
+        if (!name) {
+            return 'ME';
+        }
+        const parts = name.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) {
+            return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    }
+
     async hydrateCustomerProfile(): Promise<void> {
         const savedPhone = this.readLocal('smartpos_customer_phone');
         const savedName = this.readLocal('smartpos_customer_name');
@@ -598,6 +626,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         latitude?: number | null;
         longitude?: number | null;
         imagePath?: string;
+        savedAddresses?: CustomerSavedAddressDto[];
     }): void {
         this.profileId = profile.id ?? this.profileId;
         this.profileName = (profile.name || this.profileName || '').trim();
@@ -617,7 +646,87 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             this.profileImagePreview = null;
         }
         this.profileClearImage = false;
+        if (profile.savedAddresses) {
+            this.savedAddresses = profile.savedAddresses;
+        }
         this.persistLocalProfile();
+    }
+
+    async loadSavedAddresses(phone?: string): Promise<void> {
+        const mobile = (phone || this.customerMobile || this.profilePhone || '').trim();
+        if (!this.branchId || mobile.replace(/\D/g, '').length < 7) {
+            this.savedAddresses = [];
+            return;
+        }
+        this.loadingSavedAddresses = true;
+        try {
+            this.savedAddresses = await this.customerOrderService.getSavedAddresses({
+                phone: mobile,
+                branchId: this.branchId,
+            });
+            const def = this.savedAddresses.find((a) => a.isDefault) || this.savedAddresses[0];
+            if (def && !this.deliveryAddress?.trim()) {
+                this.applySavedAddress(def);
+            }
+        } catch {
+            /* keep empty list */
+        } finally {
+            this.loadingSavedAddresses = false;
+        }
+    }
+
+    applySavedAddress(addr: CustomerSavedAddressDto | null): void {
+        if (!addr) {
+            this.selectedSavedAddressId = null;
+            return;
+        }
+        this.selectedSavedAddressId = addr.id;
+        this.deliveryAddress = addr.address || '';
+        this.deliveryLandmark = addr.landmark || '';
+        if (addr.deliveryAreaId && this.deliveryAreas.some((a) => a.id === addr.deliveryAreaId)) {
+            this.onDeliveryAreaChange(addr.deliveryAreaId);
+        }
+        if (addr.latitude != null && addr.longitude != null) {
+            this.latitude = Number(addr.latitude);
+            this.longitude = Number(addr.longitude);
+            this.locationCaptured = true;
+            this.googleMapsLink = `https://www.google.com/maps?q=${this.latitude},${this.longitude}`;
+        }
+        if (!this.profileAddress?.trim()) {
+            this.profileAddress = addr.address || '';
+        }
+    }
+
+    onCheckoutPhoneBlur(): void {
+        void this.loadSavedAddresses(this.customerMobile);
+    }
+
+    async removeSavedAddress(addr: CustomerSavedAddressDto, event?: Event): Promise<void> {
+        event?.stopPropagation();
+        if (!addr?.id) return;
+        try {
+            await this.customerOrderService.deleteSavedAddress(
+                addr.id,
+                this.customerMobile || this.profilePhone,
+                this.branchId
+            );
+            this.savedAddresses = this.savedAddresses.filter((a) => a.id !== addr.id);
+            if (this.selectedSavedAddressId === addr.id) {
+                this.selectedSavedAddressId = null;
+            }
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Delete failed',
+                detail: err?.message || 'Could not remove saved address.',
+            });
+        }
+    }
+
+    savedAddressLabel(addr: CustomerSavedAddressDto): string {
+        const zone = addr.deliveryAreaName ? ` · ${addr.deliveryAreaName}` : '';
+        const label = addr.label ? `${addr.label}: ` : '';
+        return `${label}${addr.address || 'Address'}${zone}`;
     }
 
     useCurrentLocationForProfile(): void {
@@ -919,7 +1028,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
         this.loadingBranchFeedbacks = true;
         try {
-            const rows = await this.customerOrderService.getBranchFeedbacks(branchId, 40);
+            const rows = await this.customerOrderService.getBranchFeedbacks(branchId, 5);
             this.feedbackPhotoBroken.clear();
             this.branchFeedbacks = rows || [];
             this.feedbackMarqueePaused = false;
@@ -937,7 +1046,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
     }
 
-    /** Duplicate cards so the continuous marquee loops seamlessly. */
+    /** Duplicate once so the LTR marquee (-50% → 0) loops seamlessly on desktop + mobile. */
     get feedbackMarqueeItems(): typeof this.branchFeedbacks {
         if (!this.branchFeedbacks.length) {
             return [];
@@ -949,13 +1058,13 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     get feedbackMarqueeEnabled(): boolean {
-        return this.branchFeedbacks.length > 1;
+        return this.branchFeedbacks.length >= 1;
     }
 
     /** ~4.5s per card, clamped for readability. */
     get feedbackMarqueeDuration(): string {
         const n = Math.max(2, this.branchFeedbacks.length);
-        const seconds = Math.min(60, Math.max(18, n * 4.5));
+        const seconds = Math.min(45, Math.max(16, n * 4.5));
         return `${seconds}s`;
     }
 
@@ -2449,11 +2558,12 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             selectedOptionIds: allSelectedIds,
         });
 
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Added to Cart',
-            detail: `${this.detailQuantity > 1 ? this.detailQuantity + 'x ' : ''}${this.selectedProduct.name} added to your order`,
-            life: 1800,
+        const detailImg =
+            document.querySelector<HTMLImageElement>('.hero-img') ||
+            findProductImageNear(document.querySelector('.btn-submit-cart'));
+        flyToCart(document.querySelector('.btn-submit-cart'), {
+            imageEl: detailImg,
+            imageUrl: this.getProductImage(this.selectedProduct, 0),
         });
 
         this.closeProductModal();
@@ -2479,11 +2589,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
         const countToAdd = Math.max(1, qty || 1);
         this.cartService.addToCart(product, countToAdd);
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Added to Cart',
-            detail: `${countToAdd > 1 ? countToAdd + 'x ' : ''}${product.name} added to your order`,
-            life: 1800,
+        const source = event ?? document.querySelector('.btn-add-cart');
+        flyToCart(source, {
+            imageEl: findProductImageNear(source),
+            imageUrl: this.getProductImage(product, 0),
         });
     }
 
@@ -2499,6 +2608,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.applyCheckoutDraft();
         this.cartService.sidebarVisible = false;
         this.checkoutModalVisible = true;
+        void this.loadSavedAddresses(this.customerMobile);
     }
 
     /** Prefill name / phone / address from profile, reorder draft, or local storage. */
@@ -2815,6 +2925,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             };
 
             const createdOrder = await this.customerOrderService.createOnlineOrder(input);
+
+            // Refresh saved addresses after purchaser checkout (server also auto-saves).
+            void this.loadSavedAddresses(input.customerMobile);
 
             this.confirmedOrderNo = createdOrder.orderNo || `ORD-${createdOrder.id}`;
             this.confirmedTotal = createdOrder.totalAmount;

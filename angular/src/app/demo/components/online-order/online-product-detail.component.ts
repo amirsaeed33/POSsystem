@@ -3,10 +3,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { OnlineCartService, CartItem } from 'src/app/demo/service/online-cart.service';
-import { CreateCustomerOrderDto } from 'src/app/demo/api/customer-order';
+import {
+    CreateCustomerOrderDto,
+    CustomerSavedAddressDto,
+} from 'src/app/demo/api/customer-order';
 import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
 import { DealService } from 'src/app/demo/service/deal.service';
 import { environment } from 'src/environments/environment';
+import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart';
 
 @Component({
     selector: 'app-online-product-detail',
@@ -60,6 +64,10 @@ export class OnlineProductDetailComponent implements OnInit {
     selectedArea: DeliveryAreaDto | null = null;
     defaultDeliveryFee: number = 100;
     freeDeliveryThreshold: number = 1500;
+
+    savedAddresses: CustomerSavedAddressDto[] = [];
+    selectedSavedAddressId: number | null = null;
+    loadingSavedAddresses = false;
 
     constructor(
         public cartService: OnlineCartService,
@@ -224,17 +232,16 @@ export class OnlineProductDetailComponent implements OnInit {
         }
     }
 
-    addToCart(item?: any, qty?: number): void {
+    addToCart(item?: any, qty?: number, event?: Event): void {
         const prod = item || this.product;
         if (!prod) return;
 
         const count = qty || this.quantity || 1;
         this.cartService.addToCart(prod, count);
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Added to Cart',
-            detail: `${count > 1 ? count + 'x ' : ''}${prod.name} added to your order`,
-            life: 2000,
+        const source = event ?? document.querySelector('.btn-add-cart');
+        flyToCart(source, {
+            imageEl: findProductImageNear(source),
+            imageUrl: this.getProductImage(prod),
         });
     }
 
@@ -271,6 +278,48 @@ export class OnlineProductDetailComponent implements OnInit {
         this.applyCheckoutDraft();
         this.cartService.sidebarVisible = false;
         this.checkoutModalVisible = true;
+        void this.loadSavedAddresses(this.customerMobile);
+    }
+
+    async loadSavedAddresses(phone?: string): Promise<void> {
+        const mobile = (phone || this.customerMobile || '').trim();
+        if (!this.branchId || mobile.replace(/\D/g, '').length < 7) {
+            this.savedAddresses = [];
+            return;
+        }
+        this.loadingSavedAddresses = true;
+        try {
+            this.savedAddresses = await this.customerOrderService.getSavedAddresses({
+                phone: mobile,
+                branchId: this.branchId,
+            });
+            const def = this.savedAddresses.find((a) => a.isDefault) || this.savedAddresses[0];
+            if (def && !this.deliveryAddress?.trim()) {
+                this.applySavedAddress(def);
+            }
+        } catch {
+            /* ignore */
+        } finally {
+            this.loadingSavedAddresses = false;
+        }
+    }
+
+    applySavedAddress(addr: CustomerSavedAddressDto | null): void {
+        if (!addr) {
+            this.selectedSavedAddressId = null;
+            return;
+        }
+        this.selectedSavedAddressId = addr.id;
+        this.deliveryAddress = addr.address || '';
+        this.deliveryLandmark = addr.landmark || '';
+        if (addr.deliveryAreaId && this.deliveryAreas.some((a) => a.id === addr.deliveryAreaId)) {
+            this.selectedAreaId = addr.deliveryAreaId;
+            this.onAreaChange();
+        }
+    }
+
+    onCheckoutPhoneBlur(): void {
+        void this.loadSavedAddresses(this.customerMobile);
     }
 
     private applyCheckoutDraft(): void {

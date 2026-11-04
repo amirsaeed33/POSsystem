@@ -338,7 +338,18 @@ export class ThermalPrintService {
         frameDoc.write(fullHtml);
         frameDoc.close();
 
+        // Guard: logo/img onload + fallback timeout previously both called print() → duplicate invoices.
+        let printed = false;
+        let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
         const triggerPrint = () => {
+            if (printed) {
+                return;
+            }
+            printed = true;
+            if (fallbackTimer != null) {
+                clearTimeout(fallbackTimer);
+                fallbackTimer = null;
+            }
             try {
                 printFrame.contentWindow?.focus();
                 printFrame.contentWindow?.print();
@@ -366,9 +377,10 @@ export class ThermalPrintService {
                     img.onerror = onImgDone;
                 }
             }
-            setTimeout(triggerPrint, 600);
+            // Fallback only if images never finish — never a second print after success.
+            fallbackTimer = setTimeout(triggerPrint, 1200);
         } else {
-            setTimeout(triggerPrint, 250);
+            fallbackTimer = setTimeout(triggerPrint, 250);
         }
     }
 
@@ -503,7 +515,6 @@ export class ThermalPrintService {
             <div class="double-divider"></div>
             <div class="text-center meta-text" style="margin-top: 5px;">
                 <div>${posFooter}</div>
-                <div style="margin-top: 4px; font-size: 8px;">Software by SmartPos</div>
             </div>
         `;
 
@@ -726,7 +737,6 @@ export class ThermalPrintService {
             <div class="text-center meta-text" style="margin-top: 5px;">
                 <div>${guestFooter}</div>
                 <div class="bold" style="margin-top: 2px;">* PLEASE PRESENT THIS CHECK AT PAYMENT *</div>
-                <div style="margin-top: 4px; font-size: 8px;">Software by SmartPos</div>
             </div>
         `;
 
@@ -958,7 +968,6 @@ export class ThermalPrintService {
             <div class="double-divider"></div>
             <div class="text-center meta-text" style="margin-top: 5px;">
                 <div>${footerMsg}</div>
-                <div style="margin-top: 4px; font-size: 8px;">Software by SmartPos</div>
             </div>
         `;
 
@@ -1331,7 +1340,7 @@ export class ThermalPrintService {
                 <div class="meta-text">${branch.address || 'SmartPOS Cloud Terminal'}</div>
                 <div class="double-divider"></div>
                 <div class="header-subtitle uppercase">*** PRINTER DIAGNOSTIC TEST ***</div>
-                <div class="meta-text bold" style="margin-top: 3px;">Paper Profile: ${size} Thermal</div>
+                <div class="meta-text bold" style="margin-top: 3px;">Paper: ${size}</div>
                 <div class="meta-text">Print Width: ${is58 ? '48mm (32 Chars)' : '72mm (48 Chars)'}</div>
                 <div class="meta-text">Timestamp: ${new Date().toLocaleString()}</div>
                 <div class="divider"></div>

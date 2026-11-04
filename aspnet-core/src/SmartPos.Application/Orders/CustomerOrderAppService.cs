@@ -16,7 +16,9 @@ using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Caching;
+using SmartPos.Addresses;
 using SmartPos.Customers;
+using SmartPos.Customers.Dto;
 using SmartPos.Inventory;
 using SmartPos.Orders.Dto;
 using SmartPos.Products;
@@ -52,6 +54,7 @@ namespace SmartPos.Orders
         private readonly IRepository<EmailTemplate> _emailTemplateRepository;
         private readonly IRepository<DeliveryArea> _deliveryAreaRepository;
         private readonly IRepository<DeliveryPromotion> _deliveryPromotionRepository;
+        private readonly SavedAddressManager _savedAddresses;
         private readonly IRepository<Staff> _staffRepository;
         private readonly IRepository<Category> _categoryRepository;
         private readonly ICacheManager _cacheManager;
@@ -72,6 +75,7 @@ namespace SmartPos.Orders
             IRepository<EmailTemplate> emailTemplateRepository,
             IRepository<DeliveryArea> deliveryAreaRepository,
             IRepository<DeliveryPromotion> deliveryPromotionRepository,
+            SavedAddressManager savedAddresses,
             IRepository<Staff> staffRepository,
             IRepository<Category> categoryRepository,
             ICacheManager cacheManager)
@@ -91,6 +95,7 @@ namespace SmartPos.Orders
             _emailTemplateRepository = emailTemplateRepository;
             _deliveryAreaRepository = deliveryAreaRepository;
             _deliveryPromotionRepository = deliveryPromotionRepository;
+            _savedAddresses = savedAddresses;
             _staffRepository = staffRepository;
             _categoryRepository = categoryRepository;
             _cacheManager = cacheManager;
@@ -402,11 +407,6 @@ namespace SmartPos.Orders
                         {
                             existingCustomer.Name = name;
                         }
-                        if (!string.IsNullOrWhiteSpace(input.DeliveryAddress) &&
-                            string.IsNullOrWhiteSpace(existingCustomer.Address))
-                        {
-                            existingCustomer.Address = input.DeliveryAddress.Trim();
-                        }
                     }
                     else
                     {
@@ -415,10 +415,7 @@ namespace SmartPos.Orders
                             TenantId = tenantId,
                             BranchId = branchId,
                             Name = name,
-                            Phone = mobile,
-                            Address = string.IsNullOrWhiteSpace(input.DeliveryAddress)
-                                ? null
-                                : input.DeliveryAddress.Trim()
+                            Phone = mobile
                         };
                         customerId = await _customerRepository.InsertAndGetIdAsync(newCust);
                     }
@@ -431,23 +428,23 @@ namespace SmartPos.Orders
                 }
                 if (!string.IsNullOrWhiteSpace(input.DeliveryAddress))
                 {
-                    noteParts.Add($"📍 {input.DeliveryAddress.Trim()}");
+                    noteParts.Add($"?? {input.DeliveryAddress.Trim()}");
                 }
                 if (!string.IsNullOrWhiteSpace(input.DeliveryLandmark))
                 {
-                    noteParts.Add($"🚩 {input.DeliveryLandmark.Trim()}");
+                    noteParts.Add($"?? {input.DeliveryLandmark.Trim()}");
                 }
                 if (!string.IsNullOrWhiteSpace(input.GoogleMapsLink) && !noteParts.Any(p => p.Contains("maps.google.com")))
                 {
-                    noteParts.Add($"🗺️ {input.GoogleMapsLink.Trim()}");
+                    noteParts.Add($"??? {input.GoogleMapsLink.Trim()}");
                 }
                 if (input.DistanceKm.HasValue && input.DistanceKm.Value > 0)
                 {
-                    noteParts.Add($"📏 Distance: {input.DistanceKm.Value:F1} km");
+                    noteParts.Add($"?? Distance: {input.DistanceKm.Value:F1} km");
                 }
 
                 var paymentMethod = NormalizePaymentMethod(input.PaymentMethod);
-                noteParts.Add($"💳 Payment: {FormatPaymentMethodLabel(paymentMethod)}");
+                noteParts.Add($"?? Payment: {FormatPaymentMethodLabel(paymentMethod)}");
 
                 var finalNotes = string.Join(" | ", noteParts);
                 if (finalNotes.Length > CustomerOrder.MaxNotesLength)
@@ -609,6 +606,18 @@ namespace SmartPos.Orders
                 order.OrderNo = "ORD-" + insertedId.ToString("D5");
                 await CurrentUnitOfWork.SaveChangesAsync();
 
+                // Purchaser checkout: persist address + zone onto the customer profile.
+                await UpsertSavedAddressForCustomerAsync(
+                    customerId,
+                    tenantId,
+                    input.DeliveryAddress,
+                    input.DeliveryLandmark,
+                    resolvedAreaId,
+                    resolvedAreaName,
+                    input.Latitude,
+                    input.Longitude,
+                    setAsDefault: true);
+
                 await EventBus.TriggerAsync(new CustomerOrderCreatedEventData(
                     insertedId,
                     order.OrderNo,
@@ -749,6 +758,18 @@ namespace SmartPos.Orders
 
             order.OrderNo = "ORD-" + order.Id.ToString("D6");
             await CurrentUnitOfWork.SaveChangesAsync();
+
+            // Staff-created order: also save address + zone when provided.
+            await UpsertSavedAddressForCustomerAsync(
+                customer.Id,
+                customer.TenantId ?? AbpSession.TenantId,
+                input.DeliveryAddress,
+                input.DeliveryLandmark,
+                input.DeliveryAreaId,
+                input.DeliveryArea,
+                input.Latitude,
+                input.Longitude,
+                setAsDefault: true);
 
             await EventBus.TriggerAsync(new CustomerOrderCreatedEventData(
                 order.Id,
@@ -1050,7 +1071,7 @@ namespace SmartPos.Orders
                 CustomerId = entity.CustomerId,
                 CustomerName = entity.Customer?.Name,
                 CustomerPhone = entity.Customer?.Phone,
-                CustomerAddress = entity.Customer?.Address,
+                CustomerAddress = GetDefaultSavedAddressText(entity.CustomerId),
                 OrderDate = entity.OrderDate,
                 OrderNo = entity.OrderNo,
                 Status = entity.Status,
@@ -1267,7 +1288,14 @@ namespace SmartPos.Orders
                             stored.Substring(stored.Length - 10) == digits.Substring(digits.Length - 10));
                 });
 
-                return match == null ? null : MapOnlineCustomerProfile(match);
+                if (match == null)
+                {
+                    return null;
+                }
+
+                var profile = MapOnlineCustomerProfile(match);
+                profile.SavedAddresses = await LoadSavedAddressDtosAsync(match.Id);
+                return profile;
             }
         }
 
@@ -1337,9 +1365,6 @@ namespace SmartPos.Orders
                         Name = name,
                         Phone = mobile,
                         Email = string.IsNullOrWhiteSpace(email) ? null : email,
-                        Address = string.IsNullOrWhiteSpace(address) ? null : address,
-                        Latitude = hasCoords ? input.Latitude : null,
-                        Longitude = hasCoords ? input.Longitude : null,
                         CustomerType = CustomerTypes.Direct
                     };
                     await _customerRepository.InsertAsync(customer);
@@ -1349,15 +1374,6 @@ namespace SmartPos.Orders
                     customer.Name = name;
                     customer.Phone = mobile;
                     customer.Email = string.IsNullOrWhiteSpace(email) ? null : email;
-                    if (!string.IsNullOrWhiteSpace(address))
-                    {
-                        customer.Address = address;
-                    }
-                    if (hasCoords)
-                    {
-                        customer.Latitude = input.Latitude;
-                        customer.Longitude = input.Longitude;
-                    }
                 }
 
                 if (input.ClearImage)
@@ -1377,12 +1393,180 @@ namespace SmartPos.Orders
                 }
 
                 await CurrentUnitOfWork.SaveChangesAsync();
-                return MapOnlineCustomerProfile(customer);
+
+                // Customer profile: keep a selectable saved address+zone when address is provided.
+                if (!string.IsNullOrWhiteSpace(address))
+                {
+                    await UpsertSavedAddressForCustomerAsync(
+                        customer.Id,
+                        customer.TenantId ?? branch.TenantId ?? AbpSession.TenantId,
+                        address,
+                        landmark: null,
+                        deliveryAreaId: null,
+                        deliveryAreaName: null,
+                        latitude: hasCoords ? input.Latitude : null,
+                        longitude: hasCoords ? input.Longitude : null,
+                        setAsDefault: true);
+                }
+
+                var profile = MapOnlineCustomerProfile(customer);
+                profile.SavedAddresses = await LoadSavedAddressDtosAsync(customer.Id);
+                return profile;
             }
         }
 
-        private static OnlineCustomerProfileDto MapOnlineCustomerProfile(Customer customer)
+        [AbpAllowAnonymous]
+        public async Task<List<CustomerSavedAddressDto>> GetSavedAddressesAsync(GetCustomerSavedAddressesInput input)
         {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var customerId = await ResolveCustomerIdForSavedAddressAsync(input?.CustomerId, input?.Phone, input?.BranchId);
+                if (!customerId.HasValue)
+                {
+                    return new List<CustomerSavedAddressDto>();
+                }
+
+                return await LoadSavedAddressDtosAsync(customerId.Value);
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<CustomerSavedAddressDto> SaveSavedAddressAsync(SaveCustomerAddressInput input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                if (input == null || string.IsNullOrWhiteSpace(input.Address))
+                {
+                    throw new UserFriendlyException("Address is required.");
+                }
+
+                int customerId;
+                int? tenantId = AbpSession.TenantId;
+
+                if (input.CustomerId.HasValue && input.CustomerId.Value > 0)
+                {
+                    // Staff path: known customer id.
+                    var customer = await _customerRepository.GetAsync(input.CustomerId.Value);
+                    if (AbpSession.UserId.HasValue)
+                    {
+                        await _branchAccessChecker.EnsureCanAccessBranchAsync(customer.BranchId);
+                    }
+                    customerId = customer.Id;
+                    tenantId = customer.TenantId ?? tenantId;
+                }
+                else
+                {
+                    var branchId = input.BranchId.GetValueOrDefault();
+                    if (branchId <= 0)
+                    {
+                        throw new UserFriendlyException("Please select a branch.");
+                    }
+
+                    var digits = NormalizePhoneDigits(input.Phone);
+                    if (digits.Length < 7)
+                    {
+                        throw new UserFriendlyException("Please enter a valid phone number.");
+                    }
+
+                    var customer = await FindCustomerByPhoneAsync(branchId, digits);
+                    if (customer == null)
+                    {
+                        var branch = await _branchRepository.GetAll()
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(b => b.Id == branchId);
+                        if (branch == null)
+                        {
+                            throw new UserFriendlyException("Branch not found.");
+                        }
+
+                        customer = new Customer
+                        {
+                            TenantId = branch.TenantId ?? AbpSession.TenantId,
+                            BranchId = branchId,
+                            Name = "Customer " + digits.Substring(Math.Max(0, digits.Length - 4)),
+                            Phone = (input.Phone ?? string.Empty).Trim(),
+                            CustomerType = CustomerTypes.Direct
+                        };
+                        customerId = await _customerRepository.InsertAndGetIdAsync(customer);
+                        tenantId = customer.TenantId;
+                        await CurrentUnitOfWork.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        customerId = customer.Id;
+                        tenantId = customer.TenantId ?? tenantId;
+                    }
+                }
+
+                var saved = await UpsertSavedAddressForCustomerAsync(
+                    customerId,
+                    tenantId,
+                    input.Address,
+                    input.Landmark,
+                    input.DeliveryAreaId,
+                    input.DeliveryAreaName,
+                    input.Latitude,
+                    input.Longitude,
+                    setAsDefault: input.IsDefault || !input.Id.HasValue,
+                    existingId: input.Id,
+                    label: input.Label);
+
+                if (saved == null)
+                {
+                    throw new UserFriendlyException("Could not save address.");
+                }
+
+                return MapSavedAddressDto(saved);
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task DeleteSavedAddressAsync(DeleteCustomerSavedAddressInput input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                if (input == null || input.Id <= 0)
+                {
+                    throw new UserFriendlyException("Address id is required.");
+                }
+
+                var entity = await _savedAddresses.GetAsync(input.Id);
+                if (entity == null)
+                {
+                    return;
+                }
+
+                if (entity.OwnerType != SavedAddressOwnerTypes.Customer)
+                {
+                    throw new UserFriendlyException("You cannot delete this address.");
+                }
+
+                if (AbpSession.UserId.HasValue)
+                {
+                    var customer = await _customerRepository.GetAsync(entity.OwnerId);
+                    await _branchAccessChecker.EnsureCanAccessBranchAsync(customer.BranchId);
+                }
+                else
+                {
+                    var ownerId = await ResolveCustomerIdForSavedAddressAsync(null, input.Phone, input.BranchId);
+                    if (!ownerId.HasValue || ownerId.Value != entity.OwnerId)
+                    {
+                        throw new UserFriendlyException("You cannot delete this address.");
+                    }
+                }
+
+                await _savedAddresses.DeleteAsync(entity.Id);
+            }
+        }
+
+        private OnlineCustomerProfileDto MapOnlineCustomerProfile(Customer customer)
+        {
+            var def = _savedAddresses.QueryForOwner(SavedAddressOwnerTypes.Customer, customer.Id)
+                .AsNoTracking()
+                .OrderByDescending(a => a.IsDefault)
+                .ThenByDescending(a => a.Id)
+                .FirstOrDefault();
+
             return new OnlineCustomerProfileDto
             {
                 Id = customer.Id,
@@ -1390,11 +1574,111 @@ namespace SmartPos.Orders
                 Name = customer.Name,
                 Phone = customer.Phone,
                 Email = customer.Email,
-                Address = customer.Address,
-                Latitude = customer.Latitude,
-                Longitude = customer.Longitude,
+                Address = def?.Address,
+                Latitude = def?.Latitude,
+                Longitude = def?.Longitude,
                 ImagePath = customer.ImagePath
             };
+        }
+
+        private string GetDefaultSavedAddressText(int customerId)
+        {
+            return _savedAddresses.GetDefaultAddressText(SavedAddressOwnerTypes.Customer, customerId);
+        }
+
+        private async Task<List<CustomerSavedAddressDto>> LoadSavedAddressDtosAsync(int customerId)
+        {
+            var rows = await _savedAddresses.QueryForOwner(SavedAddressOwnerTypes.Customer, customerId)
+                .AsNoTracking()
+                .OrderByDescending(a => a.IsDefault)
+                .ThenByDescending(a => a.Id)
+                .Take(30)
+                .ToListAsync();
+
+            return rows.Select(MapSavedAddressDto).ToList();
+        }
+
+        private static CustomerSavedAddressDto MapSavedAddressDto(SavedAddress entity)
+        {
+            return new CustomerSavedAddressDto
+            {
+                Id = entity.Id,
+                OwnerType = entity.OwnerType,
+                OwnerId = entity.OwnerId,
+                CustomerId = entity.OwnerType == SavedAddressOwnerTypes.Customer ? entity.OwnerId : 0,
+                Label = entity.Label,
+                Address = entity.Address,
+                Landmark = entity.Landmark,
+                DeliveryAreaId = entity.DeliveryAreaId,
+                DeliveryAreaName = entity.DeliveryAreaName,
+                Latitude = entity.Latitude,
+                Longitude = entity.Longitude,
+                IsDefault = entity.IsDefault
+            };
+        }
+
+        private async Task<int?> ResolveCustomerIdForSavedAddressAsync(int? customerId, string phone, int? branchId)
+        {
+            if (customerId.HasValue && customerId.Value > 0 && AbpSession.UserId.HasValue)
+            {
+                var customer = await _customerRepository.GetAsync(customerId.Value);
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(customer.BranchId);
+                return customer.Id;
+            }
+
+            var bid = branchId.GetValueOrDefault();
+            var digits = NormalizePhoneDigits(phone);
+            if (bid <= 0 || digits.Length < 7)
+            {
+                return null;
+            }
+
+            var match = await FindCustomerByPhoneAsync(bid, digits);
+            return match?.Id;
+        }
+
+        private async Task<Customer> FindCustomerByPhoneAsync(int branchId, string digits)
+        {
+            var candidates = await _customerRepository.GetAll()
+                .Where(c => c.BranchId == branchId && c.Phone != null && c.Phone != "")
+                .OrderByDescending(c => c.Id)
+                .Take(50)
+                .ToListAsync();
+
+            return candidates.FirstOrDefault(c =>
+            {
+                var stored = NormalizePhoneDigits(c.Phone);
+                return stored == digits ||
+                       (stored.Length >= 10 && digits.Length >= 10 &&
+                        stored.Substring(stored.Length - 10) == digits.Substring(digits.Length - 10));
+            });
+        }
+
+        private Task<SavedAddress> UpsertSavedAddressForCustomerAsync(
+            int customerId,
+            int? tenantId,
+            string address,
+            string landmark,
+            int? deliveryAreaId,
+            string deliveryAreaName,
+            double? latitude,
+            double? longitude,
+            bool setAsDefault,
+            int? existingId = null,
+            string label = null)
+        {
+            return _savedAddresses.UpsertDefaultAsync(
+                SavedAddressOwnerTypes.Customer,
+                customerId,
+                tenantId,
+                address,
+                landmark,
+                deliveryAreaId,
+                deliveryAreaName,
+                latitude,
+                longitude,
+                label,
+                existingId);
         }
 
         [AbpAllowAnonymous]
@@ -1407,9 +1691,10 @@ namespace SmartPos.Orders
                     return new List<BranchFeedbackDto>();
                 }
 
-                var take = maxResultCount > 0 ? Math.Min(maxResultCount, 50) : 20;
+                // Public strip: latest rating per customer, then newest 5 only.
+                var take = maxResultCount > 0 ? Math.Min(maxResultCount, 5) : 5;
 
-                var orders = await Repository.GetAll()
+                var candidates = await Repository.GetAll()
                     .AsNoTracking()
                     .Include(o => o.Customer)
                     .Include(o => o.Branch)
@@ -1417,8 +1702,15 @@ namespace SmartPos.Orders
                         .ThenInclude(l => l.Product)
                     .Where(o => o.BranchId == branchId && o.CustomerRating != null && o.CustomerRating > 0)
                     .OrderByDescending(o => o.OrderDate)
-                    .Take(take)
+                    .Take(80)
                     .ToListAsync();
+
+                var orders = candidates
+                    .GroupBy(o => o.CustomerId)
+                    .Select(g => g.OrderByDescending(x => x.OrderDate).First())
+                    .OrderByDescending(o => o.OrderDate)
+                    .Take(take)
+                    .ToList();
 
                 return orders.Select(o =>
                 {
@@ -1431,6 +1723,7 @@ namespace SmartPos.Orders
                     return new BranchFeedbackDto
                     {
                         OrderId = o.Id,
+                        CustomerId = o.CustomerId,
                         OrderNo = o.OrderNo,
                         CustomerName = o.Customer != null ? o.Customer.Name : "Customer",
                         CustomerImagePath = o.Customer != null ? o.Customer.ImagePath : null,

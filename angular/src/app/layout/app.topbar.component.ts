@@ -18,6 +18,7 @@ import { CustomerChatMessageDto, CustomerOrderConversationDto } from 'src/app/de
 import { environment } from 'src/environments/environment';
 import { Subscription } from 'rxjs';
 import { RestaurantTakeawayAlarmService } from 'src/app/demo/service/restaurant-takeaway-alarm.service';
+import { AppSoundService } from 'src/app/demo/service/app-sound.service';
 import { UnpaidTakeawayOrderDto } from 'src/app/demo/api/restaurant-order';
 
 @Component({
@@ -119,6 +120,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         private customerOrderService: CustomerOrderService,
         private customerChatService: CustomerChatService,
         public takeawayAlarmService: RestaurantTakeawayAlarmService,
+        public appSound: AppSoundService,
         private messageService: MessageService,
         private router: Router
     ) { }
@@ -221,6 +223,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     toggleTakeawayMute(): void {
+        // Global mute: takeaway KOT + chat/order chimes + any other AppSound-gated beeps.
         this.takeawayAlarmService.toggleMute();
     }
 
@@ -309,6 +312,9 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     private playChatChime(): void {
+        if (!this.appSound.canPlay()) {
+            return;
+        }
         try {
             const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
             if (!AudioContextClass) return;
@@ -331,6 +337,9 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     private playOrderChime(): void {
+        if (!this.appSound.canPlay()) {
+            return;
+        }
         try {
             const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
             if (!AudioContextClass) return;

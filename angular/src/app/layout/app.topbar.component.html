@@ -193,8 +193,8 @@
                             pRipple
                             type="button"
                             [class]="takeawayAlarmService.isMuted ? 'p-button-danger p-button-text p-button-sm p-button-icon-only' : 'p-button-secondary p-button-text p-button-sm p-button-icon-only'"
-                            [title]="takeawayAlarmService.isMuted ? 'Unmute Takeaway Alarm' : 'Mute Takeaway Alarm'"
-                            (click)="toggleTakeawayMute()"
+                            [title]="takeawayAlarmService.isMuted ? 'Unmute all alarms' : 'Mute all alarms'"
+                            (click)="$event.stopPropagation(); toggleTakeawayMute()"
                         >
                             <i [class]="takeawayAlarmService.isMuted ? 'pi pi-volume-off' : 'pi pi-volume-up'"></i>
                         </button>

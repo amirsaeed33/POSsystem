@@ -6,6 +6,8 @@ using Abp.Authorization;
 using Abp.Domain.Repositories;
 using Abp.Extensions;
 using Abp.Linq.Extensions;
+using Microsoft.EntityFrameworkCore;
+using SmartPos.Addresses;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Accounts;
@@ -18,6 +20,7 @@ namespace SmartPos.Customers
     public class CustomerAppService : AsyncCrudAppService<Customer, CustomerDto, int, PagedCustomerResultRequestDto, CreateCustomerDto, CustomerDto>, ICustomerAppService
     {
         private readonly IRepository<BusinessAccount> _accountRepository;
+        private readonly SavedAddressManager _savedAddresses;
         private readonly IRepository<User, long> _userRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
@@ -26,6 +29,7 @@ namespace SmartPos.Customers
         public CustomerAppService(
             IRepository<Customer> repository,
             IRepository<BusinessAccount> accountRepository,
+            SavedAddressManager savedAddresses,
             IRepository<User, long> userRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
@@ -33,6 +37,7 @@ namespace SmartPos.Customers
             : base(repository)
         {
             _accountRepository = accountRepository;
+            _savedAddresses = savedAddresses;
             _userRepository = userRepository;
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
@@ -70,6 +75,12 @@ namespace SmartPos.Customers
             await Repository.InsertAsync(customer);
             await CurrentUnitOfWork.SaveChangesAsync();
 
+            await _savedAddresses.UpsertDefaultAsync(
+                SavedAddressOwnerTypes.Customer,
+                customer.Id,
+                customer.TenantId,
+                input.Address);
+
             return await GetAsync(new EntityDto<int>(customer.Id));
         }
 
@@ -91,8 +102,13 @@ namespace SmartPos.Customers
                 await CurrentUnitOfWork.SaveChangesAsync();
             }
 
-            var dto = await GetAsync(new EntityDto<int>(customer.Id));
-            return dto;
+            await _savedAddresses.UpsertDefaultAsync(
+                SavedAddressOwnerTypes.Customer,
+                customer.Id,
+                customer.TenantId,
+                input.Address);
+
+            return await GetAsync(new EntityDto<int>(customer.Id));
         }
 
         public override async Task<CustomerDto> GetAsync(EntityDto<int> input)
@@ -101,6 +117,8 @@ namespace SmartPos.Customers
             var dto = await base.GetAsync(input);
             await _branchAccessChecker.EnsureCanAccessBranchAsync(dto.BranchId);
             await FillBalance(dto);
+            dto.Address = await _savedAddresses.GetDefaultAddressTextAsync(
+                SavedAddressOwnerTypes.Customer, dto.Id);
             return dto;
         }
 
@@ -111,6 +129,8 @@ namespace SmartPos.Customers
             foreach (var item in result.Items)
             {
                 await FillBalance(item);
+                item.Address = await _savedAddresses.GetDefaultAddressTextAsync(
+                    SavedAddressOwnerTypes.Customer, item.Id);
             }
             return result;
         }
@@ -134,15 +154,20 @@ namespace SmartPos.Customers
         protected override IQueryable<Customer> CreateFilteredQuery(PagedCustomerResultRequestDto input)
         {
             var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+            var keyword = input.Keyword;
 
             return Repository.GetAllIncluding(x => x.Account)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
-                .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
-                    x => x.Name.Contains(input.Keyword)
-                         || (x.Phone != null && x.Phone.Contains(input.Keyword))
-                         || (x.Email != null && x.Email.Contains(input.Keyword))
-                         || (x.Address != null && x.Address.Contains(input.Keyword))
-                         || (x.Description != null && x.Description.Contains(input.Keyword)));
+                .WhereIf(!keyword.IsNullOrWhiteSpace(),
+                    x => x.Name.Contains(keyword)
+                         || (x.Phone != null && x.Phone.Contains(keyword))
+                         || (x.Email != null && x.Email.Contains(keyword))
+                         || (x.Description != null && x.Description.Contains(keyword))
+                         || _savedAddresses.QueryAll().Any(a =>
+                             a.OwnerType == SavedAddressOwnerTypes.Customer &&
+                             a.OwnerId == x.Id &&
+                             a.Address != null &&
+                             a.Address.Contains(keyword)));
         }
 
         protected override async Task<Customer> GetEntityByIdAsync(int id)

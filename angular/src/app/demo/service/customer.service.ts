@@ -139,6 +139,20 @@ export class CustomerService {
         return res.result ?? res;
     }
 
+    getImageUrl(imagePath?: string | null): string {
+        if (!imagePath) {
+            return '';
+        }
+        if (
+            imagePath.startsWith('http://') ||
+            imagePath.startsWith('https://') ||
+            imagePath.startsWith('data:')
+        ) {
+            return imagePath;
+        }
+        return `${environment.apiUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    }
+
     private mapCustomer(item: any): CustomerDto {
         return {
             id: item.id ?? item.Id,
@@ -149,6 +163,7 @@ export class CustomerService {
             email: item.email ?? item.Email,
             address: item.address ?? item.Address,
             description: item.description ?? item.Description,
+            imagePath: item.imagePath ?? item.ImagePath ?? null,
             accountId: item.accountId ?? item.AccountId,
             balance: item.balance ?? item.Balance ?? 0,
         };

@@ -97,6 +97,39 @@ export class OnlineOrderHistoryComponent implements OnInit {
         });
     }
 
+    openProfile(): void {
+        this.router.navigate(['/online-order'], {
+            queryParams: {
+                ...(this.branchId ? { branchId: this.branchId } : {}),
+                openProfile: 1,
+            },
+        });
+    }
+
+    get historyProfilePhotoUrl(): string {
+        const path = (localStorage.getItem('smartpos_customer_image') || '').trim();
+        if (!path) {
+            return '';
+        }
+        if (/^https?:\/\//i.test(path) || path.startsWith('data:')) {
+            return path;
+        }
+        // Relative path served from API host — history uses same-origin proxy in local.
+        return path.startsWith('/') ? path : `/${path}`;
+    }
+
+    get historyProfileInitials(): string {
+        const name = (localStorage.getItem('smartpos_customer_name') || '').trim();
+        if (!name) {
+            return 'ME';
+        }
+        const parts = name.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) {
+            return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    }
+
     openCart(): void {
         this.cartService.sidebarVisible = true;
         this.goStore();

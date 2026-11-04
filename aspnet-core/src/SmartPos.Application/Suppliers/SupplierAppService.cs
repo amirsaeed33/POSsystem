@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Authorization.Users;
 using SmartPos.Accounts;
+using SmartPos.Addresses;
 using SmartPos.Branches;
 using SmartPos.Products;
 using SmartPos.Suppliers.Dto;
@@ -29,6 +30,7 @@ namespace SmartPos.Suppliers
         private readonly IBranchAccessChecker _branchAccessChecker;
         private readonly IBranchContext _branchContext;
         private readonly AccountBalanceManager _accountBalanceManager;
+        private readonly SavedAddressManager _savedAddresses;
 
         public SupplierAppService(
             IRepository<Supplier> repository,
@@ -39,7 +41,8 @@ namespace SmartPos.Suppliers
             IRepository<User, long> userRepository,
             IBranchAccessChecker branchAccessChecker,
             IBranchContext branchContext,
-            AccountBalanceManager accountBalanceManager)
+            AccountBalanceManager accountBalanceManager,
+            SavedAddressManager savedAddresses)
             : base(repository)
         {
             _accountRepository = accountRepository;
@@ -50,6 +53,7 @@ namespace SmartPos.Suppliers
             _branchAccessChecker = branchAccessChecker;
             _branchContext = branchContext;
             _accountBalanceManager = accountBalanceManager;
+            _savedAddresses = savedAddresses;
             CreatePermissionName = PermissionNames.Pages_Suppliers_Create;
             UpdatePermissionName = PermissionNames.Pages_Suppliers_Edit;
             DeletePermissionName = PermissionNames.Pages_Suppliers_Delete;
@@ -83,6 +87,12 @@ namespace SmartPos.Suppliers
             await Repository.InsertAsync(supplier);
             await CurrentUnitOfWork.SaveChangesAsync();
 
+            await _savedAddresses.UpsertDefaultAsync(
+                SavedAddressOwnerTypes.Supplier,
+                supplier.Id,
+                supplier.TenantId,
+                input.Address);
+
             return await GetAsync(new EntityDto<int>(supplier.Id));
         }
 
@@ -104,6 +114,12 @@ namespace SmartPos.Suppliers
                 await CurrentUnitOfWork.SaveChangesAsync();
             }
 
+            await _savedAddresses.UpsertDefaultAsync(
+                SavedAddressOwnerTypes.Supplier,
+                supplier.Id,
+                supplier.TenantId,
+                input.Address);
+
             return await GetAsync(new EntityDto<int>(supplier.Id));
         }
 
@@ -113,6 +129,8 @@ namespace SmartPos.Suppliers
             var dto = await base.GetAsync(input);
             await _branchAccessChecker.EnsureCanAccessBranchAsync(dto.BranchId);
             await FillBalance(dto);
+            dto.Address = await _savedAddresses.GetDefaultAddressTextAsync(
+                SavedAddressOwnerTypes.Supplier, dto.Id);
             return dto;
         }
 
@@ -123,6 +141,8 @@ namespace SmartPos.Suppliers
             foreach (var item in result.Items)
             {
                 await FillBalance(item);
+                item.Address = await _savedAddresses.GetDefaultAddressTextAsync(
+                    SavedAddressOwnerTypes.Supplier, item.Id);
             }
             return result;
         }
@@ -234,8 +254,12 @@ namespace SmartPos.Suppliers
                     x => x.Name.Contains(input.Keyword)
                          || (x.Phone != null && x.Phone.Contains(input.Keyword))
                          || (x.Email != null && x.Email.Contains(input.Keyword))
-                         || (x.Address != null && x.Address.Contains(input.Keyword))
-                         || (x.Description != null && x.Description.Contains(input.Keyword)));
+                         || (x.Description != null && x.Description.Contains(input.Keyword))
+                         || _savedAddresses.QueryAll().Any(a =>
+                             a.OwnerType == SavedAddressOwnerTypes.Supplier &&
+                             a.OwnerId == x.Id &&
+                             a.Address != null &&
+                             a.Address.Contains(input.Keyword)));
         }
 
         protected override async Task<Supplier> GetEntityByIdAsync(int id)

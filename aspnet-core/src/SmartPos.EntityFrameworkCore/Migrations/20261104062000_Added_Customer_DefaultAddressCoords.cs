@@ -1,10 +1,13 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using SmartPos.EntityFrameworkCore;
 
 #nullable disable
 
 namespace SmartPos.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(SmartPosDbContext))]
+    [Migration("20261104062000_Added_Customer_DefaultAddressCoords")]
     public partial class Added_Customer_DefaultAddressCoords : Migration
     {
         /// <inheritdoc />

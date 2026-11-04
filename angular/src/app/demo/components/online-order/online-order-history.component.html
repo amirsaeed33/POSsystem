@@ -55,32 +55,16 @@
             </nav>
 
             <div class="flex align-items-center gap-2 flex-shrink-0">
-                <a *ngIf="!isLoggedIn" routerLink="/auth/login" class="fp-staff-login-btn" title="Staff / Admin Login">
-                    <i class="pi pi-sign-in"></i>
-                    <span>Staff Login</span>
-                </a>
-                <ng-container *ngIf="isLoggedIn">
-                    <div class="fp-auth-pill" pTooltip="Signed in as {{ userName }}" tooltipPosition="bottom">
-                        <div class="avatar-circle">{{ userInitials }}</div>
-                        <span class="font-bold text-xs">{{ userName }}</span>
-                    </div>
-                </ng-container>
                 <button
                     type="button"
-                    class="fp-cart-trigger"
-                    (click)="openCart()"
-                    [attr.aria-label]="'Shopping cart with ' + cartService.totalItemsCount + ' items'"
+                    class="fp-customer-avatar-btn"
+                    (click)="openProfile()"
+                    aria-label="My Profile"
+                    pTooltip="My Profile"
+                    tooltipPosition="bottom"
                 >
-                    <div class="cart-trigger-icon-box">
-                        <i class="pi pi-shopping-bag"></i>
-                    </div>
-                    <div class="cart-trigger-text hidden xl:flex flex-column text-left">
-                        <span class="cart-trigger-label">My Cart</span>
-                        <span class="cart-trigger-total">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
-                    </div>
-                    <span class="cart-badge" *ngIf="cartService.totalItemsCount > 0">
-                        {{ cartService.totalItemsCount }}
-                    </span>
+                    <img *ngIf="historyProfilePhotoUrl" [src]="historyProfilePhotoUrl" alt="" />
+                    <span *ngIf="!historyProfilePhotoUrl">{{ historyProfileInitials }}</span>
                 </button>
             </div>
         </div>
@@ -103,19 +87,17 @@
                 </div>
             </div>
             <div class="flex align-items-center gap-1 flex-shrink-0">
-                <button type="button" class="fp-mobile-action-btn" (click)="goStore()" aria-label="Back to menu">
-                    <i class="pi pi-arrow-left"></i>
-                </button>
                 <button
                     type="button"
-                    class="fp-mobile-action-btn fp-mobile-cart-action-btn"
-                    (click)="openCart()"
-                    aria-label="Shopping Cart"
+                    class="fp-customer-avatar-btn fp-customer-avatar-btn--mobile"
+                    (click)="openProfile()"
+                    aria-label="My Profile"
                 >
-                    <i class="pi pi-shopping-bag"></i>
-                    <span class="mobile-cart-badge" *ngIf="cartService.totalItemsCount > 0">
-                        {{ cartService.totalItemsCount }}
-                    </span>
+                    <img *ngIf="historyProfilePhotoUrl" [src]="historyProfilePhotoUrl" alt="" />
+                    <span *ngIf="!historyProfilePhotoUrl">{{ historyProfileInitials }}</span>
+                </button>
+                <button type="button" class="fp-mobile-action-btn" (click)="goStore()" aria-label="Back to menu">
+                    <i class="pi pi-arrow-left"></i>
                 </button>
             </div>
         </div>
@@ -573,5 +555,21 @@
             </div>
         </div>
     </footer>
+
+    <!-- Cart FAB only when cart has items (same pattern as store page) -->
+    <div class="store-fab-stack" *ngIf="cartService.totalItemsCount > 0">
+        <button
+            type="button"
+            class="store-cart-fab"
+            (click)="openCart()"
+            [attr.aria-label]="'View cart, ' + cartService.totalItemsCount + ' items'"
+            pTooltip="View cart · PKR {{ cartService.cartSubtotal | number: '1.0-0' }}"
+            tooltipPosition="top"
+        >
+            <i class="pi pi-shopping-bag"></i>
+            <span class="store-cart-fab-badge">{{ cartService.totalItemsCount }}</span>
+            <span class="store-cart-fab-total">PKR {{ cartService.cartSubtotal | number: '1.0-0' }}</span>
+        </button>
+    </div>
 </div>
 <p-toast></p-toast>

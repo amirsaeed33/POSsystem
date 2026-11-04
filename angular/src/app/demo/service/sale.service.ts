@@ -79,6 +79,8 @@ export class SaleService {
                 paymentType: input.paymentType,
                 cashAmount: input.cashAmount || 0,
                 cardAmount: input.cardAmount || 0,
+                deliveryCharges: input.deliveryCharges || 0,
+                deliveryAreaName: input.deliveryAreaName,
                 lines: (input.lines || []).map((line) => ({
                     productId: line.productId,
                     quantity: line.quantity,

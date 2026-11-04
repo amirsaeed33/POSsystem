@@ -15,6 +15,7 @@ import { PermissionService } from 'src/app/demo/service/permission.service';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { AppSoundService } from 'src/app/demo/service/app-sound.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -74,7 +75,8 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         private route: ActivatedRoute,
         private permissionService: PermissionService,
         private thermalPrintService: ThermalPrintService,
-        private branchContext: BranchContextService
+        private branchContext: BranchContextService,
+        private appSound: AppSoundService
     ) {}
 
     get isRestaurant(): boolean {
@@ -193,6 +195,9 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
     }
 
     playOrderAlertSound(): void {
+        if (!this.appSound.canPlay()) {
+            return;
+        }
         try {
             const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
             if (!AudioContextClass) return;

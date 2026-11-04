@@ -20,6 +20,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { BadgeModule } from 'primeng/badge';
 import { Subscription } from 'rxjs';
 import { CustomerChatService } from 'src/app/demo/service/customer-chat.service';
+import { AppSoundService } from 'src/app/demo/service/app-sound.service';
 import {
     ChatMessageSenderType,
     CustomerChatMessageDto,
@@ -87,7 +88,10 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
         'Special instructions noted, thanks! 👍'
     ];
 
-    constructor(private chatService: CustomerChatService) {}
+    constructor(
+        private chatService: CustomerChatService,
+        private appSound: AppSoundService
+    ) {}
 
     ngOnInit(): void {
         this.guestSessionId = this.chatService.getSessionId();
@@ -270,6 +274,9 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     }
 
     private playNotificationSound(): void {
+        if (!this.appSound.canPlay()) {
+            return;
+        }
         try {
             const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
             if (!AudioContextClass) return;

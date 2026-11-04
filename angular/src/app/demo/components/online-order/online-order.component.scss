@@ -435,6 +435,103 @@
   }
 }
 
+/* Compact customer profile avatar (after cart) */
+.fp-customer-avatar-btn {
+  width: 2.45rem;
+  height: 2.45rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  background: linear-gradient(135deg, #dc2626, #ea580c);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
+  }
+
+  &--mobile {
+    width: 2.15rem;
+    height: 2.15rem;
+    font-size: 0.65rem;
+    border-width: 1.5px;
+  }
+}
+
+.fp-branch-login-card {
+  margin-top: 0.35rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.95rem;
+  border: 1px dashed #cbd5e1;
+  background: #fffbeb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fp-branch-login-title {
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: #0f172a;
+}
+
+.fp-branch-login-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 0.1rem;
+}
+
+.fp-branch-login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 0.5rem 0.95rem;
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-decoration: none;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #fddb00;
+  color: #111827;
+  cursor: pointer;
+
+  &:hover {
+    background: #ffe566;
+    color: #111827;
+  }
+
+  &--out {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #fecaca;
+
+    &:hover {
+      background: #fecaca;
+      color: #991b1b;
+    }
+  }
+}
+
 /* Cart Trigger Pill Button */
 .fp-cart-trigger {
   position: relative;
@@ -502,15 +599,24 @@
 
 /* Mobile Topbar Specifics */
 .fp-mobile-top-bar {
+  gap: 0.5rem;
+  min-width: 0;
+
+  .brand-logo-sq {
+    width: 2.15rem;
+    height: 2.15rem;
+    font-size: 1rem;
+  }
+
   .fp-mobile-header-info {
     .mobile-store-title {
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       color: #ffffff;
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 140px;
+      max-width: min(42vw, 160px);
     }
     .fp-mobile-city-selector {
       display: inline-flex;
@@ -520,9 +626,10 @@
       font-weight: 700;
       color: #e2e8f0;
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      max-width: 100%;
 
       .city-name-text {
-        max-width: 120px;
+        max-width: min(46vw, 170px);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -530,9 +637,15 @@
     }
   }
 
+  .fp-mobile-top-actions {
+    gap: 0.4rem;
+    isolation: isolate;
+  }
+
   .fp-mobile-action-btn {
-    width: 34px;
-    height: 34px;
+    width: 2.15rem;
+    height: 2.15rem;
+    flex: 0 0 2.15rem;
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.25);
     background: rgba(255, 255, 255, 0.15);
@@ -544,6 +657,9 @@
     cursor: pointer;
     position: relative;
     transition: all 0.2s ease;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
 
     &:hover {
       background: rgba(253, 219, 0, 0.25);
@@ -561,26 +677,25 @@
       background: #e23744;
       color: #ffffff;
       border-color: #e23744;
-      overflow: visible;
 
       .mobile-cart-badge {
         position: absolute;
-        top: -0.4rem;
-        right: -0.4rem;
+        top: -0.35rem;
+        right: -0.35rem;
         z-index: 3;
-        min-width: 1.2rem;
-        height: 1.2rem;
-        padding: 0 0.28rem;
+        min-width: 1.05rem;
+        height: 1.05rem;
+        padding: 0 0.22rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         background: #fbbf24;
         color: #1c1917;
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         font-weight: 900;
         line-height: 1;
         border-radius: 9999px;
-        border: 2px solid #ffffff;
+        border: 1.5px solid #ffffff;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
         pointer-events: none;
       }
@@ -2249,7 +2364,7 @@
    ========================================================================== */
 .fp-mobile-bottom-cart-bar {
   position: fixed;
-  bottom: 64px;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   left: 12px;
   right: 12px;
   z-index: 999;
@@ -2328,7 +2443,7 @@
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0.45rem 0.25rem 0.55rem;
+  padding: 0.45rem 0.25rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
 
   .dock-tab-btn {
     background: transparent;
@@ -2469,19 +2584,23 @@
   margin-top: 1.5rem;
 
   @media (max-width: 767px) {
-    padding-bottom: 70px; /* Room for mobile bottom dock */
+    /* Dock + floating fab stack clearance */
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .fp-footer-inner {
-    max-width: 72rem;
-    margin: 0 auto;
-    padding: 1.25rem 1rem 0.85rem;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 1.35rem clamp(1rem, 4vw, 3.5rem) 0.95rem;
+    box-sizing: border-box;
   }
 
   .fp-footer-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
-    gap: 1rem 1.5rem;
+    width: 100%;
+    grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+    gap: 1.15rem clamp(1.25rem, 3vw, 3rem);
     align-items: start;
   }
 
@@ -2523,7 +2642,7 @@
     font-size: 0.8rem;
     line-height: 1.4;
     color: #94a3b8;
-    max-width: 22rem;
+    max-width: 28rem;
   }
 
   .fp-footer-badges {
@@ -2679,47 +2798,121 @@
     }
   }
 
-  @media (max-width: 560px) {
+  @media (max-width: 640px) {
     .fp-footer-inner {
-      padding: 1rem 0.85rem 0.75rem;
+      padding: 1.15rem 1rem 0.85rem;
     }
 
     .fp-footer-grid {
-      grid-template-columns: 1fr 1fr;
-      gap: 0.85rem 1rem;
+      grid-template-columns: 1fr;
+      gap: 1.15rem;
+    }
+
+    .fp-footer-brand,
+    .fp-footer-col {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+
+    .fp-footer-bio {
+      max-width: none;
     }
   }
 }
 
-/* Floating Chat FAB — icon only (bottom-right corner) */
-.store-chat-fab-wrap {
+/* Floating cart + chat — one row, icon-only */
+.store-fab-stack {
   position: fixed;
-  bottom: 1.25rem;
   right: 1.25rem;
+  bottom: 1.25rem;
   z-index: 950;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  /* Keep a hit target for fly-to-cart even when cart FAB is hidden */
+  min-width: 3.25rem;
+  min-height: 3.25rem;
+  pointer-events: none;
 
-  @media (max-width: 767px) {
-    /* Sit above the mobile bottom dock / cart bar */
-    bottom: 5.5rem;
-    right: 1rem;
+  > * {
+    pointer-events: auto;
   }
 
-  .store-chat-fab {
-    width: 3.25rem !important;
-    height: 3.25rem !important;
-    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
-    border: none !important;
-    color: #ffffff !important;
-    padding: 0 !important;
+  @media (max-width: 767px) {
+    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    right: 1rem;
+  }
+}
 
-    .p-button-icon {
-      font-size: 1.25rem;
-      margin: 0 !important;
-    }
+.store-cart-fab {
+  position: relative;
+  height: 3.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.9rem 0 0.8rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(226, 55, 68, 0.4);
+  animation: fpSlideUp 0.25s ease;
+  flex-shrink: 0;
 
-    .p-button-label {
-      display: none !important;
-    }
+  .pi-shopping-bag {
+    font-size: 1.1rem;
+  }
+
+  &:hover {
+    filter: brightness(1.05);
+  }
+}
+
+.store-cart-fab-badge {
+  position: absolute;
+  top: -0.2rem;
+  left: -0.1rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: #fbbf24;
+  color: #1c1917;
+  font-size: 0.62rem;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  line-height: 1;
+}
+
+.store-cart-fab-total {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.store-chat-fab {
+  width: 3.25rem !important;
+  height: 3.25rem !important;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+  border: none !important;
+  color: #ffffff !important;
+  padding: 0 !important;
+  box-shadow: 0 8px 22px rgba(22, 163, 74, 0.35);
+
+  .p-button-icon {
+    font-size: 1.25rem;
+    margin: 0 !important;
+  }
+
+  .p-button-label {
+    display: none !important;
   }
 }
 
@@ -2831,6 +3024,20 @@
   width: 1.5rem;
   height: 1.5rem;
   margin-right: 0;
+}
+
+.dock-profile-initials {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #dc2626, #ea580c);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.02em;
 }
 
 /* Single-page smooth scroll margins below sticky header */
@@ -3070,7 +3277,14 @@
 
 @media (max-width: 640px) {
   .fp-feedbacks-section {
-    padding: 1.75rem 0 1.5rem;
+    padding: 1.5rem 0 1.35rem;
+  }
+
+  .fp-feedbacks-section > .max-w-7xl {
+    max-width: none;
+    width: 100%;
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
   }
 
   .fp-feedbacks-title {
@@ -3082,8 +3296,34 @@
   }
 
   .fp-feedbacks-marquee {
-    --fb-card-width: 220px;
-    --fb-card-gap: 0.65rem;
+    /* Leave a peek of the next card so LTR motion is obvious on phones */
+    --fb-card-width: min(78vw, 300px);
+    --fb-card-gap: 0.75rem;
+    mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+
+    &.is-static .fp-feedbacks-track {
+      animation: fp-feedback-marquee-ltr linear infinite;
+      width: max-content;
+      flex-wrap: nowrap;
+    }
+  }
+
+  .fp-feedback-card-inner {
+    padding: 0.9rem 0.95rem;
+  }
+
+  .fp-feedback-name {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .fp-active-orders-section > .max-w-7xl {
+    max-width: none;
+    width: 100%;
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
   }
 }
 

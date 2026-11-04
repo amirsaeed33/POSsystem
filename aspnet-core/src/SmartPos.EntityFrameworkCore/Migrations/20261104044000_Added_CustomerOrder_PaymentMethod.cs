@@ -1,10 +1,13 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using SmartPos.EntityFrameworkCore;
 
 #nullable disable
 
 namespace SmartPos.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(SmartPosDbContext))]
+    [Migration("20261104044000_Added_CustomerOrder_PaymentMethod")]
     public partial class Added_CustomerOrder_PaymentMethod : Migration
     {
         /// <inheritdoc />

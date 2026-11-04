@@ -1,10 +1,13 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using SmartPos.EntityFrameworkCore;
 
 #nullable disable
 
 namespace SmartPos.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(SmartPosDbContext))]
+    [Migration("20261104061500_Added_CustomerFeedbackComment")]
     public partial class Added_CustomerFeedbackComment : Migration
     {
         /// <inheritdoc />

@@ -12,6 +12,7 @@ using Abp.UI;
 using Microsoft.EntityFrameworkCore;
 using SmartPos.Authorization;
 using SmartPos.Branches;
+using SmartPos.Addresses;
 using SmartPos.Deals;
 using SmartPos.Orders;
 using SmartPos.Orders.Dto;
@@ -32,6 +33,7 @@ namespace SmartPos.Orders
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<Deal> _dealRepository;
         private readonly IRepository<DealDetail> _dealDetailRepository;
+        private readonly SavedAddressManager _savedAddresses;
         private readonly ISaleAppService _saleAppService;
 
         public RiderOrderAppService(
@@ -40,6 +42,7 @@ namespace SmartPos.Orders
             IRepository<Branch> branchRepository,
             IRepository<Deal> dealRepository,
             IRepository<DealDetail> dealDetailRepository,
+            SavedAddressManager savedAddresses,
             ISaleAppService saleAppService)
         {
             _orderRepository = orderRepository;
@@ -47,6 +50,7 @@ namespace SmartPos.Orders
             _branchRepository = branchRepository;
             _dealRepository = dealRepository;
             _dealDetailRepository = dealDetailRepository;
+            _savedAddresses = savedAddresses;
             _saleAppService = saleAppService;
         }
 
@@ -164,8 +168,12 @@ namespace SmartPos.Orders
                         (o.OrderNo != null && o.OrderNo.Contains(kw)) ||
                         (o.Customer != null && o.Customer.Name.Contains(kw)) ||
                         (o.Customer != null && o.Customer.Phone.Contains(kw)) ||
-                        (o.Customer != null && o.Customer.Address.Contains(kw)) ||
-                        (o.Notes != null && o.Notes.Contains(kw)));
+                        (o.Notes != null && o.Notes.Contains(kw)) ||
+                        _savedAddresses.QueryAll().Any(a =>
+                            a.OwnerType == SavedAddressOwnerTypes.Customer &&
+                            a.OwnerId == o.CustomerId &&
+                            a.Address != null &&
+                            a.Address.Contains(kw)));
                 }
 
                 var totalCount = await query.CountAsync();
@@ -434,6 +442,19 @@ namespace SmartPos.Orders
                         g => g.Select(d => $"{d.Quantity}x {d.Product?.Name ?? "Item"}").ToList());
             }
 
+            var customerIds = orders.Select(o => o.CustomerId).Distinct().ToList();
+            var savedAddressRows = await _savedAddresses.QueryAll()
+                .AsNoTracking()
+                .Where(a =>
+                    a.OwnerType == SavedAddressOwnerTypes.Customer &&
+                    customerIds.Contains(a.OwnerId))
+                .OrderByDescending(a => a.IsDefault)
+                .ThenByDescending(a => a.Id)
+                .ToListAsync();
+            var defaultAddresses = savedAddressRows
+                .GroupBy(a => a.OwnerId)
+                .ToDictionary(g => g.Key, g => g.First().Address);
+
             var now = Clock.Now;
 
             return orders.Select(o =>
@@ -514,7 +535,7 @@ namespace SmartPos.Orders
                     CustomerId = o.CustomerId,
                     CustomerName = o.Customer?.Name ?? "Guest Customer",
                     CustomerPhone = o.Customer?.Phone,
-                    CustomerAddress = o.Customer?.Address,
+                    CustomerAddress = defaultAddresses.TryGetValue(o.CustomerId, out var addr) ? addr : null,
                     DeliveryAreaName = o.DeliveryAreaName,
                     Latitude = o.Latitude,
                     Longitude = o.Longitude,

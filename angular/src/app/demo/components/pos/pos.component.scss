@@ -188,6 +188,43 @@
     color: var(--primary-color-text);
 }
 
+/* Item flying into Order Details — keep icon as-is, pulse glow only */
+.pos-left-tab.fp-cart-receive-glow {
+    animation: pos-order-tab-receive 0.85s ease;
+    z-index: 2;
+}
+
+@keyframes pos-order-tab-receive {
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        border-color: var(--surface-border);
+    }
+    35% {
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.35), 0 0 18px rgba(59, 130, 246, 0.45);
+        border-color: var(--primary-color);
+        background: color-mix(in srgb, var(--primary-color) 18%, var(--surface-card));
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+.pos-left-tab.active.fp-cart-receive-glow {
+    animation: pos-order-tab-receive-active 0.85s ease;
+}
+
+@keyframes pos-order-tab-receive-active {
+    0%,
+    100% {
+        box-shadow: none;
+        filter: brightness(1);
+    }
+    40% {
+        box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.45), 0 0 20px rgba(59, 130, 246, 0.5);
+        filter: brightness(1.12);
+    }
+}
+
 .pos-kot-footer {
     display: flex;
     align-items: center;
@@ -446,6 +483,11 @@
         background: #fef3c7;
         color: #b45309;
     }
+
+    &.foodpanda {
+        background: #fce7f3;
+        color: #be185d;
+    }
 }
 
 .pos-resto-bar-status {
@@ -521,20 +563,31 @@
         font-size: 0.85rem;
     }
 
-    &:hover:not(.active) {
+    &:hover:not(.is-selected) {
         background: var(--surface-hover);
         color: var(--text-color);
     }
 
-    &.active {
-        background: var(--primary-color);
-        color: var(--primary-color-text);
+    /* Exclusive selection — do not share .active with takeaway when Foodpanda is chosen */
+    &.is-selected {
+        background: var(--primary-color) !important;
+        color: var(--primary-color-text) !important;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    &.pos-order-type-btn--foodpanda.is-selected {
+        background: #db2777 !important;
+        color: #fff !important;
+        box-shadow: 0 1px 3px rgba(219, 39, 119, 0.35);
     }
 
     &:focus-visible {
         outline: 2px solid var(--primary-color);
         outline-offset: 2px;
+    }
+
+    &.pos-order-type-btn--foodpanda:focus-visible {
+        outline-color: #db2777;
     }
 }
 

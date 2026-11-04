@@ -586,3 +586,179 @@ $gutter: 1rem; //for primeflex grid system
     color: #000000 !important;
   }
 }
+
+/* Fly-to-cart animation ball (appended to document.body) */
+.fp-fly-to-cart-ball {
+  --fp-dx: 0px;
+  --fp-dy: 0px;
+  --fp-arc: 96px;
+
+  position: fixed;
+  z-index: 10050;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-left: -1.25rem;
+  margin-top: -1.25rem;
+  border-radius: 999px;
+  pointer-events: none;
+  background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
+  border: 2px solid #ffffff;
+  box-shadow: 0 10px 24px rgba(226, 55, 68, 0.5);
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+  will-change: transform, opacity;
+}
+
+.fp-fly-to-cart-ball.has-image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.fp-fly-to-cart-ball.is-product-image {
+  object-fit: cover;
+  object-position: center;
+  padding: 0;
+  background: #fff;
+}
+
+.fp-fly-to-cart-ball.is-flying {
+  /* Duration must match FLY_DURATION_MS in fly-to-cart.ts */
+  animation: fp-fly-to-cart-arc 1.45s cubic-bezier(0.33, 0.1, 0.25, 1) forwards;
+}
+
+@keyframes fp-fly-to-cart-arc {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  35% {
+    /* Rise into an arc while still fully visible */
+    transform: translate(
+        calc(var(--fp-dx) * 0.38),
+        calc(var(--fp-dy) * 0.28 - var(--fp-arc))
+      )
+      scale(1.05);
+    opacity: 1;
+  }
+  70% {
+    transform: translate(
+        calc(var(--fp-dx) * 0.78),
+        calc(var(--fp-dy) * 0.72 - var(--fp-arc) * 0.25)
+      )
+      scale(0.7);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(var(--fp-dx), var(--fp-dy)) scale(0.22);
+    opacity: 0.2;
+  }
+}
+
+/* Cart mouth (open to receive flying item, then close / swallow) */
+.fp-cart-mouth {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.fp-cart-mouth-icon {
+  display: block;
+  transition: transform 0.28s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+.fp-cart-mouth-lid {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: -0.12rem;
+  height: 0.42rem;
+  border-radius: 999px 999px 3px 3px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  transform-origin: 50% 10%;
+  transform: rotateX(0deg) translateY(0);
+  transition: transform 0.28s cubic-bezier(0.22, 0.9, 0.3, 1);
+  pointer-events: none;
+}
+
+.fp-cart-mouth-open .fp-cart-mouth-lid,
+.store-cart-fab.fp-cart-mouth-open .fp-cart-mouth-lid,
+#storeCartFlyTarget.fp-cart-mouth-open .fp-cart-mouth-lid {
+  transform: rotateX(-78deg) translateY(-0.2rem);
+}
+
+.fp-cart-mouth-open .fp-cart-mouth-icon,
+.store-cart-fab.fp-cart-mouth-open .fp-cart-mouth-icon,
+#storeCartFlyTarget.fp-cart-mouth-open .fp-cart-mouth-icon {
+  transform: scale(1.12) translateY(-0.12rem);
+}
+
+.fp-cart-mouth-close .fp-cart-mouth-lid,
+.store-cart-fab.fp-cart-mouth-close .fp-cart-mouth-lid,
+#storeCartFlyTarget.fp-cart-mouth-close .fp-cart-mouth-lid {
+  animation: fp-cart-mouth-chomp 0.4s cubic-bezier(0.2, 1.1, 0.3, 1);
+}
+
+.fp-cart-mouth-close .fp-cart-mouth-icon,
+.store-cart-fab.fp-cart-mouth-close .fp-cart-mouth-icon,
+#storeCartFlyTarget.fp-cart-mouth-close .fp-cart-mouth-icon {
+  animation: fp-cart-mouth-icon-swallow 0.4s cubic-bezier(0.2, 1.1, 0.3, 1);
+}
+
+@keyframes fp-cart-mouth-chomp {
+  0% {
+    transform: rotateX(-78deg) translateY(-0.2rem);
+  }
+  55% {
+    transform: rotateX(12deg) translateY(0.08rem);
+  }
+  100% {
+    transform: rotateX(0deg) translateY(0);
+  }
+}
+
+@keyframes fp-cart-mouth-icon-swallow {
+  0% {
+    transform: scale(1.12) translateY(-0.12rem);
+  }
+  45% {
+    transform: scale(0.88) translateY(0.1rem);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Cart target bounce when the flying circle lands */
+.fp-cart-pop,
+.store-cart-fab.fp-cart-pop,
+#storeCartFlyTarget.fp-cart-pop,
+.fp-cart-trigger.fp-cart-pop {
+  animation: fp-cart-pop-bounce 0.65s cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+/* POS Order Details tab: glow only — do not scale/swap the existing icon */
+#storeCartFlyTarget.pos-left-tab.fp-cart-pop {
+  animation: none;
+}
+
+@keyframes fp-cart-pop-bounce {
+  0% {
+    transform: scale(1);
+  }
+  28% {
+    transform: scale(1.22);
+  }
+  55% {
+    transform: scale(0.92);
+  }
+  78% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

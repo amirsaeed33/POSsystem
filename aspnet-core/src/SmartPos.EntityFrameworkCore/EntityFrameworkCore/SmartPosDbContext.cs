@@ -7,6 +7,7 @@ using SmartPos.Authorization.Users;
 using SmartPos.Branches;
 using SmartPos.Brands;
 using SmartPos.Categories;
+using SmartPos.Addresses;
 using SmartPos.Customers;
 using SmartPos.Emailing;
 using SmartPos.Expenses;
@@ -53,6 +54,8 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<Product> Products { get; set; }
 
         public virtual DbSet<Customer> Customers { get; set; }
+
+        public virtual DbSet<SavedAddress> SavedAddresses { get; set; }
 
         public virtual DbSet<Staff> Staff { get; set; }
 
@@ -359,6 +362,17 @@ namespace SmartPos.EntityFrameworkCore
                     .WithMany()
                     .HasForeignKey(x => x.AccountId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<SavedAddress>(b =>
+            {
+                b.HasIndex(x => new { x.OwnerType, x.OwnerId });
+                b.HasIndex(x => x.DeliveryAreaId);
+                b.HasIndex(x => x.TenantId);
+                b.HasOne(x => x.DeliveryArea)
+                    .WithMany()
+                    .HasForeignKey(x => x.DeliveryAreaId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<Staff>(b =>

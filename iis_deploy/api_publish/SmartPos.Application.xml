@@ -4,6 +4,9 @@
         <name>SmartPos.Application</name>
     </assembly>
     <members>
+        <member name="T:SmartPos.Addresses.SavedAddressManager">
+            <summary>Shared upsert / default-address helpers for AppSavedAddresses.</summary>
+        </member>
         <member name="M:SmartPos.Authorization.Accounts.AccountAppService.SignUpTenant(SmartPos.Authorization.Accounts.Dto.SignUpTenantInput)">
             <summary>
             Public self-service signup: creates tenant + admin user only.
@@ -90,6 +93,32 @@
             <summary>
             Clears catalog/menu caches that depend on products, prices, deals, or categories.
             </summary>
+        </member>
+        <member name="P:SmartPos.Categories.Dto.CategoryDto.ImageBase64">
+            <summary>New image as data URL; ignored by AutoMapper onto the entity.</summary>
+        </member>
+        <member name="P:SmartPos.Categories.Dto.CreateCategoryDto.ImageBase64">
+            <summary>Optional new image as data URL (data:image/...;base64,...).</summary>
+        </member>
+        <member name="T:SmartPos.Customers.Dto.CustomerSavedAddressDto">
+            <summary>
+            Saved address DTO. For customer rows, <see cref="P:SmartPos.Customers.Dto.CustomerSavedAddressDto.CustomerId"/> mirrors <see cref="P:SmartPos.Customers.Dto.CustomerSavedAddressDto.OwnerId"/>.
+            </summary>
+        </member>
+        <member name="P:SmartPos.Customers.Dto.CustomerSavedAddressDto.CustomerId">
+            <summary>Convenience for customer flows (same as OwnerId when OwnerType is Customer).</summary>
+        </member>
+        <member name="P:SmartPos.Customers.Dto.SaveCustomerAddressInput.CustomerId">
+            <summary>Staff path: save against a known customer id.</summary>
+        </member>
+        <member name="P:SmartPos.Customers.Dto.SaveCustomerAddressInput.BranchId">
+            <summary>Purchaser / customer online path: resolve customer by phone + branch.</summary>
+        </member>
+        <member name="P:SmartPos.Customers.Dto.SaveCustomerAddressInput.Id">
+            <summary>When set, update this row instead of inserting / matching.</summary>
+        </member>
+        <member name="P:SmartPos.Customers.Dto.DeleteCustomerSavedAddressInput.Phone">
+            <summary>Optional phone for anonymous owner delete.</summary>
         </member>
         <member name="P:SmartPos.Dashboard.Dto.DashboardDto.AverageProfitMargin">
             <summary>Average profit margin % for the current month-to-date period.</summary>
@@ -495,11 +524,38 @@
             Matches exact phone or the same trailing digits (handles 03xx / +92 formats).
             </summary>
         </member>
+        <member name="P:SmartPos.Orders.Dto.CreateCustomerOrderDto.PaymentMethod">
+            <summary>CashOnDelivery or OnlinePayment.</summary>
+        </member>
+        <member name="P:SmartPos.Orders.Dto.CustomerOrderDto.PaymentMethod">
+            <summary>CashOnDelivery or OnlinePayment.</summary>
+        </member>
         <member name="P:SmartPos.Orders.Dto.CustomerOrderDto.DeliveryRating">
             <summary>1–5 stars given by the rider when completing delivery.</summary>
         </member>
         <member name="P:SmartPos.Orders.Dto.CustomerOrderDto.CustomerRating">
             <summary>1–5 stars given by the customer for this delivery.</summary>
+        </member>
+        <member name="P:SmartPos.Orders.Dto.CustomerOrderDto.CustomerFeedbackComment">
+            <summary>Optional written feedback left with the customer rating.</summary>
+        </member>
+        <member name="P:SmartPos.Orders.Dto.RateCustomerOrderInput.Comment">
+            <summary>Optional written comment (max 500 chars).</summary>
+        </member>
+        <member name="P:SmartPos.Orders.Dto.OnlineCustomerProfileDto.SavedAddresses">
+            <summary>Saved delivery addresses with zones for quick re-select.</summary>
+        </member>
+        <member name="P:SmartPos.Orders.Dto.BranchFeedbackDto.ItemNames">
+            <summary>Ordered product names shown on public feedback cards.</summary>
+        </member>
+        <member name="P:SmartPos.Orders.Dto.UpsertOnlineCustomerProfileInput.Latitude">
+            <summary>GPS latitude for the default address (not shown in UI).</summary>
+        </member>
+        <member name="P:SmartPos.Orders.Dto.UpsertOnlineCustomerProfileInput.Longitude">
+            <summary>GPS longitude for the default address (not shown in UI).</summary>
+        </member>
+        <member name="P:SmartPos.Orders.Dto.UpsertOnlineCustomerProfileInput.ImageBase64">
+            <summary>data:image... payload for a new photo, or leave empty to keep existing.</summary>
         </member>
         <member name="P:SmartPos.Orders.Dto.OnlineOrderHeroSlideDto.ImageBase64">
             <summary>New upload payload (data:image...); ignored on read.</summary>
@@ -512,6 +568,18 @@
         </member>
         <member name="P:SmartPos.Orders.Dto.CompleteRiderDeliveryDto.Rating">
             <summary>Optional delivery rating from 1 to 5.</summary>
+        </member>
+        <member name="P:SmartPos.Orders.Dto.CompleteRiderDeliveryDto.PaymentReceivedAmount">
+            <summary>Payment amount received in cash by rider upon delivery.</summary>
+        </member>
+        <member name="M:SmartPos.Orders.ICustomerOrderAppService.GetSavedAddressesAsync(SmartPos.Customers.Dto.GetCustomerSavedAddressesInput)">
+            <summary>Purchaser / customer: load by phone. Staff: pass customerId.</summary>
+        </member>
+        <member name="M:SmartPos.Orders.ICustomerOrderAppService.SaveSavedAddressAsync(SmartPos.Customers.Dto.SaveCustomerAddressInput)">
+            <summary>Save delivery address + zone onto the customer profile.</summary>
+        </member>
+        <member name="M:SmartPos.Orders.ICustomerOrderAppService.DeleteSavedAddressAsync(SmartPos.Customers.Dto.DeleteCustomerSavedAddressInput)">
+            <summary>Delete a saved address (owner via phone match, or staff).</summary>
         </member>
         <member name="M:SmartPos.Orders.OnlineOrderHeroImageStore.ResolveExistingFile(System.String)">
             <summary>
@@ -563,6 +631,14 @@
         <member name="P:SmartPos.Restaurant.Dto.RestaurantTableDto.CurrentVehicleNumber">
             <summary>Plate / vehicle title from the linked open/billed car order, if any.</summary>
         </member>
+        <member name="M:SmartPos.Restaurant.RestaurantOrderAppService.EnsureTokenAssignedAsync(SmartPos.Restaurant.RestaurantOrder)">
+            <summary>
+            Assigns a daily kitchen token for dine-in and takeaway (resets each calendar day per branch).
+            </summary>
+        </member>
+        <member name="P:SmartPos.Sales.Dto.CollectSalePaymentDto.PaymentMethod">
+            <summary><see cref="T:SmartPos.Sales.PaymentTypes"/>: 1 = Cash, 2 = Card</summary>
+        </member>
         <member name="P:SmartPos.Sales.Dto.CreateSaleDto.PaymentType">
             <summary><see cref="T:SmartPos.Sales.PaymentTypes"/> value. Defaults to Credit.</summary>
         </member>
@@ -571,6 +647,15 @@
         </member>
         <member name="P:SmartPos.Sales.Dto.SaleDto.ReturnCount">
             <summary>Number of sale return documents linked to this sale.</summary>
+        </member>
+        <member name="P:SmartPos.Sales.Dto.SaleDto.PaymentHistory">
+            <summary>Cash/card collections for this sale (initial + later CollectPayment).</summary>
+        </member>
+        <member name="P:SmartPos.Sales.Dto.SalePaymentHistoryItemDto.Method">
+            <summary>Cash or Card.</summary>
+        </member>
+        <member name="P:SmartPos.Sales.Dto.SalePaymentHistoryItemDto.IsAdditionalCollection">
+            <summary>True when this row came from CollectPayment (not the original sale posting).</summary>
         </member>
         <member name="M:SmartPos.Sales.ISaleAppService.GetPosProductAsync(System.String)">
             <summary>
@@ -585,6 +670,12 @@
         <member name="M:SmartPos.Sales.ISaleAppService.GetPosProductsAsync(System.Nullable{System.Int32})">
             <summary>
             Products for sale entry forms. Requires Pages.Sales only (not Pages.Products).
+            </summary>
+        </member>
+        <member name="M:SmartPos.Sales.SaleAppService.PopulatePaymentHistoryAsync(SmartPos.Sales.Dto.SaleDto)">
+            <summary>
+            Builds payment history from ledger cash/bank debits for this sale
+            (original sale tender + later CollectPayment rows). Display-only.
             </summary>
         </member>
         <member name="M:SmartPos.Sales.SaleReturnAppService.PostSaleReturnLedgerAsync(SmartPos.Sales.Sale,SmartPos.Sales.SaleReturn)">
@@ -621,6 +712,12 @@
             <summary>
             Last password set for this staff login (for admin display).
             </summary>
+        </member>
+        <member name="P:SmartPos.Suppliers.Dto.CreateSupplierDto.Address">
+            <summary>Virtual — stored in AppSavedAddresses (OwnerType = Supplier).</summary>
+        </member>
+        <member name="P:SmartPos.Suppliers.Dto.SupplierDto.Address">
+            <summary>Virtual — stored in AppSavedAddresses (OwnerType = Supplier).</summary>
         </member>
     </members>
 </doc>

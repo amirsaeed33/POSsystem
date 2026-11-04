@@ -274,11 +274,17 @@ namespace SmartPos.Orders.Dto
         public double? Longitude { get; set; }
 
         public string ImagePath { get; set; }
+
+        /// <summary>Saved delivery addresses with zones for quick re-select.</summary>
+        public List<SmartPos.Customers.Dto.CustomerSavedAddressDto> SavedAddresses { get; set; }
+            = new List<SmartPos.Customers.Dto.CustomerSavedAddressDto>();
     }
 
     public class BranchFeedbackDto
     {
         public int OrderId { get; set; }
+
+        public int CustomerId { get; set; }
 
         public string OrderNo { get; set; }
 

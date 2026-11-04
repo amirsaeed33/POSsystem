@@ -101,9 +101,18 @@
                             class="pos-resto-badge"
                             [class.dine]="orderType === 'dineIn' && !isCarService"
                             [class.car]="isCarService"
-                            [class.takeaway]="orderType === 'takeaway'"
+                            [class.takeaway]="orderType === 'takeaway' && !isFoodpandaOrder"
+                            [class.foodpanda]="isFoodpandaOrder"
                         >
-                            {{ isCarService ? 'Car Service' : (orderType === 'dineIn' ? 'Dine-In' : 'Takeaway') }}
+                            {{
+                                isCarService
+                                    ? 'Car Service'
+                                    : isFoodpandaOrder
+                                      ? 'Foodpanda'
+                                      : orderType === 'dineIn'
+                                        ? 'Dine-In'
+                                        : 'Takeaway'
+                            }}
                         </span>
                     </div>
                     <div class="pos-resto-bar-status">
@@ -133,7 +142,11 @@
                                 {{ waiterName || 'Assign Waiter' }}
                             </button>
                         </ng-container>
-                        <ng-container *ngIf="orderType === 'takeaway'">
+                        <ng-container *ngIf="orderType === 'takeaway' && isFoodpandaOrder">
+                            <i class="pi pi-send"></i>
+                            <span>Third-party takeaway · customer <strong>Foodpanda</strong></span>
+                        </ng-container>
+                        <ng-container *ngIf="orderType === 'takeaway' && !isFoodpandaOrder">
                             <i class="pi pi-shopping-bag"></i>
                             <span>Quick counter takeaway order</span>
                         </ng-container>
@@ -142,12 +155,18 @@
             </div>
 
             <div class="pos-resto-actions">
-                <div class="pos-order-type" role="group" aria-label="Order type">
+                <div
+                    class="pos-order-type"
+                    role="group"
+                    aria-label="Order type"
+                    [attr.data-selected-channel]="selectedChannel"
+                >
                     <button
                         type="button"
                         class="pos-order-type-btn"
-                        [class.active]="orderType === 'dineIn'"
-                        (click)="orderType = 'dineIn'"
+                        [ngClass]="{ 'is-selected': selectedChannel === 'dineIn' }"
+                        [attr.aria-pressed]="selectedChannel === 'dineIn'"
+                        (click)="selectOrderChannel('dineIn')"
                     >
                         <i class="pi pi-building"></i>
                         <span>Dine-In</span>
@@ -155,11 +174,23 @@
                     <button
                         type="button"
                         class="pos-order-type-btn"
-                        [class.active]="orderType === 'takeaway'"
-                        (click)="orderType = 'takeaway'"
+                        [ngClass]="{ 'is-selected': selectedChannel === 'takeaway' }"
+                        [attr.aria-pressed]="selectedChannel === 'takeaway'"
+                        (click)="selectOrderChannel('takeaway')"
                     >
                         <i class="pi pi-shopping-bag"></i>
                         <span>Takeaway</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="pos-order-type-btn pos-order-type-btn--foodpanda"
+                        [ngClass]="{ 'is-selected': selectedChannel === 'foodpanda' }"
+                        [attr.aria-pressed]="selectedChannel === 'foodpanda'"
+                        (click)="selectOrderChannel('foodpanda')"
+                        title="Third-party Foodpanda order (uses Takeaway)"
+                    >
+                        <i class="pi pi-send"></i>
+                        <span>Foodpanda</span>
                     </button>
                 </div>
 
@@ -324,6 +355,7 @@
                     type="button"
                     class="pos-left-tab"
                     role="tab"
+                    id="storeCartFlyTarget"
                     [class.active]="posLeftTab === 'order'"
                     [attr.aria-selected]="posLeftTab === 'order'"
                     (click)="posLeftTab = 'order'"
@@ -436,7 +468,7 @@
                             <button
                                 type="button"
                                 class="pos-menu-tile-main"
-                                (click)="bumpMenuProduct(product, 1)"
+                                (click)="bumpMenuProduct(product, 1, $event)"
                                 [disabled]="scanning || saving"
                             >
                                 <div class="pos-menu-tile-media">
@@ -475,7 +507,7 @@
                                 <button
                                     type="button"
                                     class="pos-menu-qty-btn add"
-                                    (click)="bumpMenuProduct(product, 1)"
+                                    (click)="bumpMenuProduct(product, 1, $event)"
                                     [disabled]="scanning || saving"
                                     title="Increase quantity"
                                     aria-label="Increase quantity"
@@ -802,6 +834,61 @@
                     ></p-dropdown>
                 </div>
 
+                <!-- Staff: saved address + delivery zone (takeaway / retail) -->
+                <div class="field" *ngIf="showDeliveryAddressPanel">
+                    <label class="font-medium">Delivery address / zone</label>
+                    <p-dropdown
+                        *ngIf="savedAddresses.length > 0"
+                        [options]="savedAddresses"
+                        [(ngModel)]="selectedSavedAddressId"
+                        (onChange)="onPosSavedAddressPicked($event.value)"
+                        optionLabel="address"
+                        optionValue="id"
+                        placeholder="Saved addresses"
+                        [showClear]="true"
+                        [filter]="true"
+                        filterBy="address,deliveryAreaName,label"
+                        styleClass="w-full mb-2"
+                        appendTo="body"
+                    >
+                        <ng-template let-addr pTemplate="item">
+                            <div>
+                                <div class="font-medium text-sm">{{ addr.label || addr.address }}</div>
+                                <div class="text-xs text-500" *ngIf="addr.deliveryAreaName">Zone: {{ addr.deliveryAreaName }}</div>
+                            </div>
+                        </ng-template>
+                    </p-dropdown>
+                    <p-dropdown
+                        *ngIf="deliveryAreas.length > 0"
+                        [options]="deliveryAreas"
+                        [(ngModel)]="selectedDeliveryAreaId"
+                        (ngModelChange)="selectedSavedAddressId = null"
+                        optionLabel="name"
+                        optionValue="id"
+                        placeholder="Select zone"
+                        styleClass="w-full mb-2"
+                        appendTo="body"
+                    ></p-dropdown>
+                    <input
+                        pInputText
+                        class="w-full mb-2"
+                        [(ngModel)]="deliveryAddress"
+                        (ngModelChange)="selectedSavedAddressId = null"
+                        placeholder="House / street address"
+                    />
+                    <input
+                        pInputText
+                        class="w-full"
+                        [(ngModel)]="deliveryLandmark"
+                        placeholder="Landmark (optional)"
+                    />
+                    <small class="text-500 block mt-1" *ngIf="loadingSavedAddresses">Loading saved addresses…</small>
+                    <small class="text-500 block mt-1" *ngIf="deliveryAddress.trim() && selectedDeliveryArea">
+                        Fee: {{ deliveryCharges === 0 ? 'FREE' : (deliveryCharges | number:'1.0-0') }}
+                        · Zone {{ selectedDeliveryArea.name }}
+                    </small>
+                </div>
+
                 <!-- Totals stay desktop-only; mobile bottom bar already shows total -->
                 <div class="pos-totals hidden md:block">
                     <div class="flex justify-content-between mb-2">
@@ -918,7 +1005,7 @@
                         pButton
                         pRipple
                         type="button"
-                        [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : (orderType === 'takeaway' ? 'Settle & Close Takeaway' : 'Complete Bill')) : 'Complete Sale'"
+                        [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : (orderType === 'takeaway' ? 'Complete' : 'Complete Bill')) : 'Complete Sale'"
                         icon="pi pi-check"
                         class="flex-grow-1"
                         [disabled]="!canSave()"
@@ -1757,7 +1844,6 @@
                     <div class="text-xs text-600">Order: #{{ kotResult?.orderNo || activeOrderNo }}</div>
                     <div class="text-xs text-600">Time: {{ kotResult?.printTime | date: 'medium' }}</div>
                     <div class="text-xs text-600" *ngIf="waiterName">Server: {{ waiterName }}</div>
-                    <div class="text-xs font-bold text-900 mt-1" *ngIf="currentPrinterText">{{ currentPrinterText }}</div>
                 </div>
 
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
@@ -1882,9 +1968,6 @@
                         </span>
                     </div>
                     <div class="text-xs text-600">Server: {{ waiterName || 'Staff' }} &bull; {{ todayDate | date: 'short' }}</div>
-                    <div class="text-xs font-bold text-900 mt-1" *ngIf="currentPrinterText">
-                        {{ currentPrinterText }} &bull; {{ currentPrinterTime | date: 'short' }}
-                    </div>
                 </div>
 
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
@@ -1948,8 +2031,7 @@
 
                 <div class="text-center pt-3 border-top-1 border-dashed border-400 text-xs text-600 mt-2">
                     {{ invoiceBranchFooter }}<br />
-                    * Please present this check at payment *<br />
-                    <span class="text-500">Software by SmartPos</span>
+                    * Please present this check at payment *
                 </div>
             </div>
         </div>

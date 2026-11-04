@@ -12,14 +12,18 @@
                 </div>
             </div>
 
-            <!-- Cart Trigger Button -->
+            <!-- Cart Trigger Button (#storeCartFlyTarget for fly-in animation) -->
             <button
                 pButton
                 type="button"
+                id="storeCartFlyTarget"
                 class="p-button-primary border-round-xl px-3 py-2 flex align-items-center gap-2 shadow-2"
                 (click)="cartService.sidebarVisible = true"
             >
-                <i class="pi pi-shopping-cart text-lg"></i>
+                <span class="fp-cart-mouth" aria-hidden="true">
+                    <i class="pi pi-shopping-cart text-lg fp-cart-mouth-icon"></i>
+                    <span class="fp-cart-mouth-lid"></span>
+                </span>
                 <span class="font-bold hidden sm:inline">My Cart</span>
                 <span
                     *ngIf="cartService.totalItemsCount > 0"
@@ -238,7 +242,7 @@
                                     pButton
                                     type="button"
                                     class="p-button-primary border-round-2xl font-bold shadow-4 btn-add-cart"
-                                    (click)="addToCart()"
+                                    (click)="addToCart(undefined, undefined, $event)"
                                 >
                                     <i class="pi pi-cart-plus text-sm sm:text-lg mr-1"></i>
                                     <span class="btn-text-full">Add {{ quantity }} to Cart • {{ ((product.price * quantity) | currency: currencyFormat:'symbol':'1.0-0') }}</span>
@@ -330,7 +334,7 @@
                                         icon="pi pi-cart-plus"
                                         label="Add to Cart"
                                         class="p-button-rounded border-round-2xl font-bold shadow-2 transition-transform transition-duration-200 hover:-translate-y-1 w-full flex justify-content-center p-button-sm"
-                                        (click)="$event.stopPropagation(); addToCart(rel, 1)"
+                                        (click)="$event.stopPropagation(); addToCart(rel, 1, $event)"
                                     ></button>
                                 </div>
                             </div>
@@ -506,6 +510,23 @@
                 </div>
             </div>
 
+            <div class="field mb-3" *ngIf="savedAddresses.length > 0 || loadingSavedAddresses">
+                <label class="font-bold text-xs text-700">Saved addresses</label>
+                <div *ngIf="loadingSavedAddresses" class="text-xs text-500">Loading…</div>
+                <div class="flex flex-column gap-2" *ngIf="!loadingSavedAddresses">
+                    <button
+                        type="button"
+                        class="p-2 border-1 border-round-lg text-left cursor-pointer surface-ground"
+                        *ngFor="let addr of savedAddresses"
+                        [class.border-primary]="selectedSavedAddressId === addr.id"
+                        (click)="applySavedAddress(addr)"
+                    >
+                        <div class="text-sm font-semibold">{{ addr.label || addr.address }}</div>
+                        <div class="text-xs text-500" *ngIf="addr.deliveryAreaName">Zone: {{ addr.deliveryAreaName }}</div>
+                    </button>
+                </div>
+            </div>
+
             <!-- Delivery Area Selector -->
             <div class="field mb-3" *ngIf="deliveryAreas.length > 0">
                 <label class="font-bold text-xs text-700">Delivery Area / Zone <span class="text-red-500">*</span></label>
@@ -515,7 +536,7 @@
                     optionLabel="name"
                     optionValue="id"
                     placeholder="Select your area / neighborhood"
-                    (onChange)="onAreaChange()"
+                    (onChange)="onAreaChange(); selectedSavedAddressId = null"
                     styleClass="w-full border-round-xl"
                 >
                     <ng-template pTemplate="selectedItem">
@@ -572,7 +593,7 @@
 
             <div class="field mb-3">
                 <label class="font-medium text-900">Mobile / Phone Number <span class="text-red-500">*</span></label>
-                <input type="text" pInputText [(ngModel)]="customerMobile" placeholder="e.g. 0300-1234567" class="border-round-xl" />
+                <input type="text" pInputText [(ngModel)]="customerMobile" (blur)="onCheckoutPhoneBlur()" placeholder="e.g. 0300-1234567" class="border-round-xl" />
             </div>
             <div class="field mb-3">
                 <label class="font-bold text-xs text-700">Kitchen / Special Instructions</label>
