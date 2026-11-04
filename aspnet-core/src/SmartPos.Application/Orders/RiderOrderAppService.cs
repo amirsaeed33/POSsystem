@@ -351,6 +351,21 @@ namespace SmartPos.Orders
                     order.Notes = combined;
                 }
 
+                if (input.PaymentReceivedAmount.HasValue)
+                {
+                    var received = Math.Max(0m, input.PaymentReceivedAmount.Value);
+                    var due = Math.Max(0m, order.TotalAmount - received);
+                    var paymentNote = $"[Payment Received: PKR {received:N2}" + (due > 0 ? $", Due: PKR {due:N2}" : ", Fully Paid") + "]";
+                    var combined = string.IsNullOrWhiteSpace(order.Notes)
+                        ? paymentNote
+                        : (order.Notes.Contains(paymentNote) ? order.Notes : $"{order.Notes.Trim()} {paymentNote}");
+                    if (combined.Length > CustomerOrder.MaxNotesLength)
+                    {
+                        combined = combined.Substring(0, CustomerOrder.MaxNotesLength);
+                    }
+                    order.Notes = combined;
+                }
+
                 await CurrentUnitOfWork.SaveChangesAsync();
 
                 if (order.SaleId == null)

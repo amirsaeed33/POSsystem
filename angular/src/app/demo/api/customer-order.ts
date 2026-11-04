@@ -14,6 +14,8 @@ export interface CustomerOrderLineDto {
     quantity: number;
     unitPrice: number;
     lineTotal: number;
+    isDeal?: boolean;
+    dealItems?: string[];
 }
 
 export interface CustomerOrderDto {
@@ -24,6 +26,7 @@ export interface CustomerOrderDto {
     customerAddress?: string;
     orderDate: string | Date;
     orderNo?: string;
+    tokenNo?: number | null;
     status: number;
     statusName?: string;
     subTotal?: number;
@@ -121,6 +124,7 @@ export interface BranchFeedbackDto {
     orderId: number;
     customerId?: number;
     orderNo?: string;
+    tokenNo?: number | null;
     customerName?: string;
     customerImagePath?: string | null;
     rating: number;

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { SidebarModule } from 'primeng/sidebar';
 import { BadgeModule } from 'primeng/badge';
 import { RadioButtonModule } from 'primeng/radiobutton';
@@ -45,6 +46,7 @@ import { PrinterConfigDialogComponent } from '../shared/components/printer-confi
         HttpClientModule,
         BrowserAnimationsModule,
         InputTextModule,
+        InputNumberModule,
         InputSwitchModule,
         MenuModule,
         RouterModule,

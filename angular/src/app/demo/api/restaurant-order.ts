@@ -22,6 +22,7 @@ export interface RestaurantOrderDto {
     branchId: number;
     orderNo: string;
     tokenNo?: number | null;
+    orderTypeLabel?: string;
     tableId?: number | null;
     tableNo?: string;
     orderType: OrderType;
@@ -119,6 +120,8 @@ export interface CreateOrUpdateRestaurantOrderLineDto {
 export interface SendToKitchenResultDto {
     orderId: number;
     orderNo: string;
+    tokenNo?: number | null;
+    orderTypeLabel?: string;
     tableNo: string;
     carName?: string;
     carNumber?: string;
@@ -191,6 +194,8 @@ export interface RestaurantPrintLogDto {
 export interface UnpaidTakeawayOrderDto {
     id: number;
     orderNo: string;
+    tokenNo?: number | null;
+    orderTypeLabel?: string;
     creationTime: string;
     status: string;
     grandTotal: number;

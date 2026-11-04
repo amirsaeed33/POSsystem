@@ -24,6 +24,7 @@ using SmartPos.Products.Dto;
 using SmartPos.Sales.Dto;
 using SmartPos.BranchNotificationSettings;
 using SmartPos.Orders;
+using SmartPos.Deals;
 using SmartPos.Authorization.Roles;
 
 namespace SmartPos.Sales
@@ -49,6 +50,9 @@ namespace SmartPos.Sales
         private readonly IBranchNotificationService _branchNotificationService;
         private readonly ICacheManager _cacheManager;
         private readonly ISmartPosReadCacheInvalidator _readCacheInvalidator;
+        private readonly ITokenNumberManager _tokenNumberManager;
+        private readonly IRepository<Deal> _dealRepository;
+        private readonly IRepository<DealDetail> _dealDetailRepository;
 
         public SaleAppService(
             IRepository<Sale> repository,
@@ -69,10 +73,16 @@ namespace SmartPos.Sales
             SystemAccountManager systemAccountManager,
             IBranchNotificationService branchNotificationService,
             ICacheManager cacheManager,
-            ISmartPosReadCacheInvalidator readCacheInvalidator)
+            ISmartPosReadCacheInvalidator readCacheInvalidator,
+            ITokenNumberManager tokenNumberManager,
+            IRepository<Deal> dealRepository,
+            IRepository<DealDetail> dealDetailRepository)
             : base(repository)
         {
             _lineRepository = lineRepository;
+            _tokenNumberManager = tokenNumberManager;
+            _dealRepository = dealRepository;
+            _dealDetailRepository = dealDetailRepository;
             _productRepository = productRepository;
             _customerRepository = customerRepository;
             _ledgerRepository = ledgerRepository;
@@ -360,6 +370,12 @@ namespace SmartPos.Sales
             var discountPercent = Math.Max(0, branch.DiscountPercent);
             var discountAmountInput = Math.Max(0, branch.DiscountAmount);
 
+            int? tokenNo = input.TokenNo;
+            if (!tokenNo.HasValue || tokenNo.Value <= 0)
+            {
+                tokenNo = await _tokenNumberManager.AllocateNextTokenNoAsync(branchId);
+            }
+
             var sale = new Sale
             {
                 TenantId = tenantId,
@@ -367,7 +383,7 @@ namespace SmartPos.Sales
                 CustomerId = input.CustomerId,
                 SaleDate = input.SaleDate,
                 Notes = input.Notes,
-                TokenNo = input.TokenNo,
+                TokenNo = tokenNo,
                 DiscountPercent = discountPercent,
                 TaxPercent = taxPercent,
                 PaymentType = input.PaymentType,
@@ -625,8 +641,58 @@ namespace SmartPos.Sales
 
             if (entity.Lines != null)
             {
+                var productIds = entity.Lines.Select(l => l.ProductId).Distinct().ToList();
+                var dealIds = entity.Lines
+                    .Where(l => l.Product != null && (l.Product.IsDeal || l.Product.DealId.HasValue))
+                    .Select(l => l.Product.DealId)
+                    .Where(id => id.HasValue)
+                    .Select(id => id.Value)
+                    .Distinct()
+                    .ToList();
+
+                var matchingDeals = _dealRepository.GetAll()
+                    .Where(d => d.ProductId.HasValue && productIds.Contains(d.ProductId.Value))
+                    .ToList();
+
+                foreach (var md in matchingDeals)
+                {
+                    if (!dealIds.Contains(md.Id))
+                    {
+                        dealIds.Add(md.Id);
+                    }
+                }
+
+                var dealBreakdowns = new Dictionary<int, List<string>>();
+                if (dealIds.Count > 0)
+                {
+                    var details = _dealDetailRepository.GetAll()
+                        .Include(d => d.Product)
+                        .Where(d => dealIds.Contains(d.DealId))
+                        .ToList();
+
+                    dealBreakdowns = details
+                        .GroupBy(d => d.DealId)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.Select(d => $"{d.Quantity:0.#}x {d.Product?.Name ?? "Item"}").ToList());
+                }
+
                 foreach (var line in entity.Lines)
                 {
+                    var dealId = line.Product?.DealId;
+                    if (!dealId.HasValue)
+                    {
+                        var matching = matchingDeals.FirstOrDefault(d => d.ProductId == line.ProductId);
+                        if (matching != null) dealId = matching.Id;
+                    }
+
+                    var isDeal = (line.Product != null && line.Product.IsDeal) || dealId.HasValue;
+                    var breakdowns = new List<string>();
+                    if (dealId.HasValue && dealBreakdowns.TryGetValue(dealId.Value, out var list))
+                    {
+                        breakdowns = list;
+                    }
+
                     dto.Lines.Add(new SaleLineDto
                     {
                         Id = line.Id,
@@ -635,7 +701,9 @@ namespace SmartPos.Sales
                         ProductName = line.Product?.Name,
                         Quantity = line.Quantity,
                         UnitPrice = line.UnitPrice,
-                        LineTotal = line.LineTotal
+                        LineTotal = line.LineTotal,
+                        IsDeal = isDeal,
+                        DealItems = breakdowns
                     });
                 }
             }
@@ -835,6 +903,7 @@ namespace SmartPos.Sales
                 BranchId = order.BranchId,
                 CustomerId = order.CustomerId,
                 SaleDate = saleDate,
+                TokenNo = order.TokenNo,
                 PaymentType = paymentType,
                 CashAmount = cash,
                 CreditAmount = credit,
@@ -1089,6 +1158,69 @@ namespace SmartPos.Sales
             await PopulateSaleTypesAsync(new[] { dto });
             await PopulatePaymentHistoryAsync(dto);
             return dto;
+        }
+
+        [AbpAuthorize(PermissionNames.Pages_Sales, PermissionNames.Pages_Pos)]
+        public async Task<ListResultDto<SaleDto>> GetUnpaidSalesAsync()
+        {
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+            await SyncDeliveredCustomerOrderSalesAsync(branchId);
+
+            var query = Repository.GetAllIncluding(x => x.Customer, x => x.Lines);
+            if (branchId.HasValue)
+            {
+                query = query.Where(x => x.BranchId == branchId.Value);
+            }
+
+            query = query.Where(x => x.CreditAmount > 0.01m || x.TotalAmount > (x.CashAmount + x.CardAmount + 0.01m));
+
+            var sales = await query
+                .OrderByDescending(x => x.SaleDate)
+                .ThenByDescending(x => x.Id)
+                .Take(100)
+                .ToListAsync();
+
+            if (sales.Count == 0)
+            {
+                return new ListResultDto<SaleDto>(new List<SaleDto>());
+            }
+
+            var saleIds = sales.Select(x => x.Id).ToList();
+            var returnsBySaleId = await _saleReturnRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => saleIds.Contains(x.SaleId))
+                .GroupBy(x => x.SaleId)
+                .Select(g => new { SaleId = g.Key, TotalReturned = g.Sum(r => r.TotalAmount) })
+                .ToDictionaryAsync(x => x.SaleId, x => x.TotalReturned);
+
+            var dtos = new List<SaleDto>();
+            foreach (var sale in sales)
+            {
+                var returned = returnsBySaleId.GetValueOrDefault(sale.Id, 0m);
+                var netTotal = sale.TotalAmount - returned;
+                if (netTotal <= 0.01m)
+                {
+                    continue;
+                }
+
+                var paid = Math.Round(sale.CashAmount + sale.CardAmount, 2);
+                var due = Math.Round(Math.Max(0m, netTotal - paid), 2);
+                if (due <= 0.01m)
+                {
+                    continue;
+                }
+
+                var dto = MapToEntityDto(sale);
+                dto.TotalAmount = Math.Round(netTotal, 2);
+                dto.PaidAmount = paid;
+                dto.DueAmount = due;
+                dtos.Add(dto);
+            }
+
+            await PopulateReturnFlagsAsync(dtos);
+            await PopulateSaleTypesAsync(dtos);
+
+            return new ListResultDto<SaleDto>(dtos);
         }
 
         private static void ApplyPaymentSplit(Sale sale, CreateSaleDto input)

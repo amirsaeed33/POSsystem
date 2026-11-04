@@ -85,13 +85,15 @@ export class RiderService {
     async completeDelivery(
         orderId: number,
         notes?: string | null,
-        rating?: number | null
+        rating?: number | null,
+        paymentReceivedAmount?: number | null
     ): Promise<RiderOrderDto> {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.baseUrl}/CompleteDelivery`, {
                 orderId,
                 notes: notes?.trim() || null,
                 rating: rating != null && rating >= 1 && rating <= 5 ? rating : null,
+                paymentReceivedAmount: paymentReceivedAmount != null ? paymentReceivedAmount : null
             })
         );
         return res?.result ?? res;

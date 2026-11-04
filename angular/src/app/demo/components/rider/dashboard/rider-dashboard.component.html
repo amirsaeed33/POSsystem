@@ -343,6 +343,34 @@
             </p>
         </div>
 
+        <div class="field mb-3 surface-100 p-2 border-round">
+            <div class="flex justify-content-between align-items-center mb-1">
+                <span class="text-xs font-bold text-700">Total Bill:</span>
+                <span class="text-sm font-bold text-900">PKR {{ selectedOrderForComplete?.totalAmount | number:'1.2-2' }}</span>
+            </div>
+            <label for="riderPayReceived" class="text-xs font-bold text-700 mb-1 block">
+                Payment Received Amount (PKR) <span class="text-red-500">*</span>
+            </label>
+            <p-inputNumber
+                id="riderPayReceived"
+                [(ngModel)]="paymentReceivedAmount"
+                mode="decimal"
+                [min]="0"
+                [max]="selectedOrderForComplete?.totalAmount || 999999"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+                styleClass="w-full"
+                class="w-full"
+                [disabled]="actionInProgress[selectedOrderForComplete?.id || 0]"
+            ></p-inputNumber>
+            <div *ngIf="selectedOrderForComplete && (selectedOrderForComplete.totalAmount - (paymentReceivedAmount || 0)) > 0.009" class="text-xs text-orange-600 font-semibold mt-1">
+                Remaining Due: PKR {{ (selectedOrderForComplete.totalAmount - (paymentReceivedAmount || 0)) | number:'1.2-2' }} (will be recorded as Due in Sales)
+            </div>
+            <div *ngIf="selectedOrderForComplete && (selectedOrderForComplete.totalAmount - (paymentReceivedAmount || 0)) <= 0.009" class="text-xs text-green-600 font-semibold mt-1">
+                Fully Paid
+            </div>
+        </div>
+
         <div class="field mb-2">
             <label class="text-xs font-bold text-700 mb-1 block">
                 Your review <span class="text-500 font-medium">(optional)</span>
