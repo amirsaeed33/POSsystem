@@ -120,6 +120,10 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
     public int CartCount => _cart.ItemCount;
     public bool HasCartItems => CartCount > 0;
+    public decimal CartSubtotal => _cart.Subtotal;
+    public string CartSubtotalDisplay => $"Rs {CartSubtotal:0}";
+    public string CartCountBadge => $"{CartCount} {(CartCount == 1 ? "item" : "items")}";
+    public bool IsFloatingCartBarVisible => HasCartItems && !IsAnyModalVisible && !NeedsBranchSelection;
     public bool HasMenu => !NeedsBranchSelection && SelectedBranch != null;
     public bool HasHeroSlides => HeroSlides.Count > 0;
     public bool HasDeals => DealsList.Count > 0;
@@ -177,6 +181,10 @@ public partial class CustomerHomeViewModel : BaseViewModel
         {
             OnPropertyChanged(nameof(CartCount));
             OnPropertyChanged(nameof(HasCartItems));
+            OnPropertyChanged(nameof(CartSubtotal));
+            OnPropertyChanged(nameof(CartSubtotalDisplay));
+            OnPropertyChanged(nameof(CartCountBadge));
+            OnPropertyChanged(nameof(IsFloatingCartBarVisible));
             SyncCartQtyBadges();
         };
         _favorites.FavoritesChanged += (_, _) =>
@@ -200,15 +208,27 @@ public partial class CustomerHomeViewModel : BaseViewModel
         FilterPills.Add(new QuickFilterPillItem { Id = "budget_picks", Icon = "🏷️", Title = "Budget Picks" });
     }
 
-    partial void OnNeedsBranchSelectionChanged(bool value) => OnPropertyChanged(nameof(HasMenu));
+    partial void OnNeedsBranchSelectionChanged(bool value)
+    {
+        OnPropertyChanged(nameof(HasMenu));
+        OnPropertyChanged(nameof(IsFloatingCartBarVisible));
+    }
     partial void OnSelectedBranchChanged(OnlineBranchDto? value)
     {
         OnPropertyChanged(nameof(HasMenu));
         OnPropertyChanged(nameof(DeliverToLabel));
     }
     partial void OnIsDeliveryModeChanged(bool value) => OnPropertyChanged(nameof(IsPickupMode));
-    partial void OnIsProductModalVisibleChanged(bool value) => OnPropertyChanged(nameof(IsAnyModalVisible));
-    partial void OnIsComboModalVisibleChanged(bool value) => OnPropertyChanged(nameof(IsAnyModalVisible));
+    partial void OnIsProductModalVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsAnyModalVisible));
+        OnPropertyChanged(nameof(IsFloatingCartBarVisible));
+    }
+    partial void OnIsComboModalVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsAnyModalVisible));
+        OnPropertyChanged(nameof(IsFloatingCartBarVisible));
+    }
 
     [RelayCommand]
     private async Task AppearingAsync()

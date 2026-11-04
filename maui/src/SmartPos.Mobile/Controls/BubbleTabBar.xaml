@@ -81,12 +81,38 @@
                         Margin="0"
                         Clicked="OnTab1Clicked" />
                 <VerticalStackLayout x:Name="Tab1Visual"
-                                    Grid.Column="1"
-                                    InputTransparent="True"
-                                    Spacing="0"
-                                    VerticalOptions="Center"
-                                    HorizontalOptions="Fill">
-                    <Image x:Name="Icon1" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
+                                     Grid.Column="1"
+                                     InputTransparent="True"
+                                     Spacing="0"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Fill">
+                    <Grid HorizontalOptions="Center" WidthRequest="32" HeightRequest="22">
+                        <Image x:Name="Icon1" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" VerticalOptions="Center" />
+                        <!-- Red Badge with Item Count -->
+                        <Border x:Name="CartBadge"
+                                HorizontalOptions="End"
+                                VerticalOptions="Start"
+                                TranslationX="4"
+                                TranslationY="-3"
+                                BackgroundColor="#E11D48"
+                                StrokeThickness="1"
+                                Stroke="White"
+                                MinimumWidthRequest="16"
+                                HeightRequest="16"
+                                Padding="3,0"
+                                IsVisible="False">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Label x:Name="CartBadgeLabel"
+                                   Text="0"
+                                   FontSize="9"
+                                   FontAttributes="Bold"
+                                   TextColor="White"
+                                   HorizontalTextAlignment="Center"
+                                   VerticalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
                     <Label x:Name="Label1" Text="Cart" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
 

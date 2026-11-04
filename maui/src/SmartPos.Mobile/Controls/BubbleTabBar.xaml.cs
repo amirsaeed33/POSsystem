@@ -26,6 +26,20 @@ public partial class BubbleTabBar : ContentView
             BubbleTabMode.Customer,
             propertyChanged: OnConfigChanged);
 
+    public static readonly BindableProperty CartCountProperty =
+        BindableProperty.Create(
+            nameof(CartCount),
+            typeof(int),
+            typeof(BubbleTabBar),
+            0,
+            propertyChanged: (bindable, oldValue, newValue) =>
+            {
+                if (bindable is BubbleTabBar bar && newValue is int count)
+                {
+                    bar.UpdateCartBadge(count);
+                }
+            });
+
     private static readonly Color CustomerAccent = Color.FromArgb("#F15A29");
     private static readonly Color StaffAccent = Color.FromArgb("#0F6B4C");
     private static readonly Color Inactive = Color.FromArgb("#9CA3AF");
@@ -63,6 +77,12 @@ public partial class BubbleTabBar : ContentView
     {
         get => (BubbleTabMode)GetValue(ModeProperty);
         set => SetValue(ModeProperty, value);
+    }
+
+    public int CartCount
+    {
+        get => (int)GetValue(CartCountProperty);
+        set => SetValue(CartCountProperty, value);
     }
 
     private static void OnConfigChanged(BindableObject bindable, object oldValue, object newValue)
@@ -235,4 +255,61 @@ public partial class BubbleTabBar : ContentView
             _navigating = false;
         }
     }
+
+    public void UpdateCartBadge(int count)
+    {
+        try
+        {
+            if (CartBadge == null || CartBadgeLabel == null)
+            {
+                return;
+            }
+
+            if (count > 0)
+            {
+                CartBadgeLabel.Text = count > 99 ? "99+" : count.ToString();
+                CartBadge.IsVisible = true;
+            }
+            else
+            {
+                CartBadge.IsVisible = false;
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    public async Task BounceCartTabAsync()
+    {
+        try
+        {
+            if (Tab1Visual != null)
+            {
+                await Tab1Visual.ScaleTo(1.2, 80, Easing.CubicOut);
+                await Tab1Visual.ScaleTo(1.0, 80, Easing.SpringOut);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    public async Task OnCartItemLandedAsync(int newBadgeCount)
+    {
+        try
+        {
+            UpdateCartBadge(newBadgeCount);
+
+            if (Tab1Visual != null)
+            {
+                await Tab1Visual.ScaleTo(1.2, 80, Easing.CubicOut);
+                await Tab1Visual.ScaleTo(1.0, 80, Easing.SpringOut);
+            }
+        }
+        catch
+        {
+        }
+    }
+
 }

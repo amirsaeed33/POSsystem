@@ -860,7 +860,8 @@
                                                             </Border.StrokeShape>
                                                             <Border.GestureRecognizers>
                                                                 <TapGestureRecognizer
-                                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=IncreaseCardCommand}"
+                                                                    Tapped="OnAddToCartButtonTapped"
+                                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=IncreaseCardCommand}"
                                                                     CommandParameter="{Binding .}" />
                                                             </Border.GestureRecognizers>
                                                             <Label Text="+"
@@ -908,7 +909,8 @@
                                                                        VerticalOptions="Center">
                                                                     <Label.GestureRecognizers>
                                                                         <TapGestureRecognizer
-                                                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=IncreaseCardCommand}"
+                                                                            Tapped="OnAddToCartButtonTapped"
+                                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=IncreaseCardCommand}"
                                                                             CommandParameter="{Binding .}" />
                                                                     </Label.GestureRecognizers>
                                                                 </Label>
@@ -1161,7 +1163,9 @@
         </Grid>
 
         <!-- 3. Bottom Navigation Bar -->
-        <controls:BubbleTabBar Mode="Customer"
+        <controls:BubbleTabBar x:Name="BottomTabBar"
+                               CartCount="{Binding CartCount}"
+                               Mode="Customer"
                                SelectedIndex="0"
                                VerticalOptions="End"
                                HorizontalOptions="Fill"
@@ -1350,6 +1354,7 @@
 
                         <Button Grid.Column="1"
                                 Text="{Binding ModalTotalLabel, StringFormat='Add / {0}'}"
+                                Clicked="OnModalAddToCartClicked"
                                 Command="{Binding AddModalToCartCommand}"
                                 BackgroundColor="#E11D48"
                                 TextColor="White"
@@ -1683,11 +1688,19 @@
                                     TextColor="White"
                                     FontAttributes="Bold"
                                     FontSize="15"
+                                    Clicked="OnModalAddToCartClicked"
                                     Command="{Binding AddComboToCartCommand}" />
                         </Grid>
                     </Border>
                 </Grid>
             </Border>
         </Grid>
+        <!-- Top-Level Fly-to-Cart Animation Overlay (ZIndex="999", Full-screen dynamic host) -->
+        <AbsoluteLayout x:Name="FlyAnimationOverlay"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill"
+                        ZIndex="999"
+                        InputTransparent="True"
+                        CascadeInputTransparent="True" />
     </Grid>
 </ContentPage>
