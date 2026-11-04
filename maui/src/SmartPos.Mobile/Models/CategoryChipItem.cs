@@ -5,12 +5,27 @@ namespace SmartPos.Mobile.Models;
 public partial class CategoryChipItem : ObservableObject
 {
     public string Name { get; init; } = string.Empty;
-    public int Count { get; init; }
+
+    private int count;
+    public int Count
+    {
+        get => count;
+        set
+        {
+            if (SetProperty(ref count, value))
+            {
+                OnPropertyChanged(nameof(CountLabel));
+            }
+        }
+    }
+
     public string? ImageUrl { get; init; }
 
     public string CountLabel => Count.ToString();
     public bool HasImage => !string.IsNullOrWhiteSpace(ImageUrl);
     public bool IsAll => string.Equals(Name, "All", StringComparison.OrdinalIgnoreCase);
+    public bool IsFavorites => string.Equals(Name, "❤️ Favorites", StringComparison.OrdinalIgnoreCase) ||
+                               string.Equals(Name, "Favorites", StringComparison.OrdinalIgnoreCase);
 
     public string Initials
     {

@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SmartPos.Mobile.Services;
@@ -64,6 +64,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AbpApiClient>();
         builder.Services.AddSingleton<AuthService>();
         builder.Services.AddSingleton<OnlineOrderService>();
+        builder.Services.AddSingleton<FavoritesService>();
         builder.Services.AddSingleton<RiderOrderService>();
         builder.Services.AddSingleton<RestaurantService>();
         builder.Services.AddSingleton<DashboardService>();

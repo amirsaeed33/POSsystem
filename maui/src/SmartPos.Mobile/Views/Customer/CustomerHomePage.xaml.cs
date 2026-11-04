@@ -33,4 +33,14 @@ public partial class CustomerHomePage : ContentPage
         _vm.OnPageDisappearing();
         base.OnDisappearing();
     }
+
+    private async void OnFavoriteHeartTapped(object sender, TappedEventArgs e)
+    {
+        if (sender is VisualElement view)
+        {
+            await view.ScaleTo(1.35, 120, Easing.CubicOut);
+            await view.ScaleTo(0.9, 80, Easing.CubicIn);
+            await view.ScaleTo(1.0, 100, Easing.SpringOut);
+        }
+    }
 }

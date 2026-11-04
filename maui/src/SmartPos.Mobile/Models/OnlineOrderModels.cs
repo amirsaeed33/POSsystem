@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SmartPos.Mobile.Models;
 
@@ -92,7 +93,7 @@ public class OnlineStoreHeaderDto
     public List<string> Categories { get; set; } = new();
 }
 
-public class OnlineProductDto
+public class OnlineProductDto : ObservableObject
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
@@ -166,11 +167,40 @@ public class OnlineProductDto
 
     public string PriceDisplay => $"Rs {Price:0}";
 
-    public int CartQty { get; set; }
+    private int cartQty;
+    public int CartQty
+    {
+        get => cartQty;
+        set
+        {
+            if (SetProperty(ref cartQty, value))
+            {
+                OnPropertyChanged(nameof(InCart));
+                OnPropertyChanged(nameof(CartQtyText));
+            }
+        }
+    }
 
     public bool InCart => CartQty > 0;
 
     public string CartQtyText => CartQty.ToString();
+
+    private bool isFavorite;
+    public bool IsFavorite
+    {
+        get => isFavorite;
+        set
+        {
+            if (SetProperty(ref isFavorite, value))
+            {
+                OnPropertyChanged(nameof(FavoriteFillColor));
+                OnPropertyChanged(nameof(FavoriteStrokeColor));
+            }
+        }
+    }
+
+    public Color FavoriteFillColor => IsFavorite ? Color.FromArgb("#E11D48") : Colors.Transparent;
+    public Color FavoriteStrokeColor => IsFavorite ? Color.FromArgb("#E11D48") : Color.FromArgb("#64748B");
 
     public string DisplayTag
     {
@@ -383,4 +413,14 @@ public class CartLine
     public string LineTotalText => LineTotal.ToString("0.00");
     public string UnitPriceText => UnitPrice.ToString("0.00");
     public bool HasModifiers => !string.IsNullOrWhiteSpace(SelectedModifiers);
+}
+
+
+public class ToggleFavoriteResultDto
+{
+    [JsonPropertyName("productId")]
+    public int ProductId { get; set; }
+
+    [JsonPropertyName("isFavorite")]
+    public bool IsFavorite { get; set; }
 }

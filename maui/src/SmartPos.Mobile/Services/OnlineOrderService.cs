@@ -196,4 +196,42 @@ public class OnlineOrderService
     }
 
     public void InvalidateCatalog(int branchId) => _cache.InvalidateBranch(branchId);
+
+    public async Task<List<int>> GetFavoriteProductIdsAsync(int? branchId, string? phone = null, int? customerId = null)
+    {
+        try
+        {
+            var query = new List<string>();
+            if (branchId.HasValue && branchId.Value > 0) query.Add($"BranchId={branchId.Value}");
+            if (!string.IsNullOrWhiteSpace(phone)) query.Add($"Phone={Uri.EscapeDataString(phone.Trim())}");
+            if (customerId.HasValue && customerId.Value > 0) query.Add($"CustomerId={customerId.Value}");
+
+            var queryString = query.Count > 0 ? "?" + string.Join("&", query) : string.Empty;
+            var result = await _api.GetAsync<List<int>>($"api/services/app/CustomerOrder/GetFavoriteProductIds{queryString}");
+            return result ?? new List<int>();
+        }
+        catch
+        {
+            return new List<int>();
+        }
+    }
+
+    public async Task<ToggleFavoriteResultDto?> ToggleFavoriteAsync(int productId, int? branchId, string? phone = null, int? customerId = null)
+    {
+        try
+        {
+            var input = new
+            {
+                productId,
+                branchId = branchId.HasValue && branchId.Value > 0 ? branchId : null,
+                phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim(),
+                customerId = customerId.HasValue && customerId.Value > 0 ? customerId : null
+            };
+            return await _api.PostAsync<ToggleFavoriteResultDto>("api/services/app/CustomerOrder/ToggleFavorite", input);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

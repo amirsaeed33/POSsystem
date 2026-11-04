@@ -14,6 +14,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
     private readonly AbpApiClient _api;
     private readonly AppSettings _settings;
     private readonly DeliveryLocationService _deliveryLocation;
+    private readonly FavoritesService _favorites;
     private List<OnlineProductDto> _allProducts = new();
     private readonly List<CategoryChipItem> _allCategoryChips = new();
     private IDispatcherTimer? _heroTimer;
@@ -115,13 +116,30 @@ public partial class CustomerHomeViewModel : BaseViewModel
             : SelectedCategory;
     public string FilteredItemsLabel => $"({Products.Count})";
 
+    public bool IsFavoritesCategorySelected =>
+        string.Equals(SelectedCategory, "❤️ Favorites", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(SelectedCategory, "Favorites", StringComparison.OrdinalIgnoreCase);
+
+    public string EmptyStateIcon => IsFavoritesCategorySelected ? "❤️" : "🔍";
+
+    public string EmptyStateTitle =>
+        IsFavoritesCategorySelected
+            ? "No Favorites Yet"
+            : (!string.IsNullOrWhiteSpace(SearchText) ? "No matching products" : "No products available");
+
+    public string EmptyStateSubtitle =>
+        IsFavoritesCategorySelected
+            ? "No favorite items yet. Tap ❤️ on items to add them here!"
+            : "Try selecting another category or adjusting your search.";
+
     public CustomerHomeViewModel(
         OnlineOrderService orders,
         SessionService session,
         CartService cart,
         AbpApiClient api,
         AppSettings settings,
-        DeliveryLocationService deliveryLocation)
+        DeliveryLocationService deliveryLocation,
+        FavoritesService favorites)
     {
         _orders = orders;
         _session = session;
@@ -129,12 +147,20 @@ public partial class CustomerHomeViewModel : BaseViewModel
         _api = api;
         _settings = settings;
         _deliveryLocation = deliveryLocation;
+        _favorites = favorites;
         Title = "Online Order";
         _cart.CartChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(CartCount));
             OnPropertyChanged(nameof(HasCartItems));
             SyncCartQtyBadges();
+        };
+        _favorites.FavoritesChanged += (_, _) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                SyncFavorites();
+            });
         };
     }
 
@@ -225,6 +251,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
             foreach (var p in _allProducts)
             {
                 p.ImageUrl = _api.ResolveImageUrl(p.ImagePath);
+                p.IsFavorite = _favorites.IsFavorite(p.Id);
             }
 
             RebuildCategories();
@@ -271,6 +298,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         _cart.Clear();
 
         StoreHeader = await _orders.GetStoreHeaderAsync(branch.Id);
+        _favorites.Initialize(branch.Id);
 
         await LoadHeroSlidesAsync(branch.Id);
 
@@ -279,6 +307,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         foreach (var p in _allProducts)
         {
             p.ImageUrl = _api.ResolveImageUrl(p.ImagePath);
+            p.IsFavorite = _favorites.IsFavorite(p.Id);
         }
 
         SelectedCategory = "All";
@@ -330,6 +359,13 @@ public partial class CustomerHomeViewModel : BaseViewModel
             IsSelected = string.Equals(SelectedCategory, "All", StringComparison.OrdinalIgnoreCase)
         });
 
+        _allCategoryChips.Add(new CategoryChipItem
+        {
+            Name = "❤️ Favorites",
+            Count = _allProducts.Count(p => p.IsFavorite),
+            IsSelected = IsFavoritesCategorySelected
+        });
+
         foreach (var name in names)
         {
             var categoryProducts = _allProducts
@@ -362,6 +398,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
             var q = CategorySearchText.Trim();
             query = _allCategoryChips.Where(c =>
                 c.IsAll ||
+                c.IsFavorites ||
                 (c.Name?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false));
         }
 
@@ -775,7 +812,11 @@ public partial class CustomerHomeViewModel : BaseViewModel
     {
         Products.Clear();
         IEnumerable<OnlineProductDto> query = _allProducts;
-        if (!string.Equals(SelectedCategory, "All", StringComparison.OrdinalIgnoreCase))
+        if (IsFavoritesCategorySelected)
+        {
+            query = query.Where(p => p.IsFavorite);
+        }
+        else if (!string.Equals(SelectedCategory, "All", StringComparison.OrdinalIgnoreCase))
         {
             query = query.Where(p => string.Equals(p.CategoryName, SelectedCategory, StringComparison.OrdinalIgnoreCase));
         }
@@ -795,6 +836,52 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
         OnPropertyChanged(nameof(FilteredItemsLabel));
         OnPropertyChanged(nameof(SelectedCategoryTitle));
+        OnPropertyChanged(nameof(IsFavoritesCategorySelected));
+        OnPropertyChanged(nameof(EmptyStateIcon));
+        OnPropertyChanged(nameof(EmptyStateTitle));
+        OnPropertyChanged(nameof(EmptyStateSubtitle));
+    }
+
+    [RelayCommand]
+    private async Task ToggleFavoriteAsync(OnlineProductDto? product)
+    {
+        if (product == null)
+        {
+            return;
+        }
+
+        var isFav = await _favorites.ToggleFavoriteAsync(product.Id);
+        product.IsFavorite = isFav;
+
+        var favChip = _allCategoryChips.FirstOrDefault(c => c.IsFavorites);
+        if (favChip != null)
+        {
+            favChip.Count = _allProducts.Count(p => p.IsFavorite);
+        }
+
+        if (IsFavoritesCategorySelected)
+        {
+            ApplyFilters();
+        }
+    }
+
+    private void SyncFavorites()
+    {
+        foreach (var p in _allProducts)
+        {
+            p.IsFavorite = _favorites.IsFavorite(p.Id);
+        }
+
+        var favChip = _allCategoryChips.FirstOrDefault(c => c.IsFavorites);
+        if (favChip != null)
+        {
+            favChip.Count = _allProducts.Count(p => p.IsFavorite);
+        }
+
+        if (IsFavoritesCategorySelected)
+        {
+            ApplyFilters();
+        }
     }
 
     private void SyncCartQtyBadges()

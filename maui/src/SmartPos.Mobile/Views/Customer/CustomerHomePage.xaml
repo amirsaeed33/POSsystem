@@ -656,6 +656,34 @@
                                                  HorizontalItemSpacing="8"
                                                  VerticalItemSpacing="8" />
                             </CollectionView.ItemsLayout>
+                            <CollectionView.EmptyView>
+                                <VerticalStackLayout Padding="24,48" Spacing="12" HorizontalOptions="Center" VerticalOptions="Center">
+                                    <Border StrokeThickness="0"
+                                            BackgroundColor="#FEE2E2"
+                                            WidthRequest="64"
+                                            HeightRequest="64"
+                                            HorizontalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="32" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding EmptyStateIcon}"
+                                               FontSize="28"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Text="{Binding EmptyStateTitle}"
+                                           FontAttributes="Bold"
+                                           FontSize="16"
+                                           TextColor="#1A2B4A"
+                                           HorizontalTextAlignment="Center" />
+                                    <Label Text="{Binding EmptyStateSubtitle}"
+                                           FontSize="13"
+                                           TextColor="#6B7A82"
+                                           HorizontalTextAlignment="Center"
+                                           LineBreakMode="WordWrap"
+                                           MaximumWidthRequest="280" />
+                                </VerticalStackLayout>
+                            </CollectionView.EmptyView>
                             <CollectionView.ItemTemplate>
                                 <DataTemplate x:DataType="models:OnlineProductDto">
                                     <Border Stroke="#ECEFF1"
@@ -709,6 +737,38 @@
                                                            FontSize="9"
                                                            FontAttributes="Bold"
                                                            TextColor="White" />
+                                                </Border>
+
+                                                <!-- Top-right Heart (❤️) Favorite button with micro-interaction -->
+                                                <Border HorizontalOptions="End"
+                                                        VerticalOptions="Start"
+                                                        Margin="6"
+                                                        WidthRequest="32"
+                                                        HeightRequest="32"
+                                                        StrokeThickness="0"
+                                                        BackgroundColor="#E6FFFFFF"
+                                                        Padding="0">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="16" />
+                                                    </Border.StrokeShape>
+                                                    <Border.Shadow>
+                                                        <Shadow Brush="#25000000" Offset="0,1" Radius="3" />
+                                                    </Border.Shadow>
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer
+                                                            Tapped="OnFavoriteHeartTapped"
+                                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=ToggleFavoriteCommand}"
+                                                            CommandParameter="{Binding .}" />
+                                                    </Border.GestureRecognizers>
+                                                    <Path Aspect="Uniform"
+                                                          HorizontalOptions="Center"
+                                                          VerticalOptions="Center"
+                                                          WidthRequest="16"
+                                                          HeightRequest="16"
+                                                          Data="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                                                          Fill="{Binding FavoriteFillColor}"
+                                                          Stroke="{Binding FavoriteStrokeColor}"
+                                                          StrokeThickness="1.5" />
                                                 </Border>
 
                                                 <!-- Out of stock overlay -->
