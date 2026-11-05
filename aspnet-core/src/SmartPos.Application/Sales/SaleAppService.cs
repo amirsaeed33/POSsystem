@@ -541,6 +541,8 @@ namespace SmartPos.Sales
             return Repository.GetAllIncluding(x => x.Customer, x => x.Lines)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(input.CustomerId.HasValue, x => x.CustomerId == input.CustomerId.Value)
+                .WhereIf(input.FromDate.HasValue, x => x.SaleDate >= input.FromDate.Value.Date)
+                .WhereIf(input.ToDate.HasValue, x => x.SaleDate < input.ToDate.Value.Date.AddDays(1))
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))
                          || (x.Notes != null && x.Notes.Contains(input.Keyword))

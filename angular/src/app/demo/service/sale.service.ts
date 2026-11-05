@@ -36,6 +36,12 @@ export class SaleService {
         if (input?.customerId !== undefined) {
             params.CustomerId = input.customerId;
         }
+        if (input?.fromDate) {
+            params.FromDate = input.fromDate;
+        }
+        if (input?.toDate) {
+            params.ToDate = input.toDate;
+        }
         if (input?.skipCount !== undefined) {
             params.SkipCount = input.skipCount;
         }

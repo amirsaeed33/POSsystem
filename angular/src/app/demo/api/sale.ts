@@ -81,6 +81,8 @@ export interface CreateSaleDto {
 export interface PagedSaleResultRequestDto {
     keyword?: string;
     customerId?: number;
+    fromDate?: string;
+    toDate?: string;
     skipCount?: number;
     maxResultCount?: number;
 }

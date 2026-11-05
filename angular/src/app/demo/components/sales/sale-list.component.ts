@@ -24,6 +24,8 @@ export class SaleListComponent implements OnInit {
     loading = false;
     totalRecords = 0;
     keyword = '';
+    fromDate = '';
+    toDate = '';
 
     returns: SaleReturnDto[] = [];
     loadingReturns = false;
@@ -262,6 +264,8 @@ export class SaleListComponent implements OnInit {
         this.saleService
             .getAll({
                 keyword: this.keyword?.trim() || undefined,
+                fromDate: this.fromDate || undefined,
+                toDate: this.toDate || undefined,
                 skipCount: 0,
                 maxResultCount: 1000,
             })
@@ -306,6 +310,16 @@ export class SaleListComponent implements OnInit {
     }
 
     onSearch(): void {
+        this.loadSales();
+    }
+
+    onDateChange(): void {
+        this.loadSales();
+    }
+
+    clearDateFilter(): void {
+        this.fromDate = '';
+        this.toDate = '';
         this.loadSales();
     }
 

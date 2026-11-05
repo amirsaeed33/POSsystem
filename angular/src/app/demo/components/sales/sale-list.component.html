@@ -41,7 +41,7 @@
             <ng-template pTemplate="caption">
                 <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
                     <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
-                        <span class="p-input-icon-left w-full sm:w-20rem">
+                        <span class="p-input-icon-left w-full sm:w-16rem">
                             <i class="pi pi-search"></i>
                             <input
                                 pInputText
@@ -53,6 +53,41 @@
                                 (input)="onGlobalFilter(dt, $event)"
                             />
                         </span>
+
+                        <div class="flex align-items-center gap-1">
+                            <span class="text-600 text-sm font-medium">From:</span>
+                            <input
+                                pInputText
+                                type="date"
+                                [(ngModel)]="fromDate"
+                                (change)="onDateChange()"
+                                class="w-full sm:w-10rem"
+                            />
+                        </div>
+
+                        <div class="flex align-items-center gap-1">
+                            <span class="text-600 text-sm font-medium">To:</span>
+                            <input
+                                pInputText
+                                type="date"
+                                [(ngModel)]="toDate"
+                                (change)="onDateChange()"
+                                class="w-full sm:w-10rem"
+                            />
+                        </div>
+
+                        <button
+                            *ngIf="fromDate || toDate"
+                            pButton
+                            pRipple
+                            type="button"
+                            icon="pi pi-times"
+                            class="p-button-text p-button-secondary"
+                            pTooltip="Clear dates"
+                            tooltipPosition="top"
+                            (click)="clearDateFilter()"
+                        ></button>
+
                         <button
                             pButton
                             pRipple
