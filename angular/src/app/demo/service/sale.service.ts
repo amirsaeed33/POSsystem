@@ -8,6 +8,8 @@ import {
     PagedSaleResultRequestDto,
     SaleDto,
     SaleLineDto,
+    GetDepartmentSalesInput,
+    DepartmentSalesReportDto,
 } from '../api/sale';
 import { ProductDto } from '../api/product';
 import { environment } from '../../../environments/environment';
@@ -404,6 +406,57 @@ export class SaleService {
             quantity: item.quantity ?? item.Quantity ?? 0,
             unitPrice: item.unitPrice ?? item.UnitPrice ?? 0,
             lineTotal: item.lineTotal ?? item.LineTotal ?? 0,
+        };
+    }
+
+    async getDepartmentSales(
+        input?: GetDepartmentSalesInput
+    ): Promise<DepartmentSalesReportDto> {
+        const params: any = {};
+        if (input?.departmentId !== undefined && input.departmentId !== null) {
+            params.DepartmentId = input.departmentId;
+        }
+        if (input?.keyword) {
+            params.Keyword = input.keyword;
+        }
+        if (input?.fromDate) {
+            params.FromDate = input.fromDate;
+        }
+        if (input?.toDate) {
+            params.ToDate = input.toDate;
+        }
+
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetDepartmentSales`, { params })
+        );
+        const result = this.unwrap(res, 'Failed to load department sales');
+        const rawDepts = result.departments || result.Departments || [];
+
+        return {
+            departments: (Array.isArray(rawDepts) ? rawDepts : []).map((d: any) => {
+                const prods = d.products || d.Products || [];
+                return {
+                    departmentId: d.departmentId ?? d.DepartmentId,
+                    departmentName: d.departmentName ?? d.DepartmentName ?? 'Unassigned',
+                    totalSalesAmount: Number(d.totalSalesAmount ?? d.TotalSalesAmount ?? 0),
+                    totalQuantitySold: Number(d.totalQuantitySold ?? d.TotalQuantitySold ?? 0),
+                    products: (Array.isArray(prods) ? prods : []).map((p: any) => ({
+                        productId: p.productId ?? p.ProductId,
+                        productName: p.productName ?? p.ProductName,
+                        price: Number(p.price ?? p.Price ?? 0),
+                        quantitySold: Number(p.quantitySold ?? p.QuantitySold ?? 0),
+                        totalAmount: Number(p.totalAmount ?? p.TotalAmount ?? 0),
+                        categoryId: p.categoryId ?? p.CategoryId,
+                        categoryName: p.categoryName ?? p.CategoryName,
+                        departmentId: p.departmentId ?? p.DepartmentId,
+                        departmentName: p.departmentName ?? p.DepartmentName,
+                    })),
+                };
+            }),
+            grandTotalAmount: Number(result.grandTotalAmount ?? result.GrandTotalAmount ?? 0),
+            grandTotalQuantity: Number(result.grandTotalQuantity ?? result.GrandTotalQuantity ?? 0),
+            totalDepartmentsCount: Number(result.totalDepartmentsCount ?? result.TotalDepartmentsCount ?? 0),
+            totalProductsSold: Number(result.totalProductsSold ?? result.TotalProductsSold ?? 0),
         };
     }
 }

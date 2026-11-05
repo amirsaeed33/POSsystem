@@ -45,5 +45,7 @@ namespace SmartPos.Sales
         Task SyncDeliveredCustomerOrderSalesAsync(int? branchId = null);
 
         Task<SaleDto> CollectPaymentAsync(CollectSalePaymentDto input);
+
+        Task<DepartmentSalesReportDto> GetDepartmentSalesAsync(GetDepartmentSalesInput input);
     }
 }

@@ -26,6 +26,8 @@ using SmartPos.BranchNotificationSettings;
 using SmartPos.Orders;
 using SmartPos.Deals;
 using SmartPos.Authorization.Roles;
+using SmartPos.Departments;
+using Abp.Domain.Uow;
 
 namespace SmartPos.Sales
 {
@@ -53,6 +55,7 @@ namespace SmartPos.Sales
         private readonly ITokenNumberManager _tokenNumberManager;
         private readonly IRepository<Deal> _dealRepository;
         private readonly IRepository<DealDetail> _dealDetailRepository;
+        private readonly IRepository<Department> _departmentRepository;
 
         public SaleAppService(
             IRepository<Sale> repository,
@@ -76,13 +79,15 @@ namespace SmartPos.Sales
             ISmartPosReadCacheInvalidator readCacheInvalidator,
             ITokenNumberManager tokenNumberManager,
             IRepository<Deal> dealRepository,
-            IRepository<DealDetail> dealDetailRepository)
+            IRepository<DealDetail> dealDetailRepository,
+            IRepository<Department> departmentRepository = null)
             : base(repository)
         {
             _lineRepository = lineRepository;
             _tokenNumberManager = tokenNumberManager;
             _dealRepository = dealRepository;
             _dealDetailRepository = dealDetailRepository;
+            _departmentRepository = departmentRepository ?? (Abp.Dependency.IocManager.Instance.IsRegistered(typeof(IRepository<Department>)) ? Abp.Dependency.IocManager.Instance.Resolve<IRepository<Department>>() : null);
             _productRepository = productRepository;
             _customerRepository = customerRepository;
             _ledgerRepository = ledgerRepository;
@@ -1352,5 +1357,224 @@ namespace SmartPos.Sales
                 });
             }
         }
+
+        public async Task<DepartmentSalesReportDto> GetDepartmentSalesAsync(GetDepartmentSalesInput input)
+        {
+            input ??= new GetDepartmentSalesInput();
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(_branchContext, _userRepository, AbpSession, PermissionChecker);
+
+            await SyncDeliveredCustomerOrderSalesAsync(branchId);
+
+            var salesQuery = Repository.GetAll()
+                .AsNoTracking()
+                .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value);
+
+            if (input.FromDate.HasValue)
+            {
+                var from = input.FromDate.Value.Date;
+                salesQuery = salesQuery.Where(x => x.SaleDate >= from);
+            }
+
+            if (input.ToDate.HasValue)
+            {
+                var to = input.ToDate.Value.Date.AddDays(1);
+                salesQuery = salesQuery.Where(x => x.SaleDate < to);
+            }
+
+            var saleIds = await salesQuery.Select(x => x.Id).ToListAsync();
+            if (saleIds.Count == 0)
+            {
+                return new DepartmentSalesReportDto();
+            }
+
+            var rawSaleLines = await _lineRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => saleIds.Contains(x.SaleId))
+                .Select(x => new
+                {
+                    x.Id,
+                    x.ProductId,
+                    x.Quantity,
+                    x.UnitPrice,
+                    x.LineTotal
+                })
+                .ToListAsync();
+
+            if (rawSaleLines.Count == 0)
+            {
+                return new DepartmentSalesReportDto();
+            }
+
+            var returnedLines = await _saleReturnRepository.GetAll()
+                .AsNoTracking()
+                .Where(x => saleIds.Contains(x.SaleId))
+                .SelectMany(x => x.Lines)
+                .Select(x => new
+                {
+                    x.SaleLineId,
+                    x.Quantity,
+                    x.LineTotal
+                })
+                .ToListAsync();
+
+            var returnedQtyByLineId = returnedLines
+                .GroupBy(x => x.SaleLineId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+
+            var returnedAmountByLineId = returnedLines
+                .GroupBy(x => x.SaleLineId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.LineTotal));
+
+            var netSaleLines = rawSaleLines.Select(sl =>
+            {
+                var retQty = returnedQtyByLineId.GetValueOrDefault(sl.Id, 0m);
+                var retAmount = returnedAmountByLineId.GetValueOrDefault(sl.Id, 0m);
+                var netQty = Math.Max(0m, sl.Quantity - retQty);
+                var netTotal = Math.Max(0m, sl.LineTotal - retAmount);
+                return new
+                {
+                    sl.ProductId,
+                    Quantity = netQty,
+                    LineTotal = netTotal,
+                    sl.UnitPrice
+                };
+            }).Where(x => x.Quantity > 0).ToList();
+
+            if (netSaleLines.Count == 0)
+            {
+                return new DepartmentSalesReportDto();
+            }
+
+            var productSales = netSaleLines
+                .GroupBy(x => x.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    QuantitySold = g.Sum(x => x.Quantity),
+                    TotalSalesAmount = g.Sum(x => x.LineTotal),
+                    AverageUnitPrice = g.Average(x => x.UnitPrice)
+                })
+                .Where(x => x.QuantitySold > 0)
+                .ToList();
+
+            var productIds = productSales.Select(x => x.ProductId).Distinct().ToList();
+
+            List<DepartmentProductInfo> rawProducts;
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.SoftDelete))
+            {
+                rawProducts = await _productRepository.GetAllIncluding(p => p.Category, p => p.Category.Department)
+                    .AsNoTracking()
+                    .Where(p => productIds.Contains(p.Id))
+                    .Select(p => new DepartmentProductInfo
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Price = p.Price,
+                        CategoryId = (int?)p.CategoryId,
+                        CategoryName = p.Category != null ? p.Category.Name : null,
+                        DepartmentId = p.Category != null ? p.Category.DepartmentId : null,
+                        DepartmentName = p.Category != null && p.Category.Department != null ? p.Category.Department.Name : null
+                    })
+                    .ToListAsync();
+            }
+
+            if (!input.Keyword.IsNullOrWhiteSpace())
+            {
+                var kw = input.Keyword.Trim();
+                rawProducts = rawProducts
+                    .Where(p => p.Name != null && p.Name.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .ToList();
+            }
+
+            if (input.DepartmentId.HasValue && input.DepartmentId.Value > 0)
+            {
+                rawProducts = rawProducts
+                    .Where(p => p.DepartmentId == input.DepartmentId.Value)
+                    .ToList();
+            }
+
+            var missingDeptIds = rawProducts
+                .Where(p => p.DepartmentId.HasValue && string.IsNullOrEmpty(p.DepartmentName))
+                .Select(p => p.DepartmentId.Value)
+                .Distinct()
+                .ToList();
+
+            var extraDeptNames = new Dictionary<int, string>();
+            if (missingDeptIds.Count > 0 && _departmentRepository != null)
+            {
+                extraDeptNames = await _departmentRepository.GetAll()
+                    .Where(d => missingDeptIds.Contains(d.Id))
+                    .ToDictionaryAsync(d => d.Id, d => d.Name);
+            }
+
+            var productSalesDict = productSales.ToDictionary(x => x.ProductId, x => x);
+            var list = new List<DepartmentProductSaleDto>();
+
+            foreach (var p in rawProducts)
+            {
+                if (!productSalesDict.TryGetValue(p.Id, out var ps))
+                {
+                    continue;
+                }
+
+                var deptName = p.DepartmentName;
+                if (string.IsNullOrEmpty(deptName) && p.DepartmentId.HasValue)
+                {
+                    extraDeptNames.TryGetValue(p.DepartmentId.Value, out deptName);
+                }
+                if (string.IsNullOrEmpty(deptName))
+                {
+                    deptName = p.DepartmentId.HasValue ? $"Department #{p.DepartmentId.Value}" : "Other / Unassigned";
+                }
+
+                list.Add(new DepartmentProductSaleDto
+                {
+                    ProductId = p.Id,
+                    ProductName = p.Name,
+                    Price = p.Price > 0 ? p.Price : (ps.QuantitySold > 0 ? Math.Round(ps.TotalSalesAmount / ps.QuantitySold, 2) : 0),
+                    QuantitySold = ps.QuantitySold,
+                    TotalAmount = ps.TotalSalesAmount,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.CategoryName,
+                    DepartmentId = p.DepartmentId,
+                    DepartmentName = deptName
+                });
+            }
+
+            var groups = list
+                .GroupBy(x => new { x.DepartmentId, x.DepartmentName })
+                .OrderBy(g => g.Key.DepartmentId == null)
+                .ThenBy(g => g.Key.DepartmentName)
+                .Select(g => new DepartmentSalesGroupDto
+                {
+                    DepartmentId = g.Key.DepartmentId,
+                    DepartmentName = g.Key.DepartmentName,
+                    TotalQuantitySold = g.Sum(x => x.QuantitySold),
+                    TotalSalesAmount = g.Sum(x => x.TotalAmount),
+                    Products = g.OrderBy(p => p.ProductName).ToList()
+                })
+                .ToList();
+
+            return new DepartmentSalesReportDto
+            {
+                Departments = groups,
+                GrandTotalAmount = groups.Sum(x => x.TotalSalesAmount),
+                GrandTotalQuantity = groups.Sum(x => x.TotalQuantitySold),
+                TotalDepartmentsCount = groups.Count,
+                TotalProductsSold = groups.Sum(x => x.Products.Count)
+            };
+        }
+
+        private class DepartmentProductInfo
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public decimal Price { get; set; }
+            public int? CategoryId { get; set; }
+            public string CategoryName { get; set; }
+            public int? DepartmentId { get; set; }
+            public string DepartmentName { get; set; }
+        }
+
     }
 }

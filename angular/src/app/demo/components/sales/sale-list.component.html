@@ -16,6 +16,15 @@
         <p-tabPanel>
             <ng-template pTemplate="header">
                 <span class="flex align-items-center gap-2">
+                    <i class="pi pi-building"></i>
+                    <span>Department Sales</span>
+                    <span class="sale-tab-count" *ngIf="deptReport?.departments?.length">{{ deptReport?.departments?.length }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
                     <i class="pi pi-replay"></i>
                     <span>Return History</span>
                     <span class="sale-tab-count">{{ totalReturnRecords }}</span>
@@ -239,8 +248,209 @@
         </p-table>
     </div>
 
+    <!-- Department Sales View (activeListTab === 1) -->
+    <div *ngIf="activeListTab === 1" class="mt-2">
+        <!-- Filter Toolbar -->
+        <div class="p-3 border-1 surface-border border-round surface-card mb-3">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <!-- Search Product Name -->
+                    <span class="p-input-icon-left w-full sm:w-16rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search products..."
+                            [(ngModel)]="deptKeyword"
+                            (keyup.enter)="loadDepartmentSales()"
+                        />
+                    </span>
+
+                    <!-- Department Dropdown -->
+                    <p-dropdown
+                        [options]="deptOptions"
+                        [(ngModel)]="selectedDeptId"
+                        (onChange)="loadDepartmentSales()"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="All Departments"
+                        styleClass="w-full sm:w-13rem"
+                    ></p-dropdown>
+
+                    <!-- From Date -->
+                    <div class="flex align-items-center gap-1">
+                        <span class="text-600 text-sm font-medium">From:</span>
+                        <input
+                            pInputText
+                            type="date"
+                            [(ngModel)]="deptFromDate"
+                            (change)="loadDepartmentSales()"
+                            class="w-full sm:w-10rem"
+                        />
+                    </div>
+
+                    <!-- To Date -->
+                    <div class="flex align-items-center gap-1">
+                        <span class="text-600 text-sm font-medium">To:</span>
+                        <input
+                            pInputText
+                            type="date"
+                            [(ngModel)]="deptToDate"
+                            (change)="loadDepartmentSales()"
+                            class="w-full sm:w-10rem"
+                        />
+                    </div>
+
+                    <!-- Reset Filters Button -->
+                    <button
+                        *ngIf="deptKeyword || selectedDeptId !== null || deptFromDate || deptToDate"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-times"
+                        class="p-button-text p-button-secondary"
+                        pTooltip="Reset filters"
+                        tooltipPosition="top"
+                        (click)="clearDeptFilters()"
+                    ></button>
+
+                    <!-- Search / Refresh Button -->
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="loadDepartmentSales()"
+                        [loading]="loadingDeptSales"
+                    ></button>
+
+                    <!-- Print Button -->
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-print"
+                        class="p-button-outlined"
+                        label="Print"
+                        (click)="printDepartmentSales()"
+                    ></button>
+                </div>
+
+                <!-- Grand Total badge -->
+                <div *ngIf="deptReport as report" class="flex align-items-center gap-3">
+                    <div class="text-right">
+                        <div class="text-xs text-500 font-semibold uppercase">Total Sales</div>
+                        <div class="text-xl font-bold text-primary">
+                            {{ report.grandTotalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="loadingDeptSales" class="p-5 text-center">
+            <i class="pi pi-spin pi-spinner text-3xl text-primary mb-2"></i>
+            <div class="text-600 font-medium">Loading department sales...</div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loadingDeptSales && (!deptReport || !deptReport.departments || deptReport.departments.length === 0)" class="text-center p-5 surface-50 border-round border-1 surface-border my-3">
+            <i class="pi pi-inbox text-500 text-4xl mb-2"></i>
+            <div class="text-900 font-semibold text-lg">No department sales found</div>
+            <div class="text-500 text-sm mt-1">There are no product sales matching the selected department or date filters.</div>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-refresh"
+                label="Reset Filters"
+                class="p-button-outlined mt-3"
+                (click)="clearDeptFilters()"
+            ></button>
+        </div>
+
+        <!-- Department Groups -->
+        <ng-container *ngIf="!loadingDeptSales && deptReport as report">
+            <div *ngIf="report.departments.length > 0">
+                <div
+                    class="mb-4 border-1 surface-border border-round overflow-hidden shadow-1"
+                    *ngFor="let dept of report.departments"
+                >
+                    <!-- Department Heading Banner -->
+                    <div class="bg-primary-50 p-3 px-4 flex flex-wrap align-items-center justify-content-between border-bottom-1 surface-border">
+                        <div class="flex align-items-center gap-2">
+                            <i class="pi pi-building text-primary text-xl"></i>
+                            <h5 class="m-0 text-900 font-bold">{{ dept.departmentName }}</h5>
+                            <span class="p-tag p-tag-info p-tag-rounded text-xs">{{ dept.products.length }} {{ dept.products.length === 1 ? 'Product' : 'Products' }}</span>
+                        </div>
+                        <div class="flex align-items-center gap-3">
+                            <span class="text-600 text-sm">Qty Sold: <strong class="text-900">{{ dept.totalQuantitySold | number:'1.0-2' }}</strong></span>
+                            <span class="text-600 text-sm">Department Total: <strong class="text-primary text-base">{{ dept.totalSalesAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Products Table -->
+                    <p-table
+                        [value]="dept.products"
+                        responsiveLayout="scroll"
+                        styleClass="p-datatable-striped p-datatable-sm"
+                    >
+                        <ng-template pTemplate="header">
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>Product Name</th>
+                                <th style="text-align: right; width: 180px;">Product Price</th>
+                                <th style="text-align: right; width: 200px;">Total Quantity Sold</th>
+                                <th style="text-align: right; width: 220px;">Total Sales Amount</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="body" let-prod let-i="rowIndex">
+                            <tr>
+                                <td class="text-500">{{ i + 1 }}</td>
+                                <td class="font-medium text-900">{{ prod.productName }}</td>
+                                <td style="text-align: right;">{{ prod.price | currency : 'PKR ' : 'symbol' : '1.2-2' }}</td>
+                                <td style="text-align: right;">
+                                    <span class="font-semibold">{{ prod.quantitySold | number:'1.0-2' }}</span>
+                                </td>
+                                <td style="text-align: right;" class="font-bold text-900">
+                                    {{ prod.totalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                                </td>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="footer">
+                            <tr>
+                                <td colspan="3" class="text-right font-bold text-700 bg-gray-50 uppercase text-sm">
+                                    {{ dept.departmentName }} Total Sales Amount:
+                                </td>
+                                <td style="text-align: right;" class="font-bold bg-gray-50 text-900">
+                                    {{ dept.totalQuantitySold | number:'1.0-2' }}
+                                </td>
+                                <td style="text-align: right;" class="font-bold text-primary bg-gray-50 text-base">
+                                    {{ dept.totalSalesAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                                </td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </div>
+
+                <!-- Grand Total Summary Card -->
+                <div *ngIf="report.departments.length > 1" class="surface-card p-3 px-4 border-round border-1 surface-border shadow-1 flex flex-wrap justify-content-between align-items-center mt-3 bg-primary-100">
+                    <span class="font-bold text-900 text-lg uppercase">All Departments Grand Total</span>
+                    <div class="flex align-items-center gap-4">
+                        <span class="text-base text-700 font-medium">Total Qty Sold: <strong class="text-900">{{ report.grandTotalQuantity | number:'1.0-2' }}</strong></span>
+                        <span class="text-base text-700 font-medium">Grand Total Sales: <strong class="text-primary text-xl">{{ report.grandTotalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}</strong></span>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+    </div>
+
     <!-- Return History Table -->
-    <div *ngIf="activeListTab === 1">
+    <div *ngIf="activeListTab === 2">
         <p-table
         #dtReturns
         [value]="returns"

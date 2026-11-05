@@ -2,7 +2,8 @@ import { AppFormatService } from 'src/app/demo/service/app-format.service';
 import { Component, OnInit } from '@angular/core';
 import { Table } from 'primeng/table';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { PaymentType, SaleDto } from 'src/app/demo/api/sale';
+import { PaymentType, SaleDto, DepartmentSalesReportDto } from 'src/app/demo/api/sale';
+import { DepartmentService } from 'src/app/demo/service/department.service';
 import { SaleService } from 'src/app/demo/service/sale.service';
 import { SaleReturnDto } from 'src/app/demo/api/sale-return';
 import { SaleReturnService } from 'src/app/demo/service/sale-return.service';
@@ -17,7 +18,7 @@ import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions
     providers: [MessageService, ConfirmationService],
 })
 export class SaleListComponent implements OnInit {
-    activeTab: 'sales' | 'returns' = 'sales';
+    activeTab: 'sales' | 'departmentSales' | 'returns' = 'sales';
     activeListTab = 0;
 
     sales: SaleDto[] = [];
@@ -26,6 +27,15 @@ export class SaleListComponent implements OnInit {
     keyword = '';
     fromDate = '';
     toDate = '';
+
+    // Department Sales tab state
+    deptReport: DepartmentSalesReportDto | null = null;
+    loadingDeptSales = false;
+    deptOptions: { label: string; value: number | null }[] = [];
+    selectedDeptId: number | null = null;
+    deptKeyword = '';
+    deptFromDate = '';
+    deptToDate = '';
 
     returns: SaleReturnDto[] = [];
     loadingReturns = false;
@@ -226,6 +236,7 @@ export class SaleListComponent implements OnInit {
         public formatService: AppFormatService,
         private saleService: SaleService,
         private saleReturnService: SaleReturnService,
+        private departmentService: DepartmentService,
         private permissionService: PermissionService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
@@ -237,25 +248,38 @@ export class SaleListComponent implements OnInit {
         this.canDelete = this.permissionService.isGranted(PermissionNames.SalesDelete);
         this.loadSales();
         this.loadReturns();
+        this.loadDepartmentOptions();
     }
 
     onListTabChange(index: number): void {
         this.activeListTab = index;
-        this.activeTab = index === 1 ? 'returns' : 'sales';
-        if (this.activeTab === 'returns' && !this.returns.length && !this.loadingReturns) {
-            this.loadReturns();
-        } else if (this.activeTab === 'sales' && !this.sales.length && !this.loading) {
-            this.loadSales();
+        if (index === 0) {
+            this.activeTab = 'sales';
+            if (!this.sales.length && !this.loading) {
+                this.loadSales();
+            }
+        } else if (index === 1) {
+            this.activeTab = 'departmentSales';
+            if (!this.deptReport && !this.loadingDeptSales) {
+                this.loadDepartmentSales();
+            }
+        } else if (index === 2) {
+            this.activeTab = 'returns';
+            if (!this.returns.length && !this.loadingReturns) {
+                this.loadReturns();
+            }
         }
     }
 
-    switchTab(tab: 'sales' | 'returns'): void {
+    switchTab(tab: 'sales' | 'departmentSales' | 'returns'): void {
         this.activeTab = tab;
-        this.activeListTab = tab === 'returns' ? 1 : 0;
+        this.activeListTab = tab === 'sales' ? 0 : tab === 'departmentSales' ? 1 : 2;
         if (tab === 'returns' && !this.returns.length && !this.loadingReturns) {
             this.loadReturns();
         } else if (tab === 'sales' && !this.sales.length && !this.loading) {
             this.loadSales();
+        } else if (tab === 'departmentSales') {
+            this.loadDepartmentSales();
         }
     }
 
@@ -326,6 +350,54 @@ export class SaleListComponent implements OnInit {
     onSearchReturns(): void {
         this.loadReturns();
     }
+
+    async loadDepartmentOptions(): Promise<void> {
+        try {
+            const depts = await this.departmentService.getLookup();
+            this.deptOptions = [
+                { label: 'All Departments', value: null },
+                ...(depts || []).map((d) => ({
+                    label: d.name,
+                    value: d.id,
+                })),
+            ];
+        } catch {
+            this.deptOptions = [{ label: 'All Departments', value: null }];
+        }
+    }
+
+    async loadDepartmentSales(): Promise<void> {
+        this.loadingDeptSales = true;
+        try {
+            this.deptReport = await this.saleService.getDepartmentSales({
+                departmentId: this.selectedDeptId ?? undefined,
+                keyword: this.deptKeyword?.trim() || undefined,
+                fromDate: this.deptFromDate || undefined,
+                toDate: this.deptToDate || undefined,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: err?.message || 'Failed to load department sales',
+            });
+        } finally {
+            this.loadingDeptSales = false;
+        }
+    }
+
+    clearDeptFilters(): void {
+        this.selectedDeptId = null;
+        this.deptKeyword = '';
+        this.deptFromDate = '';
+        this.deptToDate = '';
+        this.loadDepartmentSales();
+    }
+
+    printDepartmentSales(): void {
+        window.print();
+    }
+
 
     onGlobalFilter(table: Table, event: Event): void {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');

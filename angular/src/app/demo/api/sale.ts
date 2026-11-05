@@ -98,3 +98,38 @@ export interface PagedResultDto<T> {
     items: T[];
     totalCount: number;
 }
+
+export interface GetDepartmentSalesInput {
+    departmentId?: number;
+    keyword?: string;
+    fromDate?: string;
+    toDate?: string;
+}
+
+export interface DepartmentSalesReportDto {
+    departments: DepartmentSalesGroupDto[];
+    grandTotalAmount: number;
+    grandTotalQuantity: number;
+    totalDepartmentsCount: number;
+    totalProductsSold: number;
+}
+
+export interface DepartmentSalesGroupDto {
+    departmentId?: number;
+    departmentName: string;
+    totalSalesAmount: number;
+    totalQuantitySold: number;
+    products: DepartmentProductSaleDto[];
+}
+
+export interface DepartmentProductSaleDto {
+    productId: number;
+    productName: string;
+    price: number;
+    quantitySold: number;
+    totalAmount: number;
+    categoryId?: number;
+    categoryName?: string;
+    departmentId?: number;
+    departmentName?: string;
+}
