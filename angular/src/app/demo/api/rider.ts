@@ -3,7 +3,8 @@ export enum RiderOrderStatus {
     Approved = 1,
     Rejected = 2,
     InProgress = 3,
-    Delivered = 4
+    Delivered = 4,
+    Completed = 5,
 }
 
 export interface RiderDashboardStatsDto {
@@ -78,5 +79,4 @@ export interface CompleteRiderDeliveryDto {
     orderId: number;
     notes?: string | null;
     rating?: number | null;
-    paymentReceivedAmount?: number | null;
 }

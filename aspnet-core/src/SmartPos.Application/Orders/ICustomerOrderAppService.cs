@@ -20,6 +20,9 @@ namespace SmartPos.Orders
 
         Task DeliverAsync(EntityDto<int> input);
 
+        /// <summary>Admin: complete order and insert payment/sale.</summary>
+        Task CompleteAsync(CompleteCustomerOrderInput input);
+
         Task RejectAsync(EntityDto<int> input);
 
         [AbpAllowAnonymous]

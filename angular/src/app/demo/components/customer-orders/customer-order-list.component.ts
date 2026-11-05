@@ -61,6 +61,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         { label: 'Approved', value: CustomerOrderStatus.Approved },
         { label: 'In Progress', value: CustomerOrderStatus.InProgress },
         { label: 'Delivered', value: CustomerOrderStatus.Delivered },
+        { label: 'Completed', value: CustomerOrderStatus.Completed },
         { label: 'Rejected', value: CustomerOrderStatus.Rejected },
     ];
 
@@ -322,6 +323,8 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
                 return 'In Progress';
             case CustomerOrderStatus.Delivered:
                 return 'Delivered';
+            case CustomerOrderStatus.Completed:
+                return 'Completed';
             case CustomerOrderStatus.Rejected:
                 return 'Rejected';
             default:
@@ -339,6 +342,8 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
             case CustomerOrderStatus.InProgress:
                 return 'info';
             case CustomerOrderStatus.Delivered:
+                return 'contrast';
+            case CustomerOrderStatus.Completed:
                 return 'success';
             case CustomerOrderStatus.Rejected:
                 return 'danger';
@@ -357,6 +362,19 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
 
     isDelivered(order: CustomerOrderDto): boolean {
         return order.status === CustomerOrderStatus.Delivered;
+    }
+
+    isCompleted(order: CustomerOrderDto): boolean {
+        return order.status === CustomerOrderStatus.Completed;
+    }
+
+    /** Finished for rider reassignment / edit locks. */
+    isClosed(order: CustomerOrderDto): boolean {
+        return (
+            order.status === CustomerOrderStatus.Delivered ||
+            order.status === CustomerOrderStatus.Completed ||
+            order.status === CustomerOrderStatus.Rejected
+        );
     }
 
     async openAssignRiderDialog(order: CustomerOrderDto): Promise<void> {
@@ -568,7 +586,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
     onDeliver(order: CustomerOrderDto): void {
         const label = order.orderNo || `#${order.id}`;
         this.confirmationService.confirm({
-            message: `Mark customer order "${label}" as Delivered? This will complete the order and add it to Sales.`,
+            message: `Mark customer order "${label}" as Delivered? Payment is not recorded yet — use Complete after delivery to add it to Sales.`,
             header: 'Deliver Confirmation',
             icon: 'pi pi-check-circle',
             accept: () => {
@@ -578,7 +596,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
                         this.messageService.add({
                             severity: 'success',
                             summary: 'Delivered',
-                            detail: `Order ${label} marked as Delivered and added to Sales successfully.`,
+                            detail: `Order ${label} marked as Delivered. Complete it to record payment in Sales.`,
                         });
                         this.loadOrders();
                     })
@@ -588,6 +606,42 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
                             error?.error?.message ||
                             error?.message ||
                             'Failed to mark order as delivered';
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Action Failed',
+                            detail: message,
+                            life: 6000,
+                        });
+                    });
+            },
+        });
+    }
+
+    onComplete(order: CustomerOrderDto): void {
+        const label = order.orderNo || `#${order.id}`;
+        this.confirmationService.confirm({
+            message: `Mark order "${label}" as Completed and insert payment into Sales (PKR ${Number(
+                order.totalAmount || 0
+            ).toLocaleString()})?`,
+            header: 'Complete & Record Payment',
+            icon: 'pi pi-wallet',
+            accept: () => {
+                this.customerOrderService
+                    .complete(order.id)
+                    .then(() => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: 'Completed',
+                            detail: `Order ${label} completed and added to Sales.`,
+                        });
+                        this.loadOrders();
+                    })
+                    .catch((error) => {
+                        const message =
+                            error?.error?.error?.message ||
+                            error?.error?.message ||
+                            error?.message ||
+                            'Failed to complete order';
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Action Failed',
@@ -667,9 +721,17 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
             },
             {
                 label: 'Mark Delivered',
-                icon: 'pi pi-check-circle',
+                icon: 'pi pi-truck',
                 visible: this.isInProgress(order),
                 action: () => this.onDeliver(order),
+            },
+            {
+                label: 'Complete & Record Payment',
+                icon: 'pi pi-wallet',
+                visible:
+                    this.isDelivered(order) ||
+                    (this.isInProgress(order) && !order.riderId),
+                action: () => this.onComplete(order),
             },
             {
                 label: 'Reject',

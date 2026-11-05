@@ -844,8 +844,9 @@ namespace SmartPos.Sales
                 throw new UserFriendlyException("Customer order not found.");
             }
 
-            // Until the order is successfully delivered, do not create or add to any sale
-            if (order.Status != CustomerOrderStatus.Delivered)
+            // Sale is posted when admin marks the order Completed (payment into the system).
+            // Delivered (rider) alone must not create a sale.
+            if (order.Status != CustomerOrderStatus.Completed)
             {
                 return null;
             }
@@ -932,11 +933,13 @@ namespace SmartPos.Sales
         [RemoteService(false)]
         public async Task SyncDeliveredCustomerOrderSalesAsync(int? branchId = null)
         {
-            // 1. Cleanup: If any order is NOT delivered (Pending, Approved, InProgress, Rejected)
-            // but currently has a SaleId linked, unlink and delete that premature sale so it does
-            // not appear on Sale page, Report, or Dashboard!
+            // 1. Cleanup: Orders that are not Completed (and not legacy Delivered-with-sale)
+            // should not keep premature sales for Pending/Approved/InProgress/Rejected.
             var unearnedSales = await _customerOrderRepository.GetAll()
-                .Where(o => o.Status != CustomerOrderStatus.Delivered && o.SaleId != null)
+                .Where(o =>
+                    o.SaleId != null &&
+                    o.Status != CustomerOrderStatus.Completed &&
+                    o.Status != CustomerOrderStatus.Delivered)
                 .WhereIf(branchId.HasValue && branchId.Value > 0, o => o.BranchId == branchId.Value)
                 .ToListAsync();
 
@@ -961,13 +964,13 @@ namespace SmartPos.Sales
                 }
             }
 
-            // 2. Sync: Ensure all successfully DELIVERED orders have a corresponding Sale record
-            var deliveredOrders = await _customerOrderRepository.GetAllIncluding(o => o.Lines)
-                .Where(o => o.Status == CustomerOrderStatus.Delivered && o.SaleId == null)
+            // 2. Sync: Ensure Completed orders have a Sale; Delivered alone waits for admin Complete.
+            var completedOrders = await _customerOrderRepository.GetAllIncluding(o => o.Lines)
+                .Where(o => o.Status == CustomerOrderStatus.Completed && o.SaleId == null)
                 .WhereIf(branchId.HasValue && branchId.Value > 0, o => o.BranchId == branchId.Value)
                 .ToListAsync();
 
-            foreach (var order in deliveredOrders)
+            foreach (var order in completedOrders)
             {
                 try
                 {

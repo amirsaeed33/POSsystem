@@ -28,6 +28,9 @@
                 <button type="button" class="kit-filter kit-car" [class.active]="filter === 'car'" (click)="setFilter('car')">
                     Car <span class="kit-filter-count">{{ carCount }}</span>
                 </button>
+                <button type="button" class="kit-filter kit-online" [class.active]="filter === 'online'" (click)="setFilter('online')">
+                    Online <span class="kit-filter-count">{{ onlineCount }}</span>
+                </button>
             </div>
             <button
                 pButton
@@ -128,10 +131,10 @@
             </div>
 
             <footer class="kitchen-card-foot">
-                <div class="kitchen-foot-meta" *ngIf="order.notes || order.customerName || order.carLocation">
+                <div class="kitchen-foot-meta" *ngIf="order.customerName || order.carLocation || kitchenCardNote(order)">
                     <div *ngIf="order.customerName"><i class="pi pi-user mr-1"></i>{{ order.customerName }}</div>
                     <div *ngIf="order.carLocation"><i class="pi pi-map-marker mr-1"></i>{{ order.carLocation }}</div>
-                    <div *ngIf="order.notes" class="order-note">{{ order.notes }}</div>
+                    <div *ngIf="kitchenCardNote(order) as note" class="order-note">{{ note }}</div>
                 </div>
                 <div class="kitchen-card-actions">
                     <button

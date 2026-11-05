@@ -44,6 +44,8 @@ namespace SmartPos.Restaurant.Dto
 
         public int? CustomerId { get; set; }
 
+        public int? CustomerOrderId { get; set; }
+
         public string CustomerName { get; set; }
 
         public string WaiterName { get; set; }

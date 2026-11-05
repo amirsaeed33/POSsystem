@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import {
@@ -20,7 +20,7 @@ const PHONE_STORAGE_KEY = 'smartpos_customer_phone';
     ],
     providers: [MessageService],
 })
-export class OnlineOrderHistoryComponent implements OnInit {
+export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
     phone = '';
     branchId: number | null = null;
     orders: CustomerOrderDto[] = [];
@@ -28,6 +28,10 @@ export class OnlineOrderHistoryComponent implements OnInit {
     searched = false;
     errorMessage = '';
     reorderingId: number | null = null;
+
+    /** Ticks every second so active order cards show a live elapsed timer. */
+    nowMs = Date.now();
+    private clockTimer: ReturnType<typeof setInterval> | null = null;
 
     // Order detail popup
     detailVisible = false;
@@ -73,8 +77,19 @@ export class OnlineOrderHistoryComponent implements OnInit {
             void this.loadStoreHeader(this.branchId);
         }
 
+        this.clockTimer = setInterval(() => {
+            this.nowMs = Date.now();
+        }, 1000);
+
         if (this.phone.length >= 7) {
             void this.search();
+        }
+    }
+
+    ngOnDestroy(): void {
+        if (this.clockTimer) {
+            clearInterval(this.clockTimer);
+            this.clockTimer = null;
         }
     }
 
@@ -138,7 +153,11 @@ export class OnlineOrderHistoryComponent implements OnInit {
     /** Delivered order totals only (actual spend). */
     get totalMoneySpent(): number {
         return this.orders
-            .filter((o) => o.status === CustomerOrderStatus.Delivered)
+            .filter(
+                (o) =>
+                    o.status === CustomerOrderStatus.Completed ||
+                    o.status === CustomerOrderStatus.Delivered
+            )
             .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
     }
 
@@ -238,7 +257,10 @@ export class OnlineOrderHistoryComponent implements OnInit {
         if (order.status === CustomerOrderStatus.Rejected) {
             return 'This order was cancelled by the store.';
         }
-        if (order.status === CustomerOrderStatus.Delivered) {
+        if (
+            order.status === CustomerOrderStatus.Delivered ||
+            order.status === CustomerOrderStatus.Completed
+        ) {
             return 'Enjoy your meal — thank you for ordering!';
         }
         if (
@@ -304,7 +326,10 @@ export class OnlineOrderHistoryComponent implements OnInit {
     }
 
     isDelivered(order: CustomerOrderDto | null | undefined): boolean {
-        return order?.status === CustomerOrderStatus.Delivered;
+        return (
+            order?.status === CustomerOrderStatus.Delivered ||
+            order?.status === CustomerOrderStatus.Completed
+        );
     }
 
     canReorder(order: CustomerOrderDto): boolean {
@@ -400,6 +425,7 @@ export class OnlineOrderHistoryComponent implements OnInit {
 
     statusLabel(order: CustomerOrderDto): string {
         if (order.status === CustomerOrderStatus.Rejected) return 'Cancelled';
+        if (order.status === CustomerOrderStatus.Completed) return 'Completed';
         if (order.status === CustomerOrderStatus.Delivered) return 'Delivered';
         if (
             order.status === CustomerOrderStatus.Approved ||
@@ -412,7 +438,12 @@ export class OnlineOrderHistoryComponent implements OnInit {
 
     statusClass(order: CustomerOrderDto): string {
         if (order.status === CustomerOrderStatus.Rejected) return 'is-rejected';
-        if (order.status === CustomerOrderStatus.Delivered) return 'is-done';
+        if (
+            order.status === CustomerOrderStatus.Delivered ||
+            order.status === CustomerOrderStatus.Completed
+        ) {
+            return 'is-done';
+        }
         if (
             order.status === CustomerOrderStatus.Approved ||
             order.status === CustomerOrderStatus.InProgress
@@ -422,6 +453,43 @@ export class OnlineOrderHistoryComponent implements OnInit {
         return 'is-pending';
     }
 
+    /** Live elapsed time for open orders; empty for delivered/completed/cancelled. */
+    showRunningTimer(order: CustomerOrderDto): boolean {
+        return (
+            order.status !== CustomerOrderStatus.Delivered &&
+            order.status !== CustomerOrderStatus.Completed &&
+            order.status !== CustomerOrderStatus.Rejected
+        );
+    }
+
+    elapsedLabel(order: CustomerOrderDto): string {
+        const start = this.parseOrderDate(order);
+        if (!start) {
+            return '';
+        }
+        // Touch nowMs so Angular refreshes the label each second.
+        const totalSec = Math.max(0, Math.floor((this.nowMs - start.getTime()) / 1000));
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        if (mins < 1) {
+            return `${secs}s`;
+        }
+        if (mins < 60) {
+            return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+        }
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        return `${h}h ${m}m`;
+    }
+
+    isElapsedLate(order: CustomerOrderDto): boolean {
+        const start = this.parseOrderDate(order);
+        if (!start) {
+            return false;
+        }
+        return this.nowMs - start.getTime() > 45 * 60 * 1000;
+    }
+
     itemSummary(order: CustomerOrderDto): string {
         const lines = order.lines || [];
         if (!lines.length) return 'No items listed';
@@ -429,6 +497,41 @@ export class OnlineOrderHistoryComponent implements OnInit {
         const head = `${first.quantity}× ${first.productName || 'Item'}`;
         if (lines.length === 1) return head;
         return `${head}, +${lines.length - 1} more`;
+    }
+
+    hasRiderPhone(order?: CustomerOrderDto | null): boolean {
+        return !!(order?.riderPhone || '').trim();
+    }
+
+    riderCallHref(order?: CustomerOrderDto | null): string {
+        const dial = this.normalizeDialNumber(order?.riderPhone || '');
+        return dial ? `tel:${dial}` : '#';
+    }
+
+    riderWhatsAppHref(order?: CustomerOrderDto | null): string {
+        const phone = this.toWhatsAppNumber(order?.riderPhone || '');
+        if (!phone) {
+            return '#';
+        }
+        const orderNo = order?.orderNo || order?.id || '';
+        const text = encodeURIComponent(`Hi, regarding order ${orderNo}`);
+        return `https://wa.me/${phone}?text=${text}`;
+    }
+
+    private normalizeDialNumber(phone: string): string {
+        return (phone || '').replace(/[^\d+]/g, '');
+    }
+
+    private toWhatsAppNumber(phone: string): string {
+        let digits = (phone || '').replace(/\D/g, '');
+        if (!digits) {
+            return '';
+        }
+        // Local PK mobiles like 03xxxxxxxxx → 923xxxxxxxxx
+        if (digits.startsWith('0') && digits.length >= 10) {
+            digits = `92${digits.substring(1)}`;
+        }
+        return digits;
     }
 
     /** Friendly label: Today / Yesterday / weekday name. */

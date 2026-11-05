@@ -217,58 +217,362 @@
     }
 }
 
-.order-card {
+.rd-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+}
+
+.rd-order-card {
+    display: flex;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: #fff;
     border: 1px solid #e2e8f0;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 
     &:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.07);
+        transform: translateY(-3px);
+        border-color: #fdba74;
+        box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
     }
 }
 
-.distance-pill {
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.2rem 0.55rem;
-    border-radius: 999px;
-    background: #e0f2fe;
-    color: #0369a1;
-    display: inline-flex;
-    align-items: center;
+.rd-order-card__accent {
+    width: 6px;
+    flex-shrink: 0;
+
+    &.is-new {
+        background: linear-gradient(180deg, #fbbf24, #d97706);
+    }
+
+    &.is-transit {
+        background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+    }
 }
 
-.status-chip {
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 0.25rem 0.65rem;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
+.rd-order-card__body {
+    flex: 1;
+    min-width: 0;
+    padding: 0.85rem 0.95rem 0.95rem;
+}
 
-    &.status-assigned {
+.rd-order-card__top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.7rem;
+}
+
+.rd-order-card__heading {
+    flex: 1;
+    min-width: 0;
+}
+
+.rd-order-no-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.rd-order-no {
+    font-weight: 800;
+    font-size: 1rem;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.rd-status {
+    font-size: 0.66rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+
+    &.is-new {
         background: #fef3c7;
         color: #b45309;
-        border: 1px solid #fde68a;
     }
 
-    &.status-transit {
+    &.is-transit {
         background: #dbeafe;
         color: #1d4ed8;
-        border: 1px solid #bfdbfe;
     }
 }
 
-.call-btn {
-    font-weight: 600;
-    padding: 0.45rem 0.85rem;
-    font-size: 0.85rem;
+.rd-meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
 }
 
-.navigate-btn {
+.rd-elapsed,
+.rd-distance {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.rd-elapsed {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+
+    &.is-late {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #b91c1c;
+    }
+}
+
+.rd-distance {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.rd-day-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 3.35rem;
+    min-height: 3.6rem;
+    flex-shrink: 0;
+    border-radius: 0.85rem;
+    overflow: hidden;
+    color: #fff;
+    background: linear-gradient(160deg, #334155 0%, #0f172a 100%);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+
+    &__weekday {
+        width: 100%;
+        text-align: center;
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.25rem 0.15rem 0.18rem;
+        background: rgba(255, 255, 255, 0.14);
+        line-height: 1;
+    }
+
+    &__num {
+        font-size: 1.25rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-top: 0.3rem;
+    }
+
+    &__label {
+        font-size: 0.55rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        opacity: 0.92;
+        margin: 0.22rem 0.15rem 0.3rem;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &.is-today {
+        background: linear-gradient(160deg, #fb7185 0%, #e23744 55%, #be123c 100%);
+    }
+
+    &.is-yesterday {
+        background: linear-gradient(160deg, #fb923c 0%, #ea580c 55%, #c2410c 100%);
+    }
+
+    &.is-weekday {
+        background: linear-gradient(160deg, #6366f1 0%, #4f46e5 50%, #3730a3 100%);
+    }
+}
+
+.rd-items {
+    margin-bottom: 0.65rem;
+}
+
+.rd-items-label {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 0.3rem;
+}
+
+.rd-item-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.rd-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.22rem 0.5rem;
+    border-radius: 999px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    font-size: 0.72rem;
+    font-weight: 700;
+
+    &--more {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        color: #475569;
+    }
+}
+
+.rd-items-empty {
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+.rd-customer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    margin-bottom: 0.55rem;
+    padding: 0.6rem 0.7rem;
+    border-radius: 0.8rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+}
+
+.rd-customer__label {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.rd-customer__name {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+}
+
+.rd-customer__addr {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+    margin-top: 0.15rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    padding: 0.45rem 0.85rem;
-    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.3;
+
+    i {
+        color: #ef4444;
+        margin-top: 0.1rem;
+        flex-shrink: 0;
+    }
+}
+
+.rd-customer__actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.rd-icon-btn {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    color: #fff;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+
+    &--call {
+        background: #059669;
+    }
+
+    &--nav {
+        background: #2563eb;
+    }
+
+    &:active {
+        transform: scale(0.96);
+    }
+}
+
+.rd-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin-bottom: 0.55rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.65rem;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.35;
+
+    i {
+        margin-top: 0.1rem;
+        flex-shrink: 0;
+    }
+}
+
+.rd-foot {
+    margin-bottom: 0.6rem;
+}
+
+.rd-pay {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.rd-pay__label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.rd-pay__amount {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #15803d;
+    font-variant-numeric: tabular-nums;
+}
+
+.rd-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+}
+
+.rd-action-btn {
+    width: 100%;
+    justify-content: center;
+    font-weight: 800 !important;
+    border-radius: 0.7rem !important;
 }
 
 .empty-state {
@@ -304,33 +608,17 @@
         }
     }
 
-    .order-card {
-        .order-card-header {
-            padding: 0.75rem !important;
-        }
-
-        .order-number {
-            font-size: 1rem !important;
-        }
-
-        .status-chip {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.5rem;
-        }
-
-        .distance-pill {
-            font-size: 0.7rem;
-            padding: 0.15rem 0.45rem;
-        }
+    .rd-order-card__body {
+        padding: 0.75rem 0.8rem 0.85rem;
     }
 
-    .actions-row {
-        .p-button-lg {
-            font-size: 0.875rem !important;
-            padding: 0.5rem 0.25rem !important;
-            min-height: 2.75rem !important;
-            height: auto !important;
-        }
+    .rd-day-badge {
+        width: 3.1rem;
+        min-height: 3.35rem;
+    }
+
+    .rd-actions {
+        grid-template-columns: 1fr 1fr;
     }
 }
 
@@ -361,16 +649,8 @@
         }
     }
 
-    .actions-row {
-        .p-button-lg {
-            font-size: 0.75rem !important;
-            letter-spacing: -0.2px;
-
-            .p-button-icon {
-                font-size: 0.75rem !important;
-                margin-right: 0.25rem !important;
-            }
-        }
+    .rd-pay__amount {
+        font-size: 0.95rem;
     }
 }
 

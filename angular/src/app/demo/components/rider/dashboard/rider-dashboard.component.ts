@@ -42,12 +42,13 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
     selectedOrderForComplete: RiderOrderDto | null = null;
     deliveryNotes = '';
     deliveryRating: number | null = null;
-    paymentReceivedAmount: number = 0;
 
     // Auto-refresh interval
     private pollInterval: any;
+    private clockTimer: ReturnType<typeof setInterval> | null = null;
     private branchSub?: Subscription;
     autoRefreshEnabled = true;
+    nowMs = Date.now();
 
     readonly OrderStatus = RiderOrderStatus;
 
@@ -82,12 +83,19 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
                 this.loadData(true);
             }
         }, 25000);
+        this.clockTimer = setInterval(() => {
+            this.nowMs = Date.now();
+        }, 1000);
     }
 
     ngOnDestroy(): void {
         this.branchSub?.unsubscribe();
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
+        }
+        if (this.clockTimer) {
+            clearInterval(this.clockTimer);
+            this.clockTimer = null;
         }
     }
 
@@ -190,7 +198,6 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
         this.selectedOrderForComplete = order;
         this.deliveryNotes = '';
         this.deliveryRating = null;
-        this.paymentReceivedAmount = order?.totalAmount ?? 0;
         this.completeDialogVisible = true;
     }
 
@@ -202,7 +209,6 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
         this.selectedOrderForComplete = null;
         this.deliveryNotes = '';
         this.deliveryRating = null;
-        this.paymentReceivedAmount = 0;
     }
 
     async submitCompleteDelivery(): Promise<void> {
@@ -216,13 +222,12 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
             await this.riderService.completeDelivery(
                 order.id,
                 this.deliveryNotes,
-                this.deliveryRating,
-                this.paymentReceivedAmount
+                this.deliveryRating
             );
             this.messageService.add({
                 severity: 'success',
-                summary: 'Delivery Completed',
-                detail: `Order ${order.orderNo} marked as Delivered!`,
+                summary: 'Delivered',
+                detail: `Order ${order.orderNo} marked as Delivered. Admin will complete payment.`,
             });
             this.completeDialogVisible = false;
             this.selectedOrderForComplete = null;
@@ -235,7 +240,7 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
                 summary: 'Action Failed',
                 detail:
                     error?.error?.error?.message ||
-                    'Could not complete delivery.',
+                    'Could not mark order as delivered.',
             });
         } finally {
             this.actionInProgress[order.id] = false;
@@ -307,5 +312,113 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
         const diffHours = Math.floor(diffMins / 60);
         if (diffHours < 24) return `${diffHours}h ago`;
         return d.toLocaleDateString();
+    }
+
+    paymentLabel(order: RiderOrderDto): string {
+        const raw = (order.paymentMethod || '').trim();
+        if (!raw) return 'Payment';
+        if (/online/i.test(raw)) return 'Online Payment';
+        if (/cash/i.test(raw)) return 'Cash on Delivery';
+        return raw;
+    }
+
+    shortAddress(order: RiderOrderDto): string {
+        const area = (order.deliveryAreaName || '').trim();
+        const addr = (order.customerAddress || '').trim();
+        if (area && addr) {
+            const short = addr.length > 42 ? `${addr.slice(0, 40)}…` : addr;
+            return `${area} · ${short}`;
+        }
+        if (area) return area;
+        if (!addr) return 'Address not specified';
+        return addr.length > 56 ? `${addr.slice(0, 54)}…` : addr;
+    }
+
+    /** Prefer payment/area notes; strip address/maps clutter from order notes. */
+    displayNotes(order: RiderOrderDto): string {
+        const raw = (order.notes || '').trim();
+        if (!raw) return '';
+        const cleaned = raw
+            .replace(/📍\s*Addr:[^|]*/gi, '')
+            .replace(/🗺️\s*Maps:[^|]*/gi, '')
+            .replace(/https?:\/\/\S+/gi, '')
+            .replace(/\|\s*/g, ' · ')
+            .replace(/\s{2,}/g, ' ')
+            .replace(/^[·\s]+|[·\s]+$/g, '')
+            .trim();
+        return cleaned;
+    }
+
+    elapsedLabel(order: RiderOrderDto): string {
+        const start = this.orderStartMs(order);
+        if (!start) return this.getTimeAgo(order);
+        const totalSec = Math.max(0, Math.floor((this.nowMs - start) / 1000));
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        if (mins < 1) return `${secs}s`;
+        if (mins < 60) return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        return `${h}h ${m}m`;
+    }
+
+    isElapsedLate(order: RiderOrderDto): boolean {
+        const start = this.orderStartMs(order);
+        if (!start) return false;
+        return this.nowMs - start > 45 * 60 * 1000;
+    }
+
+    orderDayLabel(order: RiderOrderDto): string {
+        const d = this.parseOrderDate(order);
+        if (!d) return '';
+        const diff = this.dayDiffFromToday(d);
+        if (diff === 0) return 'Today';
+        if (diff === 1) return 'Yesterday';
+        return d.toLocaleDateString(undefined, { weekday: 'long' });
+    }
+
+    orderWeekdayShort(order: RiderOrderDto): string {
+        const d = this.parseOrderDate(order);
+        if (!d) return '';
+        return d.toLocaleDateString(undefined, { weekday: 'short' });
+    }
+
+    orderDayNumber(order: RiderOrderDto): string {
+        const d = this.parseOrderDate(order);
+        if (!d) return '';
+        return String(d.getDate());
+    }
+
+    orderDayTone(order: RiderOrderDto): string {
+        const d = this.parseOrderDate(order);
+        if (!d) return 'is-weekday';
+        const diff = this.dayDiffFromToday(d);
+        if (diff === 0) return 'is-today';
+        if (diff === 1) return 'is-yesterday';
+        return 'is-weekday';
+    }
+
+    private orderStartMs(order: RiderOrderDto): number | null {
+        const assigned = order.riderAssignedTime
+            ? new Date(order.riderAssignedTime)
+            : null;
+        if (assigned && !isNaN(assigned.getTime())) {
+            return assigned.getTime();
+        }
+        const ordered = this.parseOrderDate(order);
+        return ordered ? ordered.getTime() : null;
+    }
+
+    private parseOrderDate(order: RiderOrderDto): Date | null {
+        if (!order?.orderDate) return null;
+        const d = new Date(order.orderDate);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    private dayDiffFromToday(date: Date): number {
+        const today = new Date();
+        const a = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const b = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        return Math.round((a.getTime() - b.getTime()) / 86400000);
     }
 }

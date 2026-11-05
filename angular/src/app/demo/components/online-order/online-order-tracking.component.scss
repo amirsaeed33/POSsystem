@@ -403,6 +403,48 @@
   }
 }
 
+.ot-info-row--rider {
+  align-items: flex-start;
+}
+
+.ot-rider-detail {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: end;
+  text-align: right;
+}
+
+.ot-rider-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+.ot-rider-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-decoration: none;
+  line-height: 1;
+
+  &--call {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+
+  &--wa {
+    background: #25d366;
+    color: #fff;
+    border: 1px solid #1ebe57;
+  }
+}
+
 .ot-notes {
   margin-top: 0.55rem;
   padding: 0.7rem 0.8rem;

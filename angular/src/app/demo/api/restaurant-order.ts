@@ -45,6 +45,7 @@ export interface RestaurantOrderDto {
     kitchenStatusName?: string;
     kitchenReadyTime?: string | null;
     customerId?: number | null;
+    customerOrderId?: number | null;
     customerName?: string;
     waiterName?: string;
     notes?: string;

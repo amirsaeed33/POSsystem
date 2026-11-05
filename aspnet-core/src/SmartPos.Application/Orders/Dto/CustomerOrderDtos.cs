@@ -66,6 +66,16 @@ namespace SmartPos.Orders.Dto
         public string Reason { get; set; }
     }
 
+    /// <summary>Admin completes a delivered order and posts payment into Sales.</summary>
+    public class CompleteCustomerOrderInput
+    {
+        [Required]
+        public int OrderId { get; set; }
+
+        /// <summary>Optional cash/card amount received. Null = full order total.</summary>
+        public decimal? PaymentReceivedAmount { get; set; }
+    }
+
     public class OnlineBranchDto
     {
         public int Id { get; set; }

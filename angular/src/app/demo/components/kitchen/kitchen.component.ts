@@ -13,7 +13,7 @@ import { ProductService } from '../../service/product.service';
 import { RestaurantOrderService } from '../../service/restaurant-order.service';
 import { ThermalPrintService } from '../../service/thermal-print.service';
 
-type KitchenFilter = 'all' | 'dinein' | 'takeaway' | 'car';
+type KitchenFilter = 'all' | 'dinein' | 'takeaway' | 'car' | 'online';
 
 @Component({
     selector: 'app-kitchen',
@@ -84,6 +84,8 @@ export class KitchenComponent implements OnInit, OnDestroy {
             list = list.filter((o) => o.orderType === OrderTypes.Takeaway);
         } else if (this.filter === 'car') {
             list = list.filter((o) => o.orderType === OrderTypes.CarService);
+        } else if (this.filter === 'online') {
+            list = list.filter((o) => o.orderType === OrderTypes.Delivery);
         }
         return list;
     }
@@ -102,6 +104,10 @@ export class KitchenComponent implements OnInit, OnDestroy {
 
     get carCount(): number {
         return (this.orders || []).filter((o) => o.orderType === OrderTypes.CarService).length;
+    }
+
+    get onlineCount(): number {
+        return (this.orders || []).filter((o) => o.orderType === OrderTypes.Delivery).length;
     }
 
     async loadOrders(silent = false): Promise<void> {
@@ -147,6 +153,9 @@ export class KitchenComponent implements OnInit, OnDestroy {
     }
 
     orderTitle(order: RestaurantOrderDto): string {
+        if (order.orderType === OrderTypes.Delivery) {
+            return order.tokenNo != null ? `Online #${order.tokenNo}` : (order.orderNo || 'Online');
+        }
         if (order.orderType === OrderTypes.Takeaway) {
             return order.tokenNo != null ? `Token #${order.tokenNo}` : order.orderNo;
         }
@@ -159,6 +168,41 @@ export class KitchenComponent implements OnInit, OnDestroy {
 
     hasToken(order: RestaurantOrderDto): boolean {
         return order?.tokenNo != null && Number(order.tokenNo) > 0;
+    }
+
+    /** Kitchen footer note — strip customer delivery address / maps for online tickets. */
+    kitchenCardNote(order: RestaurantOrderDto): string {
+        const raw = (order?.notes || '').trim();
+        if (!raw) {
+            return '';
+        }
+        const isOnline =
+            order?.orderType === OrderTypes.Delivery ||
+            !!(order as any)?.customerOrderId;
+        if (!isOnline) {
+            return raw;
+        }
+
+        const parts = raw
+            .split(/\s*\|\s*/)
+            .map((p) => p.trim())
+            .filter(Boolean)
+            .filter((p) => {
+                const lower = p.toLowerCase();
+                if (lower.startsWith('addr:') || lower.includes('addr:')) return false;
+                if (lower.includes('maps.google') || lower.includes('google.com/maps')) return false;
+                if (lower.includes('🗺️') || lower.includes('maps:')) return false;
+                if (lower.startsWith('customer:')) return false; // already shown via customerName
+                if (lower.includes('niaz baig') || lower.includes('tehsil') || lower.includes('district')) {
+                    // legacy address blobs without Addr: prefix
+                    if (!lower.startsWith('payment:') && !lower.startsWith('area:')) return false;
+                }
+                return true;
+            })
+            .map((p) => p.replace(/^[^\w]*\s*/, '').trim())
+            .filter(Boolean);
+
+        return parts.join(' · ');
     }
 
     printToken(order: RestaurantOrderDto, event?: Event): void {
@@ -193,19 +237,19 @@ export class KitchenComponent implements OnInit, OnDestroy {
     }
 
     orderTypeLabel(order: RestaurantOrderDto): string {
+        if (order.orderType === OrderTypes.Delivery) return 'Online';
         if (order.orderTypeName) {
             return order.orderTypeName;
         }
         if (order.orderType === OrderTypes.Takeaway) return 'Takeaway';
         if (order.orderType === OrderTypes.CarService) return 'Car';
-        if (order.orderType === OrderTypes.Delivery) return 'Delivery';
         return 'Dine-in';
     }
 
     orderTypeClass(order: RestaurantOrderDto): string {
         if (order.orderType === OrderTypes.Takeaway) return 'type-takeaway';
         if (order.orderType === OrderTypes.CarService) return 'type-car';
-        if (order.orderType === OrderTypes.Delivery) return 'type-delivery';
+        if (order.orderType === OrderTypes.Delivery) return 'type-online';
         return 'type-dinein';
     }
 

@@ -89,6 +89,40 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
         this.backToStore();
     }
 
+    hasRiderPhone(order?: CustomerOrderDto | null): boolean {
+        return !!(order?.riderPhone || '').trim();
+    }
+
+    riderCallHref(order?: CustomerOrderDto | null): string {
+        const dial = this.normalizeDialNumber(order?.riderPhone || '');
+        return dial ? `tel:${dial}` : '#';
+    }
+
+    riderWhatsAppHref(order?: CustomerOrderDto | null): string {
+        const phone = this.toWhatsAppNumber(order?.riderPhone || '');
+        if (!phone) {
+            return '#';
+        }
+        const orderNo = order?.orderNo || order?.id || '';
+        const text = encodeURIComponent(`Hi, regarding order ${orderNo}`);
+        return `https://wa.me/${phone}?text=${text}`;
+    }
+
+    private normalizeDialNumber(phone: string): string {
+        return (phone || '').replace(/[^\d+]/g, '');
+    }
+
+    private toWhatsAppNumber(phone: string): string {
+        let digits = (phone || '').replace(/\D/g, '');
+        if (!digits) {
+            return '';
+        }
+        if (digits.startsWith('0') && digits.length >= 10) {
+            digits = `92${digits.substring(1)}`;
+        }
+        return digits;
+    }
+
     async loadOrder(orderNo: string, silent = false): Promise<void> {
         if (!silent) {
             this.loading = true;
@@ -217,7 +251,9 @@ export class OnlineOrderTrackingComponent implements OnInit, OnDestroy {
         if (!order) return false;
         return (
             order.status === CustomerOrderStatus.Delivered ||
-            Boolean(order.statusName?.toLowerCase().includes('deliver'))
+            order.status === CustomerOrderStatus.Completed ||
+            Boolean(order.statusName?.toLowerCase().includes('deliver')) ||
+            Boolean(order.statusName?.toLowerCase().includes('complete'))
         );
     }
 

@@ -30,6 +30,7 @@ using SmartPos.Emailing;
 using SmartPos.Staffs;
 using SmartPos.Categories;
 using SmartPos.Deals;
+using SmartPos.Restaurant;
 using Abp.Timing;
 
 namespace SmartPos.Orders
@@ -63,6 +64,7 @@ namespace SmartPos.Orders
         private readonly ITokenNumberManager _tokenNumberManager;
         private readonly IRepository<Deal> _dealRepository;
         private readonly IRepository<DealDetail> _dealDetailRepository;
+        private readonly IRepository<RestaurantOrder> _restaurantOrderRepository;
 
         public CustomerOrderAppService(
             IRepository<CustomerOrder> repository,
@@ -87,13 +89,15 @@ namespace SmartPos.Orders
             ICacheManager cacheManager,
             ITokenNumberManager tokenNumberManager,
             IRepository<Deal> dealRepository,
-            IRepository<DealDetail> dealDetailRepository)
+            IRepository<DealDetail> dealDetailRepository,
+            IRepository<RestaurantOrder> restaurantOrderRepository)
             : base(repository)
         {
             _lineRepository = lineRepository;
             _tokenNumberManager = tokenNumberManager;
             _dealRepository = dealRepository;
             _dealDetailRepository = dealDetailRepository;
+            _restaurantOrderRepository = restaurantOrderRepository;
             _productRepository = productRepository;
             _customerRepository = customerRepository;
             _userRepository = userRepository;
@@ -937,6 +941,16 @@ namespace SmartPos.Orders
                         order.RiderId = longestIdleRider.RiderId;
                         order.RiderName = longestIdleRider.RiderName;
                         order.RiderPhone = longestIdleRider.RiderPhone;
+                        // Ensure phone is captured even if the availability DTO omitted it.
+                        if (string.IsNullOrWhiteSpace(order.RiderPhone) && longestIdleRider.RiderId > 0)
+                        {
+                            var riderStaff = await _staffRepository.FirstOrDefaultAsync(longestIdleRider.RiderId);
+                            order.RiderPhone = riderStaff?.Phone;
+                            if (string.IsNullOrWhiteSpace(order.RiderName))
+                            {
+                                order.RiderName = riderStaff?.Name;
+                            }
+                        }
                         order.RiderAssignedTime = Clock.Now;
                         order.Status = CustomerOrderStatus.InProgress; // Out for delivery
                     }
@@ -948,6 +962,12 @@ namespace SmartPos.Orders
                 else
                 {
                     order.Status = CustomerOrderStatus.Approved;
+                }
+
+                // Restaurant online orders go to Kitchen Display (KOT) for preparing.
+                if (isRestaurant)
+                {
+                    await CreateKitchenTicketForOnlineOrderAsync(order);
                 }
 
                 await CurrentUnitOfWork.SaveChangesAsync();
@@ -990,6 +1010,9 @@ namespace SmartPos.Orders
             }
         }
 
+        /// <summary>
+        /// Admin/staff: mark food as delivered (no sale). Payment is posted via CompleteAsync.
+        /// </summary>
         public async Task DeliverAsync(EntityDto<int> input)
         {
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
@@ -1008,18 +1031,196 @@ namespace SmartPos.Orders
                 await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
 
                 order.Status = CustomerOrderStatus.Delivered;
+                await SettleKitchenTicketForOnlineOrderAsync(order.Id);
                 await CurrentUnitOfWork.SaveChangesAsync();
-
-                if (order.SaleId == null)
-                {
-                    await _saleAppService.CreateSaleForCustomerOrderAsync(order.Id);
-                }
 
                 await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
                     order.Id,
                     order.OrderNo,
                     order.BranchId,
                     CustomerOrderStatus.Delivered));
+            }
+        }
+
+        /// <summary>
+        /// Admin only: mark order Completed and insert payment/sale into the system.
+        /// Prefer completing after rider (or staff) marked Delivered.
+        /// </summary>
+        public async Task CompleteAsync(CompleteCustomerOrderInput input)
+        {
+            if (input == null || input.OrderId <= 0)
+            {
+                throw new UserFriendlyException("Order is required.");
+            }
+
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var order = await GetEntityByIdAsync(input.OrderId);
+                if (order == null)
+                {
+                    throw new UserFriendlyException("Order not found.");
+                }
+
+                if (order.Status == CustomerOrderStatus.Completed)
+                {
+                    throw new UserFriendlyException("This order is already completed.");
+                }
+
+                if (order.Status == CustomerOrderStatus.Rejected || order.Status == CustomerOrderStatus.Pending)
+                {
+                    throw new UserFriendlyException("Pending or rejected orders cannot be completed.");
+                }
+
+                // Delivered is the normal path; Approved/InProgress allowed for counter/admin-handled orders.
+                if (order.Status != CustomerOrderStatus.Delivered &&
+                    order.Status != CustomerOrderStatus.Approved &&
+                    order.Status != CustomerOrderStatus.InProgress)
+                {
+                    throw new UserFriendlyException("Only delivered (or in-progress) orders can be completed.");
+                }
+
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+                if (order.Status != CustomerOrderStatus.Delivered)
+                {
+                    await SettleKitchenTicketForOnlineOrderAsync(order.Id);
+                }
+
+                order.Status = CustomerOrderStatus.Completed;
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                if (order.SaleId == null || input.PaymentReceivedAmount.HasValue)
+                {
+                    await _saleAppService.CreateSaleForCustomerOrderAsync(order.Id, input.PaymentReceivedAmount);
+                }
+
+                await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
+                    order.Id,
+                    order.OrderNo,
+                    order.BranchId,
+                    CustomerOrderStatus.Completed));
+            }
+        }
+
+        /// <summary>
+        /// Creates an open Delivery restaurant ticket (sent to kitchen) so Kitchen Display can prepare the order.
+        /// </summary>
+        private async Task CreateKitchenTicketForOnlineOrderAsync(CustomerOrder order)
+        {
+            if (order == null || order.Lines == null || !order.Lines.Any())
+            {
+                return;
+            }
+
+            var alreadySent = await _restaurantOrderRepository.GetAll()
+                .AsNoTracking()
+                .AnyAsync(o =>
+                    o.CustomerOrderId == order.Id &&
+                    (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed));
+            if (alreadySent)
+            {
+                return;
+            }
+
+            var productIds = order.Lines.Select(l => l.ProductId).Distinct().ToList();
+            var productNames = await _productRepository.GetAll()
+                .AsNoTracking()
+                .Where(p => productIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Name);
+
+            var now = Clock.Now;
+            var tokenNo = order.TokenNo;
+            if (!tokenNo.HasValue)
+            {
+                tokenNo = await _tokenNumberManager.AllocateNextTokenNoAsync(order.BranchId);
+                order.TokenNo = tokenNo;
+            }
+
+            // Kitchen only needs prep context — never copy delivery address / maps from customer notes.
+            var noteParts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(order.PaymentMethod))
+            {
+                noteParts.Add($"Payment: {FormatPaymentMethodLabel(order.PaymentMethod)}");
+            }
+            if (!string.IsNullOrWhiteSpace(order.DeliveryAreaName))
+            {
+                noteParts.Add($"Area: {order.DeliveryAreaName.Trim()}");
+            }
+
+            var kitchenOrder = new RestaurantOrder
+            {
+                TenantId = order.TenantId,
+                BranchId = order.BranchId,
+                OrderNo = string.IsNullOrWhiteSpace(order.OrderNo)
+                    ? $"ONL-{now:yyMMddHHmm}-{order.Id}"
+                    : order.OrderNo,
+                TokenNo = tokenNo,
+                OrderType = OrderType.Delivery,
+                Status = RestaurantOrderStatus.Open,
+                KitchenStatus = RestaurantKitchenStatus.InProgress,
+                CustomerId = order.CustomerId,
+                CustomerOrderId = order.Id,
+                WaiterName = "Online",
+                TableNo = "Online Delivery",
+                Notes = noteParts.Count > 0 ? string.Join(" · ", noteParts) : null,
+                SubTotal = order.SubTotal,
+                GrandTotal = order.TotalAmount,
+                LastPrintedTime = now,
+                LastPrintedBy = "Online Approve",
+                Lines = new List<RestaurantOrderLine>()
+            };
+
+            foreach (var line in order.Lines.Where(l => l.Quantity > 0))
+            {
+                productNames.TryGetValue(line.ProductId, out var productName);
+                kitchenOrder.Lines.Add(new RestaurantOrderLine
+                {
+                    TenantId = order.TenantId,
+                    ProductId = line.ProductId,
+                    ProductName = string.IsNullOrWhiteSpace(productName)
+                        ? $"Product #{line.ProductId}"
+                        : productName,
+                    Quantity = line.Quantity,
+                    UnitPrice = line.UnitPrice,
+                    LineTotal = line.LineTotal,
+                    IsSentToKitchen = true,
+                    PrintedQuantity = line.Quantity,
+                    SentToKitchenTime = now
+                });
+            }
+
+            if (!kitchenOrder.Lines.Any())
+            {
+                return;
+            }
+
+            await _restaurantOrderRepository.InsertAsync(kitchenOrder);
+        }
+
+        private async Task SettleKitchenTicketForOnlineOrderAsync(int customerOrderId)
+        {
+            var tickets = await _restaurantOrderRepository.GetAll()
+                .Where(o =>
+                    o.CustomerOrderId == customerOrderId &&
+                    (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed))
+                .ToListAsync();
+
+            if (tickets.Count == 0)
+            {
+                return;
+            }
+
+            var now = Clock.Now;
+            foreach (var ticket in tickets)
+            {
+                ticket.Status = RestaurantOrderStatus.Settled;
+                ticket.SettledTime = now;
+                if (ticket.KitchenStatus != RestaurantKitchenStatus.ReadyToPick)
+                {
+                    ticket.KitchenStatus = RestaurantKitchenStatus.ReadyToPick;
+                    ticket.KitchenReadyTime ??= now;
+                }
+                await _restaurantOrderRepository.UpdateAsync(ticket);
             }
         }
 
@@ -1090,9 +1291,11 @@ namespace SmartPos.Orders
                 OrderNo = entity.OrderNo,
                 TokenNo = entity.TokenNo,
                 Status = entity.Status,
-                StatusName = (entity.Status == CustomerOrderStatus.Approved || entity.Status == CustomerOrderStatus.InProgress)
+                StatusName = entity.Status == CustomerOrderStatus.Approved || entity.Status == CustomerOrderStatus.InProgress
                     ? "In Progress"
-                    : entity.Status.ToString(),
+                    : entity.Status == CustomerOrderStatus.Completed
+                        ? "Completed"
+                        : entity.Status.ToString(),
                 SubTotal = entity.SubTotal,
                 DeliveryFee = entity.DeliveryFee,
                 DeliveryAreaId = entity.DeliveryAreaId,
@@ -1111,8 +1314,12 @@ namespace SmartPos.Orders
                 CustomerFeedbackComment = entity.CustomerFeedbackComment,
                 SaleId = entity.SaleId,
                 SaleInvoiceNo = entity.Sale?.InvoiceNo,
-                PaidAmount = entity.Sale != null ? Math.Round(entity.Sale.CashAmount + entity.Sale.CardAmount, 2) : (entity.Status == CustomerOrderStatus.Delivered ? entity.TotalAmount : 0m),
-                DueAmount = entity.Sale != null ? Math.Round(Math.Max(0m, entity.Sale.TotalAmount - (entity.Sale.CashAmount + entity.Sale.CardAmount)), 2) : (entity.Status == CustomerOrderStatus.Delivered ? 0m : entity.TotalAmount),
+                PaidAmount = entity.Sale != null
+                    ? Math.Round(entity.Sale.CashAmount + entity.Sale.CardAmount, 2)
+                    : (entity.Status == CustomerOrderStatus.Completed ? entity.TotalAmount : 0m),
+                DueAmount = entity.Sale != null
+                    ? Math.Round(Math.Max(0m, entity.Sale.TotalAmount - (entity.Sale.CashAmount + entity.Sale.CardAmount)), 2)
+                    : (entity.Status == CustomerOrderStatus.Completed ? 0m : entity.TotalAmount),
                 Latitude = entity.Latitude,
                 Longitude = entity.Longitude,
                 DistanceKm = entity.DistanceKm,
@@ -1262,6 +1469,7 @@ namespace SmartPos.Orders
                     }
                 }
 
+                await EnrichRiderContactAsync(new List<CustomerOrderDto> { dto });
                 return dto;
             }
         }
@@ -1319,7 +1527,96 @@ namespace SmartPos.Orders
                     .Take(take)
                     .ToList();
 
-                return matched.Select(MapToEntityDto).ToList();
+                var dtos = matched.Select(MapToEntityDto).ToList();
+                await EnrichRiderContactAsync(dtos);
+                return dtos;
+            }
+        }
+
+        /// <summary>
+        /// Backfill missing rider phone from Staff (and linked user) so customers can Call / WhatsApp.
+        /// </summary>
+        private async Task EnrichRiderContactAsync(List<CustomerOrderDto> orders)
+        {
+            if (orders == null || orders.Count == 0)
+            {
+                return;
+            }
+
+            var riderIds = orders
+                .Where(o => o.RiderId.HasValue && o.RiderId.Value > 0 && string.IsNullOrWhiteSpace(o.RiderPhone))
+                .Select(o => o.RiderId.Value)
+                .Distinct()
+                .ToList();
+            if (riderIds.Count == 0)
+            {
+                return;
+            }
+
+            var staffRows = await _staffRepository.GetAll()
+                .AsNoTracking()
+                .Where(s => riderIds.Contains(s.Id))
+                .Select(s => new { s.Id, s.Name, s.Phone, s.UserId })
+                .ToListAsync();
+
+            var userIds = staffRows
+                .Where(s => s.UserId.HasValue && s.UserId.Value > 0 && string.IsNullOrWhiteSpace(s.Phone))
+                .Select(s => s.UserId.Value)
+                .Distinct()
+                .ToList();
+
+            Dictionary<long, string> userPhones = new Dictionary<long, string>();
+            if (userIds.Count > 0)
+            {
+                userPhones = await _userRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(u => userIds.Contains(u.Id))
+                    .Select(u => new { u.Id, u.PhoneNumber })
+                    .ToDictionaryAsync(u => u.Id, u => u.PhoneNumber);
+            }
+
+            var phoneByRider = new Dictionary<int, string>();
+            var nameByRider = new Dictionary<int, string>();
+            foreach (var s in staffRows)
+            {
+                if (!string.IsNullOrWhiteSpace(s.Name))
+                {
+                    nameByRider[s.Id] = s.Name;
+                }
+
+                var phone = (s.Phone ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(phone) &&
+                    s.UserId.HasValue &&
+                    userPhones.TryGetValue(s.UserId.Value, out var up) &&
+                    !string.IsNullOrWhiteSpace(up))
+                {
+                    phone = up.Trim();
+                }
+
+                if (!string.IsNullOrWhiteSpace(phone))
+                {
+                    phoneByRider[s.Id] = phone;
+                }
+            }
+
+            foreach (var dto in orders)
+            {
+                if (!dto.RiderId.HasValue)
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.RiderName) &&
+                    nameByRider.TryGetValue(dto.RiderId.Value, out var name))
+                {
+                    dto.RiderName = name;
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.RiderPhone) &&
+                    phoneByRider.TryGetValue(dto.RiderId.Value, out var phone))
+                {
+                    dto.RiderPhone = phone;
+                }
             }
         }
 
@@ -2003,7 +2300,8 @@ namespace SmartPos.Orders
                     throw new UserFriendlyException($"No order found matching '{clean}'.");
                 }
 
-                if (order.Status != CustomerOrderStatus.Delivered)
+                if (order.Status != CustomerOrderStatus.Delivered &&
+                    order.Status != CustomerOrderStatus.Completed)
                 {
                     throw new UserFriendlyException("You can only rate a delivered order.");
                 }
@@ -2040,11 +2338,12 @@ namespace SmartPos.Orders
                 .OrderBy(s => s.Name)
                 .ToListAsync();
 
-            // Find all active orders currently assigned to a rider that are not yet Delivered or Rejected
+            // Find all active orders currently assigned to a rider that are not yet finished
             // Exclude currentOrderId so reassignment doesn't treat the rider as busy on the very order being edited
             var activeOrders = await Repository.GetAll()
                 .Where(o => o.RiderId.HasValue &&
                             o.Status != CustomerOrderStatus.Delivered &&
+                            o.Status != CustomerOrderStatus.Completed &&
                             o.Status != CustomerOrderStatus.Rejected)
                 .WhereIf(currentOrderId.HasValue, o => o.Id != currentOrderId.Value)
                 .Select(o => new { o.Id, o.OrderNo, RiderId = o.RiderId.Value })
@@ -2065,10 +2364,12 @@ namespace SmartPos.Orders
                 {
                     RiderId = o.RiderId.Value,
                     Status = o.Status,
-                    DeliveryTime = o.Status == CustomerOrderStatus.Delivered && o.LastModificationTime.HasValue
+                    DeliveryTime = (o.Status == CustomerOrderStatus.Delivered || o.Status == CustomerOrderStatus.Completed) &&
+                                   o.LastModificationTime.HasValue
                         ? o.LastModificationTime.Value
                         : (o.RiderAssignedTime ?? o.OrderDate),
-                    OrderTime = o.Status == CustomerOrderStatus.Delivered && o.LastModificationTime.HasValue
+                    OrderTime = (o.Status == CustomerOrderStatus.Delivered || o.Status == CustomerOrderStatus.Completed) &&
+                                o.LastModificationTime.HasValue
                         ? o.LastModificationTime.Value
                         : (o.RiderAssignedTime ?? o.OrderDate)
                 })
@@ -2079,8 +2380,9 @@ namespace SmartPos.Orders
                 .ToDictionary(g => g.Key, g => g.Max(x => x.OrderTime));
 
             var todayDeliveredByRider = riderOrders
-                .Where(o => o.Status == CustomerOrderStatus.Delivered &&
-                            (o.DeliveryTime.Date == today))
+                .Where(o =>
+                    (o.Status == CustomerOrderStatus.Delivered || o.Status == CustomerOrderStatus.Completed) &&
+                    (o.DeliveryTime.Date == today))
                 .GroupBy(o => o.RiderId)
                 .ToDictionary(g => g.Key, g => g.Count());
 
@@ -2195,6 +2497,7 @@ namespace SmartPos.Orders
                     o.RiderId == input.RiderId &&
                     o.Id != input.OrderId &&
                     o.Status != CustomerOrderStatus.Delivered &&
+                    o.Status != CustomerOrderStatus.Completed &&
                     o.Status != CustomerOrderStatus.Rejected);
 
                 if (busyOrder != null)

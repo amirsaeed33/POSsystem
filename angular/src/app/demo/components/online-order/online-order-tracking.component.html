@@ -114,9 +114,28 @@
                         <span>Branch</span>
                         <strong>{{ order.branchName }}</strong>
                     </div>
-                    <div class="ot-info-row" *ngIf="order.riderName">
+                    <div class="ot-info-row" *ngIf="order.riderName || order.riderPhone">
                         <span>Rider</span>
-                        <strong>{{ order.riderName }}{{ order.riderPhone ? ' · ' + order.riderPhone : '' }}</strong>
+                        <strong>{{ order.riderName || 'Assigned rider' }}</strong>
+                    </div>
+                    <div class="ot-info-row ot-info-row--rider" *ngIf="hasRiderPhone(order)">
+                        <span>Rider phone</span>
+                        <div class="ot-rider-detail">
+                            <strong>{{ order.riderPhone }}</strong>
+                            <div class="ot-rider-actions">
+                                <a class="ot-rider-btn ot-rider-btn--call" [href]="riderCallHref(order)">
+                                    <i class="pi pi-phone"></i> Call
+                                </a>
+                                <a
+                                    class="ot-rider-btn ot-rider-btn--wa"
+                                    [href]="riderWhatsAppHref(order)"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <i class="pi pi-whatsapp"></i> WhatsApp
+                                </a>
+                            </div>
+                        </div>
                     </div>
                     <div class="ot-notes" *ngIf="order.notes">{{ order.notes }}</div>
                     <a

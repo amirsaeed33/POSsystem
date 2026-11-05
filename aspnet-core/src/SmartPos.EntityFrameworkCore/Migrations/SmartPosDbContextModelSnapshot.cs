@@ -3991,6 +3991,9 @@ namespace SmartPos.Migrations
                     b.Property<int?>("CustomerId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CustomerOrderId")
+                        .HasColumnType("int");
+
                     b.Property<long?>("DeleterUserId")
                         .HasColumnType("bigint");
 

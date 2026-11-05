@@ -217,6 +217,14 @@
                                 <i class="pi pi-clock"></i>
                                 {{ order.orderDate | date: 'MMM d, y · h:mm a' }}
                             </div>
+                            <div
+                                class="oh-elapsed"
+                                *ngIf="showRunningTimer(order) && elapsedLabel(order)"
+                                [class.is-late]="isElapsedLate(order)"
+                            >
+                                <i class="pi pi-stopwatch"></i>
+                                <span>{{ elapsedLabel(order) }}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -233,17 +241,48 @@
                         </div>
                     </div>
 
-                    <div class="oh-meta" *ngIf="order.branchName || order.riderName || order.paymentMethod">
+                    <div class="oh-meta" *ngIf="order.branchName || order.paymentMethod">
                         <span *ngIf="order.branchName">
                             <i class="pi pi-map-marker"></i> {{ order.branchName }}
-                        </span>
-                        <span *ngIf="order.riderName">
-                            <i class="pi pi-user"></i> {{ order.riderName }}
                         </span>
                         <span *ngIf="order.paymentMethod">
                             <i class="pi pi-wallet"></i>
                             {{ order.paymentMethod === 'OnlinePayment' ? 'Online Payment' : 'Cash on Delivery' }}
                         </span>
+                    </div>
+                    <div
+                        class="oh-rider-card"
+                        *ngIf="order.riderName || order.riderPhone"
+                        (click)="$event.stopPropagation()"
+                    >
+                        <div class="oh-rider-card__info">
+                            <div class="oh-rider-card__label">Your rider</div>
+                            <div class="oh-rider-card__name">{{ order.riderName || 'Assigned rider' }}</div>
+                            <div class="oh-rider-card__phone" *ngIf="hasRiderPhone(order)">{{ order.riderPhone }}</div>
+                            <div class="oh-rider-card__missing" *ngIf="!hasRiderPhone(order)">
+                                Rider phone not available yet
+                            </div>
+                        </div>
+                        <div class="oh-rider-card__actions" *ngIf="hasRiderPhone(order)">
+                            <a
+                                class="oh-rider-icon oh-rider-icon--call"
+                                [href]="riderCallHref(order)"
+                                title="Call rider"
+                                aria-label="Call rider"
+                            >
+                                <i class="pi pi-phone"></i>
+                            </a>
+                            <a
+                                class="oh-rider-icon oh-rider-icon--wa"
+                                [href]="riderWhatsAppHref(order)"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="WhatsApp rider"
+                                aria-label="WhatsApp rider"
+                            >
+                                <i class="pi pi-whatsapp"></i>
+                            </a>
+                        </div>
                     </div>
 
                     <div class="oh-order-card__foot">
@@ -379,9 +418,35 @@
                         {{ order.paymentMethod === 'OnlinePayment' ? 'Online Payment' : 'Cash on Delivery' }}
                     </strong>
                 </div>
-                <div class="oh-detail-row" *ngIf="order.riderName">
-                    <span>Rider</span>
-                    <strong>{{ order.riderName }}{{ order.riderPhone ? ' · ' + order.riderPhone : '' }}</strong>
+                <div class="oh-rider-card oh-rider-card--detail" *ngIf="order.riderName || order.riderPhone">
+                    <div class="oh-rider-card__info">
+                        <div class="oh-rider-card__label">Your rider</div>
+                        <div class="oh-rider-card__name">{{ order.riderName || 'Assigned rider' }}</div>
+                        <div class="oh-rider-card__phone" *ngIf="hasRiderPhone(order)">{{ order.riderPhone }}</div>
+                        <div class="oh-rider-card__missing" *ngIf="!hasRiderPhone(order)">
+                            Rider phone not available yet
+                        </div>
+                    </div>
+                    <div class="oh-rider-card__actions" *ngIf="hasRiderPhone(order)">
+                        <a
+                            class="oh-rider-icon oh-rider-icon--call"
+                            [href]="riderCallHref(order)"
+                            title="Call rider"
+                            aria-label="Call rider"
+                        >
+                            <i class="pi pi-phone"></i>
+                        </a>
+                        <a
+                            class="oh-rider-icon oh-rider-icon--wa"
+                            [href]="riderWhatsAppHref(order)"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="WhatsApp rider"
+                            aria-label="WhatsApp rider"
+                        >
+                            <i class="pi pi-whatsapp"></i>
+                        </a>
+                    </div>
                 </div>
                 <div class="oh-detail-notes" *ngIf="order.notes">{{ order.notes }}</div>
                 <a

@@ -4,6 +4,8 @@ export enum CustomerOrderStatus {
     Rejected = 2,
     InProgress = 3,
     Delivered = 4,
+    /** Admin posted payment / sale into the system. */
+    Completed = 5,
 }
 
 export interface CustomerOrderLineDto {

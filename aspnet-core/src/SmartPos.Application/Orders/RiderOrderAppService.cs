@@ -17,6 +17,7 @@ using SmartPos.Deals;
 using SmartPos.Orders;
 using SmartPos.Orders.Dto;
 using SmartPos.Products;
+using SmartPos.Restaurant;
 using SmartPos.Staffs;
 using SmartPos.Sales;
 using Abp.Timing;
@@ -33,8 +34,8 @@ namespace SmartPos.Orders
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<Deal> _dealRepository;
         private readonly IRepository<DealDetail> _dealDetailRepository;
+        private readonly IRepository<RestaurantOrder> _restaurantOrderRepository;
         private readonly SavedAddressManager _savedAddresses;
-        private readonly ISaleAppService _saleAppService;
 
         public RiderOrderAppService(
             IRepository<CustomerOrder> orderRepository,
@@ -42,16 +43,16 @@ namespace SmartPos.Orders
             IRepository<Branch> branchRepository,
             IRepository<Deal> dealRepository,
             IRepository<DealDetail> dealDetailRepository,
-            SavedAddressManager savedAddresses,
-            ISaleAppService saleAppService)
+            IRepository<RestaurantOrder> restaurantOrderRepository,
+            SavedAddressManager savedAddresses)
         {
             _orderRepository = orderRepository;
             _staffRepository = staffRepository;
             _branchRepository = branchRepository;
             _dealRepository = dealRepository;
             _dealDetailRepository = dealDetailRepository;
+            _restaurantOrderRepository = restaurantOrderRepository;
             _savedAddresses = savedAddresses;
-            _saleAppService = saleAppService;
         }
 
         public async Task<RiderDashboardStatsDto> GetDashboardStatsAsync()
@@ -76,12 +77,16 @@ namespace SmartPos.Orders
                     .ToListAsync();
 
                 var activeOrders = riderOrders
-                    .Where(o => o.Status != CustomerOrderStatus.Delivered && o.Status != CustomerOrderStatus.Rejected)
+                    .Where(o =>
+                        o.Status != CustomerOrderStatus.Delivered &&
+                        o.Status != CustomerOrderStatus.Completed &&
+                        o.Status != CustomerOrderStatus.Rejected)
                     .ToList();
 
                 var deliveredOrdersToday = riderOrders
-                    .Where(o => o.Status == CustomerOrderStatus.Delivered &&
-                                ((o.LastModificationTime.HasValue && o.LastModificationTime.Value.Date == today) || o.OrderDate.Date == today))
+                    .Where(o =>
+                        (o.Status == CustomerOrderStatus.Delivered || o.Status == CustomerOrderStatus.Completed) &&
+                        ((o.LastModificationTime.HasValue && o.LastModificationTime.Value.Date == today) || o.OrderDate.Date == today))
                     .ToList();
 
                 var totalAssignedToday = riderOrders
@@ -118,6 +123,7 @@ namespace SmartPos.Orders
                     .Where(o => o.RiderId == staff.Id &&
                                 o.BranchId == staff.BranchId &&
                                 o.Status != CustomerOrderStatus.Delivered &&
+                                o.Status != CustomerOrderStatus.Completed &&
                                 o.Status != CustomerOrderStatus.Rejected)
                     .OrderByDescending(o => o.RiderAssignedTime ?? o.OrderDate);
 
@@ -145,8 +151,10 @@ namespace SmartPos.Orders
                 }
                 else
                 {
-                    // By default in history, show delivered orders
-                    query = query.Where(o => o.Status == CustomerOrderStatus.Delivered);
+                    // By default in history, show delivered / completed orders
+                    query = query.Where(o =>
+                        o.Status == CustomerOrderStatus.Delivered ||
+                        o.Status == CustomerOrderStatus.Completed);
                 }
 
                 if (input.FromDate.HasValue)
@@ -212,7 +220,8 @@ namespace SmartPos.Orders
                     throw new UserFriendlyException("This order is not assigned to you.");
                 }
 
-                if (order.Status == CustomerOrderStatus.Delivered)
+                if (order.Status == CustomerOrderStatus.Delivered ||
+                    order.Status == CustomerOrderStatus.Completed)
                 {
                     throw new UserFriendlyException("Order is already delivered.");
                 }
@@ -259,7 +268,8 @@ namespace SmartPos.Orders
                     throw new UserFriendlyException("This order is not assigned to you.");
                 }
 
-                if (order.Status == CustomerOrderStatus.Delivered)
+                if (order.Status == CustomerOrderStatus.Delivered ||
+                    order.Status == CustomerOrderStatus.Completed)
                 {
                     throw new UserFriendlyException("Order is already marked as delivered.");
                 }
@@ -290,6 +300,9 @@ namespace SmartPos.Orders
             }
         }
 
+        /// <summary>
+        /// Rider marks the order as Delivered only. Payment / sale is recorded by admin via Complete.
+        /// </summary>
         public async Task<RiderOrderDto> CompleteDeliveryAsync(CompleteRiderDeliveryDto input)
         {
             var staff = await GetCurrentRiderStaffAsync();
@@ -316,6 +329,11 @@ namespace SmartPos.Orders
                 if (order.Status == CustomerOrderStatus.Rejected)
                 {
                     throw new UserFriendlyException("Rejected orders cannot be marked as delivered.");
+                }
+
+                if (order.Status == CustomerOrderStatus.Delivered || order.Status == CustomerOrderStatus.Completed)
+                {
+                    throw new UserFriendlyException("This order is already delivered.");
                 }
 
                 order.Status = CustomerOrderStatus.Delivered;
@@ -351,31 +369,8 @@ namespace SmartPos.Orders
                     order.Notes = combined;
                 }
 
-                if (input.PaymentReceivedAmount.HasValue)
-                {
-                    var received = Math.Max(0m, input.PaymentReceivedAmount.Value);
-                    var due = Math.Max(0m, order.TotalAmount - received);
-                    var paymentNote = $"[Payment Received: PKR {received:N2}" + (due > 0 ? $", Due: PKR {due:N2}" : ", Fully Paid") + "]";
-                    var combined = string.IsNullOrWhiteSpace(order.Notes)
-                        ? paymentNote
-                        : (order.Notes.Contains(paymentNote) ? order.Notes : $"{order.Notes.Trim()} {paymentNote}");
-                    if (combined.Length > CustomerOrder.MaxNotesLength)
-                    {
-                        combined = combined.Substring(0, CustomerOrder.MaxNotesLength);
-                    }
-                    order.Notes = combined;
-                }
-
+                await SettleKitchenTicketForOnlineOrderAsync(order.Id);
                 await CurrentUnitOfWork.SaveChangesAsync();
-
-                if (order.SaleId == null)
-                {
-                    await _saleAppService.CreateSaleForCustomerOrderAsync(order.Id, input.PaymentReceivedAmount);
-                }
-                else if (input.PaymentReceivedAmount.HasValue)
-                {
-                    await _saleAppService.CreateSaleForCustomerOrderAsync(order.Id, input.PaymentReceivedAmount);
-                }
 
                 await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
                     order.Id,
@@ -385,6 +380,33 @@ namespace SmartPos.Orders
 
                 var dtos = await MapToRiderOrderDtosAsync(new List<CustomerOrder> { order });
                 return dtos.FirstOrDefault();
+            }
+        }
+
+        private async Task SettleKitchenTicketForOnlineOrderAsync(int customerOrderId)
+        {
+            var tickets = await _restaurantOrderRepository.GetAll()
+                .Where(o =>
+                    o.CustomerOrderId == customerOrderId &&
+                    (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed))
+                .ToListAsync();
+
+            if (tickets.Count == 0)
+            {
+                return;
+            }
+
+            var now = Clock.Now;
+            foreach (var ticket in tickets)
+            {
+                ticket.Status = RestaurantOrderStatus.Settled;
+                ticket.SettledTime = now;
+                if (ticket.KitchenStatus != RestaurantKitchenStatus.ReadyToPick)
+                {
+                    ticket.KitchenStatus = RestaurantKitchenStatus.ReadyToPick;
+                    ticket.KitchenReadyTime ??= now;
+                }
+                await _restaurantOrderRepository.UpdateAsync(ticket);
             }
         }
 
@@ -480,6 +502,7 @@ namespace SmartPos.Orders
                     CustomerOrderStatus.Approved => "Assigned (Waiting Acceptance)",
                     CustomerOrderStatus.InProgress => "Accepted & In Transit",
                     CustomerOrderStatus.Delivered => "Delivered",
+                    CustomerOrderStatus.Completed => "Completed",
                     CustomerOrderStatus.Rejected => "Rejected",
                     _ => o.Status.ToString()
                 };

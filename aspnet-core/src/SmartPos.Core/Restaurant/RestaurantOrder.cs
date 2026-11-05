@@ -65,6 +65,9 @@ namespace SmartPos.Restaurant
         [ForeignKey(nameof(CustomerId))]
         public virtual Customer Customer { get; set; }
 
+        /// <summary>Linked online/customer order when this KOT ticket was created from Approve.</summary>
+        public virtual int? CustomerOrderId { get; set; }
+
         [StringLength(MaxWaiterNameLength)]
         public virtual string WaiterName { get; set; }
 

@@ -177,7 +177,7 @@
                             </span>
                         </div>
                         <button
-                            *ngIf="!isDelivered(order) && order.status !== 4"
+                            *ngIf="!isClosed(order)"
                             pButton
                             pRipple
                             type="button"

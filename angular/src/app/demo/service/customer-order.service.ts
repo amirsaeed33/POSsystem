@@ -557,6 +557,22 @@ export class CustomerOrderService {
         this.unwrap(res, 'Failed to mark order as delivered');
     }
 
+    /** Admin: mark Completed and insert payment/sale. */
+    async complete(
+        orderId: number,
+        paymentReceivedAmount?: number | null
+    ): Promise<void> {
+        const body: any = { orderId };
+        if (paymentReceivedAmount != null && paymentReceivedAmount !== undefined) {
+            body.paymentReceivedAmount = paymentReceivedAmount;
+        }
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/Complete`, body)
+        );
+        if (res == null) return;
+        this.unwrap(res, 'Failed to complete order');
+    }
+
     async getAvailableRiders(branchId?: number, currentOrderId?: number): Promise<DeliveryRiderStatusDto[]> {
         const params: any = {};
         if (branchId) params.branchId = branchId;
