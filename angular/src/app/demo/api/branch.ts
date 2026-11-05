@@ -36,6 +36,8 @@ export interface BranchDto {
     instagramUrl?: string;
     youtubeUrl?: string;
     invoiceFooter?: string;
+    softwareDeveloperName?: string;
+    softwareDeveloperPhone?: string;
     taxPercent?: number;
     discountPercent?: number;
     discountAmount?: number;
@@ -64,6 +66,8 @@ export interface CreateBranchDto {
     instagramUrl?: string;
     youtubeUrl?: string;
     invoiceFooter?: string;
+    softwareDeveloperName?: string;
+    softwareDeveloperPhone?: string;
     taxPercent?: number;
     discountPercent?: number;
     discountAmount?: number;

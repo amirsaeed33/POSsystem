@@ -172,6 +172,8 @@ export class BranchEditComponent implements OnInit {
             youtubeUrl:
                 this.branch.youtubeUrl?.trim() || undefined,
 
+            softwareDeveloperName: this.branch.softwareDeveloperName?.trim() || undefined,
+            softwareDeveloperPhone: this.branch.softwareDeveloperPhone?.trim() || undefined,
             invoiceFooter:
                 this.branch.invoiceFooter?.trim() || undefined,
 
@@ -408,6 +410,8 @@ export class BranchEditComponent implements OnInit {
             instagramUrl: '',
             youtubeUrl: '',
             invoiceFooter: '',
+            softwareDeveloperName: 'Software develop by AlNawabTech',
+            softwareDeveloperPhone: '03167854606',
             taxPercent: 0,
             discountPercent: 0,
             discountAmount: 0,

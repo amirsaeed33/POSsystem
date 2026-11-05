@@ -108,6 +108,8 @@ export class BranchService {
         if (input.instagramUrl) body.instagramUrl = input.instagramUrl;
         if (input.youtubeUrl) body.youtubeUrl = input.youtubeUrl;
         if (input.invoiceFooter) body.invoiceFooter = input.invoiceFooter;
+        if (input.softwareDeveloperName !== undefined) body.softwareDeveloperName = input.softwareDeveloperName;
+        if (input.softwareDeveloperPhone !== undefined) body.softwareDeveloperPhone = input.softwareDeveloperPhone;
 
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, body)
@@ -140,6 +142,8 @@ export class BranchService {
                 instagramUrl: input.instagramUrl,
                 youtubeUrl: input.youtubeUrl,
                 invoiceFooter: input.invoiceFooter,
+                softwareDeveloperName: input.softwareDeveloperName,
+                softwareDeveloperPhone: input.softwareDeveloperPhone,
                 taxPercent: input.taxPercent ?? 0,
                 discountPercent: input.discountPercent ?? 0,
                 discountAmount: input.discountAmount ?? 0,
@@ -275,6 +279,8 @@ export class BranchService {
             instagramUrl: item.instagramUrl ?? item.InstagramUrl,
             youtubeUrl: item.youtubeUrl ?? item.YoutubeUrl,
             invoiceFooter: item.invoiceFooter ?? item.InvoiceFooter,
+            softwareDeveloperName: item.softwareDeveloperName ?? item.SoftwareDeveloperName ?? 'Software develop by AlNawabTech',
+            softwareDeveloperPhone: item.softwareDeveloperPhone ?? item.SoftwareDeveloperPhone ?? '03167854606',
             taxPercent: item.taxPercent ?? item.TaxPercent ?? 0,
             discountPercent: item.discountPercent ?? item.DiscountPercent ?? 0,
             discountAmount: item.discountAmount ?? item.DiscountAmount ?? 0,

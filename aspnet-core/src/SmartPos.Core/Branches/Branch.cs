@@ -22,6 +22,8 @@ namespace SmartPos.Branches
         public const int MaxActivationTokenHashLength = 128;
         public const int MaxDateFormatLength = 32;
         public const int MaxCurrencyFormatLength = 32;
+        public const int MaxSoftwareDeveloperNameLength = 256;
+        public const int MaxSoftwareDeveloperPhoneLength = 64;
 
         public virtual int? TenantId { get; set; }
 
@@ -78,6 +80,12 @@ namespace SmartPos.Branches
 
         [StringLength(MaxInvoiceFooterLength)]
         public virtual string InvoiceFooter { get; set; }
+
+        [StringLength(MaxSoftwareDeveloperNameLength)]
+        public virtual string SoftwareDeveloperName { get; set; } = "Software develop by AlZarrTach";
+
+        [StringLength(MaxSoftwareDeveloperPhoneLength)]
+        public virtual string SoftwareDeveloperPhone { get; set; } = "03167854606";
 
         /// <summary>Default tax % applied on sales for this location.</summary>
         public virtual decimal TaxPercent { get; set; }

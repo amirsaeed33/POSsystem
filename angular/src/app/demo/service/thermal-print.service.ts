@@ -258,6 +258,8 @@ export class ThermalPrintService {
         taxNumber: string;
         footer: string;
         logoUrl: string;
+        softwareDeveloperName?: string;
+        softwareDeveloperPhone?: string;
     } {
         const branch = overrideCompany || this.branchContext.getCurrentBranch();
         const logoUrl = branch?.imagePath ? this.branchService.getImageUrl(branch.imagePath) : '';
@@ -269,6 +271,8 @@ export class ThermalPrintService {
             taxNumber: branch?.taxNumber || '',
             footer: branch?.invoiceFooter || this.getConfig().footerMessage || '',
             logoUrl: logoUrl,
+            softwareDeveloperName: branch?.softwareDeveloperName || 'Software develop by AlNawabTech',
+            softwareDeveloperPhone: branch?.softwareDeveloperPhone || '03167854606',
         };
     }
 
@@ -460,6 +464,8 @@ export class ThermalPrintService {
         customerAddress?: string;
         orderTaker?: string;
         complaintPhone?: string;
+        softwareDeveloperName?: string;
+        softwareDeveloperPhone?: string;
     }): string {
         const is58 = params.size === '58mm';
         const dateParts = this.formatThermalDate(params.orderDate);
@@ -620,8 +626,8 @@ export class ThermalPrintService {
             </div>
             <div class="divider"></div>
             <div class="text-center meta-text" style="font-size: 8.5px; margin-top: 2px; line-height: 1.35;">
-                <div>Software develop by AlNawabTech</div>
-                <div>03167854606</div>
+                <div>${(params as any).softwareDeveloperName || this.getBranchInfo().softwareDeveloperName || 'Software develop by AlNawabTech'}</div>
+                ${(params as any).softwareDeveloperPhone || this.getBranchInfo().softwareDeveloperPhone ? `<div>${(params as any).softwareDeveloperPhone || this.getBranchInfo().softwareDeveloperPhone}</div>` : ''}
             </div>
         `;
     }
@@ -810,8 +816,8 @@ export class ThermalPrintService {
                 <div>Print Time: ${new Date().toLocaleString()}</div>
                 <div class="bold" style="margin-top: 3px;">* * * END OF ORDER * * *</div>
                 <div style="font-size: 8.5px; margin-top: 4px; color: #444; line-height: 1.35;">
-                    <div>Software develop by AlNawabTech</div>
-                    <div>03167854606</div>
+                    <div>${branch.softwareDeveloperName || 'Software develop by AlNawabTech'}</div>
+                    ${branch.softwareDeveloperPhone ? `<div>${branch.softwareDeveloperPhone}</div>` : ''}
                 </div>
             </div>
         `;

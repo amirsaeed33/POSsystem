@@ -71,6 +71,12 @@ namespace SmartPos.Branches.Dto
         [StringLength(Branch.MaxInvoiceFooterLength)]
         public string InvoiceFooter { get; set; }
 
+        [StringLength(Branch.MaxSoftwareDeveloperNameLength)]
+        public string SoftwareDeveloperName { get; set; }
+
+        [StringLength(Branch.MaxSoftwareDeveloperPhoneLength)]
+        public string SoftwareDeveloperPhone { get; set; }
+
         [Range(0, 100)]
         public decimal TaxPercent { get; set; }
 

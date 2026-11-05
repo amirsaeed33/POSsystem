@@ -168,8 +168,8 @@
         </div>
         <div class="thermal-divider-dashed"></div>
         <div class="text-center font-mono" style="font-size: 8.5px; color: #333; margin-top: 2px; line-height: 1.35;">
-            <div>Software develop by AlNawabTech</div>
-            <div>03167854606</div>
+            <div>{{ company?.softwareDeveloperName || 'Software develop by AlNawabTech' }}</div>
+            <div *ngIf="company?.softwareDeveloperPhone">{{ company?.softwareDeveloperPhone }}</div>
         </div>
     </div>
     <!-- ========================================================================= -->
