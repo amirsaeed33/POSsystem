@@ -61,6 +61,7 @@
                     <div class="kitchen-card-title">{{ orderTitle(order) }}</div>
                     <div class="kitchen-card-meta">
                         <span class="kit-type">{{ orderTypeLabel(order) }}</span>
+                        <span *ngIf="hasToken(order)" class="kit-token"> · Token #{{ order.tokenNo }}</span>
                         <span *ngIf="order.orderNo"> · {{ order.orderNo }}</span>
                         <span *ngIf="order.waiterName"> · {{ order.waiterName }}</span>
                     </div>
@@ -76,6 +77,16 @@
                     <div class="kitchen-card-age" [class.warn]="isLate(order)">
                         {{ elapsedLabel(order) }}
                     </div>
+                    <button
+                        *ngIf="hasToken(order)"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-print"
+                        class="p-button-rounded p-button-sm kitchen-print-token-btn"
+                        title="Print token"
+                        (click)="printToken(order, $event)"
+                    ></button>
                 </div>
             </header>
 
@@ -123,6 +134,16 @@
                     <div *ngIf="order.notes" class="order-note">{{ order.notes }}</div>
                 </div>
                 <div class="kitchen-card-actions">
+                    <button
+                        *ngIf="hasToken(order)"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-print"
+                        label="Print Token"
+                        class="p-button-sm p-button-outlined kitchen-print-btn"
+                        (click)="printToken(order, $event)"
+                    ></button>
                     <button
                         *ngIf="!isReadyToPick(order)"
                         pButton

@@ -819,6 +819,59 @@ export class ThermalPrintService {
         this.executePrint(bodyHtml, `KOT-${kot.orderNo || kot.orderId}`, size);
     }
 
+    /**
+     * Compact token sticker for kitchen — attach Token# to the physical order.
+     */
+    public printTokenSlip(order: {
+        tokenNo?: number | null;
+        orderNo?: string;
+        tableNo?: string;
+        orderTypeName?: string;
+        orderTypeLabel?: string;
+        carName?: string;
+        carNumber?: string;
+        waiterName?: string;
+        customerName?: string;
+    }, paperSize?: ThermalPaperSize): void {
+        const token = order?.tokenNo;
+        if (token == null || Number(token) <= 0) {
+            throw new Error('No token number available for this order.');
+        }
+
+        const branch = this.getBranchInfo();
+        const config = this.getConfig();
+        const size = paperSize || config.paperSize;
+        const is58 = size === '58mm';
+        const typeLabel = order.orderTypeLabel || order.orderTypeName || '';
+        const location = order.carNumber
+            ? `Car ${order.carName || ''} ${order.carNumber}`.trim()
+            : (order.tableNo ? `Table ${order.tableNo}` : typeLabel || 'Order');
+
+        const bodyHtml = `
+            <div class="text-center">
+                <div class="header-title" style="font-size: ${is58 ? '12px' : '14px'};">${branch.name || 'Kitchen'}</div>
+                <div class="double-divider"></div>
+                <div class="header-subtitle" style="font-size: ${is58 ? '11px' : '12px'}; letter-spacing: 0.04em;">TOKEN</div>
+                <div style="font-size: ${is58 ? '42px' : '52px'}; font-weight: 900; line-height: 1.05; margin: 8px 0 6px; font-family: monospace;">
+                    #${token}
+                </div>
+                <div class="double-divider"></div>
+                <div class="meta-text bold" style="font-size: ${is58 ? '11px' : '12px'}; margin-top: 4px;">
+                    ${location}
+                </div>
+                ${order.orderNo ? `<div class="meta-text" style="font-size: ${is58 ? '9px' : '10px'};">Order: ${order.orderNo}</div>` : ''}
+                ${order.waiterName ? `<div class="meta-text" style="font-size: ${is58 ? '9px' : '10px'};">Server: ${order.waiterName}</div>` : ''}
+                ${order.customerName ? `<div class="meta-text" style="font-size: ${is58 ? '9px' : '10px'};">Customer: ${order.customerName}</div>` : ''}
+                <div class="meta-text" style="margin-top: 6px; font-size: ${is58 ? '8px' : '9px'};">
+                    ${new Date().toLocaleString()}
+                </div>
+                <div class="bold" style="margin-top: 6px; font-size: ${is58 ? '9px' : '10px'};">* Attach to order *</div>
+            </div>
+        `;
+
+        this.executePrint(bodyHtml, `Token-${token}`, size);
+    }
+
     // =========================================================================
     // 3. GUEST BILL (Pre-payment Check / Kacha Bill)
     // =========================================================================

@@ -11,6 +11,7 @@ import {
 import { BranchContextService } from '../../service/branch-context.service';
 import { ProductService } from '../../service/product.service';
 import { RestaurantOrderService } from '../../service/restaurant-order.service';
+import { ThermalPrintService } from '../../service/thermal-print.service';
 
 type KitchenFilter = 'all' | 'dinein' | 'takeaway' | 'car';
 
@@ -40,6 +41,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
         private restaurantOrderService: RestaurantOrderService,
         private productService: ProductService,
         private branchContext: BranchContextService,
+        private thermalPrintService: ThermalPrintService,
         private messageService: MessageService
     ) {}
 
@@ -153,6 +155,41 @@ export class KitchenComponent implements OnInit, OnDestroy {
             return car || order.tableNo || order.orderNo;
         }
         return order.tableNo ? `Table ${order.tableNo}` : order.orderNo;
+    }
+
+    hasToken(order: RestaurantOrderDto): boolean {
+        return order?.tokenNo != null && Number(order.tokenNo) > 0;
+    }
+
+    printToken(order: RestaurantOrderDto, event?: Event): void {
+        event?.stopPropagation();
+        if (!this.hasToken(order)) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Token',
+                detail: 'No token number on this order yet.',
+            });
+            return;
+        }
+        try {
+            this.thermalPrintService.printTokenSlip({
+                tokenNo: order.tokenNo,
+                orderNo: order.orderNo,
+                tableNo: order.tableNo,
+                orderTypeName: order.orderTypeName,
+                orderTypeLabel: this.orderTypeLabel(order),
+                carName: order.carName,
+                carNumber: order.carNumber,
+                waiterName: order.waiterName,
+                customerName: order.customerName,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Token Print',
+                detail: err?.message || 'Failed to print token',
+            });
+        }
     }
 
     orderTypeLabel(order: RestaurantOrderDto): string {

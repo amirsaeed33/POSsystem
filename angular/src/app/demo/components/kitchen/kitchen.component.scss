@@ -331,6 +331,11 @@
   color: #fdba74;
 }
 
+.kit-token {
+  font-weight: 800;
+  color: #fef08a;
+}
+
 .kitchen-card-side {
   display: flex;
   flex-direction: column;
@@ -538,16 +543,30 @@
 
 .kitchen-card-actions {
   display: flex;
-  justify-content: stretch;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.3rem;
 }
 
+.kitchen-print-token-btn {
+  width: 1.7rem !important;
+  height: 1.7rem !important;
+  padding: 0 !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  color: #fff !important;
+}
+
+.kitchen-print-btn,
 .kitchen-ready-btn,
 .kitchen-progress-btn {
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   justify-content: center;
   font-weight: 800;
-  font-size: 0.72rem !important;
-  padding: 0.35rem 0.5rem !important;
+  font-size: 0.68rem !important;
+  padding: 0.35rem 0.35rem !important;
+  white-space: nowrap;
 }
 
 .order-note {
