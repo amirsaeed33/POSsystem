@@ -638,10 +638,10 @@ export class ThermalPrintService {
         const orderTypeLabel = receipt.carNumber
             ? 'Car Service'
             : tableLabel.includes('takeaway') || tableLabel.includes('take-away')
-              ? 'Take-Away'
-              : tableLabel.includes('delivery')
-                ? 'Online Delivery'
-                : 'Dine-In';
+                ? 'Take-Away'
+                : tableLabel.includes('delivery')
+                    ? 'Online Delivery'
+                    : 'Dine-In';
 
         const subLocation = receipt.carNumber
             ? `Car: ${receipt.carName || ''} (${receipt.carNumber})`
@@ -731,24 +731,24 @@ export class ThermalPrintService {
 
         const linesHtml = items.length
             ? items
-                  .map((item: any) => {
-                      const notes = item.kitchenNotes
-                          ? `<div style="font-size: 9px; color: #b91c1c; font-style: italic; font-weight: bold;">NOTE: ${item.kitchenNotes}</div>`
-                          : '';
-                      const mods = item.selectedModifiers
-                          ? `<div style="font-size: 8.5px; color: #444;">Opts: ${item.selectedModifiers}</div>`
-                          : '';
-                      const dealList = item.dealItems?.length
-                          ? `<div style="font-size: 8.5px; color: #222; margin-top: 1px; padding-left: 6px;">
+                .map((item: any) => {
+                    const notes = item.kitchenNotes
+                        ? `<div style="font-size: 9px; color: #b91c1c; font-style: italic; font-weight: bold;">NOTE: ${item.kitchenNotes}</div>`
+                        : '';
+                    const mods = item.selectedModifiers
+                        ? `<div style="font-size: 8.5px; color: #444;">Opts: ${item.selectedModifiers}</div>`
+                        : '';
+                    const dealList = item.dealItems?.length
+                        ? `<div style="font-size: 8.5px; color: #222; margin-top: 1px; padding-left: 6px;">
                               ${item.dealItems.map((d: string) => `<div>&bull; ${d}</div>`).join('')}
                              </div>`
-                          : '';
-                      const qtyChange =
-                          item.previousQuantity && item.previousQuantity > 0
-                              ? `<span style="font-size: 8.5px; color: #555;">(+${item.quantity} new, total: ${item.totalQuantity || item.previousQuantity + item.quantity})</span>`
-                              : '';
+                        : '';
+                    const qtyChange =
+                        item.previousQuantity && item.previousQuantity > 0
+                            ? `<span style="font-size: 8.5px; color: #555;">(+${item.quantity} new, total: ${item.totalQuantity || item.previousQuantity + item.quantity})</span>`
+                            : '';
 
-                      return `
+                    return `
                         <tr style="border-bottom: 1px dashed #000;">
                             <td style="width: 25%; font-size: ${is58 ? '12px' : '14px'}; font-weight: bold; vertical-align: top;">
                                 ${item.quantity}x
@@ -762,8 +762,8 @@ export class ThermalPrintService {
                             </td>
                         </tr>
                       `;
-                  })
-                  .join('')
+                })
+                .join('')
             : `<tr><td colspan="2" class="text-center meta-text" style="padding: 8px 0;">No items for this station</td></tr>`;
 
         const locationMeta = kot.carNumber

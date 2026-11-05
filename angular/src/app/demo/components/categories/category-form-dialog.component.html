@@ -90,6 +90,24 @@
         </div>
 
         <div class="flex flex-column gap-2">
+            <label for="categoryDepartment" class="font-medium">Department (Optional)</label>
+            <p-dropdown
+                id="categoryDepartment"
+                [options]="departments"
+                [(ngModel)]="category.departmentId"
+                optionLabel="name"
+                optionValue="id"
+                [showClear]="true"
+                [filter]="true"
+                filterBy="name"
+                placeholder="Select Department"
+                styleClass="w-full"
+                appendTo="body"
+                [disabled]="saving"
+            ></p-dropdown>
+        </div>
+
+        <div class="flex flex-column gap-2">
             <label for="defaultUnit" class="font-medium">Default Unit (Optional UI Hint)</label>
             <p-dropdown
                 id="defaultUnit"

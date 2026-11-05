@@ -11,6 +11,10 @@ namespace SmartPos.Categories.Dto
     {
         public int BranchId { get; set; }
 
+        public int? DepartmentId { get; set; }
+
+        public string DepartmentName { get; set; }
+
         [Required]
         [StringLength(Category.MaxNameLength)]
         public string Name { get; set; }

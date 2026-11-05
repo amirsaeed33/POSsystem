@@ -1,3 +1,4 @@
+using SmartPos.Departments;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,6 +27,7 @@ namespace SmartPos.Categories
         private readonly IBranchContext _branchContext;
         private readonly IRepository<User, long> _userRepository;
         private readonly IRepository<Branch> _branchRepository;
+        private readonly IRepository<Department> _departmentRepository;
         private readonly ICacheManager _cacheManager;
 
         public CategoryAppService(
@@ -33,12 +35,14 @@ namespace SmartPos.Categories
             IBranchContext branchContext,
             IRepository<User, long> userRepository,
             IRepository<Branch> branchRepository,
+            IRepository<Department> departmentRepository,
             ICacheManager cacheManager)
             : base(repository)
         {
             _branchContext = branchContext;
             _userRepository = userRepository;
             _branchRepository = branchRepository;
+            _departmentRepository = departmentRepository;
             _cacheManager = cacheManager;
             CreatePermissionName = PermissionNames.Pages_Categories_Create;
             UpdatePermissionName = PermissionNames.Pages_Categories_Edit;
@@ -67,6 +71,7 @@ namespace SmartPos.Categories
             entity.BranchId = branchId;
             entity.IsActive = input.IsActive;
             entity.DefaultUnitId = input.DefaultUnitId;
+            entity.DepartmentId = input.DepartmentId;
             entity.ImagePath = CategoryImageStore.SaveBase64Image(input.ImageBase64);
 
             if (string.IsNullOrWhiteSpace(entity.Description))
@@ -115,6 +120,7 @@ namespace SmartPos.Categories
                 entity.BranchId = RequireCurrentBranchId();
             }
             entity.DefaultUnitId = input.DefaultUnitId;
+            entity.DepartmentId = input.DepartmentId;
 
             if (CategoryImageStore.IsNewImagePayload(input.ImageBase64))
             {
@@ -167,7 +173,7 @@ namespace SmartPos.Categories
             var cache = _cacheManager.GetCache<string, ListResultDto<CategoryDto>>(CacheName);
             return await cache.GetAsync(cacheKey, async (key) =>
             {
-                var query = Repository.GetAllIncluding(x => x.DefaultUnit).Where(x => x.IsActive);
+                var query = Repository.GetAllIncluding(x => x.DefaultUnit, x => x.Department).Where(x => x.IsActive);
                 if (branchId.HasValue)
                 {
                     query = query.Where(x => x.BranchId == branchId.Value);
@@ -184,12 +190,30 @@ namespace SmartPos.Categories
             });
         }
 
+        protected override async Task<Category> GetEntityByIdAsync(int id)
+        {
+            return await Repository.GetAllIncluding(x => x.DefaultUnit, x => x.Department)
+                .FirstOrDefaultAsync(x => x.Id == id);
+        }
+
         protected override CategoryDto MapToEntityDto(Category entity)
         {
             var dto = base.MapToEntityDto(entity);
             if (entity.DefaultUnit != null)
             {
                 dto.DefaultUnitName = entity.DefaultUnit.Name;
+            }
+            if (entity.Department != null)
+            {
+                dto.DepartmentName = entity.Department.Name;
+            }
+            else if (entity.DepartmentId.HasValue && entity.DepartmentId.Value > 0)
+            {
+                var dept = _departmentRepository.FirstOrDefault(entity.DepartmentId.Value);
+                if (dept != null)
+                {
+                    dto.DepartmentName = dept.Name;
+                }
             }
             return dto;
         }
@@ -202,11 +226,12 @@ namespace SmartPos.Categories
         protected override IQueryable<Category> CreateFilteredQuery(PagedCategoryResultRequestDto input)
         {
             var branchId = ResolveBranchId();
-            return Repository.GetAllIncluding(x => x.DefaultUnit)
+            return Repository.GetAllIncluding(x => x.DefaultUnit, x => x.Department)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => x.Name.Contains(input.Keyword)
-                         || (x.Description != null && x.Description.Contains(input.Keyword)));
+                         || (x.Description != null && x.Description.Contains(input.Keyword))
+                         || (x.Department != null && x.Department.Name.Contains(input.Keyword)));
         }
 
         private int? ResolveBranchId()

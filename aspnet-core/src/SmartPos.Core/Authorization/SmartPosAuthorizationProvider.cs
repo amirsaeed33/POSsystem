@@ -19,6 +19,11 @@ namespace SmartPos.Authorization
             roles.CreateChildPermission(PermissionNames.Pages_Roles_Edit, L("EditRole"));
             roles.CreateChildPermission(PermissionNames.Pages_Roles_Delete, L("DeleteRole"));
 
+            var departments = context.CreatePermission(PermissionNames.Pages_Departments, L("Departments"));
+            departments.CreateChildPermission(PermissionNames.Pages_Departments_Create, L("CreateDepartment"));
+            departments.CreateChildPermission(PermissionNames.Pages_Departments_Edit, L("EditDepartment"));
+            departments.CreateChildPermission(PermissionNames.Pages_Departments_Delete, L("DeleteDepartment"));
+
             var categories = context.CreatePermission(PermissionNames.Pages_Categories, L("Categories"));
             categories.CreateChildPermission(PermissionNames.Pages_Categories_Create, L("CreateCategory"));
             categories.CreateChildPermission(PermissionNames.Pages_Categories_Edit, L("EditCategory"));

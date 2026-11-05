@@ -18,6 +18,11 @@ namespace SmartPos.Authorization
         public const string Pages_Roles_Edit = "Pages.Roles.Edit";
         public const string Pages_Roles_Delete = "Pages.Roles.Delete";
 
+        public const string Pages_Departments = "Pages.Departments";
+        public const string Pages_Departments_Create = "Pages.Departments.Create";
+        public const string Pages_Departments_Edit = "Pages.Departments.Edit";
+        public const string Pages_Departments_Delete = "Pages.Departments.Delete";
+
         public const string Pages_Categories = "Pages.Categories";
         public const string Pages_Categories_Create = "Pages.Categories.Create";
         public const string Pages_Categories_Edit = "Pages.Categories.Edit";

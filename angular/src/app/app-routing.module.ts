@@ -46,6 +46,7 @@ const routes: Routes = [
                         (m) => m.KitchenModule
                     ),
             },
+            { path: 'departments', redirectTo: '/product-settings', pathMatch: 'full' },
             { path: 'categories', redirectTo: '/product-settings', pathMatch: 'full' },
             { path: 'brands', redirectTo: '/product-settings', pathMatch: 'full' },
             { path: 'units', redirectTo: '/product-settings', pathMatch: 'full' },

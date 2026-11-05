@@ -1,6 +1,8 @@
 export interface CategoryDto {
     id: number;
     branchId?: number;
+    departmentId?: number | null;
+    departmentName?: string;
     name: string;
     description?: string;
     imagePath?: string;
@@ -11,6 +13,7 @@ export interface CategoryDto {
 
 export interface CreateCategoryDto {
     name: string;
+    departmentId?: number | null;
     description?: string;
     imageBase64?: string;
     defaultUnitId?: number;

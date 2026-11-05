@@ -1,0 +1,108 @@
+<div [ngClass]="{ card: !embedded }">
+    <p-table
+        #dt
+        [value]="departments"
+        [paginator]="true"
+        [rows]="10"
+        [showCurrentPageReport]="true"
+        responsiveLayout="scroll"
+        [loading]="loading"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['name', 'description']"
+    >
+        <ng-template pTemplate="caption">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-20rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search departments"
+                            [(ngModel)]="keyword"
+                            (keyup.enter)="onSearch()"
+                            (input)="onGlobalFilter(dt, $event)"
+                        />
+                    </span>
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="onSearch()"
+                    ></button>
+                </div>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-plus"
+                    label="Create Department"
+                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
+                    (click)="openCreateDialog()"
+                ></button>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="name" class="white-space-nowrap">
+                    Name <p-sortIcon field="name"></p-sortIcon>
+                </th>
+                <th pSortableColumn="description" class="white-space-nowrap">
+                    Description <p-sortIcon field="description"></p-sortIcon>
+                </th>
+                <th class="white-space-nowrap text-center" style="width: 7rem">Status</th>
+                <th class="text-center" style="width: 5.5rem">Actions</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-dept>
+            <tr>
+                <td>
+                    <a
+                        href="javascript:void(0)"
+                        class="font-semibold text-primary cursor-pointer hover:underline"
+                        (click)="openEditDialog(dept); $event.preventDefault()"
+                        pTooltip="Edit department"
+                        tooltipPosition="top"
+                    >{{ dept.name }}</a>
+                </td>
+                <td>{{ dept.description || '—' }}</td>
+                <td class="text-center">
+                    <span
+                        class="p-tag"
+                        [ngClass]="dept.isActive ? 'p-tag-success' : 'p-tag-danger'"
+                    >
+                        {{ dept.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                </td>
+                <td class="text-center">
+                    <app-row-actions [items]="getRowActions(dept)"></app-row-actions>
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="4" class="text-center p-4">
+                    <div class="text-500">No departments found. Click "Create Department" to add one.</div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <app-department-form-dialog
+        [(visible)]="dialogVisible"
+        [departmentId]="editingDepartmentId"
+        (saved)="onDialogSaved()"
+    ></app-department-form-dialog>
+
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+</div>
+

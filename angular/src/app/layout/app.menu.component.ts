@@ -195,11 +195,13 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                         routerLink: ['/product-settings'],
                         anyPermission: isRestaurant
                             ? [
+                                  PermissionNames.Departments,
                                   PermissionNames.Units,
                                   PermissionNames.Categories,
                               ]
                             : [
                                   PermissionNames.Brands,
+                                  PermissionNames.Departments,
                                   PermissionNames.Units,
                                   PermissionNames.Categories,
                               ],

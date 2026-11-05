@@ -7,6 +7,8 @@ namespace SmartPos.Categories.Dto
     [AutoMapTo(typeof(Category))]
     public class CreateCategoryDto
     {
+        public int? DepartmentId { get; set; }
+
         [Required]
         [StringLength(Category.MaxNameLength)]
         public string Name { get; set; }

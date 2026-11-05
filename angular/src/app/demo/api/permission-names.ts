@@ -16,6 +16,11 @@ export const PermissionNames = {
     RolesEdit: 'Pages.Roles.Edit',
     RolesDelete: 'Pages.Roles.Delete',
 
+    Departments: 'Pages.Departments',
+    DepartmentsCreate: 'Pages.Departments.Create',
+    DepartmentsEdit: 'Pages.Departments.Edit',
+    DepartmentsDelete: 'Pages.Departments.Delete',
+
     Categories: 'Pages.Categories',
     CategoriesCreate: 'Pages.Categories.Create',
     CategoriesEdit: 'Pages.Categories.Edit',

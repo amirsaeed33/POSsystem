@@ -23,6 +23,7 @@ using SmartPos.Restaurant;
 using SmartPos.Deals;
 using SmartPos.Staffs;
 using SmartPos.Suppliers;
+using SmartPos.Departments;
 using SmartPos.Units;
 
 namespace SmartPos.EntityFrameworkCore
@@ -30,6 +31,8 @@ namespace SmartPos.EntityFrameworkCore
     public class SmartPosDbContext : AbpZeroDbContext<Tenant, Role, User, SmartPosDbContext>
     {
         public virtual DbSet<Category> Categories { get; set; }
+
+        public virtual DbSet<Department> Departments { get; set; }
 
         public virtual DbSet<Branch> Branches { get; set; }
 
@@ -234,6 +237,23 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasOne(x => x.DefaultUnit)
                     .WithMany()
                     .HasForeignKey(x => x.DefaultUnitId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasIndex(x => x.DepartmentId);
+                b.HasOne(x => x.Department)
+                    .WithMany()
+                    .HasForeignKey(x => x.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Department>(b =>
+            {
+                b.HasIndex(x => new { x.TenantId, x.BranchId, x.Name })
+                    .IsUnique()
+                    .HasFilter("[IsDeleted] = 0");
+                b.HasIndex(x => x.BranchId);
+                b.HasOne(x => x.Branch)
+                    .WithMany()
+                    .HasForeignKey(x => x.BranchId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
