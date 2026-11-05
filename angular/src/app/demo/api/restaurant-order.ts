@@ -17,6 +17,15 @@ export const RestaurantOrderStatuses = {
 export type RestaurantOrderStatus =
     (typeof RestaurantOrderStatuses)[keyof typeof RestaurantOrderStatuses];
 
+export const RestaurantKitchenStatuses = {
+    None: 0,
+    InProgress: 1,
+    ReadyToPick: 2,
+} as const;
+
+export type RestaurantKitchenStatus =
+    (typeof RestaurantKitchenStatuses)[keyof typeof RestaurantKitchenStatuses];
+
 export interface RestaurantOrderDto {
     id: number;
     branchId: number;
@@ -32,6 +41,9 @@ export interface RestaurantOrderDto {
     carLocation?: string;
     status: RestaurantOrderStatus;
     statusName: string;
+    kitchenStatus?: RestaurantKitchenStatus;
+    kitchenStatusName?: string;
+    kitchenReadyTime?: string | null;
     customerId?: number | null;
     customerName?: string;
     waiterName?: string;
@@ -58,6 +70,7 @@ export interface RestaurantOrderLineDto {
     orderId: number;
     productId: number;
     productName: string;
+    imagePath?: string;
     quantity: number;
     unitPrice: number;
     lineTotal: number;

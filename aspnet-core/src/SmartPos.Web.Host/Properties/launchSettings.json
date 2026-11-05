@@ -3,7 +3,7 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "https://localhost:44311/",
+      "applicationUrl": "http://localhost:21021/",
       "sslPort": 44311
     }
   },
@@ -18,11 +18,11 @@
     "SmartPos.Web.Host": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "https://localhost:44311/",
+      "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "https://localhost:44311/"
+      "applicationUrl": "http://localhost:21021;https://localhost:44311"
     }
   }
 }

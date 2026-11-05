@@ -55,6 +55,11 @@ namespace SmartPos.Restaurant
 
         public virtual RestaurantOrderStatus Status { get; set; } = RestaurantOrderStatus.Open;
 
+        /// <summary>Kitchen display status after KOT — In Progress until marked Ready to Pick.</summary>
+        public virtual RestaurantKitchenStatus KitchenStatus { get; set; } = RestaurantKitchenStatus.None;
+
+        public virtual DateTime? KitchenReadyTime { get; set; }
+
         public virtual int? CustomerId { get; set; }
 
         [ForeignKey(nameof(CustomerId))]

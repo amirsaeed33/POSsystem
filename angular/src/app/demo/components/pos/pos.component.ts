@@ -493,7 +493,8 @@ export class PosComponent implements OnInit, OnDestroy {
 
     /** Restaurant menu browser (tap-to-add by category). */
     menuProducts: ProductDto[] = [];
-    selectedMenuCategoryId: number | null = null;
+    /** Empty = All categories. Multiple chips can be active at once. */
+    selectedMenuCategoryIds: number[] = [];
     loadingMenu = false;
     /** Left panel: Menu products vs current order/cart lines. */
     posLeftTab: 'menu' | 'order' = 'menu';
@@ -530,8 +531,9 @@ export class PosComponent implements OnInit, OnDestroy {
 
     get filteredMenuProducts(): ProductDto[] {
         let list = this.menuProducts;
-        if (this.selectedMenuCategoryId != null) {
-            list = list.filter((p) => p.categoryId === this.selectedMenuCategoryId);
+        if (this.selectedMenuCategoryIds.length > 0) {
+            const selected = new Set(this.selectedMenuCategoryIds);
+            list = list.filter((p) => p.categoryId != null && selected.has(p.categoryId));
         }
         const q = (this.searchText || '').trim().toLowerCase();
         if (q) {
@@ -543,6 +545,13 @@ export class PosComponent implements OnInit, OnDestroy {
             );
         }
         return list;
+    }
+
+    isMenuCategorySelected(categoryId: number | null): boolean {
+        if (categoryId == null) {
+            return this.selectedMenuCategoryIds.length === 0;
+        }
+        return this.selectedMenuCategoryIds.includes(categoryId);
     }
 
     ngOnInit(): void {
@@ -612,7 +621,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.loadUnpaidTakeaways();
         } else {
             this.menuProducts = [];
-            this.selectedMenuCategoryId = null;
+            this.selectedMenuCategoryIds = [];
             this.activeRestaurantOrders = [];
         }
     }
@@ -787,12 +796,10 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.menuProducts = (products || [])
                     .filter((p) => !this.isGroceryProduct(p))
                     .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-                if (
-                    this.selectedMenuCategoryId != null &&
-                    !this.menuCategories.some((c) => c.id === this.selectedMenuCategoryId)
-                ) {
-                    this.selectedMenuCategoryId = null;
-                }
+                const validIds = new Set(this.menuCategories.map((c) => c.id));
+                this.selectedMenuCategoryIds = this.selectedMenuCategoryIds.filter((id) =>
+                    validIds.has(id)
+                );
             })
             .catch((err) => {
                 console.error('Failed to load menu products:', err);
@@ -809,7 +816,17 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     selectMenuCategory(categoryId: number | null): void {
-        this.selectedMenuCategoryId = categoryId;
+        if (categoryId == null) {
+            this.selectedMenuCategoryIds = [];
+            return;
+        }
+
+        const idx = this.selectedMenuCategoryIds.indexOf(categoryId);
+        if (idx >= 0) {
+            this.selectedMenuCategoryIds = this.selectedMenuCategoryIds.filter((id) => id !== categoryId);
+        } else {
+            this.selectedMenuCategoryIds = [...this.selectedMenuCategoryIds, categoryId];
+        }
     }
 
     scrollMenuCategories(direction: -1 | 1): void {
@@ -2173,7 +2190,7 @@ export class PosComponent implements OnInit, OnDestroy {
                     productName: line.productName,
                     quantity: line.quantity,
                     unitPrice: line.unitPrice,
-                    kitchenNotes: line.kitchenNotes,
+                    kitchenNotes: line.kitchenNotes || '',
                     selectedModifiers: line.selectedModifiers,
                     isSentToKitchen: line.isSentToKitchen || false,
                     printedQuantity: line.printedQuantity || 0,
@@ -2198,6 +2215,10 @@ export class PosComponent implements OnInit, OnDestroy {
                     if (cartLine) {
                         cartLine.id = sl.id;
                         cartLine.printedQuantity = sl.printedQuantity ?? cartLine.printedQuantity ?? 0;
+                        // Keep local note if API omits it; otherwise take persisted value.
+                        if (sl.kitchenNotes) {
+                            cartLine.kitchenNotes = sl.kitchenNotes;
+                        }
                     }
                 });
             }
@@ -2343,6 +2364,7 @@ export class PosComponent implements OnInit, OnDestroy {
     editingLineForNote: PosCartLine | null = null;
     lineNoteDialogVisible = false;
     tempLineNote = '';
+    savingLineNote = false;
 
     openEditLineNote(line: PosCartLine): void {
         this.editingLineForNote = line;
@@ -2350,13 +2372,128 @@ export class PosComponent implements OnInit, OnDestroy {
         this.lineNoteDialogVisible = true;
     }
 
-    saveLineNote(): void {
-        if (this.editingLineForNote) {
-            this.editingLineForNote.kitchenNotes = this.tempLineNote.trim() || undefined;
+    async saveLineNote(): Promise<void> {
+        if (!this.editingLineForNote) {
+            this.lineNoteDialogVisible = false;
+            return;
         }
-        this.lineNoteDialogVisible = false;
-        this.editingLineForNote = null;
-        this.tempLineNote = '';
+
+        const noteText = this.tempLineNote.trim();
+        this.editingLineForNote.kitchenNotes = noteText || undefined;
+        const line = this.editingLineForNote;
+
+        if (!this.isRestaurantMode) {
+            this.lineNoteDialogVisible = false;
+            this.editingLineForNote = null;
+            this.tempLineNote = '';
+            return;
+        }
+
+        if (this.orderType === 'dineIn' && !this.selectedTable && !this.isCarService) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Select Table or Car',
+                detail: 'Select a table/car before saving the kitchen note.',
+            });
+            return;
+        }
+
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId || !this.cart.length) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Note',
+                detail: 'Add items to the order before saving a kitchen note.',
+            });
+            return;
+        }
+
+        this.savingLineNote = true;
+        try {
+            const loc = this.buildOrderLocationFields(this.orderType === 'takeaway');
+            const waiter = this.waiterName || (this.isWaiter ? this.authService.getPrinterIdentity().name : 'Staff');
+            const saved = await this.restaurantOrderService.saveOrder({
+                id: this.activeOrderId,
+                branchId,
+                ...loc,
+                customerId: this.customerId,
+                waiterName: waiter,
+                notes: this.notes,
+                discountPercent: this.discountPercent || 0,
+                discountAmount: this.discountAmount || 0,
+                taxPercent: this.taxPercent || 0,
+                serviceChargePercent: this.serviceChargePercent || 0,
+                lines: this.cart.map((cartLine) => ({
+                    id: cartLine.id,
+                    productId: cartLine.productId,
+                    productName: cartLine.productName,
+                    quantity: cartLine.quantity,
+                    unitPrice: cartLine.unitPrice,
+                    // Always send string so backend persists / clears notes reliably.
+                    kitchenNotes: cartLine.kitchenNotes || '',
+                    selectedModifiers: cartLine.selectedModifiers,
+                    isSentToKitchen: cartLine.isSentToKitchen || false,
+                    printedQuantity: cartLine.printedQuantity || 0,
+                })),
+            });
+
+            this.syncActiveOrderMeta(saved);
+            if (this.selectedTable) {
+                this.selectedTable.status = 1;
+                this.selectedTable.statusName = 'Occupied';
+                this.selectedTable.currentOrderId = saved.id;
+                this.selectedTable.waiterName = waiter;
+            }
+
+            if (saved.lines?.length) {
+                saved.lines.forEach((sl) => {
+                    const cartLine = this.cart.find(
+                        (cl) =>
+                            cl.id === sl.id ||
+                            (!cl.id &&
+                                cl.productId === sl.productId &&
+                                (cl.kitchenNotes || '') === (sl.kitchenNotes || ''))
+                    ) || this.cart.find(
+                        (cl) => cl.id === sl.id || (!cl.id && cl.productId === sl.productId)
+                    );
+                    if (cartLine) {
+                        cartLine.id = sl.id;
+                        cartLine.kitchenNotes = sl.kitchenNotes || cartLine.kitchenNotes;
+                        cartLine.printedQuantity = sl.printedQuantity ?? cartLine.printedQuantity ?? 0;
+                        cartLine.isSentToKitchen =
+                            cartLine.isSentToKitchen || !!sl.isSentToKitchen;
+                    }
+                });
+            }
+
+            // Keep local note even if API omits it in the response.
+            if (line) {
+                line.kitchenNotes = noteText || undefined;
+            }
+
+            this.lineNoteDialogVisible = false;
+            this.editingLineForNote = null;
+            this.tempLineNote = '';
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Kitchen Note',
+                detail: noteText
+                    ? `Note saved for ${line.productName}. Opening kitchen…`
+                    : `Note cleared for ${line.productName}. Opening kitchen…`,
+                life: 2500,
+            });
+
+            await this.router.navigate(['/kitchen']);
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Kitchen Note',
+                detail: err?.message || 'Failed to save kitchen note.',
+            });
+        } finally {
+            this.savingLineNote = false;
+        }
     }
 
     parseModifiers(modJson?: string): string[] {

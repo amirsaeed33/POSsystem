@@ -31,6 +31,21 @@ const routes: Routes = [
                         (m) => m.PosModule
                     ),
             },
+            {
+                path: 'kitchen',
+                data: {
+                    breadcrumb: 'Kitchen',
+                    anyPermission: [
+                        PermissionNames.Pos,
+                        PermissionNames.DiningTables,
+                        PermissionNames.Sales,
+                    ],
+                },
+                loadChildren: () =>
+                    import('./demo/components/kitchen/kitchen.module').then(
+                        (m) => m.KitchenModule
+                    ),
+            },
             { path: 'categories', redirectTo: '/product-settings', pathMatch: 'full' },
             { path: 'brands', redirectTo: '/product-settings', pathMatch: 'full' },
             { path: 'units', redirectTo: '/product-settings', pathMatch: 'full' },

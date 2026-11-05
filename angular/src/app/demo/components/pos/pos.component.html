@@ -384,7 +384,7 @@
                     </span>
                 </div>
 
-                <label class="font-semibold block mb-2">Search menu or pick a category</label>
+                <label class="font-semibold block mb-2">Search menu or pick one or more categories</label>
                 <div class="p-inputgroup mb-3">
                     <input
                         #barcodeInput
@@ -429,7 +429,7 @@
                         <button
                             type="button"
                             class="pos-menu-cat"
-                            [class.active]="selectedMenuCategoryId === null"
+                            [class.active]="isMenuCategorySelected(null)"
                             (click)="selectMenuCategory(null)"
                         >
                             All
@@ -439,10 +439,11 @@
                             type="button"
                             class="pos-menu-cat"
                             *ngFor="let cat of menuCategories"
-                            [class.active]="selectedMenuCategoryId === cat.id"
+                            [class.active]="isMenuCategorySelected(cat.id)"
                             (click)="selectMenuCategory(cat.id)"
                         >
                             {{ cat.name }}
+                            <i class="pi pi-check text-xs ml-1" *ngIf="isMenuCategorySelected(cat.id)"></i>
                             <span class="pos-menu-cat-count">{{ cat.count }}</span>
                         </button>
                     </div>
@@ -523,7 +524,7 @@
                             <div *ngIf="!loadingMenu">
                                 No items
                                 <span *ngIf="searchText"> matching “{{ searchText }}”</span>
-                                <span *ngIf="!searchText && selectedMenuCategoryId != null"> in this category</span>.
+                                <span *ngIf="!searchText && selectedMenuCategoryIds.length"> in selected categories</span>.
                             </div>
                         </div>
                     </ng-template>
@@ -2537,14 +2538,17 @@
                 type="button"
                 label="Cancel"
                 class="p-button-text"
+                [disabled]="savingLineNote"
                 (click)="lineNoteDialogVisible = false"
             ></button>
             <button
                 pButton
                 pRipple
                 type="button"
-                label="Save Note"
+                label="Save & Open Kitchen"
                 icon="pi pi-check"
+                [loading]="savingLineNote"
+                [disabled]="savingLineNote"
                 (click)="saveLineNote()"
             ></button>
         </ng-template>

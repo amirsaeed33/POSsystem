@@ -4009,6 +4009,12 @@ namespace SmartPos.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime?>("KitchenReadyTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte>("KitchenStatus")
+                        .HasColumnType("tinyint");
+
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("datetime2");
 

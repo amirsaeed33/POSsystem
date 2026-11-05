@@ -26,6 +26,10 @@ namespace SmartPos.Restaurant
 
         Task<SendToKitchenResultDto> ConfirmKotPrintAsync(ConfirmKotPrintDto input);
 
+        Task<RestaurantOrderDto> MarkReadyToPickAsync(int orderId);
+
+        Task<RestaurantOrderDto> MarkKitchenInProgressAsync(int orderId);
+
         Task<RestaurantOrderDto> PrintBillAsync(int orderId);
 
         Task<int> SettleOrderAsync(SettleRestaurantOrderDto input);

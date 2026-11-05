@@ -20,7 +20,8 @@ namespace SmartPos.Restaurant
 
             CreateMap<RestaurantOrder, RestaurantOrderDto>()
                 .ForMember(d => d.CustomerName, opt => opt.MapFrom(s => s.Customer != null ? s.Customer.Name : string.Empty));
-            CreateMap<RestaurantOrderLine, RestaurantOrderLineDto>();
+            CreateMap<RestaurantOrderLine, RestaurantOrderLineDto>()
+                .ForMember(d => d.ImagePath, opt => opt.MapFrom(s => s.Product != null ? s.Product.ImagePath : null));
 
             CreateMap<ProductModifierGroup, ProductModifierGroupDto>();
             CreateMap<ProductModifierOption, ProductModifierOptionDto>();

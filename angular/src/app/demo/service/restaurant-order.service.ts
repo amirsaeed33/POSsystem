@@ -104,6 +104,24 @@ export class RestaurantOrderService {
         return this.unwrap(res, 'Failed to confirm KOT print');
     }
 
+    async markReadyToPick(orderId: number): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/MarkReadyToPick`, null, {
+                params: { orderId },
+            })
+        );
+        return this.unwrap(res, 'Failed to mark order ready to pick');
+    }
+
+    async markKitchenInProgress(orderId: number): Promise<RestaurantOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/MarkKitchenInProgress`, null, {
+                params: { orderId },
+            })
+        );
+        return this.unwrap(res, 'Failed to mark kitchen in progress');
+    }
+
     async printBill(orderId: number): Promise<RestaurantOrderDto> {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/PrintBill`, null, {

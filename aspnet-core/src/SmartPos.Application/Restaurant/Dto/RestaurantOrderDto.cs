@@ -31,6 +31,17 @@ namespace SmartPos.Restaurant.Dto
 
         public string StatusName => Status.ToString();
 
+        public RestaurantKitchenStatus KitchenStatus { get; set; }
+
+        public string KitchenStatusName => KitchenStatus switch
+        {
+            RestaurantKitchenStatus.InProgress => "In Progress",
+            RestaurantKitchenStatus.ReadyToPick => "Ready to Pick",
+            _ => "None"
+        };
+
+        public DateTime? KitchenReadyTime { get; set; }
+
         public int? CustomerId { get; set; }
 
         public string CustomerName { get; set; }
@@ -77,6 +88,9 @@ namespace SmartPos.Restaurant.Dto
         public int ProductId { get; set; }
 
         public string ProductName { get; set; }
+
+        /// <summary>From linked product — used on kitchen display.</summary>
+        public string ImagePath { get; set; }
 
         public decimal Quantity { get; set; }
 

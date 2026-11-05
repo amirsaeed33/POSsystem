@@ -104,7 +104,9 @@ namespace SmartPos.Restaurant
         {
             await _branchAccessChecker.EnsureCanAccessBranchAsync(branchId);
             var orders = await _orderRepository.GetAll()
+                .AsNoTracking()
                 .Include(o => o.Lines)
+                    .ThenInclude(l => l.Product)
                 .Include(o => o.Customer)
                 .Where(o => o.BranchId == branchId &&
                             (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed))
@@ -707,6 +709,9 @@ namespace SmartPos.Restaurant
 
             if (itemsToPrint.Any())
             {
+                // New KOT items put the ticket back into kitchen work.
+                order.KitchenStatus = RestaurantKitchenStatus.InProgress;
+                order.KitchenReadyTime = null;
                 await _orderRepository.UpdateAsync(order);
             }
 
@@ -764,6 +769,67 @@ namespace SmartPos.Restaurant
             };
         }
 
+        public async Task<RestaurantOrderDto> MarkReadyToPickAsync(int orderId)
+        {
+            var order = await _orderRepository.GetAll()
+                .Include(o => o.Customer)
+                .Include(o => o.Lines)
+                    .ThenInclude(l => l.Product)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (order == null)
+            {
+                throw new UserFriendlyException("Order not found.");
+            }
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+            if (order.Status != RestaurantOrderStatus.Open && order.Status != RestaurantOrderStatus.Billed)
+            {
+                throw new UserFriendlyException("Only open kitchen tickets can be marked ready.");
+            }
+
+            if (!order.Lines.Any(l => l.IsSentToKitchen && l.Quantity > 0))
+            {
+                throw new UserFriendlyException("No kitchen items found on this order.");
+            }
+
+            order.KitchenStatus = RestaurantKitchenStatus.ReadyToPick;
+            order.KitchenReadyTime = Clock.Now;
+            await _orderRepository.UpdateAsync(order);
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            return ObjectMapper.Map<RestaurantOrderDto>(order);
+        }
+
+        public async Task<RestaurantOrderDto> MarkKitchenInProgressAsync(int orderId)
+        {
+            var order = await _orderRepository.GetAll()
+                .Include(o => o.Customer)
+                .Include(o => o.Lines)
+                    .ThenInclude(l => l.Product)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (order == null)
+            {
+                throw new UserFriendlyException("Order not found.");
+            }
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+            if (order.Status != RestaurantOrderStatus.Open && order.Status != RestaurantOrderStatus.Billed)
+            {
+                throw new UserFriendlyException("Only open kitchen tickets can be updated.");
+            }
+
+            order.KitchenStatus = RestaurantKitchenStatus.InProgress;
+            order.KitchenReadyTime = null;
+            await _orderRepository.UpdateAsync(order);
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            return ObjectMapper.Map<RestaurantOrderDto>(order);
+        }
+
         public async Task<SendToKitchenResultDto> ConfirmKotPrintAsync(ConfirmKotPrintDto input)
         {
             var order = await _orderRepository.GetAll()
@@ -792,6 +858,11 @@ namespace SmartPos.Restaurant
             var printer = await GetCurrentPrinterIdentityAsync();
             order.LastPrintedBy = $"{printer.Name} ({printer.Role})";
             order.LastPrintedTime = now;
+            if (targetLines.Any())
+            {
+                order.KitchenStatus = RestaurantKitchenStatus.InProgress;
+                order.KitchenReadyTime = null;
+            }
             await _orderRepository.UpdateAsync(order);
 
             await _printLogRepository.InsertAsync(new RestaurantPrintLog

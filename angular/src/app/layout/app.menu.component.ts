@@ -78,7 +78,12 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                             label: 'Dining Tables & POS',
                             icon: 'pi pi-table',
                             routerLink: ['/pos'],
-                        }
+                        },
+                        {
+                            label: 'Kitchen',
+                            icon: 'pi pi-inbox',
+                            routerLink: ['/kitchen'],
+                        },
                     ]
                 }
             ];
@@ -127,6 +132,16 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                                   label: 'Dining Tables & POS',
                                   icon: 'pi pi-table',
                                   routerLink: ['/pos'],
+                                  anyPermission: [
+                                      PermissionNames.DiningTables,
+                                      PermissionNames.Pos,
+                                      PermissionNames.Sales,
+                                  ],
+                              },
+                              {
+                                  label: 'Kitchen',
+                                  icon: 'pi pi-inbox',
+                                  routerLink: ['/kitchen'],
                                   anyPermission: [
                                       PermissionNames.DiningTables,
                                       PermissionNames.Pos,

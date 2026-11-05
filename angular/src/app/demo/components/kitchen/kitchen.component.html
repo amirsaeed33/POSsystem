@@ -1,0 +1,152 @@
+<p-toast></p-toast>
+
+<div class="kitchen-page">
+    <div class="kitchen-toolbar">
+        <div class="kitchen-title-block">
+            <h2 class="kitchen-title m-0">
+                <i class="pi pi-inbox mr-2"></i>
+                Kitchen
+            </h2>
+            <span class="kitchen-sub">
+                Running orders only
+                <span *ngIf="lastRefreshedAt"> · Updated {{ lastRefreshedAt | date: 'shortTime' }}</span>
+            </span>
+        </div>
+
+        <div class="kitchen-actions">
+            <span class="kitchen-count-pill">{{ filteredOrders.length }} / {{ openCount }} tickets</span>
+            <div class="kitchen-filters">
+                <button type="button" class="kit-filter kit-all" [class.active]="filter === 'all'" (click)="setFilter('all')">
+                    All <span class="kit-filter-count">{{ openCount }}</span>
+                </button>
+                <button type="button" class="kit-filter kit-dinein" [class.active]="filter === 'dinein'" (click)="setFilter('dinein')">
+                    Dine-in <span class="kit-filter-count">{{ dineInCount }}</span>
+                </button>
+                <button type="button" class="kit-filter kit-takeaway" [class.active]="filter === 'takeaway'" (click)="setFilter('takeaway')">
+                    Takeaway <span class="kit-filter-count">{{ takeawayCount }}</span>
+                </button>
+                <button type="button" class="kit-filter kit-car" [class.active]="filter === 'car'" (click)="setFilter('car')">
+                    Car <span class="kit-filter-count">{{ carCount }}</span>
+                </button>
+            </div>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-refresh"
+                label="Refresh"
+                class="p-button-outlined p-button-sm"
+                [loading]="loading"
+                (click)="loadOrders()"
+            ></button>
+        </div>
+    </div>
+
+    <div class="kitchen-empty" *ngIf="!loading && !filteredOrders.length">
+        <i class="pi pi-check-circle text-4xl text-green-500 mb-3"></i>
+        <h3 class="m-0 mb-1">No running kitchen orders</h3>
+        <p class="text-600 m-0">Tickets appear here after POS sends them to KOT.</p>
+    </div>
+
+    <div class="kitchen-grid" *ngIf="filteredOrders.length">
+        <article
+            class="kitchen-card"
+            *ngFor="let order of filteredOrders; trackBy: trackByOrderId"
+            [class.late]="isLate(order)"
+            [class.ready-ticket]="isReadyToPick(order)"
+            [ngClass]="orderTypeClass(order)"
+        >
+            <header class="kitchen-card-head">
+                <div>
+                    <div class="kitchen-card-title">{{ orderTitle(order) }}</div>
+                    <div class="kitchen-card-meta">
+                        <span class="kit-type">{{ orderTypeLabel(order) }}</span>
+                        <span *ngIf="order.orderNo"> · {{ order.orderNo }}</span>
+                        <span *ngIf="order.waiterName"> · {{ order.waiterName }}</span>
+                    </div>
+                </div>
+                <div class="kitchen-card-side">
+                    <span
+                        class="kitchen-status-pill"
+                        [class.ready]="isReadyToPick(order)"
+                        [class.progress]="!isReadyToPick(order)"
+                    >
+                        {{ kitchenStatusLabel(order) }}
+                    </span>
+                    <div class="kitchen-card-age" [class.warn]="isLate(order)">
+                        {{ elapsedLabel(order) }}
+                    </div>
+                </div>
+            </header>
+
+            <div class="kitchen-lines-scroll">
+                <ul class="kitchen-lines">
+                    <li *ngFor="let line of kitchenLines(order)">
+                        <div class="line-row">
+                            <div class="line-thumb">
+                                <img
+                                    *ngIf="getLineImage(line) as img"
+                                    [src]="img"
+                                    [alt]="line.productName"
+                                    loading="lazy"
+                                />
+                                <span *ngIf="!getLineImage(line)" class="line-thumb-fallback">
+                                    {{ getLineInitials(line) }}
+                                </span>
+                            </div>
+                            <div class="line-body">
+                                <div class="line-main">
+                                    <span class="line-qty">{{ line.quantity }}×</span>
+                                    <span class="line-name">{{ line.productName }}</span>
+                                </div>
+                                <div class="line-mods" *ngIf="getLineModifiers(line).length">
+                                    <div class="line-mod-item" *ngFor="let mod of getLineModifiers(line)">
+                                        <span class="line-mod-bullet">•</span>
+                                        <span>{{ mod }}</span>
+                                    </div>
+                                </div>
+                                <div class="line-note" *ngIf="getLineNote(line)">
+                                    <i class="pi pi-comment"></i>
+                                    <span class="line-note-label">Note:</span>
+                                    <span>{{ getLineNote(line) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <footer class="kitchen-card-foot">
+                <div class="kitchen-foot-meta" *ngIf="order.notes || order.customerName || order.carLocation">
+                    <div *ngIf="order.customerName"><i class="pi pi-user mr-1"></i>{{ order.customerName }}</div>
+                    <div *ngIf="order.carLocation"><i class="pi pi-map-marker mr-1"></i>{{ order.carLocation }}</div>
+                    <div *ngIf="order.notes" class="order-note">{{ order.notes }}</div>
+                </div>
+                <div class="kitchen-card-actions">
+                    <button
+                        *ngIf="!isReadyToPick(order)"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-check"
+                        label="Ready to Pick"
+                        class="p-button-sm p-button-success kitchen-ready-btn"
+                        [loading]="statusBusy[order.id]"
+                        (click)="markReadyToPick(order)"
+                    ></button>
+                    <button
+                        *ngIf="isReadyToPick(order)"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-replay"
+                        label="Back to In Progress"
+                        class="p-button-sm p-button-outlined kitchen-progress-btn"
+                        [loading]="statusBusy[order.id]"
+                        (click)="markInProgress(order)"
+                    ></button>
+                </div>
+            </footer>
+        </article>
+    </div>
+</div>
