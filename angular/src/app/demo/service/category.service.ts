@@ -90,6 +90,7 @@ export class CategoryService {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Create`, {
                 name: input.name,
+                departmentId: input.departmentId ?? null,
                 description: input.description,
                 defaultUnitId: input.defaultUnitId,
                 imageBase64: input.imageBase64,
@@ -105,6 +106,7 @@ export class CategoryService {
                 id: input.id,
                 branchId: input.branchId,
                 name: input.name,
+                departmentId: input.departmentId ?? null,
                 description: input.description,
                 defaultUnitId: input.defaultUnitId,
                 imagePath: input.imagePath,
@@ -157,6 +159,8 @@ export class CategoryService {
         return {
             id: item.id ?? item.Id,
             branchId: item.branchId ?? item.BranchId,
+            departmentId: item.departmentId ?? item.DepartmentId,
+            departmentName: item.departmentName ?? item.DepartmentName,
             name: item.name ?? item.Name,
             description: item.description ?? item.Description,
             imagePath: item.imagePath ?? item.ImagePath,

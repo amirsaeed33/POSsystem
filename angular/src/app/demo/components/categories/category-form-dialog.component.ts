@@ -8,8 +8,10 @@ import {
     SimpleChanges,
 } from '@angular/core';
 import { CategoryDto } from 'src/app/demo/api/category';
+import { DepartmentDto } from 'src/app/demo/api/department';
 import { UnitDto } from 'src/app/demo/api/unit';
 import { CategoryService } from 'src/app/demo/service/category.service';
+import { DepartmentService } from 'src/app/demo/service/department.service';
 import { UnitService } from 'src/app/demo/service/unit.service';
 import {
     isEntityNameValid,
@@ -27,7 +29,8 @@ export class CategoryFormDialogComponent implements OnChanges {
     @Output() visibleChange = new EventEmitter<boolean>();
     @Output() saved = new EventEmitter<void>();
 
-    category: CategoryDto = { id: 0, name: '', description: '' };
+    category: CategoryDto = { id: 0, name: '', description: '', departmentId: null };
+    departments: DepartmentDto[] = [];
     units: UnitDto[] = [];
     saving = false;
     loading = false;
@@ -51,6 +54,7 @@ export class CategoryFormDialogComponent implements OnChanges {
 
     constructor(
         private categoryService: CategoryService,
+        private departmentService: DepartmentService,
         private unitService: UnitService,
         private messageService: MessageService
     ) {}
@@ -66,6 +70,7 @@ export class CategoryFormDialogComponent implements OnChanges {
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.resetForm();
+            this.loadDepartments();
             this.loadUnits();
             if (this.categoryId) {
                 this.loadCategory(this.categoryId);
@@ -148,6 +153,7 @@ export class CategoryFormDialogComponent implements OnChanges {
                   id: this.categoryId,
                   branchId: this.category.branchId,
                   name,
+                  departmentId: this.category.departmentId ? Number(this.category.departmentId) : null,
                   description: this.category.description?.trim() || undefined,
                   defaultUnitId: this.category.defaultUnitId || undefined,
                   imagePath: this.imageCleared
@@ -157,6 +163,7 @@ export class CategoryFormDialogComponent implements OnChanges {
               })
             : this.categoryService.create({
                   name,
+                  departmentId: this.category.departmentId ? Number(this.category.departmentId) : null,
                   description: this.category.description?.trim() || undefined,
                   defaultUnitId: this.category.defaultUnitId || undefined,
                   imageBase64,
@@ -186,6 +193,17 @@ export class CategoryFormDialogComponent implements OnChanges {
             });
     }
 
+    private loadDepartments(): void {
+        this.departmentService
+            .getLookup(true)
+            .then((departments) => {
+                this.departments = departments || [];
+            })
+            .catch(() => {
+                this.departments = [];
+            });
+    }
+
     private loadUnits(): void {
         this.unitService
             .getLookup(true)
@@ -198,7 +216,7 @@ export class CategoryFormDialogComponent implements OnChanges {
     }
 
     private resetForm(): void {
-        this.category = { id: 0, name: '', description: '' };
+        this.category = { id: 0, name: '', description: '', departmentId: null };
         this.imagePreview = '';
         this.imageCleared = false;
         this.saving = false;
@@ -210,7 +228,7 @@ export class CategoryFormDialogComponent implements OnChanges {
         this.categoryService
             .get(id)
             .then((category) => {
-                this.category = { ...category, imageBase64: undefined };
+                this.category = { ...category, departmentId: category.departmentId ?? null, imageBase64: undefined };
                 this.imagePreview = this.categoryService.getImageUrl(
                     category.imagePath
                 );
