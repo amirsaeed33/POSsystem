@@ -103,6 +103,7 @@ namespace SmartPos.Orders.Dto
         public string FacebookUrl { get; set; }
         public string InstagramUrl { get; set; }
         public string YoutubeUrl { get; set; }
+        public string ImagePath { get; set; }
         public List<string> Categories { get; set; } = new List<string>();
     }
 

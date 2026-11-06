@@ -50,6 +50,8 @@ export interface ProductDto {
     isDeal?: boolean;
     /** Online menu badge label (Hot Deal, Best Seller, etc.). Empty = no badge. */
     cardTag?: string;
+    /** When true, product appears on the public online store menu. */
+    isVisibleOnline?: boolean;
 }
 
 export interface CreateProductDto {
@@ -71,6 +73,7 @@ export interface CreateProductDto {
     branchIds?: number[];
     specifications?: string;
     cardTag?: string;
+    isVisibleOnline?: boolean;
 }
 
 export interface PagedProductResultRequestDto {

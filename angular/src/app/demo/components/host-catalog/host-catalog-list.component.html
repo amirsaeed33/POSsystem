@@ -16,48 +16,74 @@
         ></button>
     </div>
 
-    <div class="grid">
-        <div class="col-12 md:col-4">
-            <div *ngIf="loading" class="text-500 py-3">
-                <i class="pi pi-spin pi-spinner mr-2"></i>Loading…
-            </div>
-            <ul class="list-none p-0 m-0" *ngIf="!loading">
-                <li
-                    *ngFor="let item of companyTypes"
-                    class="p-3 border-round mb-2 cursor-pointer surface-border border-1"
-                    [class.surface-100]="selectedCompanyType?.id === item.id"
-                    (click)="selectCompanyType(item)"
-                >
-                    <div class="flex align-items-center justify-content-between gap-2">
-                        <div>
-                            <div class="font-medium">{{ item.name }}</div>
-                            <small class="text-500">{{ item.isActive ? 'Active' : 'Inactive' }}</small>
+    <div *ngIf="loading" class="text-500 py-3">
+        <i class="pi pi-spin pi-spinner mr-2"></i>Loading…
+    </div>
+
+    <div class="grid" *ngIf="!loading">
+        <div class="col-12 md:col-6 xl:col-4" *ngFor="let item of companyTypes">
+            <div
+                class="surface-card border-1 surface-border border-round-xl p-3 h-full cursor-pointer transition-colors transition-duration-150"
+                [class.shadow-2]="selectedCompanyType?.id === item.id"
+                [class.border-primary]="selectedCompanyType?.id === item.id"
+                [style.border-color]="selectedCompanyType?.id === item.id ? 'var(--primary-color)' : null"
+                (click)="selectCompanyType(item)"
+            >
+                <div class="flex align-items-start justify-content-between gap-2 mb-2">
+                    <div class="flex align-items-center gap-2 min-w-0">
+                        <div
+                            class="flex align-items-center justify-content-center border-circle bg-primary-50 text-primary"
+                            style="width: 2.5rem; height: 2.5rem; flex-shrink: 0;"
+                        >
+                            <i class="pi pi-building"></i>
                         </div>
-                        <div (click)="$event.stopPropagation()">
-                            <app-row-actions
-                                [items]="getRowActions(item)"
-                            ></app-row-actions>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-900 white-space-nowrap overflow-hidden text-overflow-ellipsis">
+                                {{ item.name }}
+                            </div>
                         </div>
                     </div>
-                </li>
-                <li *ngIf="!companyTypes.length" class="text-500 p-3">No company types yet.</li>
-            </ul>
+                    <div class="flex align-items-center gap-2" (click)="$event.stopPropagation()">
+                        <p-inputSwitch
+                            [ngModel]="!!item.isActive"
+                            [disabled]="togglingStatusId === item.id"
+                            pTooltip="Active status"
+                            tooltipPosition="top"
+                            (onChange)="onStatusToggle(item, $event.checked)"
+                        ></p-inputSwitch>
+                        <app-row-actions [items]="getRowActions(item)"></app-row-actions>
+                    </div>
+                </div>
+                <div class="text-500 text-sm">
+                    Click to manage categories, units, and brands
+                </div>
+            </div>
         </div>
 
-        <div class="col-12 md:col-8" *ngIf="selectedCompanyType">
-            <div class="flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
-                <div class="flex flex-wrap gap-2">
-                    <button
-                        *ngFor="let tab of childTabs"
-                        pButton
-                        pRipple
-                        type="button"
-                        [label]="tab.label"
-                        class="p-button-sm"
-                        [class.p-button-outlined]="activeChildType !== tab.value"
-                        (click)="onChildTabChange(tab.value)"
-                    ></button>
-                </div>
+        <div class="col-12" *ngIf="!companyTypes.length">
+            <div class="surface-ground border-round p-4 text-center text-500">
+                No company types yet.
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4" *ngIf="selectedCompanyType">
+        <div class="flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+            <div>
+                <h6 class="m-0">{{ selectedCompanyType.name }}</h6>
+                <small class="text-500">Catalog items for this company type</small>
+            </div>
+            <div class="flex flex-wrap gap-2 align-items-center">
+                <button
+                    *ngFor="let tab of childTabs"
+                    pButton
+                    pRipple
+                    type="button"
+                    [label]="tab.label"
+                    class="p-button-sm"
+                    [class.p-button-outlined]="activeChildType !== tab.value"
+                    (click)="onChildTabChange(tab.value)"
+                ></button>
                 <button
                     pButton
                     pRipple
@@ -68,37 +94,43 @@
                     (click)="openCreateChild()"
                 ></button>
             </div>
-
-            <p-table [value]="children" [loading]="childrenLoading" styleClass="p-datatable-sm">
-                <ng-template pTemplate="header">
-                    <tr>
-                        <th>Name</th>
-                        <th *ngIf="activeChildType === HostCatalogItemTypes.Unit">Symbol</th>
-                        <th>Active</th>
-                        <th class="text-center" style="width: 4.5rem">Actions</th>
-                    </tr>
-                </ng-template>
-                <ng-template pTemplate="body" let-row>
-                    <tr>
-                        <td>{{ row.name }}</td>
-                        <td *ngIf="activeChildType === HostCatalogItemTypes.Unit">{{ row.symbol || '—' }}</td>
-                        <td>{{ row.isActive ? 'Yes' : 'No' }}</td>
-                        <td class="text-center">
-                            <app-row-actions
-                                [items]="getRowActions(row)"
-                            ></app-row-actions>
-                        </td>
-                    </tr>
-                </ng-template>
-                <ng-template pTemplate="emptymessage">
-                    <tr>
-                        <td [attr.colspan]="activeChildType === HostCatalogItemTypes.Unit ? 4 : 3" class="text-500">
-                            No items for {{ selectedCompanyType.name }}.
-                        </td>
-                    </tr>
-                </ng-template>
-            </p-table>
         </div>
+
+        <p-table [value]="children" [loading]="childrenLoading" styleClass="p-datatable-sm">
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>Name</th>
+                    <th *ngIf="activeChildType === HostCatalogItemTypes.Unit">Symbol</th>
+                    <th style="width: 7rem; text-align: center;">Status</th>
+                    <th class="text-center" style="width: 4.5rem">Actions</th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row>
+                <tr>
+                    <td>{{ row.name }}</td>
+                    <td *ngIf="activeChildType === HostCatalogItemTypes.Unit">{{ row.symbol || '—' }}</td>
+                    <td class="text-center">
+                        <p-inputSwitch
+                            [ngModel]="!!row.isActive"
+                            [disabled]="togglingStatusId === row.id"
+                            pTooltip="Active status"
+                            tooltipPosition="top"
+                            (onChange)="onStatusToggle(row, $event.checked)"
+                        ></p-inputSwitch>
+                    </td>
+                    <td class="text-center">
+                        <app-row-actions [items]="getRowActions(row)"></app-row-actions>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td [attr.colspan]="activeChildType === HostCatalogItemTypes.Unit ? 4 : 3" class="text-500">
+                        No items for {{ selectedCompanyType.name }}.
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
     </div>
 </div>
 
@@ -117,10 +149,6 @@
         <div class="flex flex-column gap-2" *ngIf="formType === HostCatalogItemTypes.Unit">
             <label class="font-medium">Symbol</label>
             <input pInputText class="w-full" [(ngModel)]="formSymbol" [disabled]="saving" maxlength="32" />
-        </div>
-        <div class="flex align-items-center gap-2">
-            <p-checkbox [(ngModel)]="formIsActive" [binary]="true" inputId="hostCatActive" [disabled]="saving"></p-checkbox>
-            <label for="hostCatActive">Active</label>
         </div>
     </div>
     <ng-template pTemplate="footer">

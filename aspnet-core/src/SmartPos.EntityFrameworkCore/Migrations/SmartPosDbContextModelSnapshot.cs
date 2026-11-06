@@ -3555,6 +3555,9 @@ namespace SmartPos.Migrations
                     b.Property<bool>("IsFreeDelivery")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsVisibleOnline")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("datetime2");
 

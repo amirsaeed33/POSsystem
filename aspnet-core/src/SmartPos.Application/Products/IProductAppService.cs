@@ -9,6 +9,13 @@ namespace SmartPos.Products
     public interface IProductAppService : IAsyncCrudAppService<ProductDto, int, PagedProductResultRequestDto, CreateProductDto, ProductDto>
     {
         Task<ProductImportResultDto> ImportProductsAsync(List<ImportProductRowDto> inputs);
+
+        Task SetVisibleOnlineAsync(SetProductVisibleOnlineInput input);
+    }
+
+    public class SetProductVisibleOnlineInput : EntityDto
+    {
+        public bool IsVisibleOnline { get; set; }
     }
 
     public class ImportProductRowDto

@@ -27,6 +27,7 @@ export class HostCatalogListComponent implements OnInit {
     formSymbol = '';
     formIsActive = true;
     saving = false;
+    togglingStatusId: number | null = null;
 
     readonly HostCatalogItemTypes = HostCatalogItemTypes;
     readonly childTabs = [
@@ -253,5 +254,37 @@ export class HostCatalogListComponent implements OnInit {
                 action: () => this.onDelete(item),
             },
         ];
+    }
+
+    async onStatusToggle(item: HostCatalogItemDto, checked: boolean): Promise<void> {
+        if (!item?.id || this.togglingStatusId === item.id) {
+            return;
+        }
+
+        const previous = !!item.isActive;
+        item.isActive = checked;
+        this.togglingStatusId = item.id;
+        try {
+            await this.hostCatalogService.update({
+                ...item,
+                isActive: checked,
+            });
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Updated',
+                detail: checked
+                    ? `"${item.name}" is active`
+                    : `"${item.name}" is inactive`,
+            });
+        } catch (error: any) {
+            item.isActive = previous;
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Failed to update status',
+            });
+        } finally {
+            this.togglingStatusId = null;
+        }
     }
 }

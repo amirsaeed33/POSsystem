@@ -85,5 +85,8 @@ namespace SmartPos.Products.Dto
         /// <summary>Optional online-menu badge (Hot Deal, Best Seller, etc.).</summary>
         [StringLength(Product.MaxCardTagLength)]
         public string CardTag { get; set; }
+
+        /// <summary>When true, product appears on the public online store menu.</summary>
+        public bool IsVisibleOnline { get; set; } = true;
     }
 }

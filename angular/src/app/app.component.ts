@@ -1,14 +1,22 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { PrimeNGConfig } from 'primeng/api';
+import { Subscription } from 'rxjs';
+import { AppBrowserTitleService } from './demo/service/app-browser-title.service';
+import { BranchContextService } from './demo/service/branch-context.service';
 
 @Component({
     selector: 'app-root',
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.scss']
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
+    private branchSub?: Subscription;
 
-    constructor(private primengConfig: PrimeNGConfig) { }
+    constructor(
+        private primengConfig: PrimeNGConfig,
+        private branchContext: BranchContextService,
+        private browserTitle: AppBrowserTitleService
+    ) { }
 
     ngOnInit(): void {
         this.primengConfig.ripple = true;
@@ -18,6 +26,14 @@ export class AppComponent implements OnInit {
             menu: 1000,
             tooltip: 1100
         };
+
+        this.browserTitle.apply();
+        this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
+            this.browserTitle.setStaffBranchName(branch?.name);
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.branchSub?.unsubscribe();
     }
 }
-

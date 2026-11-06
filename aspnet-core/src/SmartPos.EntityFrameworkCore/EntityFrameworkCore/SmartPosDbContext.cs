@@ -24,6 +24,7 @@ using SmartPos.Deals;
 using SmartPos.Staffs;
 using SmartPos.Suppliers;
 using SmartPos.Departments;
+using SmartPos.Developers;
 using SmartPos.Units;
 
 namespace SmartPos.EntityFrameworkCore
@@ -47,6 +48,8 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<LookUp> LookUps { get; set; }
 
         public virtual DbSet<HostCatalogItem> HostCatalogItems { get; set; }
+
+        public virtual DbSet<Developer> Developers { get; set; }
 
         public virtual DbSet<BranchSeedRequest> BranchSeedRequests { get; set; }
 

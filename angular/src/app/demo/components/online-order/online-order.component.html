@@ -6,8 +6,14 @@
             <!-- Left: Brand Logo, Name & Location Selector -->
             <div class="flex align-items-center gap-3 overflow-hidden">
                 <div class="fp-brand-group cursor-pointer" (click)="onBrandClick($event)">
-                    <div class="brand-logo-sq">
-                        <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
+                    <div class="brand-logo-sq" [class.brand-logo-sq--image]="!!branchLogoUrl">
+                        <img
+                            *ngIf="branchLogoUrl as logoUrl"
+                            [src]="logoUrl"
+                            [alt]="branchName || 'Branch logo'"
+                            (error)="onBranchLogoError()"
+                        />
+                        <i *ngIf="!branchLogoUrl" [class]="defaultBrandIconClass"></i>
                     </div>
                     <div class="brand-text-col">
                         <div class="brand-name">
@@ -131,8 +137,18 @@
         <div class="flex md:hidden align-items-center justify-content-between gap-2 w-full fp-mobile-top-bar">
             <!-- Left: Brand Logo + Branch / City Selector -->
             <div class="flex align-items-center gap-2 overflow-hidden flex-grow-1 min-w-0">
-                <div class="brand-logo-sq flex-shrink-0 cursor-pointer" (click)="onBrandClick($event)">
-                    <i [class]="isRestaurantStore() ? 'pi pi-compass' : isSolarStore() ? 'pi pi-bolt' : 'pi pi-shopping-bag'"></i>
+                <div
+                    class="brand-logo-sq flex-shrink-0 cursor-pointer"
+                    [class.brand-logo-sq--image]="!!branchLogoUrl"
+                    (click)="onBrandClick($event)"
+                >
+                    <img
+                        *ngIf="branchLogoUrl as logoUrl"
+                        [src]="logoUrl"
+                        [alt]="branchName || 'Branch logo'"
+                        (error)="onBranchLogoError()"
+                    />
+                    <i *ngIf="!branchLogoUrl" [class]="defaultBrandIconClass"></i>
                 </div>
                 <div class="fp-mobile-header-info min-w-0 flex-grow-1">
                     <div class="flex align-items-center gap-1 cursor-pointer" (click)="onBrandClick($event)">
@@ -224,8 +240,14 @@
     >
         <ng-template pTemplate="header">
             <div class="flex align-items-center gap-2">
-                <div class="brand-logo-sq w-2rem h-2rem font-bold text-sm">
-                    <i class="pi pi-compass"></i>
+                <div class="brand-logo-sq w-2rem h-2rem font-bold text-sm" [class.brand-logo-sq--image]="!!branchLogoUrl">
+                    <img
+                        *ngIf="branchLogoUrl as logoUrl"
+                        [src]="logoUrl"
+                        [alt]="branchName || 'Branch logo'"
+                        (error)="onBranchLogoError()"
+                    />
+                    <i *ngIf="!branchLogoUrl" [class]="defaultBrandIconClass"></i>
                 </div>
                 <span class="font-bold text-900 text-base">{{ branchName || 'Online Menu' }}</span>
             </div>
@@ -696,15 +718,19 @@
                 </div>
             </div>
 
-            <div class="fp-menu-grid" id="trackTrending">
+            <div class="fp-products-marquee fp-products-marquee--ltr" id="trackTrending">
                 <div
-                    *ngFor="let product of trendingDeals; let idx = index"
-                    class="fp-menu-grid-col"
-                    [style.animation-delay.ms]="idx * 45"
+                    class="fp-products-track"
+                    [style.animation-duration]="productMarqueeDuration(trendingDeals)"
                 >
-                    <ng-container
-                        *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx, tagIdx: idx }"
-                    ></ng-container>
+                    <div
+                        *ngFor="let product of productMarqueeItems(trendingDeals); let idx = index"
+                        class="fp-products-marquee-item"
+                    >
+                        <ng-container
+                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx % trendingDeals.length, tagIdx: idx % trendingDeals.length }"
+                        ></ng-container>
+                    </div>
                 </div>
             </div>
         </section>
@@ -731,15 +757,19 @@
                 </div>
             </div>
 
-            <div class="fp-menu-grid" id="trackPopular">
+            <div class="fp-products-marquee fp-products-marquee--rtl" id="trackPopular">
                 <div
-                    *ngFor="let product of popularItems; let idx = index"
-                    class="fp-menu-grid-col"
-                    [style.animation-delay.ms]="idx * 45"
+                    class="fp-products-track"
+                    [style.animation-duration]="productMarqueeDuration(popularItems)"
                 >
-                    <ng-container
-                        *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx + 4, tagIdx: idx + 4 }"
-                    ></ng-container>
+                    <div
+                        *ngFor="let product of productMarqueeItems(popularItems); let idx = index"
+                        class="fp-products-marquee-item"
+                    >
+                        <ng-container
+                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: (idx % popularItems.length) + 4, tagIdx: (idx % popularItems.length) + 4 }"
+                        ></ng-container>
+                    </div>
                 </div>
             </div>
         </section>
@@ -770,15 +800,24 @@
                 </div>
             </div>
 
-            <div class="fp-menu-grid" [id]="'trackCat' + sIdx">
+            <div
+                class="fp-products-marquee"
+                [class.fp-products-marquee--ltr]="sIdx % 2 === 0"
+                [class.fp-products-marquee--rtl]="sIdx % 2 === 1"
+                [id]="'trackCat' + sIdx"
+            >
                 <div
-                    *ngFor="let product of sec.items; let idx = index"
-                    class="fp-menu-grid-col"
-                    [style.animation-delay.ms]="idx * 45"
+                    class="fp-products-track"
+                    [style.animation-duration]="productMarqueeDuration(sec.items)"
                 >
-                    <ng-container
-                        *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx + sIdx, tagIdx: idx }"
-                    ></ng-container>
+                    <div
+                        *ngFor="let product of productMarqueeItems(sec.items); let idx = index"
+                        class="fp-products-marquee-item"
+                    >
+                        <ng-container
+                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: (idx % sec.items.length) + sIdx, tagIdx: idx % sec.items.length }"
+                        ></ng-container>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1596,16 +1635,25 @@
                 <i class="pi pi-check text-primary font-bold" *ngIf="b.id === branchId"></i>
             </div>
 
-            <div class="fp-branch-login-card">
+            <div
+                class="fp-branch-login-card"
+                [class.fp-branch-login-card--clickable]="true"
+                role="button"
+                tabindex="0"
+                (click)="onStaffAdminCardClick()"
+                (keydown.enter)="onStaffAdminCardClick()"
+            >
                 <div class="fp-branch-login-copy">
                     <div class="fp-branch-login-title">Staff / Admin</div>
-                    <div class="fp-branch-login-sub">Sign in to manage orders and POS</div>
+                    <div class="fp-branch-login-sub">
+                        {{ isLoggedIn ? 'Open dashboard to manage orders and POS' : 'Sign in to manage orders and POS' }}
+                    </div>
                 </div>
                 <a
                     *ngIf="!isLoggedIn"
                     routerLink="/auth/login"
                     class="fp-branch-login-btn"
-                    (click)="mobileBranchModal = false"
+                    (click)="$event.stopPropagation(); mobileBranchModal = false"
                 >
                     <i class="pi pi-sign-in"></i>
                     Login
@@ -1614,7 +1662,7 @@
                     *ngIf="isLoggedIn"
                     type="button"
                     class="fp-branch-login-btn fp-branch-login-btn--out"
-                    (click)="mobileBranchModal = false; logoutAndShowBranches()"
+                    (click)="$event.stopPropagation(); mobileBranchModal = false; logoutAndShowBranches()"
                 >
                     <i class="pi pi-sign-out"></i>
                     Logout
@@ -1667,15 +1715,24 @@
                 </button>
             </div>
 
-            <div class="fp-branch-login-card mt-3">
+            <div
+                class="fp-branch-login-card fp-branch-login-card--clickable mt-3"
+                role="button"
+                tabindex="0"
+                (click)="onStaffAdminCardClick()"
+                (keydown.enter)="onStaffAdminCardClick()"
+            >
                 <div class="fp-branch-login-copy">
                     <div class="fp-branch-login-title">Staff / Admin</div>
-                    <div class="fp-branch-login-sub">Sign in to manage orders and POS</div>
+                    <div class="fp-branch-login-sub">
+                        {{ isLoggedIn ? 'Open dashboard to manage orders and POS' : 'Sign in to manage orders and POS' }}
+                    </div>
                 </div>
                 <a
                     *ngIf="!isLoggedIn"
                     routerLink="/auth/login"
                     class="fp-branch-login-btn"
+                    (click)="$event.stopPropagation()"
                 >
                     <i class="pi pi-sign-in"></i>
                     Login
@@ -1684,7 +1741,7 @@
                     *ngIf="isLoggedIn"
                     type="button"
                     class="fp-branch-login-btn fp-branch-login-btn--out"
-                    (click)="logoutAndShowBranches()"
+                    (click)="$event.stopPropagation(); logoutAndShowBranches()"
                 >
                     <i class="pi pi-sign-out"></i>
                     Logout
@@ -1864,8 +1921,14 @@
             <div class="fp-footer-grid">
                 <div class="fp-footer-brand">
                     <div class="fp-footer-brand-row">
-                        <div class="brand-logo-sq">
-                            <i [class]="isRestaurantStore() ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
+                        <div class="brand-logo-sq" [class.brand-logo-sq--image]="!!branchLogoUrl">
+                            <img
+                                *ngIf="branchLogoUrl as logoUrl"
+                                [src]="logoUrl"
+                                [alt]="branchName || 'Branch logo'"
+                                (error)="onBranchLogoError()"
+                            />
+                            <i *ngIf="!branchLogoUrl" [class]="defaultBrandIconClass"></i>
                         </div>
                         <div>
                             <div class="fp-footer-brand-name">{{ branchName || 'Online Restaurant' }}</div>

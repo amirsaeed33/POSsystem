@@ -118,6 +118,18 @@
     <text name="EmailTemplates" value="Email templates" />
     <text name="LookUps" value="Lookups" />
     <text name="HostCatalog" value="Company types" />
+    <text name="CreateHostCatalog" value="Create company type" />
+    <text name="EditHostCatalog" value="Edit company type" />
+    <text name="DeleteHostCatalog" value="Delete company type" />
+    <text name="Developers" value="Developers" />
+    <text name="CreateDeveloper" value="Create developer" />
+    <text name="EditDeveloper" value="Edit developer" />
+    <text name="DeleteDeveloper" value="Delete developer" />
+    <text name="RiderPortal" value="Rider portal" />
+    <text name="RiderDashboard" value="Rider dashboard" />
+    <text name="RiderOrderHistory" value="Rider order history" />
+    <text name="NotificationSettings" value="Notification settings" />
+    <text name="EditNotificationSettings" value="Edit notification settings" />
     <text name="CreateNewBrand" value="Create new brand" />
     <text name="EditBrand" value="Edit brand" />
     <text name="BrandName" value="Brand name" />

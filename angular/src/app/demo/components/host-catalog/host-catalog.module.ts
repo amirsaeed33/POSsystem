@@ -9,6 +9,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { CheckboxModule } from 'primeng/checkbox';
+import { InputSwitchModule } from 'primeng/inputswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { StyleClassModule } from 'primeng/styleclass';
 import { HostCatalogRoutingModule } from './host-catalog-routing.module';
@@ -28,6 +29,7 @@ import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/ro
         ToastModule,
         ConfirmDialogModule,
         CheckboxModule,
+        InputSwitchModule,
         TooltipModule,
         StyleClassModule,
         AppRowActionsComponent,

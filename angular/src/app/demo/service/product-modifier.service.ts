@@ -86,9 +86,16 @@ export class ProductModifierService {
         dto: CreateModifierOptionDto
     ): Promise<ProductModifierOptionDto> {
         this.clearCache();
+        const price =
+            dto.price !== undefined && dto.price !== null
+                ? Number(dto.price)
+                : dto.extraPrice !== undefined && dto.extraPrice !== null
+                  ? Number(dto.extraPrice)
+                  : 0;
         const payload = {
             name: dto.name,
-            price: dto.price ?? dto.extraPrice ?? 0,
+            // Always send numeric price (including 0 = Free). Never omit 0.
+            price: Number.isFinite(price) ? Math.max(0, price) : 0,
             isDefault: !!dto.isDefault,
         };
         const res: any = await firstValueFrom(

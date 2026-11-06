@@ -67,29 +67,43 @@
   }
 }
 
+.brand-logo-sq {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  box-shadow: 0 4px 14px rgba(226, 55, 68, 0.35);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &--image {
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
 .fp-brand-group {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-
-  .brand-logo-sq {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #e23744 0%, #b81c28 100%);
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.35rem;
-    box-shadow: 0 4px 14px rgba(226, 55, 68, 0.35);
-    flex-shrink: 0;
-    transition: transform 0.2s ease;
-
-    &:hover {
-      transform: scale(1.05);
-    }
-  }
 
   .brand-text-col {
     line-height: 1.2;
@@ -486,6 +500,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+
+  &--clickable {
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+      background: #fef3c7;
+      border-color: #f59e0b;
+    }
+  }
 }
 
 .fp-branch-login-title {
@@ -1885,6 +1909,91 @@
   }
 }
 
+/* Continuous product marquees (LTR / RTL) — pause while cursor is on the row */
+.fp-products-marquee {
+  --fp-marquee-card-width: 240px;
+  --fp-marquee-gap: 1.15rem;
+  overflow: hidden;
+  width: 100%;
+  padding: 0.35rem 0 0.85rem;
+  mask-image: linear-gradient(90deg, transparent, #000 1.5%, #000 98.5%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 1.5%, #000 98.5%, transparent);
+
+  @media (max-width: 576px) {
+    --fp-marquee-card-width: min(68vw, 190px);
+    --fp-marquee-gap: 0.75rem;
+  }
+
+  &--ltr .fp-products-track {
+    animation-name: fp-products-marquee-ltr;
+  }
+
+  &--rtl .fp-products-track {
+    animation-name: fp-products-marquee-rtl;
+  }
+
+  &:hover .fp-products-track,
+  &:focus-within .fp-products-track {
+    animation-play-state: paused;
+  }
+}
+
+.fp-products-track {
+  display: flex;
+  width: max-content;
+  gap: var(--fp-marquee-gap);
+  will-change: transform;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-play-state: running;
+}
+
+.fp-products-marquee-item {
+  flex: 0 0 var(--fp-marquee-card-width);
+  width: var(--fp-marquee-card-width);
+  max-width: var(--fp-marquee-card-width);
+  display: flex;
+  min-width: 0;
+
+  .fp-food-card {
+    width: 100%;
+    height: 100%;
+    animation: none;
+  }
+}
+
+@keyframes fp-products-marquee-ltr {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fp-products-marquee-rtl {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fp-products-track {
+    animation: none !important;
+    transform: none !important;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .fp-products-marquee-item {
+    flex: 1 1 220px;
+    max-width: 280px;
+  }
+}
+
 .fp-product-carousel-track {
   display: grid;
   gap: 24px;
@@ -2685,6 +2794,19 @@
     justify-content: center;
     flex-shrink: 0;
     font-size: 0.95rem;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    &--image {
+      background: #ffffff;
+      padding: 0;
+    }
   }
 
   .fp-footer-brand-name {

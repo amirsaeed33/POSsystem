@@ -12,6 +12,7 @@ import { ProductModifierGroupDto } from 'src/app/demo/api/product-modifier';
 import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
 
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { CategoryService } from 'src/app/demo/service/category.service';
 import { DealService } from 'src/app/demo/service/deal.service';
 import { CreateDealDto, UpdateDealDto, DealDto } from 'src/app/demo/api/deal';
 
@@ -25,6 +26,11 @@ export class ProductListComponent implements OnInit {
     loading = false;
     totalRecords = 0;
     keyword = '';
+    /** null = all categories */
+    selectedCategoryId: number | null = null;
+    categoryOptions: { label: string; value: number | null }[] = [
+        { label: 'All categories', value: null },
+    ];
     /** 0 = Products tab, 1 = Deals tab (restaurant). */
     activeListTab = 0;
 
@@ -49,8 +55,10 @@ export class ProductListComponent implements OnInit {
     newGroupAllowMultiple = true;
     creatingGroup = false;
     newOptionName: Record<number, string> = {};
-    newOptionPrice: Record<number, number> = {};
+    /** null/undefined = empty → use product sale price; 0 = Free. */
+    newOptionPrice: Record<number, number | null> = {};
     addingOption: Record<number, boolean> = {};
+    readonly sizeQuickOptions = ['Small', 'Medium', 'Large', 'XL'];
 
     // Deal Management (Restaurant only)
     dealDialogVisible = false;
@@ -73,6 +81,7 @@ export class ProductListComponent implements OnInit {
     canCreate = false;
     canEdit = false;
     canDelete = false;
+    togglingVisibleOnlineId: number | null = null;
 
     get isRestaurant(): boolean {
         return this.branchContext.isRestaurant();
@@ -105,7 +114,11 @@ export class ProductListComponent implements OnInit {
         this.activeListTab = index;
         this.selectedProducts = [];
         this.keyword = '';
+        this.selectedCategoryId = null;
         this.totalRecords = this.listProducts.length;
+        if (!this.isDealsTab) {
+            this.loadProducts();
+        }
     }
 
     /** Legacy locked single Grocery product (not editable). */
@@ -137,6 +150,7 @@ export class ProductListComponent implements OnInit {
     constructor(
         private productService: ProductService,
         private productModifierService: ProductModifierService,
+        private categoryService: CategoryService,
         private dealService: DealService,
         private permissionService: PermissionService,
         private branchContext: BranchContextService,
@@ -233,6 +247,52 @@ export class ProductListComponent implements OnInit {
         return false;
     }
 
+    /** Empty price saves as product sale price — show that amount without a "+" prefix. */
+    isModifierSalePrice(optionPrice: number | null | undefined): boolean {
+        const sale = Number(this.modifierTargetProduct?.price);
+        const price = Number(optionPrice);
+        return (
+            Number.isFinite(sale) &&
+            sale > 0 &&
+            Number.isFinite(price) &&
+            price > 0 &&
+            Math.abs(price - sale) < 0.0001
+        );
+    }
+
+    formatModifierOptionPrice(optionPrice: number | null | undefined): string {
+        const price = Number(optionPrice) || 0;
+        if (price <= 0) {
+            return 'Free';
+        }
+        const formatted = price.toFixed(2);
+        if (this.isModifierSalePrice(price)) {
+            return formatted;
+        }
+        return `+ ${formatted}`;
+    }
+
+    isNewOptionPriceEmpty(groupId: number): boolean {
+        const raw = this.newOptionPrice[groupId];
+        return raw === null || raw === undefined || (typeof raw === 'number' && Number.isNaN(raw));
+    }
+
+    isSizeModifierGroup(group: ProductModifierGroupDto | null | undefined): boolean {
+        const name = (group?.name || '').trim().toLowerCase();
+        return name.includes('size') || name.includes('portion');
+    }
+
+    applySizeChip(groupId: number, size: string): void {
+        this.newOptionName[groupId] = size;
+        setTimeout(() => {
+            const input = document.getElementById(
+                `modifier-option-price-${groupId}`
+            ) as HTMLInputElement | null;
+            input?.focus();
+            input?.select?.();
+        }, 0);
+    }
+
     async openModifierDialog(product: ProductDto): Promise<void> {
         this.modifierTargetProduct = product;
         this.modifierDialogVisible = true;
@@ -246,6 +306,15 @@ export class ProductListComponent implements OnInit {
         this.loadingModifiers = true;
         try {
             this.modifierGroups = await this.productModifierService.getByProduct(productId);
+            for (const group of this.modifierGroups || []) {
+                // Leave price empty (null) so Add Option can default to product sale price.
+                if (this.newOptionPrice[group.id] === undefined) {
+                    this.newOptionPrice[group.id] = null;
+                }
+                if (this.newOptionName[group.id] === undefined) {
+                    this.newOptionName[group.id] = '';
+                }
+            }
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',
@@ -310,17 +379,32 @@ export class ProductListComponent implements OnInit {
 
     async addModifierOption(groupId: number): Promise<void> {
         const name = (this.newOptionName[groupId] || '').trim();
-        const price = Number(this.newOptionPrice[groupId]) || 0;
         if (!name || !this.modifierTargetProduct) return;
+
+        // Empty price → product sale price. Explicit 0 → Free.
+        const rawPrice = this.newOptionPrice[groupId];
+        const isEmpty =
+            rawPrice === null ||
+            rawPrice === undefined ||
+            (typeof rawPrice === 'number' && Number.isNaN(rawPrice));
+        let price: number;
+        if (isEmpty) {
+            const sale = Number(this.modifierTargetProduct.price);
+            price = Number.isFinite(sale) && sale > 0 ? sale : 0;
+        } else {
+            const parsed = Number(rawPrice);
+            price = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+        }
 
         this.addingOption[groupId] = true;
         try {
             await this.productModifierService.addOption(groupId, {
                 name,
                 price,
+                extraPrice: price,
             });
             this.newOptionName[groupId] = '';
-            this.newOptionPrice[groupId] = 0;
+            this.newOptionPrice[groupId] = null;
             await this.loadModifiers(this.modifierTargetProduct.id);
             this.messageService.add({
                 severity: 'success',
@@ -361,7 +445,23 @@ export class ProductListComponent implements OnInit {
         this.canCreate = this.permissionService.isGranted(PermissionNames.ProductsCreate);
         this.canEdit = this.permissionService.isGranted(PermissionNames.ProductsEdit);
         this.canDelete = this.permissionService.isGranted(PermissionNames.ProductsDelete);
+        void this.loadCategories();
         this.loadProducts();
+    }
+
+    private async loadCategories(): Promise<void> {
+        try {
+            const categories = await this.categoryService.getLookup();
+            this.categoryOptions = [
+                { label: 'All categories', value: null },
+                ...(categories || []).map((c) => ({
+                    label: c.name,
+                    value: c.id,
+                })),
+            ];
+        } catch {
+            this.categoryOptions = [{ label: 'All categories', value: null }];
+        }
     }
 
     loadProducts(forceRefresh = false): void {
@@ -370,6 +470,7 @@ export class ProductListComponent implements OnInit {
             .getAll(
                 {
                     keyword: this.keyword?.trim() || undefined,
+                    categoryId: this.selectedCategoryId || undefined,
                     skipCount: 0,
                     maxResultCount: 1000,
                 },
@@ -393,6 +494,39 @@ export class ProductListComponent implements OnInit {
 
     onSearch(): void {
         this.loadProducts();
+    }
+
+    onCategoryFilterChange(): void {
+        this.loadProducts(true);
+    }
+
+    async onVisibleOnlineToggle(product: ProductDto, checked: boolean): Promise<void> {
+        if (!product?.id || !this.canEdit || this.isGroceryProduct(product)) {
+            return;
+        }
+
+        const previous = product.isVisibleOnline !== false;
+        product.isVisibleOnline = checked;
+        this.togglingVisibleOnlineId = product.id;
+        try {
+            await this.productService.setVisibleOnline(product.id, checked);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Updated',
+                detail: checked
+                    ? `"${product.name}" is visible on the online store`
+                    : `"${product.name}" is hidden from the online store`,
+            });
+        } catch (error: any) {
+            product.isVisibleOnline = previous;
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error?.message || 'Failed to update online visibility',
+            });
+        } finally {
+            this.togglingVisibleOnlineId = null;
+        }
     }
 
     onGlobalFilter(table: Table, event: Event): void {

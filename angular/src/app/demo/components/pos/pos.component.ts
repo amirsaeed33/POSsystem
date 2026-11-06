@@ -2940,6 +2940,23 @@ export class PosComponent implements OnInit, OnDestroy {
         return false;
     }
 
+    /** Sale-price options (from empty add) show amount without "+". */
+    formatModifierOptionPrice(
+        optionPrice: number | null | undefined,
+        productSalePrice?: number | null
+    ): string {
+        const price = Number(optionPrice) || 0;
+        if (price <= 0) {
+            return 'Free';
+        }
+        const formatted = price.toFixed(2);
+        const sale = Number(productSalePrice);
+        if (Number.isFinite(sale) && sale > 0 && Math.abs(price - sale) < 0.0001) {
+            return formatted;
+        }
+        return `+ ${formatted}`;
+    }
+
     isGroupSingleSelect(group: ProductModifierGroupDto): boolean {
         if (!group) return false;
         if (group.maxSelection === 1 || group.allowMultiple === false) return true;
@@ -3284,14 +3301,31 @@ export class PosComponent implements OnInit, OnDestroy {
 
         let extraPrice = 0;
         const modifierNames: string[] = [];
+        const salePrice = Number(this.selectedProductForModifiers.price) || 0;
 
         for (const group of this.availableModifierGroups) {
             const selectedIds = this.selectedModifierOptions[group.id] || [];
             for (const optId of selectedIds) {
                 const opt = group.options?.find((o) => o.id === optId);
                 if (opt) {
-                    extraPrice += opt.price || 0;
-                    modifierNames.push(`${opt.name}${opt.price > 0 ? ' (+' + opt.price.toFixed(2) + ')' : ''}`);
+                    const optPrice = Number(opt.price) || 0;
+                    // Sale-price option (from empty add) is the base price — not an add-on.
+                    const isSalePriceOption =
+                        salePrice > 0 &&
+                        optPrice > 0 &&
+                        Math.abs(optPrice - salePrice) < 0.0001;
+                    if (!isSalePriceOption) {
+                        extraPrice += optPrice;
+                    }
+                    const priceLabel = this.formatModifierOptionPrice(
+                        optPrice,
+                        salePrice
+                    );
+                    modifierNames.push(
+                        optPrice > 0 && !isSalePriceOption
+                            ? `${opt.name} (${priceLabel})`
+                            : opt.name
+                    );
                 }
             }
         }

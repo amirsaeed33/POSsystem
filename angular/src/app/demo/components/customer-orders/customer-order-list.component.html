@@ -300,9 +300,22 @@
 
             <!-- Riders List -->
             <div>
-                <div class="flex align-items-center justify-content-between mb-2">
-                    <label class="font-bold text-900 m-0">Select Delivery Rider</label>
-                    <span class="text-xs text-500">Staff with designation 'Delivery Rider'</span>
+                <div class="flex align-items-center justify-content-between gap-2 mb-2 flex-wrap">
+                    <div>
+                        <label class="font-bold text-900 m-0">Select Delivery Rider</label>
+                        <div class="text-xs text-500 mt-1">Staff with designation 'Delivery Rider'</div>
+                    </div>
+                    <button
+                        *ngIf="canCreateStaff"
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Add Rider"
+                        icon="pi pi-plus"
+                        class="p-button-sm p-button-outlined border-round-lg"
+                        [disabled]="loadingRiders || assigningRider"
+                        (click)="openAddRiderDialog()"
+                    ></button>
                 </div>
 
                 <!-- Loading State -->
@@ -314,9 +327,20 @@
                 <div *ngIf="!loadingRiders && !availableRiders.length" class="text-center py-4 surface-50 border-round">
                     <i class="pi pi-users text-400 text-3xl mb-2 block"></i>
                     <div class="font-bold text-700">No Delivery Riders Found</div>
-                    <div class="text-xs text-500 mt-1">
+                    <div class="text-xs text-500 mt-1 mb-3">
                         No active staff members with designation "Delivery Rider" found in this branch.
                     </div>
+                    <button
+                        *ngIf="canCreateStaff"
+                        pButton
+                        pRipple
+                        type="button"
+                        label="Add Rider"
+                        icon="pi pi-user-plus"
+                        class="p-button-sm border-round-lg"
+                        [disabled]="assigningRider"
+                        (click)="openAddRiderDialog()"
+                    ></button>
                 </div>
 
                 <!-- Riders Cards -->
@@ -431,6 +455,13 @@
             </div>
         </ng-template>
     </p-dialog>
+
+    <app-staff-form-dialog
+        [(visible)]="addRiderDialogVisible"
+        [staffId]="null"
+        [defaultDesignation]="'Delivery Rider'"
+        (saved)="onRiderStaffSaved()"
+    ></app-staff-form-dialog>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>

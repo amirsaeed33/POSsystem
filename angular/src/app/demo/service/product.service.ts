@@ -261,7 +261,20 @@ export class ProductService {
             dealId: item.dealId ?? item.DealId,
             isDeal: !!(item.isDeal ?? item.IsDeal),
             cardTag: item.cardTag ?? item.CardTag ?? undefined,
+            // Default true when API/DB has not set the flag yet.
+            isVisibleOnline: item.isVisibleOnline ?? item.IsVisibleOnline ?? true,
         };
+    }
+
+    async setVisibleOnline(id: number, isVisibleOnline: boolean): Promise<void> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/SetVisibleOnline`, {
+                id,
+                isVisibleOnline,
+            })
+        );
+        this.unwrap(res, 'Failed to update online visibility');
+        this.invalidateCatalogCaches();
     }
 
     async importProducts(rows: any[]): Promise<{ successCount: number; errorCount: number; errorMessages: string[] }> {

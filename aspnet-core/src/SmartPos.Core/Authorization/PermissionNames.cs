@@ -134,6 +134,12 @@ namespace SmartPos.Authorization
         public const string Pages_HostCatalog_Edit = "Pages.HostCatalog.Edit";
         public const string Pages_HostCatalog_Delete = "Pages.HostCatalog.Delete";
 
+        /// <summary>Host-only: developer profile cards (super admin).</summary>
+        public const string Pages_Developers = "Pages.Developers";
+        public const string Pages_Developers_Create = "Pages.Developers.Create";
+        public const string Pages_Developers_Edit = "Pages.Developers.Edit";
+        public const string Pages_Developers_Delete = "Pages.Developers.Delete";
+
         public const string Pages_NotificationSettings = "Pages.NotificationSettings";
         public const string Pages_NotificationSettings_Edit = "Pages.NotificationSettings.Edit";
 

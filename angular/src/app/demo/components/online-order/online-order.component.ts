@@ -26,6 +26,7 @@ import { MessageService } from 'primeng/api';
 import { environment } from 'src/environments/environment';
 import { CustomerOrderStatus } from 'src/app/demo/api/customer-order';
 import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart';
+import { AppBrowserTitleService } from 'src/app/demo/service/app-browser-title.service';
 
 export interface OnlineDealCustomiseItem {
     productId: number;
@@ -52,6 +53,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     branchName = '';
     branchAddress = '';
     branchPhone = '';
+    branchImagePath = '';
+    branchLogoBroken = false;
     facebookUrl = '';
     instagramUrl = '';
     youtubeUrl = '';
@@ -297,7 +300,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         private onlineOrderHeroSlideService: OnlineOrderHeroSlideService,
         private productModifierService: ProductModifierService,
         private myOnlineOrders: MyOnlineOrdersService,
-        private dealService: DealService
+        private dealService: DealService,
+        private browserTitle: AppBrowserTitleService
     ) {}
 
     currentHeroSlide = 0;
@@ -1004,6 +1008,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.stopHeroSlider();
+        this.browserTitle.clearStorefrontBranchName();
     }
 
     @HostListener('window:resize')
@@ -1093,6 +1098,22 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return `${seconds}s`;
     }
 
+    /** Duplicate once so LTR/RTL product marquees loop seamlessly. */
+    productMarqueeItems(items: any[] | null | undefined): any[] {
+        const list = items || [];
+        if (!list.length) {
+            return [];
+        }
+        return [...list, ...list];
+    }
+
+    /** Slow continuous scroll (~8s per card). */
+    productMarqueeDuration(items: any[] | null | undefined): string {
+        const n = Math.max(2, (items || []).length);
+        const seconds = Math.min(140, Math.max(55, n * 8));
+        return `${seconds}s`;
+    }
+
     pauseFeedbackMarquee(): void {
         this.feedbackMarqueePaused = true;
     }
@@ -1141,6 +1162,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 this.facebookUrl = info.facebookUrl || '';
                 this.instagramUrl = info.instagramUrl || '';
                 this.youtubeUrl = info.youtubeUrl || '';
+                this.branchImagePath = (info.imagePath || '').trim();
+                this.branchLogoBroken = false;
                 this.isRestaurant = !!info.isRestaurant || info.businessType === 2;
                 if (info.latitude != null) this.branchLatitude = Number(info.latitude);
                 if (info.longitude != null) this.branchLongitude = Number(info.longitude);
@@ -1152,6 +1175,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 if (this.locationCaptured) {
                     this.calculateDistance();
                 }
+                this.browserTitle.setStorefrontBranchName(this.branchName);
                 return;
             }
         } catch {
@@ -1160,12 +1184,40 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.branchName = '';
         this.branchAddress = '';
         this.branchPhone = '';
+        this.branchImagePath = '';
+        this.branchLogoBroken = false;
         this.facebookUrl = '';
         this.instagramUrl = '';
         this.youtubeUrl = '';
         this.isRestaurant = false;
         this.branchLatitude = null;
         this.branchLongitude = null;
+        this.browserTitle.clearStorefrontBranchName();
+    }
+
+    get branchLogoUrl(): string {
+        if (!this.branchImagePath || this.branchLogoBroken) {
+            return '';
+        }
+        const path = this.branchImagePath;
+        if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+            return path;
+        }
+        return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    }
+
+    get defaultBrandIconClass(): string {
+        if (this.isRestaurantStore()) {
+            return 'pi pi-compass';
+        }
+        if (this.isSolarStore()) {
+            return 'pi pi-bolt';
+        }
+        return 'pi pi-shopping-bag';
+    }
+
+    onBranchLogoError(): void {
+        this.branchLogoBroken = true;
     }
 
     get socialFacebookHref(): string {
@@ -1198,6 +1250,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         // Never hard-code / auto-pick a branch — always let the customer choose.
         this.branchId = null;
         this.branchName = '';
+        this.branchImagePath = '';
+        this.branchLogoBroken = false;
+        this.browserTitle.clearStorefrontBranchName();
         this.products = [];
         this.filteredProducts = [];
         this.categorySections = [];
@@ -1255,6 +1310,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     showAllBranches(): void {
         this.branchId = null;
         this.branchName = '';
+        this.branchImagePath = '';
+        this.branchLogoBroken = false;
+        this.browserTitle.clearStorefrontBranchName();
         this.branchMissingError = true;
         this.mobileBranchModal = false;
         this.selectedBranchIdForModal = null;
@@ -1299,6 +1357,16 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             life: 2500,
         });
         this.showAllBranches();
+    }
+
+    /** Staff / Admin card: login when guest, home/dashboard when already signed in. */
+    onStaffAdminCardClick(): void {
+        this.mobileBranchModal = false;
+        if (this.isLoggedIn) {
+            this.router.navigateByUrl(this.authService.getHomeRoute());
+            return;
+        }
+        this.router.navigateByUrl('/auth/login');
     }
 
     async loadCatalog(bId?: number, selectProductId?: number): Promise<void> {
