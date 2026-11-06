@@ -302,7 +302,7 @@ namespace SmartPos.Orders
             var cache = SmartPosAppCaches.Typed<OnlineStoreHeaderDto>(
                 _cacheManager,
                 SmartPosAppCaches.OnlineStoreHeader,
-                TimeSpan.FromMinutes(10));
+                TimeSpan.FromMinutes(1));
 
             return await cache.GetAsync(cacheKey, async _ =>
             {

@@ -39,6 +39,17 @@ export class CustomerOrderService {
         this.headerInflight.clear();
     }
 
+    clearHeaderCache(branchId?: number): void {
+        if (branchId == null) {
+            this.headerCache.clear();
+            this.headerInflight.clear();
+            return;
+        }
+        const key = branchCacheKey(branchId, 'header');
+        this.headerCache.delete(key);
+        this.headerInflight.delete(key);
+    }
+
     async getAll(
         input?: PagedCustomerOrderResultRequestDto
     ): Promise<PagedResultDto<CustomerOrderDto>> {

@@ -500,8 +500,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             if (paramBranchId && !isNaN(Number(paramBranchId))) {
                 this.branchId = Number(paramBranchId);
                 this.branchMissingError = false;
-                void this.ensurePublicBranchesLoaded();
-                this.resolveBranchName(this.branchId);
+                void (async () => {
+                    await this.ensurePublicBranchesLoaded();
+                    await this.resolveBranchName(this.branchId!);
+                })();
                 void this.loadHeroSlides(this.branchId);
                 this.loadCatalog(this.branchId, paramProductId ? Number(paramProductId) : undefined);
                 void this.refreshActiveOrders();
@@ -1152,9 +1154,26 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     async resolveBranchName(bId: number): Promise<void> {
         try {
+            // Prefer the public branch list name when already loaded (avoids stale header cache).
+            const listedName = (this.availableBranches || []).find((b) => Number(b?.id) === Number(bId))
+                ?.name?.trim();
+            if (listedName) {
+                this.branchName = listedName;
+                this.browserTitle.setStorefrontBranchName(listedName);
+            }
+
+            this.customerOrderService.clearHeaderCache(bId);
             const info = await this.customerOrderService.getOnlineStoreHeader(bId);
             if (info) {
-                if (info.branchName) this.branchName = info.branchName;
+                const headerName = (info.branchName || '').trim();
+                // Keep the longer/complete branch name when list and header disagree.
+                if (headerName && (!listedName || headerName.length >= listedName.length)) {
+                    this.branchName = headerName;
+                } else if (listedName) {
+                    this.branchName = listedName;
+                } else if (headerName) {
+                    this.branchName = headerName;
+                }
                 if (info.address) this.branchAddress = info.address;
                 if (info.phone) this.branchPhone = info.phone;
                 if (info.currencyFormat) this.currencyFormat = info.currencyFormat;
@@ -1299,6 +1318,11 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     setBranchInUrl(bId: number): void {
         this.branchMissingError = false;
         this.mobileBranchModal = false;
+        const listed = (this.availableBranches || []).find((b) => Number(b?.id) === Number(bId));
+        if (listed?.name) {
+            this.branchName = String(listed.name).trim();
+            this.browserTitle.setStorefrontBranchName(this.branchName);
+        }
         this.router.navigate([], {
             relativeTo: this.route,
             queryParams: { branchId: bId },

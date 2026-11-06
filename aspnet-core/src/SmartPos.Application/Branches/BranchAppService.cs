@@ -24,6 +24,7 @@ using SmartPos.MultiTenancy;
 using SmartPos.Categories;
 using SmartPos.Orders;
 using SmartPos.Products;
+using SmartPos.Caching;
 
 namespace SmartPos.Branches
 {
@@ -401,6 +402,7 @@ namespace SmartPos.Branches
         private async Task ClearLookupCacheAsync()
         {
             await _cacheManager.GetCache(CacheName).ClearAsync();
+            await SmartPosAppCaches.ClearAsync(_cacheManager, SmartPosAppCaches.OnlineStoreHeader);
         }
 
         public async Task<BranchDto> GetInvoiceInfoAsync(int? branchId = null)
