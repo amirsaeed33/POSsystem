@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SmartPos.Mobile.Models"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
+             x:Class="SmartPos.Mobile.Views.Customer.OrderPage"
+             x:DataType="vm:CustomerOrderViewModel"
+             Title="All Menu"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#F9FAFB">
+
+    <Grid BackgroundColor="#F9FAFB">
+        <RefreshView IsRefreshing="{Binding IsPullRefreshing}"
+                     Command="{Binding RefreshMenuCommand}">
+            <ScrollView>
+                <VerticalStackLayout Spacing="14" Padding="0,10,0,88">
+
+                    <!-- ========================================================= -->
+                    <!-- 1. TOP HEADER                                             -->
+                    <!-- ========================================================= -->
+                    <Grid ColumnDefinitions="*,Auto"
+                          Padding="18,8,18,4"
+                          VerticalOptions="Center">
+                        <VerticalStackLayout Spacing="1" VerticalOptions="Center">
+                            <Label Text="Order Food"
+                                   FontSize="22"
+                                   FontAttributes="Bold"
+                                   TextColor="#111827" />
+                            <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                <Image Source="location_pin.png"
+                                       WidthRequest="12"
+                                       HeightRequest="14"
+                                       VerticalOptions="Center" />
+                                <Label Text="{Binding DeliverToLabel}"
+                                       FontSize="12"
+                                       TextColor="#6B7280"
+                                       MaxLines="1"
+                                       LineBreakMode="TailTruncation"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+
+                        <!-- Cart Button with Badge -->
+                        <Border Grid.Column="1"
+                                WidthRequest="42"
+                                HeightRequest="42"
+                                Stroke="#E5E7EB"
+                                StrokeThickness="1"
+                                BackgroundColor="White"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="21" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding OpenCartCommand}" />
+                            </Border.GestureRecognizers>
+                            <Grid WidthRequest="42" HeightRequest="42">
+                                <Image Source="cart_icon.png"
+                                       WidthRequest="18"
+                                       HeightRequest="18"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                                <Border WidthRequest="16"
+                                        HeightRequest="16"
+                                        StrokeThickness="1"
+                                        Stroke="White"
+                                        BackgroundColor="#EF4444"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Start"
+                                        Margin="0,2,2,0"
+                                        IsVisible="{Binding HasCartItems}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding CartCount}"
+                                           FontSize="9"
+                                           FontAttributes="Bold"
+                                           TextColor="White"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalTextAlignment="Center" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- ========================================================= -->
+                    <!-- 2. SEARCH BOX                                             -->
+                    <!-- ========================================================= -->
+                    <Border Margin="18,0"
+                            HeightRequest="46"
+                            BackgroundColor="White"
+                            Stroke="#E5E7EB"
+                            StrokeThickness="1"
+                            Padding="14,0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
+                            <Image Grid.Column="0"
+                                   Source="search_icon.png"
+                                   WidthRequest="18"
+                                   HeightRequest="18"
+                                   VerticalOptions="Center" />
+                            <Entry Grid.Column="1"
+                                   Placeholder="Search food, dishes, drinks..."
+                                   Text="{Binding SearchText, Mode=TwoWay}"
+                                   PlaceholderColor="#9CA3AF"
+                                   TextColor="#111827"
+                                   FontSize="13"
+                                   VerticalOptions="Center"
+                                   ClearButtonVisibility="WhileEditing"
+                                   BackgroundColor="Transparent" />
+                        </Grid>
+                    </Border>
+
+                    <!-- ========================================================= -->
+                    <!-- 3. CATEGORY CHIPS SCROLLER                                -->
+                    <!-- ========================================================= -->
+                    <ScrollView Orientation="Horizontal"
+                                HorizontalScrollBarVisibility="Never">
+                        <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Categories}"
+                                               Spacing="8"
+                                               Padding="18,0,18,4">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:CategoryChipItem">
+                                    <Border StrokeThickness="1"
+                                            Padding="14,8"
+                                            Stroke="{Binding ChipBorderColor}"
+                                            BackgroundColor="{Binding ChipBackgroundColor}">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="20" />
+                                        </Border.StrokeShape>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerOrderViewModel}}, Path=SelectCategoryCommand}"
+                                                                  CommandParameter="{Binding Name}" />
+                                        </Border.GestureRecognizers>
+                                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="12"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{Binding ChipTextColor}"
+                                                   VerticalOptions="Center" />
+                                            <Label Text="{Binding Count, StringFormat='({0})'}"
+                                                   FontSize="10"
+                                                   TextColor="{Binding ChipCountTextColor}"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </HorizontalStackLayout>
+                    </ScrollView>
+
+                    <!-- ========================================================= -->
+                    <!-- 4. "ALL MENU" SECTION HEADER                             -->
+                    <!-- ========================================================= -->
+                    <Grid ColumnDefinitions="*,Auto" Padding="18,4,18,0">
+                        <Label Grid.Column="0"
+                               Text="{Binding SelectedCategory, StringFormat='{0} Menu'}"
+                               FontSize="17"
+                               FontAttributes="Bold"
+                               TextColor="#111827"
+                               VerticalOptions="Center" />
+                        <Label Grid.Column="1"
+                               Text="{Binding DishesCountLabel}"
+                               FontSize="12"
+                               TextColor="#6B7280"
+                               VerticalOptions="Center" />
+                    </Grid>
+
+                    <!-- ========================================================= -->
+                    <!-- 5. FOOD MENU GRID (2 COLUMNS)                             -->
+                    <!-- ========================================================= -->
+                    <CollectionView ItemsSource="{Binding Products}"
+                                    SelectionMode="None"
+                                    Margin="18,0">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical"
+                                             Span="2"
+                                             HorizontalItemSpacing="12"
+                                             VerticalItemSpacing="12" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.EmptyView>
+                            <Border Stroke="#E5E7EB"
+                                    StrokeThickness="1"
+                                    BackgroundColor="White"
+                                    Padding="24,36"
+                                    Margin="0,12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                                    <Label Text="🍽️" FontSize="36" HorizontalOptions="Center" />
+                                    <Label Text="No dishes found"
+                                           FontSize="15"
+                                           FontAttributes="Bold"
+                                           TextColor="#111827"
+                                           HorizontalTextAlignment="Center" />
+                                    <Label Text="Try selecting another category or clear search."
+                                           FontSize="12"
+                                           TextColor="#6B7280"
+                                           HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:OnlineProductDto">
+                                <Border Stroke="#F3F4F6"
+                                        StrokeThickness="1"
+                                        BackgroundColor="White"
+                                        Padding="0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <Border.Shadow>
+                                        <Shadow Brush="#0A000000" Offset="0,2" Radius="6" Opacity="0.04" />
+                                    </Border.Shadow>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerOrderViewModel}}, Path=OpenProductCommand}"
+                                                              CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                    <VerticalStackLayout Spacing="6">
+                                        <!-- Top Image Area with floating Heart / Favorite button -->
+                                        <Grid HeightRequest="120">
+                                            <Border StrokeThickness="0"
+                                                    BackgroundColor="#F3F4F6">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="16,16,0,0" />
+                                                </Border.StrokeShape>
+                                                <Image Source="{Binding ImageUrl}"
+                                                       Aspect="AspectFill"
+                                                       HeightRequest="120"
+                                                       BackgroundColor="#F3F4F6" />
+                                            </Border>
+
+                                            <!-- Heart Favorite Button -->
+                                            <Border HorizontalOptions="End"
+                                                    VerticalOptions="Start"
+                                                    Margin="6"
+                                                    WidthRequest="30"
+                                                    HeightRequest="30"
+                                                    StrokeThickness="0"
+                                                    BackgroundColor="#E6FFFFFF">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="15" />
+                                                </Border.StrokeShape>
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerOrderViewModel}}, Path=ToggleFavoriteCommand}"
+                                                                          CommandParameter="{Binding .}" />
+                                                </Border.GestureRecognizers>
+                                                <Path Aspect="Uniform"
+                                                      WidthRequest="14"
+                                                      HeightRequest="14"
+                                                      Fill="{Binding FavoriteFillColor}"
+                                                      Stroke="{Binding FavoriteStrokeColor}"
+                                                      StrokeThickness="1.5"
+                                                      HorizontalOptions="Center"
+                                                      VerticalOptions="Center"
+                                                      Data="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Bottom Info Area -->
+                                        <VerticalStackLayout Padding="10,0,10,10" Spacing="3">
+                                            <!-- Title (e.g. Single Anda Shami, Chicken Burgur) -->
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#111827"
+                                                   MaxLines="1"
+                                                   LineBreakMode="TailTruncation" />
+
+                                            <!-- Category (e.g. Burgers) -->
+                                            <Label Text="{Binding CategoryName}"
+                                                   FontSize="11"
+                                                   TextColor="#9CA3AF"
+                                                   MaxLines="1" />
+
+                                            <!-- Price & Add-to-cart button row -->
+                                            <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0" VerticalOptions="Center">
+                                                <Label Text="{Binding PriceLabel}"
+                                                       FontSize="13"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#10B981"
+                                                       VerticalOptions="Center" />
+
+                                                <!-- Circular/Rounded green '+' Add to Cart button (#10B981) -->
+                                                <Border Grid.Column="1"
+                                                        WidthRequest="28"
+                                                        HeightRequest="28"
+                                                        BackgroundColor="#10B981"
+                                                        StrokeThickness="0"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="9" />
+                                                    </Border.StrokeShape>
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerOrderViewModel}}, Path=IncreaseCardCommand}"
+                                                                              CommandParameter="{Binding .}" />
+                                                    </Border.GestureRecognizers>
+                                                    <Label Text="+"
+                                                           TextColor="White"
+                                                           FontSize="16"
+                                                           FontAttributes="Bold"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center" />
+                                                </Border>
+                                            </Grid>
+                                        </VerticalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+
+        <!-- Customer Bottom Navigation Bar (Tab 1: Order) -->
+        <controls:BubbleTabBar Mode="Customer"
+                               SelectedIndex="1"
+                               CartCount="{Binding CartCount}"
+                               VerticalOptions="End"
+                               HorizontalOptions="Fill"
+                               ZIndex="40" />
+    </Grid>
+</ContentPage>
+

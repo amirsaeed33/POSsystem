@@ -300,7 +300,7 @@
         </ScrollView>
 
         <controls:BubbleTabBar Mode="Customer"
-                               SelectedIndex="2"
+                               SelectedIndex="1"
                                VerticalOptions="End"
                                HorizontalOptions="Fill"
                                ZIndex="40" />

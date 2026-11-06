@@ -30,6 +30,17 @@ public static class MauiProgram
 #endif
             });
 
+#if WINDOWS
+        Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+        {
+            handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
+            handler.PlatformView.GotFocus += (s, e) =>
+            {
+                handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
+            };
+        });
+#endif
+
         using var settingsStream = Assembly.GetExecutingAssembly()
             .GetManifestResourceStream("SmartPos.Mobile.appsettings.json");
         var configBuilder = new ConfigurationBuilder();
@@ -73,6 +84,8 @@ public static class MauiProgram
         builder.Services.AddTransient<UnsupportedStaffViewModel>();
         builder.Services.AddTransient<AdminDashboardViewModel>();
         builder.Services.AddTransient<CustomerHomeViewModel>();
+        builder.Services.AddTransient<CustomerOrderViewModel>();
+        builder.Services.AddTransient<FavoritesViewModel>();
         builder.Services.AddTransient<ProductDetailViewModel>();
         builder.Services.AddTransient<CartCheckoutViewModel>();
         builder.Services.AddTransient<TrackOrderViewModel>();
@@ -85,7 +98,10 @@ public static class MauiProgram
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<UnsupportedStaffPage>();
         builder.Services.AddTransient<AdminDashboardPage>();
+        builder.Services.AddTransient<SplashScreenPage>();
         builder.Services.AddTransient<CustomerHomePage>();
+        builder.Services.AddTransient<OrderPage>();
+        builder.Services.AddTransient<FavoritesPage>();
         builder.Services.AddTransient<ProductDetailPage>();
         builder.Services.AddTransient<CartPage>();
         builder.Services.AddTransient<TrackOrderPage>();

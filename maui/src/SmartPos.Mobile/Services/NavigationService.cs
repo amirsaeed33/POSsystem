@@ -14,6 +14,15 @@ public class NavigationService
     private static Shell? GetShell() =>
         Shell.Current ?? Application.Current?.Windows.FirstOrDefault()?.Page as Shell;
 
+    public async Task GoToSplashAsync()
+    {
+        var shell = GetShell();
+        if (shell != null)
+        {
+            await shell.GoToAsync("//splash");
+        }
+    }
+
     public async Task GoToLoginAsync()
     {
         var shell = GetShell();
@@ -46,12 +55,10 @@ public class NavigationService
             case AppRoleMode.UnsupportedStaff:
                 await shell.GoToAsync("//unsupported");
                 break;
-            case AppRoleMode.Customer when _session.IsAuthenticated:
-                await shell.GoToAsync("//customer/home");
-                break;
+            case AppRoleMode.Customer:
             default:
-                // Guests / cold start: stay on login unless they continue as customer.
-                await GoToLoginAsync();
+                // MakanGes food delivery theme: standard entry leads to customer catalog/store
+                await shell.GoToAsync("//customer/home");
                 break;
         }
     }

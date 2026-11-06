@@ -8,56 +8,39 @@
              Margin="0"
              Padding="0"
              InputTransparent="False"
-             HeightRequest="72">
-    <!--
-      Full-width hit shield at the bottom so taps never fall through to product cards,
-      category chips, or qty controls underneath. Visual pill is inset; buttons own each tab.
-    -->
+             HeightRequest="68">
+
     <Grid x:Name="BarHost"
-          BackgroundColor="Transparent"
+          BackgroundColor="White"
           InputTransparent="False"
           VerticalOptions="End"
-          HeightRequest="72"
-          Padding="12,0,12,12">
-        <!-- Blocks residual touches in the bar strip -->
-        <BoxView Color="Transparent" InputTransparent="False" />
+          HeightRequest="68">
 
-        <Grid x:Name="PillHost"
-              HeightRequest="52"
-              VerticalOptions="End"
+        <!-- Top border divider stroke #F3F4F6 with subtle elevation shadow -->
+        <Border Stroke="#F3F4F6"
+                StrokeThickness="1"
+                BackgroundColor="White"
+                VerticalOptions="Fill"
+                HorizontalOptions="Fill"
+                InputTransparent="True">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="0" />
+            </Border.StrokeShape>
+            <Border.Shadow>
+                <Shadow Brush="#1A000000" Offset="0,-3" Radius="8" Opacity="0.06" />
+            </Border.Shadow>
+        </Border>
+
+        <!-- Tabs Grid -->
+        <Grid x:Name="TabsGrid"
+              ColumnDefinitions="*,*,*,*"
+              VerticalOptions="Fill"
+              HorizontalOptions="Fill"
+              HeightRequest="68"
               InputTransparent="False">
-            <Border StrokeThickness="0"
-                    BackgroundColor="White"
-                    VerticalOptions="Fill"
-                    HorizontalOptions="Fill"
-                    InputTransparent="True">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="26" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#40000000" Offset="0,2" Radius="8" Opacity="0.16" />
-                </Border.Shadow>
-            </Border>
 
-            <Ellipse x:Name="ActiveBubble"
-                     WidthRequest="44"
-                     HeightRequest="44"
-                     Fill="White"
-                     VerticalOptions="Start"
-                     HorizontalOptions="Start"
-                     TranslationY="-8"
-                     InputTransparent="True">
-                <Ellipse.Shadow>
-                    <Shadow Brush="#40000000" Offset="0,2" Radius="6" Opacity="0.14" />
-                </Ellipse.Shadow>
-            </Ellipse>
-
-            <Grid x:Name="TabsGrid"
-                  ColumnDefinitions="*,*,*,*"
-                  VerticalOptions="Fill"
-                  HeightRequest="52"
-                  InputTransparent="False">
-                <!-- Buttons consume the gesture exclusively — no pass-through to page content -->
+            <!-- Tab 0: Home -->
+            <Grid Grid.Column="0">
                 <Button x:Name="Tab0"
                         BackgroundColor="Transparent"
                         BorderWidth="0"
@@ -65,36 +48,37 @@
                         Margin="0"
                         Clicked="OnTab0Clicked" />
                 <VerticalStackLayout x:Name="Tab0Visual"
-                                    InputTransparent="True"
-                                    Spacing="0"
-                                    VerticalOptions="Center"
-                                    HorizontalOptions="Fill">
-                    <Image x:Name="Icon0" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
-                    <Label x:Name="Label0" Text="Home" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                     InputTransparent="True"
+                                     Spacing="2"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <Image x:Name="Icon0" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                    <Label x:Name="Label0" Text="Home" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
+            </Grid>
 
+            <!-- Tab 1: Order -->
+            <Grid Grid.Column="1">
                 <Button x:Name="Tab1"
-                        Grid.Column="1"
                         BackgroundColor="Transparent"
                         BorderWidth="0"
                         Padding="0"
                         Margin="0"
                         Clicked="OnTab1Clicked" />
                 <VerticalStackLayout x:Name="Tab1Visual"
-                                     Grid.Column="1"
                                      InputTransparent="True"
-                                     Spacing="0"
+                                     Spacing="2"
                                      VerticalOptions="Center"
-                                     HorizontalOptions="Fill">
-                    <Grid HorizontalOptions="Center" WidthRequest="32" HeightRequest="22">
-                        <Image x:Name="Icon1" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" VerticalOptions="Center" />
+                                     HorizontalOptions="Center">
+                    <Grid HorizontalOptions="Center" WidthRequest="32" HeightRequest="24">
+                        <Image x:Name="Icon1" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" VerticalOptions="Center" />
                         <!-- Red Badge with Item Count -->
                         <Border x:Name="CartBadge"
                                 HorizontalOptions="End"
                                 VerticalOptions="Start"
-                                TranslationX="4"
+                                TranslationX="6"
                                 TranslationY="-3"
-                                BackgroundColor="#E11D48"
+                                BackgroundColor="#EF4444"
                                 StrokeThickness="1"
                                 Stroke="White"
                                 MinimumWidthRequest="16"
@@ -113,43 +97,46 @@
                                    VerticalTextAlignment="Center" />
                         </Border>
                     </Grid>
-                    <Label x:Name="Label1" Text="Cart" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                    <Label x:Name="Label1" Text="Order" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
+            </Grid>
 
+            <!-- Tab 2: Favorite -->
+            <Grid Grid.Column="2">
                 <Button x:Name="Tab2"
-                        Grid.Column="2"
                         BackgroundColor="Transparent"
                         BorderWidth="0"
                         Padding="0"
                         Margin="0"
                         Clicked="OnTab2Clicked" />
                 <VerticalStackLayout x:Name="Tab2Visual"
-                                    Grid.Column="2"
-                                    InputTransparent="True"
-                                    Spacing="0"
-                                    VerticalOptions="Center"
-                                    HorizontalOptions="Fill">
-                    <Image x:Name="Icon2" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
-                    <Label x:Name="Label2" Text="Track" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                     InputTransparent="True"
+                                     Spacing="2"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <Image x:Name="Icon2" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                    <Label x:Name="Label2" Text="Favorite" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
+            </Grid>
 
+            <!-- Tab 3: Profile -->
+            <Grid Grid.Column="3">
                 <Button x:Name="Tab3"
-                        Grid.Column="3"
                         BackgroundColor="Transparent"
                         BorderWidth="0"
                         Padding="0"
                         Margin="0"
                         Clicked="OnTab3Clicked" />
                 <VerticalStackLayout x:Name="Tab3Visual"
-                                    Grid.Column="3"
-                                    InputTransparent="True"
-                                    Spacing="0"
-                                    VerticalOptions="Center"
-                                    HorizontalOptions="Fill">
-                    <Image x:Name="Icon3" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" />
-                    <Label x:Name="Label3" Text="Profile" FontSize="9" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                     InputTransparent="True"
+                                     Spacing="2"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <Image x:Name="Icon3" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
+                    <Label x:Name="Label3" Text="Profile" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
             </Grid>
+
         </Grid>
     </Grid>
 </ContentView>

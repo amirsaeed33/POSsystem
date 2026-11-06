@@ -2,19 +2,20 @@ namespace SmartPos.Mobile;
 
 public partial class App : Application
 {
-    private readonly AppShell _shell;
+    private readonly IServiceProvider _services;
 
-    public App(AppShell shell)
+    public App(IServiceProvider services)
     {
         InitializeComponent();
         // Keep light UI so labels stay readable on our light page backgrounds.
         UserAppTheme = AppTheme.Light;
-        _shell = shell;
+        _services = services;
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        var window = new Window(_shell)
+        var shell = _services.GetRequiredService<AppShell>();
+        var window = new Window(shell)
         {
             // Phone-like window when debugging on Windows.
             Width = 390,

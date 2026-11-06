@@ -951,6 +951,64 @@ public partial class CustomerHomeViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private void SelectCategoryByName(string? categoryName)
+    {
+        if (string.IsNullOrWhiteSpace(categoryName))
+        {
+            return;
+        }
+
+        if (string.Equals(categoryName, "More", StringComparison.OrdinalIgnoreCase))
+        {
+            _ = ViewAllMenuAsync();
+            return;
+        }
+
+        if (string.Equals(categoryName, "Promo", StringComparison.OrdinalIgnoreCase))
+        {
+            SelectedCategory = "Deals";
+            ApplyFilters();
+            return;
+        }
+
+        SelectedCategory = categoryName;
+        foreach (var chip in _allCategoryChips)
+        {
+            chip.IsSelected = chip.Name.Contains(categoryName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        ShowProductGrid = true;
+        ApplyFilters();
+    }
+
+    [RelayCommand]
+    private async Task NavigateToProductDetailAsync(object? param)
+    {
+        int productId = 0;
+        if (param is int id)
+        {
+            productId = id;
+        }
+        else if (param is string s && int.TryParse(s, out var parsed))
+        {
+            productId = parsed;
+        }
+        else if (param is OnlineProductDto p)
+        {
+            productId = p.Id;
+        }
+        else
+        {
+            productId = Products.FirstOrDefault()?.Id ?? 1;
+        }
+
+        if (Shell.Current != null)
+        {
+            await Shell.Current.GoToAsync($"productdetail?productId={productId}");
+        }
+    }
+
+    [RelayCommand]
     private void ToggleCategorySearch()
     {
         IsCategorySearchVisible = !IsCategorySearchVisible;
@@ -969,18 +1027,21 @@ public partial class CustomerHomeViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private void ViewAllMenu()
+    private async Task ViewAllMenuAsync()
     {
-        SelectedCategory = "All";
-        CategorySearchText = string.Empty;
-        foreach (var chip in _allCategoryChips)
+        if (Shell.Current != null)
         {
-            chip.IsSelected = chip.IsAll;
+            await Shell.Current.GoToAsync("//customer/order");
         }
+    }
 
-        ApplyCategorySearchFilter();
-        ShowProductGrid = true;
-        ApplyFilters();
+    [RelayCommand]
+    private async Task OrderNowAsync()
+    {
+        if (Shell.Current != null)
+        {
+            await Shell.Current.GoToAsync("//customer/order");
+        }
     }
 
     [RelayCommand]

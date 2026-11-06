@@ -10,34 +10,46 @@
     xmlns:waiter="clr-namespace:SmartPos.Mobile.Views.Waiter"
     Title="Aljannat"
     FlyoutBehavior="Disabled"
-    BackgroundColor="White"
-    Shell.BackgroundColor="White"
+    BackgroundColor="{StaticResource PageBackground}"
+    Shell.BackgroundColor="{StaticResource CardBackground}"
     Shell.NavBarIsVisible="False"
     Shell.TabBarIsVisible="False"
     Shell.TabBarBackgroundColor="Transparent"
-    Shell.TabBarForegroundColor="#F15A29"
-    Shell.TabBarTitleColor="#F15A29"
-    Shell.TabBarUnselectedColor="#9CA3AF">
+    Shell.TabBarForegroundColor="{StaticResource Primary}"
+    Shell.TabBarTitleColor="{StaticResource Primary}"
+    Shell.TabBarUnselectedColor="{StaticResource TextSecondary}">
 
-    <!-- Customer: custom BubbleTabBar on pages -->
+    <!-- Splash Screen: First item so Shell boots initially onto SplashScreenPage on cold start -->
+    <ShellContent Route="splash"
+                  Title="Splash"
+                  Shell.NavBarIsVisible="False"
+                  Shell.TabBarIsVisible="False"
+                  ContentTemplate="{DataTemplate customer:SplashScreenPage}" />
+
+    <!-- Customer: 4-tab bottom navigation (Home, Order, Favorite, Profile) -->
     <TabBar Route="customer">
         <ShellContent Route="home"
                       Title="Home"
                       Icon="tab_home_idle.png"
                       ContentTemplate="{DataTemplate customer:CustomerHomePage}" />
-        <ShellContent Route="cart"
-                      Title="Cart"
-                      Icon="tab_cart_idle.png"
-                      ContentTemplate="{DataTemplate customer:CartPage}" />
-        <ShellContent Route="track"
-                      Title="Track"
-                      Icon="tab_track_idle.png"
-                      ContentTemplate="{DataTemplate customer:TrackOrderPage}" />
+        <ShellContent Route="order"
+                      Title="Order"
+                      Icon="tab_order_idle.png"
+                      ContentTemplate="{DataTemplate customer:OrderPage}" />
+        <ShellContent Route="favorites"
+                      Title="Favorite"
+                      Icon="tab_favorites_idle.png"
+                      ContentTemplate="{DataTemplate customer:FavoritesPage}" />
         <ShellContent Route="account"
                       Title="Profile"
                       Icon="tab_account_idle.png"
                       ContentTemplate="{DataTemplate auth:LoginPage}" />
     </TabBar>
+
+    <!-- Standalone Cart Page -->
+    <ShellContent Route="cart"
+                  Title="Cart"
+                  ContentTemplate="{DataTemplate customer:CartPage}" />
 
     <!-- Rider: same bubble nav pattern (+ Profile for login/logout) -->
     <TabBar Route="rider">
@@ -86,6 +98,10 @@
                       Icon="tab_account_idle.png"
                       ContentTemplate="{DataTemplate auth:LoginPage}" />
     </TabBar>
+
+    <ShellContent Route="track"
+                  Title="Track"
+                  ContentTemplate="{DataTemplate customer:TrackOrderPage}" />
 
     <ShellContent Route="unsupported"
                   Title="Unsupported"
