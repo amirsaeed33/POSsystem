@@ -8,6 +8,8 @@ import {
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { OnlineCartService } from 'src/app/demo/service/online-cart.service';
 import { SessionService } from 'src/app/demo/service/session.service';
+import { AppBrowserTitleService } from 'src/app/demo/service/app-browser-title.service';
+import { environment } from 'src/environments/environment';
 
 const PHONE_STORAGE_KEY = 'smartpos_customer_phone';
 
@@ -45,6 +47,8 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
     branchName = '';
     branchAddress = '';
     branchPhone = '';
+    branchImagePath = '';
+    branchLogoBroken = false;
     isRestaurant = false;
     facebookUrl = '';
     instagramUrl = '';
@@ -59,7 +63,8 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
         private customerOrderService: CustomerOrderService,
         public cartService: OnlineCartService,
         private messageService: MessageService,
-        private sessionService: SessionService
+        private sessionService: SessionService,
+        private browserTitle: AppBrowserTitleService
     ) {}
 
     ngOnInit(): void {
@@ -90,6 +95,29 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
         if (this.clockTimer) {
             clearInterval(this.clockTimer);
             this.clockTimer = null;
+        }
+        this.browserTitle.clearStorefrontBranchName();
+    }
+
+    get branchLogoUrl(): string {
+        if (!this.branchImagePath || this.branchLogoBroken) {
+            return '';
+        }
+        const path = this.branchImagePath;
+        if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+            return path;
+        }
+        return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    }
+
+    get headerBrandLogoUrl(): string {
+        return this.branchLogoUrl || AppBrowserTitleService.AJ_FAVICON_PNG;
+    }
+
+    onBranchLogoError(): void {
+        if (!this.branchLogoBroken && this.branchImagePath) {
+            this.branchLogoBroken = true;
+            this.browserTitle.setStorefrontBranchLogoUrl(null);
         }
     }
 
@@ -581,11 +609,14 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
 
     private async loadStoreHeader(branchId: number): Promise<void> {
         try {
+            this.customerOrderService.clearHeaderCache(branchId);
             const info = await this.customerOrderService.getOnlineStoreHeader(branchId);
             if (!info) return;
             this.branchName = info.branchName || info.BranchName || '';
             this.branchAddress = info.address || info.Address || '';
             this.branchPhone = info.phone || info.Phone || '';
+            this.branchImagePath = (info.imagePath || info.ImagePath || '').trim();
+            this.branchLogoBroken = false;
             this.facebookUrl = info.facebookUrl || info.FacebookUrl || '';
             this.instagramUrl = info.instagramUrl || info.InstagramUrl || '';
             this.youtubeUrl = info.youtubeUrl || info.YoutubeUrl || '';
@@ -593,6 +624,8 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
                 !!(info.isRestaurant ?? info.IsRestaurant) ||
                 info.businessType === 2 ||
                 info.BusinessType === 2;
+            this.browserTitle.setStorefrontBranchName(this.branchName);
+            this.browserTitle.setStorefrontBranchLogoUrl(this.branchLogoUrl || null);
         } catch {
             /* keep defaults */
         }

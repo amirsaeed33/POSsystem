@@ -3,6 +3,7 @@ import { PrimeNGConfig } from 'primeng/api';
 import { Subscription } from 'rxjs';
 import { AppBrowserTitleService } from './demo/service/app-browser-title.service';
 import { BranchContextService } from './demo/service/branch-context.service';
+import { BranchService } from './demo/service/branch.service';
 
 @Component({
     selector: 'app-root',
@@ -15,6 +16,7 @@ export class AppComponent implements OnInit, OnDestroy {
     constructor(
         private primengConfig: PrimeNGConfig,
         private branchContext: BranchContextService,
+        private branchService: BranchService,
         private browserTitle: AppBrowserTitleService
     ) { }
 
@@ -30,6 +32,10 @@ export class AppComponent implements OnInit, OnDestroy {
         this.browserTitle.apply();
         this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
             this.browserTitle.setStaffBranchName(branch?.name);
+            const logoUrl = branch?.imagePath
+                ? this.branchService.getImageUrl(branch.imagePath)
+                : '';
+            this.browserTitle.setStaffBranchLogoUrl(logoUrl || null);
         });
     }
 

@@ -1913,7 +1913,7 @@
   }
 }
 
-/* Continuous product marquees (LTR / RTL) — pause while cursor is on the row */
+/* Product rows: slow continuous left → right marquee (CSS) */
 .fp-products-marquee {
   --fp-marquee-card-width: 240px;
   --fp-marquee-gap: 1.15rem;
@@ -1923,22 +1923,14 @@
   mask-image: linear-gradient(90deg, transparent, #000 1.5%, #000 98.5%, transparent);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 1.5%, #000 98.5%, transparent);
 
+  &.is-paused .fp-products-track,
+  &:hover .fp-products-track {
+    animation-play-state: paused;
+  }
+
   @media (max-width: 576px) {
     --fp-marquee-card-width: min(68vw, 190px);
     --fp-marquee-gap: 0.75rem;
-  }
-
-  &--ltr .fp-products-track {
-    animation-name: fp-products-marquee-ltr;
-  }
-
-  &--rtl .fp-products-track {
-    animation-name: fp-products-marquee-rtl;
-  }
-
-  &:hover .fp-products-track,
-  &:focus-within .fp-products-track {
-    animation-play-state: paused;
   }
 }
 
@@ -1947,9 +1939,16 @@
   width: max-content;
   gap: var(--fp-marquee-gap);
   will-change: transform;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  animation-play-state: running;
+  animation: fp-products-marquee-ltr linear infinite;
+}
+
+@keyframes fp-products-marquee-ltr {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 .fp-products-marquee-item {
@@ -1966,35 +1965,10 @@
   }
 }
 
-@keyframes fp-products-marquee-ltr {
-  from {
-    transform: translate3d(-50%, 0, 0);
-  }
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes fp-products-marquee-rtl {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .fp-products-track {
-    animation: none !important;
-    transform: none !important;
-    flex-wrap: wrap;
-    width: 100%;
-  }
-
-  .fp-products-marquee-item {
-    flex: 1 1 220px;
-    max-width: 280px;
+    animation: none;
+    transform: none;
   }
 }
 

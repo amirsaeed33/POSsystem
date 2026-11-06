@@ -304,6 +304,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         private browserTitle: AppBrowserTitleService
     ) {}
 
+    /** Pause all product marquees while the user hovers / touches a row. */
+    productMarqueePaused = false;
+
     currentHeroSlide = 0;
     private heroSlideTimer: any = null;
 
@@ -1100,7 +1103,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return `${seconds}s`;
     }
 
-    /** Duplicate once so LTR/RTL product marquees loop seamlessly. */
+    /** Duplicate once so the LTR marquee (-50% → 0) loops seamlessly. */
     productMarqueeItems(items: any[] | null | undefined): any[] {
         const list = items || [];
         if (!list.length) {
@@ -1109,11 +1112,19 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return [...list, ...list];
     }
 
-    /** Slow continuous scroll (~8s per card). */
-    productMarqueeDuration(items: any[] | null | undefined): string {
-        const n = Math.max(2, (items || []).length);
-        const seconds = Math.min(140, Math.max(55, n * 8));
+    /** Slow left → right pace (~5s per card, clamped). */
+    productMarqueeDuration(count: number): string {
+        const n = Math.max(2, count || 2);
+        const seconds = Math.min(60, Math.max(24, n * 5));
         return `${seconds}s`;
+    }
+
+    pauseProductMarquee(): void {
+        this.productMarqueePaused = true;
+    }
+
+    resumeProductMarquee(): void {
+        this.productMarqueePaused = false;
     }
 
     pauseFeedbackMarquee(): void {
@@ -1154,18 +1165,26 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     async resolveBranchName(bId: number): Promise<void> {
         try {
-            // Prefer the public branch list name when already loaded (avoids stale header cache).
-            const listedName = (this.availableBranches || []).find((b) => Number(b?.id) === Number(bId))
-                ?.name?.trim();
+            // Prefer the public branch list when already loaded (avoids stale header cache).
+            const listed = (this.availableBranches || []).find(
+                (b) => Number(b?.id) === Number(bId)
+            );
+            const listedName = listed?.name?.trim();
+            const listedImage = (listed?.imagePath || '').toString().trim();
             if (listedName) {
                 this.branchName = listedName;
                 this.browserTitle.setStorefrontBranchName(listedName);
+            }
+            if (listedImage) {
+                this.branchImagePath = listedImage;
+                this.branchLogoBroken = false;
+                this.syncStorefrontChromeLogo();
             }
 
             this.customerOrderService.clearHeaderCache(bId);
             const info = await this.customerOrderService.getOnlineStoreHeader(bId);
             if (info) {
-                const headerName = (info.branchName || '').trim();
+                const headerName = (info.branchName || info.BranchName || '').trim();
                 // Keep the longer/complete branch name when list and header disagree.
                 if (headerName && (!listedName || headerName.length >= listedName.length)) {
                     this.branchName = headerName;
@@ -1181,7 +1200,15 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 this.facebookUrl = info.facebookUrl || '';
                 this.instagramUrl = info.instagramUrl || '';
                 this.youtubeUrl = info.youtubeUrl || '';
-                this.branchImagePath = (info.imagePath || '').trim();
+                const headerImage = (
+                    info.imagePath ||
+                    info.ImagePath ||
+                    listedImage ||
+                    ''
+                )
+                    .toString()
+                    .trim();
+                this.branchImagePath = headerImage;
                 this.branchLogoBroken = false;
                 this.isRestaurant = !!info.isRestaurant || info.businessType === 2;
                 if (info.latitude != null) this.branchLatitude = Number(info.latitude);
@@ -1195,6 +1222,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                     this.calculateDistance();
                 }
                 this.browserTitle.setStorefrontBranchName(this.branchName);
+                this.syncStorefrontChromeLogo();
                 return;
             }
         } catch {
@@ -1225,18 +1253,26 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
     }
 
-    get defaultBrandIconClass(): string {
-        if (this.isRestaurantStore()) {
-            return 'pi pi-compass';
-        }
-        if (this.isSolarStore()) {
-            return 'pi pi-bolt';
-        }
-        return 'pi pi-shopping-bag';
+    /** AJ mark when the branch has no logo. */
+    get ajFallbackLogoUrl(): string {
+        return AppBrowserTitleService.AJ_FAVICON_PNG;
+    }
+
+    /** Header image: branch logo, else AJ. */
+    get headerBrandLogoUrl(): string {
+        return this.branchLogoUrl || this.ajFallbackLogoUrl;
+    }
+
+    private syncStorefrontChromeLogo(): void {
+        this.browserTitle.setStorefrontBranchLogoUrl(this.branchLogoUrl || null);
     }
 
     onBranchLogoError(): void {
-        this.branchLogoBroken = true;
+        // Only fall back once when the branch image fails; AJ fallback should not re-trigger.
+        if (!this.branchLogoBroken && this.branchImagePath) {
+            this.branchLogoBroken = true;
+            this.syncStorefrontChromeLogo();
+        }
     }
 
     get socialFacebookHref(): string {
@@ -1258,7 +1294,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 id: b.id,
                 name: b.name,
                 address: b.address,
-                isRestaurant: b.isRestaurant,
+                isRestaurant: !!b.isRestaurant,
+                imagePath: (b.imagePath || '').toString().trim() || undefined,
             }));
         } catch {
             // Keep whatever list we already have.
@@ -1323,6 +1360,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             this.branchName = String(listed.name).trim();
             this.browserTitle.setStorefrontBranchName(this.branchName);
         }
+        const listedImage = (listed?.imagePath || '').toString().trim();
+        this.branchImagePath = listedImage;
+        this.branchLogoBroken = false;
+        this.syncStorefrontChromeLogo();
         this.router.navigate([], {
             relativeTo: this.route,
             queryParams: { branchId: bId },
@@ -2486,11 +2527,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                     );
                     for (const g of this.productModifierGroups) {
                         this.selectedModifierOptions[g.id] = [];
+                        // Pre-select only an explicit default; otherwise the customer must choose.
                         const defaultOpt = g.options.find((o) => o.isDefault);
                         if (defaultOpt) {
                             this.selectedModifierOptions[g.id] = [defaultOpt.id];
-                        } else if (g.isRequired && g.options.length > 0) {
-                            this.selectedModifierOptions[g.id] = [g.options[0].id];
                         }
                     }
                 })
@@ -2543,8 +2583,6 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                                     const defaultOpt = g.options.find((o) => o.isDefault);
                                     if (defaultOpt) {
                                         selectedOptions[g.id] = [defaultOpt.id];
-                                    } else if (g.isRequired && g.options.length > 0) {
-                                        selectedOptions[g.id] = [g.options[0].id];
                                     }
                                 }
 
@@ -2803,7 +2841,32 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return this.cartService.getItemQuantity(productId);
     }
 
-    addToCart(product: any, qty: number = 1, event?: Event): void {
+    /** True when the customer must pick modifiers / deal options before cart. */
+    private isDealProduct(product: any): boolean {
+        return (
+            !!product?.isDeal ||
+            !!product?.dealId ||
+            (product?.categoryName || '').toLowerCase().includes('deal') ||
+            (product?.name || '').toLowerCase().includes('deal')
+        );
+    }
+
+    private async productNeedsCustomise(product: any): Promise<boolean> {
+        if (!product?.id) {
+            return false;
+        }
+        if (this.isDealProduct(product)) {
+            return true;
+        }
+        try {
+            const groups = await this.productModifierService.getByProduct(product.id);
+            return (groups || []).some((g) => (g.options || []).length > 0);
+        } catch {
+            return false;
+        }
+    }
+
+    async addToCart(product: any, qty: number = 1, event?: Event): Promise<void> {
         if (event) {
             event.stopPropagation();
         }
@@ -2813,6 +2876,12 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 summary: 'Branch Required',
                 detail: 'Please select a branch before adding items to cart.',
             });
+            return;
+        }
+
+        // Products with modifiers (or deals): ask the customer to choose options first.
+        if (await this.productNeedsCustomise(product)) {
+            await this.openProductModal(product);
             return;
         }
 

@@ -51,7 +51,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     private branchSubscription?: Subscription;
 
     get branchDisplayName(): string {
-        return this.currentBranch?.name || 'SmartPos';
+        return this.currentBranch?.name || 'Al Jannat';
     }
 
     get branchLogo(): string | null {
@@ -705,23 +705,20 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     get defaultLogo(): string {
-        const path = 'assets/layout/images/logo-';
-        const logo =
-            this.layoutTheme === 'primaryColor' &&
-                this.layoutService.config().theme !== 'yellow'
-                ? 'light.png'
-                : this.colorScheme === 'light'
-                    ? 'dark.png'
-                    : 'light.png';
-        return path + logo;
+        // AJ fallback (not Verona theme logos) when the branch has no image.
+        return 'assets/layout/images/favicon.png';
     }
 
+    /** Branch logo when present; otherwise AJ fallback. */
     get logo(): string {
         return this.branchLogo || this.defaultLogo;
     }
 
     onLogoError(): void {
-        this.branchLogoFailed = true;
+        // Fall back to AJ only after the branch image fails to load.
+        if (this.currentBranch?.imagePath && !this.branchLogoFailed) {
+            this.branchLogoFailed = true;
+        }
     }
 
     get tabs(): MenuItem[] {

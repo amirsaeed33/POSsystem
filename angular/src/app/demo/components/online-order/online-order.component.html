@@ -6,14 +6,12 @@
             <!-- Left: Brand Logo, Name & Location Selector -->
             <div class="flex align-items-center gap-3 overflow-hidden">
                 <div class="fp-brand-group cursor-pointer" (click)="onBrandClick($event)">
-                    <div class="brand-logo-sq" [class.brand-logo-sq--image]="!!branchLogoUrl">
+                    <div class="brand-logo-sq brand-logo-sq--image">
                         <img
-                            *ngIf="branchLogoUrl as logoUrl"
-                            [src]="logoUrl"
-                            [alt]="branchName || 'Branch logo'"
+                            [src]="headerBrandLogoUrl"
+                            [alt]="branchName || 'Al Jannat'"
                             (error)="onBranchLogoError()"
                         />
-                        <i *ngIf="!branchLogoUrl" [class]="defaultBrandIconClass"></i>
                     </div>
                     <div class="brand-text-col">
                         <div class="brand-name">
@@ -138,17 +136,14 @@
             <!-- Left: Brand Logo + Branch / City Selector -->
             <div class="flex align-items-center gap-2 overflow-hidden flex-grow-1 min-w-0">
                 <div
-                    class="brand-logo-sq flex-shrink-0 cursor-pointer"
-                    [class.brand-logo-sq--image]="!!branchLogoUrl"
+                    class="brand-logo-sq brand-logo-sq--image flex-shrink-0 cursor-pointer"
                     (click)="onBrandClick($event)"
                 >
                     <img
-                        *ngIf="branchLogoUrl as logoUrl"
-                        [src]="logoUrl"
-                        [alt]="branchName || 'Branch logo'"
+                        [src]="headerBrandLogoUrl"
+                        [alt]="branchName || 'Al Jannat'"
                         (error)="onBranchLogoError()"
                     />
-                    <i *ngIf="!branchLogoUrl" [class]="defaultBrandIconClass"></i>
                 </div>
                 <div class="fp-mobile-header-info min-w-0 flex-grow-1">
                     <div class="flex align-items-center gap-1 cursor-pointer" (click)="onBrandClick($event)">
@@ -240,14 +235,12 @@
     >
         <ng-template pTemplate="header">
             <div class="flex align-items-center gap-2">
-                <div class="brand-logo-sq w-2rem h-2rem font-bold text-sm" [class.brand-logo-sq--image]="!!branchLogoUrl">
+                <div class="brand-logo-sq brand-logo-sq--image w-2rem h-2rem font-bold text-sm">
                     <img
-                        *ngIf="branchLogoUrl as logoUrl"
-                        [src]="logoUrl"
-                        [alt]="branchName || 'Branch logo'"
+                        [src]="headerBrandLogoUrl"
+                        [alt]="branchName || 'Al Jannat'"
                         (error)="onBranchLogoError()"
                     />
-                    <i *ngIf="!branchLogoUrl" [class]="defaultBrandIconClass"></i>
                 </div>
                 <span class="font-bold text-900 text-base">{{ branchName || 'Online Menu' }}</span>
             </div>
@@ -718,10 +711,18 @@
                 </div>
             </div>
 
-            <div class="fp-products-marquee fp-products-marquee--ltr" id="trackTrending">
+            <div
+                class="fp-products-marquee"
+                id="trackTrending"
+                [class.is-paused]="productMarqueePaused"
+                (mouseenter)="pauseProductMarquee()"
+                (mouseleave)="resumeProductMarquee()"
+                (touchstart)="pauseProductMarquee()"
+                (touchend)="resumeProductMarquee()"
+            >
                 <div
                     class="fp-products-track"
-                    [style.animation-duration]="productMarqueeDuration(trendingDeals)"
+                    [style.animation-duration]="productMarqueeDuration(trendingDeals.length)"
                 >
                     <div
                         *ngFor="let product of productMarqueeItems(trendingDeals); let idx = index"
@@ -757,10 +758,18 @@
                 </div>
             </div>
 
-            <div class="fp-products-marquee fp-products-marquee--rtl" id="trackPopular">
+            <div
+                class="fp-products-marquee"
+                id="trackPopular"
+                [class.is-paused]="productMarqueePaused"
+                (mouseenter)="pauseProductMarquee()"
+                (mouseleave)="resumeProductMarquee()"
+                (touchstart)="pauseProductMarquee()"
+                (touchend)="resumeProductMarquee()"
+            >
                 <div
                     class="fp-products-track"
-                    [style.animation-duration]="productMarqueeDuration(popularItems)"
+                    [style.animation-duration]="productMarqueeDuration(popularItems.length)"
                 >
                     <div
                         *ngFor="let product of productMarqueeItems(popularItems); let idx = index"
@@ -802,13 +811,16 @@
 
             <div
                 class="fp-products-marquee"
-                [class.fp-products-marquee--ltr]="sIdx % 2 === 0"
-                [class.fp-products-marquee--rtl]="sIdx % 2 === 1"
                 [id]="'trackCat' + sIdx"
+                [class.is-paused]="productMarqueePaused"
+                (mouseenter)="pauseProductMarquee()"
+                (mouseleave)="resumeProductMarquee()"
+                (touchstart)="pauseProductMarquee()"
+                (touchend)="resumeProductMarquee()"
             >
                 <div
                     class="fp-products-track"
-                    [style.animation-duration]="productMarqueeDuration(sec.items)"
+                    [style.animation-duration]="productMarqueeDuration(sec.items.length)"
                 >
                     <div
                         *ngFor="let product of productMarqueeItems(sec.items); let idx = index"
@@ -1921,14 +1933,12 @@
             <div class="fp-footer-grid">
                 <div class="fp-footer-brand">
                     <div class="fp-footer-brand-row">
-                        <div class="brand-logo-sq" [class.brand-logo-sq--image]="!!branchLogoUrl">
+                        <div class="brand-logo-sq brand-logo-sq--image">
                             <img
-                                *ngIf="branchLogoUrl as logoUrl"
-                                [src]="logoUrl"
-                                [alt]="branchName || 'Branch logo'"
+                                [src]="headerBrandLogoUrl"
+                                [alt]="branchName || 'Al Jannat'"
                                 (error)="onBranchLogoError()"
                             />
-                            <i *ngIf="!branchLogoUrl" [class]="defaultBrandIconClass"></i>
                         </div>
                         <div>
                             <div class="fp-footer-brand-name">{{ branchName || 'Online Restaurant' }}</div>

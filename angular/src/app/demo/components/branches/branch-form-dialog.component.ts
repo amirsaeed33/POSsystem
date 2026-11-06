@@ -100,6 +100,14 @@ export class BranchFormDialogComponent implements OnChanges {
         );
     }
 
+    /** Host/super admin only — SoftwareDeveloperName / Phone. */
+    get canEditSoftwareDeveloper(): boolean {
+        return (
+            this.permissionService.isGranted(PermissionNames.BranchesApprove) ||
+            BranchContextService.isHostAdminSession()
+        );
+    }
+
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.resetForm();
@@ -249,8 +257,14 @@ export class BranchFormDialogComponent implements OnChanges {
             instagramUrl: this.branch.instagramUrl?.trim() || undefined,
             youtubeUrl: this.branch.youtubeUrl?.trim() || undefined,
             invoiceFooter: this.branch.invoiceFooter?.trim() || undefined,
-            softwareDeveloperName: this.branch.softwareDeveloperName?.trim() || undefined,
-            softwareDeveloperPhone: this.branch.softwareDeveloperPhone?.trim() || undefined,
+            ...(this.canEditSoftwareDeveloper
+                ? {
+                      softwareDeveloperName:
+                          this.branch.softwareDeveloperName?.trim() || undefined,
+                      softwareDeveloperPhone:
+                          this.branch.softwareDeveloperPhone?.trim() || undefined,
+                  }
+                : {}),
             taxPercent: this.branch.taxPercent ?? 0,
             discountPercent: this.branch.discountPercent ?? 0,
             discountAmount: this.branch.discountAmount ?? 0,

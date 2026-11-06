@@ -250,8 +250,6 @@ export class BranchCreateComponent implements OnInit {
             instagramUrl: optional(this.branch.instagramUrl),
             youtubeUrl: optional(this.branch.youtubeUrl),
             invoiceFooter: optional(this.branch.invoiceFooter),
-            softwareDeveloperName: optional(this.branch.softwareDeveloperName),
-            softwareDeveloperPhone: optional(this.branch.softwareDeveloperPhone),
             taxPercent: this.branch.taxPercent ?? 0,
             discountPercent: this.branch.discountPercent ?? 0,
             discountAmount: this.branch.discountAmount ?? 0,

@@ -454,12 +454,15 @@
             ></textarea>
         </div>
 
-        <div class="surface-50 border-1 surface-border border-round-xl p-3 flex flex-column gap-3 mb-2">
+        <div
+            *ngIf="canEditSoftwareDeveloper"
+            class="surface-50 border-1 surface-border border-round-xl p-3 flex flex-column gap-3 mb-2"
+        >
             <div class="flex align-items-center gap-2">
                 <i class="pi pi-receipt text-primary text-lg"></i>
                 <div>
                     <span class="font-bold text-900 block">Receipt Footer / Developer Branding</span>
-                    <small class="text-500">Printed at the very bottom of thermal receipts</small>
+                    <small class="text-500">Host / super admin only — printed at the bottom of thermal receipts</small>
                 </div>
             </div>
 

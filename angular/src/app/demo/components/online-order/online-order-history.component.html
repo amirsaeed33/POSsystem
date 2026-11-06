@@ -5,8 +5,12 @@
         <div class="hidden md:flex align-items-center justify-content-between gap-3 max-w-7xl mx-auto w-full">
             <div class="flex align-items-center gap-3 overflow-hidden">
                 <div class="fp-brand-group cursor-pointer" (click)="goStore()">
-                    <div class="brand-logo-sq">
-                        <i [class]="isRestaurant ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
+                    <div class="brand-logo-sq brand-logo-sq--image">
+                        <img
+                            [src]="headerBrandLogoUrl"
+                            [alt]="branchName || 'Al Jannat'"
+                            (error)="onBranchLogoError()"
+                        />
                     </div>
                     <div class="brand-text-col">
                         <div class="brand-name">
@@ -72,8 +76,12 @@
         <!-- Mobile header -->
         <div class="flex md:hidden align-items-center justify-content-between gap-2 w-full fp-mobile-top-bar">
             <div class="flex align-items-center gap-2 overflow-hidden flex-grow-1 min-w-0">
-                <div class="brand-logo-sq flex-shrink-0 cursor-pointer" (click)="goStore()">
-                    <i [class]="isRestaurant ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
+                <div class="brand-logo-sq brand-logo-sq--image flex-shrink-0 cursor-pointer" (click)="goStore()">
+                    <img
+                        [src]="headerBrandLogoUrl"
+                        [alt]="branchName || 'Al Jannat'"
+                        (error)="onBranchLogoError()"
+                    />
                 </div>
                 <div class="fp-mobile-header-info min-w-0 flex-grow-1 cursor-pointer" (click)="goStore()">
                     <div class="flex align-items-center gap-1">
@@ -546,8 +554,12 @@
             <div class="grid">
                 <div class="col-12 md:col-4 mb-4 md:mb-0">
                     <div class="flex align-items-center gap-2 mb-3">
-                        <div class="brand-logo-sq w-2.5rem h-2.5rem font-bold text-base">
-                            <i [class]="isRestaurant ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
+                        <div class="brand-logo-sq brand-logo-sq--image w-2.5rem h-2.5rem font-bold text-base">
+                            <img
+                                [src]="headerBrandLogoUrl"
+                                [alt]="branchName || 'Al Jannat'"
+                                (error)="onBranchLogoError()"
+                            />
                         </div>
                         <div>
                             <span class="font-black text-xl text-white">{{ branchName || 'Online Restaurant' }}</span>

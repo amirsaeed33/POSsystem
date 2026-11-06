@@ -108,6 +108,9 @@ namespace SmartPos.Branches
             branch.ServiceChargePercent = Math.Max(0, input.ServiceChargePercent);
             branch.AutoAssignWaiterToTables = input.AutoAssignWaiterToTables;
             branch.TenantId = AbpSession.TenantId;
+            // Tenant/branch admins cannot set developer branding on create — keep entity defaults.
+            branch.SoftwareDeveloperName = new Branch().SoftwareDeveloperName;
+            branch.SoftwareDeveloperPhone = new Branch().SoftwareDeveloperPhone;
             // New branches always start as Pending until host admin approves.
             branch.StatusId = await _branchStatusLookup.GetIdAsync(BranchStatuses.Pending);
             branch.ImagePath = BranchImageStore.SaveBase64Image(input.ImageBase64);
@@ -175,8 +178,12 @@ namespace SmartPos.Branches
             branch.InstagramUrl = input.InstagramUrl;
             branch.YoutubeUrl = input.YoutubeUrl;
             branch.InvoiceFooter = input.InvoiceFooter;
-            branch.SoftwareDeveloperName = input.SoftwareDeveloperName;
-            branch.SoftwareDeveloperPhone = input.SoftwareDeveloperPhone;
+            // Software developer branding is host/super-admin only (not branch/tenant admin).
+            if (AbpSession.TenantId == null)
+            {
+                branch.SoftwareDeveloperName = input.SoftwareDeveloperName;
+                branch.SoftwareDeveloperPhone = input.SoftwareDeveloperPhone;
+            }
             branch.TaxPercent = Math.Max(0, input.TaxPercent);
             branch.DiscountPercent = Math.Max(0, input.DiscountPercent);
             branch.DiscountAmount = Math.Max(0, input.DiscountAmount);

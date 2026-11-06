@@ -79,6 +79,14 @@ export class BranchEditComponent implements OnInit {
         );
     }
 
+    /** Host/super admin only — SoftwareDeveloperName / Phone. */
+    get canEditSoftwareDeveloper(): boolean {
+        return (
+            this.permissionService.isGranted(PermissionNames.BranchesApprove) ||
+            BranchContextService.isHostAdminSession()
+        );
+    }
+
     get hasImage(): boolean {
         return !!(this.imagePreview || this.branch.imageBase64 || this.branch.imagePath);
     }
@@ -172,8 +180,14 @@ export class BranchEditComponent implements OnInit {
             youtubeUrl:
                 this.branch.youtubeUrl?.trim() || undefined,
 
-            softwareDeveloperName: this.branch.softwareDeveloperName?.trim() || undefined,
-            softwareDeveloperPhone: this.branch.softwareDeveloperPhone?.trim() || undefined,
+            ...(this.canEditSoftwareDeveloper
+                ? {
+                      softwareDeveloperName:
+                          this.branch.softwareDeveloperName?.trim() || undefined,
+                      softwareDeveloperPhone:
+                          this.branch.softwareDeveloperPhone?.trim() || undefined,
+                  }
+                : {}),
             invoiceFooter:
                 this.branch.invoiceFooter?.trim() || undefined,
 

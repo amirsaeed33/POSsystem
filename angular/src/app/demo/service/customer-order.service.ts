@@ -125,7 +125,13 @@ export class CustomerOrderService {
     }
 
     async getOnlineBranches(): Promise<
-        Array<{ id: number; name: string; isRestaurant?: boolean; address?: string }>
+        Array<{
+            id: number;
+            name: string;
+            isRestaurant?: boolean;
+            address?: string;
+            imagePath?: string;
+        }>
     > {
         const res: any = await firstValueFrom(
             this.http.get<any>(`${this.apiUrl}/GetOnlineBranches`)
@@ -137,6 +143,7 @@ export class CustomerOrderService {
             name: b.name ?? b.Name ?? `Branch #${b.id ?? b.Id}`,
             isRestaurant: !!(b.isRestaurant ?? b.IsRestaurant),
             address: b.address ?? b.Address ?? '',
+            imagePath: (b.imagePath ?? b.ImagePath ?? '').toString().trim() || undefined,
         }));
     }
 

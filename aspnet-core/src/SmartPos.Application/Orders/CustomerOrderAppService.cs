@@ -289,7 +289,8 @@ namespace SmartPos.Orders
                         Id = b.Id,
                         Name = b.Name,
                         IsRestaurant = b.BusinessType == BusinessType.Restaurant,
-                        Address = b.InvoiceAddress
+                        Address = b.InvoiceAddress,
+                        ImagePath = b.ImagePath
                     })
                     .ToListAsync();
             }

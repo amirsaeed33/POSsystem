@@ -82,6 +82,7 @@ namespace SmartPos.Orders.Dto
         public string Name { get; set; }
         public bool IsRestaurant { get; set; }
         public string Address { get; set; }
+        public string ImagePath { get; set; }
     }
 
     public class OnlineStoreHeaderDto

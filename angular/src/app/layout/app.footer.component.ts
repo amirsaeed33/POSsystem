@@ -29,7 +29,7 @@ export class AppFooterComponent implements OnInit, OnDestroy {
         if (this.branchLogo && !this.branchLogoFailed) {
             return this.branchLogo;
         }
-        return 'assets/layout/images/logo-' + (this.colorScheme === 'light' ? 'dark' : 'light') + '.png';
+        return 'assets/layout/images/favicon.png';
     }
 
     onLogoError(): void {
