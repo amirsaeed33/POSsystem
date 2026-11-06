@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  // Live SmartPos API (Al Jannat / runasp)
-  apiUrl: 'http://aljannatapi.runasp.net'
+  // Live SmartPos API (same site as Angular on aljannatapp.com)
+  apiUrl: 'https://aljannatapp.com'
 };

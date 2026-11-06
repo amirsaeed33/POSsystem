@@ -130,6 +130,12 @@ export const PermissionNames = {
     HostCatalogEdit: 'Pages.HostCatalog.Edit',
     HostCatalogDelete: 'Pages.HostCatalog.Delete',
 
+    /** Host / super admin only */
+    Developers: 'Pages.Developers',
+    DevelopersCreate: 'Pages.Developers.Create',
+    DevelopersEdit: 'Pages.Developers.Edit',
+    DevelopersDelete: 'Pages.Developers.Delete',
+
     NotificationSettings: 'Pages.NotificationSettings',
     NotificationSettingsEdit: 'Pages.NotificationSettings.Edit',
 

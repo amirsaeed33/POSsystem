@@ -54,6 +54,9 @@ namespace SmartPos.Products.Dto
         [StringLength(Product.MaxCardTagLength)]
         public string CardTag { get; set; }
 
+        /// <summary>When true, product appears on the public online store menu.</summary>
+        public bool IsVisibleOnline { get; set; } = true;
+
         /// <summary>
         /// Tenant-admin only. Optional. Empty = tenant-level (all locations);
         /// otherwise product is limited to these branches.

@@ -165,6 +165,7 @@ namespace SmartPos.Orders
 
                     var products = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit, p => p.Brand)
                         .AsNoTracking()
+                        .Where(p => p.IsVisibleOnline)
                         .Where(p => (p.BranchId == targetBranchId) || (p.BranchId == 0 && (!p.TenantId.HasValue || p.TenantId == targetBranch.TenantId)))
                         .WhereVisibleToBranch(_branchStockRepository.GetAll(), targetBranchId)
                         .Where(p => (p.Barcode == null || !p.Barcode.StartsWith("GROCERY-")) && p.Name != "Grocery")
@@ -209,7 +210,7 @@ namespace SmartPos.Orders
             {
                 var product = await _productRepository.GetAllIncluding(p => p.Category, p => p.Unit, p => p.Brand)
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == id);
+                    .FirstOrDefaultAsync(p => p.Id == id && p.IsVisibleOnline);
 
                 if (product == null)
                 {
@@ -494,6 +495,12 @@ namespace SmartPos.Orders
                     }
 
                     var product = await _productRepository.GetAsync(lineInput.ProductId);
+                    if (!product.IsVisibleOnline)
+                    {
+                        throw new UserFriendlyException(
+                            $"'{product.Name}' is not available on the online store.");
+                    }
+
                     var branchStock = await _branchStockRepository.FirstOrDefaultAsync(s => s.BranchId == branchId && s.ProductId == lineInput.ProductId);
                     var authoritativePrice = branchStock != null && branchStock.Price > 0 ? branchStock.Price : product.Price;
 

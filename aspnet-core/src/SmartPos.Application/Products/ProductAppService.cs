@@ -137,6 +137,11 @@ namespace SmartPos.Products
                 isRestaurant,
                 isGroceryInventory);
             EnsureValidPricing(input.Price, input.WholesalePrice, input.CostPrice, isRestaurant || isGroceryInventory);
+            await EnsureProductLookupsExistAsync(
+                input.CategoryId,
+                input.BrandId.GetValueOrDefault(),
+                input.UnitId,
+                isRestaurant);
 
             var barcode = NormalizeBarcode(input.Barcode);
             await EnsureBarcodeIsUniqueAsync(barcode, excludeProductId: null);
@@ -161,6 +166,7 @@ namespace SmartPos.Products
             product.CardTag = string.IsNullOrWhiteSpace(input.CardTag)
                 ? null
                 : input.CardTag.Trim();
+            product.IsVisibleOnline = input.IsVisibleOnline;
 
             int resolvedBranchId = input.BranchId;
             if (resolvedBranchId <= 0)
@@ -213,8 +219,9 @@ namespace SmartPos.Products
             }
 
             await _readCacheInvalidator.ClearCatalogAsync();
-            // Skip visibility check: product may be assigned to branches other than the current topbar branch.
-            return await MapProductDtoByIdAsync(product.Id);
+            // Map the tracked entity — avoid re-query with Includes (tenant INNER JOINs can
+            // falsely report "Product not found" right after insert).
+            return await MapProductDtoAsync(product);
         }
 
         public override async Task<ProductDto> UpdateAsync(ProductDto input)
@@ -284,6 +291,7 @@ namespace SmartPos.Products
             product.CardTag = string.IsNullOrWhiteSpace(input.CardTag)
                 ? null
                 : input.CardTag.Trim();
+            product.IsVisibleOnline = input.IsVisibleOnline;
 
             if (input.BranchId > 0)
             {
@@ -332,8 +340,23 @@ namespace SmartPos.Products
             }
 
             await _readCacheInvalidator.ClearCatalogAsync();
-            // Skip visibility check: assignment may exclude the current topbar branch.
-            return await MapProductDtoByIdAsync(product.Id);
+            return await MapProductDtoAsync(product);
+        }
+
+        [AbpAuthorize(PermissionNames.Pages_Products_Edit)]
+        public async Task SetVisibleOnlineAsync(SetProductVisibleOnlineInput input)
+        {
+            var product = await Repository.GetAsync(input.Id);
+            await EnsureProductVisibleAsync(product);
+
+            if (IsLegacyLockedGrocery(product))
+            {
+                throw new UserFriendlyException("The default Grocery entry cannot be edited.");
+            }
+
+            product.IsVisibleOnline = input.IsVisibleOnline;
+            await CurrentUnitOfWork.SaveChangesAsync();
+            await _readCacheInvalidator.ClearCatalogAsync();
         }
 
         public override async Task DeleteAsync(EntityDto<int> input)
@@ -438,9 +461,22 @@ namespace SmartPos.Products
 
         protected override async Task<Product> GetEntityByIdAsync(int id)
         {
-            return await AsyncQueryableExecuter.FirstOrDefaultAsync(
-                Repository.GetAllIncluding(x => x.Category, x => x.Brand, x => x.Unit)
-                    .Where(x => x.Id == id));
+            // Load product without required navigations. GetAllIncluding(Category/Brand/Unit)
+            // becomes INNER JOINs; with ABP MayHaveTenant filters those joins can drop the
+            // product row and surface a false "Product not found" (common right after Create).
+            var product = await AsyncQueryableExecuter.FirstOrDefaultAsync(
+                Repository.GetAll().Where(x => x.Id == id));
+            if (product == null)
+            {
+                return null;
+            }
+
+            product.Category = await _categoryRepository.FirstOrDefaultAsync(product.CategoryId);
+            product.Brand = product.BrandId > 0
+                ? await _brandRepository.FirstOrDefaultAsync(product.BrandId)
+                : null;
+            product.Unit = await _unitRepository.FirstOrDefaultAsync(product.UnitId);
+            return product;
         }
 
         private async Task EnsureProductVisibleAsync(Product product)
@@ -542,13 +578,13 @@ namespace SmartPos.Products
 
         private async Task<List<int>> GetActiveBranchIdsAsync()
         {
-            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            var query = _branchRepository.GetAll().Where(x => x.IsActive && x.TenantId != null);
+            if (AbpSession.TenantId.HasValue)
             {
-                return await _branchRepository.GetAll()
-                    .Where(x => x.IsActive && x.TenantId != null)
-                    .Select(x => x.Id)
-                    .ToListAsync();
+                query = query.Where(x => x.TenantId == AbpSession.TenantId.Value);
             }
+
+            return await query.Select(x => x.Id).ToListAsync();
         }
 
         private async Task EnsureBranchesExistAndAccessibleAsync(IReadOnlyList<int> branchIds)
@@ -562,6 +598,47 @@ namespace SmartPos.Products
                 }
 
                 await _branchAccessChecker.EnsureCanAccessBranchAsync(branchId);
+            }
+        }
+
+        private async Task EnsureProductLookupsExistAsync(
+            int categoryId,
+            int brandId,
+            int unitId,
+            bool isRestaurant)
+        {
+            if (categoryId > 0)
+            {
+                var category = await _categoryRepository.FirstOrDefaultAsync(categoryId);
+                if (category == null)
+                {
+                    throw new UserFriendlyException(
+                        "Category not found for this company. Create a category first, then add the product.");
+                }
+            }
+
+            if (brandId > 0)
+            {
+                var brand = await _brandRepository.FirstOrDefaultAsync(brandId);
+                if (brand == null)
+                {
+                    throw new UserFriendlyException(
+                        "Brand not found for this company. Create a brand first, then add the product.");
+                }
+            }
+            else if (!isRestaurant)
+            {
+                throw new UserFriendlyException("Brand is required.");
+            }
+
+            if (unitId > 0)
+            {
+                var unit = await _unitRepository.FirstOrDefaultAsync(unitId);
+                if (unit == null)
+                {
+                    throw new UserFriendlyException(
+                        "Unit not found for this company. Create a unit first, then add the product.");
+                }
             }
         }
 

@@ -54,6 +54,20 @@
                             (input)="onGlobalFilter(dt, $event)"
                         />
                     </span>
+                    <p-dropdown
+                        *ngIf="!isDealsTab"
+                        [options]="categoryOptions"
+                        [(ngModel)]="selectedCategoryId"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Category"
+                        [showClear]="true"
+                        [filter]="true"
+                        filterBy="label"
+                        styleClass="w-full sm:w-16rem"
+                        appendTo="body"
+                        (onChange)="onCategoryFilterChange()"
+                    ></p-dropdown>
                     <button
                         pButton
                         pRipple
@@ -153,6 +167,9 @@
                 <th pSortableColumn="price">Price <p-sortIcon field="price"></p-sortIcon></th>
                 <th *ngIf="!isRestaurant" pSortableColumn="wholesalePrice">Wholesale <p-sortIcon field="wholesalePrice"></p-sortIcon></th>
                 <th *ngIf="!isRestaurant" pSortableColumn="alertQuantityLimit">Alert <p-sortIcon field="alertQuantityLimit"></p-sortIcon></th>
+                <th *ngIf="!isDealsTab" style="width: 7.5rem; text-align: center;" pSortableColumn="isVisibleOnline">
+                    Online <p-sortIcon field="isVisibleOnline"></p-sortIcon>
+                </th>
                 <th style="width: 4.5rem; text-align: center;">Actions</th>
             </tr>
         </ng-template>
@@ -212,6 +229,15 @@
                 <td>{{ isGroceryInventoryItem(product) ? '—' : (product.price | number: '1.2-2') }}</td>
                 <td *ngIf="!isRestaurant">{{ product.wholesalePrice | number: '1.2-2' }}</td>
                 <td *ngIf="!isRestaurant">{{ product.alertQuantityLimit }}</td>
+                <td *ngIf="!isDealsTab" class="text-center">
+                    <p-inputSwitch
+                        [ngModel]="product.isVisibleOnline !== false"
+                        [disabled]="!canEdit || isGroceryProduct(product) || togglingVisibleOnlineId === product.id"
+                        pTooltip="Show this product on the online store page"
+                        tooltipPosition="top"
+                        (onChange)="onVisibleOnlineToggle(product, $event.checked)"
+                    ></p-inputSwitch>
+                </td>
                 <td class="text-center">
                     <app-row-actions [items]="getRowActions(product)"></app-row-actions>
                 </td>
@@ -220,7 +246,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td [attr.colspan]="isRestaurant ? 7 : 11" class="text-center p-4">
+                <td [attr.colspan]="isRestaurant ? (isDealsTab ? 7 : 8) : 12" class="text-center p-4">
                     <div class="text-500">{{ isDealsTab ? 'No deals found' : 'No products found' }}</div>
                 </td>
             </tr>
@@ -317,10 +343,14 @@
                         >
                             <span class="font-medium text-800">{{ opt.name }}</span>
                             <div class="flex align-items-center gap-2">
-                                <span class="text-xs font-semibold text-primary">
-                                    {{ opt.price > 0
+                                <span
+                                    class="text-xs font-semibold"
+                                    [class.text-primary]="(opt.price || 0) > 0"
+                                    [class.text-500]="!(opt.price > 0)"
+                                >
+                                    {{ (opt.price || 0) > 0
                                         ? '+ ' + (opt.price | number: '1.2-2')
-                                        : (isPizzaProduct(modifierTargetProduct) ? (modifierTargetProduct?.price | number: '1.2-2') : 'Free')
+                                        : 'Free'
                                     }}
                                 </span>
                                 <button
@@ -350,7 +380,7 @@
                             class="p-inputtext-sm modifier-option-name"
                         />
                         <p-inputNumber
-                            placeholder="Extra Price"
+                            placeholder="Empty = sale price, 0 = Free"
                             [(ngModel)]="newOptionPrice[group.id]"
                             [min]="0"
                             mode="decimal"

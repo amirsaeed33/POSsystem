@@ -103,5 +103,11 @@ namespace SmartPos.Products
         /// </summary>
         [StringLength(MaxCardTagLength)]
         public virtual string CardTag { get; set; }
+
+        /// <summary>
+        /// When true, product appears on the public online store menu.
+        /// Defaults to true so existing products stay visible after migration.
+        /// </summary>
+        public virtual bool IsVisibleOnline { get; set; } = true;
     }
 }

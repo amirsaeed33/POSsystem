@@ -2231,12 +2231,12 @@
                             </div>
                             <span
                                 class="text-xs font-semibold"
-                                [class.text-primary]="opt.price > 0 || (isPizzaProduct(selectedProductForModifiers) && (!opt.price || opt.price <= 0))"
-                                [class.text-500]="(!opt.price || opt.price <= 0) && !isPizzaProduct(selectedProductForModifiers)"
+                                [class.text-primary]="(opt.price || 0) > 0"
+                                [class.text-500]="!(opt.price > 0)"
                             >
-                                {{ opt.price > 0
+                                {{ (opt.price || 0) > 0
                                     ? '+ ' + (opt.price | number: '1.2-2')
-                                    : (isPizzaProduct(selectedProductForModifiers) ? (selectedProductForModifiers.price | number: '1.2-2') : 'Free')
+                                    : 'Free'
                                 }}
                             </span>
                         </div>
@@ -2362,12 +2362,12 @@
                                     </div>
                                     <span
                                         class="text-xs font-semibold"
-                                        [class.text-primary]="opt.price > 0 || (isPizzaProduct(item) && (!opt.price || opt.price <= 0))"
-                                        [class.text-500]="(!opt.price || opt.price <= 0) && !isPizzaProduct(item)"
+                                        [class.text-primary]="(opt.price || 0) > 0"
+                                        [class.text-500]="!(opt.price > 0)"
                                     >
-                                        {{ opt.price > 0
+                                        {{ (opt.price || 0) > 0
                                             ? '+ ' + (opt.price | number: '1.2-2')
-                                            : (isPizzaProduct(item) ? (item.unitPrice | number: '1.2-2') : 'Free')
+                                            : 'Free'
                                         }}
                                     </span>
                                 </div>

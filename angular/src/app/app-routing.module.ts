@@ -107,6 +107,14 @@ const routes: Routes = [
             { path: 'branches', data: { breadcrumb: 'Branches', permission: PermissionNames.Branches }, loadChildren: () => import('./demo/components/branches/branches.module').then(m => m.BranchesModule) },
             { path: 'lookups', data: { breadcrumb: 'Lookups', permission: PermissionNames.LookUps }, loadChildren: () => import('./demo/components/lookups/lookups.module').then(m => m.LookUpsModule) },
             { path: 'host-catalog', data: { breadcrumb: 'Company types', permission: PermissionNames.HostCatalog }, loadChildren: () => import('./demo/components/host-catalog/host-catalog.module').then(m => m.HostCatalogModule) },
+            {
+                path: 'developers',
+                data: { breadcrumb: 'Developers', permission: PermissionNames.Developers },
+                loadChildren: () =>
+                    import('./demo/components/developers/developers.module').then(
+                        (m) => m.DevelopersModule
+                    ),
+            },
             { path: 'email-templates', data: { breadcrumb: 'Email Templates', permission: PermissionNames.EmailTemplates }, loadChildren: () => import('./demo/components/email-templates/email-templates.module').then(m => m.EmailTemplatesModule) },
             { path: 'notification-settings', data: { breadcrumb: 'Notification Settings', permission: PermissionNames.NotificationSettings }, loadChildren: () => import('./demo/components/notification-settings/notification-settings.module').then(m => m.NotificationSettingsModule) },
             { path: 'tenants', data: { breadcrumb: 'Tenants', permission: PermissionNames.Tenants }, loadChildren: () => import('./demo/components/tenants/tenants.module').then(m => m.TenantsModule) },

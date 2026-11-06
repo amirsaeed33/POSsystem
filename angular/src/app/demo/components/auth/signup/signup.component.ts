@@ -176,7 +176,11 @@ export class SignupComponent implements OnInit, OnDestroy {
                     }
                 }
 
-                await this.permissionService.load();
+                try {
+                    await this.permissionService.load();
+                } catch {
+                    // Permissions may load on the next authenticated navigation.
+                }
                 this.branchContext.clear();
 
                 this.messageService.add({
@@ -184,7 +188,7 @@ export class SignupComponent implements OnInit, OnDestroy {
                     summary: 'Welcome',
                     detail: `Tenant "${result.tenancyName}" created. Set up your first branch.`,
                 });
-                this.router.navigateByUrl('/branches/create');
+                await this.router.navigateByUrl('/branches/create');
             })
             .catch((error) => {
                 this.messageService.add({
