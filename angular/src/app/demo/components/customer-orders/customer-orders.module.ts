@@ -20,6 +20,7 @@ import { CustomerOrderFormDialogComponent } from './customer-order-form-dialog.c
 import { CustomerOrderViewDialogComponent } from './customer-order-view-dialog.component';
 import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { OrderChatComponent } from 'src/app/shared/components/order-chat/order-chat.component';
+import { StaffSharedModule } from '../staff/staff-shared.module';
 
 @NgModule({
     imports: [
@@ -41,6 +42,7 @@ import { OrderChatComponent } from 'src/app/shared/components/order-chat/order-c
         RadioButtonModule,
         AppRowActionsComponent,
         OrderChatComponent,
+        StaffSharedModule,
     ],
     declarations: [
         CustomerOrderListComponent,

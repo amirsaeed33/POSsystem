@@ -19,16 +19,29 @@
 }
 
 /* Modifier dialog — option row (no overlap) */
+.modifier-option-form {
+    width: 100%;
+}
+
 .modifier-option-row {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.5rem;
 }
 
 .modifier-option-name {
     flex: 1 1 12rem;
     min-width: 0;
+}
+
+.modifier-size-chips {
+    margin-top: 0.15rem;
+}
+
+.modifier-size-chip {
+    font-size: 0.75rem !important;
+    padding: 0.15rem 0.55rem !important;
 }
 
 .modifier-option-price {
@@ -44,6 +57,8 @@
 
 .modifier-option-btn {
     flex: 0 0 auto;
+    align-self: flex-start;
+    margin-top: 0.1rem;
 }
 
 /* Modifier dialog — create group row (no clipped Create button) */

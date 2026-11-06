@@ -356,6 +356,7 @@ namespace SmartPos.Orders
                     FacebookUrl = branch?.FacebookUrl,
                     InstagramUrl = branch?.InstagramUrl,
                     YoutubeUrl = branch?.YoutubeUrl,
+                    ImagePath = branch?.ImagePath,
                     Categories = categories
                 };
             }

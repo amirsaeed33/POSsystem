@@ -348,10 +348,7 @@
                                     [class.text-primary]="(opt.price || 0) > 0"
                                     [class.text-500]="!(opt.price > 0)"
                                 >
-                                    {{ (opt.price || 0) > 0
-                                        ? '+ ' + (opt.price | number: '1.2-2')
-                                        : 'Free'
-                                    }}
+                                    {{ formatModifierOptionPrice(opt.price) }}
                                 </span>
                                 <button
                                     pButton
@@ -371,36 +368,68 @@
                     </div>
 
                     <!-- Add Option Form -->
-                    <div class="modifier-option-row surface-100 p-2 border-round">
-                        <input
-                            pInputText
-                            type="text"
-                            placeholder="New option (e.g. Large, Extra Cheese)"
-                            [(ngModel)]="newOptionName[group.id]"
-                            class="p-inputtext-sm modifier-option-name"
-                        />
-                        <p-inputNumber
-                            placeholder="Empty = sale price, 0 = Free"
-                            [(ngModel)]="newOptionPrice[group.id]"
-                            [min]="0"
-                            mode="decimal"
-                            [minFractionDigits]="0"
-                            [maxFractionDigits]="2"
-                            styleClass="p-inputtext-sm"
-                            inputStyleClass="w-full"
-                            class="modifier-option-price"
-                        ></p-inputNumber>
-                        <button
-                            pButton
-                            pRipple
-                            type="button"
-                            icon="pi pi-plus"
-                            label="Add Option"
-                            class="p-button-sm p-button-secondary white-space-nowrap modifier-option-btn"
-                            [disabled]="!newOptionName[group.id] || addingOption[group.id]"
-                            [loading]="addingOption[group.id]"
-                            (click)="addModifierOption(group.id)"
-                        ></button>
+                    <div class="modifier-option-form surface-100 p-2 border-round">
+                        <div class="modifier-option-row">
+                            <div class="modifier-option-name flex flex-column gap-1">
+                                <input
+                                    pInputText
+                                    type="text"
+                                    placeholder="New option (e.g. Large, Extra Cheese)"
+                                    [(ngModel)]="newOptionName[group.id]"
+                                    class="p-inputtext-sm w-full"
+                                />
+                                <div
+                                    *ngIf="isSizeModifierGroup(group)"
+                                    class="modifier-size-chips flex flex-wrap gap-1"
+                                >
+                                    <button
+                                        *ngFor="let size of sizeQuickOptions"
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        [label]="size"
+                                        class="p-button-outlined p-button-sm modifier-size-chip"
+                                        [class.p-button-primary]="newOptionName[group.id] === size"
+                                        (click)="applySizeChip(group.id, size)"
+                                    ></button>
+                                </div>
+                            </div>
+                            <div class="flex flex-column gap-1 modifier-option-price">
+                                <p-inputNumber
+                                    [inputId]="'modifier-option-price-' + group.id"
+                                    placeholder="Empty = sale price, 0 = Free"
+                                    [(ngModel)]="newOptionPrice[group.id]"
+                                    [min]="0"
+                                    mode="decimal"
+                                    [minFractionDigits]="0"
+                                    [maxFractionDigits]="2"
+                                    styleClass="p-inputtext-sm"
+                                    inputStyleClass="w-full"
+                                ></p-inputNumber>
+                                <small
+                                    *ngIf="isNewOptionPriceEmpty(group.id)"
+                                    class="text-primary font-semibold"
+                                >
+                                    {{ modifierTargetProduct?.price | number: '1.2-2' }}
+                                </small>
+                                <small
+                                    *ngIf="!isNewOptionPriceEmpty(group.id) && (newOptionPrice[group.id] || 0) === 0"
+                                    class="text-500"
+                                >
+                                    Free
+                                </small>
+                            </div>
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Add Option"
+                                class="p-button-sm p-button-secondary white-space-nowrap modifier-option-btn"
+                                [disabled]="!newOptionName[group.id] || addingOption[group.id]"
+                                [loading]="addingOption[group.id]"
+                                (click)="addModifierOption(group.id)"
+                            ></button>
+                        </div>
                     </div>
                 </div>
             </div>

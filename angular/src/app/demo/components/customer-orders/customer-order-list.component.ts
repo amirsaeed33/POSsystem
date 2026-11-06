@@ -55,6 +55,8 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
     selectedRider: DeliveryRiderStatusDto | null = null;
     loadingRiders = false;
     assigningRider = false;
+    addRiderDialogVisible = false;
+    canCreateStaff = false;
 
     statusOptions = [
         { label: 'Pending', value: CustomerOrderStatus.Pending },
@@ -88,6 +90,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         this.canOverrideDeliveryFee = this.permissionService.isGranted(
             PermissionNames.CustomerOrdersOverrideDeliveryFee
         );
+        this.canCreateStaff = this.permissionService.isGranted(PermissionNames.StaffCreate);
         // ONLINE-PIPELINE START
         let isInitialParams = true;
         this.route.queryParams.subscribe((params) => {
@@ -381,12 +384,34 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         this.selectedOrderForRider = order;
         this.selectedRider = null;
         this.assignRiderDialogVisible = true;
+        await this.reloadAvailableRiders();
+    }
+
+    openAddRiderDialog(): void {
+        this.addRiderDialogVisible = true;
+    }
+
+    async onRiderStaffSaved(): Promise<void> {
+        await this.reloadAvailableRiders();
+    }
+
+    private async reloadAvailableRiders(): Promise<void> {
+        const order = this.selectedOrderForRider;
+        if (!order) {
+            return;
+        }
+
         this.loadingRiders = true;
         try {
             const branchId = (order.branchId || this.branchContext.getBranchId()) ?? undefined;
             this.availableRiders = await this.customerOrderService.getAvailableRiders(branchId, order.id);
             if (order.riderId) {
                 this.selectedRider = this.availableRiders.find((r) => r.riderId === order.riderId) || null;
+            } else if (
+                this.selectedRider &&
+                !this.availableRiders.some((r) => r.riderId === this.selectedRider?.riderId)
+            ) {
+                this.selectedRider = null;
             }
         } catch (err: any) {
             console.error('Failed to load available delivery riders', err);

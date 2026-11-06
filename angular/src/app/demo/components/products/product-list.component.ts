@@ -58,6 +58,7 @@ export class ProductListComponent implements OnInit {
     /** null/undefined = empty → use product sale price; 0 = Free. */
     newOptionPrice: Record<number, number | null> = {};
     addingOption: Record<number, boolean> = {};
+    readonly sizeQuickOptions = ['Small', 'Medium', 'Large', 'XL'];
 
     // Deal Management (Restaurant only)
     dealDialogVisible = false;
@@ -244,6 +245,52 @@ export class ProductListComponent implements OnInit {
         const name = (product.name || '').trim().toLowerCase();
         if (name.includes('pizza')) return true;
         return false;
+    }
+
+    /** Empty price saves as product sale price — show that amount without a "+" prefix. */
+    isModifierSalePrice(optionPrice: number | null | undefined): boolean {
+        const sale = Number(this.modifierTargetProduct?.price);
+        const price = Number(optionPrice);
+        return (
+            Number.isFinite(sale) &&
+            sale > 0 &&
+            Number.isFinite(price) &&
+            price > 0 &&
+            Math.abs(price - sale) < 0.0001
+        );
+    }
+
+    formatModifierOptionPrice(optionPrice: number | null | undefined): string {
+        const price = Number(optionPrice) || 0;
+        if (price <= 0) {
+            return 'Free';
+        }
+        const formatted = price.toFixed(2);
+        if (this.isModifierSalePrice(price)) {
+            return formatted;
+        }
+        return `+ ${formatted}`;
+    }
+
+    isNewOptionPriceEmpty(groupId: number): boolean {
+        const raw = this.newOptionPrice[groupId];
+        return raw === null || raw === undefined || (typeof raw === 'number' && Number.isNaN(raw));
+    }
+
+    isSizeModifierGroup(group: ProductModifierGroupDto | null | undefined): boolean {
+        const name = (group?.name || '').trim().toLowerCase();
+        return name.includes('size') || name.includes('portion');
+    }
+
+    applySizeChip(groupId: number, size: string): void {
+        this.newOptionName[groupId] = size;
+        setTimeout(() => {
+            const input = document.getElementById(
+                `modifier-option-price-${groupId}`
+            ) as HTMLInputElement | null;
+            input?.focus();
+            input?.select?.();
+        }, 0);
     }
 
     async openModifierDialog(product: ProductDto): Promise<void> {

@@ -2234,10 +2234,7 @@
                                 [class.text-primary]="(opt.price || 0) > 0"
                                 [class.text-500]="!(opt.price > 0)"
                             >
-                                {{ (opt.price || 0) > 0
-                                    ? '+ ' + (opt.price | number: '1.2-2')
-                                    : 'Free'
-                                }}
+                                {{ formatModifierOptionPrice(opt.price, selectedProductForModifiers?.price) }}
                             </span>
                         </div>
                     </div>
@@ -2365,10 +2362,7 @@
                                         [class.text-primary]="(opt.price || 0) > 0"
                                         [class.text-500]="!(opt.price > 0)"
                                     >
-                                        {{ (opt.price || 0) > 0
-                                            ? '+ ' + (opt.price | number: '1.2-2')
-                                            : 'Free'
-                                        }}
+                                        {{ formatModifierOptionPrice(opt.price, item.unitPrice) }}
                                     </span>
                                 </div>
                             </div>
