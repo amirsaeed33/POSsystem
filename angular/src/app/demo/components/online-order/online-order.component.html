@@ -718,15 +718,19 @@
                 </div>
             </div>
 
-            <div class="fp-menu-grid" id="trackTrending">
+            <div class="fp-products-marquee fp-products-marquee--ltr" id="trackTrending">
                 <div
-                    *ngFor="let product of trendingDeals; let idx = index"
-                    class="fp-menu-grid-col"
-                    [style.animation-delay.ms]="idx * 45"
+                    class="fp-products-track"
+                    [style.animation-duration]="productMarqueeDuration(trendingDeals)"
                 >
-                    <ng-container
-                        *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx, tagIdx: idx }"
-                    ></ng-container>
+                    <div
+                        *ngFor="let product of productMarqueeItems(trendingDeals); let idx = index"
+                        class="fp-products-marquee-item"
+                    >
+                        <ng-container
+                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx % trendingDeals.length, tagIdx: idx % trendingDeals.length }"
+                        ></ng-container>
+                    </div>
                 </div>
             </div>
         </section>
@@ -753,15 +757,19 @@
                 </div>
             </div>
 
-            <div class="fp-menu-grid" id="trackPopular">
+            <div class="fp-products-marquee fp-products-marquee--rtl" id="trackPopular">
                 <div
-                    *ngFor="let product of popularItems; let idx = index"
-                    class="fp-menu-grid-col"
-                    [style.animation-delay.ms]="idx * 45"
+                    class="fp-products-track"
+                    [style.animation-duration]="productMarqueeDuration(popularItems)"
                 >
-                    <ng-container
-                        *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx + 4, tagIdx: idx + 4 }"
-                    ></ng-container>
+                    <div
+                        *ngFor="let product of productMarqueeItems(popularItems); let idx = index"
+                        class="fp-products-marquee-item"
+                    >
+                        <ng-container
+                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: (idx % popularItems.length) + 4, tagIdx: (idx % popularItems.length) + 4 }"
+                        ></ng-container>
+                    </div>
                 </div>
             </div>
         </section>
@@ -792,15 +800,24 @@
                 </div>
             </div>
 
-            <div class="fp-menu-grid" [id]="'trackCat' + sIdx">
+            <div
+                class="fp-products-marquee"
+                [class.fp-products-marquee--ltr]="sIdx % 2 === 0"
+                [class.fp-products-marquee--rtl]="sIdx % 2 === 1"
+                [id]="'trackCat' + sIdx"
+            >
                 <div
-                    *ngFor="let product of sec.items; let idx = index"
-                    class="fp-menu-grid-col"
-                    [style.animation-delay.ms]="idx * 45"
+                    class="fp-products-track"
+                    [style.animation-duration]="productMarqueeDuration(sec.items)"
                 >
-                    <ng-container
-                        *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: idx + sIdx, tagIdx: idx }"
-                    ></ng-container>
+                    <div
+                        *ngFor="let product of productMarqueeItems(sec.items); let idx = index"
+                        class="fp-products-marquee-item"
+                    >
+                        <ng-container
+                            *ngTemplateOutlet="foodCardTpl; context: { product: product, imgIdx: (idx % sec.items.length) + sIdx, tagIdx: idx % sec.items.length }"
+                        ></ng-container>
+                    </div>
                 </div>
             </div>
         </section>

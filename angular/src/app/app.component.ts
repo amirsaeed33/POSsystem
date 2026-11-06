@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Title } from '@angular/platform-browser';
 import { PrimeNGConfig } from 'primeng/api';
 import { Subscription } from 'rxjs';
+import { AppBrowserTitleService } from './demo/service/app-browser-title.service';
 import { BranchContextService } from './demo/service/branch-context.service';
 
 @Component({
@@ -10,13 +10,12 @@ import { BranchContextService } from './demo/service/branch-context.service';
     styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit, OnDestroy {
-    private static readonly APP_TITLE = 'Al Jannat';
     private branchSub?: Subscription;
 
     constructor(
         private primengConfig: PrimeNGConfig,
-        private title: Title,
-        private branchContext: BranchContextService
+        private branchContext: BranchContextService,
+        private browserTitle: AppBrowserTitleService
     ) { }
 
     ngOnInit(): void {
@@ -28,14 +27,9 @@ export class AppComponent implements OnInit, OnDestroy {
             tooltip: 1100
         };
 
-        this.title.setTitle(AppComponent.APP_TITLE);
+        this.browserTitle.apply();
         this.branchSub = this.branchContext.currentBranch$.subscribe((branch) => {
-            const branchName = (branch?.name || '').trim();
-            this.title.setTitle(
-                branchName
-                    ? `${AppComponent.APP_TITLE} - ${branchName}`
-                    : AppComponent.APP_TITLE
-            );
+            this.browserTitle.setStaffBranchName(branch?.name);
         });
     }
 
