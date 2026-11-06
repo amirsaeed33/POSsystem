@@ -71,21 +71,15 @@ export class AppMenuComponent implements OnInit, OnDestroy {
         if (this.authService.isWaiter()) {
             this.model = [
                 {
-                    label: 'Restaurant POS',
+                    label: 'POS',
                     icon: 'pi pi-desktop',
-                    items: [
-                        {
-                            label: 'Dining Tables & POS',
-                            icon: 'pi pi-table',
-                            routerLink: ['/pos'],
-                        },
-                        {
-                            label: 'Kitchen',
-                            icon: 'pi pi-inbox',
-                            routerLink: ['/kitchen'],
-                        },
-                    ]
-                }
+                    routerLink: ['/pos'],
+                },
+                {
+                    label: 'Kitchen',
+                    icon: 'pi pi-inbox',
+                    routerLink: ['/kitchen'],
+                },
             ];
             return;
         }
@@ -129,16 +123,6 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                           icon: 'pi pi-compass',
                           items: [
                               {
-                                  label: 'Dining Tables & POS',
-                                  icon: 'pi pi-table',
-                                  routerLink: ['/pos'],
-                                  anyPermission: [
-                                      PermissionNames.DiningTables,
-                                      PermissionNames.Pos,
-                                      PermissionNames.Sales,
-                                  ],
-                              },
-                              {
                                   label: 'Kitchen',
                                   icon: 'pi pi-inbox',
                                   routerLink: ['/kitchen'],
@@ -165,15 +149,6 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                                   icon: 'pi pi-map-marker',
                                   routerLink: ['/delivery-areas'],
                                   permission: PermissionNames.DeliveryAreas,
-                              },
-                              {
-                                  label: 'Online Menu & Ordering',
-                                  icon: 'pi pi-globe',
-                                  routerLink: ['/online-order'],
-                                  queryParams: currentBranchId
-                                      ? { branchId: currentBranchId }
-                                      : undefined,
-                                  target: '_blank',
                               },
                               {
                                   label: 'Customers',

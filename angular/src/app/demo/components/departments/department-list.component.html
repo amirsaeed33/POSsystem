@@ -41,7 +41,7 @@
                     pRipple
                     type="button"
                     icon="pi pi-plus"
-                    label="Create Department"
+                    label="Create"
                     class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
                     (click)="openCreateDialog()"
                 ></button>
@@ -57,7 +57,7 @@
                     Description <p-sortIcon field="description"></p-sortIcon>
                 </th>
                 <th class="white-space-nowrap text-center" style="width: 7rem">Status</th>
-                <th class="text-center" style="width: 5.5rem">Actions</th>
+                <th class="text-center white-space-nowrap" style="width: 7rem">Actions</th>
             </tr>
         </ng-template>
 
@@ -81,8 +81,8 @@
                         {{ dept.isActive ? 'Active' : 'Inactive' }}
                     </span>
                 </td>
-                <td class="text-center">
-                    <app-row-actions [items]="getRowActions(dept)"></app-row-actions>
+                <td class="text-center white-space-nowrap">
+                    <app-row-actions mode="inline" [items]="getRowActions(dept)"></app-row-actions>
                 </td>
             </tr>
         </ng-template>
@@ -90,7 +90,7 @@
         <ng-template pTemplate="emptymessage">
             <tr>
                 <td colspan="4" class="text-center p-4">
-                    <div class="text-500">No departments found. Click "Create Department" to add one.</div>
+                    <div class="text-500">No departments found. Click "Create" to add one.</div>
                 </td>
             </tr>
         </ng-template>

@@ -51,53 +51,75 @@ interface ActionGroup {
     standalone: true,
     imports: [CommonModule, OverlayModule, TooltipModule, RippleModule],
     template: `
-        <div class="row-actions-container">
-            <button
-                type="button"
-                class="row-actions-trigger"
-                [class.is-open]="isOpen"
-                cdkOverlayOrigin
-                #trigger="cdkOverlayOrigin"
-                (click)="toggleMenu($event)"
-                [pTooltip]="tooltip"
-                tooltipPosition="left"
-                [attr.aria-expanded]="isOpen"
-                aria-haspopup="true"
-            >
-                <i [class]="icon"></i>
-            </button>
+        <div class="row-actions-container" [class.is-inline]="mode === 'inline'">
+            <!-- Inline Edit / Delete (and other) buttons -->
+            <ng-container *ngIf="mode === 'inline'">
+                <button
+                    *ngFor="let item of flatItems"
+                    type="button"
+                    class="row-actions-inline-btn"
+                    [class.is-danger]="item.danger"
+                    [class.is-disabled]="item.disabled"
+                    [disabled]="item.disabled"
+                    [pTooltip]="item.label"
+                    tooltipPosition="top"
+                    [attr.aria-label]="item.label"
+                    (click)="onItemClick(item, $event)"
+                    pRipple
+                >
+                    <i [class]="item.icon"></i>
+                </button>
+            </ng-container>
 
-            <ng-template
-                cdkConnectedOverlay
-                [cdkConnectedOverlayOrigin]="trigger"
-                [cdkConnectedOverlayOpen]="isOpen"
-                [cdkConnectedOverlayHasBackdrop]="true"
-                cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
-                [cdkConnectedOverlayPositions]="overlayPositions"
-                (backdropClick)="closeMenu()"
-                (detach)="closeMenu()"
-            >
-                <div class="row-actions-menu" (click)="$event.stopPropagation()">
-                    <ng-container *ngFor="let group of activeGroups; let lastGroup = last">
-                        <div class="row-actions-group">
-                            <a
-                                *ngFor="let item of group.items"
-                                class="row-actions-item"
-                                [class.is-danger]="item.danger"
-                                [class.is-disabled]="item.disabled"
-                                (click)="onItemClick(item, $event)"
-                                pRipple
-                            >
-                                <span class="row-actions-icon-box" [ngClass]="'color-' + item.color">
-                                    <i [class]="item.icon"></i>
-                                </span>
-                                <span class="row-actions-label">{{ item.label }}</span>
-                            </a>
-                        </div>
-                        <div *ngIf="!lastGroup" class="row-actions-separator"></div>
-                    </ng-container>
-                </div>
-            </ng-template>
+            <!-- Default 3-dot overflow menu -->
+            <ng-container *ngIf="mode !== 'inline'">
+                <button
+                    type="button"
+                    class="row-actions-trigger"
+                    [class.is-open]="isOpen"
+                    cdkOverlayOrigin
+                    #trigger="cdkOverlayOrigin"
+                    (click)="toggleMenu($event)"
+                    [pTooltip]="tooltip"
+                    tooltipPosition="left"
+                    [attr.aria-expanded]="isOpen"
+                    aria-haspopup="true"
+                >
+                    <i [class]="icon"></i>
+                </button>
+
+                <ng-template
+                    cdkConnectedOverlay
+                    [cdkConnectedOverlayOrigin]="trigger"
+                    [cdkConnectedOverlayOpen]="isOpen"
+                    [cdkConnectedOverlayHasBackdrop]="true"
+                    cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+                    [cdkConnectedOverlayPositions]="overlayPositions"
+                    (backdropClick)="closeMenu()"
+                    (detach)="closeMenu()"
+                >
+                    <div class="row-actions-menu" (click)="$event.stopPropagation()">
+                        <ng-container *ngFor="let group of activeGroups; let lastGroup = last">
+                            <div class="row-actions-group">
+                                <a
+                                    *ngFor="let item of group.items"
+                                    class="row-actions-item"
+                                    [class.is-danger]="item.danger"
+                                    [class.is-disabled]="item.disabled"
+                                    (click)="onItemClick(item, $event)"
+                                    pRipple
+                                >
+                                    <span class="row-actions-icon-box" [ngClass]="'color-' + item.color">
+                                        <i [class]="item.icon"></i>
+                                    </span>
+                                    <span class="row-actions-label">{{ item.label }}</span>
+                                </a>
+                            </div>
+                            <div *ngIf="!lastGroup" class="row-actions-separator"></div>
+                        </ng-container>
+                    </div>
+                </ng-template>
+            </ng-container>
         </div>
     `,
     styles: [
@@ -107,6 +129,55 @@ interface ActionGroup {
             align-items: center;
             justify-content: center;
             position: relative;
+            gap: 0.35rem;
+
+            &.is-inline {
+                justify-content: center;
+                flex-wrap: nowrap;
+                white-space: nowrap;
+            }
+        }
+
+        .row-actions-inline-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            padding: 0;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #1d4ed8;
+            cursor: pointer;
+            line-height: 1;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+            i {
+                font-size: 0.9rem;
+            }
+
+            &:hover {
+                background: #eff6ff;
+                border-color: #bfdbfe;
+            }
+
+            &.is-danger {
+                color: #dc2626;
+                border-color: #fecaca;
+
+                &:hover {
+                    background: #fef2f2;
+                    border-color: #fca5a5;
+                }
+            }
+
+            &.is-disabled,
+            &:disabled {
+                opacity: 0.45;
+                pointer-events: none;
+                cursor: not-allowed;
+            }
         }
 
         .row-actions-trigger {
@@ -269,6 +340,8 @@ interface ActionGroup {
 })
 export class AppRowActionsComponent implements OnChanges {
     @Input() items: RowActionItem[] = [];
+    /** 'menu' = 3-dot overflow (default). 'inline' = show Edit/Delete buttons directly. */
+    @Input() mode: 'menu' | 'inline' = 'menu';
     @Input() tooltip = 'Actions';
     @Input() icon = 'pi pi-ellipsis-v';
 
@@ -277,6 +350,7 @@ export class AppRowActionsComponent implements OnChanges {
 
     isOpen = false;
     activeGroups: ActionGroup[] = [];
+    flatItems: ProcessedActionItem[] = [];
 
     readonly overlayPositions: ConnectedPosition[] = [
         {
@@ -296,7 +370,7 @@ export class AppRowActionsComponent implements OnChanges {
     ];
 
     ngOnChanges(changes: SimpleChanges): void {
-        if (changes['items']) {
+        if (changes['items'] || changes['mode']) {
             this.rebuildGroups();
         }
     }
@@ -378,6 +452,11 @@ export class AppRowActionsComponent implements OnChanges {
         }
 
         this.activeGroups = groups;
+        this.flatItems = [
+            ...viewEditItems,
+            ...statusItems,
+            ...dangerItems,
+        ];
     }
 
     private resolveGroup(item: RowActionItem): RowActionGroup {
