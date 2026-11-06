@@ -41,16 +41,20 @@ namespace SmartPos.Web.Host.Startup
                 }
             }
 
-            // CRITICAL: After migrations run on a new or existing database,
-            // ensure essential host seed (Admin user "admin" / "123qwe", Admin role,
-            // default languages, lookups) is seeded so the user can log in immediately.
-            try
+            var runDbSeed = string.Equals(
+                _appConfiguration["App:RunDbSeed"],
+                "true",
+                StringComparison.OrdinalIgnoreCase);
+            if (runDbSeed)
             {
-                SeedHelper.SeedHostDb(IocManager);
-            }
-            catch (Exception ex)
-            {
-                // Already seeded or handled
+                try
+                {
+                    SeedHelper.SeedHostDb(IocManager);
+                }
+                catch (Exception ex)
+                {
+                    // Already seeded or handled
+                }
             }
         }
     }
