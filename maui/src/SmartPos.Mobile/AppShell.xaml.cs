@@ -14,6 +14,12 @@ public partial class AppShell : Shell
         _session = session;
         _navigation = navigation;
         Routing.RegisterRoute("productdetail", typeof(ProductDetailPage));
+        Routing.RegisterRoute("favorites", typeof(FavoritesPage));
+        Routing.RegisterRoute("track", typeof(TrackOrderPage));
+        Routing.RegisterRoute("cart", typeof(CartPage));
+        Routing.RegisterRoute("customer/cart", typeof(CartPage));
+        Routing.RegisterRoute("order", typeof(OrderPage));
+        Routing.RegisterRoute("customer/order", typeof(OrderPage));
 
         Loaded += OnShellLoaded;
     }
@@ -29,11 +35,11 @@ public partial class AppShell : Shell
         try
         {
             await _session.LoadAsync();
-            await _navigation.GoToRoleHomeAsync();
+            // Cold start initially stays on SplashScreenPage; transition is triggered by SplashScreenPage after its delay.
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[AppShell] Navigation failed: {ex}");
+            System.Diagnostics.Debug.WriteLine($"[AppShell] Session initialization failed: {ex}");
         }
     }
 }

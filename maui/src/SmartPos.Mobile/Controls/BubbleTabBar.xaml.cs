@@ -40,7 +40,7 @@ public partial class BubbleTabBar : ContentView
                 }
             });
 
-    private static readonly Color CustomerAccent = Color.FromArgb("#F15A29");
+    private static readonly Color CustomerAccent = Color.FromArgb("#10B981");
     private static readonly Color StaffAccent = Color.FromArgb("#0F6B4C");
     private static readonly Color Inactive = Color.FromArgb("#9CA3AF");
 
@@ -56,14 +56,10 @@ public partial class BubbleTabBar : ContentView
     public BubbleTabBar()
     {
         InitializeComponent();
-        TranslationY = 0;
-        SizeChanged += (_, _) => PositionBubble();
-        TabsGrid.SizeChanged += (_, _) => PositionBubble();
         Loaded += (_, _) =>
         {
-            TranslationY = 0;
             ApplyMode();
-            Dispatcher.Dispatch(PositionBubble);
+            RefreshVisuals();
         };
     }
 
@@ -105,7 +101,6 @@ public partial class BubbleTabBar : ContentView
                 _inactiveIcons = ["tab_home_idle.png", "tab_history_idle.png", "tab_account_idle.png"];
                 break;
             case BubbleTabMode.Waiter:
-                // Full waiter menu — all four routes are live Shell pages; green active icons (no orange/yellow).
                 _tabCount = 4;
                 _labels = ["Tables", "Order", "Orders", "Profile"];
                 _routes = ["//waiter/tables", "//waiter/order", "//waiter/myorders", "//waiter/account"];
@@ -119,12 +114,12 @@ public partial class BubbleTabBar : ContentView
                 _activeIcons = ["tab_home_staff_active.png", "tab_account_staff_active.png"];
                 _inactiveIcons = ["tab_home_idle.png", "tab_account_idle.png"];
                 break;
-            default:
+            default: // Customer
                 _tabCount = 4;
-                _labels = ["Home", "Cart", "Track", "Profile"];
-                _routes = ["//customer/home", "//customer/cart", "//customer/track", "//customer/account"];
-                _activeIcons = ["tab_home_active.png", "tab_cart_active.png", "tab_track_active.png", "tab_account_active.png"];
-                _inactiveIcons = ["tab_home_idle.png", "tab_cart_idle.png", "tab_track_idle.png", "tab_account_idle.png"];
+                _labels = ["Home", "Order", "Favorite", "Profile"];
+                _routes = ["//customer/home", "//customer/order", "//customer/favorites", "//customer/account"];
+                _activeIcons = ["tab_home_active.png", "tab_order_active.png", "tab_favorites_active.png", "tab_account_active.png"];
+                _inactiveIcons = ["tab_home_idle.png", "tab_order_idle.png", "tab_favorites_idle.png", "tab_account_idle.png"];
                 break;
         }
 
@@ -171,48 +166,8 @@ public partial class BubbleTabBar : ContentView
             var active = i == SelectedIndex;
             icons[i].Source = active ? _activeIcons[i] : _inactiveIcons[i];
             labels[i].TextColor = active ? Accent : Inactive;
-            icons[i].TranslationY = active ? -8 : 0;
-            labels[i].TranslationY = active ? -2 : 0;
+            labels[i].FontAttributes = active ? FontAttributes.Bold : FontAttributes.None;
         }
-
-        PositionBubble();
-        Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(16), PositionBubble);
-    }
-
-    private void PositionBubble()
-    {
-        var buttons = new[] { Tab0, Tab1, Tab2, Tab3 };
-        var icons = new[] { Icon0, Icon1, Icon2, Icon3 };
-        var index = Math.Clamp(SelectedIndex, 0, Math.Max(0, _tabCount - 1));
-        var tab = buttons[index];
-        var icon = icons[index];
-        var bubbleSize = ActiveBubble.WidthRequest;
-
-        if (tab.Width > 0 && TabsGrid.Width > 0 && icon.Width > 0)
-        {
-            var iconCenterX = tab.X + (tab.Width / 2.0);
-            ActiveBubble.TranslationX = Math.Max(0, iconCenterX - (bubbleSize / 2.0));
-            ActiveBubble.TranslationY = -8;
-            return;
-        }
-
-        if (tab.Width > 0 && TabsGrid.Width > 0)
-        {
-            var centerInPill = tab.X + (tab.Width / 2.0);
-            ActiveBubble.TranslationX = Math.Max(0, centerInPill - (bubbleSize / 2.0));
-            ActiveBubble.TranslationY = -8;
-            return;
-        }
-
-        var hostWidth = PillHost.Width > 0 ? PillHost.Width : Math.Max(0, Width - 24);
-        if (hostWidth <= 0 || _tabCount <= 0)
-        {
-            return;
-        }
-
-        var slot = hostWidth / _tabCount;
-        ActiveBubble.TranslationX = Math.Max(0, (slot * index) + ((slot - bubbleSize) / 2.0));
-        ActiveBubble.TranslationY = -8;
     }
 
     private async void OnTab0Clicked(object? sender, EventArgs e) => await GoAsync(0);
@@ -286,7 +241,7 @@ public partial class BubbleTabBar : ContentView
         {
             if (Tab1Visual != null)
             {
-                await Tab1Visual.ScaleTo(1.2, 80, Easing.CubicOut);
+                await Tab1Visual.ScaleTo(1.15, 80, Easing.CubicOut);
                 await Tab1Visual.ScaleTo(1.0, 80, Easing.SpringOut);
             }
         }
@@ -303,7 +258,7 @@ public partial class BubbleTabBar : ContentView
 
             if (Tab1Visual != null)
             {
-                await Tab1Visual.ScaleTo(1.2, 80, Easing.CubicOut);
+                await Tab1Visual.ScaleTo(1.15, 80, Easing.CubicOut);
                 await Tab1Visual.ScaleTo(1.0, 80, Easing.SpringOut);
             }
         }
@@ -311,5 +266,4 @@ public partial class BubbleTabBar : ContentView
         {
         }
     }
-
 }

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
+             x:Class="SmartPos.Mobile.Views.Customer.FavoritesPage"
+             x:DataType="vm:FavoritesViewModel"
+             Title="Favorites"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <Grid BackgroundColor="{StaticResource PageBackground}">
+        <ScrollView Padding="16,20,16,84">
+            <VerticalStackLayout Spacing="20">
+
+                <!-- Header -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="My Favorites"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}" />
+                    <Label Text="Dishes you've saved for fast reordering"
+                           FontSize="13"
+                           TextColor="{StaticResource TextSecondary}" />
+                </VerticalStackLayout>
+
+                <!-- Empty State Card -->
+                <Border Stroke="{StaticResource BorderSubtle}"
+                        StrokeThickness="1"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        Padding="24,32"
+                        Margin="0,16,0,0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="16" HorizontalOptions="Center">
+                        <!-- Heart Emblem -->
+                        <Border WidthRequest="68"
+                                HeightRequest="68"
+                                StrokeThickness="0"
+                                BackgroundColor="{StaticResource PrimaryLight}"
+                                HorizontalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="22" />
+                            </Border.StrokeShape>
+                            <Path Aspect="Uniform"
+                                  WidthRequest="32"
+                                  HeightRequest="32"
+                                  Fill="{StaticResource Primary}"
+                                  HorizontalOptions="Center"
+                                  VerticalOptions="Center"
+                                  Data="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                        </Border>
+
+                        <Label Text="No Favorites Saved Yet"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"
+                               HorizontalTextAlignment="Center" />
+
+                        <Label Text="Browse the menu and tap the ❤️ icon on your favorite dishes to add them here for quick access."
+                               FontSize="13"
+                               TextColor="{StaticResource TextSecondary}"
+                               HorizontalTextAlignment="Center"
+                               LineBreakMode="WordWrap" />
+
+                        <Button Text="Explore Menu"
+                                Command="{Binding BrowseMenuCommand}"
+                                BackgroundColor="{StaticResource Primary}"
+                                TextColor="White"
+                                FontAttributes="Bold"
+                                CornerRadius="12"
+                                Margin="0,12,0,0"
+                                HorizontalOptions="Center"
+                                Padding="28,12" />
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Customer Bottom Navigation Bar (Tab 2: Favorite) -->
+        <controls:BubbleTabBar Mode="Customer"
+                               SelectedIndex="2"
+                               VerticalOptions="End"
+                               HorizontalOptions="Fill"
+                               ZIndex="40" />
+    </Grid>
+</ContentPage>
+

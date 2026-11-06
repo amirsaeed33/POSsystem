@@ -166,6 +166,7 @@ public class OnlineProductDto : ObservableObject
     public string PriceText => Price.ToString("0.00");
 
     public string PriceDisplay => $"Rs {Price:0}";
+    public string PriceLabel => PriceDisplay;
 
     private int cartQty;
     public int CartQty

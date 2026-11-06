@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200">
+  <defs>
+    <radialGradient id="burgerShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="topBunGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="80%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <linearGradient id="pattyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#78350F"/>
+      <stop offset="100%" stop-color="#451A03"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="200" fill="#F8FAFC"/>
+  <ellipse cx="160" cy="172" rx="90" ry="16" fill="url(#burgerShadow)"/>
+  <path d="M100 150 C100 166 125 170 160 170 C195 170 220 166 220 150 Z" fill="#D97706"/>
+  <path d="M108 149 C130 153 190 153 212 149" stroke="#EF4444" stroke-width="4" stroke-linecap="round"/>
+  <rect x="94" y="132" width="132" height="18" rx="9" fill="url(#pattyGrad)"/>
+  <polygon points="98,133 222,133 210,146 185,138 160,147 135,137 110,146" fill="#FBBF24"/>
+  <rect x="96" y="116" width="128" height="17" rx="8.5" fill="url(#pattyGrad)"/>
+  <polygon points="102,118 218,118 206,128 170,121 140,129 112,122" fill="#F59E0B"/>
+  <path d="M88 114 C98 106 108 118 120 110 C132 106 142 118 156 110 C170 106 182 118 196 110 C210 106 222 118 232 114" stroke="#10B981" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <ellipse cx="132" cy="104" rx="34" ry="7" fill="#DC2626"/>
+  <ellipse cx="132" cy="103" rx="30" ry="5.5" fill="#EF4444"/>
+  <ellipse cx="188" cy="104" rx="34" ry="7" fill="#DC2626"/>
+  <ellipse cx="188" cy="103" rx="30" ry="5.5" fill="#EF4444"/>
+  <path d="M96 98 C96 52 120 42 160 42 C200 42 224 52 224 98 Z" fill="url(#topBunGrad)"/>
+  <ellipse cx="136" cy="62" rx="3" ry="1.6" fill="#FEF3C7" transform="rotate(-15 136 62)"/>
+  <ellipse cx="160" cy="54" rx="3.2" ry="1.8" fill="#FEF3C7"/>
+  <ellipse cx="184" cy="64" rx="3" ry="1.6" fill="#FEF3C7" transform="rotate(20 184 64)"/>
+  <ellipse cx="146" cy="74" rx="3" ry="1.6" fill="#FEF3C7" transform="rotate(-5 146 74)"/>
+  <ellipse cx="172" cy="72" rx="3.2" ry="1.7" fill="#FEF3C7" transform="rotate(10 172 72)"/>
+  <ellipse cx="120" cy="78" rx="2.8" ry="1.5" fill="#FEF3C7" transform="rotate(-25 120 78)"/>
+  <ellipse cx="200" cy="80" rx="2.8" ry="1.5" fill="#FEF3C7" transform="rotate(25 200 80)"/>
+  <ellipse cx="160" cy="84" rx="3" ry="1.6" fill="#FEF3C7"/>
+</svg>

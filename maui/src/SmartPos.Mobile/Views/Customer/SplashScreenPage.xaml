@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SmartPos.Mobile.Views.Customer.SplashScreenPage"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource Primary}">
+
+    <Grid BackgroundColor="{StaticResource Primary}">
+        <!-- Subtle top-left ambient geometric ring -->
+        <Ellipse WidthRequest="180"
+                 HeightRequest="180"
+                 Fill="#0CFFFFFF"
+                 HorizontalOptions="Start"
+                 VerticalOptions="Start"
+                 InputTransparent="True"
+                 Margin="-60,-60,0,0" />
+
+        <!-- Subtle semi-transparent geometric watermark in lower corner -->
+        <Grid HorizontalOptions="End"
+              VerticalOptions="End"
+              InputTransparent="True"
+              Margin="0,0,-70,-70">
+            <Ellipse WidthRequest="280"
+                     HeightRequest="280"
+                     Fill="#14FFFFFF" />
+            <Ellipse WidthRequest="200"
+                     HeightRequest="200"
+                     Fill="#10FFFFFF"
+                     TranslationX="-24"
+                     TranslationY="-24" />
+            <Ellipse WidthRequest="130"
+                     HeightRequest="130"
+                     Fill="#16FFFFFF"
+                     TranslationX="-48"
+                     TranslationY="-48" />
+        </Grid>
+
+        <!-- Centered Brand Content -->
+        <VerticalStackLayout x:Name="BrandContainer"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="16"
+                             Opacity="0"
+                             Scale="0.88">
+
+            <!-- Clean White Brand Vector Icon Emblem -->
+            <Border WidthRequest="84"
+                    HeightRequest="84"
+                    BackgroundColor="#22FFFFFF"
+                    Stroke="#55FFFFFF"
+                    StrokeThickness="2"
+                    HorizontalOptions="Center">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="26" />
+                </Border.StrokeShape>
+                <Grid WidthRequest="44"
+                      HeightRequest="44"
+                      HorizontalOptions="Center"
+                      VerticalOptions="Center">
+                    <Path Aspect="Uniform"
+                          Fill="White"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center"
+                          Data="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h14v12zm-7-8c-1.66 0-3-1.34-3-3H7c0 2.76 2.24 5 5 5s5-2.24 5-5h-2c0 1.66-1.34 3-3 3z" />
+                </Grid>
+            </Border>
+
+            <!-- Bold White Brand Text -->
+            <Label Text="MakanGes"
+                   FontSize="32"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalTextAlignment="Center"
+                   CharacterSpacing="0.6" />
+
+            <!-- Subtitle -->
+            <Label Text="Food Delivery &amp; Takeaway"
+                   FontSize="13"
+                   TextColor="#E0FFFFFF"
+                   HorizontalTextAlignment="Center"
+                   CharacterSpacing="0.2" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>
+
