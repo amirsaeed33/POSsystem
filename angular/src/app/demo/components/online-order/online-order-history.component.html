@@ -112,7 +112,7 @@
     </header>
 
     <main class="oh-main oh-main--under-nav">
-        <section class="oh-lookup oh-lookup-card">
+        <section class="oh-lookup oh-lookup-card oh-anim oh-anim--lookup">
             <div class="oh-lookup-head">
                 <div>
                     <h1>My Orders</h1>
@@ -154,19 +154,19 @@
             </div>
         </section>
 
-        <div *ngIf="loading" class="oh-state-card oh-loading">
+        <div *ngIf="loading" class="oh-state-card oh-loading oh-anim oh-anim--state">
             <i class="pi pi-spin pi-spinner"></i>
             <span>Loading your orders…</span>
         </div>
 
-        <div *ngIf="!loading && errorMessage" class="oh-state-card oh-error">
+        <div *ngIf="!loading && errorMessage" class="oh-state-card oh-error oh-anim oh-anim--state">
             <i class="pi pi-exclamation-circle"></i>
             <span>{{ errorMessage }}</span>
         </div>
 
         <div
             *ngIf="!loading && searched && !errorMessage && orders.length === 0"
-            class="oh-state-card oh-empty"
+            class="oh-state-card oh-empty oh-anim oh-anim--state"
         >
             <i class="pi pi-inbox"></i>
             <strong>No orders found</strong>
@@ -174,7 +174,7 @@
         </div>
 
         <section *ngIf="!loading && orders.length > 0" class="oh-stats-row" aria-label="Order summary">
-            <article class="oh-stat-card oh-stat-card--spend">
+            <article class="oh-stat-card oh-stat-card--spend oh-anim oh-anim--stat">
                 <div class="oh-stat-card__icon">
                     <i class="pi pi-wallet"></i>
                 </div>
@@ -184,7 +184,7 @@
                     <span class="oh-stat-card__hint">Delivered orders only</span>
                 </div>
             </article>
-            <article class="oh-stat-card oh-stat-card--orders">
+            <article class="oh-stat-card oh-stat-card--orders oh-anim oh-anim--stat">
                 <div class="oh-stat-card__icon">
                     <i class="pi pi-shopping-bag"></i>
                 </div>
@@ -198,8 +198,9 @@
 
         <div *ngIf="!loading && orders.length > 0" class="oh-card-grid">
             <article
-                class="oh-order-card"
-                *ngFor="let order of orders"
+                class="oh-order-card oh-anim oh-anim--card"
+                *ngFor="let order of orders; let i = index"
+                [style.--oh-stagger]="cardStagger(i)"
                 (click)="openOrder(order)"
                 role="button"
                 tabindex="0"
@@ -349,7 +350,7 @@
             </div>
         </ng-template>
 
-        <div class="oh-detail-body" *ngIf="detailOrder as order">
+        <div class="oh-detail-body oh-anim oh-anim--detail" *ngIf="detailOrder as order">
             <div class="oh-detail-loading" *ngIf="detailLoading">
                 <i class="pi pi-spin pi-spinner"></i>
                 <span>Refreshing order…</span>

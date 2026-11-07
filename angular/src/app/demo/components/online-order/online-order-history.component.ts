@@ -253,6 +253,12 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
         }
     }
 
+    /** Stagger delay for order-card entrance animation. */
+    cardStagger(index: number): string {
+        const i = Math.max(0, Math.min(Number(index) || 0, 12));
+        return `${i * 55}ms`;
+    }
+
     openOrder(order: CustomerOrderDto): void {
         this.previousDetailStatus = order.status ?? null;
         this.detailOrder = { ...order, lines: [...(order.lines || [])] };
