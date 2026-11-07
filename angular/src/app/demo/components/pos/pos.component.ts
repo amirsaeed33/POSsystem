@@ -2909,16 +2909,45 @@ export class PosComponent implements OnInit, OnDestroy {
         this.bumpQty(line, -1);
     }
 
+    hasModifierPlusSign(
+        optionPrice: number | null | undefined,
+        productSalePrice?: number | null
+    ): boolean {
+        const price = Number(optionPrice) || 0;
+        if (price <= 0) return false;
+        const sale = Number(productSalePrice);
+        if (Number.isFinite(sale) && sale > 0 && Math.abs(price - sale) < 0.0001) {
+            return false;
+        }
+        return true;
+    }
+
+    isModifierSalePrice(
+        optionPrice: number | null | undefined,
+        productSalePrice?: number | null
+    ): boolean {
+        const sale = Number(productSalePrice);
+        const price = Number(optionPrice);
+        return (
+            Number.isFinite(sale) &&
+            sale > 0 &&
+            Number.isFinite(price) &&
+            price > 0 &&
+            Math.abs(price - sale) < 0.0001
+        );
+    }
+
     get currentCustomisedTotal(): number {
         if (!this.selectedProductForModifiers) return 0;
         const base = this.getUnitPrice(this.selectedProductForModifiers) || 0;
+        const salePrice = Number(this.selectedProductForModifiers.price) || 0;
         let extra = 0;
         for (const group of this.availableModifierGroups) {
             const selectedIds = this.selectedModifierOptions[group.id] || [];
             for (const optId of selectedIds) {
                 const opt = group.options?.find((o) => o.id === optId);
-                if (opt) {
-                    extra += opt.price || 0;
+                if (opt && this.hasModifierPlusSign(opt.price, salePrice)) {
+                    extra += Number(opt.price) || 0;
                 }
             }
         }
@@ -2950,8 +2979,7 @@ export class PosComponent implements OnInit, OnDestroy {
             return 'Free';
         }
         const formatted = price.toFixed(2);
-        const sale = Number(productSalePrice);
-        if (Number.isFinite(sale) && sale > 0 && Math.abs(price - sale) < 0.0001) {
+        if (this.isModifierSalePrice(price, productSalePrice)) {
             return formatted;
         }
         return `+ ${formatted}`;
@@ -3132,12 +3160,13 @@ export class PosComponent implements OnInit, OnDestroy {
         const base = this.currentDeal?.dealPrice ?? this.getUnitPrice(this.selectedDealProduct) ?? 0;
         let extra = 0;
         for (const item of this.dealCustomiseItems) {
+            const itemPrice = Number(item.unitPrice) || 0;
             for (const group of item.modifierGroups) {
                 const sel = item.selectedOptions[group.id] || [];
                 for (const optId of sel) {
                     const opt = group.options?.find((o) => o.id === optId);
-                    if (opt && opt.price > 0) {
-                        extra += opt.price;
+                    if (opt && this.hasModifierPlusSign(opt.price, itemPrice)) {
+                        extra += Number(opt.price) || 0;
                     }
                 }
             }
@@ -3166,13 +3195,18 @@ export class PosComponent implements OnInit, OnDestroy {
         let extraPrice = 0;
         for (const item of this.dealCustomiseItems) {
             const itemOpts: string[] = [];
+            const itemPrice = Number(item.unitPrice) || 0;
             for (const group of item.modifierGroups) {
                 const sel = item.selectedOptions[group.id] || [];
                 for (const optId of sel) {
                     const opt = group.options?.find((o) => o.id === optId);
                     if (opt) {
-                        if (opt.price > 0) extraPrice += opt.price;
-                        itemOpts.push(`${opt.name}${opt.price > 0 ? ' (+' + opt.price.toFixed(2) + ')' : ''}`);
+                        const optPrice = Number(opt.price) || 0;
+                        const hasPlus = this.hasModifierPlusSign(optPrice, itemPrice);
+                        if (hasPlus) {
+                            extraPrice += optPrice;
+                        }
+                        itemOpts.push(hasPlus ? `${opt.name} (+PKR ${optPrice.toFixed(2)})` : opt.name);
                     }
                 }
             }
@@ -3309,12 +3343,8 @@ export class PosComponent implements OnInit, OnDestroy {
                 const opt = group.options?.find((o) => o.id === optId);
                 if (opt) {
                     const optPrice = Number(opt.price) || 0;
-                    // Sale-price option (from empty add) is the base price — not an add-on.
-                    const isSalePriceOption =
-                        salePrice > 0 &&
-                        optPrice > 0 &&
-                        Math.abs(optPrice - salePrice) < 0.0001;
-                    if (!isSalePriceOption) {
+                    const hasPlus = this.hasModifierPlusSign(optPrice, salePrice);
+                    if (hasPlus) {
                         extraPrice += optPrice;
                     }
                     const priceLabel = this.formatModifierOptionPrice(
@@ -3322,7 +3352,7 @@ export class PosComponent implements OnInit, OnDestroy {
                         salePrice
                     );
                     modifierNames.push(
-                        optPrice > 0 && !isSalePriceOption
+                        hasPlus
                             ? `${opt.name} (${priceLabel})`
                             : opt.name
                     );

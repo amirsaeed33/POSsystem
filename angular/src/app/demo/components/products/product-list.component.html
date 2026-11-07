@@ -345,8 +345,8 @@
                             <div class="flex align-items-center gap-2">
                                 <span
                                     class="text-xs font-semibold"
-                                    [class.text-primary]="(opt.price || 0) > 0"
-                                    [class.text-500]="!(opt.price > 0)"
+                                    [class.text-primary]="(opt.price || 0) > 0 && !isModifierSalePrice(opt.price)"
+                                    [class.text-500]="!(opt.price > 0) || isModifierSalePrice(opt.price)"
                                 >
                                     {{ formatModifierOptionPrice(opt.price) }}
                                 </span>

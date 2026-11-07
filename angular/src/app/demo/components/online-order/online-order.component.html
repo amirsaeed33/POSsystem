@@ -1010,13 +1010,10 @@
                                             (click)="toggleDealItemOption(item, group, opt)"
                                         >
                                             <span>{{ opt.name }}</span>
-                                            <span *ngIf="getOptionPrice(opt) > 0" class="ml-1 font-bold text-xs">
-                                                +PKR {{ getOptionPrice(opt) | number: '1.0-0' }}
+                                            <span *ngIf="formatOptionDisplayPrice(opt, item.unitPrice)" class="ml-1 font-bold text-xs" [class.text-500]="!hasModifierPlusSign(getOptionPrice(opt), item.unitPrice)">
+                                                {{ formatOptionDisplayPrice(opt, item.unitPrice) }}
                                             </span>
-                                            <span *ngIf="getOptionPrice(opt) <= 0 && isPizzaProduct(item)" class="ml-1 font-bold text-xs">
-                                                PKR {{ (item.unitPrice || 0) | number: '1.0-0' }}
-                                            </span>
-                                            <span *ngIf="getOptionPrice(opt) <= 0 && !isPizzaProduct(item)" class="ml-1 text-500 text-xs">
+                                            <span *ngIf="!formatOptionDisplayPrice(opt, item.unitPrice)" class="ml-1 text-500 text-xs">
                                                 (Free)
                                             </span>
                                         </div>
@@ -1050,11 +1047,11 @@
                                 (click)="toggleOption(group, opt)"
                             >
                                 <span>{{ opt.name }}</span>
-                                <span *ngIf="getOptionPrice(opt) > 0" class="ml-1 font-bold text-xs">
-                                    +PKR {{ getOptionPrice(opt) | number: '1.0-0' }}
+                                <span *ngIf="formatOptionDisplayPrice(opt, selectedProduct?.price)" class="ml-1 font-bold text-xs" [class.text-500]="!hasModifierPlusSign(getOptionPrice(opt), selectedProduct?.price)">
+                                    {{ formatOptionDisplayPrice(opt, selectedProduct?.price) }}
                                 </span>
-                                <span *ngIf="getOptionPrice(opt) <= 0 && isPizzaProduct(selectedProduct)" class="ml-1 font-bold text-xs">
-                                    PKR {{ selectedProduct?.price | number: '1.0-0' }}
+                                <span *ngIf="!formatOptionDisplayPrice(opt, selectedProduct?.price)" class="ml-1 text-500 text-xs">
+                                    (Free)
                                 </span>
                             </div>
                         </div>

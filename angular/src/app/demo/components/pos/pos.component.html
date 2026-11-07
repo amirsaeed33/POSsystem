@@ -2231,8 +2231,8 @@
                             </div>
                             <span
                                 class="text-xs font-semibold"
-                                [class.text-primary]="(opt.price || 0) > 0"
-                                [class.text-500]="!(opt.price > 0)"
+                                [class.text-primary]="hasModifierPlusSign(opt.price, selectedProductForModifiers.price)"
+                                [class.text-500]="!hasModifierPlusSign(opt.price, selectedProductForModifiers.price)"
                             >
                                 {{ formatModifierOptionPrice(opt.price, selectedProductForModifiers.price) }}
                             </span>
@@ -2359,8 +2359,8 @@
                                     </div>
                                     <span
                                         class="text-xs font-semibold"
-                                        [class.text-primary]="(opt.price || 0) > 0"
-                                        [class.text-500]="!(opt.price > 0)"
+                                        [class.text-primary]="hasModifierPlusSign(opt.price, item.unitPrice)"
+                                        [class.text-500]="!hasModifierPlusSign(opt.price, item.unitPrice)"
                                     >
                                         {{ formatModifierOptionPrice(opt.price, item.unitPrice) }}
                                     </span>
