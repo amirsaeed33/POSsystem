@@ -27,6 +27,7 @@ import { environment } from 'src/environments/environment';
 import { CustomerOrderStatus } from 'src/app/demo/api/customer-order';
 import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart';
 import { AppBrowserTitleService } from 'src/app/demo/service/app-browser-title.service';
+import { AppSoundService } from 'src/app/demo/service/app-sound.service';
 
 export interface OnlineDealCustomiseItem {
     productId: number;
@@ -42,6 +43,9 @@ export interface CategorySection {
     items: any[];
 }
 
+/** Last online-order branch for this browser (auto-land on next visit). */
+const LAST_ONLINE_BRANCH_KEY = 'smartpos_last_online_branch_id';
+
 @Component({
     selector: 'app-online-order',
     templateUrl: './online-order.component.html',
@@ -55,6 +59,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     branchPhone = '';
     branchImagePath = '';
     branchLogoBroken = false;
+    /** Branch ids whose picker logo failed to load (fall back to AJ mark). */
+    private branchPickerLogoBrokenIds = new Set<number>();
     facebookUrl = '';
     instagramUrl = '';
     youtubeUrl = '';
@@ -301,11 +307,23 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         private productModifierService: ProductModifierService,
         private myOnlineOrders: MyOnlineOrdersService,
         private dealService: DealService,
-        private browserTitle: AppBrowserTitleService
+        private browserTitle: AppBrowserTitleService,
+        private appSound: AppSoundService
     ) {}
 
-    /** Pause all product marquees while the user hovers / touches a row. */
+    /** Pause auto product-row scroll while the user drags / swipes / uses arrows. */
     productMarqueePaused = false;
+    productMarqueeDragging = false;
+    private productMarqueeRafId: number | null = null;
+    private productMarqueeResumeTimer: ReturnType<typeof setTimeout> | null = null;
+    private productMarqueeDragEl: HTMLElement | null = null;
+    private productMarqueeDragStartX = 0;
+    private productMarqueeDragScrollLeft = 0;
+    private productMarqueeDidDrag = false;
+    private suppressProductClickAfterDrag = false;
+    private productMarqueeWrapping = false;
+    private readonly productMarqueeAutoSpeed = 0.55; // px per frame ≈ left→right crawl
+    private prefersReducedMotion = false;
 
     currentHeroSlide = 0;
     private heroSlideTimer: any = null;
@@ -493,9 +511,13 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         }
 
         this.heroSlides = [...this.defaultHeroSlides];
+        this.prefersReducedMotion =
+            typeof window !== 'undefined' &&
+            !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
         this.checkScreenSize();
         this.checkAuthSession();
         this.loadFavorites();
+        this.startProductMarqueeAutoScroll();
 
         this.route.queryParams.subscribe((params) => {
             const paramBranchId = params['branchId'];
@@ -503,6 +525,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             if (paramBranchId && !isNaN(Number(paramBranchId))) {
                 this.branchId = Number(paramBranchId);
                 this.branchMissingError = false;
+                this.rememberLastOnlineBranchId(this.branchId);
                 void (async () => {
                     await this.ensurePublicBranchesLoaded();
                     await this.resolveBranchName(this.branchId!);
@@ -517,7 +540,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 this.branchFeedbacks = [];
                 this.averageBranchRating = 0;
                 this.feedbackMarqueePaused = false;
-                this.handleMissingBranchId();
+                void this.handleMissingBranchId();
             }
         });
     }
@@ -1013,6 +1036,8 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.stopHeroSlider();
+        this.stopProductMarqueeAutoScroll();
+        this.clearProductMarqueeResumeTimer();
         this.browserTitle.clearStorefrontBranchName();
     }
 
@@ -1103,7 +1128,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return `${seconds}s`;
     }
 
-    /** Duplicate once so the LTR marquee (-50% → 0) loops seamlessly. */
+    /** Duplicate once so seamless loop works while scrolling left→right. */
     productMarqueeItems(items: any[] | null | undefined): any[] {
         const list = items || [];
         if (!list.length) {
@@ -1112,19 +1137,178 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return [...list, ...list];
     }
 
-    /** Slow left → right pace (~5s per card, clamped). */
-    productMarqueeDuration(count: number): string {
-        const n = Math.max(2, count || 2);
-        const seconds = Math.min(60, Math.max(24, n * 5));
-        return `${seconds}s`;
-    }
-
     pauseProductMarquee(): void {
         this.productMarqueePaused = true;
+        this.scheduleProductMarqueeResume();
     }
 
     resumeProductMarquee(): void {
+        this.clearProductMarqueeResumeTimer();
         this.productMarqueePaused = false;
+        this.startProductMarqueeAutoScroll();
+    }
+
+    private clearProductMarqueeResumeTimer(): void {
+        if (this.productMarqueeResumeTimer != null) {
+            clearTimeout(this.productMarqueeResumeTimer);
+            this.productMarqueeResumeTimer = null;
+        }
+    }
+
+    private scheduleProductMarqueeResume(delayMs = 2200): void {
+        this.clearProductMarqueeResumeTimer();
+        this.productMarqueeResumeTimer = setTimeout(() => {
+            this.productMarqueeResumeTimer = null;
+            if (!this.productMarqueeDragging) {
+                this.productMarqueePaused = false;
+            }
+        }, delayMs);
+    }
+
+    startProductMarqueeAutoScroll(): void {
+        if (this.prefersReducedMotion || this.productMarqueeRafId != null) {
+            return;
+        }
+        const tick = () => {
+            this.productMarqueeRafId = requestAnimationFrame(tick);
+            if (this.productMarqueePaused || this.productMarqueeDragging) {
+                return;
+            }
+            const rows = document.querySelectorAll<HTMLElement>('.fp-products-marquee');
+            rows.forEach((el) => this.advanceProductMarquee(el));
+        };
+        this.productMarqueeRafId = requestAnimationFrame(tick);
+    }
+
+    stopProductMarqueeAutoScroll(): void {
+        if (this.productMarqueeRafId != null) {
+            cancelAnimationFrame(this.productMarqueeRafId);
+            this.productMarqueeRafId = null;
+        }
+    }
+
+    /** Move content left→right (decreasing scrollLeft); wrap using duplicated track. */
+    private advanceProductMarquee(el: HTMLElement): void {
+        const half = el.scrollWidth / 2;
+        if (half <= el.clientWidth + 4) {
+            return;
+        }
+        if (el.scrollLeft <= 1) {
+            el.scrollLeft = half;
+        }
+        el.scrollLeft -= this.productMarqueeAutoSpeed;
+        if (el.scrollLeft <= 1) {
+            el.scrollLeft = half;
+        }
+    }
+
+    private wrapProductMarqueeScroll(el: HTMLElement): void {
+        if (this.productMarqueeWrapping) {
+            return;
+        }
+        const half = el.scrollWidth / 2;
+        if (half <= el.clientWidth + 4) {
+            return;
+        }
+        let next: number | null = null;
+        if (el.scrollLeft <= 1) {
+            next = half;
+        } else if (el.scrollLeft >= half - 1) {
+            next = el.scrollLeft - half;
+        }
+        if (next == null) {
+            return;
+        }
+        this.productMarqueeWrapping = true;
+        el.scrollLeft = next;
+        this.productMarqueeWrapping = false;
+    }
+
+    onProductMarqueePointerDown(event: PointerEvent): void {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('button, a, input, textarea, .btn-add-cart, .btn-add-deal')) {
+            return;
+        }
+        // Touch/pen: native overflow scroll; mouse: custom drag.
+        if (event.pointerType && event.pointerType !== 'mouse') {
+            this.pauseProductMarquee();
+            return;
+        }
+        const el = event.currentTarget as HTMLElement;
+        this.productMarqueePaused = true;
+        this.clearProductMarqueeResumeTimer();
+        this.productMarqueeDragging = true;
+        this.productMarqueeDidDrag = false;
+        this.productMarqueeDragEl = el;
+        this.productMarqueeDragStartX = event.clientX;
+        this.productMarqueeDragScrollLeft = el.scrollLeft;
+        try {
+            el.setPointerCapture(event.pointerId);
+        } catch {
+            /* ignore */
+        }
+    }
+
+    onProductMarqueePointerMove(event: PointerEvent): void {
+        if (!this.productMarqueeDragging || !this.productMarqueeDragEl) {
+            return;
+        }
+        const dx = event.clientX - this.productMarqueeDragStartX;
+        if (Math.abs(dx) > 4) {
+            this.productMarqueeDidDrag = true;
+        }
+        this.productMarqueeDragEl.scrollLeft = this.productMarqueeDragScrollLeft - dx;
+        this.wrapProductMarqueeScroll(this.productMarqueeDragEl);
+    }
+
+    onProductMarqueePointerUp(event: PointerEvent): void {
+        if (!this.productMarqueeDragging) {
+            return;
+        }
+        const el = this.productMarqueeDragEl;
+        this.productMarqueeDragging = false;
+        this.productMarqueeDragEl = null;
+        if (el) {
+            try {
+                el.releasePointerCapture(event.pointerId);
+            } catch {
+                /* ignore */
+            }
+            this.wrapProductMarqueeScroll(el);
+        }
+        if (this.productMarqueeDidDrag) {
+            this.suppressProductClickAfterDrag = true;
+            setTimeout(() => {
+                this.suppressProductClickAfterDrag = false;
+            }, 0);
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        this.scheduleProductMarqueeResume();
+    }
+
+    onProductMarqueeWheel(): void {
+        this.pauseProductMarquee();
+    }
+
+    onProductMarqueeScroll(event: Event): void {
+        const el = event.currentTarget as HTMLElement | null;
+        if (!el || this.productMarqueeDragging || this.productMarqueeWrapping) {
+            return;
+        }
+        this.wrapProductMarqueeScroll(el);
+    }
+
+    /** Initialize scroll position at mid-track so LTR auto-scroll has room to wrap. */
+    private syncProductMarqueeStartPositions(): void {
+        requestAnimationFrame(() => {
+            document.querySelectorAll<HTMLElement>('.fp-products-marquee').forEach((el) => {
+                const half = el.scrollWidth / 2;
+                if (half > el.clientWidth + 4 && el.scrollLeft < 8) {
+                    el.scrollLeft = half;
+                }
+            });
+        });
     }
 
     pauseFeedbackMarquee(): void {
@@ -1253,6 +1437,30 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
     }
 
+    /** Logo URL for a branch row in the picker dialogs. */
+    getBranchPickerLogoUrl(branch: { id?: number; imagePath?: string } | null | undefined): string {
+        const id = Number(branch?.id);
+        if (id && this.branchPickerLogoBrokenIds.has(id)) {
+            return this.ajFallbackLogoUrl;
+        }
+        const path = (branch?.imagePath || '').toString().trim();
+        if (!path) {
+            return this.ajFallbackLogoUrl;
+        }
+        if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+            return path;
+        }
+        return `${environment.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    }
+
+    onBranchPickerLogoError(branch: { id?: number } | null | undefined): void {
+        const id = Number(branch?.id);
+        if (!id || this.branchPickerLogoBrokenIds.has(id)) {
+            return;
+        }
+        this.branchPickerLogoBrokenIds.add(id);
+    }
+
     /** AJ mark when the branch has no logo. */
     get ajFallbackLogoUrl(): string {
         return AppBrowserTitleService.AJ_FAVICON_PNG;
@@ -1290,6 +1498,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     async ensurePublicBranchesLoaded(): Promise<void> {
         try {
             const publicBranches = await this.customerOrderService.getOnlineBranches();
+            this.branchPickerLogoBrokenIds.clear();
             this.availableBranches = (publicBranches || []).map((b) => ({
                 id: b.id,
                 name: b.name,
@@ -1303,7 +1512,6 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     async handleMissingBranchId(): Promise<void> {
-        // Never hard-code / auto-pick a branch — always let the customer choose.
         this.branchId = null;
         this.branchName = '';
         this.branchImagePath = '';
@@ -1326,6 +1534,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                         this.availableBranches = allowed.map((b) => ({
                             id: b.id,
                             name: b.name,
+                            address: (b as any).address,
+                            isRestaurant: !!(b as any).isRestaurant,
+                            imagePath: ((b as any).imagePath || '').toString().trim() || undefined,
                         }));
                     }
                 } catch {
@@ -1336,7 +1547,14 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             if (!this.availableBranches.length) {
                 try {
                     const branches = await this.branchService.getLookup();
-                    this.availableBranches = branches || [];
+                    this.availableBranches = (branches || []).map((b: any) => ({
+                        id: b.id,
+                        name: b.name,
+                        address: b.address,
+                        code: b.code,
+                        isRestaurant: !!b.isRestaurant,
+                        imagePath: (b.imagePath || '').toString().trim() || undefined,
+                    }));
                 } catch {
                     // ignore
                 }
@@ -1345,6 +1563,19 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             // Fallback below
         } finally {
             this.loading = false;
+        }
+
+        // Returning visitor: land on last branch if it is still available.
+        const lastBranchId = this.readLastOnlineBranchId();
+        if (lastBranchId) {
+            const stillAvailable = (this.availableBranches || []).some(
+                (b) => Number(b?.id) === lastBranchId
+            );
+            if (stillAvailable) {
+                this.setBranchInUrl(lastBranchId);
+                return;
+            }
+            this.clearLastOnlineBranchId();
         }
 
         this.selectedBranchIdForModal = null;
@@ -1364,6 +1595,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.branchImagePath = listedImage;
         this.branchLogoBroken = false;
         this.syncStorefrontChromeLogo();
+        this.rememberLastOnlineBranchId(bId);
         this.router.navigate([], {
             relativeTo: this.route,
             queryParams: { branchId: bId },
@@ -1382,10 +1614,44 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         this.mobileBranchModal = false;
         this.selectedBranchIdForModal = null;
         this.cartService.clearCart();
+        // Clear memory so we don't immediately auto-redirect back into the old branch.
+        this.clearLastOnlineBranchId();
         this.router.navigate(['/online-order'], { queryParams: {} });
         void this.ensurePublicBranchesLoaded().then(() => {
             this.branchMissingError = true;
         });
+    }
+
+    private rememberLastOnlineBranchId(branchId: number): void {
+        if (!branchId || branchId <= 0) {
+            return;
+        }
+        try {
+            localStorage.setItem(LAST_ONLINE_BRANCH_KEY, String(branchId));
+        } catch {
+            /* private mode / blocked storage */
+        }
+    }
+
+    private readLastOnlineBranchId(): number | null {
+        try {
+            const raw = (localStorage.getItem(LAST_ONLINE_BRANCH_KEY) || '').trim();
+            if (!raw || isNaN(Number(raw))) {
+                return null;
+            }
+            const id = Number(raw);
+            return id > 0 ? id : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private clearLastOnlineBranchId(): void {
+        try {
+            localStorage.removeItem(LAST_ONLINE_BRANCH_KEY);
+        } catch {
+            /* ignore */
+        }
     }
 
     onSelectBranchFromModal(): void {
@@ -1527,6 +1793,9 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         catMap.forEach((items, category) => {
             this.categorySections.push({ category, items });
         });
+
+        this.syncProductMarqueeStartPositions();
+        this.startProductMarqueeAutoScroll();
     }
 
     getCategorySectionId(category: string): string {
@@ -2086,11 +2355,14 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     }
 
     scrollCarousel(trackId: string, direction: 'left' | 'right'): void {
-        const container = document.getElementById(trackId);
-        if (container) {
-            const distance = direction === 'left' ? -340 : 340;
-            container.scrollBy({ left: distance, behavior: 'smooth' });
+        const container = document.getElementById(trackId) as HTMLElement | null;
+        if (!container) {
+            return;
         }
+        this.pauseProductMarquee();
+        const distance = direction === 'left' ? -340 : 340;
+        container.scrollBy({ left: distance, behavior: 'smooth' });
+        setTimeout(() => this.wrapProductMarqueeScroll(container), 320);
     }
 
     // Contextual Domain Detection & Foodies Visual Helpers
@@ -2497,6 +2769,10 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
     // FoodiesPakistan Product Detail Modal / Bottom Sheet
     async openProductModal(product: any, event?: Event): Promise<void> {
+        if (this.suppressProductClickAfterDrag) {
+            this.suppressProductClickAfterDrag = false;
+            return;
+        }
         if (event) {
             event.stopPropagation();
         }
@@ -2880,6 +3156,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             optionsText: optionsText || undefined,
             selectedOptionIds: allSelectedIds,
         });
+        this.appSound.playAddToCartChime();
 
         const detailImg =
             document.querySelector<HTMLImageElement>('.hero-img') ||
@@ -2943,6 +3220,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
         const countToAdd = Math.max(1, qty || 1);
         this.cartService.addToCart(product, countToAdd);
+        this.appSound.playAddToCartChime();
         const source = event ?? document.querySelector('.btn-add-cart');
         flyToCart(source, {
             imageEl: findProductImageNear(source),
@@ -3416,10 +3694,19 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     goToTracking(orderNo?: string): void {
         this.successModalVisible = false;
         if (!orderNo) {
+            this.openOrderHistory();
             return;
         }
-        this.router.navigate(['/online-order/track', orderNo], {
-            queryParams: this.branchId ? { branchId: this.branchId } : {},
+        const phone =
+            this.profilePhone?.trim() ||
+            this.readLocal('smartpos_customer_phone') ||
+            '';
+        this.router.navigate(['/online-order/history'], {
+            queryParams: {
+                ...(this.branchId ? { branchId: this.branchId } : {}),
+                ...(phone ? { phone } : {}),
+                orderNo,
+            },
         });
     }
 }

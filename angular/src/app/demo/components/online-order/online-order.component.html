@@ -699,6 +699,14 @@
                     </span>
                 </div>
                 <div class="section-controls flex align-items-center">
+                    <div class="fp-marquee-nav" aria-label="Scroll deals">
+                        <button type="button" (click)="scrollCarousel('trackTrending', 'left')" aria-label="Scroll left">
+                            <i class="pi pi-chevron-left"></i>
+                        </button>
+                        <button type="button" (click)="scrollCarousel('trackTrending', 'right')" aria-label="Scroll right">
+                            <i class="pi pi-chevron-right"></i>
+                        </button>
+                    </div>
                     <button
                         pButton
                         type="button"
@@ -715,15 +723,17 @@
                 class="fp-products-marquee"
                 id="trackTrending"
                 [class.is-paused]="productMarqueePaused"
-                (mouseenter)="pauseProductMarquee()"
-                (mouseleave)="resumeProductMarquee()"
+                [class.is-dragging]="productMarqueeDragging"
+                (pointerdown)="onProductMarqueePointerDown($event)"
+                (pointermove)="onProductMarqueePointerMove($event)"
+                (pointerup)="onProductMarqueePointerUp($event)"
+                (pointercancel)="onProductMarqueePointerUp($event)"
+                (pointerleave)="onProductMarqueePointerUp($event)"
+                (wheel)="onProductMarqueeWheel()"
+                (scroll)="onProductMarqueeScroll($event)"
                 (touchstart)="pauseProductMarquee()"
-                (touchend)="resumeProductMarquee()"
             >
-                <div
-                    class="fp-products-track"
-                    [style.animation-duration]="productMarqueeDuration(trendingDeals.length)"
-                >
+                <div class="fp-products-track">
                     <div
                         *ngFor="let product of productMarqueeItems(trendingDeals); let idx = index"
                         class="fp-products-marquee-item"
@@ -746,6 +756,14 @@
                     </span>
                 </div>
                 <div class="section-controls flex align-items-center">
+                    <div class="fp-marquee-nav" aria-label="Scroll popular items">
+                        <button type="button" (click)="scrollCarousel('trackPopular', 'left')" aria-label="Scroll left">
+                            <i class="pi pi-chevron-left"></i>
+                        </button>
+                        <button type="button" (click)="scrollCarousel('trackPopular', 'right')" aria-label="Scroll right">
+                            <i class="pi pi-chevron-right"></i>
+                        </button>
+                    </div>
                     <button
                         pButton
                         type="button"
@@ -762,15 +780,17 @@
                 class="fp-products-marquee"
                 id="trackPopular"
                 [class.is-paused]="productMarqueePaused"
-                (mouseenter)="pauseProductMarquee()"
-                (mouseleave)="resumeProductMarquee()"
+                [class.is-dragging]="productMarqueeDragging"
+                (pointerdown)="onProductMarqueePointerDown($event)"
+                (pointermove)="onProductMarqueePointerMove($event)"
+                (pointerup)="onProductMarqueePointerUp($event)"
+                (pointercancel)="onProductMarqueePointerUp($event)"
+                (pointerleave)="onProductMarqueePointerUp($event)"
+                (wheel)="onProductMarqueeWheel()"
+                (scroll)="onProductMarqueeScroll($event)"
                 (touchstart)="pauseProductMarquee()"
-                (touchend)="resumeProductMarquee()"
             >
-                <div
-                    class="fp-products-track"
-                    [style.animation-duration]="productMarqueeDuration(popularItems.length)"
-                >
+                <div class="fp-products-track">
                     <div
                         *ngFor="let product of productMarqueeItems(popularItems); let idx = index"
                         class="fp-products-marquee-item"
@@ -797,6 +817,14 @@
                     </span>
                 </div>
                 <div class="section-controls flex align-items-center">
+                    <div class="fp-marquee-nav" [attr.aria-label]="'Scroll ' + sec.category">
+                        <button type="button" (click)="scrollCarousel('trackCat' + sIdx, 'left')" aria-label="Scroll left">
+                            <i class="pi pi-chevron-left"></i>
+                        </button>
+                        <button type="button" (click)="scrollCarousel('trackCat' + sIdx, 'right')" aria-label="Scroll right">
+                            <i class="pi pi-chevron-right"></i>
+                        </button>
+                    </div>
                     <button
                         pButton
                         type="button"
@@ -813,15 +841,17 @@
                 class="fp-products-marquee"
                 [id]="'trackCat' + sIdx"
                 [class.is-paused]="productMarqueePaused"
-                (mouseenter)="pauseProductMarquee()"
-                (mouseleave)="resumeProductMarquee()"
+                [class.is-dragging]="productMarqueeDragging"
+                (pointerdown)="onProductMarqueePointerDown($event)"
+                (pointermove)="onProductMarqueePointerMove($event)"
+                (pointerup)="onProductMarqueePointerUp($event)"
+                (pointercancel)="onProductMarqueePointerUp($event)"
+                (pointerleave)="onProductMarqueePointerUp($event)"
+                (wheel)="onProductMarqueeWheel()"
+                (scroll)="onProductMarqueeScroll($event)"
                 (touchstart)="pauseProductMarquee()"
-                (touchend)="resumeProductMarquee()"
             >
-                <div
-                    class="fp-products-track"
-                    [style.animation-duration]="productMarqueeDuration(sec.items.length)"
-                >
+                <div class="fp-products-track">
                     <div
                         *ngFor="let product of productMarqueeItems(sec.items); let idx = index"
                         class="fp-products-marquee-item"
@@ -1601,7 +1631,7 @@
                 pButton
                 pRipple
                 type="button"
-                label="View Order Status"
+                label="View in My Orders"
                 icon="pi pi-eye"
                 class="p-button-primary border-round-xl font-bold w-full py-2 mb-2 shadow-2"
                 (click)="goToTracking(confirmedOrderNo)"
@@ -1635,10 +1665,17 @@
                 (click)="setBranchInUrl(b.id); mobileBranchModal = false"
             >
                 <div class="flex align-items-center gap-2">
-                    <i class="pi pi-map-marker text-lg" [class.text-red-500]="b.id === branchId" [class.text-500]="b.id !== branchId"></i>
+                    <div class="fp-branch-pick-icon fp-branch-pick-icon--logo fp-branch-pick-icon--sm">
+                        <img
+                            [src]="getBranchPickerLogoUrl(b)"
+                            [alt]="b.name || 'Branch'"
+                            (error)="onBranchPickerLogoError(b)"
+                        />
+                    </div>
                     <div>
                         <div class="font-bold text-sm text-900">{{ b.name }}</div>
                         <div class="text-xs text-500" *ngIf="b.code">Code: {{ b.code }}</div>
+                        <div class="text-xs text-500" *ngIf="!b.code && b.address">{{ b.address }}</div>
                     </div>
                 </div>
                 <i class="pi pi-check text-primary font-bold" *ngIf="b.id === branchId"></i>
@@ -1710,8 +1747,12 @@
                     *ngFor="let b of availableBranches"
                     (click)="selectBranchCard(b)"
                 >
-                    <div class="fp-branch-pick-icon">
-                        <i [class]="b.isRestaurant ? 'pi pi-compass' : 'pi pi-shopping-bag'"></i>
+                    <div class="fp-branch-pick-icon fp-branch-pick-icon--logo">
+                        <img
+                            [src]="getBranchPickerLogoUrl(b)"
+                            [alt]="b.name || 'Branch'"
+                            (error)="onBranchPickerLogoError(b)"
+                        />
                     </div>
                     <div class="fp-branch-pick-text">
                         <div class="font-bold text-900">{{ b.name }}</div>

@@ -362,12 +362,55 @@
                     <span class="oh-day-badge__label">{{ orderDayLabel(order) }}</span>
                 </div>
                 <div class="oh-detail-hero-text">
+                    <div class="oh-detail-live" *ngIf="isDetailPending(order) || isDetailInProgress(order)">
+                        <span class="oh-live-dot"></span>
+                        Live · updates in {{ detailCountdown }}s
+                    </div>
                     <div class="oh-detail-hero-status">{{ statusLabel(order) }}</div>
                     <p>{{ statusHint(order) }}</p>
                     <div class="oh-date">
                         <i class="pi pi-clock"></i>
                         {{ order.orderDate | date: 'EEE, MMM d, y · h:mm a' }}
                     </div>
+                </div>
+            </div>
+
+            <div class="oh-track-steps" *ngIf="!isDetailRejected(order)">
+                <div class="oh-track-step done">
+                    <div class="oh-track-dot"><i class="pi pi-check"></i></div>
+                    <div class="oh-track-label">Received</div>
+                </div>
+                <div class="oh-track-line" [class.on]="isDetailInProgress(order) || isDetailDelivered(order)"></div>
+                <div
+                    class="oh-track-step"
+                    [class.done]="isDetailDelivered(order)"
+                    [class.active]="isDetailInProgress(order)"
+                    [class.wait]="isDetailPending(order)"
+                >
+                    <div class="oh-track-dot">
+                        <i
+                            [class]="
+                                isDetailDelivered(order)
+                                    ? 'pi pi-check'
+                                    : isDetailInProgress(order)
+                                      ? 'pi pi-spin pi-cog'
+                                      : 'pi pi-clock'
+                            "
+                        ></i>
+                    </div>
+                    <div class="oh-track-label">Preparing</div>
+                </div>
+                <div class="oh-track-line" [class.on]="isDetailDelivered(order)"></div>
+                <div
+                    class="oh-track-step"
+                    [class.done]="isDetailDelivered(order)"
+                    [class.active]="isDetailDelivered(order)"
+                    [class.wait]="!isDetailDelivered(order)"
+                >
+                    <div class="oh-track-dot">
+                        <i [class]="isDetailDelivered(order) ? 'pi pi-check' : 'pi pi-home'"></i>
+                    </div>
+                    <div class="oh-track-label">Delivered</div>
                 </div>
             </div>
 
@@ -456,17 +499,34 @@
                         </a>
                     </div>
                 </div>
-                <div class="oh-detail-notes" *ngIf="order.notes">{{ order.notes }}</div>
-                <a
-                    *ngIf="getGoogleMapsLink(order.notes) as maps"
-                    class="oh-detail-maps"
-                    [href]="maps"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    (click)="$event.stopPropagation()"
-                >
-                    <i class="pi pi-map-marker"></i> Open location in Maps
-                </a>
+                <ng-container *ngIf="deliveryDisplay(order) as d">
+                    <div class="oh-detail-row" *ngIf="d.address">
+                        <span>Address</span>
+                        <strong>{{ d.address }}</strong>
+                    </div>
+                    <div class="oh-detail-row" *ngIf="d.landmark">
+                        <span>Landmark</span>
+                        <strong>{{ d.landmark }}</strong>
+                    </div>
+                    <div class="oh-detail-row" *ngIf="d.specialNote">
+                        <span>Note</span>
+                        <strong>{{ d.specialNote }}</strong>
+                    </div>
+                    <div class="oh-detail-row oh-detail-row--note" *ngIf="d.riderNote">
+                        <span>Rider note</span>
+                        <strong>{{ d.riderNote }}</strong>
+                    </div>
+                    <a
+                        *ngIf="d.mapsUrl as maps"
+                        class="oh-detail-maps"
+                        [href]="maps"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        (click)="$event.stopPropagation()"
+                    >
+                        <i class="pi pi-map-marker"></i> Open location in Maps
+                    </a>
+                </ng-container>
             </div>
 
             <div class="oh-detail-panel" *ngIf="isDelivered(order)">
@@ -527,6 +587,7 @@
                     mode="customer"
                     height="220px"
                     title="Chat with store"
+                    [startCollapsed]="true"
                 ></app-order-chat>
             </div>
         </div>
@@ -602,7 +663,7 @@
                 <div class="col-6 md:col-3 mb-4 md:mb-0">
                     <h4 class="text-white font-bold text-sm mb-3">Help</h4>
                     <ul class="list-none p-0 m-0 text-sm text-400 flex flex-column gap-2">
-                        <li>Track with your order number</li>
+                        <li>Open any order card to track live status</li>
                         <li>Reorder delivered orders in one tap</li>
                         <li>Use the same phone number for history</li>
                     </ul>

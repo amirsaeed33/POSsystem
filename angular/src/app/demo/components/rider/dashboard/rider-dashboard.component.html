@@ -201,9 +201,9 @@
                     <div class="rd-customer__info">
                         <div class="rd-customer__label">Customer</div>
                         <div class="rd-customer__name">{{ order.customerName || 'Customer' }}</div>
-                        <div class="rd-customer__addr" *ngIf="order.customerAddress || order.deliveryAreaName">
+                        <div class="rd-customer__addr" *ngIf="hasDeliveryLocation(order)">
                             <i class="pi pi-map-marker"></i>
-                            <span>{{ shortAddress(order) }}</span>
+                            <span [title]="shortAddress(order)">{{ shortAddress(order) }}</span>
                         </div>
                     </div>
                     <div class="rd-customer__actions">
@@ -217,11 +217,21 @@
                             <i class="pi pi-phone"></i>
                         </a>
                         <button
+                            *ngIf="getOrderCoords(order)"
+                            type="button"
+                            class="rd-icon-btn rd-icon-btn--copy"
+                            (click)="copyOrderCoords(order, $event)"
+                            title="Copy GPS coordinates"
+                            aria-label="Copy GPS coordinates"
+                        >
+                            <i class="pi pi-copy"></i>
+                        </button>
+                        <button
                             type="button"
                             class="rd-icon-btn rd-icon-btn--nav"
                             (click)="navigateToLocation(order)"
-                            title="Navigate"
-                            aria-label="Navigate"
+                            title="Open in Maps"
+                            aria-label="Open in Maps"
                         >
                             <i class="pi pi-directions"></i>
                         </button>

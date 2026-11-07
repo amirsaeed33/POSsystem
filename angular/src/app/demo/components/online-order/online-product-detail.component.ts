@@ -11,6 +11,7 @@ import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/deliv
 import { DealService } from 'src/app/demo/service/deal.service';
 import { environment } from 'src/environments/environment';
 import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart';
+import { AppSoundService } from 'src/app/demo/service/app-sound.service';
 
 @Component({
     selector: 'app-online-product-detail',
@@ -76,7 +77,8 @@ export class OnlineProductDetailComponent implements OnInit {
         private router: Router,
         private messageService: MessageService,
         private deliveryAreaService: DeliveryAreaService,
-        private dealService: DealService
+        private dealService: DealService,
+        private appSound: AppSoundService
     ) {}
 
     ngOnInit(): void {
@@ -238,6 +240,7 @@ export class OnlineProductDetailComponent implements OnInit {
 
         const count = qty || this.quantity || 1;
         this.cartService.addToCart(prod, count);
+        this.appSound.playAddToCartChime();
         const source = event ?? document.querySelector('.btn-add-cart');
         flyToCart(source, {
             imageEl: findProductImageNear(source),
@@ -765,14 +768,18 @@ export class OnlineProductDetailComponent implements OnInit {
 
     goToTracking(orderNo?: string): void {
         this.successModalVisible = false;
-        if (orderNo) {
-            this.router.navigate(['/online-order/track', orderNo], {
-                queryParams: this.branchId ? { branchId: this.branchId } : {}
-            });
-        } else {
-            this.router.navigate(['/online-order/track'], {
-                queryParams: this.branchId ? { branchId: this.branchId } : {}
-            });
+        let phone = '';
+        try {
+            phone = (localStorage.getItem('smartpos_customer_phone') || '').trim();
+        } catch {
+            phone = '';
         }
+        this.router.navigate(['/online-order/history'], {
+            queryParams: {
+                ...(this.branchId ? { branchId: this.branchId } : {}),
+                ...(phone ? { phone } : {}),
+                ...(orderNo ? { orderNo } : {}),
+            },
+        });
     }
 }

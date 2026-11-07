@@ -249,11 +249,12 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
 
     navigateToLocation(order: RiderOrderDto): void {
         let destination = '';
-        if (order.latitude && order.longitude) {
-            destination = `${order.latitude},${order.longitude}`;
+        const coords = this.getOrderCoords(order);
+        if (coords) {
+            destination = coords;
         } else {
-            const addr =
-                order.customerAddress || order.deliveryAreaName || '';
+            const d = this.deliveryDisplay(order);
+            const addr = [d.area, d.address, d.landmark].filter(Boolean).join(', ');
             if (!addr.trim()) {
                 this.messageService.add({
                     severity: 'warn',
@@ -322,31 +323,211 @@ export class RiderDashboardComponent implements OnInit, OnDestroy {
         return raw;
     }
 
-    shortAddress(order: RiderOrderDto): string {
-        const area = (order.deliveryAreaName || '').trim();
-        const addr = (order.customerAddress || '').trim();
-        if (area && addr) {
-            const short = addr.length > 42 ? `${addr.slice(0, 40)}…` : addr;
-            return `${area} · ${short}`;
+    deliveryDisplay(order: RiderOrderDto | null | undefined): {
+        address?: string;
+        landmark?: string;
+        specialNote?: string;
+        riderNote?: string;
+        area?: string;
+        coords?: string | null;
+    } {
+        if (!order) {
+            return {};
         }
-        if (area) return area;
-        if (!addr) return 'Address not specified';
-        return addr.length > 56 ? `${addr.slice(0, 54)}…` : addr;
+        const parsed = this.parseDeliveryFromNotes(order.notes);
+        const rawAddr = (order.customerAddress || '').trim();
+        const addressLooksLikeBlob =
+            /Addr:|Landmark:|Maps:|Options:|Payment:|google\.com\/maps|maps\.google|\d{1,3}\.\d{3,},\s*-?\d{1,3}\.\d{3,}/i.test(
+                rawAddr
+            );
+        const address = this.stripCoordsAndMaps(
+            parsed.address || (!addressLooksLikeBlob ? rawAddr : undefined)
+        );
+        return {
+            address,
+            landmark: this.stripCoordsAndMaps(parsed.landmark),
+            specialNote: this.stripCoordsAndMaps(parsed.specialNote),
+            riderNote: this.stripCoordsAndMaps(parsed.riderNote),
+            area: (order.deliveryAreaName || '').trim() || undefined,
+            coords: this.getOrderCoords(order),
+        };
     }
 
-    /** Prefer payment/area notes; strip address/maps clutter from order notes. */
-    displayNotes(order: RiderOrderDto): string {
-        const raw = (order.notes || '').trim();
-        if (!raw) return '';
-        const cleaned = raw
-            .replace(/📍\s*Addr:[^|]*/gi, '')
-            .replace(/🗺️\s*Maps:[^|]*/gi, '')
-            .replace(/https?:\/\/\S+/gi, '')
-            .replace(/\|\s*/g, ' · ')
-            .replace(/\s{2,}/g, ' ')
-            .replace(/^[·\s]+|[·\s]+$/g, '')
+    /** Compact address line for the card (area · address · landmark). Never shows lat/lng. */
+    shortAddress(order: RiderOrderDto): string {
+        const d = this.deliveryDisplay(order);
+        const parts = [d.area, d.address, d.landmark].filter(Boolean) as string[];
+        if (!parts.length) {
+            return 'Address not specified';
+        }
+        const line = parts.join(' · ');
+        return line.length > 72 ? `${line.slice(0, 70)}…` : line;
+    }
+
+    hasDeliveryLocation(order: RiderOrderDto): boolean {
+        const d = this.deliveryDisplay(order);
+        return !!(d.area || d.address || d.landmark);
+    }
+
+    getOrderCoords(order: RiderOrderDto | null | undefined): string | null {
+        if (!order) {
+            return null;
+        }
+        if (order.latitude != null && order.longitude != null) {
+            return `${order.latitude},${order.longitude}`;
+        }
+        const fromNotes = (order.notes || '').match(
+            /(?:maps\.google\.com|(?:www\.)?google\.com\/maps)\/?\?q=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/i
+        );
+        if (fromNotes) {
+            return `${fromNotes[1]},${fromNotes[2]}`;
+        }
+        const bare = (order.notes || order.customerAddress || '').match(
+            /(-?\d{1,3}\.\d{4,})\s*,\s*(-?\d{1,3}\.\d{4,})/
+        );
+        return bare ? `${bare[1]},${bare[2]}` : null;
+    }
+
+    async copyOrderCoords(order: RiderOrderDto, event?: Event): Promise<void> {
+        event?.stopPropagation();
+        event?.preventDefault();
+        const coords = this.getOrderCoords(order);
+        if (!coords) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'No coordinates',
+                detail: 'This order has no GPS location to copy.',
+            });
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(coords);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Copied',
+                detail: 'Coordinates copied to clipboard.',
+                life: 2000,
+            });
+        } catch {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Copy failed',
+                detail: 'Could not copy coordinates.',
+            });
+        }
+    }
+
+    private stripCoordsAndMaps(value?: string): string | undefined {
+        if (!value) {
+            return undefined;
+        }
+        const cleaned = value
+            .replace(/https?:\/\/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
+            .replace(/https?:\/\/maps\.google\.com[^\s|]*/gi, '')
+            .replace(/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
+            .replace(/maps\.google\.com[^\s|]*/gi, '')
+            .replace(/Maps:\s*[^\s|]+/gi, '')
+            .replace(/-?\d{1,3}\.\d{4,}\s*,\s*-?\d{1,3}\.\d{4,}/g, '')
+            .replace(/\|\s*/g, ' ')
+            .replace(/[·•]+/g, ' ')
+            .replace(/\s+/g, ' ')
             .trim();
-        return cleaned;
+        return cleaned || undefined;
+    }
+
+    /** Only customer/rider special notes — never Options / Payment / maps clutter. */
+    displayNotes(order: RiderOrderDto): string {
+        const d = this.deliveryDisplay(order);
+        const parts = [d.specialNote, d.riderNote].filter(Boolean) as string[];
+        if (!parts.length) {
+            return '';
+        }
+        const line = parts.join(' · ');
+        return line.length > 120 ? `${line.slice(0, 118)}…` : line;
+    }
+
+    private parseDeliveryFromNotes(notes?: string): {
+        address?: string;
+        landmark?: string;
+        specialNote?: string;
+        riderNote?: string;
+    } {
+        const text = (notes || '').trim();
+        if (!text) {
+            return {};
+        }
+
+        const clean = (value?: string | null) => {
+            const v = (value || '')
+                .replace(/^[📍🏛️🗺️📝?\s]+/u, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+            return v || undefined;
+        };
+
+        const addrMatch = text.match(/(?:📍\s*)?Addr:\s*([^|]+)/i);
+        const landmarkMatch = text.match(/(?:🏛️\s*)?Landmark:\s*([^|]+)/i);
+        const notesMatch = text.match(/(?:📝\s*)?Notes:\s*([^|]+)/i);
+        const riderMatch =
+            text.match(/\[Rider[^\]]*delivery note:\s*([^\]]+)\]/i) ||
+            text.match(/Rider\s+[^\]]+delivery note:\s*([^\]]+)/i);
+
+        let address = clean(addrMatch?.[1]);
+        let landmark = clean(landmarkMatch?.[1]);
+        let specialNote = clean(notesMatch?.[1]);
+        const riderNote = clean(riderMatch?.[1]);
+
+        // Drop Options / Payment / Maps / duplicates from leftovers.
+        const leftovers = text
+            .replace(/https?:\/\/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
+            .replace(/https?:\/\/maps\.google\.com[^\s|]*/gi, '')
+            .replace(/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
+            .replace(/maps\.google\.com[^\s|]*/gi, '')
+            .replace(/(?:📍\s*)?Addr:\s*[^|]+/gi, '')
+            .replace(/(?:🏛️\s*)?Landmark:\s*[^|]+/gi, '')
+            .replace(/(?:🗺️\s*)?Maps:\s*[^|]+/gi, '')
+            .replace(/(?:📝\s*)?Notes:\s*[^|]+/gi, '')
+            .replace(/Options:\s*[^|]*/gi, '')
+            .replace(/\[Rider[^\]]*\]/gi, '')
+            .replace(/(?:💳\s*)?Payment:\s*[^|]*/gi, '')
+            .replace(/-?\d{1,3}\.\d{4,}\s*,\s*-?\d{1,3}\.\d{4,}/g, '')
+            .replace(/\|\s*/g, ' ')
+            .replace(/[·•]+/g, ' ')
+            .replace(/[?？]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        if (leftovers) {
+            const lower = leftovers.toLowerCase();
+            if (!address && leftovers.length > 8 && !lower.startsWith('payment')) {
+                // Prefer leftover as address only if it looks like a place, not item options.
+                if (!/\(\+?pkr/i.test(leftovers) && !/\d+x\s/i.test(leftovers)) {
+                    address = leftovers;
+                }
+            } else if (
+                !specialNote &&
+                (!address || lower !== address.toLowerCase()) &&
+                (!landmark || lower !== landmark.toLowerCase()) &&
+                !/\(\+?pkr/i.test(leftovers) &&
+                !/\d+x\s/i.test(leftovers)
+            ) {
+                specialNote = leftovers;
+            }
+        }
+
+        if (specialNote) {
+            const s = specialNote.toLowerCase();
+            if (
+                (address && s === address.toLowerCase()) ||
+                (landmark && s === landmark.toLowerCase()) ||
+                s.startsWith('payment:') ||
+                s.startsWith('options:')
+            ) {
+                specialNote = undefined;
+            }
+        }
+
+        return { address, landmark, specialNote, riderNote };
     }
 
     elapsedLabel(order: RiderOrderDto): string {

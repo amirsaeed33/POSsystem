@@ -52,6 +52,8 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     @Input() height: string = '380px';
     @Input() title: string = '';
     @Input() subtitle: string = '';
+    /** When true, show a compact toggle until the user opens chat. */
+    @Input() startCollapsed = false;
 
     @Output() messageSent = new EventEmitter<CustomerChatMessageDto>();
     @Output() unreadCountChange = new EventEmitter<number>();
@@ -64,6 +66,8 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     loading: boolean = false;
     isConnected: boolean = false;
     unreadCount: number = 0;
+    isCollapsed = false;
+    private chatInitialized = false;
 
     private shouldScrollToBottom: boolean = false;
     private subscriptions: Subscription[] = [];
@@ -95,6 +99,7 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
 
     ngOnInit(): void {
         this.guestSessionId = this.chatService.getSessionId();
+        this.isCollapsed = !!this.startCollapsed;
 
         // Listen for connection status
         this.subscriptions.push(
@@ -119,20 +124,53 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
 
                         if (isOpposite) {
                             this.playNotificationSound();
-                            this.markAsRead();
+                            if (this.isCollapsed) {
+                                this.unreadCount += 1;
+                                this.unreadCountChange.emit(this.unreadCount);
+                            } else {
+                                this.markAsRead();
+                            }
                         }
                     }
                 }
             })
         );
 
-        // Initialize chat session/groups
-        this.initChat();
+        // Connect immediately only when already expanded.
+        if (!this.isCollapsed) {
+            void this.initChat();
+        }
     }
 
     ngOnChanges(changes: SimpleChanges): void {
+        if (changes['startCollapsed'] && !changes['startCollapsed'].firstChange) {
+            this.isCollapsed = !!this.startCollapsed;
+        }
         if (changes['orderNo'] || changes['branchId'] || changes['sessionId']) {
-            this.initChat();
+            this.chatInitialized = false;
+            if (!this.isCollapsed) {
+                void this.initChat();
+            }
+        }
+    }
+
+    toggleCollapsed(): void {
+        if (this.isCollapsed) {
+            this.expandChat();
+        } else {
+            this.isCollapsed = true;
+        }
+    }
+
+    expandChat(): void {
+        this.isCollapsed = false;
+        this.unreadCount = 0;
+        this.unreadCountChange.emit(0);
+        if (!this.chatInitialized) {
+            void this.initChat();
+        } else {
+            void this.markAsRead();
+            this.shouldScrollToBottom = true;
         }
     }
 
@@ -184,6 +222,7 @@ export class OrderChatComponent implements OnInit, OnDestroy, OnChanges, AfterVi
                 );
                 await this.markAsRead();
             }
+            this.chatInitialized = true;
             this.shouldScrollToBottom = true;
         } catch (err) {
             console.warn('Failed to load chat messages:', err);

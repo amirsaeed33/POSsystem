@@ -131,9 +131,9 @@
                 <div class="text-sm">
                     <span class="font-semibold text-900">{{ order.customerName }}</span>
                     <span *ngIf="order.customerPhone" class="text-500 text-xs ml-2">({{ order.customerPhone }})</span>
-                    <div class="text-xs text-600 mt-1 flex align-items-center gap-1">
-                        <i class="pi pi-map-marker text-red-500"></i>
-                        <span>{{ order.customerAddress || order.deliveryAreaName || 'Address not listed' }}</span>
+                    <div class="text-xs text-600 mt-1 flex align-items-start gap-1 history-addr">
+                        <i class="pi pi-map-marker text-red-500 mt-1"></i>
+                        <span [title]="shortAddress(order)">{{ shortAddress(order) }}</span>
                     </div>
                 </div>
 
@@ -160,7 +160,13 @@
                         <span class="review-score">{{ order.deliveryRating }}/5</span>
                     </div>
                     <span class="review-empty" *ngIf="!order.deliveryRating">Not rated</span>
-                    <p class="review-note" *ngIf="order.notes" [title]="order.notes">{{ order.notes }}</p>
+                    <p
+                        class="review-note"
+                        *ngIf="deliveryDisplay(order).riderNote as riderNote"
+                        [title]="riderNote"
+                    >
+                        {{ riderNote }}
+                    </p>
                 </div>
 
                 <div class="review-chip customer-review">
@@ -236,16 +242,54 @@
         </div>
 
         <!-- Customer & Address Box -->
-        <div class="p-3 border-round-lg bg-surface-50 mb-3 text-sm">
+        <div class="p-3 border-round-lg bg-surface-50 mb-3 text-sm" *ngIf="deliveryDisplay(selectedOrder) as d">
             <span class="text-xs text-500 uppercase font-bold block mb-1">Customer & Delivery Location</span>
             <div class="font-bold text-900 mb-1">{{ selectedOrder.customerName }}</div>
             <div *ngIf="selectedOrder.customerPhone" class="text-xs text-600 mb-1">
                 <i class="pi pi-phone mr-1"></i>{{ selectedOrder.customerPhone }}
             </div>
-            <div class="text-xs text-800">
-                <i class="pi pi-map-marker text-red-500 mr-1"></i>
-                {{ selectedOrder.customerAddress || 'No address' }}
-                <span *ngIf="selectedOrder.deliveryAreaName">({{ selectedOrder.deliveryAreaName }})</span>
+            <div class="history-detail-row" *ngIf="d.area">
+                <span>Area</span>
+                <strong>{{ d.area }}</strong>
+            </div>
+            <div class="history-detail-row" *ngIf="d.address">
+                <span>Address</span>
+                <strong>{{ d.address }}</strong>
+            </div>
+            <div class="history-detail-row" *ngIf="d.landmark">
+                <span>Landmark</span>
+                <strong>{{ d.landmark }}</strong>
+            </div>
+            <div class="history-detail-row" *ngIf="d.specialNote">
+                <span>Note</span>
+                <strong>{{ d.specialNote }}</strong>
+            </div>
+            <div class="history-detail-row history-detail-row--note" *ngIf="d.riderNote">
+                <span>Your note</span>
+                <strong>{{ d.riderNote }}</strong>
+            </div>
+            <div class="text-xs text-500 mt-1" *ngIf="!d.address && !d.area && !d.landmark">
+                Address not listed
+            </div>
+            <div class="history-maps-actions" *ngIf="d.mapsUrl || d.coords">
+                <a
+                    *ngIf="d.mapsUrl as maps"
+                    class="history-maps-link"
+                    [href]="maps"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <i class="pi pi-map-marker"></i> Open in Maps
+                </a>
+                <button
+                    *ngIf="d.coords"
+                    type="button"
+                    class="history-copy-btn"
+                    (click)="copyOrderCoords(selectedOrder!, $event)"
+                    title="Copy GPS coordinates"
+                >
+                    <i class="pi pi-copy"></i> Copy GPS
+                </button>
             </div>
         </div>
 
@@ -283,12 +327,6 @@
                 </div>
                 <span class="review-empty" *ngIf="!selectedOrder.customerRating">Awaiting rating</span>
             </div>
-        </div>
-
-        <!-- Special Notes -->
-        <div *ngIf="selectedOrder.notes" class="p-2 border-round-lg bg-yellow-50 text-yellow-900 text-xs mb-3">
-            <i class="pi pi-info-circle mr-1"></i>
-            <strong>Notes:</strong> {{ selectedOrder.notes }}
         </div>
 
         <!-- Ordered Items Table -->

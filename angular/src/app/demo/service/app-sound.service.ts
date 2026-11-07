@@ -47,4 +47,33 @@ export class AppSoundService {
         // Keep legacy key in sync so older takeaway-only readers stay aligned.
         localStorage.setItem(LEGACY_TAKEAWAY_MUTE_KEY, String(!!muted));
     }
+
+    /** Short “item added to cart” chime for the online storefront. */
+    playAddToCartChime(): void {
+        if (!this.canPlay()) {
+            return;
+        }
+        try {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContextClass) {
+                return;
+            }
+            const ctx = new AudioContextClass();
+            const now = ctx.currentTime;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now); // A5
+            osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.08); // E6
+            gain.gain.setValueAtTime(0.16, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.22);
+        } catch {
+            /* ignore autoplay / AudioContext errors */
+        }
+    }
 }

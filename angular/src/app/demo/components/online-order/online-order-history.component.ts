@@ -35,13 +35,19 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
     nowMs = Date.now();
     private clockTimer: ReturnType<typeof setInterval> | null = null;
 
-    // Order detail popup
+    // Order detail popup (+ live tracking for active orders)
     detailVisible = false;
     detailOrder: CustomerOrderDto | null = null;
     detailLoading = false;
     customerRatingDraft: number | null = null;
     customerCommentDraft = '';
     ratingSubmitting = false;
+    private detailPollTimer: ReturnType<typeof setInterval> | null = null;
+    private detailCountdownTimer: ReturnType<typeof setInterval> | null = null;
+    autoRefreshSeconds = 8;
+    detailCountdown = 8;
+    private previousDetailStatus: number | null = null;
+    private pendingOpenOrderNo: string | null = null;
 
     // Store chrome
     branchName = '';
@@ -77,6 +83,9 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
         const saved = this.readSavedPhone();
         this.phone = (qPhone || saved || '').trim();
 
+        const qOrderNo = (this.route.snapshot.queryParamMap.get('orderNo') || '').trim();
+        this.pendingOpenOrderNo = qOrderNo || null;
+
         this.refreshAuth();
         if (this.branchId) {
             void this.loadStoreHeader(this.branchId);
@@ -86,9 +95,15 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
             this.nowMs = Date.now();
         }, 1000);
 
-        if (this.phone.length >= 7) {
-            void this.search();
-        }
+        void (async () => {
+            if (this.phone.length >= 7) {
+                await this.search();
+            }
+            if (this.pendingOpenOrderNo) {
+                await this.openOrderByNumber(this.pendingOpenOrderNo);
+                this.pendingOpenOrderNo = null;
+            }
+        })();
     }
 
     ngOnDestroy(): void {
@@ -96,6 +111,7 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
             clearInterval(this.clockTimer);
             this.clockTimer = null;
         }
+        this.stopDetailPolling();
         this.browserTitle.clearStorefrontBranchName();
     }
 
@@ -238,47 +254,217 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
     }
 
     openOrder(order: CustomerOrderDto): void {
+        this.previousDetailStatus = order.status ?? null;
         this.detailOrder = { ...order, lines: [...(order.lines || [])] };
         this.customerRatingDraft = order.customerRating ?? null;
         this.customerCommentDraft = order.customerFeedbackComment || '';
         this.detailVisible = true;
+        this.syncOrderNoInUrl(order.orderNo || null);
         void this.refreshDetailOrder(order.orderNo || String(order.id));
     }
 
+    /** Open tracking detail from order number (My Orders / old /track links). */
+    async openOrderByNumber(orderNo: string): Promise<void> {
+        const key = (orderNo || '').trim();
+        if (!key) {
+            return;
+        }
+
+        const listed = this.orders.find(
+            (o) =>
+                (o.orderNo && o.orderNo.toLowerCase() === key.toLowerCase()) ||
+                String(o.id) === key
+        );
+        if (listed) {
+            this.openOrder(listed);
+            return;
+        }
+
+        this.detailLoading = true;
+        this.detailVisible = true;
+        this.detailOrder = null;
+        this.syncOrderNoInUrl(key);
+        try {
+            const live = await this.customerOrderService.trackOrder(key);
+            if (!live) {
+                this.detailVisible = false;
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Order not found',
+                    detail: 'This order could not be found. It may have been removed.',
+                });
+                this.syncOrderNoInUrl(null);
+                return;
+            }
+            this.previousDetailStatus = live.status ?? null;
+            this.detailOrder = live;
+            this.customerRatingDraft = live.customerRating ?? null;
+            this.customerCommentDraft = live.customerFeedbackComment || '';
+            this.mergeOrderIntoList(live);
+            this.syncDetailPolling(live);
+        } catch (err: any) {
+            this.detailVisible = false;
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Lookup failed',
+                detail: err?.message || 'Could not load this order right now.',
+            });
+            this.syncOrderNoInUrl(null);
+        } finally {
+            this.detailLoading = false;
+        }
+    }
+
     closeDetail(): void {
+        this.stopDetailPolling();
         this.detailVisible = false;
         this.detailOrder = null;
         this.customerRatingDraft = null;
         this.customerCommentDraft = '';
         this.ratingSubmitting = false;
+        this.previousDetailStatus = null;
+        this.syncOrderNoInUrl(null);
     }
 
-    private async refreshDetailOrder(orderNo: string): Promise<void> {
+    private syncOrderNoInUrl(orderNo: string | null): void {
+        this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { orderNo: orderNo || null },
+            queryParamsHandling: 'merge',
+            replaceUrl: true,
+        });
+    }
+
+    private mergeOrderIntoList(live: CustomerOrderDto): void {
+        const idx = this.orders.findIndex(
+            (o) =>
+                o.id === live.id ||
+                (o.orderNo && live.orderNo && o.orderNo === live.orderNo)
+        );
+        if (idx >= 0) {
+            this.orders[idx] = { ...this.orders[idx], ...live };
+        } else {
+            this.orders = [live, ...this.orders];
+            this.searched = true;
+        }
+    }
+
+    private isActiveTrackingStatus(order: CustomerOrderDto | null | undefined): boolean {
+        if (!order) {
+            return false;
+        }
+        return (
+            order.status === CustomerOrderStatus.Pending ||
+            order.status === CustomerOrderStatus.Approved ||
+            order.status === CustomerOrderStatus.InProgress
+        );
+    }
+
+    private syncDetailPolling(order: CustomerOrderDto | null): void {
+        this.stopDetailPolling();
+        if (!order?.orderNo || !this.isActiveTrackingStatus(order)) {
+            return;
+        }
+        this.detailCountdown = this.autoRefreshSeconds;
+        this.detailCountdownTimer = setInterval(() => {
+            if (this.detailCountdown > 1) {
+                this.detailCountdown--;
+            } else {
+                this.detailCountdown = this.autoRefreshSeconds;
+            }
+        }, 1000);
+        this.detailPollTimer = setInterval(() => {
+            if (this.detailVisible && this.detailOrder?.orderNo && !this.detailLoading) {
+                void this.refreshDetailOrder(this.detailOrder.orderNo, true);
+            }
+        }, this.autoRefreshSeconds * 1000);
+    }
+
+    private stopDetailPolling(): void {
+        if (this.detailPollTimer) {
+            clearInterval(this.detailPollTimer);
+            this.detailPollTimer = null;
+        }
+        if (this.detailCountdownTimer) {
+            clearInterval(this.detailCountdownTimer);
+            this.detailCountdownTimer = null;
+        }
+    }
+
+    private async refreshDetailOrder(orderNo: string, silent = false): Promise<void> {
         if (!orderNo?.trim()) return;
-        this.detailLoading = true;
+        if (!silent) {
+            this.detailLoading = true;
+        }
         try {
             const live = await this.customerOrderService.trackOrder(orderNo.trim());
             if (live && this.detailVisible) {
+                if (
+                    this.previousDetailStatus !== null &&
+                    this.previousDetailStatus === CustomerOrderStatus.Pending &&
+                    (live.status === CustomerOrderStatus.Approved ||
+                        live.status === CustomerOrderStatus.InProgress)
+                ) {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Order Accepted!',
+                        detail: 'The store accepted your order and is preparing it.',
+                        life: 6000,
+                    });
+                } else if (
+                    this.previousDetailStatus !== null &&
+                    this.previousDetailStatus !== CustomerOrderStatus.Delivered &&
+                    this.previousDetailStatus !== CustomerOrderStatus.Completed &&
+                    (live.status === CustomerOrderStatus.Delivered ||
+                        live.status === CustomerOrderStatus.Completed)
+                ) {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Delivered!',
+                        detail: 'Your order was delivered successfully. Enjoy!',
+                        life: 8000,
+                    });
+                }
+                this.previousDetailStatus = live.status ?? this.previousDetailStatus;
                 this.detailOrder = live;
                 this.customerRatingDraft = live.customerRating ?? this.customerRatingDraft;
                 if (live.customerFeedbackComment) {
                     this.customerCommentDraft = live.customerFeedbackComment;
                 }
-                // Keep list card in sync with latest status/total.
-                const idx = this.orders.findIndex(
-                    (o) =>
-                        o.id === live.id ||
-                        (o.orderNo && live.orderNo && o.orderNo === live.orderNo)
-                );
-                if (idx >= 0) {
-                    this.orders[idx] = { ...this.orders[idx], ...live };
-                }
+                this.mergeOrderIntoList(live);
+                this.syncDetailPolling(live);
             }
         } catch {
             /* keep snapshot from list */
         } finally {
-            this.detailLoading = false;
+            if (!silent) {
+                this.detailLoading = false;
+            }
         }
+    }
+
+    isDetailPending(order?: CustomerOrderDto | null): boolean {
+        return !!order && order.status === CustomerOrderStatus.Pending;
+    }
+
+    isDetailInProgress(order?: CustomerOrderDto | null): boolean {
+        if (!order) return false;
+        return (
+            order.status === CustomerOrderStatus.Approved ||
+            order.status === CustomerOrderStatus.InProgress
+        );
+    }
+
+    isDetailDelivered(order?: CustomerOrderDto | null): boolean {
+        if (!order) return false;
+        return (
+            order.status === CustomerOrderStatus.Delivered ||
+            order.status === CustomerOrderStatus.Completed
+        );
+    }
+
+    isDetailRejected(order?: CustomerOrderDto | null): boolean {
+        return !!order && order.status === CustomerOrderStatus.Rejected;
     }
 
     statusHint(order: CustomerOrderDto): string {
@@ -302,8 +488,49 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
 
     getGoogleMapsLink(notes?: string): string | null {
         if (!notes) return null;
-        const match = notes.match(/https?:\/\/maps\.google\.com[^\s|]+/);
-        return match ? match[0] : null;
+        const match =
+            notes.match(/https?:\/\/(?:www\.)?google\.com\/maps[^\s|]+/i) ||
+            notes.match(/https?:\/\/maps\.google\.com[^\s|]+/i);
+        return match ? match[0].replace(/[)\],.]+$/, '') : null;
+    }
+
+    private stripMapsAndCoords(value?: string): string | undefined {
+        if (!value) return undefined;
+        const cleaned = value
+            .replace(/https?:\/\/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
+            .replace(/https?:\/\/maps\.google\.com[^\s|]*/gi, '')
+            .replace(/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
+            .replace(/maps\.google\.com[^\s|]*/gi, '')
+            .replace(/Maps:\s*[^\s|]+/gi, '')
+            .replace(/-?\d{1,3}\.\d{4,}\s*,\s*-?\d{1,3}\.\d{4,}/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return cleaned || undefined;
+    }
+
+    /** Clean delivery fields for the order detail popup (no raw pipe blob). */
+    deliveryDisplay(order: CustomerOrderDto | null | undefined): {
+        address?: string;
+        landmark?: string;
+        specialNote?: string;
+        riderNote?: string;
+        mapsUrl?: string | null;
+    } {
+        if (!order) {
+            return {};
+        }
+        const parsed = this.parseDeliveryFromNotes(order.notes);
+        const address =
+            this.stripMapsAndCoords(parsed.address) ||
+            this.stripMapsAndCoords((order.customerAddress || '').trim()) ||
+            undefined;
+        return {
+            address,
+            landmark: this.stripMapsAndCoords(parsed.landmark),
+            specialNote: this.stripMapsAndCoords(parsed.specialNote),
+            riderNote: this.stripMapsAndCoords(parsed.riderNote),
+            mapsUrl: this.getGoogleMapsLink(order.notes),
+        };
     }
 
     canSaveCustomerRating(order: CustomerOrderDto): boolean {
@@ -441,14 +668,85 @@ export class OnlineOrderHistoryComponent implements OnInit, OnDestroy {
     private parseDeliveryFromNotes(notes?: string): {
         address?: string;
         landmark?: string;
+        specialNote?: string;
+        riderNote?: string;
     } {
-        const text = notes || '';
-        const addrMatch = text.match(/📍\s*Addr:\s*([^|]+)/i);
-        const landmarkMatch = text.match(/🏛️\s*Landmark:\s*([^|]+)/i);
-        return {
-            address: addrMatch?.[1]?.trim() || undefined,
-            landmark: landmarkMatch?.[1]?.trim() || undefined,
+        const text = (notes || '').trim();
+        if (!text) {
+            return {};
+        }
+
+        const clean = (value?: string | null) => {
+            const v = (value || '')
+                .replace(/^[📍🏛️🗺️📝?\s]+/u, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+            return v || undefined;
         };
+
+        const addrMatch = text.match(/(?:📍\s*)?Addr:\s*([^|]+)/i);
+        const landmarkMatch = text.match(/(?:🏛️\s*)?Landmark:\s*([^|]+)/i);
+        const notesMatch = text.match(/(?:📝\s*)?Notes:\s*([^|]+)/i);
+        const riderMatch =
+            text.match(/\[Rider[^\]]*delivery note:\s*([^\]]+)\]/i) ||
+            text.match(/Rider\s+[^\]]+delivery note:\s*([^\]]+)/i);
+
+        let address = clean(addrMatch?.[1]);
+        let landmark = clean(landmarkMatch?.[1]);
+        let specialNote = clean(notesMatch?.[1]);
+        const riderNote = clean(riderMatch?.[1]);
+
+        // Strip structured / duplicate noise from any leftover free text.
+        if (!address || !landmark || !specialNote) {
+            const leftovers = text
+                .replace(/https?:\/\/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
+                .replace(/https?:\/\/maps\.google\.com[^\s|]*/gi, '')
+                .replace(/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
+                .replace(/maps\.google\.com[^\s|]*/gi, '')
+                .replace(/(?:📍\s*)?Addr:\s*[^|]+/gi, '')
+                .replace(/(?:🏛️\s*)?Landmark:\s*[^|]+/gi, '')
+                .replace(/(?:🗺️\s*)?Maps:\s*[^|]+/gi, '')
+                .replace(/(?:📝\s*)?Notes:\s*[^|]+/gi, '')
+                .replace(/\[Rider[^\]]*\]/gi, '')
+                .replace(/(?:💳\s*)?Payment:\s*[^|]+/gi, '')
+                .replace(/-?\d{1,3}\.\d{4,}\s*,\s*-?\d{1,3}\.\d{4,}/g, '')
+                .replace(/\|\s*/g, ' ')
+                .replace(/[?？]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            if (leftovers) {
+                // Avoid repeating the same address/landmark already captured.
+                const lower = leftovers.toLowerCase();
+                if (
+                    !address &&
+                    leftovers.length > 8 &&
+                    !lower.startsWith('payment')
+                ) {
+                    address = leftovers;
+                } else if (
+                    !specialNote &&
+                    (!address || lower !== address.toLowerCase()) &&
+                    (!landmark || lower !== landmark.toLowerCase())
+                ) {
+                    specialNote = leftovers;
+                }
+            }
+        }
+
+        // Drop special note if it only duplicates address/landmark/payment.
+        if (specialNote) {
+            const s = specialNote.toLowerCase();
+            if (
+                (address && s === address.toLowerCase()) ||
+                (landmark && s === landmark.toLowerCase()) ||
+                s.startsWith('payment:')
+            ) {
+                specialNote = undefined;
+            }
+        }
+
+        return { address, landmark, specialNote, riderNote };
     }
 
     statusLabel(order: CustomerOrderDto): string {

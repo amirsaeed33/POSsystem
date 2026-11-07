@@ -781,6 +781,104 @@
   color: #0f172a;
 }
 
+.oh-detail-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.oh-live-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #ef4444;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+  animation: ohLivePulse 1.4s ease-out infinite;
+}
+
+@keyframes ohLivePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.oh-track-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.85rem 0.5rem 0.35rem;
+}
+
+.oh-track-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 4.25rem;
+  color: #94a3b8;
+
+  &.done,
+  &.active {
+    color: #0f172a;
+  }
+
+  &.done .oh-track-dot {
+    background: #16a34a;
+    color: #fff;
+    border-color: #16a34a;
+  }
+
+  &.active .oh-track-dot {
+    background: #2563eb;
+    color: #fff;
+    border-color: #2563eb;
+  }
+
+  &.wait .oh-track-dot {
+    background: #f8fafc;
+    color: #94a3b8;
+  }
+}
+
+.oh-track-dot {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.oh-track-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.oh-track-line {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  margin-bottom: 1.15rem;
+
+  &.on {
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+  }
+}
+
 .oh-detail-panel {
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -869,22 +967,21 @@
   font-size: 0.84rem;
   color: #64748b;
 
+  > span {
+    flex-shrink: 0;
+  }
+
   strong {
     color: #0f172a;
     text-align: right;
+    max-width: 70%;
+    word-break: break-word;
   }
 }
 
-.oh-detail-notes {
-  margin-top: 0.55rem;
-  padding: 0.65rem 0.75rem;
-  border-radius: 0.75rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  font-size: 0.78rem;
-  color: #475569;
-  line-height: 1.45;
-  word-break: break-word;
+.oh-detail-row--note strong {
+  color: #9a3412;
+  font-weight: 700;
 }
 
 .oh-detail-maps {

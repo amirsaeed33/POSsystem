@@ -367,6 +367,25 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+
+  &--logo {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    padding: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  &--sm {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
 }
 
 .fp-branch-pick-text {
@@ -1913,19 +1932,31 @@
   }
 }
 
-/* Product rows: slow continuous left → right marquee (CSS) */
+/* Product rows: auto left→right scroll + manual swipe / arrows */
 .fp-products-marquee {
   --fp-marquee-card-width: 240px;
   --fp-marquee-gap: 1.15rem;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   width: 100%;
   padding: 0.35rem 0 0.85rem;
+  scroll-behavior: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  cursor: grab;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   mask-image: linear-gradient(90deg, transparent, #000 1.5%, #000 98.5%, transparent);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 1.5%, #000 98.5%, transparent);
 
-  &.is-paused .fp-products-track,
-  &:hover .fp-products-track {
-    animation-play-state: paused;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  &.is-dragging {
+    cursor: grabbing;
+    user-select: none;
+    scroll-behavior: auto;
   }
 
   @media (max-width: 576px) {
@@ -1938,17 +1969,6 @@
   display: flex;
   width: max-content;
   gap: var(--fp-marquee-gap);
-  will-change: transform;
-  animation: fp-products-marquee-ltr linear infinite;
-}
-
-@keyframes fp-products-marquee-ltr {
-  from {
-    transform: translate3d(-50%, 0, 0);
-  }
-  to {
-    transform: translate3d(0, 0, 0);
-  }
 }
 
 .fp-products-marquee-item {
@@ -1965,10 +1985,36 @@
   }
 }
 
+.fp-marquee-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.35rem;
+
+  button {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      border-color: #fddb00;
+      background: #fffbeb;
+      color: #854d0e;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .fp-products-track {
-    animation: none;
-    transform: none;
+  .fp-products-marquee {
+    scroll-behavior: smooth;
   }
 }
 
