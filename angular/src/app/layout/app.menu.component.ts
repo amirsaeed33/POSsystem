@@ -96,7 +96,7 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                 items: [
                     { label: 'Dashboard', icon: 'pi pi-home', routerLink: ['/dashboard'] },
                     {
-                        label: isRestaurant ? 'Restaurant POS' : 'POS Screen',
+                        label: isRestaurant ? 'Dine Hub' : 'POS Screen',
                         icon: 'pi pi-desktop',
                         routerLink: ['/pos'],
                         anyPermission: [
@@ -106,7 +106,7 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                         ],
                     },
                     {
-                        label: isRestaurant ? 'Online Food Menu' : 'Online Storefront',
+                        label: isRestaurant ? 'Online' : 'Online Storefront',
                         icon: 'pi pi-globe',
                         routerLink: ['/online-order'],
                         queryParams: currentBranchId
@@ -139,13 +139,13 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                                   permission: PermissionNames.Sales,
                               },
                               {
-                                  label: 'Online Orders',
+                                  label: 'Orders',
                                   icon: 'pi pi-file',
                                   routerLink: ['/customer-orders'],
                                   permission: PermissionNames.CustomerOrders,
                               },
                               {
-                                  label: 'Delivery Areas',
+                                  label: 'Areas',
                                   icon: 'pi pi-map-marker',
                                   routerLink: ['/delivery-areas'],
                                   permission: PermissionNames.DeliveryAreas,
@@ -280,7 +280,7 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                     { label: 'Company types', icon: 'pi pi-building', routerLink: ['/host-catalog'], permission: PermissionNames.HostCatalog },
                     { label: 'Developers', icon: 'pi pi-code', routerLink: ['/developers'], permission: PermissionNames.Developers },
                     { label: 'Packages', icon: 'pi pi-box', routerLink: ['/packages'], permission: PermissionNames.Packages },
-                    { label: 'Email Templates', icon: 'pi pi-envelope', routerLink: ['/email-templates'], permission: PermissionNames.EmailTemplates },
+                    { label: 'Templates', icon: 'pi pi-envelope', routerLink: ['/email-templates'], permission: PermissionNames.EmailTemplates },
                     { label: 'Tenants', icon: 'pi pi-globe', routerLink: ['/tenants'], permission: PermissionNames.Tenants },
                 ]
             }
