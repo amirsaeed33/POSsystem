@@ -45,17 +45,30 @@ public partial class CategoryChipItem : ObservableObject
     [ObservableProperty]
     private bool isSelected;
 
-    public Color BackgroundColor =>
+    public Color ChipBorderColor =>
+        IsSelected ? Color.FromArgb("#0F6B4C") : Color.FromArgb("#E5E7EB");
+
+    public Color ChipBackgroundColor =>
         IsSelected ? Color.FromArgb("#0F6B4C") : Color.FromArgb("#F3F6F4");
 
-    public Color TitleColor =>
+    public Color ChipTextColor =>
         IsSelected ? Colors.White : Color.FromArgb("#1F2A24");
 
-    public Color CountColor =>
+    public Color ChipCountTextColor =>
         IsSelected ? Color.FromArgb("#D7EDE4") : Color.FromArgb("#6B7A72");
+
+    public Color BackgroundColor => ChipBackgroundColor;
+
+    public Color TitleColor => ChipTextColor;
+
+    public Color CountColor => ChipCountTextColor;
 
     partial void OnIsSelectedChanged(bool value)
     {
+        OnPropertyChanged(nameof(ChipBorderColor));
+        OnPropertyChanged(nameof(ChipBackgroundColor));
+        OnPropertyChanged(nameof(ChipTextColor));
+        OnPropertyChanged(nameof(ChipCountTextColor));
         OnPropertyChanged(nameof(BackgroundColor));
         OnPropertyChanged(nameof(TitleColor));
         OnPropertyChanged(nameof(CountColor));
