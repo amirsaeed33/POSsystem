@@ -54,7 +54,7 @@ public static class MauiProgram
         config.Bind(settings);
         if (string.IsNullOrWhiteSpace(settings.ApiBaseUrl))
         {
-            settings.ApiBaseUrl = "http://aljannatapi.runasp.net";
+            settings.ApiBaseUrl = "https://aljannatapp.com";
         }
 
         builder.Services.AddSingleton(settings);

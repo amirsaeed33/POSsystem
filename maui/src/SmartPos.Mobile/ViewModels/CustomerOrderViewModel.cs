@@ -37,7 +37,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
     public string CartSubtotalDisplay => $"Rs {CartSubtotal:0}";
     public string DishesCountLabel => $"{Products.Count} {(Products.Count == 1 ? "dish" : "dishes")}";
     public bool HasProducts => Products.Count > 0;
-    public string DeliverToLabel => StoreHeader?.BranchName ?? "Aljannat Store";
+    public string DeliverToLabel => StoreHeader?.BranchName ?? "Al meezan";
 
     public CustomerOrderViewModel(
         OnlineOrderService orders,
@@ -66,12 +66,20 @@ public partial class CustomerOrderViewModel : BaseViewModel
         {
             MainThread.BeginInvokeOnMainThread(SyncFavorites);
         };
+
+        _session.SessionChanged += async (_, _) =>
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await LoadMenuAsync(forceRefresh: true);
+            });
+        };
     }
 
     [RelayCommand]
     private async Task AppearingAsync()
     {
-        await LoadMenuAsync();
+        await LoadMenuAsync(forceRefresh: true);
     }
 
     [RelayCommand]
@@ -88,20 +96,81 @@ public partial class CustomerOrderViewModel : BaseViewModel
         }
     }
 
-    public async Task LoadMenuAsync(bool forceRefresh = false)
+    private async Task<int> ResolveActiveBranchIdAsync()
     {
+        await _session.LoadAsync();
+        if (_session.BranchId.HasValue && _session.BranchId.Value > 0)
+        {
+            return _session.BranchId.Value;
+        }
+
         try
         {
-            await _session.LoadAsync();
-            int branchId = _session.BranchId.HasValue && _session.BranchId.Value > 0 ? _session.BranchId.Value : 1;
+            var branches = await _orders.GetBranchesAsync();
+            if (branches != null && branches.Count > 0)
+            {
+                var preferred = branches.FirstOrDefault(b => b.IsRestaurant) ?? branches[0];
+                await _session.SetBranchAsync(preferred.Id);
+                return preferred.Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[CustomerOrderViewModel] Branch lookup failed: {ex.Message}");
+        }
 
-            StoreHeader = await _orders.GetStoreHeaderAsync(branchId);
-            OnPropertyChanged(nameof(DeliverToLabel));
+        return 2;
+    }
+
+    private static string ResolveProductImageUrl(AbpApiClient api, string? imagePath, string? name, string? categoryName)
+    {
+        if (!string.IsNullOrWhiteSpace(imagePath))
+        {
+            var resolved = api.ResolveImageUrl(imagePath);
+            if (!string.IsNullOrWhiteSpace(resolved))
+            {
+                return resolved;
+            }
+        }
+
+        var n = (name ?? string.Empty).ToLowerInvariant();
+        var c = (categoryName ?? string.Empty).ToLowerInvariant();
+
+        if (n.Contains("burger") || c.Contains("burger"))
+            return "burger_photo.png";
+        if (n.Contains("pizza") || c.Contains("pizza"))
+            return "pizza_photo.png";
+
+        return "burger_photo.png";
+    }
+
+    public async Task LoadMenuAsync(bool forceRefresh = false)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            ErrorMessage = null;
+            var branchId = await ResolveActiveBranchIdAsync();
+
+            try
+            {
+                StoreHeader = await _orders.GetStoreHeaderAsync(branchId);
+                OnPropertyChanged(nameof(DeliverToLabel));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CustomerOrderViewModel] Store header failed: {ex.Message}");
+            }
 
             _allProducts = await _orders.GetCatalogAsync(branchId, forceRefresh);
             foreach (var p in _allProducts)
             {
-                p.ImageUrl = _api.ResolveImageUrl(p.ImagePath);
+                p.ImageUrl = ResolveProductImageUrl(_api, p.ImagePath, p.Name, p.CategoryName);
                 p.IsFavorite = _favorites.IsFavorite(p.Id);
                 p.CartQty = _cart.GetQty(p.Id);
             }
@@ -112,6 +181,11 @@ public partial class CustomerOrderViewModel : BaseViewModel
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[CustomerOrderViewModel] LoadMenu failed: {ex}");
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 
@@ -119,19 +193,26 @@ public partial class CustomerOrderViewModel : BaseViewModel
     {
         var names = new List<string> { "All" };
 
-        foreach (var c in StoreHeader?.Categories ?? new List<string>())
+        var activeProductCategories = _allProducts
+            .Select(p => p.CategoryName)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var c in activeProductCategories)
         {
-            if (!string.IsNullOrWhiteSpace(c) && !names.Contains(c, StringComparer.OrdinalIgnoreCase))
+            if (!names.Contains(c, StringComparer.OrdinalIgnoreCase))
             {
-                names.Add(c.Trim());
+                names.Add(c);
             }
         }
 
-        foreach (var c in _allProducts.Select(p => p.CategoryName).Where(x => !string.IsNullOrWhiteSpace(x)))
+        foreach (var c in StoreHeader?.Categories ?? new List<string>())
         {
-            if (!names.Contains(c!, StringComparer.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(c) && !names.Contains(c.Trim(), StringComparer.OrdinalIgnoreCase))
             {
-                names.Add(c!.Trim());
+                names.Add(c.Trim());
             }
         }
 
@@ -148,6 +229,11 @@ public partial class CustomerOrderViewModel : BaseViewModel
                 Count = count,
                 IsSelected = string.Equals(SelectedCategory, name, StringComparison.OrdinalIgnoreCase)
             });
+        }
+
+        if (!names.Contains(SelectedCategory, StringComparer.OrdinalIgnoreCase))
+        {
+            SelectedCategory = "All";
         }
     }
 
