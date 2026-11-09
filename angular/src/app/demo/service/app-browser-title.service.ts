@@ -54,8 +54,11 @@ export class AppBrowserTitleService {
     }
 
     private applyTitle(): void {
-        const branch =
-            this.storefrontBranchName || this.staffBranchName || '';
+        // Storefront titles are owned by AppSeoService (richer SEO titles).
+        if (this.storefrontBranchName) {
+            return;
+        }
+        const branch = this.staffBranchName || '';
         this.title.setTitle(branch || AppBrowserTitleService.APP_NAME);
     }
 

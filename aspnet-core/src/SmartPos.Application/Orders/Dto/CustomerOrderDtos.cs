@@ -85,6 +85,20 @@ namespace SmartPos.Orders.Dto
         public string ImagePath { get; set; }
     }
 
+    /// <summary>Resolved from Host header for branded custom-domain storefronts.</summary>
+    public class StorefrontByHostDto
+    {
+        public int BranchId { get; set; }
+        public int? TenantId { get; set; }
+        public string BranchName { get; set; }
+        public string StorefrontTitle { get; set; }
+        public string CustomDomain { get; set; }
+        public string Address { get; set; }
+        public string Phone { get; set; }
+        public string ImagePath { get; set; }
+        public bool IsRestaurant { get; set; }
+    }
+
     public class OnlineStoreHeaderDto
     {
         public int BranchId { get; set; }

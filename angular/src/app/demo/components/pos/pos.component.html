@@ -108,7 +108,7 @@
                                 isCarService
                                     ? 'Car Service'
                                     : isFoodpandaOrder
-                                      ? 'Foodpanda'
+                                      ? 'Third Party'
                                       : orderType === 'dineIn'
                                         ? 'Dine-In'
                                         : 'Takeaway'
@@ -144,7 +144,7 @@
                         </ng-container>
                         <ng-container *ngIf="orderType === 'takeaway' && isFoodpandaOrder">
                             <i class="pi pi-send"></i>
-                            <span>Third-party takeaway · customer <strong>Foodpanda</strong></span>
+                            <span>Third-party takeaway · customer <strong>Third Party</strong></span>
                         </ng-container>
                         <ng-container *ngIf="orderType === 'takeaway' && !isFoodpandaOrder">
                             <i class="pi pi-shopping-bag"></i>
@@ -187,10 +187,10 @@
                         [ngClass]="{ 'is-selected': selectedChannel === 'foodpanda' }"
                         [attr.aria-pressed]="selectedChannel === 'foodpanda'"
                         (click)="selectOrderChannel('foodpanda')"
-                        title="Third-party Foodpanda order (uses Takeaway)"
+                        title="Third Party order (uses Takeaway)"
                     >
                         <i class="pi pi-send"></i>
-                        <span>Foodpanda</span>
+                        <span>Third Party</span>
                     </button>
                 </div>
 

@@ -198,6 +198,13 @@ namespace SmartPos.Branches
                 ? input.AttendanceAutoCheckInRadiusFeet
                 : Branch.DefaultAttendanceAutoCheckInRadiusFeet;
 
+            // Custom domain storefront mapping is host-admin only.
+            string previousDomain = branch.CustomDomain;
+            if (AbpSession.TenantId == null)
+            {
+                await ApplyCustomDomainAsync(branch, input.CustomDomain, input.StorefrontTitle);
+            }
+
             // Only host admin with approve permission may change StatusId.
             // Selecting Approved sends an activation email and keeps Pending.
             var sendActivationEmail = false;
@@ -235,6 +242,11 @@ namespace SmartPos.Branches
 
             await CurrentUnitOfWork.SaveChangesAsync();
 
+            if (AbpSession.TenantId == null)
+            {
+                SyncStorefrontDomainRegistry(previousDomain, branch.CustomDomain);
+            }
+
             if (branch.BusinessType == BusinessType.Restaurant)
             {
                 await EnsurePermanentGroceryCategoryAsync(branch);
@@ -267,8 +279,13 @@ namespace SmartPos.Branches
             CheckDeletePermission();
 
             var branch = await GetEntityByIdAsync(input.Id);
+            var removedDomain = branch.CustomDomain;
             BranchImageStore.DeleteIfExists(branch.ImagePath);
             await Repository.DeleteAsync(branch);
+            if (!string.IsNullOrWhiteSpace(removedDomain))
+            {
+                StorefrontDomainRegistry.Remove(removedDomain);
+            }
             await ClearLookupCacheAsync();
         }
 
@@ -863,6 +880,65 @@ namespace SmartPos.Branches
                 && !input.InvoiceContactEmail.Contains('@'))
             {
                 throw new UserFriendlyException("Invoice contact email is not valid.");
+            }
+        }
+
+        /// <summary>
+        /// Normalize and uniquely assign a custom storefront domain on a branch.
+        /// Empty clears the mapping.
+        /// </summary>
+        private async Task ApplyCustomDomainAsync(Branch branch, string customDomain, string storefrontTitle)
+        {
+            var normalized = StorefrontDomainHelper.Normalize(customDomain);
+            branch.StorefrontTitle = NullIfWhiteSpace(storefrontTitle);
+
+            if (string.IsNullOrEmpty(normalized))
+            {
+                branch.CustomDomain = null;
+                return;
+            }
+
+            if (StorefrontDomainHelper.IsPlatformHost(normalized))
+            {
+                throw new UserFriendlyException(
+                    "That hostname belongs to the platform. Use the client's own domain (e.g. almeezanfoods.com).");
+            }
+
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var others = await Repository.GetAll()
+                    .AsNoTracking()
+                    .Where(b => b.Id != branch.Id
+                                && b.CustomDomain != null
+                                && b.CustomDomain != string.Empty)
+                    .Select(b => new { b.Id, b.Name, b.CustomDomain })
+                    .ToListAsync();
+
+                var clash = others.FirstOrDefault(b =>
+                    StorefrontDomainHelper.HostsMatch(b.CustomDomain, normalized));
+                if (clash != null)
+                {
+                    throw new UserFriendlyException(
+                        $"Domain '{normalized}' is already mapped to branch '{clash.Name}'.");
+                }
+            }
+
+            branch.CustomDomain = normalized;
+        }
+
+        private static void SyncStorefrontDomainRegistry(string previousDomain, string newDomain)
+        {
+            var prev = StorefrontDomainHelper.Normalize(previousDomain);
+            var next = StorefrontDomainHelper.Normalize(newDomain);
+            if (!string.IsNullOrEmpty(prev)
+                && !string.Equals(prev, next, StringComparison.OrdinalIgnoreCase))
+            {
+                StorefrontDomainRegistry.Remove(prev);
+            }
+
+            if (!string.IsNullOrEmpty(next))
+            {
+                StorefrontDomainRegistry.Upsert(next);
             }
         }
 

@@ -306,9 +306,14 @@ namespace SmartPos.EntityFrameworkCore
                 b.Property(x => x.TaxPercent).HasPrecision(18, 2);
                 b.Property(x => x.DiscountPercent).HasPrecision(18, 2);
                 b.Property(x => x.DiscountAmount).HasPrecision(18, 2);
+                b.Property(x => x.CustomDomain).HasMaxLength(Branch.MaxCustomDomainLength);
+                b.Property(x => x.StorefrontTitle).HasMaxLength(Branch.MaxStorefrontTitleLength);
                 b.HasIndex(x => new { x.TenantId, x.Code })
                     .IsUnique()
                     .HasFilter("[IsDeleted] = 0");
+                b.HasIndex(x => x.CustomDomain)
+                    .IsUnique()
+                    .HasFilter("[CustomDomain] IS NOT NULL AND [CustomDomain] <> N''");
                 b.HasIndex(x => x.StatusId);
                 b.HasOne(x => x.StatusLookUp)
                     .WithMany()

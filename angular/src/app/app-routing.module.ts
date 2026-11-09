@@ -7,8 +7,16 @@ import { PermissionNames } from './demo/api/permission-names';
 import { StaffTabRedirectComponent } from './demo/components/staff-hub/staff-tab-redirect.component';
 
 const routes: Routes = [
-    // Customer storefront is the default landing page (no login required).
-    { path: '', pathMatch: 'full', redirectTo: '/online-order' },
+    // Public product landing is held back until go-live. Preview only at /product.
+    {
+        path: 'product',
+        loadChildren: () =>
+            import('./demo/components/landing/landing.module').then(
+                (m) => m.LandingModule
+            ),
+    },
+    { path: '', pathMatch: 'full', redirectTo: 'online-order' },
+    { path: 'home', redirectTo: 'online-order', pathMatch: 'full' },
     {
         path: '',
         component: AppLayoutComponent,

@@ -62,30 +62,9 @@
             >Delivery</span>
         </a>
 
-        <div class="topbar-branch relative" *ngIf="branches?.length && !isWaiter && !isDeliveryRider">
-            <!-- Single branch / no switch: branch name opens role home -->
-            <a
-                *ngIf="!canSwitchLocations || branches.length <= 1"
-                class="p-link flex align-items-center gap-2 px-3 py-2 border-round hover:surface-hover no-underline text-color"
-                [routerLink]="homeLink"
-                [title]="locationLabel"
-            >
-                <i class="pi pi-map-marker text-xl"></i>
-                <span class="hidden sm:inline text-sm text-500 white-space-nowrap">Branch</span>
-                <span class="font-medium white-space-nowrap sm:hidden" [title]="locationLabel">
-                    {{ locationLabelShort }}
-                </span>
-                <span class="font-medium white-space-nowrap hidden sm:inline">
-                    {{ locationLabel }}
-                </span>
-                <span
-                    *ngIf="currentBranch?.businessType === 2"
-                    class="text-xs px-2 py-1 border-round font-medium bg-yellow-100 text-yellow-900"
-                    title="Active Restaurant & Dining Table Mode"
-                >🍽️ Restaurant</span>
-            </a>
+        <!-- Branch switcher only when user can switch and tenant has 2+ locations -->
+        <div class="topbar-branch relative" *ngIf="showBranchSwitcher">
             <button
-                *ngIf="canSwitchLocations && branches.length > 1"
                 class="p-link flex align-items-center gap-2 px-3 py-2 border-round hover:surface-hover"
                 type="button"
                 pStyleClass="@next"
@@ -123,7 +102,6 @@
             <ul
                 class="list-none p-2 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top mt-2 left-0 top-auto z-5"
                 style="min-width: 16rem; max-height: 20rem; overflow: auto"
-                *ngIf="canSwitchLocations && branches.length > 1"
             >
                 <li *ngFor="let branch of branches">
                     <a
@@ -583,6 +561,14 @@
                 class="list-none p-3 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top w-full sm:w-12rem mt-2 right-0 top-auto"
             >
                 <li>
+                    <a
+                        pRipple
+                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                        (click)="openDisplaySettings()"
+                    >
+                        <i class="pi pi-palette mr-3"></i>
+                        <span>Display &amp; Printer</span>
+                    </a>
                     <a
                         pRipple
                         class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"

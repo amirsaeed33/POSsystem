@@ -32,6 +32,7 @@ using SmartPos.Categories;
 using SmartPos.Deals;
 using SmartPos.Restaurant;
 using Abp.Timing;
+using Microsoft.Extensions.Configuration;
 
 namespace SmartPos.Orders
 {
@@ -65,6 +66,7 @@ namespace SmartPos.Orders
         private readonly IRepository<Deal> _dealRepository;
         private readonly IRepository<DealDetail> _dealDetailRepository;
         private readonly IRepository<RestaurantOrder> _restaurantOrderRepository;
+        private readonly IConfiguration _configuration;
 
         public CustomerOrderAppService(
             IRepository<CustomerOrder> repository,
@@ -90,7 +92,8 @@ namespace SmartPos.Orders
             ITokenNumberManager tokenNumberManager,
             IRepository<Deal> dealRepository,
             IRepository<DealDetail> dealDetailRepository,
-            IRepository<RestaurantOrder> restaurantOrderRepository)
+            IRepository<RestaurantOrder> restaurantOrderRepository,
+            IConfiguration configuration)
             : base(repository)
         {
             _lineRepository = lineRepository;
@@ -98,6 +101,7 @@ namespace SmartPos.Orders
             _dealRepository = dealRepository;
             _dealDetailRepository = dealDetailRepository;
             _restaurantOrderRepository = restaurantOrderRepository;
+            _configuration = configuration;
             _productRepository = productRepository;
             _customerRepository = customerRepository;
             _userRepository = userRepository;
@@ -293,6 +297,63 @@ namespace SmartPos.Orders
                         ImagePath = b.ImagePath
                     })
                     .ToListAsync();
+            }
+        }
+
+        [AbpAllowAnonymous]
+        public async Task<StorefrontByHostDto> GetStorefrontByHostAsync(string host = null)
+        {
+            var normalized = StorefrontDomainHelper.Normalize(host);
+            if (string.IsNullOrEmpty(normalized) || StorefrontDomainHelper.IsPlatformHost(normalized))
+            {
+                return null;
+            }
+
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var candidates = await _branchRepository.GetAll()
+                    .AsNoTracking()
+                    .Where(b => b.IsActive
+                                && b.CustomDomain != null
+                                && b.CustomDomain != string.Empty)
+                    .Select(b => new
+                    {
+                        b.Id,
+                        b.TenantId,
+                        b.Name,
+                        b.StorefrontTitle,
+                        b.CustomDomain,
+                        b.InvoiceAddress,
+                        b.InvoiceContactPhone,
+                        b.ImagePath,
+                        b.BusinessType
+                    })
+                    .ToListAsync();
+
+                var match = candidates.FirstOrDefault(b =>
+                    StorefrontDomainHelper.HostMatchesDomain(normalized, b.CustomDomain));
+
+                if (match == null)
+                {
+                    return null;
+                }
+
+                StorefrontDomainRegistry.Upsert(match.CustomDomain);
+
+                return new StorefrontByHostDto
+                {
+                    BranchId = match.Id,
+                    TenantId = match.TenantId,
+                    BranchName = match.Name,
+                    StorefrontTitle = !string.IsNullOrWhiteSpace(match.StorefrontTitle)
+                        ? match.StorefrontTitle.Trim()
+                        : match.Name,
+                    CustomDomain = StorefrontDomainHelper.Normalize(match.CustomDomain),
+                    Address = match.InvoiceAddress,
+                    Phone = match.InvoiceContactPhone,
+                    ImagePath = match.ImagePath,
+                    IsRestaurant = match.BusinessType == BusinessType.Restaurant
+                };
             }
         }
 
@@ -676,13 +737,15 @@ namespace SmartPos.Orders
                         bodyTemplate = EmailTemplateDefaults.OnlineOrderCreatedBodyHtml();
                     }
 
+                    var storefrontUrl = StorefrontUrlHelper.BuildOnlineOrderUrl(branch, _configuration, branchId);
                     var placeholders = new System.Collections.Generic.Dictionary<string, string>
                     {
                         { "BranchName", safeBranchName },
                         { "OrderNo", safeOrderNo },
                         { "CustomerName", safeCustomerName },
                         { "TotalAmount", order.TotalAmount.ToString("N2") },
-                        { "FormattedDate", order.OrderDate.ToString("yyyy-MM-dd hh:mm tt") }
+                        { "FormattedDate", order.OrderDate.ToString("yyyy-MM-dd hh:mm tt") },
+                        { "StorefrontUrl", storefrontUrl }
                     };
 
                     var subject = EmailTemplateRenderer.Render(subjectTemplate, placeholders);

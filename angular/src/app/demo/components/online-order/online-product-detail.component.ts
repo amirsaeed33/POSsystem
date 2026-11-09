@@ -12,6 +12,7 @@ import { DealService } from 'src/app/demo/service/deal.service';
 import { environment } from 'src/environments/environment';
 import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart';
 import { AppSoundService } from 'src/app/demo/service/app-sound.service';
+import { AppSeoService } from 'src/app/demo/service/app-seo.service';
 
 @Component({
     selector: 'app-online-product-detail',
@@ -78,7 +79,8 @@ export class OnlineProductDetailComponent implements OnInit {
         private messageService: MessageService,
         private deliveryAreaService: DeliveryAreaService,
         private dealService: DealService,
-        private appSound: AppSoundService
+        private appSound: AppSoundService,
+        private seo: AppSeoService
     ) {}
 
     ngOnInit(): void {
@@ -187,6 +189,7 @@ export class OnlineProductDetailComponent implements OnInit {
 
             // Load related products from catalog
             this.loadRelatedProducts();
+            this.applyProductSeo();
         } catch (error: any) {
             this.messageService.add({
                 severity: 'error',
@@ -196,6 +199,33 @@ export class OnlineProductDetailComponent implements OnInit {
         } finally {
             this.loading = false;
         }
+    }
+
+    private applyProductSeo(): void {
+        if (!this.product) {
+            return;
+        }
+        const imagePath = (this.product.imagePath || this.product.ImagePath || '')
+            .toString()
+            .trim();
+        let imageUrl: string | null = null;
+        if (imagePath) {
+            imageUrl = imagePath.startsWith('http')
+                ? imagePath
+                : `${environment.apiUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+        }
+        const path = this.productId
+            ? `/online-order/product/${this.productId}`
+            : '/online-order';
+        this.seo.setProduct({
+            productName: this.product.name || 'Menu item',
+            description: this.product.description || this.product.shortDescription,
+            branchName: this.branchName,
+            path,
+            image: imageUrl,
+            price: this.product.price ?? this.product.unitPrice,
+            currency: this.currencyFormat || 'PKR',
+        });
     }
 
     async loadRelatedProducts(): Promise<void> {

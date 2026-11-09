@@ -399,6 +399,57 @@
             />
         </div>
 
+        <div
+            *ngIf="canEditCustomDomain"
+            class="surface-ground border-round p-3 flex flex-column gap-3"
+        >
+            <div class="font-semibold">Custom domain storefront</div>
+            <div class="grid">
+                <div class="col-12 md:col-6 flex flex-column gap-2">
+                    <label for="customDomain" class="font-medium">Custom domain</label>
+                    <input
+                        id="customDomain"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="256"
+                        placeholder="almeezanfoods.com"
+                        [(ngModel)]="branch.customDomain"
+                        [disabled]="saving"
+                    />
+                    <small class="text-color-secondary">
+                        Hostname only (no https). Visitors on this domain open this branch’s online order page.
+                    </small>
+                </div>
+                <div class="col-12 md:col-6 flex flex-column gap-2">
+                    <label for="storefrontTitle" class="font-medium">Public store name (SEO)</label>
+                    <input
+                        id="storefrontTitle"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="256"
+                        placeholder="Al Meezan Foods"
+                        [(ngModel)]="branch.storefrontTitle"
+                        [disabled]="saving"
+                    />
+                </div>
+            </div>
+            <div *ngIf="customStorefrontUrl" class="text-sm">
+                Live storefront:
+                <a [href]="customStorefrontUrl" target="_blank" rel="noopener">{{ customStorefrontUrl }}</a>
+            </div>
+            <div class="text-sm text-color-secondary line-height-3">
+                <div class="font-medium text-color mb-1">DNS &amp; hosting checklist</div>
+                <ol class="m-0 pl-3">
+                    <li>Point apex A record to the same IP as aljannatapp.com, and/or CNAME www to site105439.siteasp.net.</li>
+                    <li>In MonsterASP, bind this hostname to site105439 (same site).</li>
+                    <li>Save this mapping, then create Google Business Profile with website = this domain.</li>
+                    <li>Verify the domain in Google Search Console and submit https://your-domain/sitemap.xml.</li>
+                </ol>
+            </div>
+        </div>
+
         <div class="grid">
             <div class="col-12 md:col-4 flex flex-column gap-2">
                 <label for="facebookUrl" class="font-medium">Facebook URL</label>

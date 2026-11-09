@@ -1833,6 +1833,10 @@ namespace SmartPos.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
+                    b.Property<string>("CustomDomain")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("DateFormat")
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
@@ -1908,6 +1912,10 @@ namespace SmartPos.Migrations
                     b.Property<int>("StatusId")
                         .HasColumnType("int");
 
+                    b.Property<string>("StorefrontTitle")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("TaxNumber")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
@@ -1928,6 +1936,10 @@ namespace SmartPos.Migrations
                         .HasColumnType("nvarchar(512)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomDomain")
+                        .IsUnique()
+                        .HasFilter("[CustomDomain] IS NOT NULL AND [CustomDomain] <> N''");
 
                     b.HasIndex("StatusId");
 

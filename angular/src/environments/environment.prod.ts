@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  // Live SmartPos API (same site as Angular on aljannatapp.com)
-  apiUrl: 'https://aljannatapp.com'
+  // Same-origin API so custom client domains (and aljannatapp.com) hit this host.
+  apiUrl: ''
 };

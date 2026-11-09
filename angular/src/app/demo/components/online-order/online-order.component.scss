@@ -1932,7 +1932,7 @@
   }
 }
 
-/* Product rows: auto left→right scroll + manual swipe / arrows */
+/* Product rows: manual swipe / arrows only (no auto marquee) */
 .fp-products-marquee {
   --fp-marquee-card-width: 240px;
   --fp-marquee-gap: 1.15rem;
@@ -1940,7 +1940,7 @@
   overflow-y: hidden;
   width: 100%;
   padding: 0.35rem 0 0.85rem;
-  scroll-behavior: auto;
+  scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   cursor: grab;

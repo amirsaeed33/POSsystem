@@ -50,10 +50,12 @@ import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart'
 /** POS third-party delivery channel (runs as takeaway with a named customer). */
 export type PosThirdPartyChannel = 'foodpanda' | null;
 
-/** Single UI source of truth for Dine-In / Takeaway / Foodpanda button highlight. */
+/** Single UI source of truth for Dine-In / Takeaway / Third Party button highlight. */
 export type PosOrderChannelUi = 'dineIn' | 'takeaway' | 'foodpanda';
 
-const FOODPANDA_CUSTOMER_NAME = 'Foodpanda';
+const THIRD_PARTY_CUSTOMER_NAME = 'Third Party';
+/** Legacy customer name — still recognized for existing orders/customers. */
+const LEGACY_FOODPANDA_CUSTOMER_NAME = 'Foodpanda';
 
 export interface DealCustomiseItem {
     productId: number;
@@ -190,7 +192,7 @@ export class PosComponent implements OnInit, OnDestroy {
             return 'Car Service';
         }
         if (this.thirdPartyChannel === 'foodpanda') {
-            return 'Foodpanda';
+            return 'Third Party';
         }
         if (this.orderType === 'takeaway') {
             return 'Take-Away';
@@ -952,7 +954,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.orderType = 'takeaway';
             this.thirdPartyChannel = 'foodpanda';
             this.clearTableSelection();
-            await this.ensureThirdPartyCustomer(FOODPANDA_CUSTOMER_NAME);
+            await this.ensureThirdPartyCustomer(THIRD_PARTY_CUSTOMER_NAME);
             // Re-assert after async work in case anything touched order flags.
             this.selectedChannel = 'foodpanda';
             this.thirdPartyChannel = 'foodpanda';
@@ -1110,10 +1112,18 @@ export class PosComponent implements OnInit, OnDestroy {
         }
     }
 
+    private isThirdPartyCustomerName(name: string): boolean {
+        const n = (name || '').trim().toLowerCase();
+        return (
+            n === THIRD_PARTY_CUSTOMER_NAME.toLowerCase() ||
+            n === LEGACY_FOODPANDA_CUSTOMER_NAME.toLowerCase()
+        );
+    }
+
     private syncThirdPartyFromCustomer(): void {
         const selected = this.customers.find((c) => c.id === this.customerId);
         const name = (selected?.name || '').trim().toLowerCase();
-        if (name === FOODPANDA_CUSTOMER_NAME.toLowerCase() && this.orderType === 'takeaway') {
+        if (this.isThirdPartyCustomerName(name) && this.orderType === 'takeaway') {
             this.thirdPartyChannel = 'foodpanda';
             this.selectedChannel = 'foodpanda';
         } else if (this.thirdPartyChannel === 'foodpanda') {
@@ -2263,6 +2273,16 @@ export class PosComponent implements OnInit, OnDestroy {
                             : `Order sent to Table ${kotResult.tableNo} (Order #${kotResult.orderNo})`),
                     life: 3500,
                 });
+                // Takeaway KOT is parked in unpaid list — clear cart so the next order can start immediately.
+                if (isTakeaway) {
+                    const keepOrderType = this.orderType;
+                    const keepChannel = this.selectedChannel;
+                    const keepThirdParty = this.thirdPartyChannel;
+                    this.clearCart();
+                    this.orderType = keepOrderType;
+                    this.thirdPartyChannel = keepThirdParty;
+                    this.selectedChannel = keepChannel;
+                }
             }
         } catch (err: any) {
             this.messageService.add({

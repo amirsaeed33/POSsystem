@@ -108,6 +108,11 @@ export class BranchFormDialogComponent implements OnChanges {
         );
     }
 
+    /** Host admin only — custom domain storefront mapping. */
+    get canEditCustomDomain(): boolean {
+        return this.canEditSoftwareDeveloper;
+    }
+
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['visible'] && this.visible) {
             this.resetForm();
@@ -253,6 +258,14 @@ export class BranchFormDialogComponent implements OnChanges {
                 this.branch.invoiceContactPhone?.trim() || undefined,
             taxNumber: this.branch.taxNumber?.trim() || undefined,
             website: this.branch.website?.trim() || undefined,
+            ...(this.canEditCustomDomain
+                ? {
+                      customDomain:
+                          this.branch.customDomain?.trim() || undefined,
+                      storefrontTitle:
+                          this.branch.storefrontTitle?.trim() || undefined,
+                  }
+                : {}),
             facebookUrl: this.branch.facebookUrl?.trim() || undefined,
             instagramUrl: this.branch.instagramUrl?.trim() || undefined,
             youtubeUrl: this.branch.youtubeUrl?.trim() || undefined,
@@ -360,6 +373,8 @@ export class BranchFormDialogComponent implements OnChanges {
             invoiceContactPhone: '',
             taxNumber: '',
             website: '',
+            customDomain: '',
+            storefrontTitle: '',
             facebookUrl: '',
             instagramUrl: '',
             youtubeUrl: '',
@@ -376,6 +391,19 @@ export class BranchFormDialogComponent implements OnChanges {
             longitude: null,
             attendanceAutoCheckInRadiusFeet: 200,
         };
+    }
+
+    get customStorefrontUrl(): string | null {
+        const domain = (this.branch.customDomain || '')
+            .trim()
+            .toLowerCase()
+            .replace(/^https?:\/\//, '')
+            .split('/')[0]
+            .replace(/^www\./, '');
+        if (!domain) {
+            return null;
+        }
+        return `https://${domain}/online-order`;
     }
 
     detectCurrentLocation(): void {

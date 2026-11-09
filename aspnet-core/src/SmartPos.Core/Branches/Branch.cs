@@ -63,6 +63,20 @@ namespace SmartPos.Branches
         [StringLength(MaxWebsiteLength)]
         public virtual string Website { get; set; }
 
+        /// <summary>
+        /// Custom storefront hostname (e.g. almeezanfoods.com), no protocol.
+        /// When visitors open this host they land on this branch's online-order page.
+        /// </summary>
+        [StringLength(MaxCustomDomainLength)]
+        public virtual string CustomDomain { get; set; }
+
+        /// <summary>Public brand title for SEO on the custom-domain storefront.</summary>
+        [StringLength(MaxStorefrontTitleLength)]
+        public virtual string StorefrontTitle { get; set; }
+
+        public const int MaxCustomDomainLength = 256;
+        public const int MaxStorefrontTitleLength = 256;
+
         [StringLength(MaxWebsiteLength)]
         public virtual string FacebookUrl { get; set; }
 

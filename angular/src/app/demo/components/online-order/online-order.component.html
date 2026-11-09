@@ -25,11 +25,13 @@
                     </div>
                 </div>
 
-                <!-- Desktop Branch / Location Selector Pill -->
+                <!-- Desktop Branch / Location Selector Pill (multi-branch only) -->
                 <div
-                    class="fp-location-picker-pill cursor-pointer"
-                    (click)="availableBranches.length ? (mobileBranchModal = true) : showAllBranches()"
-                    pTooltip="Change branch location"
+                    *ngIf="canSwitchOnlineBranch || branchName"
+                    class="fp-location-picker-pill"
+                    [class.cursor-pointer]="canSwitchOnlineBranch"
+                    (click)="openBranchPicker()"
+                    [pTooltip]="canSwitchOnlineBranch ? 'Change branch location' : branchName"
                     tooltipPosition="bottom"
                 >
                     <i class="pi pi-map-marker text-red-500 text-sm"></i>
@@ -37,7 +39,7 @@
                         <span class="location-label">Location</span>
                         <span class="location-val">{{ branchName || 'Select Branch' }}</span>
                     </div>
-                    <i class="pi pi-chevron-down text-400 text-xs"></i>
+                    <i *ngIf="canSwitchOnlineBranch" class="pi pi-chevron-down text-400 text-xs"></i>
                 </div>
             </div>
 
@@ -152,8 +154,9 @@
                             <span class="pulse-dot"></span>
                         </span>
                     </div>
-                    <!-- City / Branch Selector Dropdown Pill -->
+                    <!-- City / Branch selector — only when multiple branches exist -->
                     <div
+                        *ngIf="canSwitchOnlineBranch"
                         class="fp-mobile-city-selector cursor-pointer"
                         (click)="$event.stopPropagation(); mobileBranchModal = true"
                         role="button"
@@ -162,6 +165,13 @@
                         <i class="pi pi-map-marker text-red-500 text-xs"></i>
                         <span class="city-name-text">{{ branchName ? (branchName + ', PK') : 'Select Branch / City' }}</span>
                         <i class="pi pi-chevron-down text-500 text-xs"></i>
+                    </div>
+                    <div
+                        *ngIf="!canSwitchOnlineBranch && branchName"
+                        class="fp-mobile-city-selector"
+                    >
+                        <i class="pi pi-map-marker text-red-500 text-xs"></i>
+                        <span class="city-name-text">{{ branchName }}</span>
                     </div>
                 </div>
             </div>
@@ -276,6 +286,7 @@
                 <span class="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-1 border-round-3xl">Hot</span>
             </button>
             <button
+                *ngIf="canSwitchOnlineBranch"
                 type="button"
                 class="fp-mobile-drawer-link"
                 (click)="mobileNavOpen = false; mobileBranchModal = true"
@@ -312,6 +323,7 @@
             <div class="border-top-1 surface-border my-2"></div>
 
             <button
+                *ngIf="canSwitchOnlineBranch"
                 type="button"
                 class="fp-mobile-drawer-link"
                 (click)="mobileNavOpen = false; mobileBranchModal = true"
@@ -722,16 +734,12 @@
             <div
                 class="fp-products-marquee"
                 id="trackTrending"
-                [class.is-paused]="productMarqueePaused"
                 [class.is-dragging]="productMarqueeDragging"
                 (pointerdown)="onProductMarqueePointerDown($event)"
                 (pointermove)="onProductMarqueePointerMove($event)"
                 (pointerup)="onProductMarqueePointerUp($event)"
                 (pointercancel)="onProductMarqueePointerUp($event)"
                 (pointerleave)="onProductMarqueePointerUp($event)"
-                (wheel)="onProductMarqueeWheel()"
-                (scroll)="onProductMarqueeScroll($event)"
-                (touchstart)="pauseProductMarquee()"
             >
                 <div class="fp-products-track">
                     <div
@@ -779,16 +787,12 @@
             <div
                 class="fp-products-marquee"
                 id="trackPopular"
-                [class.is-paused]="productMarqueePaused"
                 [class.is-dragging]="productMarqueeDragging"
                 (pointerdown)="onProductMarqueePointerDown($event)"
                 (pointermove)="onProductMarqueePointerMove($event)"
                 (pointerup)="onProductMarqueePointerUp($event)"
                 (pointercancel)="onProductMarqueePointerUp($event)"
                 (pointerleave)="onProductMarqueePointerUp($event)"
-                (wheel)="onProductMarqueeWheel()"
-                (scroll)="onProductMarqueeScroll($event)"
-                (touchstart)="pauseProductMarquee()"
             >
                 <div class="fp-products-track">
                     <div
@@ -840,16 +844,12 @@
             <div
                 class="fp-products-marquee"
                 [id]="'trackCat' + sIdx"
-                [class.is-paused]="productMarqueePaused"
                 [class.is-dragging]="productMarqueeDragging"
                 (pointerdown)="onProductMarqueePointerDown($event)"
                 (pointermove)="onProductMarqueePointerMove($event)"
                 (pointerup)="onProductMarqueePointerUp($event)"
                 (pointercancel)="onProductMarqueePointerUp($event)"
                 (pointerleave)="onProductMarqueePointerUp($event)"
-                (wheel)="onProductMarqueeWheel()"
-                (scroll)="onProductMarqueeScroll($event)"
-                (touchstart)="pauseProductMarquee()"
             >
                 <div class="fp-products-track">
                     <div

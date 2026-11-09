@@ -36,6 +36,13 @@ namespace SmartPos.Orders
 
         Task<List<OnlineBranchDto>> GetOnlineBranchesAsync();
 
+        /// <summary>
+        /// Anonymous: map request host (or explicit host) to the branch storefront for custom domains.
+        /// Returns null when the host is the platform or is not mapped.
+        /// </summary>
+        [AbpAllowAnonymous]
+        Task<StorefrontByHostDto> GetStorefrontByHostAsync(string host = null);
+
         Task<List<string>> GetOnlineCategoriesAsync(int? branchId);
 
         Task<CustomerOrderDto> OverrideDeliveryFeeAsync(OverrideDeliveryFeeInput input);

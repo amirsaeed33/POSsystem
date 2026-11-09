@@ -14,6 +14,16 @@ export class DeveloperService {
 
     constructor(private http: HttpClient) {}
 
+    /** Public landing page — active developers only (anonymous). */
+    async getPublicDevelopers(): Promise<DeveloperDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetPublicDevelopers`)
+        );
+        const result = this.unwrap(res, 'Failed to load developers');
+        const items = Array.isArray(result) ? result : result?.items || [];
+        return (Array.isArray(items) ? items : []).map((x: any) => this.mapDto(x));
+    }
+
     async getAll(
         input: PagedDeveloperResultRequestDto = {}
     ): Promise<{ totalCount: number; items: DeveloperDto[] }> {

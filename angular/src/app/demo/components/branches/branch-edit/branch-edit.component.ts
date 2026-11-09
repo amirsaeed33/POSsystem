@@ -87,6 +87,11 @@ export class BranchEditComponent implements OnInit {
         );
     }
 
+    /** Host admin only — custom domain storefront mapping. */
+    get canEditCustomDomain(): boolean {
+        return this.canEditSoftwareDeveloper;
+    }
+
     get hasImage(): boolean {
         return !!(this.imagePreview || this.branch.imageBase64 || this.branch.imagePath);
     }
@@ -170,6 +175,15 @@ export class BranchEditComponent implements OnInit {
 
             website:
                 this.branch.website?.trim() || undefined,
+
+            ...(this.canEditCustomDomain
+                ? {
+                      customDomain:
+                          this.branch.customDomain?.trim() || undefined,
+                      storefrontTitle:
+                          this.branch.storefrontTitle?.trim() || undefined,
+                  }
+                : {}),
 
             facebookUrl:
                 this.branch.facebookUrl?.trim() || undefined,
@@ -420,6 +434,8 @@ export class BranchEditComponent implements OnInit {
             invoiceContactPhone: '',
             taxNumber: '',
             website: '',
+            customDomain: '',
+            storefrontTitle: '',
             facebookUrl: '',
             instagramUrl: '',
             youtubeUrl: '',
@@ -438,5 +454,18 @@ export class BranchEditComponent implements OnInit {
             longitude: null,
             attendanceAutoCheckInRadiusFeet: 200,
         };
+    }
+
+    get customStorefrontUrl(): string | null {
+        const domain = (this.branch.customDomain || '')
+            .trim()
+            .toLowerCase()
+            .replace(/^https?:\/\//, '')
+            .split('/')[0]
+            .replace(/^www\./, '');
+        if (!domain) {
+            return null;
+        }
+        return `https://${domain}/online-order`;
     }
 }

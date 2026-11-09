@@ -404,6 +404,48 @@
             />
         </div>
 
+        <div
+            *ngIf="canEditCustomDomain"
+            class="surface-ground border-round p-3 flex flex-column gap-3"
+        >
+            <div class="font-semibold">Custom domain storefront</div>
+            <div class="grid">
+                <div class="col-12 md:col-6 flex flex-column gap-2">
+                    <label for="dlgCustomDomain" class="font-medium">Custom domain</label>
+                    <input
+                        id="dlgCustomDomain"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="256"
+                        placeholder="almeezanfoods.com"
+                        [(ngModel)]="branch.customDomain"
+                        [disabled]="saving"
+                    />
+                    <small class="text-color-secondary">
+                        Hostname only. Bind DNS + MonsterASP hostname to site105439, then save here.
+                    </small>
+                </div>
+                <div class="col-12 md:col-6 flex flex-column gap-2">
+                    <label for="dlgStorefrontTitle" class="font-medium">Public store name (SEO)</label>
+                    <input
+                        id="dlgStorefrontTitle"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="256"
+                        placeholder="Al Meezan Foods"
+                        [(ngModel)]="branch.storefrontTitle"
+                        [disabled]="saving"
+                    />
+                </div>
+            </div>
+            <div *ngIf="customStorefrontUrl" class="text-sm">
+                Live storefront:
+                <a [href]="customStorefrontUrl" target="_blank" rel="noopener">{{ customStorefrontUrl }}</a>
+            </div>
+        </div>
+
         <div class="grid">
             <div class="col-12 md:col-4 flex flex-column gap-2">
                 <label for="facebookUrl" class="font-medium">Facebook URL</label>

@@ -32,6 +32,10 @@ export interface BranchDto {
     invoiceContactPhone?: string;
     taxNumber?: string;
     website?: string;
+    /** Custom storefront hostname without protocol (e.g. almeezanfoods.com). */
+    customDomain?: string;
+    /** Public brand title for SEO on the custom-domain storefront. */
+    storefrontTitle?: string;
     facebookUrl?: string;
     instagramUrl?: string;
     youtubeUrl?: string;
@@ -62,6 +66,8 @@ export interface CreateBranchDto {
     invoiceContactPhone?: string;
     taxNumber?: string;
     website?: string;
+    customDomain?: string;
+    storefrontTitle?: string;
     facebookUrl?: string;
     instagramUrl?: string;
     youtubeUrl?: string;

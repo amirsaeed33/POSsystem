@@ -1,6 +1,16 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Public product landing (Cursor-style dark page) — no staff layout chrome */
+body.aljannat-landing-active {
+  background: #09090b !important;
+  color: #f4f4f5;
+}
+
+body.aljannat-landing-active .layout-config-button {
+  display: none !important;
+}
 /* You can add global styles to this file, and also import other style files */
 $gutter: 1rem; //for primeflex grid system
 

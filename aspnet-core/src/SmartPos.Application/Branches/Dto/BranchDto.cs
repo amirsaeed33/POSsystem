@@ -59,6 +59,14 @@ namespace SmartPos.Branches.Dto
         [StringLength(Branch.MaxWebsiteLength)]
         public string Website { get; set; }
 
+        /// <summary>Custom storefront hostname without protocol (e.g. almeezanfoods.com).</summary>
+        [StringLength(Branch.MaxCustomDomainLength)]
+        public string CustomDomain { get; set; }
+
+        /// <summary>Public brand title used for SEO on the custom-domain storefront.</summary>
+        [StringLength(Branch.MaxStorefrontTitleLength)]
+        public string StorefrontTitle { get; set; }
+
         [StringLength(Branch.MaxWebsiteLength)]
         public string FacebookUrl { get; set; }
 

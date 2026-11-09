@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -29,6 +30,19 @@ namespace SmartPos.Developers
             GetAllPermissionName = PermissionNames.Pages_Developers;
         }
 
+        /// <summary>Public landing page: active developers only (no auth).</summary>
+        [AbpAllowAnonymous]
+        public async Task<List<DeveloperDto>> GetPublicDevelopersAsync()
+        {
+            var rows = await Repository.GetAll()
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ToListAsync();
+
+            return rows.Select(MapToEntityDto).ToList();
+        }
+
         protected override IQueryable<Developer> CreateFilteredQuery(PagedDeveloperResultRequestDto input)
         {
             return Repository.GetAll()
@@ -49,7 +63,7 @@ namespace SmartPos.Developers
                 return base.ApplySorting(query, input);
             }
 
-            return query.OrderBy(x => x.SortOrder).ThenBy(x => x.Name);
+            return query.OrderBy(x => x.SortOrder);
         }
 
         public override async Task<DeveloperDto> CreateAsync(CreateDeveloperDto input)

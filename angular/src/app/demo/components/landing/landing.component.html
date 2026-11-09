@@ -1,0 +1,499 @@
+<div class="landing-page" [class.landing-page--scrolled]="scrolled">
+    <div class="landing-nav surface-card border-bottom-1 surface-border px-3 md:px-4 py-3">
+        <div class="landing-shell flex align-items-center justify-content-between gap-3">
+            <a routerLink="/product" class="landing-brand flex align-items-center gap-2 text-900 no-underline">
+                <span class="landing-logo flex align-items-center justify-content-center border-round">
+                    <i class="pi pi-box text-primary"></i>
+                </span>
+                <span class="font-bold text-xl">Al Jannat</span>
+            </a>
+
+            <div class="hidden md:flex align-items-center gap-2">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    class="p-button-text p-button-secondary"
+                    label="Product"
+                    (click)="scrollTo('product')"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    class="p-button-text p-button-secondary"
+                    label="Mobile"
+                    (click)="scrollTo('mobile')"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    class="p-button-text p-button-secondary"
+                    label="How it works"
+                    (click)="scrollTo('how')"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    class="p-button-text p-button-secondary"
+                    label="Pricing"
+                    (click)="scrollTo('pricing')"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    class="p-button-text p-button-secondary"
+                    label="Developers"
+                    (click)="scrollTo('developers')"
+                ></button>
+            </div>
+
+            <div class="flex align-items-center gap-2">
+                <a
+                    routerLink="/auth/login"
+                    pButton
+                    pRipple
+                    class="p-button-text p-button-secondary"
+                    label="Log in"
+                ></a>
+                <a
+                    routerLink="/auth/signup"
+                    pButton
+                    pRipple
+                    label="Start free"
+                ></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="landing-shell px-3 md:px-4 py-4 md:py-5">
+        <section
+            class="card mb-4 landing-hero"
+            data-reveal="hero"
+            [class.landing-reveal--in]="visible.hero"
+        >
+            <div class="landing-hero-glow" aria-hidden="true"></div>
+            <div class="grid align-items-center">
+                <div class="col-12 lg:col-7">
+                    <div class="landing-anim landing-anim--1 text-primary font-bold mb-2">
+                        Al Jannat
+                    </div>
+                    <h1 class="landing-anim landing-anim--2 text-900 font-bold mt-0 mb-3 line-height-3 landing-title">
+                        Your operating system for restaurants &amp; retail shops
+                    </h1>
+                    <p class="landing-anim landing-anim--3 text-color-secondary text-lg mb-4 line-height-3 m-0">
+                        Counter, kitchen, online orders, and delivery — plus mobile apps for
+                        Customer, Rider, Waiter, and Admin.
+                    </p>
+                    <div class="landing-anim landing-anim--4 flex flex-wrap gap-2">
+                        <a routerLink="/auth/signup" pButton pRipple label="Start free" icon="pi pi-arrow-right" iconPos="right"></a>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            class="p-button-outlined"
+                            label="See product"
+                            icon="pi pi-eye"
+                            (click)="scrollTo('product')"
+                        ></button>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            class="p-button-text"
+                            label="Mobile apps"
+                            icon="pi pi-mobile"
+                            (click)="scrollTo('mobile')"
+                        ></button>
+                    </div>
+                </div>
+                <div class="col-12 lg:col-5">
+                    <div class="landing-anim landing-anim--5 landing-preview surface-ground border-round-xl p-3 border-1 surface-border">
+                        <div class="flex align-items-center gap-2 mb-3">
+                            <span class="landing-dot"></span>
+                            <span class="landing-dot landing-dot--amber"></span>
+                            <span class="landing-dot landing-dot--green"></span>
+                            <span class="text-sm text-color-secondary ml-2">Al Jannat · POS</span>
+                        </div>
+                        <div class="grid">
+                            <div class="col-5">
+                                <div class="surface-card border-round p-2 text-sm landing-preview-panel">
+                                    <div class="font-bold mb-2">Floor</div>
+                                    <div class="text-color-secondary mb-1">Table 7 · Open</div>
+                                    <div class="text-color-secondary mb-1">Table 3 · Bill</div>
+                                    <div class="text-primary font-semibold landing-pulse-text">Takeaway #184</div>
+                                </div>
+                            </div>
+                            <div class="col-7">
+                                <div class="surface-card border-round p-2 text-sm landing-preview-panel landing-preview-panel--ticket">
+                                    <div class="font-bold mb-2">Ticket #184</div>
+                                    <div class="flex justify-content-between mb-1"><span>Chicken Karahi</span><span>1,850</span></div>
+                                    <div class="flex justify-content-between mb-1"><span>Naan × 4</span><span>200</span></div>
+                                    <div class="flex justify-content-between font-bold border-top-1 surface-border pt-2 mt-2">
+                                        <span>Total</span><span>Rs 2,050</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section
+            id="product"
+            class="mb-4 landing-section"
+            data-reveal="product"
+            [class.landing-reveal--in]="visible.product"
+        >
+            <div class="mb-3 landing-section-head">
+                <div class="text-primary font-bold mb-1">Product</div>
+                <h2 class="m-0 text-900">Modules that match your shop floor</h2>
+            </div>
+            <div class="grid">
+                <div
+                    class="col-12 sm:col-6 xl:col-3"
+                    *ngFor="let m of modules; let i = index"
+                    [style.--i]="i"
+                >
+                    <div class="card h-full mb-0 landing-card">
+                        <div class="landing-icon mb-3 flex align-items-center justify-content-center border-round">
+                            <i class="pi text-xl text-primary" [ngClass]="m.icon"></i>
+                        </div>
+                        <h3 class="mt-0 mb-2 text-900">{{ m.title }}</h3>
+                        <p class="m-0 text-color-secondary line-height-3">{{ m.text }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section
+            id="mobile"
+            class="mb-4 landing-section"
+            data-reveal="mobile"
+            [class.landing-reveal--in]="visible.mobile"
+        >
+            <div class="mb-3 landing-section-head">
+                <div class="text-primary font-bold mb-1">Mobile apps</div>
+                <h2 class="m-0 text-900">One system on every phone</h2>
+                <p class="text-color-secondary mt-2 mb-0 line-height-3">
+                    Native mobile apps for Customer, Rider, Waiter, and Admin — connected to the same Al Jannat backend.
+                </p>
+            </div>
+            <div class="grid">
+                <div
+                    class="col-12 sm:col-6 xl:col-3"
+                    *ngFor="let app of mobileApps; let i = index"
+                    [style.--i]="i"
+                >
+                    <div class="card h-full mb-0 landing-card landing-mobile-card">
+                        <div class="landing-icon mb-3 flex align-items-center justify-content-center border-round">
+                            <i class="pi text-xl text-primary" [ngClass]="app.icon"></i>
+                        </div>
+                        <div class="landing-mobile-role mb-2">
+                            <i class="pi pi-mobile mr-1"></i>
+                            App
+                        </div>
+                        <h3 class="mt-0 mb-2 text-900">{{ app.title }}</h3>
+                        <p class="m-0 text-color-secondary line-height-3">{{ app.text }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section
+            id="how"
+            class="mb-4 landing-section"
+            data-reveal="how"
+            [class.landing-reveal--in]="visible.how"
+        >
+            <div class="mb-3 landing-section-head">
+                <div class="text-primary font-bold mb-1">How it works</div>
+                <h2 class="m-0 text-900">Go live in four steps</h2>
+            </div>
+            <div class="grid">
+                <div
+                    class="col-12 sm:col-6 xl:col-3"
+                    *ngFor="let s of steps; let i = index"
+                    [style.--i]="i"
+                >
+                    <div class="card h-full mb-0 landing-card">
+                        <div class="flex align-items-center gap-2 mb-3">
+                            <span class="landing-step-num">{{ i + 1 }}</span>
+                            <i class="pi text-primary" [ngClass]="s.icon"></i>
+                        </div>
+                        <h3 class="mt-0 mb-2 text-900">{{ s.title }}</h3>
+                        <p class="m-0 text-color-secondary line-height-3">{{ s.text }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section
+            id="pricing"
+            class="mb-4 landing-section"
+            data-reveal="pricing"
+            [class.landing-reveal--in]="visible.pricing"
+        >
+            <div class="mb-3 landing-section-head">
+                <div class="text-primary font-bold mb-1">Pricing</div>
+                <h2 class="m-0 text-900">Simple plans in PKR</h2>
+            </div>
+            <div class="grid">
+                <div
+                    class="col-12 md:col-4"
+                    *ngFor="let p of plans; let i = index"
+                    [style.--i]="i"
+                >
+                    <div
+                        class="card h-full mb-0 flex flex-column landing-card"
+                        [class.landing-plan--featured]="p.featured"
+                    >
+                        <div class="flex align-items-center justify-content-between mb-2">
+                            <h3 class="m-0 text-900">{{ p.name }}</h3>
+                            <span *ngIf="p.featured" class="landing-badge">Popular</span>
+                        </div>
+                        <p class="text-color-secondary mb-3">{{ p.blurb }}</p>
+                        <div class="mb-3">
+                            <span class="text-4xl font-bold text-900" *ngIf="p.price !== 'Custom'">Rs {{ p.price }}</span>
+                            <span class="text-4xl font-bold text-900" *ngIf="p.price === 'Custom'">{{ p.price }}</span>
+                            <span class="text-color-secondary ml-1" *ngIf="p.period">{{ p.period }}</span>
+                        </div>
+                        <ul class="list-none p-0 m-0 mb-4 flex-1">
+                            <li
+                                class="flex align-items-start gap-2 mb-2 text-700"
+                                *ngFor="let f of p.features"
+                            >
+                                <i class="pi pi-check text-green-500 mt-1"></i>
+                                <span>{{ f }}</span>
+                            </li>
+                        </ul>
+                        <a
+                            pButton
+                            pRipple
+                            [label]="p.cta"
+                            [class]="p.featured ? '' : 'p-button-outlined'"
+                            [href]="planCtaHref(p)"
+                            [attr.target]="planCtaExternal(p) ? '_blank' : null"
+                            rel="noopener"
+                        ></a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section
+            id="developers"
+            class="mb-4 landing-section"
+            data-reveal="developers"
+            [class.landing-reveal--in]="visible.developers"
+            *ngIf="developersLoading || developers.length"
+        >
+            <div class="mb-3 landing-section-head">
+                <div class="text-primary font-bold mb-1">Developers</div>
+                <h2 class="m-0 text-900">Built &amp; supported locally</h2>
+            </div>
+
+            <div *ngIf="developersLoading" class="flex justify-content-center align-items-center py-6 text-500">
+                <i class="pi pi-spin pi-spinner text-2xl mr-2"></i>
+                Loading developers…
+            </div>
+
+            <div *ngIf="!developersLoading && developers.length" class="grid">
+                <div
+                    class="col-12 sm:col-6 lg:col-4 xl:col-3"
+                    *ngFor="let d of developers; let i = index"
+                    [style.--i]="i"
+                >
+                    <article class="dev-card h-full flex flex-column landing-card">
+                        <div class="dev-card__cover">
+                            <img
+                                *ngIf="coverUrl(d) as cover; else coverFallback"
+                                [src]="cover"
+                                [alt]="d.name"
+                                class="dev-card__cover-img"
+                            />
+                            <ng-template #coverFallback>
+                                <div class="dev-card__cover-fallback"></div>
+                            </ng-template>
+
+                            <div class="dev-card__avatar-wrap">
+                                <img
+                                    *ngIf="profileUrl(d) as avatar; else avatarFallback"
+                                    [src]="avatar"
+                                    [alt]="d.name"
+                                    class="dev-card__avatar"
+                                />
+                                <ng-template #avatarFallback>
+                                    <div class="dev-card__avatar-fallback">
+                                        {{ initials(d) }}
+                                    </div>
+                                </ng-template>
+                            </div>
+                        </div>
+
+                        <div class="dev-card__body flex flex-column flex-1">
+                            <h3 class="dev-card__title m-0 mb-2">{{ d.name }}</h3>
+
+                            <p class="dev-card__desc" *ngIf="d.description">
+                                {{ d.description }}
+                            </p>
+
+                            <div class="dev-card__meta flex flex-column gap-2 mb-3">
+                                <a
+                                    class="dev-meta-row no-underline"
+                                    *ngIf="d.email"
+                                    [href]="emailHref(d.email)"
+                                >
+                                    <i class="pi pi-envelope"></i>
+                                    <span>{{ d.email }}</span>
+                                </a>
+                                <a
+                                    class="dev-meta-row no-underline"
+                                    *ngIf="d.phoneNumber"
+                                    [href]="phoneHref(d.phoneNumber)"
+                                >
+                                    <i class="pi pi-phone"></i>
+                                    <span>{{ d.phoneNumber }}</span>
+                                </a>
+                            </div>
+
+                            <div class="dev-card__edu mb-3" *ngIf="educationLines(d).length">
+                                <div class="dev-section-label">Education</div>
+                                <ul class="dev-edu-list">
+                                    <li *ngFor="let line of educationLines(d)">{{ line }}</li>
+                                </ul>
+                            </div>
+
+                            <div class="dev-card__tags mb-3" *ngIf="tagList(d).length">
+                                <span class="dev-tag" *ngFor="let tag of tagList(d)">{{ tag }}</span>
+                            </div>
+
+                            <div class="flex flex-wrap gap-2 mt-auto" *ngIf="d.phoneNumber">
+                                <a
+                                    pButton
+                                    pRipple
+                                    icon="pi pi-whatsapp"
+                                    class="p-button-rounded p-button-sm"
+                                    [href]="whatsappHref(d.phoneNumber)"
+                                    target="_blank"
+                                    rel="noopener"
+                                    pTooltip="WhatsApp"
+                                    tooltipPosition="top"
+                                    [attr.aria-label]="'WhatsApp ' + d.phoneNumber"
+                                ></a>
+                                <a
+                                    pButton
+                                    pRipple
+                                    icon="pi pi-phone"
+                                    class="p-button-outlined p-button-rounded p-button-sm"
+                                    [href]="phoneHref(d.phoneNumber)"
+                                    pTooltip="{{ d.phoneNumber }}"
+                                    tooltipPosition="top"
+                                    [attr.aria-label]="'Call ' + d.phoneNumber"
+                                ></a>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section
+            class="card mb-4 text-center landing-cta"
+            data-reveal="cta"
+            [class.landing-reveal--in]="visible.cta"
+        >
+            <h2 class="mt-0 mb-3 text-900">Try Al Jannat now</h2>
+            <p class="text-color-secondary mb-4">
+                Create your account and set up your first branch in minutes.
+            </p>
+            <a routerLink="/auth/signup" pButton pRipple label="Start free" icon="pi pi-arrow-right" iconPos="right"></a>
+        </section>
+    </div>
+
+    <footer
+        class="landing-footer"
+        id="footer"
+        data-reveal="footer"
+        [class.landing-reveal--in]="visible.footer"
+    >
+        <div class="landing-shell px-3 md:px-4">
+            <div class="landing-footer-grid">
+                <div class="landing-footer-brand">
+                    <div class="flex align-items-center gap-2 mb-3">
+                        <span class="landing-logo flex align-items-center justify-content-center border-round">
+                            <i class="pi pi-box text-primary"></i>
+                        </span>
+                        <div>
+                            <div class="font-bold text-900 text-xl">Al Jannat</div>
+                            <div class="text-color-secondary text-sm">POS · Online orders · Delivery</div>
+                        </div>
+                    </div>
+                    <p class="text-color-secondary line-height-3 m-0 mb-3">
+                        Built for Pakistani restaurants and retail shops — counter billing, kitchen,
+                        online storefront, and riders in one product.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="landing-footer-chip"><i class="pi pi-mobile"></i> Customer · Rider · Waiter · Admin</span>
+                        <span class="landing-footer-chip"><i class="pi pi-globe"></i> Custom domains</span>
+                        <span class="landing-footer-chip"><i class="pi pi-shop"></i> Multi-branch</span>
+                    </div>
+                </div>
+
+                <div class="landing-footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><button type="button" (click)="scrollTo('product')">Modules</button></li>
+                        <li><button type="button" (click)="scrollTo('mobile')">Mobile apps</button></li>
+                        <li><button type="button" (click)="scrollTo('how')">How it works</button></li>
+                        <li><button type="button" (click)="scrollTo('pricing')">Pricing</button></li>
+                        <li><button type="button" (click)="scrollTo('developers')">Developers</button></li>
+                    </ul>
+                </div>
+
+                <div class="landing-footer-col">
+                    <h4>Get started</h4>
+                    <ul>
+                        <li><a routerLink="/online-order">Online store</a></li>
+                        <li><a routerLink="/auth/signup">Create account</a></li>
+                        <li><a routerLink="/auth/login">Log in</a></li>
+                    </ul>
+                </div>
+
+                <div class="landing-footer-col">
+                    <h4>Contact</h4>
+                    <ul class="landing-footer-contact" *ngIf="primaryDeveloper as d">
+                        <li *ngIf="d.name">
+                            <i class="pi pi-user"></i>
+                            <span>{{ d.name }}</span>
+                        </li>
+                        <li *ngIf="d.phoneNumber">
+                            <i class="pi pi-phone"></i>
+                            <a [href]="phoneHref(d.phoneNumber)">{{ d.phoneNumber }}</a>
+                        </li>
+                        <li *ngIf="d.email">
+                            <i class="pi pi-envelope"></i>
+                            <a [href]="emailHref(d.email)">{{ d.email }}</a>
+                        </li>
+                        <li *ngIf="d.phoneNumber">
+                            <i class="pi pi-whatsapp"></i>
+                            <a [href]="whatsappHref(d.phoneNumber)" target="_blank" rel="noopener">WhatsApp</a>
+                        </li>
+                    </ul>
+                    <p class="text-color-secondary text-sm m-0" *ngIf="!primaryDeveloper">
+                        Developer contacts will appear here once published.
+                    </p>
+                </div>
+            </div>
+
+            <div class="landing-footer-copy">
+                <span>© {{ currentYear }} Al Jannat. All rights reserved.</span>
+                <a routerLink="/online-order">Order online</a>
+            </div>
+        </div>
+    </footer>
+</div>

@@ -168,6 +168,16 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         );
     }
 
+    /** Topbar branch dropdown — only when switch is allowed and there are 2+ branches. */
+    get showBranchSwitcher(): boolean {
+        return (
+            !this.isWaiter &&
+            !this.isDeliveryRider &&
+            this.canSwitchLocations &&
+            (this.branches?.length || 0) > 1
+        );
+    }
+
     get locationLabel(): string {
         return this.currentBranch?.name || 'Select location';
     }
@@ -827,6 +837,10 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
 
     navigateToSales(): void {
         this.router.navigate(['/sales']);
+    }
+
+    openDisplaySettings(): void {
+        this.layoutService.showConfigSidebar();
     }
 
     onSignOut(): void {
