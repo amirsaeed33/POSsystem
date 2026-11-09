@@ -136,6 +136,11 @@ export const PermissionNames = {
     DevelopersEdit: 'Pages.Developers.Edit',
     DevelopersDelete: 'Pages.Developers.Delete',
 
+    Packages: 'Pages.Packages',
+    PackagesCreate: 'Pages.Packages.Create',
+    PackagesEdit: 'Pages.Packages.Edit',
+    PackagesDelete: 'Pages.Packages.Delete',
+
     NotificationSettings: 'Pages.NotificationSettings',
     NotificationSettingsEdit: 'Pages.NotificationSettings.Edit',
 

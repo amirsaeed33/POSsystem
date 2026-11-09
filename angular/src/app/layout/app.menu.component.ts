@@ -279,6 +279,7 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                     { label: 'Lookups', icon: 'pi pi-list', routerLink: ['/lookups'], permission: PermissionNames.LookUps },
                     { label: 'Company types', icon: 'pi pi-building', routerLink: ['/host-catalog'], permission: PermissionNames.HostCatalog },
                     { label: 'Developers', icon: 'pi pi-code', routerLink: ['/developers'], permission: PermissionNames.Developers },
+                    { label: 'Packages', icon: 'pi pi-box', routerLink: ['/packages'], permission: PermissionNames.Packages },
                     { label: 'Email Templates', icon: 'pi pi-envelope', routerLink: ['/email-templates'], permission: PermissionNames.EmailTemplates },
                     { label: 'Tenants', icon: 'pi pi-globe', routerLink: ['/tenants'], permission: PermissionNames.Tenants },
                 ]

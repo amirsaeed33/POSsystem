@@ -1,0 +1,228 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="pkg-page">
+    <div class="flex flex-wrap gap-2 align-items-center justify-content-between mb-4">
+        <div class="flex flex-wrap gap-2 align-items-center">
+            <span class="p-input-icon-left w-full sm:w-20rem">
+                <i class="pi pi-search"></i>
+                <input
+                    pInputText
+                    type="text"
+                    class="w-full"
+                    placeholder="Search packages"
+                    [(ngModel)]="keyword"
+                    (keyup.enter)="onSearch()"
+                />
+            </span>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-search"
+                class="p-button-outlined"
+                label="Search"
+                (click)="onSearch()"
+            ></button>
+        </div>
+        <button
+            *ngIf="canCreate"
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-plus"
+            label="Create"
+            class="p-button-outlined w-full sm:w-auto"
+            (click)="openCreate()"
+        ></button>
+    </div>
+
+    <div *ngIf="loading" class="flex justify-content-center align-items-center py-6 text-500">
+        <i class="pi pi-spin pi-spinner text-2xl mr-2"></i>
+        Loading packages…
+    </div>
+
+    <div
+        *ngIf="!loading && !packages.length"
+        class="surface-card border-round-xl p-5 text-center text-500"
+    >
+        <i class="pi pi-box text-4xl mb-3 block text-400"></i>
+        No packages yet. Click Create to add pricing plans for the product page.
+    </div>
+
+    <div *ngIf="!loading && packages.length" class="grid">
+        <div
+            class="col-12 md:col-6 xl:col-4"
+            *ngFor="let pkg of packages; let i = index"
+        >
+            <article
+                class="pkg-card h-full flex flex-column"
+                [class.pkg-card--inactive]="pkg.isActive === false"
+                [class.pkg-card--featured]="pkg.isFeatured"
+                [style.animation-delay.ms]="i * 40"
+            >
+                <div class="flex align-items-start justify-content-between gap-2 mb-2">
+                    <div class="min-w-0">
+                        <div class="flex align-items-center gap-2 flex-wrap">
+                            <h3 class="pkg-card__title m-0">{{ pkg.name }}</h3>
+                            <span *ngIf="pkg.isFeatured" class="pkg-badge pkg-badge--featured">Featured</span>
+                            <span
+                                class="pkg-badge"
+                                [class.pkg-badge--ok]="pkg.isActive !== false"
+                                [class.pkg-badge--muted]="pkg.isActive === false"
+                            >
+                                {{ pkg.isActive === false ? 'Inactive' : 'Active' }}
+                            </span>
+                        </div>
+                        <div class="pkg-card__price mt-2">
+                            <ng-container *ngIf="pkg.price !== 'Custom'; else customPrice">
+                                Rs {{ pkg.price }}
+                            </ng-container>
+                            <ng-template #customPrice>{{ pkg.price }}</ng-template>
+                            <span class="pkg-card__period" *ngIf="pkg.period">{{ pkg.period }}</span>
+                        </div>
+                    </div>
+                    <app-row-actions
+                        *ngIf="canEdit || canDelete"
+                        mode="inline"
+                        [items]="getRowActions(pkg)"
+                    ></app-row-actions>
+                </div>
+
+                <p class="pkg-card__blurb" *ngIf="pkg.blurb">{{ pkg.blurb }}</p>
+
+                <ul class="pkg-card__features" *ngIf="featureLines(pkg).length">
+                    <li *ngFor="let line of featureLines(pkg)">
+                        <i class="pi pi-check"></i>
+                        <span>{{ line }}</span>
+                    </li>
+                </ul>
+
+                <div class="pkg-card__meta mt-auto">
+                    <span>Sort {{ pkg.sortOrder ?? 0 }}</span>
+                    <span>{{ pkg.ctaLabel || 'Get started' }}</span>
+                    <span *ngIf="pkg.contactViaWhatsApp">WhatsApp CTA</span>
+                </div>
+            </article>
+        </div>
+    </div>
+</div>
+
+<p-dialog
+    [(visible)]="dialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '640px', maxWidth: '96vw' }"
+    [header]="editing ? 'Edit Package' : 'Create Package'"
+    (onHide)="closeDialog()"
+>
+    <div class="p-fluid" *ngIf="dialogVisible">
+        <div class="field">
+            <label for="pkgName">Name</label>
+            <input id="pkgName" pInputText [(ngModel)]="form.name" maxlength="128" />
+        </div>
+
+        <div class="formgrid grid">
+            <div class="field col-12 md:col-6">
+                <label for="pkgPrice">Price</label>
+                <input
+                    id="pkgPrice"
+                    pInputText
+                    [(ngModel)]="form.price"
+                    maxlength="64"
+                    placeholder="4,999 or Custom"
+                />
+            </div>
+            <div class="field col-12 md:col-6">
+                <label for="pkgPeriod">Period</label>
+                <input
+                    id="pkgPeriod"
+                    pInputText
+                    [(ngModel)]="form.period"
+                    maxlength="64"
+                    placeholder="/ month"
+                />
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="pkgBlurb">Blurb</label>
+            <input id="pkgBlurb" pInputText [(ngModel)]="form.blurb" maxlength="512" />
+        </div>
+
+        <div class="field">
+            <label for="pkgFeatures">Features (one per line)</label>
+            <textarea
+                id="pkgFeatures"
+                pInputTextarea
+                [(ngModel)]="form.features"
+                rows="6"
+                maxlength="4000"
+            ></textarea>
+        </div>
+
+        <div class="formgrid grid">
+            <div class="field col-12 md:col-6">
+                <label for="pkgCta">CTA label</label>
+                <input id="pkgCta" pInputText [(ngModel)]="form.ctaLabel" maxlength="64" />
+            </div>
+            <div class="field col-12 md:col-6">
+                <label for="pkgSort">Sort order</label>
+                <p-inputNumber
+                    inputId="pkgSort"
+                    [(ngModel)]="form.sortOrder"
+                    [useGrouping]="false"
+                ></p-inputNumber>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3 mb-3">
+            <div class="flex align-items-center">
+                <p-checkbox
+                    [(ngModel)]="form.isFeatured"
+                    [binary]="true"
+                    inputId="pkgFeatured"
+                ></p-checkbox>
+                <label for="pkgFeatured" class="ml-2">Featured</label>
+            </div>
+            <div class="flex align-items-center">
+                <p-checkbox
+                    [(ngModel)]="form.contactViaWhatsApp"
+                    [binary]="true"
+                    inputId="pkgWhatsapp"
+                ></p-checkbox>
+                <label for="pkgWhatsapp" class="ml-2">CTA opens WhatsApp</label>
+            </div>
+            <div class="flex align-items-center">
+                <p-checkbox
+                    [(ngModel)]="form.isActive"
+                    [binary]="true"
+                    inputId="pkgActive"
+                ></p-checkbox>
+                <label for="pkgActive" class="ml-2">Active</label>
+            </div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            class="p-button-text"
+            label="Cancel"
+            (click)="closeDialog()"
+            [disabled]="saving"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Save"
+            icon="pi pi-check"
+            (click)="save()"
+            [disabled]="saving"
+        ></button>
+    </ng-template>
+</p-dialog>

@@ -123,6 +123,14 @@ const routes: Routes = [
                         (m) => m.DevelopersModule
                     ),
             },
+            {
+                path: 'packages',
+                data: { breadcrumb: 'Packages', permission: PermissionNames.Packages },
+                loadChildren: () =>
+                    import('./demo/components/packages/packages.module').then(
+                        (m) => m.PackagesModule
+                    ),
+            },
             { path: 'email-templates', data: { breadcrumb: 'Email Templates', permission: PermissionNames.EmailTemplates }, loadChildren: () => import('./demo/components/email-templates/email-templates.module').then(m => m.EmailTemplatesModule) },
             { path: 'notification-settings', data: { breadcrumb: 'Notification Settings', permission: PermissionNames.NotificationSettings }, loadChildren: () => import('./demo/components/notification-settings/notification-settings.module').then(m => m.NotificationSettingsModule) },
             { path: 'tenants', data: { breadcrumb: 'Tenants', permission: PermissionNames.Tenants }, loadChildren: () => import('./demo/components/tenants/tenants.module').then(m => m.TenantsModule) },

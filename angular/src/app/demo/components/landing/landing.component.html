@@ -237,26 +237,33 @@
             class="mb-4 landing-section"
             data-reveal="pricing"
             [class.landing-reveal--in]="visible.pricing"
+            *ngIf="packagesLoading || packages.length"
         >
             <div class="mb-3 landing-section-head">
                 <div class="text-primary font-bold mb-1">Pricing</div>
                 <h2 class="m-0 text-900">Simple plans in PKR</h2>
             </div>
-            <div class="grid">
+
+            <div *ngIf="packagesLoading" class="flex justify-content-center align-items-center py-5 text-500">
+                <i class="pi pi-spin pi-spinner text-2xl mr-2"></i>
+                Loading packages…
+            </div>
+
+            <div class="grid" *ngIf="!packagesLoading && packages.length">
                 <div
                     class="col-12 md:col-4"
-                    *ngFor="let p of plans; let i = index"
+                    *ngFor="let p of packages; let i = index"
                     [style.--i]="i"
                 >
                     <div
                         class="card h-full mb-0 flex flex-column landing-card"
-                        [class.landing-plan--featured]="p.featured"
+                        [class.landing-plan--featured]="p.isFeatured"
                     >
                         <div class="flex align-items-center justify-content-between mb-2">
                             <h3 class="m-0 text-900">{{ p.name }}</h3>
-                            <span *ngIf="p.featured" class="landing-badge">Popular</span>
+                            <span *ngIf="p.isFeatured" class="landing-badge">Popular</span>
                         </div>
-                        <p class="text-color-secondary mb-3">{{ p.blurb }}</p>
+                        <p class="text-color-secondary mb-3" *ngIf="p.blurb">{{ p.blurb }}</p>
                         <div class="mb-3">
                             <span class="text-4xl font-bold text-900" *ngIf="p.price !== 'Custom'">Rs {{ p.price }}</span>
                             <span class="text-4xl font-bold text-900" *ngIf="p.price === 'Custom'">{{ p.price }}</span>
@@ -265,7 +272,7 @@
                         <ul class="list-none p-0 m-0 mb-4 flex-1">
                             <li
                                 class="flex align-items-start gap-2 mb-2 text-700"
-                                *ngFor="let f of p.features"
+                                *ngFor="let f of packageFeatures(p)"
                             >
                                 <i class="pi pi-check text-green-500 mt-1"></i>
                                 <span>{{ f }}</span>
@@ -274,8 +281,8 @@
                         <a
                             pButton
                             pRipple
-                            [label]="p.cta"
-                            [class]="p.featured ? '' : 'p-button-outlined'"
+                            [label]="p.ctaLabel || 'Get started'"
+                            [class]="p.isFeatured ? '' : 'p-button-outlined'"
                             [href]="planCtaHref(p)"
                             [attr.target]="planCtaExternal(p) ? '_blank' : null"
                             rel="noopener"

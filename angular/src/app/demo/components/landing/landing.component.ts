@@ -1,7 +1,9 @@
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { DeveloperDto } from 'src/app/demo/api/developer';
+import { PackageDto } from 'src/app/demo/api/package';
 import { AppSeoService } from 'src/app/demo/service/app-seo.service';
 import { DeveloperService } from 'src/app/demo/service/developer.service';
+import { PackageService } from 'src/app/demo/service/package.service';
 
 type LandingRevealKey =
     | 'hero'
@@ -24,6 +26,8 @@ export class LandingComponent implements OnInit, OnDestroy {
     scrolled = false;
     developers: DeveloperDto[] = [];
     developersLoading = false;
+    packages: PackageDto[] = [];
+    packagesLoading = false;
 
     visible: Record<LandingRevealKey, boolean> = {
         hero: false,
@@ -35,54 +39,6 @@ export class LandingComponent implements OnInit, OnDestroy {
         cta: false,
         footer: false,
     };
-
-    readonly plans = [
-        {
-            name: 'Starter',
-            price: '4,999',
-            period: '/ month',
-            blurb: 'Single shop POS + online menu',
-            features: [
-                '1 branch / location',
-                'POS billing & stock',
-                'Online order page',
-                'Basic sales reports',
-                'Email support',
-            ],
-            cta: 'Get Starter',
-            featured: false,
-        },
-        {
-            name: 'Business',
-            price: '9,999',
-            period: '/ month',
-            blurb: 'Restaurant + delivery operations',
-            features: [
-                'Up to 3 branches',
-                'Kitchen KOT & tables',
-                'Riders & delivery zones',
-                'Custom domain storefront',
-                'Priority WhatsApp support',
-            ],
-            cta: 'Most popular',
-            featured: true,
-        },
-        {
-            name: 'Enterprise',
-            price: 'Custom',
-            period: '',
-            blurb: 'Multi-tenant & brand networks',
-            features: [
-                'Unlimited branches',
-                'Host catalog & approvals',
-                'White-label domains',
-                'Training & onboarding',
-                'Dedicated support',
-            ],
-            cta: 'Talk to us',
-            featured: false,
-        },
-    ];
 
     readonly steps = [
         {
@@ -157,7 +113,8 @@ export class LandingComponent implements OnInit, OnDestroy {
 
     constructor(
         private seo: AppSeoService,
-        private developerService: DeveloperService
+        private developerService: DeveloperService,
+        private packageService: PackageService
     ) {}
 
     get primaryDeveloper(): DeveloperDto | null {
@@ -193,6 +150,7 @@ export class LandingComponent implements OnInit, OnDestroy {
         this.visible.hero = true;
 
         void this.loadDevelopers();
+        void this.loadPackages();
         setTimeout(() => this.setupReveal(), 40);
     }
 
@@ -265,8 +223,15 @@ export class LandingComponent implements OnInit, OnDestroy {
             .filter(Boolean);
     }
 
-    planCtaHref(plan: { featured: boolean; price: string }): string {
-        if (plan.featured || plan.price === 'Custom') {
+    packageFeatures(pkg: PackageDto): string[] {
+        return (pkg.features || '')
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter(Boolean);
+    }
+
+    planCtaHref(pkg: PackageDto): string {
+        if (pkg.contactViaWhatsApp || pkg.isFeatured || pkg.price === 'Custom') {
             return this.contactWhatsapp !== '#'
                 ? this.contactWhatsapp
                 : '/auth/signup';
@@ -274,9 +239,9 @@ export class LandingComponent implements OnInit, OnDestroy {
         return '/auth/signup';
     }
 
-    planCtaExternal(plan: { featured: boolean; price: string }): boolean {
+    planCtaExternal(pkg: PackageDto): boolean {
         return (
-            (plan.featured || plan.price === 'Custom') &&
+            !!(pkg.contactViaWhatsApp || pkg.isFeatured || pkg.price === 'Custom') &&
             this.contactWhatsapp !== '#'
         );
     }
@@ -321,6 +286,18 @@ export class LandingComponent implements OnInit, OnDestroy {
             this.developers = [];
         } finally {
             this.developersLoading = false;
+            setTimeout(() => this.setupReveal(), 40);
+        }
+    }
+
+    private async loadPackages(): Promise<void> {
+        this.packagesLoading = true;
+        try {
+            this.packages = await this.packageService.getPublicPackages();
+        } catch {
+            this.packages = [];
+        } finally {
+            this.packagesLoading = false;
             setTimeout(() => this.setupReveal(), 40);
         }
     }
