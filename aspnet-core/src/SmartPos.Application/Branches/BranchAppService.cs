@@ -178,6 +178,12 @@ namespace SmartPos.Branches
             branch.InstagramUrl = input.InstagramUrl;
             branch.YoutubeUrl = input.YoutubeUrl;
             branch.InvoiceFooter = input.InvoiceFooter;
+            branch.CustomerFeedbackName = NullIfWhiteSpace(input.CustomerFeedbackName);
+            branch.CustomerFeedbackRole = NullIfWhiteSpace(input.CustomerFeedbackRole);
+            branch.CustomerFeedbackCity = NullIfWhiteSpace(input.CustomerFeedbackCity);
+            branch.CustomerFeedbackComment = NullIfWhiteSpace(input.CustomerFeedbackComment);
+            branch.CustomerFeedbackRating = Math.Max(0, Math.Min(5, input.CustomerFeedbackRating));
+            branch.ShowCustomerFeedback = input.ShowCustomerFeedback;
             // Software developer branding is host/super-admin only (not branch/tenant admin).
             if (AbpSession.TenantId == null)
             {
@@ -568,6 +574,39 @@ namespace SmartPos.Branches
                 await _branchCatalogSeedService.ApproveAndCopyAsync(branch, AbpSession.UserId);
                 await SendBranchActivationEmailAsync(branch);
                 return await GetAsync(new EntityDto<int>(branch.Id));
+            }
+        }
+
+        /// <summary>Public product landing: active branches with showcase feedback enabled.</summary>
+        [AbpAllowAnonymous]
+        public async Task<List<BranchPublicFeedbackDto>> GetPublicFeedbacksAsync()
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var rows = await Repository.GetAll()
+                    .AsNoTracking()
+                    .Where(b =>
+                        b.IsActive
+                        && b.ShowCustomerFeedback
+                        && b.CustomerFeedbackComment != null
+                        && b.CustomerFeedbackComment != string.Empty
+                        && b.CustomerFeedbackName != null
+                        && b.CustomerFeedbackName != string.Empty)
+                    .OrderBy(b => b.Name)
+                    .Take(20)
+                    .ToListAsync();
+
+                return rows.Select(b => new BranchPublicFeedbackDto
+                {
+                    BranchId = b.Id,
+                    BranchName = b.Name,
+                    Name = b.CustomerFeedbackName,
+                    Role = b.CustomerFeedbackRole,
+                    Business = b.Name,
+                    City = b.CustomerFeedbackCity,
+                    Quote = b.CustomerFeedbackComment,
+                    Rating = b.CustomerFeedbackRating > 0 ? b.CustomerFeedbackRating : 5,
+                }).ToList();
             }
         }
 

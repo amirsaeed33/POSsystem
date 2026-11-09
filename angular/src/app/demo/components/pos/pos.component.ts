@@ -17,6 +17,7 @@ import {
     CreateOrUpdateRestaurantOrderDto,
     OrderType,
     OrderTypes,
+    RestaurantKitchenStatuses,
     RestaurantOrderDto,
     RestaurantOrderStatuses,
     SendToKitchenResultDto,
@@ -233,6 +234,9 @@ export class PosComponent implements OnInit, OnDestroy {
     activeRestaurantOrders: RestaurantOrderDto[] = [];
     loadingMyAssignedOrders = false;
     currentWaiterStaffId: number | null = null;
+    /** Ticks every second so My Assigned Orders shows a live elapsed timer. */
+    assignedOrdersNowMs = Date.now();
+    private assignedOrdersClockTimer: ReturnType<typeof setInterval> | null = null;
 
     // KOT Modal & Thermal print preview
     kotDialogVisible = false;
@@ -283,6 +287,8 @@ export class PosComponent implements OnInit, OnDestroy {
     completedReceiptVisible = false;
     completedReceipt: any = null;
     paidAmount = 0;
+    /** Table/car id while admin prints or settles from the tables dialog. */
+    tableBillBusyId: number | null = null;
 
     unpaidTakeawayOrders: UnpaidTakeawayOrderDto[] = [];
     unpaidTakeawayDialogVisible = false;
@@ -403,6 +409,159 @@ export class PosComponent implements OnInit, OnDestroy {
         );
     }
 
+    getMyAssignedOrderStatusLabel(table: RestaurantTableDto): string {
+        const order = this.getMyAssignedOrderForTable(table);
+        if (!order) {
+            if (table?.status === 2) {
+                return 'Billed';
+            }
+            return table?.statusName || (table?.status === 1 ? 'Occupied' : 'Open');
+        }
+        if (order.status === RestaurantOrderStatuses.Billed) {
+            return 'Billed';
+        }
+        if (order.kitchenStatus === RestaurantKitchenStatuses.ReadyToPick) {
+            return 'Ready to Pick';
+        }
+        if (order.kitchenStatus === RestaurantKitchenStatuses.InProgress) {
+            return 'In Progress';
+        }
+        return order.statusName || 'Open';
+    }
+
+    getMyAssignedOrderStatusClass(table: RestaurantTableDto): string {
+        const label = this.getMyAssignedOrderStatusLabel(table).toLowerCase();
+        if (label.includes('ready')) {
+            return 'is-ready';
+        }
+        if (label.includes('billed')) {
+            return 'is-billed';
+        }
+        if (label.includes('progress')) {
+            return 'is-progress';
+        }
+        return 'is-open';
+    }
+
+    getMyAssignedOrderElapsed(table: RestaurantTableDto): string {
+        void this.assignedOrdersNowMs; // keep template ticking every second
+        const start = this.getMyAssignedOrderStartMs(table);
+        if (!start) {
+            return '';
+        }
+        const totalSec = Math.max(
+            0,
+            Math.floor((this.assignedOrdersNowMs - start) / 1000)
+        );
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        if (mins < 1) {
+            return `${secs}s`;
+        }
+        if (mins < 60) {
+            return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+        }
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        return `${h}h ${m}m`;
+    }
+
+    isMyAssignedOrderLate(table: RestaurantTableDto): boolean {
+        const start = this.getMyAssignedOrderStartMs(table);
+        if (!start) {
+            return false;
+        }
+        return this.assignedOrdersNowMs - start > 20 * 60 * 1000;
+    }
+
+    private getMyAssignedOrderStartMs(table: RestaurantTableDto): number {
+        const order = this.getMyAssignedOrderForTable(table);
+        if (!order) {
+            return 0;
+        }
+        const candidates: number[] = [];
+        const created = this.parseOrderDateMs(
+            (order as any).creationTime ?? (order as any).CreationTime
+        );
+        if (created) {
+            candidates.push(created);
+        }
+        for (const line of order.lines || []) {
+            const sent = this.parseOrderDateMs(
+                (line as any).sentToKitchenTime ?? (line as any).SentToKitchenTime
+            );
+            if (sent) {
+                candidates.push(sent);
+            }
+        }
+        if (!candidates.length) {
+            return 0;
+        }
+        // Earliest timestamp = when the order/session actually started.
+        return Math.min(...candidates);
+    }
+
+    /**
+     * API datetimes are often server wall-clock values serialized with a trailing Z.
+     * That can place "create" slightly in the future and freeze the timer at 0s.
+     * Prefer the most recent parse that is still at-or-before now.
+     */
+    private parseOrderDateMs(value: any): number {
+        if (value == null || value === '') {
+            return 0;
+        }
+        if (value instanceof Date) {
+            const t = value.getTime();
+            return Number.isNaN(t) ? 0 : t;
+        }
+        const raw = String(value).trim();
+        if (!raw) {
+            return 0;
+        }
+        const asIs = Date.parse(raw);
+        const localWall = Date.parse(raw.replace(/([zZ]|[+-]\d{2}:\d{2})$/, ''));
+        const asUtc = /([zZ]|[+-]\d{2}:\d{2})$/.test(raw)
+            ? asIs
+            : Date.parse(raw.includes('T') ? `${raw}Z` : `${raw}T00:00:00Z`);
+
+        const now = this.assignedOrdersNowMs || Date.now();
+        const options: number[] = [asIs, localWall, asUtc].filter(
+            (t) => !!t && !Number.isNaN(t)
+        );
+        // If a Z/UTC parse sits in the future, try common host offsets (UTC+1 … +5).
+        if (!Number.isNaN(asIs) && asIs > now + 2000) {
+            for (let h = 1; h <= 5; h++) {
+                options.push(asIs - h * 3600_000);
+            }
+        }
+        if (!options.length) {
+            return 0;
+        }
+        const notFuture = options.filter((t) => t <= now + 2000);
+        if (notFuture.length) {
+            return Math.max(...notFuture);
+        }
+        return Math.min(...options);
+    }
+
+    private ensureAssignedOrdersClock(): void {
+        if (this.assignedOrdersClockTimer) {
+            return;
+        }
+        this.assignedOrdersNowMs = Date.now();
+        this.assignedOrdersClockTimer = setInterval(() => {
+            this.assignedOrdersNowMs = Date.now();
+            this.cdr.detectChanges();
+        }, 1000);
+    }
+
+    private stopAssignedOrdersClock(): void {
+        if (this.assignedOrdersClockTimer) {
+            clearInterval(this.assignedOrdersClockTimer);
+            this.assignedOrdersClockTimer = null;
+        }
+    }
+
     isAutoAssignWaiter(): boolean {
         if (!this.isRestaurantMode) return true;
         const branch = this.branchContext.getCurrentBranch();
@@ -412,6 +571,24 @@ export class PosComponent implements OnInit, OnDestroy {
 
     get currentPrinterText(): string {
         return this.authService.getPrinterIdentity().text;
+    }
+
+    /** Primary kitchen send label — dine-in/takeaway both dispatch a KOT ticket. */
+    get sendKotButtonLabel(): string {
+        if (this.isCarService) {
+            return '🚗 Send to Car (KOT)';
+        }
+        return '🍳 Send to KOT';
+    }
+
+    get sendKotButtonTitle(): string {
+        if (this.isCarService) {
+            return 'Send car order to kitchen KOT';
+        }
+        if (this.orderType === 'takeaway') {
+            return 'Send takeaway order to kitchen KOT';
+        }
+        return 'Send dine-in order to kitchen KOT';
     }
 
     get currentPrinterTime(): Date {
@@ -614,6 +791,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 await this.loadWaiters(branchId);
                 this.resolveCurrentWaiterStaffId();
                 this.loadTables(branchId);
+                this.ensureAssignedOrdersClock();
                 void this.loadMyAssignedOrders(branchId);
             } else if (this.takeawayAlarmService && !this.alarmOrdersSub) {
                 this.alarmOrdersSub = this.takeawayAlarmService.unpaidOrders$.subscribe((orders) => {
@@ -646,22 +824,63 @@ export class PosComponent implements OnInit, OnDestroy {
     async loadMyAssignedOrders(branchId?: number): Promise<void> {
         if (!this.isWaiter) {
             this.activeRestaurantOrders = [];
+            this.stopAssignedOrdersClock();
             return;
         }
         const bId = branchId || this.branchContext.getBranchId();
         if (!bId) {
             return;
         }
+        this.ensureAssignedOrdersClock();
         this.loadingMyAssignedOrders = true;
         try {
-            this.activeRestaurantOrders =
+            const list =
                 (await this.restaurantOrderService.getActiveOrders(bId)) || [];
+            this.activeRestaurantOrders = list.map((o) => this.normalizeAssignedOrder(o));
         } catch (err) {
             console.error('Failed to load waiter assigned orders', err);
             this.activeRestaurantOrders = [];
         } finally {
             this.loadingMyAssignedOrders = false;
+            this.cdr.detectChanges();
         }
+    }
+
+    private normalizeAssignedOrder(item: any): RestaurantOrderDto {
+        const lines = item?.lines ?? item?.Lines ?? [];
+        return {
+            ...(item || {}),
+            id: item?.id ?? item?.Id,
+            branchId: item?.branchId ?? item?.BranchId,
+            orderNo: item?.orderNo ?? item?.OrderNo,
+            tokenNo: item?.tokenNo ?? item?.TokenNo,
+            tableId: item?.tableId ?? item?.TableId,
+            tableNo: item?.tableNo ?? item?.TableNo,
+            orderType: item?.orderType ?? item?.OrderType,
+            orderTypeName: item?.orderTypeName ?? item?.OrderTypeName,
+            status: item?.status ?? item?.Status,
+            statusName: item?.statusName ?? item?.StatusName,
+            kitchenStatus: item?.kitchenStatus ?? item?.KitchenStatus,
+            kitchenStatusName: item?.kitchenStatusName ?? item?.KitchenStatusName,
+            waiterName: item?.waiterName ?? item?.WaiterName,
+            grandTotal: Number(item?.grandTotal ?? item?.GrandTotal ?? 0),
+            creationTime: item?.creationTime ?? item?.CreationTime,
+            billedTime: item?.billedTime ?? item?.BilledTime,
+            lines: (Array.isArray(lines) ? lines : []).map((line: any) => ({
+                ...(line || {}),
+                id: line?.id ?? line?.Id,
+                orderId: line?.orderId ?? line?.OrderId,
+                productId: line?.productId ?? line?.ProductId,
+                productName: line?.productName ?? line?.ProductName,
+                quantity: Number(line?.quantity ?? line?.Quantity ?? 0),
+                unitPrice: Number(line?.unitPrice ?? line?.UnitPrice ?? 0),
+                lineTotal: Number(line?.lineTotal ?? line?.LineTotal ?? 0),
+                sentToKitchenTime:
+                    line?.sentToKitchenTime ?? line?.SentToKitchenTime,
+                isSentToKitchen:
+                    line?.isSentToKitchen ?? line?.IsSentToKitchen ?? false,
+            })),
+        } as RestaurantOrderDto;
     }
 
     async openAssignedTable(table: RestaurantTableDto): Promise<void> {
@@ -1754,8 +1973,8 @@ export class PosComponent implements OnInit, OnDestroy {
                     severity: 'info',
                     summary: carBay ? 'Car Bay Selected' : 'Table Selected',
                     detail: carBay
-                        ? `${this.carServiceLabel} selected â€” select products and click "Send to Car".`
-                        : `Table ${table.tableNo} selected â€” select products and click "Send to Table".`,
+                        ? `${this.carServiceLabel} selected — select products and click "Send to KOT".`
+                        : `Table ${table.tableNo} selected — select products and click "Send to KOT".`,
                     life: 3000,
                 });
             }
@@ -2157,7 +2376,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Cart Empty',
-                detail: this.orderType === 'takeaway' ? 'Add food items before sending to KOT.' : 'Add food items before sending to the table.',
+                detail: 'Add food items before sending to KOT.',
             });
             return;
         }
@@ -2265,12 +2484,12 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.kotDialogVisible = true;
                 this.messageService.add({
                     severity: 'success',
-                    summary: isCar ? 'Sent to Car' : (isTakeaway ? 'Sent to KOT' : 'Sent to Table'),
+                    summary: isCar ? 'Sent to Car (KOT)' : 'Sent to KOT',
                     detail: isCar
-                        ? `Order sent to Car ${this.selectedCarName} (${this.selectedCarNumber}) (Order #${kotResult.orderNo})`
+                        ? `Order sent to Car ${this.selectedCarName} (${this.selectedCarNumber}) — kitchen KOT #${kotResult.orderNo}`
                         : (isTakeaway
                             ? `Takeaway order #${kotResult.orderNo} sent to kitchen KOT (Unpaid)`
-                            : `Order sent to Table ${kotResult.tableNo} (Order #${kotResult.orderNo})`),
+                            : `Table ${kotResult.tableNo || this.selectedTable?.tableNo || ''} order #${kotResult.orderNo} sent to kitchen KOT`),
                     life: 3500,
                 });
                 // Takeaway KOT is parked in unpaid list — clear cart so the next order can start immediately.
@@ -2306,6 +2525,142 @@ export class PosComponent implements OnInit, OnDestroy {
 
     sendToKitchen(): Promise<void> {
         return this.sendToTable();
+    }
+
+    canManageTableBill(table: RestaurantTableDto): boolean {
+        return !this.isWaiter && !!table && (table.status === 1 || table.status === 2);
+    }
+
+    private async resolveActiveOrderForTable(
+        table: RestaurantTableDto
+    ): Promise<RestaurantOrderDto | null> {
+        if (!table) {
+            return null;
+        }
+        let order: RestaurantOrderDto | null = null;
+        if (table.currentOrderId) {
+            try {
+                order = await this.restaurantOrderService.get(table.currentOrderId);
+            } catch {
+                order = null;
+            }
+        }
+        if (!order) {
+            try {
+                order = await this.restaurantOrderService.getByTable(table.id);
+            } catch {
+                order = null;
+            }
+        }
+        return order?.id ? order : null;
+    }
+
+    private ensureSettlementCustomer(): void {
+        if (this.customerId) {
+            return;
+        }
+        const walkIn =
+            this.customers.find(
+                (c) => (c.name || '').toLowerCase().includes('walk')
+            ) || this.customers[0];
+        this.customerId = walkIn?.id || null;
+    }
+
+    private async prepareTableOrderForBilling(
+        table: RestaurantTableDto
+    ): Promise<boolean> {
+        const order = await this.resolveActiveOrderForTable(table);
+        if (!order) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'No Active Order',
+                detail: `${table.tableNo} has no open order to bill.`,
+            });
+            return false;
+        }
+        await this.loadOrderById(order.id);
+        this.selectedTable = table;
+        this.orderType = 'dineIn';
+        if (this.isCarBay(table) || order.carNumber || order.orderType === OrderTypes.CarService) {
+            this.selectedCarName = order.carName || table.tableNo;
+            this.selectedCarNumber =
+                order.carNumber || table.currentVehicleNumber || this.selectedCarNumber || '';
+            this.selectedCarLocation = order.carLocation || table.area || 'Car Parking';
+        }
+        if (!this.isWaiter && (order.waiterName || table.waiterName)) {
+            this.waiterName = order.waiterName || table.waiterName || this.waiterName || '';
+        }
+        this.ensureSettlementCustomer();
+        this.tableDialogVisible = false;
+        this.pendingSendToTable = false;
+        return true;
+    }
+
+    async printGuestBillFromTable(
+        table: RestaurantTableDto,
+        event?: Event
+    ): Promise<void> {
+        event?.stopPropagation();
+        event?.preventDefault();
+        if (!this.canManageTableBill(table) || this.tableBillBusyId) {
+            return;
+        }
+        this.tableBillBusyId = table.id;
+        try {
+            const ok = await this.prepareTableOrderForBilling(table);
+            if (!ok) {
+                return;
+            }
+            if (!this.cart.length) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Empty Order',
+                    detail: 'This table has no items to print.',
+                });
+                return;
+            }
+            await this.printGuestBill();
+        } finally {
+            this.tableBillBusyId = null;
+        }
+    }
+
+    async completeBillFromTable(
+        table: RestaurantTableDto,
+        event?: Event
+    ): Promise<void> {
+        event?.stopPropagation();
+        event?.preventDefault();
+        if (!this.canManageTableBill(table) || this.tableBillBusyId) {
+            return;
+        }
+        this.tableBillBusyId = table.id;
+        try {
+            const ok = await this.prepareTableOrderForBilling(table);
+            if (!ok) {
+                return;
+            }
+            if (!this.cart.length) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Empty Order',
+                    detail: 'This table has no items to settle.',
+                });
+                return;
+            }
+            if (this.hasUnsentItems) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Send to KOT first',
+                    detail: 'Some items are not sent to kitchen yet. Send KOT before completing the bill.',
+                    life: 4000,
+                });
+                return;
+            }
+            this.completeSale();
+        } finally {
+            this.tableBillBusyId = null;
+        }
     }
 
     async printGuestBill(): Promise<void> {
@@ -4091,5 +4446,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.branchSub?.unsubscribe();
+        this.alarmOrdersSub?.unsubscribe();
+        this.stopAssignedOrdersClock();
     }
 }

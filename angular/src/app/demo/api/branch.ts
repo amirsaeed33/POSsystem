@@ -42,6 +42,12 @@ export interface BranchDto {
     invoiceFooter?: string;
     softwareDeveloperName?: string;
     softwareDeveloperPhone?: string;
+    customerFeedbackName?: string;
+    customerFeedbackRole?: string;
+    customerFeedbackCity?: string;
+    customerFeedbackComment?: string;
+    customerFeedbackRating?: number;
+    showCustomerFeedback?: boolean;
     taxPercent?: number;
     discountPercent?: number;
     discountAmount?: number;
@@ -74,6 +80,12 @@ export interface CreateBranchDto {
     invoiceFooter?: string;
     softwareDeveloperName?: string;
     softwareDeveloperPhone?: string;
+    customerFeedbackName?: string;
+    customerFeedbackRole?: string;
+    customerFeedbackCity?: string;
+    customerFeedbackComment?: string;
+    customerFeedbackRating?: number;
+    showCustomerFeedback?: boolean;
     taxPercent?: number;
     discountPercent?: number;
     discountAmount?: number;
@@ -106,4 +118,16 @@ export interface ActivateBranchResultDto {
     branchName?: string;
     tenancyName?: string;
     tenantName?: string;
+}
+
+/** Public product-page testimonial from AppBranches. */
+export interface BranchPublicFeedbackDto {
+    branchId: number;
+    branchName?: string;
+    name: string;
+    role?: string;
+    business?: string;
+    city?: string;
+    quote: string;
+    rating: number;
 }

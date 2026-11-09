@@ -203,7 +203,7 @@ export class CustomerOrderService {
                 customerName: input.customerName,
                 customerMobile: input.customerMobile,
                 branchId: input.branchId,
-                orderDate: this.toApiDate(input.orderDate || new Date()),
+                // Server stamps OrderDate with Clock.Now (UTC) — avoid client local→ISO skew.
                 notes: input.notes,
                 latitude: input.latitude,
                 longitude: input.longitude,
@@ -311,7 +311,7 @@ export class CustomerOrderService {
                 customerImagePath:
                     item.customerImagePath ?? item.CustomerImagePath ?? null,
                 rating: Number(item.rating ?? item.Rating ?? 0),
-                orderDate: item.orderDate ?? item.OrderDate,
+                orderDate: this.asUtcDateValue(item.orderDate ?? item.OrderDate),
                 branchName: item.branchName ?? item.BranchName,
                 comment: item.comment ?? item.Comment ?? '',
                 itemNames,
@@ -632,6 +632,31 @@ export class CustomerOrderService {
         return isNaN(parsed.getTime()) ? value : parsed.toISOString();
     }
 
+    /**
+     * API/SQL DateTimes are UTC wall-clock with Kind=Unspecified (no Z).
+     * Without a Z, JS/Angular treat them as local and show ~5h off in PKT.
+     */
+    private asUtcDateValue(value: any): any {
+        if (value == null || value === '') {
+            return value;
+        }
+        if (value instanceof Date) {
+            return value;
+        }
+        const s = String(value).trim();
+        if (!s) {
+            return value;
+        }
+        if (/([zZ]|[+-]\d{2}:\d{2})$/.test(s)) {
+            return s;
+        }
+        // Keep date-only values date-only (avoid shifting the calendar day).
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+            return s;
+        }
+        return s.includes('T') ? `${s}Z` : `${s}T00:00:00Z`;
+    }
+
     private unwrap(res: any, fallback: string): any {
         if (!res) throw new Error('No response from server');
         if (res.success === false || res.error) {
@@ -648,7 +673,7 @@ export class CustomerOrderService {
             customerName: item.customerName ?? item.CustomerName,
             customerPhone: item.customerPhone ?? item.CustomerPhone,
             customerAddress: item.customerAddress ?? item.CustomerAddress,
-            orderDate: item.orderDate ?? item.OrderDate,
+            orderDate: this.asUtcDateValue(item.orderDate ?? item.OrderDate),
             orderNo: item.orderNo ?? item.OrderNo,
             status: item.status ?? item.Status ?? 0,
             statusName: item.statusName ?? item.StatusName,
@@ -661,7 +686,9 @@ export class CustomerOrderService {
             originalDeliveryFee: item.originalDeliveryFee ?? item.OriginalDeliveryFee,
             deliveryFeeOverrideReason: item.deliveryFeeOverrideReason ?? item.DeliveryFeeOverrideReason,
             deliveryFeeOverriddenByName: item.deliveryFeeOverriddenByName ?? item.DeliveryFeeOverriddenByName,
-            deliveryFeeOverrideTime: item.deliveryFeeOverrideTime ?? item.DeliveryFeeOverrideTime,
+            deliveryFeeOverrideTime: this.asUtcDateValue(
+                item.deliveryFeeOverrideTime ?? item.DeliveryFeeOverrideTime
+            ),
             totalAmount: item.totalAmount ?? item.TotalAmount ?? 0,
             notes: item.notes ?? item.Notes,
             paymentMethod: item.paymentMethod ?? item.PaymentMethod,
@@ -676,7 +703,9 @@ export class CustomerOrderService {
             riderId: item.riderId ?? item.RiderId,
             riderName: item.riderName ?? item.RiderName,
             riderPhone: item.riderPhone ?? item.RiderPhone,
-            riderAssignedTime: item.riderAssignedTime ?? item.RiderAssignedTime,
+            riderAssignedTime: this.asUtcDateValue(
+                item.riderAssignedTime ?? item.RiderAssignedTime
+            ),
             lines: (Array.isArray(lines) ? lines : []).map(
                 (line: any): CustomerOrderLineDto => ({
                     id: line.id ?? line.Id,

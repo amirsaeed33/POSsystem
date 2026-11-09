@@ -71,14 +71,14 @@ export class AppMenuComponent implements OnInit, OnDestroy {
         if (this.authService.isWaiter()) {
             this.model = [
                 {
+                    label: 'My Dashboard',
+                    icon: 'pi pi-home',
+                    routerLink: ['/waiter/dashboard'],
+                },
+                {
                     label: 'POS',
                     icon: 'pi pi-desktop',
                     routerLink: ['/pos'],
-                },
-                {
-                    label: 'Kitchen',
-                    icon: 'pi pi-inbox',
-                    routerLink: ['/kitchen'],
                 },
             ];
             return;

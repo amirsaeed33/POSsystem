@@ -1,4 +1,4 @@
-using Abp.Timing;
+using Abp.Timing;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -194,5 +194,27 @@ namespace SmartPos.Restaurant.Dto
         public bool SplitEqually { get; set; } = true;
 
         public List<int> MoveLineIds { get; set; } = new List<int>();
+    }
+
+    public class WaiterDashboardDto
+    {
+        public string WaiterName { get; set; }
+
+        public int ActiveCount { get; set; }
+
+        /// <summary>Open tickets still waiting on kitchen (not ready to pick).</summary>
+        public int PendingCount { get; set; }
+
+        /// <summary>Kitchen marked ready — waiter should serve the table/car.</summary>
+        public int ReadyCount { get; set; }
+
+        public int BilledCount { get; set; }
+
+        /// <summary>Settled orders for this waiter today.</summary>
+        public int TodayServedCount { get; set; }
+
+        public decimal TodayServedAmount { get; set; }
+
+        public List<RestaurantOrderDto> ActiveOrders { get; set; } = new List<RestaurantOrderDto>();
     }
 }

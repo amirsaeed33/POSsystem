@@ -43,21 +43,16 @@
     </div>
 
     <div class="topbar-center">
-        <!-- Static Branch Badge for Waiter / Rider (locked to assigned branch) -->
+        <!-- Static branch badge for riders only (waiters: no location control in topbar) -->
         <a
             class="flex align-items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 border-round surface-100 text-xs sm:text-sm font-semibold text-700 max-w-9rem sm:max-w-none overflow-hidden no-underline text-700 hover:surface-200"
-            *ngIf="(isWaiter || isDeliveryRider) && currentBranch"
+            *ngIf="isDeliveryRider && !isWaiter && currentBranch"
             [routerLink]="homeLink"
             [title]="currentBranch.name"
         >
             <i class="pi pi-map-marker text-primary flex-shrink-0"></i>
             <span class="white-space-nowrap overflow-hidden text-overflow-ellipsis">{{ currentBranch.name }}</span>
             <span
-                *ngIf="isWaiter"
-                class="text-xs px-1.5 py-0.5 border-round font-medium bg-yellow-100 text-yellow-900 flex-shrink-0 hidden sm:inline"
-            >🍽️ Restaurant</span>
-            <span
-                *ngIf="isDeliveryRider"
                 class="text-xs px-1.5 py-0.5 border-round font-medium bg-blue-100 text-blue-900 flex-shrink-0 hidden sm:inline"
             >Delivery</span>
         </a>

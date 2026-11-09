@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
     ActivateBranchResultDto,
     BranchDto,
+    BranchPublicFeedbackDto,
     CreateBranchDto,
     PagedBranchResultRequestDto,
     PagedResultDto,
@@ -51,6 +52,25 @@ export class BranchService {
         const result = this.unwrap(res, 'Failed to load branches');
         const items = result.items || result.Items || result || [];
         return (Array.isArray(items) ? items : []).map((i) => this.map(i));
+    }
+
+    /** Public product page — branch testimonials (anonymous). */
+    async getPublicFeedbacks(): Promise<BranchPublicFeedbackDto[]> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetPublicFeedbacks`)
+        );
+        const result = this.unwrap(res, 'Failed to load feedbacks');
+        const items = Array.isArray(result) ? result : result?.items || [];
+        return (Array.isArray(items) ? items : []).map((raw: any) => ({
+            branchId: raw.branchId ?? raw.BranchId ?? 0,
+            branchName: raw.branchName ?? raw.BranchName,
+            name: raw.name ?? raw.Name ?? '',
+            role: raw.role ?? raw.Role,
+            business: raw.business ?? raw.Business,
+            city: raw.city ?? raw.City,
+            quote: raw.quote ?? raw.Quote ?? '',
+            rating: raw.rating ?? raw.Rating ?? 5,
+        }));
     }
 
     async getInvoiceInfo(branchId?: number | null): Promise<BranchDto | null> {
@@ -146,6 +166,12 @@ export class BranchService {
                 invoiceFooter: input.invoiceFooter,
                 softwareDeveloperName: input.softwareDeveloperName,
                 softwareDeveloperPhone: input.softwareDeveloperPhone,
+                customerFeedbackName: input.customerFeedbackName ?? null,
+                customerFeedbackRole: input.customerFeedbackRole ?? null,
+                customerFeedbackCity: input.customerFeedbackCity ?? null,
+                customerFeedbackComment: input.customerFeedbackComment ?? null,
+                customerFeedbackRating: input.customerFeedbackRating ?? 0,
+                showCustomerFeedback: !!input.showCustomerFeedback,
                 taxPercent: input.taxPercent ?? 0,
                 discountPercent: input.discountPercent ?? 0,
                 discountAmount: input.discountAmount ?? 0,
@@ -285,6 +311,12 @@ export class BranchService {
             invoiceFooter: item.invoiceFooter ?? item.InvoiceFooter,
             softwareDeveloperName: item.softwareDeveloperName ?? item.SoftwareDeveloperName ?? 'Software develop by AlNawabTech',
             softwareDeveloperPhone: item.softwareDeveloperPhone ?? item.SoftwareDeveloperPhone ?? '03167854606',
+            customerFeedbackName: item.customerFeedbackName ?? item.CustomerFeedbackName ?? '',
+            customerFeedbackRole: item.customerFeedbackRole ?? item.CustomerFeedbackRole ?? '',
+            customerFeedbackCity: item.customerFeedbackCity ?? item.CustomerFeedbackCity ?? '',
+            customerFeedbackComment: item.customerFeedbackComment ?? item.CustomerFeedbackComment ?? '',
+            customerFeedbackRating: item.customerFeedbackRating ?? item.CustomerFeedbackRating ?? 0,
+            showCustomerFeedback: !!(item.showCustomerFeedback ?? item.ShowCustomerFeedback),
             taxPercent: item.taxPercent ?? item.TaxPercent ?? 0,
             discountPercent: item.discountPercent ?? item.DiscountPercent ?? 0,
             discountAmount: item.discountAmount ?? item.DiscountAmount ?? 0,

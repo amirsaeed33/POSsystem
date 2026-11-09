@@ -2,6 +2,7 @@ import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { DeveloperDto } from 'src/app/demo/api/developer';
 import { PackageDto } from 'src/app/demo/api/package';
 import { AppSeoService } from 'src/app/demo/service/app-seo.service';
+import { BranchService } from 'src/app/demo/service/branch.service';
 import { DeveloperService } from 'src/app/demo/service/developer.service';
 import { PackageService } from 'src/app/demo/service/package.service';
 
@@ -11,6 +12,7 @@ type LandingRevealKey =
     | 'mobile'
     | 'how'
     | 'pricing'
+    | 'feedbacks'
     | 'developers'
     | 'cta'
     | 'footer';
@@ -28,6 +30,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     developersLoading = false;
     packages: PackageDto[] = [];
     packagesLoading = false;
+    feedbacksLoading = false;
 
     visible: Record<LandingRevealKey, boolean> = {
         hero: false,
@@ -35,6 +38,7 @@ export class LandingComponent implements OnInit, OnDestroy {
         mobile: false,
         how: false,
         pricing: false,
+        feedbacks: false,
         developers: false,
         cta: false,
         footer: false,
@@ -109,12 +113,22 @@ export class LandingComponent implements OnInit, OnDestroy {
         },
     ];
 
+    feedbacks: Array<{
+        name: string;
+        role?: string;
+        business?: string;
+        city?: string;
+        quote: string;
+        rating: number;
+    }> = [];
+
     private observer?: IntersectionObserver;
 
     constructor(
         private seo: AppSeoService,
         private developerService: DeveloperService,
-        private packageService: PackageService
+        private packageService: PackageService,
+        private branchService: BranchService
     ) {}
 
     get primaryDeveloper(): DeveloperDto | null {
@@ -151,6 +165,7 @@ export class LandingComponent implements OnInit, OnDestroy {
 
         void this.loadDevelopers();
         void this.loadPackages();
+        void this.loadFeedbacks();
         setTimeout(() => this.setupReveal(), 40);
     }
 
@@ -230,6 +245,27 @@ export class LandingComponent implements OnInit, OnDestroy {
             .filter(Boolean);
     }
 
+    feedbackInitials(name: string): string {
+        const parts = (name || '')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+        if (!parts.length) {
+            return '?';
+        }
+        if (parts.length === 1) {
+            return parts[0].substring(0, 2).toUpperCase();
+        }
+        return (
+            parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
+        ).toUpperCase();
+    }
+
+    feedbackStars(rating: number): number[] {
+        const n = Math.max(0, Math.min(5, Math.round(rating || 0)));
+        return Array.from({ length: n }, (_, i) => i + 1);
+    }
+
     planCtaHref(pkg: PackageDto): string {
         if (pkg.contactViaWhatsApp || pkg.isFeatured || pkg.price === 'Custom') {
             return this.contactWhatsapp !== '#'
@@ -298,6 +334,26 @@ export class LandingComponent implements OnInit, OnDestroy {
             this.packages = [];
         } finally {
             this.packagesLoading = false;
+            setTimeout(() => this.setupReveal(), 40);
+        }
+    }
+
+    private async loadFeedbacks(): Promise<void> {
+        this.feedbacksLoading = true;
+        try {
+            const rows = await this.branchService.getPublicFeedbacks();
+            this.feedbacks = (rows || []).map((f) => ({
+                name: f.name,
+                role: f.role,
+                business: f.business || f.branchName,
+                city: f.city,
+                quote: f.quote,
+                rating: f.rating || 5,
+            }));
+        } catch {
+            this.feedbacks = [];
+        } finally {
+            this.feedbacksLoading = false;
             setTimeout(() => this.setupReveal(), 40);
         }
     }

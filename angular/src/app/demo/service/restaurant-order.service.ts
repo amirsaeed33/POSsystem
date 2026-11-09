@@ -12,6 +12,7 @@ import {
     SplitBillDto,
     UnpaidTakeawayOrderDto,
     ReserveCarServiceDto,
+    WaiterDashboardDto,
 } from '../api/restaurant-order';
 import { environment } from '../../../environments/environment';
 
@@ -179,6 +180,45 @@ export class RestaurantOrderService {
         );
         const list = this.unwrap(res, 'Failed to load unpaid takeaway orders');
         return Array.isArray(list) ? list : [];
+    }
+
+    async getWaiterDashboard(branchId: number): Promise<WaiterDashboardDto> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetWaiterDashboard`, {
+                params: { branchId },
+            })
+        );
+        const raw = this.unwrap(res, 'Failed to load waiter dashboard') || {};
+        const orders = raw.activeOrders ?? raw.ActiveOrders ?? [];
+        return {
+            waiterName: raw.waiterName ?? raw.WaiterName ?? '',
+            activeCount: Number(raw.activeCount ?? raw.ActiveCount ?? 0),
+            pendingCount: Number(raw.pendingCount ?? raw.PendingCount ?? 0),
+            readyCount: Number(raw.readyCount ?? raw.ReadyCount ?? 0),
+            billedCount: Number(raw.billedCount ?? raw.BilledCount ?? 0),
+            todayServedCount: Number(raw.todayServedCount ?? raw.TodayServedCount ?? 0),
+            todayServedAmount: Number(raw.todayServedAmount ?? raw.TodayServedAmount ?? 0),
+            activeOrders: (Array.isArray(orders) ? orders : []).map((o: any) => ({
+                ...o,
+                id: o.id ?? o.Id,
+                orderNo: o.orderNo ?? o.OrderNo,
+                tableNo: o.tableNo ?? o.TableNo,
+                tableId: o.tableId ?? o.TableId,
+                status: o.status ?? o.Status,
+                statusName: o.statusName ?? o.StatusName,
+                kitchenStatus: o.kitchenStatus ?? o.KitchenStatus,
+                kitchenStatusName: o.kitchenStatusName ?? o.KitchenStatusName,
+                orderType: o.orderType ?? o.OrderType,
+                orderTypeName: o.orderTypeName ?? o.OrderTypeName,
+                carName: o.carName ?? o.CarName,
+                carNumber: o.carNumber ?? o.CarNumber,
+                grandTotal: Number(o.grandTotal ?? o.GrandTotal ?? 0),
+                creationTime: o.creationTime ?? o.CreationTime,
+                waiterName: o.waiterName ?? o.WaiterName,
+                tokenNo: o.tokenNo ?? o.TokenNo,
+                lines: o.lines ?? o.Lines ?? [],
+            })),
+        };
     }
 
     private unwrap(res: any, fallback: string): any {

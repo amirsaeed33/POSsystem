@@ -150,6 +150,21 @@ const routes: Routes = [
                         (m) => m.RiderModule
                     ),
             },
+            {
+                path: 'waiter',
+                data: {
+                    breadcrumb: 'Waiter Portal',
+                    anyPermission: [
+                        PermissionNames.Pos,
+                        PermissionNames.DiningTables,
+                        PermissionNames.Sales,
+                    ],
+                },
+                loadChildren: () =>
+                    import('./demo/components/waiter/waiter.module').then(
+                        (m) => m.WaiterModule
+                    ),
+            },
         ]
     },
     { path: 'auth', data: { breadcrumb: 'Auth' }, loadChildren: () => import('./demo/components/auth/auth.module').then(m => m.AuthModule) },

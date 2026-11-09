@@ -46,6 +46,14 @@
                     pRipple
                     type="button"
                     class="p-button-text p-button-secondary"
+                    label="Feedback"
+                    (click)="scrollTo('feedbacks')"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    class="p-button-text p-button-secondary"
                     label="Developers"
                     (click)="scrollTo('developers')"
                 ></button>
@@ -293,6 +301,78 @@
         </section>
 
         <section
+            id="feedbacks"
+            class="mb-4 landing-section"
+            data-reveal="feedbacks"
+            [class.landing-reveal--in]="visible.feedbacks"
+            *ngIf="feedbacksLoading || feedbacks.length"
+        >
+            <div class="mb-3 landing-section-head">
+                <div class="text-primary font-bold mb-1">Client feedback</div>
+                <h2 class="m-0 text-900">What restaurant &amp; shop owners say</h2>
+                <p class="text-color-secondary mt-2 mb-0 line-height-3">
+                    Real stories from teams running Al Jannat every day.
+                </p>
+            </div>
+
+            <div class="landing-feedback-marquee" aria-label="Client feedback carousel">
+                <div class="landing-feedback-track">
+                    <article
+                        class="card mb-0 landing-feedback-card flex flex-column"
+                        *ngFor="let f of feedbacks"
+                    >
+                        <div class="landing-feedback-stars mb-3">
+                            <i
+                                class="pi pi-star-fill"
+                                *ngFor="let s of feedbackStars(f.rating)"
+                            ></i>
+                        </div>
+                        <p class="landing-feedback-quote flex-1 m-0 mb-3">“{{ f.quote }}”</p>
+                        <div class="flex align-items-center gap-3 mt-auto">
+                            <div class="landing-feedback-avatar">
+                                {{ feedbackInitials(f.name) }}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-900">{{ f.name }}</div>
+                                <div class="text-color-secondary text-sm white-space-nowrap overflow-hidden text-overflow-ellipsis">
+                                    {{ f.role }} · {{ f.business }}
+                                </div>
+                                <div class="text-color-secondary text-sm">{{ f.city }}</div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Duplicate set for seamless left → right loop -->
+                    <article
+                        class="card mb-0 landing-feedback-card flex flex-column"
+                        *ngFor="let f of feedbacks"
+                        aria-hidden="true"
+                    >
+                        <div class="landing-feedback-stars mb-3">
+                            <i
+                                class="pi pi-star-fill"
+                                *ngFor="let s of feedbackStars(f.rating)"
+                            ></i>
+                        </div>
+                        <p class="landing-feedback-quote flex-1 m-0 mb-3">“{{ f.quote }}”</p>
+                        <div class="flex align-items-center gap-3 mt-auto">
+                            <div class="landing-feedback-avatar">
+                                {{ feedbackInitials(f.name) }}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-900">{{ f.name }}</div>
+                                <div class="text-color-secondary text-sm white-space-nowrap overflow-hidden text-overflow-ellipsis">
+                                    {{ f.role }} · {{ f.business }}
+                                </div>
+                                <div class="text-color-secondary text-sm">{{ f.city }}</div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section
             id="developers"
             class="mb-4 landing-section"
             data-reveal="developers"
@@ -458,6 +538,7 @@
                         <li><button type="button" (click)="scrollTo('mobile')">Mobile apps</button></li>
                         <li><button type="button" (click)="scrollTo('how')">How it works</button></li>
                         <li><button type="button" (click)="scrollTo('pricing')">Pricing</button></li>
+                        <li><button type="button" (click)="scrollTo('feedbacks')">Feedback</button></li>
                         <li><button type="button" (click)="scrollTo('developers')">Developers</button></li>
                     </ul>
                 </div>

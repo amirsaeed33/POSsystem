@@ -19,6 +19,9 @@ namespace SmartPos
     {
         public override void PreInitialize()
         {
+            // Store/serialize timestamps as UTC so Angular date pipes convert to local correctly.
+            Clock.Provider = ClockProviders.Utc;
+
             Configuration.Auditing.IsEnabledForAnonymousUsers = true;
 
             // Declare entity types

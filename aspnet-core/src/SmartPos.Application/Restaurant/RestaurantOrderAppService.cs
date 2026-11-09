@@ -1184,6 +1184,69 @@ namespace SmartPos.Restaurant
             return orders;
         }
 
+        public async Task<WaiterDashboardDto> GetWaiterDashboardAsync(int branchId)
+        {
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(branchId);
+            var printer = await GetCurrentPrinterIdentityAsync();
+            var waiterName = string.IsNullOrWhiteSpace(printer.Name) ? "Staff" : printer.Name.Trim();
+            var waiterKey = NormalizeWaiterKey(waiterName);
+
+            var activeEntities = await _orderRepository.GetAll()
+                .AsNoTracking()
+                .Include(o => o.Lines)
+                    .ThenInclude(l => l.Product)
+                .Include(o => o.Customer)
+                .Where(o => o.BranchId == branchId &&
+                            (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed))
+                .OrderByDescending(o => o.CreationTime)
+                .ToListAsync();
+
+            var mine = activeEntities
+                .Where(o => NormalizeWaiterKey(o.WaiterName) == waiterKey)
+                .ToList();
+
+            var today = Clock.Now.Date;
+            var tomorrow = today.AddDays(1);
+            var settledToday = await _orderRepository.GetAll()
+                .AsNoTracking()
+                .Where(o => o.BranchId == branchId &&
+                            o.Status == RestaurantOrderStatus.Settled &&
+                            o.SettledTime.HasValue &&
+                            o.SettledTime.Value >= today &&
+                            o.SettledTime.Value < tomorrow)
+                .Select(o => new { o.WaiterName, o.GrandTotal })
+                .ToListAsync();
+
+            var myServed = settledToday
+                .Where(o => NormalizeWaiterKey(o.WaiterName) == waiterKey)
+                .ToList();
+
+            var pending = mine.Count(o =>
+                o.Status == RestaurantOrderStatus.Open &&
+                o.KitchenStatus != RestaurantKitchenStatus.ReadyToPick);
+            var ready = mine.Count(o =>
+                o.Status == RestaurantOrderStatus.Open &&
+                o.KitchenStatus == RestaurantKitchenStatus.ReadyToPick);
+            var billed = mine.Count(o => o.Status == RestaurantOrderStatus.Billed);
+
+            return new WaiterDashboardDto
+            {
+                WaiterName = waiterName,
+                ActiveCount = mine.Count,
+                PendingCount = pending,
+                ReadyCount = ready,
+                BilledCount = billed,
+                TodayServedCount = myServed.Count,
+                TodayServedAmount = myServed.Sum(o => o.GrandTotal),
+                ActiveOrders = ObjectMapper.Map<List<RestaurantOrderDto>>(mine)
+            };
+        }
+
+        private static string NormalizeWaiterKey(string name)
+        {
+            return (name ?? string.Empty).Trim().ToLowerInvariant();
+        }
+
         public async Task CancelOrderAsync(int orderId)
         {
             if (await IsCurrentUserWaiterAsync())

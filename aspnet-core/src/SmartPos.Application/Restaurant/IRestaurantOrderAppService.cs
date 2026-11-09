@@ -43,5 +43,7 @@ namespace SmartPos.Restaurant
         Task<List<RestaurantPrintLogDto>> GetOrderPrintLogsAsync(int orderId);
 
         Task<List<UnpaidTakeawayOrderDto>> GetUnpaidTakeawayOrdersAsync(int branchId);
+
+        Task<WaiterDashboardDto> GetWaiterDashboardAsync(int branchId);
     }
 }

@@ -24,6 +24,10 @@ namespace SmartPos.Branches
         public const int MaxCurrencyFormatLength = 32;
         public const int MaxSoftwareDeveloperNameLength = 256;
         public const int MaxSoftwareDeveloperPhoneLength = 64;
+        public const int MaxCustomerFeedbackNameLength = 128;
+        public const int MaxCustomerFeedbackRoleLength = 128;
+        public const int MaxCustomerFeedbackCityLength = 128;
+        public const int MaxCustomerFeedbackCommentLength = 1000;
 
         public virtual int? TenantId { get; set; }
 
@@ -100,6 +104,28 @@ namespace SmartPos.Branches
 
         [StringLength(MaxSoftwareDeveloperPhoneLength)]
         public virtual string SoftwareDeveloperPhone { get; set; } = "03167854606";
+
+        /// <summary>Public product-page testimonial: customer / owner display name.</summary>
+        [StringLength(MaxCustomerFeedbackNameLength)]
+        public virtual string CustomerFeedbackName { get; set; }
+
+        /// <summary>Public product-page testimonial: role (Owner, Manager, …).</summary>
+        [StringLength(MaxCustomerFeedbackRoleLength)]
+        public virtual string CustomerFeedbackRole { get; set; }
+
+        /// <summary>Public product-page testimonial: city.</summary>
+        [StringLength(MaxCustomerFeedbackCityLength)]
+        public virtual string CustomerFeedbackCity { get; set; }
+
+        /// <summary>Public product-page testimonial quote.</summary>
+        [StringLength(MaxCustomerFeedbackCommentLength)]
+        public virtual string CustomerFeedbackComment { get; set; }
+
+        /// <summary>Public product-page star rating (1–5). 0 means unset.</summary>
+        public virtual int CustomerFeedbackRating { get; set; }
+
+        /// <summary>When true, this branch feedback is shown on the public product page.</summary>
+        public virtual bool ShowCustomerFeedback { get; set; }
 
         /// <summary>Default tax % applied on sales for this location.</summary>
         public virtual decimal TaxPercent { get; set; }

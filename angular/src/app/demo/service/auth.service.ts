@@ -276,7 +276,7 @@ export class AuthService {
             return '/rider/dashboard';
         }
         if (this.isWaiter()) {
-            return '/pos';
+            return '/waiter/dashboard';
         }
         if (this.isAdminOrStaff()) {
             return '/dashboard';

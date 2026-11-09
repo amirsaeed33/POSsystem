@@ -538,7 +538,9 @@ namespace SmartPos.Orders
                     TenantId = tenantId,
                     BranchId = branchId,
                     CustomerId = customerId,
-                    OrderDate = input.OrderDate == default ? Abp.Timing.Clock.Now : input.OrderDate,
+                    // Always server clock (UTC). Client toISOString was stored without Kind/Z and
+                    // shown as local on /customer-orders (~5h off in Pakistan).
+                    OrderDate = Abp.Timing.Clock.Now,
                     Notes = finalNotes,
                     PaymentMethod = paymentMethod,
                     Status = CustomerOrderStatus.Pending,
@@ -1359,7 +1361,7 @@ namespace SmartPos.Orders
                 CustomerName = entity.Customer?.Name,
                 CustomerPhone = entity.Customer?.Phone,
                 CustomerAddress = GetDefaultSavedAddressText(entity.CustomerId),
-                OrderDate = entity.OrderDate,
+                OrderDate = AsUtc(entity.OrderDate),
                 OrderNo = entity.OrderNo,
                 TokenNo = entity.TokenNo,
                 Status = entity.Status,
@@ -1377,7 +1379,7 @@ namespace SmartPos.Orders
                 OriginalDeliveryFee = entity.OriginalDeliveryFee,
                 DeliveryFeeOverrideReason = entity.DeliveryFeeOverrideReason,
                 DeliveryFeeOverriddenByName = overrideUserName,
-                DeliveryFeeOverrideTime = entity.DeliveryFeeOverrideTime,
+                DeliveryFeeOverrideTime = AsUtc(entity.DeliveryFeeOverrideTime),
                 TotalAmount = entity.TotalAmount,
                 Notes = entity.Notes,
                 PaymentMethod = entity.PaymentMethod,
@@ -1398,9 +1400,10 @@ namespace SmartPos.Orders
                 RiderId = entity.RiderId,
                 RiderName = entity.RiderName,
                 RiderPhone = entity.RiderPhone,
-                RiderAssignedTime = entity.RiderAssignedTime.HasValue && entity.RiderAssignedTime.Value < entity.OrderDate.AddMinutes(-10)
-                    ? entity.RiderAssignedTime.Value.Add(TimeZoneInfo.Local.GetUtcOffset(entity.RiderAssignedTime.Value))
-                    : entity.RiderAssignedTime,
+                RiderAssignedTime = AsUtc(
+                    entity.RiderAssignedTime.HasValue && entity.RiderAssignedTime.Value < entity.OrderDate.AddMinutes(-10)
+                        ? entity.RiderAssignedTime.Value.Add(TimeZoneInfo.Local.GetUtcOffset(entity.RiderAssignedTime.Value))
+                        : entity.RiderAssignedTime),
                 Lines = new List<CustomerOrderLineDto>()
             };
 
@@ -2295,7 +2298,7 @@ namespace SmartPos.Orders
                         CustomerName = o.Customer != null ? o.Customer.Name : "Customer",
                         CustomerImagePath = o.Customer != null ? o.Customer.ImagePath : null,
                         Rating = o.CustomerRating.Value,
-                        OrderDate = o.OrderDate,
+                        OrderDate = AsUtc(o.OrderDate),
                         BranchName = o.Branch != null ? o.Branch.Name : null,
                         Comment = o.CustomerFeedbackComment,
                         ItemNames = itemNames,
@@ -2305,6 +2308,22 @@ namespace SmartPos.Orders
                     };
                 }).ToList();
             }
+        }
+
+        /// <summary>
+        /// SQL datetime2 comes back as Unspecified. Mark as UTC so JSON includes Z and
+        /// Angular date pipes convert to the browser's local timezone (e.g. PKT +5).
+        /// </summary>
+        private static DateTime AsUtc(DateTime value)
+        {
+            return value.Kind == DateTimeKind.Utc
+                ? value
+                : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+        }
+
+        private static DateTime? AsUtc(DateTime? value)
+        {
+            return value.HasValue ? AsUtc(value.Value) : (DateTime?)null;
         }
 
         private static string NormalizePhoneDigits(string phone)

@@ -270,6 +270,12 @@ export class BranchFormDialogComponent implements OnChanges {
             instagramUrl: this.branch.instagramUrl?.trim() || undefined,
             youtubeUrl: this.branch.youtubeUrl?.trim() || undefined,
             invoiceFooter: this.branch.invoiceFooter?.trim() || undefined,
+            customerFeedbackName: this.branch.customerFeedbackName?.trim() || undefined,
+            customerFeedbackRole: this.branch.customerFeedbackRole?.trim() || undefined,
+            customerFeedbackCity: this.branch.customerFeedbackCity?.trim() || undefined,
+            customerFeedbackComment: this.branch.customerFeedbackComment?.trim() || undefined,
+            customerFeedbackRating: this.branch.customerFeedbackRating ?? 0,
+            showCustomerFeedback: !!this.branch.showCustomerFeedback,
             ...(this.canEditSoftwareDeveloper
                 ? {
                       softwareDeveloperName:
@@ -381,6 +387,12 @@ export class BranchFormDialogComponent implements OnChanges {
             invoiceFooter: '',
             softwareDeveloperName: 'Software develop by AlNawabTech',
             softwareDeveloperPhone: '03167854606',
+            customerFeedbackName: '',
+            customerFeedbackRole: '',
+            customerFeedbackCity: '',
+            customerFeedbackComment: '',
+            customerFeedbackRating: 5,
+            showCustomerFeedback: false,
             taxPercent: 0,
             discountPercent: 0,
             discountAmount: 0,

@@ -217,3 +217,14 @@ export interface UnpaidTakeawayOrderDto {
     customerName?: string;
     itemCount: number;
 }
+
+export interface WaiterDashboardDto {
+    waiterName: string;
+    activeCount: number;
+    pendingCount: number;
+    readyCount: number;
+    billedCount: number;
+    todayServedCount: number;
+    todayServedAmount: number;
+    activeOrders: RestaurantOrderDto[];
+}

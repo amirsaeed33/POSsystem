@@ -505,6 +505,90 @@
             ></textarea>
         </div>
 
+        <div class="surface-50 border-1 surface-border border-round-xl p-3 flex flex-column gap-3 mb-2">
+            <div class="flex align-items-center gap-2">
+                <i class="pi pi-comments text-primary text-lg"></i>
+                <div>
+                    <span class="font-bold text-900 block">Product page feedback</span>
+                    <small class="text-500">Shown on aljannatapp.com/product when enabled</small>
+                </div>
+            </div>
+
+            <div class="flex align-items-center gap-2">
+                <p-checkbox
+                    [binary]="true"
+                    [(ngModel)]="branch.showCustomerFeedback"
+                    inputId="showCustomerFeedback"
+                    [disabled]="saving"
+                ></p-checkbox>
+                <label for="showCustomerFeedback">Show this feedback publicly</label>
+            </div>
+
+            <div class="grid">
+                <div class="col-12 md:col-6 flex flex-column gap-2">
+                    <label for="customerFeedbackName" class="font-medium">Customer / owner name</label>
+                    <input
+                        id="customerFeedbackName"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="128"
+                        [(ngModel)]="branch.customerFeedbackName"
+                        [disabled]="saving"
+                    />
+                </div>
+                <div class="col-12 md:col-3 flex flex-column gap-2">
+                    <label for="customerFeedbackRole" class="font-medium">Role</label>
+                    <input
+                        id="customerFeedbackRole"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="128"
+                        placeholder="Owner"
+                        [(ngModel)]="branch.customerFeedbackRole"
+                        [disabled]="saving"
+                    />
+                </div>
+                <div class="col-12 md:col-3 flex flex-column gap-2">
+                    <label for="customerFeedbackCity" class="font-medium">City</label>
+                    <input
+                        id="customerFeedbackCity"
+                        type="text"
+                        pInputText
+                        class="w-full"
+                        maxlength="128"
+                        [(ngModel)]="branch.customerFeedbackCity"
+                        [disabled]="saving"
+                    />
+                </div>
+                <div class="col-12 md:col-3 flex flex-column gap-2">
+                    <label for="customerFeedbackRating" class="font-medium">Rating (1–5)</label>
+                    <p-inputNumber
+                        inputId="customerFeedbackRating"
+                        [(ngModel)]="branch.customerFeedbackRating"
+                        [min]="0"
+                        [max]="5"
+                        [useGrouping]="false"
+                        styleClass="w-full"
+                        [disabled]="saving"
+                    ></p-inputNumber>
+                </div>
+                <div class="col-12 flex flex-column gap-2">
+                    <label for="customerFeedbackComment" class="font-medium">Feedback quote</label>
+                    <textarea
+                        id="customerFeedbackComment"
+                        pInputTextarea
+                        rows="3"
+                        class="w-full"
+                        maxlength="1000"
+                        [(ngModel)]="branch.customerFeedbackComment"
+                        [disabled]="saving"
+                    ></textarea>
+                </div>
+            </div>
+        </div>
+
         <div
             *ngIf="canEditSoftwareDeveloper"
             class="surface-50 border-1 surface-border border-round-xl p-3 flex flex-column gap-3 mb-2"

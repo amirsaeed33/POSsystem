@@ -67,7 +67,22 @@
                             </div>
                             <div class="text-xs text-500">
                                 {{ table.area || (isCarBay(table) ? 'Car Parking' : 'Main Hall') }}
-                                · {{ table.statusName || (table.status === 1 ? 'Occupied' : 'Billed') }}
+                            </div>
+                            <div class="pos-waiter-assigned-meta">
+                                <span
+                                    class="pos-waiter-order-status"
+                                    [ngClass]="getMyAssignedOrderStatusClass(table)"
+                                >
+                                    {{ getMyAssignedOrderStatusLabel(table) }}
+                                </span>
+                                <span
+                                    class="pos-waiter-order-timer"
+                                    *ngIf="assignedOrdersNowMs && getMyAssignedOrderElapsed(table) as elapsed"
+                                    [class.is-late]="isMyAssignedOrderLate(table)"
+                                >
+                                    <i class="pi pi-clock"></i>
+                                    {{ elapsed }}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -919,18 +934,18 @@
 
                 <!-- Restaurant Actions Bar (desktop only — mobile uses bottom bar) -->
                 <div class="hidden md:flex flex-column gap-2 mt-3" *ngIf="isRestaurantMode">
-                    <!-- Waiter Mode: ONLY Send to KOT / Send to Table allowed -->
+                    <!-- Waiter Mode: Send to KOT only (dine-in / takeaway / car → kitchen screen) -->
                     <div *ngIf="isWaiter" class="w-full">
                         <button
                             pButton
                             pRipple
                             type="button"
-                            [label]="isCarService ? '🚗 Send to Car (KOT)' : (orderType === 'takeaway' ? '🍳 Send to KOT' : '🍽️ Send to Table')"
+                            [label]="sendKotButtonLabel"
                             class="p-button-warning w-full p-button-lg font-bold shadow-1"
                             [disabled]="!cart.length || sendingKOT"
                             [loading]="sendingKOT"
                             (click)="sendToTable()"
-                            [title]="orderType === 'takeaway' ? 'Send Takeaway Order to Kitchen KOT' : 'Send order to Table'"
+                            [title]="sendKotButtonTitle"
                         ></button>
                     </div>
 
@@ -941,12 +956,12 @@
                                 pButton
                                 pRipple
                                 type="button"
-                                [label]="isCarService ? '🚗 Send to Car (KOT)' : (orderType === 'takeaway' ? '🍳 Send to KOT' : '🍽️ Send to Table')"
+                                [label]="sendKotButtonLabel"
                                 class="p-button-warning p-button-outlined w-full p-button-sm font-semibold"
                                 [disabled]="!cart.length || sendingKOT"
                                 [loading]="sendingKOT"
                                 (click)="sendToTable()"
-                                [title]="orderType === 'takeaway' ? 'Send Takeaway Order to Kitchen KOT' : 'Send order to Table'"
+                                [title]="sendKotButtonTitle"
                             ></button>
                         </div>
                         <div class="col-6 pl-1 pb-1">
@@ -1031,7 +1046,7 @@
                     class="text-xs text-amber-700 font-medium block text-center mt-2"
                     *ngIf="isRestaurantMode && orderType === 'dineIn' && cart.length && hasUnsentItems && !isWaiter"
                 >
-                    <i class="pi pi-info-circle mr-1"></i> Send order to {{ isCarService ? 'car' : 'table' }} first to enable settlement
+                    <i class="pi pi-info-circle mr-1"></i> Send to KOT first to enable settlement
                 </small>
             </div>
         </div>
@@ -1044,12 +1059,12 @@
                 pButton
                 pRipple
                 type="button"
-                [label]="isCarService ? '🚗 Send to Car' : (orderType === 'takeaway' ? '🍳 Send KOT' : '🍽️ Send')"
+                [label]="sendKotButtonLabel"
                 class="p-button-warning p-button-outlined p-button-sm flex-grow-1"
                 [disabled]="!cart.length || sendingKOT"
                 [loading]="sendingKOT"
                 (click)="sendToTable()"
-                [title]="orderType === 'takeaway' ? 'Send Takeaway Order to Kitchen KOT' : 'Send order to Table'"
+                [title]="sendKotButtonTitle"
             ></button>
             <button
                 pButton
@@ -1101,11 +1116,12 @@
                 pButton
                 pRipple
                 type="button"
-                [label]="isCarService ? '🚗 Send to Car' : (orderType === 'takeaway' ? '🍳 Send to KOT' : '🍽️ Send to Table')"
+                [label]="sendKotButtonLabel"
                 class="p-button-warning flex-grow-1 font-bold"
                 [disabled]="!cart.length || sendingKOT"
                 [loading]="sendingKOT"
                 (click)="sendToTable()"
+                [title]="sendKotButtonTitle"
             ></button>
             <button
                 pButton
@@ -1400,7 +1416,8 @@
                     <div *ngIf="diningTables.length" class="grid">
                         <div class="col-6 sm:col-4 md:col-3" *ngFor="let table of diningTables">
                             <div
-                                class="p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column align-items-center text-center shadow-1 hover:shadow-3"
+                                class="pos-floor-card p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column align-items-center text-center shadow-1 hover:shadow-3"
+                                [class.has-admin-actions]="canManageTableBill(table)"
                                 [style.background]="
                                     selectedTable?.id === table.id
                                         ? '#e0f2fe'
@@ -1421,6 +1438,19 @@
                                 "
                                 (click)="onTableClicked(table)"
                             >
+                                <button
+                                    *ngIf="canManageTableBill(table)"
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    icon="pi pi-print"
+                                    class="pos-floor-card-print p-button-rounded p-button-text p-button-info"
+                                    pTooltip="Print Guest Bill"
+                                    tooltipPosition="top"
+                                    [loading]="tableBillBusyId === table.id && printingBill"
+                                    [disabled]="tableBillBusyId === table.id"
+                                    (click)="printGuestBillFromTable(table, $event)"
+                                ></button>
                                 <i
                                     class="pi pi-table text-2xl mb-2"
                                     [style.color]="
@@ -1466,6 +1496,20 @@
                                 >
                                     MY ORDER
                                 </div>
+                                <button
+                                    *ngIf="canManageTableBill(table)"
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    icon="pi pi-check"
+                                    label="Complete"
+                                    class="pos-floor-card-complete p-button-success"
+                                    pTooltip="Complete Bill / Settle Payment"
+                                    tooltipPosition="top"
+                                    [loading]="tableBillBusyId === table.id && !printingBill"
+                                    [disabled]="tableBillBusyId === table.id"
+                                    (click)="completeBillFromTable(table, $event)"
+                                ></button>
                             </div>
                         </div>
                     </div>
@@ -1539,7 +1583,8 @@
                     <div *ngIf="carBays.length" class="grid">
                         <div class="col-6 sm:col-4 md:col-3" *ngFor="let table of carBays">
                             <div
-                                class="p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column align-items-center text-center shadow-1 hover:shadow-3"
+                                class="pos-floor-card p-3 border-round-xl border-1 cursor-pointer transition-all transition-duration-150 flex flex-column align-items-center text-center shadow-1 hover:shadow-3"
+                                [class.has-admin-actions]="canManageTableBill(table)"
                                 [style.background]="
                                     selectedTable?.id === table.id
                                         ? '#e0f2fe'
@@ -1560,6 +1605,19 @@
                                 "
                                 (click)="onTableClicked(table)"
                             >
+                                <button
+                                    *ngIf="canManageTableBill(table)"
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    icon="pi pi-print"
+                                    class="pos-floor-card-print p-button-rounded p-button-text p-button-info"
+                                    pTooltip="Print Guest Bill"
+                                    tooltipPosition="top"
+                                    [loading]="tableBillBusyId === table.id && printingBill"
+                                    [disabled]="tableBillBusyId === table.id"
+                                    (click)="printGuestBillFromTable(table, $event)"
+                                ></button>
                                 <i
                                     class="pi pi-car text-2xl mb-2"
                                     [style.color]="
@@ -1609,6 +1667,20 @@
                                 >
                                     MY ORDER
                                 </div>
+                                <button
+                                    *ngIf="canManageTableBill(table)"
+                                    pButton
+                                    pRipple
+                                    type="button"
+                                    icon="pi pi-check"
+                                    label="Complete"
+                                    class="pos-floor-card-complete p-button-success"
+                                    pTooltip="Complete Bill / Settle Payment"
+                                    tooltipPosition="top"
+                                    [loading]="tableBillBusyId === table.id && !printingBill"
+                                    [disabled]="tableBillBusyId === table.id"
+                                    (click)="completeBillFromTable(table, $event)"
+                                ></button>
                             </div>
                         </div>
                     </div>
@@ -1821,8 +1893,8 @@
         <div class="flex flex-column gap-3">
             <div class="p-3 surface-50 border-round text-center">
                 <i class="pi pi-check-circle text-green-500 text-3xl mb-1 block"></i>
-                <div class="font-bold text-900">{{ isCarService ? 'Sent to Car Successfully' : (orderType === 'takeaway' ? 'Sent to Kitchen KOT' : 'Sent to Table Successfully') }}</div>
-                <div class="text-xs text-500 mt-1">Ticket dispatched for {{ (kotResult?.carNumber || isCarService) ? (carServiceLabel || ('Car: ' + (kotResult?.carName || '') + ' (' + (kotResult?.carNumber || '') + ')')) : (kotResult?.tableNo || selectedTable?.tableNo || 'Takeaway') }}</div>
+                <div class="font-bold text-900">{{ isCarService ? 'Sent to Car (KOT)' : 'Sent to Kitchen KOT' }}</div>
+                <div class="text-xs text-500 mt-1">Ticket dispatched for {{ (kotResult?.carNumber || isCarService) ? (carServiceLabel || ('Car: ' + (kotResult?.carName || '') + ' (' + (kotResult?.carNumber || '') + ')')) : (kotResult?.tableNo || selectedTable?.tableNo || 'Takeaway') }} — visible on kitchen screen</div>
             </div>
 
             <!-- Thermal KOT Ticket Preview Container -->

@@ -1,0 +1,163 @@
+<p-toast></p-toast>
+
+<div class="waiter-dashboard">
+    <div class="waiter-dash-hero surface-card">
+        <div class="flex flex-column sm:flex-row align-items-start sm:align-items-center justify-content-between gap-3">
+            <div class="min-w-0">
+                <div class="flex flex-wrap align-items-center gap-2 mb-1">
+                    <span class="waiter-dash-avatar">
+                        <i class="pi pi-user"></i>
+                    </span>
+                    <h2 class="text-xl md:text-2xl font-bold text-900 m-0">
+                        {{ branchDisplayName }}
+                    </h2>
+                    <span class="waiter-on-duty">On Floor</span>
+                </div>
+                <p class="text-600 text-sm m-0">
+                    Welcome, <span class="font-semibold text-900">{{ waiterName }}</span>
+                    <span class="text-500"> · Waiter dashboard</span>
+                </p>
+            </div>
+            <div class="flex align-items-center gap-2 w-full sm:w-auto justify-content-end">
+                <button
+                    pButton
+                    type="button"
+                    icon="pi pi-refresh"
+                    label="Refresh"
+                    class="p-button-outlined p-button-sm"
+                    [loading]="loading"
+                    (click)="loadData()"
+                ></button>
+                <button
+                    pButton
+                    type="button"
+                    icon="pi pi-desktop"
+                    label="Open POS"
+                    class="p-button-sm"
+                    (click)="goToPos()"
+                ></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid waiter-kpi-grid">
+        <div class="col-6 md:col-3">
+            <button type="button" class="waiter-kpi is-active" (click)="setFilter('all')">
+                <span class="waiter-kpi-label">Active Orders</span>
+                <span class="waiter-kpi-value">{{ data?.activeCount || 0 }}</span>
+                <span class="waiter-kpi-sub">Open + billed</span>
+            </button>
+        </div>
+        <div class="col-6 md:col-3">
+            <button type="button" class="waiter-kpi is-pending" (click)="setFilter('pending')">
+                <span class="waiter-kpi-label">Pending</span>
+                <span class="waiter-kpi-value">{{ data?.pendingCount || 0 }}</span>
+                <span class="waiter-kpi-sub">Waiting on kitchen</span>
+            </button>
+        </div>
+        <div class="col-6 md:col-3">
+            <button type="button" class="waiter-kpi is-ready" (click)="setFilter('ready')">
+                <span class="waiter-kpi-label">Ready to Serve</span>
+                <span class="waiter-kpi-value">{{ data?.readyCount || 0 }}</span>
+                <span class="waiter-kpi-sub">Pick up from kitchen</span>
+            </button>
+        </div>
+        <div class="col-6 md:col-3">
+            <button type="button" class="waiter-kpi is-served" (click)="setFilter('all')">
+                <span class="waiter-kpi-label">Served Today</span>
+                <span class="waiter-kpi-value">{{ data?.todayServedCount || 0 }}</span>
+                <span class="waiter-kpi-sub">
+                    Rs. {{ (data?.todayServedAmount || 0) | number: '1.0-0' }}
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <div class="waiter-filter-row">
+        <button
+            type="button"
+            class="waiter-filter"
+            [class.active]="filter === 'all'"
+            (click)="setFilter('all')"
+        >
+            All ({{ data?.activeCount || 0 }})
+        </button>
+        <button
+            type="button"
+            class="waiter-filter"
+            [class.active]="filter === 'pending'"
+            (click)="setFilter('pending')"
+        >
+            Pending ({{ data?.pendingCount || 0 }})
+        </button>
+        <button
+            type="button"
+            class="waiter-filter"
+            [class.active]="filter === 'ready'"
+            (click)="setFilter('ready')"
+        >
+            Ready ({{ data?.readyCount || 0 }})
+        </button>
+        <button
+            type="button"
+            class="waiter-filter"
+            [class.active]="filter === 'billed'"
+            (click)="setFilter('billed')"
+        >
+            Billed ({{ data?.billedCount || 0 }})
+        </button>
+    </div>
+
+    <div *ngIf="loading && !data" class="waiter-empty">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>Loading your orders…</span>
+    </div>
+
+    <div *ngIf="!loading && !filteredOrders.length" class="waiter-empty">
+        <i class="pi pi-inbox"></i>
+        <div class="font-semibold text-900">No orders in this view</div>
+        <div class="text-sm text-500 mb-3">Start a table or car order from POS.</div>
+        <button
+            pButton
+            type="button"
+            label="Go to POS"
+            icon="pi pi-desktop"
+            class="p-button-sm"
+            (click)="goToPos()"
+        ></button>
+    </div>
+
+    <div class="waiter-order-list" *ngIf="filteredOrders.length">
+        <button
+            type="button"
+            class="waiter-order-card"
+            *ngFor="let order of filteredOrders; trackBy: trackByOrderId"
+            (click)="openInPos(order)"
+        >
+            <div class="waiter-order-main">
+                <div class="waiter-order-title">{{ orderTitle(order) }}</div>
+                <div class="waiter-order-meta">
+                    <span>{{ order.orderNo || ('#' + order.id) }}</span>
+                    <span *ngIf="order.orderTypeName">· {{ order.orderTypeName }}</span>
+                    <span>· {{ itemCount(order) }} item{{ itemCount(order) === 1 ? '' : 's' }}</span>
+                </div>
+                <div class="waiter-order-tags">
+                    <span class="waiter-status" [ngClass]="statusClass(order)">
+                        {{ statusLabel(order) }}
+                    </span>
+                    <span class="waiter-timer" *ngIf="nowMs && elapsedLabel(order) as elapsed">
+                        <i class="pi pi-clock"></i> {{ elapsed }}
+                    </span>
+                </div>
+            </div>
+            <div class="waiter-order-side">
+                <div class="waiter-order-total">
+                    {{ order.grandTotal | number: '1.0-0' }}
+                </div>
+                <span class="waiter-order-open">
+                    Open <i class="pi pi-arrow-right"></i>
+                </span>
+            </div>
+        </button>
+    </div>
+</div>

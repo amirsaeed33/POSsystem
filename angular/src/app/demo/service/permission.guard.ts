@@ -73,15 +73,16 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
         }
 
         // Restaurant Waiter URL restriction:
-        // Waiters must see only the POS screen and dining tables.
-        // They must not access dashboard, admin pages, sales, or any other modules.
+        // Waiters may use their dashboard and POS only — not kitchen or back-office.
         if (this.authService.isWaiter()) {
-            const isWaiterRoute = url.startsWith('/pos') ||
+            const isWaiterRoute =
+                url.startsWith('/waiter') ||
+                url.startsWith('/pos') ||
                 url.startsWith('/auth/changepassword') ||
                 url.startsWith('/notfound');
 
             if (!isWaiterRoute) {
-                return this.router.createUrlTree(['/pos']);
+                return this.router.createUrlTree(['/waiter/dashboard']);
             }
             return true;
         }

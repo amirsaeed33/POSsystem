@@ -57,6 +57,23 @@ namespace SmartPos.Branches.Dto
         [StringLength(Branch.MaxSoftwareDeveloperPhoneLength)]
         public string SoftwareDeveloperPhone { get; set; }
 
+        [StringLength(Branch.MaxCustomerFeedbackNameLength)]
+        public string CustomerFeedbackName { get; set; }
+
+        [StringLength(Branch.MaxCustomerFeedbackRoleLength)]
+        public string CustomerFeedbackRole { get; set; }
+
+        [StringLength(Branch.MaxCustomerFeedbackCityLength)]
+        public string CustomerFeedbackCity { get; set; }
+
+        [StringLength(Branch.MaxCustomerFeedbackCommentLength)]
+        public string CustomerFeedbackComment { get; set; }
+
+        [Range(0, 5)]
+        public int CustomerFeedbackRating { get; set; }
+
+        public bool ShowCustomerFeedback { get; set; }
+
         [Range(0, 100)]
         public decimal TaxPercent { get; set; }
 
