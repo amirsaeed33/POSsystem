@@ -103,6 +103,10 @@
                   Title="Track"
                   ContentTemplate="{DataTemplate customer:TrackOrderPage}" />
 
+    <ShellContent Route="history"
+                  Title="History"
+                  ContentTemplate="{DataTemplate customer:OrderHistoryPage}" />
+
     <ShellContent Route="unsupported"
                   Title="Unsupported"
                   ContentTemplate="{DataTemplate auth:UnsupportedStaffPage}" />

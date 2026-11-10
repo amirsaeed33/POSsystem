@@ -392,4 +392,13 @@ public partial class TrackOrderViewModel : BaseViewModel
             OnPropertyChanged(nameof(CanSubmitRating));
         }
     }
+
+    [RelayCommand]
+    private async Task ViewOrderHistoryAsync()
+    {
+        if (Shell.Current != null)
+        {
+            await Shell.Current.GoToAsync("//customer/history");
+        }
+    }
 }

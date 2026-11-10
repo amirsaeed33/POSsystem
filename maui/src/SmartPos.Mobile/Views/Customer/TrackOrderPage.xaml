@@ -296,6 +296,19 @@
                                 FontSize="15" />
                     </VerticalStackLayout>
                 </Border>
+
+                <!-- View All Orders Button -->
+                <Button Text="View My Order History"
+                        Command="{Binding ViewOrderHistoryCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource PrimaryDark}"
+                        BorderColor="{StaticResource PrimaryDark}"
+                        BorderWidth="1.5"
+                        HeightRequest="44"
+                        CornerRadius="12"
+                        FontAttributes="Bold"
+                        FontSize="14"
+                        Margin="0,4,0,10" />
             </VerticalStackLayout>
         </ScrollView>
 

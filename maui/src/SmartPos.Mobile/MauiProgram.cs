@@ -89,6 +89,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ProductDetailViewModel>();
         builder.Services.AddTransient<CartCheckoutViewModel>();
         builder.Services.AddTransient<TrackOrderViewModel>();
+        builder.Services.AddTransient<OrderHistoryViewModel>();
         builder.Services.AddTransient<RiderDashboardViewModel>();
         builder.Services.AddTransient<RiderHistoryViewModel>();
         builder.Services.AddTransient<WaiterTablesViewModel>();
@@ -105,6 +106,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ProductDetailPage>();
         builder.Services.AddTransient<CartPage>();
         builder.Services.AddTransient<TrackOrderPage>();
+        builder.Services.AddTransient<OrderHistoryPage>();
         builder.Services.AddTransient<RiderDashboardPage>();
         builder.Services.AddTransient<RiderHistoryPage>();
         builder.Services.AddTransient<WaiterTablesPage>();

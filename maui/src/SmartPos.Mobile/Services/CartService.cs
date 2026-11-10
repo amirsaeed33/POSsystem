@@ -124,6 +124,53 @@ public class CartService
         CartChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// 1-Click Re-Order: Loads line items from a past customer order into the active cart.
+    /// </summary>
+    /// <returns>Number of items added to cart.</returns>
+    public int ReorderFromCustomerOrder(CustomerOrderDto order, bool clearCart = true)
+    {
+        if (order?.Lines == null || order.Lines.Count == 0)
+        {
+            return 0;
+        }
+
+        if (clearCart)
+        {
+            Lines.Clear();
+        }
+
+        var addedCount = 0;
+        foreach (var line in order.Lines)
+        {
+            if (line.ProductId <= 0 || line.Quantity <= 0)
+            {
+                continue;
+            }
+
+            var existing = Lines.FirstOrDefault(x => x.ProductId == line.ProductId);
+            if (existing != null)
+            {
+                existing.Quantity += line.Quantity;
+            }
+            else
+            {
+                Lines.Add(new CartLine
+                {
+                    ProductId = line.ProductId,
+                    Name = line.ProductName ?? $"Item #{line.ProductId}",
+                    UnitPrice = line.UnitPrice,
+                    Quantity = line.Quantity
+                });
+            }
+
+            addedCount++;
+        }
+
+        CartChanged?.Invoke(this, EventArgs.Empty);
+        return addedCount;
+    }
+
     private void Refresh()
     {
         // Force CollectionView refresh for mutable property changes

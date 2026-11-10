@@ -2028,5 +2028,8 @@ public partial class CustomerHomeViewModel : BaseViewModel
     private async Task OpenCartAsync() => await Shell.Current.GoToAsync("//customer/cart");
 
     [RelayCommand]
+    private async Task OpenOrderHistoryAsync() => await Shell.Current.GoToAsync("//customer/history");
+
+    [RelayCommand]
     private async Task OpenLoginAsync() => await Shell.Current.GoToAsync("//customer/account");
 }

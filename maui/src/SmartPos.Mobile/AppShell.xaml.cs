@@ -20,6 +20,8 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("customer/cart", typeof(CartPage));
         Routing.RegisterRoute("order", typeof(OrderPage));
         Routing.RegisterRoute("customer/order", typeof(OrderPage));
+        Routing.RegisterRoute("history", typeof(OrderHistoryPage));
+        Routing.RegisterRoute("customer/history", typeof(OrderHistoryPage));
 
         Loaded += OnShellLoaded;
     }

@@ -100,6 +100,15 @@ public partial class CartCheckoutViewModel : BaseViewModel
     {
         Shell.SetTabBarIsVisible(Shell.Current.CurrentPage, false);
 
+        if (string.IsNullOrWhiteSpace(CustomerName))
+        {
+            CustomerName = Preferences.Default.Get("sp.customerName", string.Empty);
+        }
+        if (string.IsNullOrWhiteSpace(CustomerMobile))
+        {
+            CustomerMobile = Preferences.Default.Get("sp.customerPhone", string.Empty);
+        }
+
         if (_session.BranchId is not int branchId)
         {
             return;
@@ -273,6 +282,8 @@ public partial class CartCheckoutViewModel : BaseViewModel
             };
 
             var created = await _orders.CreateOnlineOrderAsync(input);
+            Preferences.Default.Set("sp.customerPhone", CustomerMobile.Trim());
+            Preferences.Default.Set("sp.customerName", CustomerName.Trim());
             _cart.Clear();
             await Shell.Current.DisplayAlert("Order placed", $"Order {created.OrderNo} submitted.", "OK");
             await Shell.Current.GoToAsync($"//customer/track?orderNo={Uri.EscapeDataString(created.OrderNo ?? string.Empty)}");

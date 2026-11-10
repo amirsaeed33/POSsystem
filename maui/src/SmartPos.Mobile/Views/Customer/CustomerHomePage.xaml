@@ -226,7 +226,7 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Notification Bell Button (Second, 42x42) -->
+                            <!-- Order History Button (Second, 42x42) -->
                             <Border WidthRequest="42"
                                     HeightRequest="42"
                                     Stroke="#E5E7EB"
@@ -236,8 +236,11 @@
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="14" />
                                 </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding OpenOrderHistoryCommand}" />
+                                </Border.GestureRecognizers>
                                 <Grid WidthRequest="42" HeightRequest="42">
-                                    <Image Source="icon_bell.png"
+                                    <Image Source="icon_receipt.png"
                                            WidthRequest="20"
                                            HeightRequest="20"
                                            HorizontalOptions="Center"

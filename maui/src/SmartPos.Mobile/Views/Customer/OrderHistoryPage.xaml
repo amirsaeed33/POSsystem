@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SmartPos.Mobile.ViewModels"
+             xmlns:models="clr-namespace:SmartPos.Mobile.Models"
+             xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
+             x:Class="SmartPos.Mobile.Views.Customer.OrderHistoryPage"
+             x:DataType="vm:OrderHistoryViewModel"
+             Title="Order History"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="#F9FAFB">
+
+    <Grid BackgroundColor="#F9FAFB">
+
+        <!-- Main Content Area -->
+        <Grid RowDefinitions="Auto,*" Padding="16,14,16,76">
+
+            <!-- ========================================================= -->
+            <!-- 1. TOP HEADER & SEARCH CARD                               -->
+            <!-- ========================================================= -->
+            <VerticalStackLayout Grid.Row="0" Spacing="12" Margin="0,0,0,10">
+
+                <!-- Header Row: Back Button + Page Title -->
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalOptions="Center">
+                    <Border WidthRequest="40"
+                            HeightRequest="40"
+                            Stroke="#E5E7EB"
+                            StrokeThickness="1"
+                            BackgroundColor="White"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#0A000000" Offset="0,2" Radius="6" Opacity="0.08" />
+                        </Border.Shadow>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding GoBackCommand}" />
+                        </Border.GestureRecognizers>
+                        <Path Aspect="Uniform"
+                              WidthRequest="14"
+                              HeightRequest="14"
+                              Fill="#111827"
+                              HorizontalOptions="Center"
+                              VerticalOptions="Center"
+                              Data="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+                    </Border>
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                        <Label Text="Order History"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="#111827" />
+                        <Label Text="Track &amp; 1-click re-order your previous meals"
+                               FontSize="12"
+                               TextColor="#6B7280" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <!-- Phone Lookup Card -->
+                <Border BackgroundColor="White"
+                        Stroke="#E5E7EB"
+                        StrokeThickness="1"
+                        Padding="14,12">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#0A000000" Offset="0,2" Radius="8" Opacity="0.05" />
+                    </Border.Shadow>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Enter your phone number to find past orders:"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="#374151" />
+
+                        <!-- Phone Input Row -->
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalOptions="Center">
+                            <!-- Country Code Badge -->
+                            <Border Grid.Column="0"
+                                    BackgroundColor="#F3F4F6"
+                                    Stroke="#E5E7EB"
+                                    StrokeThickness="1"
+                                    Padding="10,0"
+                                    HeightRequest="46"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Label Text="🇵🇰 +92"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="#111827"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="Center" />
+                            </Border>
+
+                            <!-- Phone Entry -->
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#F9FAFB"
+                                    Stroke="#E5E7EB"
+                                    StrokeThickness="1"
+                                    Padding="12,0"
+                                    HeightRequest="46"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Entry Placeholder="300 1234567"
+                                       Text="{Binding PhoneNumber}"
+                                       Keyboard="Telephone"
+                                       ReturnType="Search"
+                                       ReturnCommand="{Binding SearchOrdersCommand}"
+                                       FontSize="14"
+                                       TextColor="#111827"
+                                       PlaceholderColor="#9CA3AF"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </Grid>
+
+                        <!-- Quick suggestion chip for saved phone -->
+                        <Border IsVisible="{Binding HasSavedPhone}"
+                                BackgroundColor="#EFF6FF"
+                                Stroke="#BFDBFE"
+                                StrokeThickness="1"
+                                Padding="10,6"
+                                HorizontalOptions="Start">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding UseSavedPhoneCommand}" />
+                            </Border.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                <Label Text="💡 Tap to use:"
+                                       FontSize="11"
+                                       TextColor="#1E40AF" />
+                                <Label Text="{Binding SavedPhoneNumber}"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#1D4ED8" />
+                            </HorizontalStackLayout>
+                        </Border>
+
+                        <!-- Error Message if invalid -->
+                        <Label Text="{Binding SearchErrorMessage}"
+                               TextColor="#EF4444"
+                               FontSize="11"
+                               IsVisible="{Binding SearchErrorMessage, Converter={StaticResource InvertedBoolConverter}}" />
+
+                        <!-- Search Button -->
+                        <Button Text="Find My Orders"
+                                Command="{Binding SearchOrdersCommand}"
+                                BackgroundColor="{StaticResource PrimaryDark}"
+                                TextColor="White"
+                                HeightRequest="44"
+                                CornerRadius="12"
+                                FontAttributes="Bold"
+                                FontSize="14" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- ========================================================= -->
+            <!-- 2. BODY CONTENT (ORDERS LIST, LOADING, OR EMPTY STATE)     -->
+            <!-- ========================================================= -->
+            <Grid Grid.Row="1">
+
+                <!-- Loading State Card -->
+                <Border IsVisible="{Binding IsSearching}"
+                        BackgroundColor="White"
+                        Stroke="#E5E7EB"
+                        StrokeThickness="1"
+                        Padding="24,32"
+                        Margin="0,10,0,0"
+                        VerticalOptions="Start">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
+                        <ActivityIndicator IsRunning="{Binding IsSearching}"
+                                           Color="{StaticResource PrimaryDark}"
+                                           WidthRequest="36"
+                                           HeightRequest="36"
+                                           HorizontalOptions="Center" />
+                        <Label Text="Searching your order history…"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#374151"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="Fetching past orders from our cloud server."
+                               FontSize="12"
+                               TextColor="#9CA3AF"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Empty State Card -->
+                <Border IsVisible="{Binding IsEmptyState}"
+                        BackgroundColor="White"
+                        Stroke="#E5E7EB"
+                        StrokeThickness="1"
+                        Padding="24,32"
+                        Margin="0,10,0,0"
+                        VerticalOptions="Start">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
+                        <!-- Receipt Emblem -->
+                        <Border WidthRequest="64"
+                                HeightRequest="64"
+                                StrokeThickness="0"
+                                BackgroundColor="#FEF3C7"
+                                HorizontalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="22" />
+                            </Border.StrokeShape>
+                            <Label Text="🧾"
+                                   FontSize="28"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+
+                        <Label Text="No Previous Orders Found"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#111827"
+                               HorizontalTextAlignment="Center" />
+
+                        <Label Text="We couldn't find any orders placed under this phone number. Make sure the number matches the one entered at checkout, or order your favorite meal today!"
+                               FontSize="12"
+                               TextColor="#6B7280"
+                               HorizontalTextAlignment="Center"
+                               LineBreakMode="WordWrap" />
+
+                        <Button Text="Explore Menu &amp; Order"
+                                Command="{Binding BrowseMenuCommand}"
+                                BackgroundColor="{StaticResource PrimaryDark}"
+                                TextColor="White"
+                                FontAttributes="Bold"
+                                CornerRadius="12"
+                                Margin="0,10,0,0"
+                                Padding="24,10"
+                                HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Orders List with Pull-To-Refresh -->
+                <RefreshView IsVisible="{Binding HasOrders}"
+                             IsRefreshing="{Binding IsRefreshing}"
+                             Command="{Binding RefreshOrdersCommand}">
+                    <CollectionView ItemsSource="{Binding Orders}"
+                                    SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:CustomerOrderDto">
+                                <Border BackgroundColor="White"
+                                        Stroke="#E5E7EB"
+                                        StrokeThickness="1"
+                                        Margin="0,0,0,14"
+                                        Padding="14">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <Border.Shadow>
+                                        <Shadow Brush="#0A000000" Offset="0,2" Radius="6" Opacity="0.06" />
+                                    </Border.Shadow>
+
+                                    <VerticalStackLayout Spacing="10">
+
+                                        <!-- Top Row: Order Number (with copy button) + Status Chip -->
+                                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                                            <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                                <Label Text="{Binding FormattedOrderNo}"
+                                                       FontSize="15"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#111827"
+                                                       VerticalOptions="Center" />
+
+                                                <!-- Copy Button -->
+                                                <Border WidthRequest="26"
+                                                        HeightRequest="26"
+                                                        StrokeThickness="0"
+                                                        BackgroundColor="#F3F4F6"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="13" />
+                                                    </Border.StrokeShape>
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:OrderHistoryViewModel}}, Path=CopyOrderNoCommand}"
+                                                                              CommandParameter="{Binding OrderNo}" />
+                                                    </Border.GestureRecognizers>
+                                                    <Label Text="📋"
+                                                           FontSize="11"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center" />
+                                                </Border>
+                                            </HorizontalStackLayout>
+
+                                            <!-- Colored Status Badge -->
+                                            <Border Grid.Column="1"
+                                                    BackgroundColor="{Binding StatusBadgeBgColor}"
+                                                    StrokeThickness="0"
+                                                    Padding="10,4"
+                                                    VerticalOptions="Center">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="8" />
+                                                </Border.StrokeShape>
+                                                <Label Text="{Binding StatusDisplayName}"
+                                                       TextColor="{Binding StatusTextColor}"
+                                                       FontSize="11"
+                                                       FontAttributes="Bold"
+                                                       VerticalOptions="Center"
+                                                       HorizontalOptions="Center" />
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Thin Divider -->
+                                        <BoxView HeightRequest="1" Color="#F3F4F6" />
+
+                                        <!-- Meta Details: Date, Branch & Delivery Area -->
+                                        <VerticalStackLayout Spacing="4">
+                                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                                <Label Text="🕒" FontSize="11" VerticalOptions="Center" />
+                                                <Label Text="{Binding FormattedDate}"
+                                                       FontSize="12"
+                                                       TextColor="#6B7280"
+                                                       VerticalOptions="Center" />
+                                            </HorizontalStackLayout>
+
+                                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                                <Label Text="📍" FontSize="11" VerticalOptions="Center" />
+                                                <Label Text="{Binding BranchAndAreaSummary}"
+                                                       FontSize="12"
+                                                       TextColor="#4B5563"
+                                                       MaxLines="1"
+                                                       LineBreakMode="TailTruncation"
+                                                       VerticalOptions="Center" />
+                                            </HorizontalStackLayout>
+                                        </VerticalStackLayout>
+
+                                        <!-- Items Summary Box -->
+                                        <Border BackgroundColor="#F8FAFC"
+                                                Stroke="#E2E8F0"
+                                                StrokeThickness="1"
+                                                Padding="12,8">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="10" />
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding ItemsSummary}"
+                                                   FontSize="13"
+                                                   TextColor="#1E293B"
+                                                   FontAttributes="None"
+                                                   LineBreakMode="WordWrap" />
+                                        </Border>
+
+                                        <!-- Total & Item Count Summary -->
+                                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                                            <Label Text="{Binding ItemsCountBadge}"
+                                                   FontSize="12"
+                                                   TextColor="#64748B"
+                                                   VerticalOptions="Center" />
+                                            <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                                <Label Text="Total:"
+                                                       FontSize="13"
+                                                       TextColor="#64748B"
+                                                       VerticalOptions="Center" />
+                                                <Label Text="{Binding FormattedTotal}"
+                                                       FontSize="16"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{StaticResource PrimaryDark}"
+                                                       VerticalOptions="Center" />
+                                            </HorizontalStackLayout>
+                                        </Grid>
+
+                                        <!-- Thin Divider -->
+                                        <BoxView HeightRequest="1" Color="#F3F4F6" />
+
+                                        <!-- Action Buttons: Track Status & 1-Click Re-Order -->
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                            <!-- Track Status Button (Outlined) -->
+                                            <Border Grid.Column="0"
+                                                    Stroke="#D1D5DB"
+                                                    StrokeThickness="1"
+                                                    BackgroundColor="White"
+                                                    HeightRequest="40">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="10" />
+                                                </Border.StrokeShape>
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:OrderHistoryViewModel}}, Path=TrackOrderCommand}"
+                                                                          CommandParameter="{Binding .}" />
+                                                </Border.GestureRecognizers>
+                                                <HorizontalStackLayout Spacing="6"
+                                                                       HorizontalOptions="Center"
+                                                                       VerticalOptions="Center">
+                                                    <Label Text="🔍" FontSize="12" VerticalOptions="Center" />
+                                                    <Label Text="Track Status"
+                                                           FontSize="12"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#374151"
+                                                           VerticalOptions="Center" />
+                                                </HorizontalStackLayout>
+                                            </Border>
+
+                                            <!-- 1-Click Re-order Button (Filled Primary) -->
+                                            <Border Grid.Column="1"
+                                                    StrokeThickness="0"
+                                                    BackgroundColor="{StaticResource PrimaryDark}"
+                                                    HeightRequest="40">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="10" />
+                                                </Border.StrokeShape>
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:OrderHistoryViewModel}}, Path=ReorderCommand}"
+                                                                          CommandParameter="{Binding .}" />
+                                                </Border.GestureRecognizers>
+                                                <HorizontalStackLayout Spacing="6"
+                                                                       HorizontalOptions="Center"
+                                                                       VerticalOptions="Center">
+                                                    <Label Text="↻" FontSize="14" TextColor="White" VerticalOptions="Center" />
+                                                    <Label Text="Re-order"
+                                                           FontSize="12"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White"
+                                                           VerticalOptions="Center" />
+                                                </HorizontalStackLayout>
+                                            </Border>
+                                        </Grid>
+
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </RefreshView>
+
+            </Grid>
+
+        </Grid>
+
+        <!-- Customer Bottom Bubble Tab Bar -->
+        <controls:BubbleTabBar Mode="Customer"
+                               SelectedIndex="0"
+                               VerticalOptions="End"
+                               HorizontalOptions="Fill"
+                               ZIndex="40" />
+    </Grid>
+
+</ContentPage>
+

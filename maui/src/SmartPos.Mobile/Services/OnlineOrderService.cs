@@ -147,6 +147,32 @@ public class OnlineOrderService
         _api.PostAsync<CustomerOrderDto>("api/services/app/CustomerOrder/CreateOnlineOrder", input);
 
     /// <summary>
+    /// Fetches past customer orders matching the phone number (matching website /online-order/history).
+    /// </summary>
+    public async Task<List<CustomerOrderDto>> GetCustomerOrdersAsync(string phoneNumber, int? branchId = null, int maxResultCount = 30)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+        {
+            return new List<CustomerOrderDto>();
+        }
+
+        var query = new List<string>
+        {
+            $"Phone={Uri.EscapeDataString(phoneNumber.Trim())}",
+            $"MaxResultCount={maxResultCount}"
+        };
+
+        if (branchId.HasValue && branchId.Value > 0)
+        {
+            query.Add($"BranchId={branchId.Value}");
+        }
+
+        var url = $"api/services/app/CustomerOrder/GetOrdersByPhone?{string.Join("&", query)}";
+        var orders = await _api.GetAsync<List<CustomerOrderDto>>(url);
+        return orders ?? new List<CustomerOrderDto>();
+    }
+
+    /// <summary>
     /// ABP maps TrackOrderAsync to HTTP POST (not Get*), matching the Angular client.
     /// </summary>
     public Task<CustomerOrderDto> TrackOrderAsync(string orderNo) =>

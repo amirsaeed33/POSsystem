@@ -378,11 +378,99 @@ public class CustomerOrderDto : EntityDto
     [JsonPropertyName("customerRating")]
     public int? CustomerRating { get; set; }
 
+    [JsonPropertyName("customerAddress")]
+    public string? CustomerAddress { get; set; }
+
+    [JsonPropertyName("deliveryAreaId")]
+    public int? DeliveryAreaId { get; set; }
+
+    [JsonPropertyName("paymentMethod")]
+    public string? PaymentMethod { get; set; }
+
     [JsonPropertyName("customerFeedbackComment")]
     public string? CustomerFeedbackComment { get; set; }
 
     [JsonPropertyName("lines")]
     public List<CustomerOrderLineDto> Lines { get; set; } = new();
+
+    // === UI Presentation Helpers for Order History ===
+
+    public string FormattedOrderNo => string.IsNullOrWhiteSpace(OrderNo) ? $"Order #{Id}" : OrderNo!;
+
+    public string FormattedDate => OrderDate != default 
+        ? OrderDate.ToString("dd MMM yyyy, hh:mm tt") 
+        : string.Empty;
+
+    public string FormattedTotal => $"Rs {TotalAmount:0.##}";
+
+    public int TotalItemsCount => (int)Lines.Sum(l => l.Quantity);
+
+    public string ItemsCountBadge => $"{TotalItemsCount} {(TotalItemsCount == 1 ? "item" : "items")}";
+
+    public string ItemsSummary
+    {
+        get
+        {
+            if (Lines == null || Lines.Count == 0)
+            {
+                return "No items";
+            }
+
+            var parts = Lines
+                .Where(l => !string.IsNullOrWhiteSpace(l.ProductName))
+                .Select(l => $"{(int)l.Quantity}x {l.ProductName}")
+                .ToList();
+
+            return parts.Count > 0 ? string.Join(", ", parts) : $"{Lines.Count} items";
+        }
+    }
+
+    public string BranchAndAreaSummary
+    {
+        get
+        {
+            var area = DeliveryAreaName?.Trim();
+            var branch = BranchName?.Trim();
+            if (!string.IsNullOrWhiteSpace(branch) && !string.IsNullOrWhiteSpace(area))
+            {
+                return $"{branch} • {area}";
+            }
+            return branch ?? area ?? "Direct Order";
+        }
+    }
+
+    public string StatusDisplayName => Status switch
+    {
+        0 => "Pending",
+        1 => "Accepted",
+        2 => "Cancelled",
+        3 => "Preparing",
+        4 => "Delivered",
+        5 => "Completed",
+        _ => !string.IsNullOrWhiteSpace(StatusName) ? StatusName : $"Status {Status}"
+    };
+
+    public Color StatusTextColor => Status switch
+    {
+        0 => Color.FromArgb("#B45309"), // Dark Amber
+        1 => Color.FromArgb("#1D4ED8"), // Dark Blue
+        2 => Color.FromArgb("#B91C1C"), // Dark Red
+        3 => Color.FromArgb("#6D28D9"), // Dark Purple
+        4 or 5 => Color.FromArgb("#047857"), // Dark Emerald Green
+        _ => Color.FromArgb("#374151")
+    };
+
+    public Color StatusBadgeBgColor => Status switch
+    {
+        0 => Color.FromArgb("#FEF3C7"), // Light Amber
+        1 => Color.FromArgb("#DBEAFE"), // Light Blue
+        2 => Color.FromArgb("#FEE2E2"), // Light Red
+        3 => Color.FromArgb("#EDE9FE"), // Light Purple
+        4 or 5 => Color.FromArgb("#D1FAE5"), // Light Emerald
+        _ => Color.FromArgb("#F3F4F6")
+    };
+
+    public bool CanReorder => Lines != null && Lines.Any(l => l.ProductId > 0 && l.Quantity > 0);
 }
 
 public class RateCustomerOrderInput
