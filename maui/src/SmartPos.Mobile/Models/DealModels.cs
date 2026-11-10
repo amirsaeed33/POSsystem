@@ -109,6 +109,41 @@ public partial class DealCustomiseItem : ObservableObject
     public decimal UnitPrice { get; set; }
     public ObservableCollection<ModifierGroupItem> ModifierGroups { get; } = new();
 
+    public int ItemIndex { get; set; } = 1;
+    public int TotalItemCount { get; set; } = 1;
+
     public string HeaderTitle => Quantity > 1 ? $"{Quantity}x {ProductName}" : ProductName;
     public bool HasModifierGroups => ModifierGroups.Count > 0;
+
+    public string StepLabel => TotalItemCount > 1 ? $"Item {ItemIndex} of {TotalItemCount}" : "Combo Item";
+
+    public string FoodIcon
+    {
+        get
+        {
+            var n = (ProductName ?? string.Empty).ToLowerInvariant();
+            if (n.Contains("pizza")) return "🍕";
+            if (n.Contains("burger")) return "🍔";
+            if (n.Contains("wing") || n.Contains("chicken") || n.Contains("boti")) return "🍗";
+            if (n.Contains("drink") || n.Contains("pepsi") || n.Contains("beverage") || n.Contains("coke") || n.Contains("7up")) return "🥤";
+            if (n.Contains("fries") || n.Contains("chip")) return "🍟";
+            if (n.Contains("bread") || n.Contains("naan") || n.Contains("roti")) return "🫓";
+            if (n.Contains("kabab") || n.Contains("bbq") || n.Contains("tikka")) return "🍢";
+            return "🍽️";
+        }
+    }
+
+    public bool IsAllRequiredSatisfied => ModifierGroups.All(g => !g.IsRequired || g.Options.Any(o => o.IsSelected));
+
+    public string StatusBadgeText => IsAllRequiredSatisfied ? "Ready ✓" : "Choice Required";
+    public Color StatusBadgeTextColor => IsAllRequiredSatisfied ? Color.FromArgb("#047857") : Color.FromArgb("#B45309");
+    public Color StatusBadgeBgColor => IsAllRequiredSatisfied ? Color.FromArgb("#D1FAE5") : Color.FromArgb("#FEF3C7");
+
+    public void NotifyStateChanged()
+    {
+        OnPropertyChanged(nameof(IsAllRequiredSatisfied));
+        OnPropertyChanged(nameof(StatusBadgeText));
+        OnPropertyChanged(nameof(StatusBadgeTextColor));
+        OnPropertyChanged(nameof(StatusBadgeBgColor));
+    }
 }

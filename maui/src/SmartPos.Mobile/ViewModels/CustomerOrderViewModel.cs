@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartPos.Mobile.Helpers;
 using SmartPos.Mobile.Models;
 using SmartPos.Mobile.Services;
 
@@ -309,10 +310,21 @@ public partial class CustomerOrderViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private void IncreaseCard(OnlineProductDto? product)
+    private async Task IncreaseCardAsync(OnlineProductDto? product)
     {
         if (product == null || !product.InStock)
         {
+            return;
+        }
+
+        if (product.IsDeal || product.DealId.HasValue || (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
+        {
+            var homeVm = ServiceHelper.Get<CustomerHomeViewModel>();
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync("//customer/home");
+            }
+            await homeVm.OpenDealModalAsync(product);
             return;
         }
 
@@ -337,6 +349,14 @@ public partial class CustomerOrderViewModel : BaseViewModel
     {
         if (product == null || Shell.Current == null)
         {
+            return;
+        }
+
+        if (product.IsDeal || product.DealId.HasValue || (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
+        {
+            var homeVm = ServiceHelper.Get<CustomerHomeViewModel>();
+            await Shell.Current.GoToAsync("//customer/home");
+            await homeVm.OpenDealModalAsync(product);
             return;
         }
 

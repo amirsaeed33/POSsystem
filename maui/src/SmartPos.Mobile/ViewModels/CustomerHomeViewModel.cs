@@ -77,6 +77,15 @@ public partial class CustomerHomeViewModel : BaseViewModel
     [ObservableProperty]
     private string comboTotalLabel = "PKR 0";
 
+    [ObservableProperty]
+    private bool isComboValidationPassed = true;
+
+    [ObservableProperty]
+    private string comboValidationMessage = string.Empty;
+
+    public bool CanAddComboToCart => IsComboValidationPassed && !IsLoadingComboDeal && ComboProduct != null;
+    public bool HasComboValidationMessage => !string.IsNullOrWhiteSpace(ComboValidationMessage);
+
     /// <summary>Pull-to-refresh only. Must stay separate from <see cref="BaseViewModel.IsBusy"/> or RefreshView traps forever.</summary>
     [ObservableProperty]
     private bool isPullRefreshing;
@@ -1343,7 +1352,15 @@ public partial class CustomerHomeViewModel : BaseViewModel
         }
         finally
         {
+            for (var i = 0; i < DealCustomiseItems.Count; i++)
+            {
+                DealCustomiseItems[i].ItemIndex = i + 1;
+                DealCustomiseItems[i].TotalItemCount = DealCustomiseItems.Count;
+                DealCustomiseItems[i].NotifyStateChanged();
+            }
+
             IsLoadingComboDeal = false;
+            ValidateComboSelections();
             RefreshComboTotal();
         }
     }
@@ -1674,11 +1691,47 @@ public partial class CustomerHomeViewModel : BaseViewModel
                         o.IsSelected = ReferenceEquals(o, option);
                     }
                 }
+                item.NotifyStateChanged();
                 break;
             }
         }
 
+        ValidateComboSelections();
         RefreshComboTotal();
+    }
+
+    private bool ValidateComboSelections()
+    {
+        if (DealCustomiseItems == null || DealCustomiseItems.Count == 0)
+        {
+            IsComboValidationPassed = true;
+            ComboValidationMessage = string.Empty;
+            OnPropertyChanged(nameof(CanAddComboToCart));
+            OnPropertyChanged(nameof(HasComboValidationMessage));
+            return true;
+        }
+
+        foreach (var item in DealCustomiseItems)
+        {
+            item.NotifyStateChanged();
+            foreach (var group in item.ModifierGroups.Where(g => g.IsRequired))
+            {
+                if (!group.Options.Any(o => o.IsSelected))
+                {
+                    IsComboValidationPassed = false;
+                    ComboValidationMessage = $"Please select {group.Name} for {item.ProductName}.";
+                    OnPropertyChanged(nameof(CanAddComboToCart));
+                    OnPropertyChanged(nameof(HasComboValidationMessage));
+                    return false;
+                }
+            }
+        }
+
+        IsComboValidationPassed = true;
+        ComboValidationMessage = string.Empty;
+        OnPropertyChanged(nameof(CanAddComboToCart));
+        OnPropertyChanged(nameof(HasComboValidationMessage));
+        return true;
     }
 
     [RelayCommand]
@@ -1704,7 +1757,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
     {
         if (ComboProduct == null)
         {
-            ComboTotalLabel = "PKR 0";
+            ComboTotalLabel = "Rs 0";
             return;
         }
 
@@ -1714,7 +1767,8 @@ public partial class CustomerHomeViewModel : BaseViewModel
             .Sum(o => o.Price);
 
         var total = (ComboProduct.Price + extra) * ComboQuantity;
-        ComboTotalLabel = $"PKR {total:0}";
+        ComboTotalLabel = $"Rs {total:0}";
+        OnPropertyChanged(nameof(ComboTotalLabel));
     }
 
     [RelayCommand]
@@ -1726,16 +1780,13 @@ public partial class CustomerHomeViewModel : BaseViewModel
         }
 
         // Validate mandatory selections for every item in the combo
-        foreach (var item in DealCustomiseItems)
+        if (!ValidateComboSelections())
         {
-            foreach (var group in item.ModifierGroups.Where(g => g.IsRequired))
+            if (Shell.Current != null && !string.IsNullOrWhiteSpace(ComboValidationMessage))
             {
-                if (!group.Options.Any(o => o.IsSelected))
-                {
-                    _ = Shell.Current.DisplayAlert("Option Required", $"Please select an option for \"{group.Name}\" on {item.ProductName}.", "OK");
-                    return;
-                }
+                _ = Shell.Current.DisplayAlert("Choice Required", ComboValidationMessage, "OK");
             }
+            return;
         }
 
         var itemSummaries = new List<string>();
@@ -1743,7 +1794,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         {
             var selectedOpts = item.ModifierGroups
                 .SelectMany(g => g.Options.Where(o => o.IsSelected))
-                .Select(o => o.Price > 0 ? $"{o.Name} (+PKR {o.Price:0})" : o.Name)
+                .Select(o => o.Price > 0 ? $"{o.Name} (+Rs {o.Price:0})" : o.Name)
                 .ToList();
 
             if (selectedOpts.Count > 0)
