@@ -17,5 +17,10 @@ public partial class FavoritesPage : ContentPage
         _vm = vm;
         BindingContext = vm;
     }
-}
 
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        _vm.AppearingCommand.Execute(null);
+    }
+}
