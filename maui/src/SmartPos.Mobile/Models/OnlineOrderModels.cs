@@ -285,6 +285,9 @@ public class CreateCustomerOrderDto
     [JsonPropertyName("notes")]
     public string? Notes { get; set; }
 
+    [JsonPropertyName("paymentMethod")]
+    public string PaymentMethod { get; set; } = "CashOnDelivery";
+
     [JsonPropertyName("latitude")]
     public double? Latitude { get; set; }
 

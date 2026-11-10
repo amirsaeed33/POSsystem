@@ -100,6 +100,9 @@ public partial class CartCheckoutViewModel : BaseViewModel
     [ObservableProperty]
     private bool canPlaceOrder;
 
+    [ObservableProperty]
+    private string selectedPaymentMethod = "CashOnDelivery";
+
     public ObservableCollection<CartLine> Lines => _cart.Lines;
     public ObservableCollection<DeliveryAreaDto> Areas { get; } = new();
     public ObservableCollection<CustomerSavedAddressDto> SavedAddresses { get; } = new();
@@ -108,6 +111,10 @@ public partial class CartCheckoutViewModel : BaseViewModel
     public bool IsHomeLabelSelected => string.Equals(AddressLabel, "Home", StringComparison.OrdinalIgnoreCase);
     public bool IsOfficeLabelSelected => string.Equals(AddressLabel, "Office", StringComparison.OrdinalIgnoreCase);
     public bool IsOtherLabelSelected => string.Equals(AddressLabel, "Other", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsCodSelected => string.Equals(SelectedPaymentMethod, "CashOnDelivery", StringComparison.OrdinalIgnoreCase);
+    public bool IsOnlinePaymentSelected => string.Equals(SelectedPaymentMethod, "OnlinePayment", StringComparison.OrdinalIgnoreCase);
+    public string PaymentMethodBadgeText => IsOnlinePaymentSelected ? "Online" : "COD";
 
     public bool HasFreeDeliveryThreshold => FreeDeliveryThreshold > 0;
     public bool IsFreeDeliveryLocked => !IsFreeDeliveryUnlocked;
@@ -171,6 +178,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
         OnPropertyChanged(nameof(AmountNeededForFreeDeliveryText));
         OnPropertyChanged(nameof(MinimumOrderAmountText));
         OnPropertyChanged(nameof(MinimumOrderShortfallText));
+        OnPropertyChanged(nameof(PaymentMethodBadgeText));
     }
 
     private void RecalculateThresholds()
@@ -326,6 +334,13 @@ public partial class CartCheckoutViewModel : BaseViewModel
         OnPropertyChanged(nameof(IsOtherLabelSelected));
     }
 
+    partial void OnSelectedPaymentMethodChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsCodSelected));
+        OnPropertyChanged(nameof(IsOnlinePaymentSelected));
+        OnPropertyChanged(nameof(PaymentMethodBadgeText));
+    }
+
     partial void OnSelectedSavedAddressChanged(CustomerSavedAddressDto? value)
     {
         OnPropertyChanged(nameof(HasSelectedSavedAddress));
@@ -444,6 +459,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
                 BranchId = _session.BranchId,
                 OrderDate = DateTime.Now,
                 Notes = Notes,
+                PaymentMethod = SelectedPaymentMethod,
                 DeliveryAddress = DeliveryAddress.Trim(),
                 DeliveryLandmark = DeliveryLandmark,
                 DeliveryAreaId = SelectedArea?.Id,
@@ -504,7 +520,10 @@ public partial class CartCheckoutViewModel : BaseViewModel
             }
 
             _cart.Clear();
-            await Shell.Current.DisplayAlert("Order placed", $"Order {created.OrderNo} submitted.", "OK");
+            var paymentNotice = IsOnlinePaymentSelected
+                ? "\nPayment: Online / Digital Payment (Pending)"
+                : "\nPayment: Cash on Delivery (COD)";
+            await Shell.Current.DisplayAlert("Order placed", $"Order {created.OrderNo} submitted.{paymentNotice}", "OK");
             await Shell.Current.GoToAsync($"//customer/track?orderNo={Uri.EscapeDataString(created.OrderNo ?? string.Empty)}");
         });
     }
@@ -634,5 +653,12 @@ public partial class CartCheckoutViewModel : BaseViewModel
         {
             SwitchToNewAddress();
         }
+    }
+
+    [RelayCommand]
+    public void SelectPaymentMethod(string? method)
+    {
+        if (string.IsNullOrWhiteSpace(method)) return;
+        SelectedPaymentMethod = method;
     }
 }

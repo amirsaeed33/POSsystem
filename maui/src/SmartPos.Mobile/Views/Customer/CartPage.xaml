@@ -572,6 +572,157 @@
                         </Grid>
                     </Border>
 
+                    <!-- Payment Method Section -->
+                    <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
+                        <Label Text="💳" FontSize="18" VerticalOptions="Center" />
+                        <Label Text="Payment method" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
+                    </HorizontalStackLayout>
+
+                    <VerticalStackLayout Spacing="10">
+                        <!-- Card 1: Cash on Delivery -->
+                        <Border StrokeThickness="1.5"
+                                Padding="14,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SelectPaymentMethodCommand}" CommandParameter="CashOnDelivery" />
+                            </Border.GestureRecognizers>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="True">
+                                    <Setter Property="Stroke" Value="#0F6B4C" />
+                                    <Setter Property="BackgroundColor" Value="#F0FDF4" />
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="False">
+                                    <Setter Property="Stroke" Value="#E2E8E4" />
+                                    <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
+                                <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="#E7F5EF" VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="20" />
+                                    </Border.StrokeShape>
+                                    <Label Text="💵" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="Cash on Delivery (COD)"
+                                           FontAttributes="Bold"
+                                           FontSize="14"
+                                           TextColor="#1F2A24" />
+                                    <Label Text="Pay the rider with cash when your food arrives."
+                                           FontSize="12"
+                                           TextColor="#64748B"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+
+                                <Border Grid.Column="2"
+                                        WidthRequest="24"
+                                        HeightRequest="24"
+                                        StrokeThickness="2"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="True">
+                                            <Setter Property="Stroke" Value="#0F6B4C" />
+                                            <Setter Property="BackgroundColor" Value="#0F6B4C" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="False">
+                                            <Setter Property="Stroke" Value="#CBD5E1" />
+                                            <Setter Property="BackgroundColor" Value="Transparent" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Label Text="✓"
+                                           TextColor="White"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center"
+                                           IsVisible="{Binding IsCodSelected}" />
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Card 2: Online / Digital Payment -->
+                        <Border StrokeThickness="1.5"
+                                Padding="14,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SelectPaymentMethodCommand}" CommandParameter="OnlinePayment" />
+                            </Border.GestureRecognizers>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="True">
+                                    <Setter Property="Stroke" Value="#0F6B4C" />
+                                    <Setter Property="BackgroundColor" Value="#F0FDF4" />
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="False">
+                                    <Setter Property="Stroke" Value="#E2E8E4" />
+                                    <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
+                                <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="#EEF2FF" VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="20" />
+                                    </Border.StrokeShape>
+                                    <Label Text="💳" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                        <Label Text="Online / Digital Payment"
+                                               FontAttributes="Bold"
+                                               FontSize="14"
+                                               TextColor="#1F2A24"
+                                               VerticalOptions="Center" />
+                                        <Border BackgroundColor="#E0E7FF" StrokeThickness="0" Padding="6,2" VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="6" />
+                                            </Border.StrokeShape>
+                                            <Label Text="Card / Wallet" FontSize="10" TextColor="#4338CA" FontAttributes="Bold" />
+                                        </Border>
+                                    </HorizontalStackLayout>
+                                    <Label Text="Credit/Debit Card, JazzCash, EasyPaisa, or Transfer."
+                                           FontSize="12"
+                                           TextColor="#64748B"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+
+                                <Border Grid.Column="2"
+                                        WidthRequest="24"
+                                        HeightRequest="24"
+                                        StrokeThickness="2"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="True">
+                                            <Setter Property="Stroke" Value="#0F6B4C" />
+                                            <Setter Property="BackgroundColor" Value="#0F6B4C" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="False">
+                                            <Setter Property="Stroke" Value="#CBD5E1" />
+                                            <Setter Property="BackgroundColor" Value="Transparent" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Label Text="✓"
+                                           TextColor="White"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center"
+                                           IsVisible="{Binding IsOnlinePaymentSelected}" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </VerticalStackLayout>
+
                     <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="#FAFBFA" Padding="14" IsVisible="{Binding HasItems}">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="14" />
@@ -609,7 +760,10 @@
                             <BoxView HeightRequest="1" Color="#E2E8F0" Margin="0,2" />
 
                             <Grid ColumnDefinitions="*,Auto">
-                                <Label Text="Total Payable:" FontAttributes="Bold" FontSize="16" TextColor="#1F2A24" VerticalOptions="Center" />
+                                <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                    <Label Text="Total Payable" FontAttributes="Bold" FontSize="16" TextColor="#1F2A24" VerticalOptions="Center" />
+                                    <Label Text="{Binding PaymentMethodBadgeText, StringFormat='({0}):'}" FontSize="12" FontAttributes="Bold" TextColor="#64748B" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
                                 <Label Grid.Column="1"
                                        Text="{Binding GrandTotalText, StringFormat='PKR {0}'}"
                                        FontAttributes="Bold"
