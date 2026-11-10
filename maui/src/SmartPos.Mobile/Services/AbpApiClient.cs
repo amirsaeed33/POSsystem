@@ -82,6 +82,13 @@ public class AbpApiClient
         return await ReadAsync<T>(response, ct);
     }
 
+    public async Task DeleteAsync(string relativeUrl, CancellationToken ct = default)
+    {
+        using var request = CreateRequest(HttpMethod.Delete, relativeUrl);
+        using var response = await _http.SendAsync(request, ct);
+        await EnsureSuccessAsync(response, ct);
+    }
+
     private HttpRequestMessage CreateRequest(HttpMethod method, string relativeUrl)
     {
         var request = new HttpRequestMessage(method, relativeUrl.TrimStart('/'));

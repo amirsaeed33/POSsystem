@@ -49,8 +49,32 @@ public partial class CartCheckoutViewModel : BaseViewModel
     [ObservableProperty]
     private bool addressInvalid;
 
+    [ObservableProperty]
+    private CustomerSavedAddressDto? selectedSavedAddress;
+
+    [ObservableProperty]
+    private bool hasSavedAddresses;
+
+    [ObservableProperty]
+    private bool isNewAddressMode = true;
+
+    [ObservableProperty]
+    private string addressLabel = "Home";
+
+    [ObservableProperty]
+    private bool isSaveAddressChecked = true;
+
+    [ObservableProperty]
+    private bool isLoadingAddresses;
+
     public ObservableCollection<CartLine> Lines => _cart.Lines;
     public ObservableCollection<DeliveryAreaDto> Areas { get; } = new();
+    public ObservableCollection<CustomerSavedAddressDto> SavedAddresses { get; } = new();
+
+    public bool HasSelectedSavedAddress => SelectedSavedAddress != null;
+    public bool IsHomeLabelSelected => string.Equals(AddressLabel, "Home", StringComparison.OrdinalIgnoreCase);
+    public bool IsOfficeLabelSelected => string.Equals(AddressLabel, "Office", StringComparison.OrdinalIgnoreCase);
+    public bool IsOtherLabelSelected => string.Equals(AddressLabel, "Other", StringComparison.OrdinalIgnoreCase);
 
     public decimal Subtotal => _cart.Subtotal;
     public decimal GrandTotal => Subtotal + DeliveryFee;
@@ -109,6 +133,15 @@ public partial class CartCheckoutViewModel : BaseViewModel
             CustomerMobile = Preferences.Default.Get("sp.customerPhone", string.Empty);
         }
 
+        if (!string.IsNullOrWhiteSpace(CustomerMobile))
+        {
+            var digits = new string(CustomerMobile.Where(char.IsDigit).ToArray());
+            if (digits.Length >= 7)
+            {
+                _ = LoadSavedAddressesAsync(digits);
+            }
+        }
+
         if (_session.BranchId is not int branchId)
         {
             return;
@@ -159,6 +192,30 @@ public partial class CartCheckoutViewModel : BaseViewModel
         {
             MobileInvalid = false;
         }
+
+        var digits = new string(value.Where(char.IsDigit).ToArray());
+        if (digits.Length >= 7)
+        {
+            _ = LoadSavedAddressesAsync(digits);
+        }
+        else if (digits.Length == 0)
+        {
+            SavedAddresses.Clear();
+            HasSavedAddresses = false;
+            SelectedSavedAddress = null;
+        }
+    }
+
+    partial void OnAddressLabelChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsHomeLabelSelected));
+        OnPropertyChanged(nameof(IsOfficeLabelSelected));
+        OnPropertyChanged(nameof(IsOtherLabelSelected));
+    }
+
+    partial void OnSelectedSavedAddressChanged(CustomerSavedAddressDto? value)
+    {
+        OnPropertyChanged(nameof(HasSelectedSavedAddress));
     }
 
     partial void OnDeliveryAddressChanged(string value)
@@ -281,12 +338,178 @@ public partial class CartCheckoutViewModel : BaseViewModel
                 }).ToList()
             };
 
+            var savedAddrPhone = CustomerMobile.Trim();
+            var savedAddrLabel = string.IsNullOrWhiteSpace(AddressLabel) ? "Home" : AddressLabel;
+            var savedAddrText = DeliveryAddress.Trim();
+            var savedAddrLandmark = DeliveryLandmark?.Trim();
+            var savedAreaId = SelectedArea?.Id;
+            var savedAreaName = SelectedArea?.Name;
+            var savedLat = _deliveryLocation.Latitude;
+            var savedLng = _deliveryLocation.Longitude;
+            var isSaveAddress = IsSaveAddressChecked;
+            var branchId = _session.BranchId;
+
             var created = await _orders.CreateOnlineOrderAsync(input);
             Preferences.Default.Set("sp.customerPhone", CustomerMobile.Trim());
             Preferences.Default.Set("sp.customerName", CustomerName.Trim());
+
+            if (isSaveAddress && !string.IsNullOrWhiteSpace(savedAddrText))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _orders.SaveSavedAddressAsync(new SaveCustomerAddressInput
+                        {
+                            BranchId = branchId,
+                            Phone = savedAddrPhone,
+                            Label = savedAddrLabel,
+                            Address = savedAddrText,
+                            Landmark = savedAddrLandmark,
+                            DeliveryAreaId = savedAreaId,
+                            DeliveryAreaName = savedAreaName,
+                            Latitude = savedLat,
+                            Longitude = savedLng,
+                            IsDefault = SavedAddresses.Count == 0
+                        });
+                    }
+                    catch
+                    {
+                        // best-effort address persistence
+                    }
+                });
+            }
+
             _cart.Clear();
             await Shell.Current.DisplayAlert("Order placed", $"Order {created.OrderNo} submitted.", "OK");
             await Shell.Current.GoToAsync($"//customer/track?orderNo={Uri.EscapeDataString(created.OrderNo ?? string.Empty)}");
         });
+    }
+
+    [RelayCommand]
+    public async Task LoadSavedAddressesAsync(string? phone = null)
+    {
+        var mobile = phone ?? CustomerMobile;
+        if (string.IsNullOrWhiteSpace(mobile)) return;
+
+        var digits = new string(mobile.Where(char.IsDigit).ToArray());
+        if (digits.Length < 7)
+        {
+            SavedAddresses.Clear();
+            HasSavedAddresses = false;
+            return;
+        }
+
+        try
+        {
+            IsLoadingAddresses = true;
+            var addresses = await _orders.GetSavedAddressesAsync(mobile, _session.BranchId);
+            SavedAddresses.Clear();
+            foreach (var addr in addresses)
+            {
+                SavedAddresses.Add(addr);
+            }
+            HasSavedAddresses = SavedAddresses.Count > 0;
+
+            // If user hasn't typed an address yet, auto-select default address
+            if (HasSavedAddresses && string.IsNullOrWhiteSpace(DeliveryAddress))
+            {
+                var defaultAddr = SavedAddresses.FirstOrDefault(a => a.IsDefault) ?? SavedAddresses.FirstOrDefault();
+                if (defaultAddr != null)
+                {
+                    SelectSavedAddress(defaultAddr);
+                }
+            }
+        }
+        catch
+        {
+            // best-effort
+        }
+        finally
+        {
+            IsLoadingAddresses = false;
+        }
+    }
+
+    [RelayCommand]
+    public void SelectSavedAddress(CustomerSavedAddressDto? address)
+    {
+        if (address == null) return;
+
+        SelectedSavedAddress = address;
+        IsNewAddressMode = false;
+
+        foreach (var item in SavedAddresses)
+        {
+            item.IsSelected = (item.Id > 0 && item.Id == address.Id) || ReferenceEquals(item, address);
+        }
+
+        DeliveryAddress = address.Address ?? string.Empty;
+        DeliveryLandmark = address.Landmark ?? string.Empty;
+
+        if (address.DeliveryAreaId.HasValue && address.DeliveryAreaId.Value > 0)
+        {
+            var match = Areas.FirstOrDefault(a => a.Id == address.DeliveryAreaId.Value);
+            if (match != null)
+            {
+                SelectedArea = match;
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(address.DeliveryAreaName))
+        {
+            var match = Areas.FirstOrDefault(a => string.Equals(a.Name, address.DeliveryAreaName, StringComparison.OrdinalIgnoreCase));
+            if (match != null)
+            {
+                SelectedArea = match;
+            }
+        }
+
+        if (address.Latitude.HasValue && address.Longitude.HasValue)
+        {
+            _deliveryLocation.SetCoordinates(address.Latitude.Value, address.Longitude.Value);
+            RefreshLocationStatus();
+        }
+    }
+
+    [RelayCommand]
+    public void SwitchToNewAddress()
+    {
+        SelectedSavedAddress = null;
+        IsNewAddressMode = true;
+        foreach (var item in SavedAddresses)
+        {
+            item.IsSelected = false;
+        }
+        DeliveryAddress = string.Empty;
+        DeliveryLandmark = string.Empty;
+    }
+
+    [RelayCommand]
+    public void SetAddressLabel(string label)
+    {
+        AddressLabel = label;
+    }
+
+    [RelayCommand]
+    public async Task DeleteSavedAddressAsync(CustomerSavedAddressDto? address)
+    {
+        if (address == null) return;
+
+        var confirm = await Shell.Current.DisplayAlert(
+            "Delete Address",
+            $"Are you sure you want to delete saved address '{address.DisplayLabel}'?",
+            "Delete",
+            "Cancel");
+
+        if (!confirm) return;
+
+        await _orders.DeleteSavedAddressAsync(address.Id, CustomerMobile, _session.BranchId);
+        SavedAddresses.Remove(address);
+        HasSavedAddresses = SavedAddresses.Count > 0;
+
+        if (SelectedSavedAddress == address)
+        {
+            SwitchToNewAddress();
+        }
     }
 }

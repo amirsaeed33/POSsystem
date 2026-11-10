@@ -531,3 +531,129 @@ public class ToggleFavoriteResultDto
     [JsonPropertyName("isFavorite")]
     public bool IsFavorite { get; set; }
 }
+
+public partial class CustomerSavedAddressDto : ObservableObject
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("customerId")]
+    public int CustomerId { get; set; }
+
+    [JsonPropertyName("ownerId")]
+    public int OwnerId { get; set; }
+
+    [JsonPropertyName("label")]
+    public string? Label { get; set; }
+
+    [JsonPropertyName("address")]
+    public string Address { get; set; } = string.Empty;
+
+    [JsonPropertyName("landmark")]
+    public string? Landmark { get; set; }
+
+    [JsonPropertyName("deliveryAreaId")]
+    public int? DeliveryAreaId { get; set; }
+
+    [JsonPropertyName("deliveryAreaName")]
+    public string? DeliveryAreaName { get; set; }
+
+    [JsonPropertyName("latitude")]
+    public double? Latitude { get; set; }
+
+    [JsonPropertyName("longitude")]
+    public double? Longitude { get; set; }
+
+    [JsonPropertyName("isDefault")]
+    public bool IsDefault { get; set; }
+
+    [ObservableProperty]
+    [property: JsonIgnore]
+    private bool isSelected;
+
+    [JsonIgnore]
+    public string DisplayIcon => (Label?.Trim().ToLowerInvariant()) switch
+    {
+        "home" or "ghar" => "🏠",
+        "office" or "work" or "daftar" => "🏢",
+        "shop" or "store" => "🏬",
+        _ => "📍"
+    };
+
+    [JsonIgnore]
+    public string DisplayLabel => string.IsNullOrWhiteSpace(Label) ? "Address" : Label;
+
+    [JsonIgnore]
+    public string AddressPreview
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Address)) return string.Empty;
+            return Address.Length > 28 ? Address[..25] + "..." : Address;
+        }
+    }
+
+    [JsonIgnore]
+    public string FullAddressDisplay
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Landmark))
+            {
+                return $"{Address} (Near: {Landmark})";
+            }
+            return Address;
+        }
+    }
+}
+
+public class SaveCustomerAddressInput
+{
+    [JsonPropertyName("id")]
+    public int? Id { get; set; }
+
+    [JsonPropertyName("customerId")]
+    public int? CustomerId { get; set; }
+
+    [JsonPropertyName("branchId")]
+    public int? BranchId { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("label")]
+    public string? Label { get; set; }
+
+    [JsonPropertyName("address")]
+    public string Address { get; set; } = string.Empty;
+
+    [JsonPropertyName("landmark")]
+    public string? Landmark { get; set; }
+
+    [JsonPropertyName("deliveryAreaId")]
+    public int? DeliveryAreaId { get; set; }
+
+    [JsonPropertyName("deliveryAreaName")]
+    public string? DeliveryAreaName { get; set; }
+
+    [JsonPropertyName("latitude")]
+    public double? Latitude { get; set; }
+
+    [JsonPropertyName("longitude")]
+    public double? Longitude { get; set; }
+
+    [JsonPropertyName("isDefault")]
+    public bool IsDefault { get; set; }
+}
+
+public class DeleteCustomerSavedAddressInput
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("branchId")]
+    public int? BranchId { get; set; }
+}

@@ -60,6 +60,14 @@ public sealed class DeliveryLocationService
         }, token);
     }
 
+    public void SetCoordinates(double lat, double lng)
+    {
+        Latitude = lat;
+        Longitude = lng;
+        CapturedAtUtc = DateTimeOffset.UtcNow;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     public void Clear()
     {
         Latitude = null;

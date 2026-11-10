@@ -189,7 +189,132 @@
                         </Border.Triggers>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                             <Image Source="icon_phone.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                            <Entry Grid.Column="1" Placeholder="Mobile" Text="{Binding CustomerMobile}" Keyboard="Telephone" />
+                            <Entry Grid.Column="1" Placeholder="Mobile (e.g. 03001234567)" Text="{Binding CustomerMobile}" Keyboard="Telephone" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Saved Addresses Quick-Pick Section -->
+                    <VerticalStackLayout Spacing="8" Margin="0,6,0,0" IsVisible="{Binding HasSavedAddresses}">
+                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                            <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                <Label Text="Saved Addresses"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#1F2A24"
+                                       VerticalOptions="Center" />
+                                <Border BackgroundColor="#E7F5EF" StrokeThickness="0" Padding="8,2" VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding SavedAddresses.Count, StringFormat='{0} saved'}"
+                                           FontSize="11"
+                                           TextColor="#0F6B4C"
+                                           FontAttributes="Bold" />
+                                </Border>
+                            </HorizontalStackLayout>
+                            <Button Grid.Column="1"
+                                    Text="➕ New Address"
+                                    FontSize="12"
+                                    FontAttributes="Bold"
+                                    TextColor="#0F6B4C"
+                                    BackgroundColor="Transparent"
+                                    Padding="4,0"
+                                    HeightRequest="32"
+                                    Command="{Binding SwitchToNewAddressCommand}" />
+                        </Grid>
+
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding SavedAddresses}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:CustomerSavedAddressDto">
+                                        <Border StrokeThickness="1.5"
+                                                BackgroundColor="White"
+                                                Padding="12,10"
+                                                WidthRequest="210">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="14" />
+                                            </Border.StrokeShape>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=SelectSavedAddressCommand}"
+                                                                      CommandParameter="{Binding .}" />
+                                            </Border.GestureRecognizers>
+                                            <Border.Triggers>
+                                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="Stroke" Value="#0F6B4C" />
+                                                    <Setter Property="BackgroundColor" Value="#F0FDF4" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
+                                                    <Setter Property="Stroke" Value="#E2E8E4" />
+                                                    <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                                </DataTrigger>
+                                            </Border.Triggers>
+                                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" RowSpacing="4" ColumnSpacing="6">
+                                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding DisplayIcon}" FontSize="16" VerticalOptions="Center" />
+                                                <Label Grid.Row="0" Grid.Column="1"
+                                                       Text="{Binding DisplayLabel}"
+                                                       FontAttributes="Bold"
+                                                       FontSize="13"
+                                                       TextColor="#1F2A24"
+                                                       LineBreakMode="TailTruncation"
+                                                       VerticalOptions="Center" />
+                                                <Button Grid.Row="0" Grid.Column="2"
+                                                        Text="🗑"
+                                                        FontSize="12"
+                                                        TextColor="#EF4444"
+                                                        BackgroundColor="Transparent"
+                                                        Padding="0"
+                                                        WidthRequest="28"
+                                                        HeightRequest="28"
+                                                        CornerRadius="14"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=DeleteSavedAddressCommand}"
+                                                        CommandParameter="{Binding .}" />
+
+                                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                                       Text="{Binding AddressPreview}"
+                                                       FontSize="11"
+                                                       TextColor="#64748B"
+                                                       LineBreakMode="TailTruncation" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </HorizontalStackLayout>
+                        </ScrollView>
+                    </VerticalStackLayout>
+
+                    <!-- Active Saved Address Notification / Switch Pill -->
+                    <Border Stroke="#0F6B4C"
+                            StrokeThickness="1"
+                            BackgroundColor="#E7F5EF"
+                            Padding="12,10"
+                            IsVisible="{Binding HasSelectedSavedAddress}"
+                            Margin="0,2,0,0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                            <Label Text="{Binding SelectedSavedAddress.DisplayIcon}" FontSize="20" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                <Label Text="{Binding SelectedSavedAddress.DisplayLabel, StringFormat='Using saved address: {0}'}"
+                                       FontAttributes="Bold"
+                                       FontSize="12"
+                                       TextColor="#0F6B4C" />
+                                <Label Text="{Binding SelectedSavedAddress.FullAddressDisplay}"
+                                       FontSize="11"
+                                       TextColor="#2D3748"
+                                       MaxLines="2"
+                                       LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+                            <Button Grid.Column="2"
+                                    Text="Change"
+                                    FontSize="11"
+                                    FontAttributes="Bold"
+                                    TextColor="#0F6B4C"
+                                    BackgroundColor="#FFFFFF"
+                                    CornerRadius="10"
+                                    Padding="10,0"
+                                    HeightRequest="28"
+                                    Command="{Binding SwitchToNewAddressCommand}" />
                         </Grid>
                     </Border>
 
@@ -219,8 +344,133 @@
                         </Border.StrokeShape>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                             <Image Source="icon_pin.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                            <Entry Grid.Column="1" Placeholder="Landmark" Text="{Binding DeliveryLandmark}" />
+                            <Entry Grid.Column="1" Placeholder="Landmark (e.g. Near Main Mosque / Mall)" Text="{Binding DeliveryLandmark}" />
                         </Grid>
+                    </Border>
+
+                    <!-- Save this address for next time (when in New Address mode) -->
+                    <Border Stroke="#E2E8E4"
+                            StrokeThickness="1"
+                            BackgroundColor="#FAFBFA"
+                            Padding="12,10"
+                            IsVisible="{Binding IsNewAddressMode}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                                <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                    <Label Text="Save this address for future orders"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="#1F2A24" />
+                                    <Label Text="Instant 1-click address pick on your next order"
+                                           FontSize="11"
+                                           TextColor="#64748B" />
+                                </VerticalStackLayout>
+                                <Switch Grid.Column="1"
+                                        IsToggled="{Binding IsSaveAddressChecked}"
+                                        OnColor="#0F6B4C"
+                                        ThumbColor="White"
+                                        VerticalOptions="Center" />
+                            </Grid>
+
+                            <!-- Label chips: [ 🏠 Home ], [ 🏢 Office ], [ 📍 Other ] -->
+                            <VerticalStackLayout Spacing="6" IsVisible="{Binding IsSaveAddressChecked}">
+                                <Label Text="Save As:" FontSize="11" FontAttributes="Bold" TextColor="#64748B" />
+                                <HorizontalStackLayout Spacing="8">
+                                    <!-- Home Chip -->
+                                    <Border StrokeThickness="1.5" Padding="12,6">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="16" />
+                                        </Border.StrokeShape>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Home" />
+                                        </Border.GestureRecognizers>
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsHomeLabelSelected}" Value="True">
+                                                <Setter Property="Stroke" Value="#0F6B4C" />
+                                                <Setter Property="BackgroundColor" Value="#E7F5EF" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsHomeLabelSelected}" Value="False">
+                                                <Setter Property="Stroke" Value="#E2E8E4" />
+                                                <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Label Text="🏠 Home" FontSize="12" FontAttributes="Bold">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsHomeLabelSelected}" Value="True">
+                                                    <Setter Property="TextColor" Value="#0F6B4C" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsHomeLabelSelected}" Value="False">
+                                                    <Setter Property="TextColor" Value="#64748B" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </Border>
+
+                                    <!-- Office Chip -->
+                                    <Border StrokeThickness="1.5" Padding="12,6">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="16" />
+                                        </Border.StrokeShape>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Office" />
+                                        </Border.GestureRecognizers>
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsOfficeLabelSelected}" Value="True">
+                                                <Setter Property="Stroke" Value="#0F6B4C" />
+                                                <Setter Property="BackgroundColor" Value="#E7F5EF" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsOfficeLabelSelected}" Value="False">
+                                                <Setter Property="Stroke" Value="#E2E8E4" />
+                                                <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Label Text="🏢 Office" FontSize="12" FontAttributes="Bold">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsOfficeLabelSelected}" Value="True">
+                                                    <Setter Property="TextColor" Value="#0F6B4C" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsOfficeLabelSelected}" Value="False">
+                                                    <Setter Property="TextColor" Value="#64748B" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </Border>
+
+                                    <!-- Other Chip -->
+                                    <Border StrokeThickness="1.5" Padding="12,6">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="16" />
+                                        </Border.StrokeShape>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Other" />
+                                        </Border.GestureRecognizers>
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsOtherLabelSelected}" Value="True">
+                                                <Setter Property="Stroke" Value="#0F6B4C" />
+                                                <Setter Property="BackgroundColor" Value="#E7F5EF" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsOtherLabelSelected}" Value="False">
+                                                <Setter Property="Stroke" Value="#E2E8E4" />
+                                                <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Label Text="📍 Other" FontSize="12" FontAttributes="Bold">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsOtherLabelSelected}" Value="True">
+                                                    <Setter Property="TextColor" Value="#0F6B4C" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsOtherLabelSelected}" Value="False">
+                                                    <Setter Property="TextColor" Value="#64748B" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </Border>
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
                     </Border>
 
                     <Label Text="{Binding LocationStatusText}"

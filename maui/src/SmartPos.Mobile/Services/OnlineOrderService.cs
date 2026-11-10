@@ -1,3 +1,4 @@
+using System.Text.Json;
 using SmartPos.Mobile.Models;
 
 namespace SmartPos.Mobile.Services;
@@ -290,6 +291,139 @@ public class OnlineOrderService
         catch
         {
             return null;
+        }
+    }
+
+    private static string GetSavedAddressCacheKey(string phone) => $"sp_saved_addresses_{phone.Trim()}";
+
+    public List<CustomerSavedAddressDto> GetCachedSavedAddresses(string phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return new List<CustomerSavedAddressDto>();
+        try
+        {
+            var json = Preferences.Default.Get(GetSavedAddressCacheKey(phone), string.Empty);
+            if (string.IsNullOrWhiteSpace(json)) return new List<CustomerSavedAddressDto>();
+            var list = JsonSerializer.Deserialize<List<CustomerSavedAddressDto>>(json, JsonDefaults.Options);
+            return list ?? new List<CustomerSavedAddressDto>();
+        }
+        catch
+        {
+            return new List<CustomerSavedAddressDto>();
+        }
+    }
+
+    public void SaveCachedSavedAddresses(string phone, List<CustomerSavedAddressDto> list)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return;
+        try
+        {
+            var json = JsonSerializer.Serialize(list, JsonDefaults.Options);
+            Preferences.Default.Set(GetSavedAddressCacheKey(phone), json);
+        }
+        catch
+        {
+            // best-effort local cache
+        }
+    }
+
+    public async Task<List<CustomerSavedAddressDto>> GetSavedAddressesAsync(string phone, int? branchId = null, int? customerId = null)
+    {
+        var localCached = GetCachedSavedAddresses(phone);
+
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return localCached;
+        }
+
+        try
+        {
+            var query = new List<string> { $"Phone={Uri.EscapeDataString(phone.Trim())}" };
+            if (branchId.HasValue && branchId.Value > 0) query.Add($"BranchId={branchId.Value}");
+            if (customerId.HasValue && customerId.Value > 0) query.Add($"CustomerId={customerId.Value}");
+
+            var queryString = string.Join("&", query);
+            var result = await _api.GetAsync<List<CustomerSavedAddressDto>>($"api/services/app/CustomerOrder/GetSavedAddresses?{queryString}");
+            if (result != null && result.Count > 0)
+            {
+                SaveCachedSavedAddresses(phone, result);
+                return result;
+            }
+        }
+        catch
+        {
+            // fallback to local cache
+        }
+
+        return localCached;
+    }
+
+    public async Task<CustomerSavedAddressDto?> SaveSavedAddressAsync(SaveCustomerAddressInput input)
+    {
+        CustomerSavedAddressDto? saved = null;
+        try
+        {
+            saved = await _api.PostAsync<CustomerSavedAddressDto>("api/services/app/CustomerOrder/SaveSavedAddress", input);
+        }
+        catch
+        {
+            // fallback offline/local save
+        }
+
+        if (saved == null)
+        {
+            saved = new CustomerSavedAddressDto
+            {
+                Id = input.Id ?? (int)(DateTime.UtcNow.Ticks % int.MaxValue),
+                Label = input.Label,
+                Address = input.Address,
+                Landmark = input.Landmark,
+                DeliveryAreaId = input.DeliveryAreaId,
+                DeliveryAreaName = input.DeliveryAreaName,
+                Latitude = input.Latitude,
+                Longitude = input.Longitude,
+                IsDefault = input.IsDefault
+            };
+        }
+
+        if (!string.IsNullOrWhiteSpace(input.Phone))
+        {
+            var current = GetCachedSavedAddresses(input.Phone);
+            var existingIdx = current.FindIndex(a => (saved.Id > 0 && a.Id == saved.Id) || (string.Equals(a.Address, saved.Address, StringComparison.OrdinalIgnoreCase) && string.Equals(a.Label, saved.Label, StringComparison.OrdinalIgnoreCase)));
+            if (existingIdx >= 0)
+            {
+                current[existingIdx] = saved;
+            }
+            else
+            {
+                current.Insert(0, saved);
+            }
+            SaveCachedSavedAddresses(input.Phone, current);
+        }
+
+        return saved;
+    }
+
+    public async Task DeleteSavedAddressAsync(int id, string? phone = null, int? branchId = null)
+    {
+        try
+        {
+            var query = new List<string> { $"Id={id}" };
+            if (!string.IsNullOrWhiteSpace(phone)) query.Add($"Phone={Uri.EscapeDataString(phone.Trim())}");
+            if (branchId.HasValue && branchId.Value > 0) query.Add($"BranchId={branchId.Value}");
+
+            var queryString = string.Join("&", query);
+            await _api.DeleteAsync($"api/services/app/CustomerOrder/DeleteSavedAddress?{queryString}");
+        }
+        catch
+        {
+            // best-effort
+        }
+
+        if (!string.IsNullOrWhiteSpace(phone))
+        {
+            var current = GetCachedSavedAddresses(phone);
+            current.RemoveAll(a => a.Id == id);
+            SaveCachedSavedAddresses(phone, current);
         }
     }
 }
