@@ -1,4 +1,5 @@
 using SmartPos.Mobile.Services;
+using SmartPos.Mobile.Views.Auth;
 using SmartPos.Mobile.Views.Customer;
 
 namespace SmartPos.Mobile;
@@ -22,6 +23,10 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("customer/order", typeof(OrderPage));
         Routing.RegisterRoute("history", typeof(OrderHistoryPage));
         Routing.RegisterRoute("customer/history", typeof(OrderHistoryPage));
+        Routing.RegisterRoute("profile", typeof(CustomerProfilePage));
+        Routing.RegisterRoute("customer/profile", typeof(CustomerProfilePage));
+        Routing.RegisterRoute("customer/account", typeof(CustomerProfilePage));
+        Routing.RegisterRoute("login", typeof(LoginPage));
 
         Loaded += OnShellLoaded;
     }

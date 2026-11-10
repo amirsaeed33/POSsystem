@@ -608,6 +608,12 @@ public partial class CustomerSavedAddressDto : ObservableObject
             return Address;
         }
     }
+
+    [JsonIgnore]
+    public bool HasLandmark => !string.IsNullOrWhiteSpace(Landmark);
+
+    [JsonIgnore]
+    public bool IsNotDefault => !IsDefault;
 }
 
 public class SaveCustomerAddressInput
@@ -659,4 +665,64 @@ public class DeleteCustomerSavedAddressInput
 
     [JsonPropertyName("branchId")]
     public int? BranchId { get; set; }
+}
+
+public class OnlineCustomerProfileDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("branchId")]
+    public int BranchId { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+
+    [JsonPropertyName("latitude")]
+    public double? Latitude { get; set; }
+
+    [JsonPropertyName("longitude")]
+    public double? Longitude { get; set; }
+
+    [JsonPropertyName("imagePath")]
+    public string? ImagePath { get; set; }
+
+    [JsonPropertyName("savedAddresses")]
+    public List<CustomerSavedAddressDto> SavedAddresses { get; set; } = new();
+}
+
+public class UpsertOnlineCustomerProfileInput
+{
+    [JsonPropertyName("branchId")]
+    public int? BranchId { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("phone")]
+    public string Phone { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+
+    [JsonPropertyName("latitude")]
+    public double? Latitude { get; set; }
+
+    [JsonPropertyName("longitude")]
+    public double? Longitude { get; set; }
+
+    [JsonPropertyName("imageBase64")]
+    public string? ImageBase64 { get; set; }
 }

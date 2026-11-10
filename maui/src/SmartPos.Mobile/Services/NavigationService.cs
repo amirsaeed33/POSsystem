@@ -28,7 +28,7 @@ public class NavigationService
         var shell = GetShell();
         if (shell != null)
         {
-            await shell.GoToAsync("//customer/account");
+            await shell.GoToAsync("//login");
         }
     }
 

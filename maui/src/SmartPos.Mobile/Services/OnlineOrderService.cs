@@ -426,4 +426,40 @@ public class OnlineOrderService
             SaveCachedSavedAddresses(phone, current);
         }
     }
+
+    public async Task<OnlineCustomerProfileDto?> GetOnlineCustomerProfileAsync(string phone, int? branchId = null)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return null;
+        }
+
+        try
+        {
+            var url = branchId.HasValue && branchId.Value > 0
+                ? $"api/services/app/CustomerOrder/GetOnlineCustomerProfile?phone={Uri.EscapeDataString(phone.Trim())}&branchId={branchId.Value}"
+                : $"api/services/app/CustomerOrder/GetOnlineCustomerProfile?phone={Uri.EscapeDataString(phone.Trim())}";
+            var profile = await _api.GetAsync<OnlineCustomerProfileDto>(url);
+            return profile;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<OnlineCustomerProfileDto?> UpsertOnlineCustomerProfileAsync(UpsertOnlineCustomerProfileInput input)
+    {
+        try
+        {
+            var profile = await _api.PostAsync<OnlineCustomerProfileDto>("api/services/app/CustomerOrder/UpsertOnlineCustomerProfile", input);
+            return profile;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public string ResolveImageUrl(string? path) => _api.ResolveImageUrl(path);
 }

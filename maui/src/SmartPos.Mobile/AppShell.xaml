@@ -43,8 +43,13 @@
         <ShellContent Route="account"
                       Title="Profile"
                       Icon="tab_account_idle.png"
-                      ContentTemplate="{DataTemplate auth:LoginPage}" />
+                      ContentTemplate="{DataTemplate customer:CustomerProfilePage}" />
     </TabBar>
+
+    <!-- Staff & Rider Login Page -->
+    <ShellContent Route="login"
+                  Title="Staff Login"
+                  ContentTemplate="{DataTemplate auth:LoginPage}" />
 
     <!-- Standalone Cart Page -->
     <ShellContent Route="cart"
