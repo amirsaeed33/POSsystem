@@ -502,30 +502,44 @@ namespace SmartPos.Orders
                     }
                 }
 
+                // Keep ASCII labels (Addr/Landmark/Payment) so printers and invoices never show "??".
+                // If the client already packed Addr: into Notes, do not duplicate the same fields.
                 var noteParts = new List<string>();
-                if (!string.IsNullOrWhiteSpace(input.Notes))
+                var incomingNotes = (input.Notes ?? string.Empty).Trim();
+                var notesAlreadyHaveAddr = incomingNotes.IndexOf("Addr:", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                if (!string.IsNullOrWhiteSpace(incomingNotes))
                 {
-                    noteParts.Add(input.Notes.Trim());
+                    noteParts.Add(incomingNotes);
                 }
-                if (!string.IsNullOrWhiteSpace(input.DeliveryAddress))
+
+                if (!notesAlreadyHaveAddr)
                 {
-                    noteParts.Add($"?? {input.DeliveryAddress.Trim()}");
-                }
-                if (!string.IsNullOrWhiteSpace(input.DeliveryLandmark))
-                {
-                    noteParts.Add($"?? {input.DeliveryLandmark.Trim()}");
-                }
-                if (!string.IsNullOrWhiteSpace(input.GoogleMapsLink) && !noteParts.Any(p => p.Contains("maps.google.com")))
-                {
-                    noteParts.Add($"??? {input.GoogleMapsLink.Trim()}");
-                }
-                if (input.DistanceKm.HasValue && input.DistanceKm.Value > 0)
-                {
-                    noteParts.Add($"?? Distance: {input.DistanceKm.Value:F1} km");
+                    if (!string.IsNullOrWhiteSpace(input.DeliveryAddress))
+                    {
+                        noteParts.Add($"Addr: {input.DeliveryAddress.Trim()}");
+                    }
+                    if (!string.IsNullOrWhiteSpace(input.DeliveryLandmark))
+                    {
+                        noteParts.Add($"Landmark: {input.DeliveryLandmark.Trim()}");
+                    }
+                    if (!string.IsNullOrWhiteSpace(input.GoogleMapsLink) &&
+                        !noteParts.Any(p => p.IndexOf("maps.google.com", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                            p.IndexOf("google.com/maps", StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        noteParts.Add($"Maps: {input.GoogleMapsLink.Trim()}");
+                    }
+                    if (input.DistanceKm.HasValue && input.DistanceKm.Value > 0)
+                    {
+                        noteParts.Add($"Distance: {input.DistanceKm.Value:F1} km");
+                    }
                 }
 
                 var paymentMethod = NormalizePaymentMethod(input.PaymentMethod);
-                noteParts.Add($"?? Payment: {FormatPaymentMethodLabel(paymentMethod)}");
+                if (incomingNotes.IndexOf("Payment:", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    noteParts.Add($"Payment: {FormatPaymentMethodLabel(paymentMethod)}");
+                }
 
                 var finalNotes = string.Join(" | ", noteParts);
                 if (finalNotes.Length > CustomerOrder.MaxNotesLength)

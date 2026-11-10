@@ -236,6 +236,12 @@
         background: #f5f3ff;
         border-color: #ddd6fe;
     }
+
+    &.is-served {
+        color: #15803d;
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+    }
 }
 
 .waiter-timer {

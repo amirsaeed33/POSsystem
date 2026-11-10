@@ -1207,17 +1207,20 @@ namespace SmartPos.Restaurant
 
             var today = Clock.Now.Date;
             var tomorrow = today.AddDays(1);
-            var settledToday = await _orderRepository.GetAll()
+            var settledTodayEntities = await _orderRepository.GetAll()
                 .AsNoTracking()
+                .Include(o => o.Lines)
+                    .ThenInclude(l => l.Product)
+                .Include(o => o.Customer)
                 .Where(o => o.BranchId == branchId &&
                             o.Status == RestaurantOrderStatus.Settled &&
                             o.SettledTime.HasValue &&
                             o.SettledTime.Value >= today &&
                             o.SettledTime.Value < tomorrow)
-                .Select(o => new { o.WaiterName, o.GrandTotal })
+                .OrderByDescending(o => o.SettledTime)
                 .ToListAsync();
 
-            var myServed = settledToday
+            var myServed = settledTodayEntities
                 .Where(o => NormalizeWaiterKey(o.WaiterName) == waiterKey)
                 .ToList();
 
@@ -1238,7 +1241,8 @@ namespace SmartPos.Restaurant
                 BilledCount = billed,
                 TodayServedCount = myServed.Count,
                 TodayServedAmount = myServed.Sum(o => o.GrandTotal),
-                ActiveOrders = ObjectMapper.Map<List<RestaurantOrderDto>>(mine)
+                ActiveOrders = ObjectMapper.Map<List<RestaurantOrderDto>>(mine),
+                TodayServedOrders = ObjectMapper.Map<List<RestaurantOrderDto>>(myServed)
             };
         }
 
@@ -1360,9 +1364,10 @@ namespace SmartPos.Restaurant
 
         private static string GenerateOrderNumber()
         {
+            // Short daily ticket id for thermal receipts, e.g. ORD-261110-4821
             var now = Clock.Now;
-            var rand = new Random().Next(100, 999);
-            return $"ORD-{now:yyMMddHHmm}-{rand}";
+            var rand = new Random().Next(1000, 9999);
+            return $"ORD-{now:yyMMdd}-{rand}";
         }
 
         /// <summary>

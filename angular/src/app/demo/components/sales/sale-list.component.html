@@ -155,7 +155,10 @@
         <ng-template pTemplate="body" let-sale>
             <tr>
                 <td>{{ sale.invoiceNo || ('#' + sale.id) }}</td>
-                <td>{{ sale.saleDate | date: formatService.dateFormat }}</td>
+                <td>
+                    <div class="font-medium text-800">{{ sale.saleDate | date: formatService.dateFormat }}</div>
+                    <div class="text-xs text-500 font-normal">{{ sale.saleDate | date: 'shortTime' }}</div>
+                </td>
                 <td>
                     <span
                         *ngIf="getSaleType(sale) === 'Online Order'"

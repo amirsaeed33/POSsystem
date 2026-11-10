@@ -148,61 +148,78 @@ export class ThermalPrintService {
                 print-color-adjust: exact !important;
             }
             body {
-                font-family: 'Courier New', Courier, 'Lucida Console', Monaco, monospace;
+                font-family: Arial, Helvetica, 'Segoe UI', sans-serif;
                 font-size: ${baseFontSize};
-                line-height: 1.25;
+                line-height: 1.3;
                 color: #000000;
                 background: #ffffff;
                 width: ${bodyWidth};
                 max-width: ${bodyWidth};
                 margin: 0 auto;
-                padding: ${is58 ? '2mm 1mm' : '4mm 2mm'};
+                padding: ${is58 ? '2mm 1.5mm' : '3mm 2.5mm'};
             }
             .text-center { text-align: center; }
             .text-right { text-align: right; }
             .text-left { text-align: left; }
-            .bold { font-weight: bold; }
+            .bold { font-weight: 700; }
             .uppercase { text-transform: uppercase; }
-            .divider { border-top: 1px dashed #000000; margin: 4px 0; }
+            .divider { border-top: 1px dotted #000000; margin: 5px 0; }
             .double-divider { border-top: 2px solid #000000; margin: 5px 0; }
             .dotted-divider { border-top: 1px dotted #000000; margin: 3px 0; }
             .row {
                 display: flex;
                 justify-content: space-between;
+                align-items: flex-start;
+                gap: 6px;
                 font-size: ${metaFontSize};
                 margin-bottom: 2px;
-                line-height: 1.25;
+                line-height: 1.3;
+            }
+            .row > span:last-child { text-align: right; }
+            .printed-at {
+                white-space: nowrap;
+                flex: 0 0 auto;
+                font-size: ${is58 ? '8px' : '9.5px'};
             }
             .header-title {
                 font-size: ${titleFontSize};
-                font-weight: bold;
-                letter-spacing: 0.5px;
+                font-weight: 800;
+                letter-spacing: 0.4px;
+                margin-top: 2px;
             }
             .header-subtitle {
                 font-size: ${subTitleFontSize};
-                font-weight: bold;
+                font-weight: 700;
                 margin-top: 2px;
             }
             .meta-text {
                 font-size: ${metaFontSize};
                 color: #111111;
-                line-height: 1.25;
+                line-height: 1.3;
+            }
+            .section-title {
+                text-align: center;
+                font-weight: 800;
+                text-transform: uppercase;
+                font-size: ${is58 ? '10px' : '11.5px'};
+                letter-spacing: 0.3px;
+                margin: 2px 0;
             }
             table {
                 width: 100%;
                 border-collapse: collapse;
-                margin: 3px 0;
+                margin: 2px 0 4px 0;
                 table-layout: fixed;
             }
             th {
-                border-bottom: 1px dashed #000000;
+                border-bottom: 1px dotted #000000;
                 padding: 3px 2px;
                 font-size: ${metaFontSize};
-                font-weight: bold;
+                font-weight: 700;
                 word-break: break-word;
             }
             td {
-                padding: 3px 2px;
+                padding: 2px 2px;
                 font-size: ${metaFontSize};
                 vertical-align: top;
                 word-break: break-word;
@@ -214,11 +231,11 @@ export class ThermalPrintService {
                 padding-right: 0;
             }
             .logo-img {
-                max-width: ${is58 ? '36mm' : '48mm'};
-                max-height: 45px;
-                margin: 0 auto 3px auto;
+                max-width: ${is58 ? '34mm' : '44mm'};
+                max-height: 48px;
+                margin: 0 auto 2px auto;
                 display: block;
-                filter: grayscale(100%) contrast(160%);
+                filter: grayscale(100%) contrast(130%);
                 object-fit: contain;
             }
             .badge {
@@ -227,17 +244,22 @@ export class ThermalPrintService {
                 color: #ffffff;
                 padding: 1px 3px;
                 font-size: 8px;
-                font-weight: bold;
+                font-weight: 700;
                 border-radius: 2px;
                 margin-right: 2px;
             }
             .grand-total {
                 font-size: ${subTitleFontSize};
-                font-weight: bold;
-                border-top: 1px dashed #000000;
-                border-bottom: 1px dashed #000000;
-                padding: 4px 0;
-                margin: 4px 0;
+                font-weight: 800;
+                padding: 3px 0;
+                margin: 2px 0 1px 0;
+            }
+            .label {
+                font-weight: 700;
+            }
+            .customer-block {
+                font-size: ${metaFontSize};
+                line-height: 1.35;
             }
             .receipt-copy-separator {
                 page-break-after: always;
@@ -408,7 +430,7 @@ export class ThermalPrintService {
         hours = hours ? hours : 12;
         const hStr = String(hours).padStart(2, '0');
 
-        const dateStr = `${day}/${month}/${year}'`;
+        const dateStr = `${day}/${month}/${year}`;
         const timeStr = `${hStr}:${minutes}:${seconds}${ampm}`;
         const shortTimeStr = `${hStr}:${minutes}${ampm}`;
         return {
@@ -462,14 +484,19 @@ export class ThermalPrintService {
         customerName?: string;
         customerPhone?: string;
         customerAddress?: string;
+        customerLandmark?: string;
+        customerPayment?: string;
+        customerNote?: string;
         orderTaker?: string;
         complaintPhone?: string;
         softwareDeveloperName?: string;
         softwareDeveloperPhone?: string;
+        invoiceFooter?: string;
     }): string {
         const is58 = params.size === '58mm';
         const dateParts = this.formatThermalDate(params.orderDate);
         const printParts = this.formatThermalDate(new Date());
+        const branchInfo = this.getBranchInfo();
 
         const logoHtml = params.logoUrl
             ? `<img src="${params.logoUrl}" class="logo-img" alt="Logo" />`
@@ -480,104 +507,122 @@ export class ThermalPrintService {
             const rate = Number(l.unitPrice || 0);
             const total = Number(l.lineTotal != null ? l.lineTotal : qty * rate);
             const dealBadge = l.isDeal ? `<span class="badge">DEAL</span>` : '';
-            const dealList = (l.dealItems && l.dealItems.length > 0)
-                ? `<div style="font-size: ${is58 ? '8px' : '9px'}; color: #222; margin-top: 1px; padding-left: 6px;">
-                    ${l.dealItems.map((d: string) => `<div>&bull; ${d}</div>`).join('')}
-                   </div>`
-                : '';
-            const mods = l.modifiers?.length
-                ? `<div style="font-size: ${is58 ? '8px' : '8.5px'}; color: #555;">Opts: ${l.modifiers.join(', ')}</div>`
-                : '';
-            const notes = l.notes
-                ? `<div style="font-size: ${is58 ? '8px' : '8.5px'}; color: #b91c1c; font-style: italic;">* ${l.notes}</div>`
+            const extras = [
+                ...(l.dealItems || []).map((d: string) => `&bull; ${d}`),
+                ...(l.modifiers?.length ? [`Opts: ${l.modifiers.join(', ')}`] : []),
+                ...(l.notes ? [`* ${l.notes}`] : []),
+            ];
+            const extrasHtml = extras.length
+                ? `<div style="font-size: ${is58 ? '8px' : '8.5px'}; margin-top: 1px; padding-left: 2px;">${extras.join('<br/>')}</div>`
                 : '';
 
             return `
                 <tr>
-                    <td colspan="4" style="padding-top: 2px; padding-bottom: 0;">
-                        <span style="font-weight: bold;">${dealBadge}${l.productName || 'Item'}</span>
-                        ${dealList}${mods}${notes}
+                    <td style="width: 46%; padding-top: 3px;">
+                        <span class="bold">${dealBadge}${l.productName || 'Item'}</span>${extrasHtml}
                     </td>
-                </tr>
-                <tr style="border-bottom: 1px dotted #ccc;">
-                    <td style="width: 46%; padding-top: 0;"></td>
-                    <td style="width: 14%; text-align: center; font-weight: bold; padding-top: 0;">${qty}</td>
-                    <td style="width: 20%; text-align: right; padding-top: 0;">${rate.toFixed(0)}</td>
-                    <td style="width: 20%; text-align: right; font-weight: bold; padding-top: 0;">${total.toFixed(0)}</td>
+                    <td style="width: 14%; text-align: center; font-weight: 700; padding-top: 3px;">${qty}</td>
+                    <td style="width: 20%; text-align: right; padding-top: 3px;">${rate.toFixed(0)}</td>
+                    <td style="width: 20%; text-align: right; font-weight: 700; padding-top: 3px;">${total.toFixed(0)}</td>
                 </tr>
             `;
         }).join('');
 
         const discountHtml = (params.discountAmount && params.discountAmount > 0)
-            ? `<div class="row"><span>Discount${params.discountPercent ? ' (' + params.discountPercent + '%)' : ''}:</span><span>-${Number(params.discountAmount).toFixed(0)}</span></div>`
+            ? `<div class="row"><span>Discount${params.discountPercent ? ' (' + params.discountPercent + '%)' : ''}</span><span>-${Number(params.discountAmount).toFixed(0)} Rs</span></div>`
             : '';
         const taxHtml = (params.taxAmount && params.taxAmount > 0)
-            ? `<div class="row"><span>Tax${params.taxPercent ? ' (' + params.taxPercent + '%)' : ''}:</span><span>+${Number(params.taxAmount).toFixed(0)}</span></div>`
+            ? `<div class="row"><span>Tax${params.taxPercent ? ' (' + params.taxPercent + '%)' : ''}</span><span>+${Number(params.taxAmount).toFixed(0)} Rs</span></div>`
             : '';
         const deliveryHtml = (params.deliveryFee && params.deliveryFee > 0)
-            ? `<div class="row"><span>Delivery Charges:</span><span>+${Number(params.deliveryFee).toFixed(0)}</span></div>`
+            ? `<div class="row"><span>Delivery Charges</span><span>+${Number(params.deliveryFee).toFixed(0)} Rs</span></div>`
             : '';
         const serviceHtml = (params.serviceChargeAmount && params.serviceChargeAmount > 0)
-            ? `<div class="row"><span>Service Charge${params.serviceChargePercent ? ' (' + params.serviceChargePercent + '%)' : ''}:</span><span>+${Number(params.serviceChargeAmount).toFixed(0)}</span></div>`
+            ? `<div class="row"><span>Service Charge${params.serviceChargePercent ? ' (' + params.serviceChargePercent + '%)' : ''}</span><span>+${Number(params.serviceChargeAmount).toFixed(0)} Rs</span></div>`
             : '';
 
         const cashPaidHtml = (params.cashPaid && params.cashPaid > 0)
-            ? `<div class="row text-xs"><span>Cash Paid:</span><span>${Number(params.cashPaid).toFixed(0)}</span></div>`
+            ? `<div class="row"><span>Cash Paid</span><span>${Number(params.cashPaid).toFixed(0)} Rs</span></div>`
             : '';
         const cardPaidHtml = (params.cardPaid && params.cardPaid > 0)
-            ? `<div class="row text-xs"><span>Card Paid:</span><span>${Number(params.cardPaid).toFixed(0)}</span></div>`
+            ? `<div class="row"><span>Card Paid</span><span>${Number(params.cardPaid).toFixed(0)} Rs</span></div>`
             : '';
         const dueHtml = (params.dueAmount && params.dueAmount > 0.009)
-            ? `<div class="row bold" style="color: #b91c1c;"><span>Due Amount:</span><span>${Number(params.dueAmount).toFixed(0)} Rs</span></div>`
+            ? `<div class="row bold"><span>Due Amount</span><span>${Number(params.dueAmount).toFixed(0)} Rs</span></div>`
             : '';
         const changeHtml = (params.changeReturned && params.changeReturned > 0)
-            ? `<div class="row bold"><span>Change Returned:</span><span>${Number(params.changeReturned).toFixed(0)} Rs</span></div>`
+            ? `<div class="row bold"><span>Change Returned</span><span>${Number(params.changeReturned).toFixed(0)} Rs</span></div>`
             : '';
 
         const tokenRowHtml = (params.tokenNo != null && params.tokenNo > 0)
-            ? `<div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 5px; margin-bottom: 2px; font-weight: bold;">
-                <span style="font-size: ${is58 ? '13px' : '15px'}; font-family: monospace;">Token# ${params.tokenNo}</span>
-                <span style="font-size: ${is58 ? '12px' : '14px'};">${params.orderType}</span>
+            ? `<div class="row" style="margin-top: 6px; margin-bottom: 2px;">
+                <span class="bold" style="font-size: ${is58 ? '12px' : '14px'};">Token# ${params.tokenNo}</span>
+                <span></span>
                </div>`
-            : `<div style="text-align: right; margin-top: 4px; font-weight: bold; font-size: ${is58 ? '12px' : '14px'};">${params.orderType}</div>`;
+            : '';
+
+        const softwareName =
+            params.softwareDeveloperName ||
+            branchInfo.softwareDeveloperName ||
+            'Software By AlmahirHub';
+        const softwarePhone =
+            params.softwareDeveloperPhone ||
+            branchInfo.softwareDeveloperPhone ||
+            '';
+        const invoiceFooter = this.escapeThermalText(
+            (params.invoiceFooter || branchInfo.footer || '').trim()
+        );
+
+        const addressHtml = params.customerAddress
+            ? `<div><span class="label">Address:</span> ${params.customerAddress}</div>`
+            : '';
+        const notesHtml = params.customerNote
+            ? `<div><span class="label">Notes:</span> ${params.customerNote}</div>`
+            : '';
+        const phoneHtml = params.customerPhone
+            ? `<div><span class="label">Phone:</span> ${params.customerPhone}</div>`
+            : '';
+        const paymentHtml = params.customerPayment
+            ? `<div><span class="label">Payment:</span> ${params.customerPayment}</div>`
+            : '';
 
         return `
             <div class="text-center">
                 ${logoHtml}
-                <div class="header-title uppercase bold" style="font-size: ${is58 ? '14px' : '16px'}; letter-spacing: 0.5px;">${params.branchName}</div>
-                <div class="meta-text" style="font-size: ${is58 ? '10px' : '11px'}; margin-top: 1px;">${params.tagline || 'Taste & Quality'}</div>
-                <div class="meta-text" style="font-size: ${is58 ? '9.5px' : '10.5px'}; margin-top: 1px;">${params.city || 'Faisalabad'}</div>
-                <div class="meta-text bold uppercase" style="font-size: ${is58 ? '10.5px' : '11.5px'}; margin-top: 3px;">${params.statusLabel}</div>
+                <div class="header-title uppercase">${params.branchName}</div>
+                <div class="meta-text" style="font-style: italic; margin-top: 1px;">${params.tagline || 'Taste & Quality'}</div>
+                <div class="meta-text" style="margin-top: 2px;">${params.city || 'Faisalabad'}</div>
+                <div class="bold uppercase" style="font-size: ${is58 ? '11px' : '12px'}; margin-top: 3px;">${params.statusLabel}</div>
             </div>
 
             ${tokenRowHtml}
 
-            <div style="font-size: ${is58 ? '8.5px' : '10px'}; margin-top: 3px; line-height: 1.35;">
+            <div style="margin-top: 3px;">
                 <div class="row">
-                    <span>Order ID: <strong>${params.orderId}</strong></span>
-                    <span>Date: ${dateParts.fullStr}</span>
+                    <span><span class="label">Order ID:</span> <strong>${params.orderId}</strong></span>
+                    <span><span class="label">Date:</span> ${dateParts.fullStr}</span>
                 </div>
                 <div class="row">
-                    <span>Invoice#: <strong>${params.invoiceNo || '#' + params.orderId}</strong></span>
-                    <span>User: <strong>${params.userName || 'Staff'}</strong></span>
+                    <span><span class="label">Invoice#:</span> <strong>${params.invoiceNo || '#' + params.orderId}</strong></span>
+                    <span><span class="label">User:</span> <strong>${params.userName || 'Staff'}</strong></span>
                 </div>
                 <div class="row">
-                    <span>Order Type : <strong>${params.orderType}</strong></span>
-                    ${params.subLocation ? `<span><strong>${params.subLocation}</strong></span>` : ''}
+                    <span><span class="label">Order Type:</span> <strong>${params.orderType}</strong></span>
+                    ${params.subLocation ? `<span><strong>${params.subLocation}</strong></span>` : '<span></span>'}
                 </div>
             </div>
 
             <div class="divider"></div>
-            <div class="text-center bold uppercase" style="font-size: ${is58 ? '10.5px' : '12px'}; margin: 2px 0;">Order Detail</div>
-            <div class="divider" style="margin: 2px 0 4px 0;"></div>
+            <div class="section-title">Order Detail</div>
+            <div class="divider"></div>
 
-            <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+            <table>
                 <thead>
-                    <tr style="border-bottom: 1px dashed #000; font-size: ${is58 ? '9px' : '10.5px'};">
-                        <th style="width: 46%; text-align: left; padding: 2px 0;">Item</th>
-                        <th style="width: 14%; text-align: center; padding: 2px 0;">Qty</th>
-                        <th style="width: 20%; text-align: right; padding: 2px 0;">Rate</th>
-                        <th style="width: 20%; text-align: right; padding: 2px 0;">Total</th>
+                    <tr>
+                        <th style="width: 46%; text-align: left;">Item</th>
+                        <th style="width: 14%; text-align: center;">Qty</th>
+                        <th style="width: 20%; text-align: right;">Rate</th>
+                        <th style="width: 20%; text-align: right;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -587,18 +632,16 @@ export class ThermalPrintService {
 
             <div class="divider"></div>
 
-            <div style="font-size: ${is58 ? '9.5px' : '10.5px'}; line-height: 1.35;">
+            <div>
                 <div class="row"><span>Sub Total</span><span class="bold">${Number(params.subTotal || 0).toFixed(0)} Rs</span></div>
                 ${discountHtml}
                 ${taxHtml}
                 ${serviceHtml}
                 ${deliveryHtml}
-
-                <div class="row grand-total bold" style="font-size: ${is58 ? '11px' : '13px'};">
+                <div class="row grand-total">
                     <span>GRAND TOTAL</span>
                     <span>${Number(params.grandTotal || 0).toFixed(0)} Rs</span>
                 </div>
-
                 ${cashPaidHtml}
                 ${cardPaidHtml}
                 ${dueHtml}
@@ -606,30 +649,59 @@ export class ThermalPrintService {
             </div>
 
             <div class="divider"></div>
-            <div class="text-center bold uppercase" style="font-size: ${is58 ? '10.5px' : '12px'}; margin: 2px 0;">Customer Detail</div>
-            <div class="divider" style="margin: 2px 0 4px 0;"></div>
+            <div class="section-title">Customer Detail</div>
+            <div class="divider"></div>
 
-            <div style="font-size: ${is58 ? '9px' : '10.5px'}; line-height: 1.35;">
+            <div class="customer-block">
                 <div class="bold">${params.customerName || 'Walk-in'}</div>
-                ${params.customerPhone ? `<div>Phone: ${params.customerPhone}</div>` : ''}
-                ${params.customerAddress ? `<div>Address: ${params.customerAddress}</div>` : ''}
-                <div class="row" style="margin-top: 4px;">
-                    <span>Order-Taker: <strong>${params.orderTaker || 'Waiter'}</strong></span>
-                    <span style="text-align: right;">Printed: ${printParts.dateStr}<br>${printParts.timeStr}</span>
+                ${phoneHtml}
+                ${addressHtml}
+                ${notesHtml}
+                ${paymentHtml}
+                <div class="row" style="margin-top: 5px; align-items: center;">
+                    <span>Order-Taker: <strong>${params.orderTaker || ''}</strong></span>
+                    <span class="printed-at">Printed: ${printParts.dateStr} ${printParts.timeStr}</span>
                 </div>
             </div>
 
-            <div class="divider"></div>
-            <div class="text-center meta-text" style="font-size: ${is58 ? '8.5px' : '10px'}; line-height: 1.3;">
-                <div>For any Complaint &amp; Suggestions</div>
-                <div>Please Contact us @ ${params.complaintPhone || '03080004248'}</div>
-            </div>
-            <div class="divider"></div>
-            <div class="text-center meta-text" style="font-size: 8.5px; margin-top: 2px; line-height: 1.35;">
-                <div>${(params as any).softwareDeveloperName || this.getBranchInfo().softwareDeveloperName || 'Software develop by AlNawabTech'}</div>
-                ${(params as any).softwareDeveloperPhone || this.getBranchInfo().softwareDeveloperPhone ? `<div>${(params as any).softwareDeveloperPhone || this.getBranchInfo().softwareDeveloperPhone}</div>` : ''}
+            <div class="double-divider"></div>
+            <div class="text-center meta-text" style="margin-top: 4px;">
+                ${invoiceFooter ? `<div style="margin-bottom: 5px; white-space: pre-wrap;">${invoiceFooter}</div>` : ''}
+                <div class="bold">${this.formatUanLine(params.complaintPhone || '')}</div>
+                <div style="margin-top: 4px;">${this.formatSoftwareByLine(softwareName)}</div>
+                ${softwarePhone ? `<div style="margin-top: 1px;">${softwarePhone}</div>` : ''}
             </div>
         `;
+    }
+
+    private escapeThermalText(value: string): string {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    private formatUanLine(phone: string): string {
+        const cleaned = String(phone || '').trim();
+        if (!cleaned) {
+            return 'UAN';
+        }
+        if (/^uan\b/i.test(cleaned)) {
+            return cleaned;
+        }
+        return `UAN ${cleaned}`;
+    }
+
+    private formatSoftwareByLine(name: string): string {
+        const cleaned = String(name || '').trim();
+        if (!cleaned) {
+            return 'Software By AlmahirHub';
+        }
+        if (/^software\s+by\b/i.test(cleaned) || /^software\s+develop/i.test(cleaned)) {
+            return cleaned.replace(/^software\s+develop(?:ed)?\s+by\b/i, 'Software By');
+        }
+        return `Software By ${cleaned}`;
     }
 
     // =========================================================================
@@ -659,7 +731,7 @@ export class ThermalPrintService {
 
         const bodyHtml = this.buildReferenceReceiptHtml({
             size,
-            logoUrl: config.showLogo && branch.logoUrl ? branch.logoUrl : undefined,
+            logoUrl: (config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
             branchName: receipt.branchName || branch.name,
             tagline: 'Taste & Quality',
             city,
@@ -687,6 +759,9 @@ export class ThermalPrintService {
             customerName: receipt.customerName || 'Walk-in',
             orderTaker: receipt.serverName || printerIdentity.name || 'Waiter',
             complaintPhone: receipt.branchPhone || branch.phone || '03080004248',
+            softwareDeveloperName: branch.softwareDeveloperName,
+            softwareDeveloperPhone: branch.softwareDeveloperPhone,
+            invoiceFooter: receipt.branchFooter || branch.footer,
         });
 
         this.executePrint(bodyHtml, `Receipt-${receipt.orderNo || receipt.id}`, size);
@@ -900,7 +975,7 @@ export class ThermalPrintService {
 
         const bodyHtml = this.buildReferenceReceiptHtml({
             size,
-            logoUrl: config.showLogo && branch.logoUrl ? branch.logoUrl : undefined,
+            logoUrl: (config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
             branchName: branch.name,
             tagline: 'Taste & Quality',
             city,
@@ -925,6 +1000,9 @@ export class ThermalPrintService {
             customerName: 'Walk-in',
             orderTaker: bill.waiterName || 'Waiter',
             complaintPhone: branch.phone || '03080004248',
+            softwareDeveloperName: branch.softwareDeveloperName,
+            softwareDeveloperPhone: branch.softwareDeveloperPhone,
+            invoiceFooter: branch.footer,
         });
 
         this.executePrint(bodyHtml, `GuestCheck-${bill.orderNo || 'Table'}`, size);
@@ -960,7 +1038,7 @@ export class ThermalPrintService {
 
         const bodyHtml = this.buildReferenceReceiptHtml({
             size,
-            logoUrl: config.showLogo && branch.logoUrl ? branch.logoUrl : undefined,
+            logoUrl: (config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
             branchName: order.branchName || branch.name,
             tagline: 'Taste & Quality',
             city,
@@ -980,12 +1058,183 @@ export class ThermalPrintService {
             dueAmount: isDelivered ? 0 : Number(order.dueAmount != null ? order.dueAmount : order.totalAmount),
             customerName: order.customerName || 'Online Customer',
             customerPhone: order.customerPhone,
-            customerAddress: order.customerAddress ? `${order.customerAddress}${order.notes ? ' (Note: ' + order.notes + ')' : ''}` : order.notes,
-            orderTaker: order.riderName ? `Rider: ${order.riderName}` : 'Online Ordering',
+            ...this.buildCustomerDetailForInvoice(order.customerAddress, order.notes),
+            orderTaker: order.riderName
+                ? String(order.riderName).replace(/^Rider:\s*/i, '').trim() || 'Rider'
+                : 'Online Ordering',
             complaintPhone: branch.phone || '03080004248',
+            softwareDeveloperName: branch.softwareDeveloperName,
+            softwareDeveloperPhone: branch.softwareDeveloperPhone,
+            invoiceFooter: branch.footer,
         });
 
         this.executePrint(bodyHtml, `Order-${order.orderNo || order.id}`, size);
+    }
+
+    /**
+     * Online orders store delivery fields inside Notes (Addr/Landmark/Payment).
+     * Never dump the raw notes blob into Address — that duplicates text and shows "??".
+     */
+    private buildCustomerDetailForInvoice(
+        customerAddress?: string | null,
+        notes?: string | null
+    ): {
+        customerAddress?: string;
+        customerLandmark?: string;
+        customerPayment?: string;
+        customerNote?: string;
+    } {
+        const parsed = this.parseDeliveryFieldsFromNotes(notes);
+        const rawAddr = (customerAddress || '').trim();
+        const addressLooksLikeBlob =
+            /Addr:|Landmark:|Maps:|Options:|Payment:|Rider\s+.+\s+delivery note|google\.com\/maps|maps\.google|\?\?/i.test(
+                rawAddr
+            );
+
+        let address = this.cleanInvoiceText(
+            parsed.address || (!addressLooksLikeBlob ? rawAddr : '')
+        );
+        if (!address && parsed.address) {
+            address = this.cleanInvoiceText(parsed.address);
+        }
+
+        // Notes line = customer note + landmark + rider delivery note (never payment/address).
+        const noteParts = [
+            this.cleanInvoiceText(parsed.specialNote),
+            this.cleanInvoiceText(parsed.landmark),
+            this.cleanInvoiceText(parsed.riderNote),
+        ].filter((p) => !!p && (!address || p.toLowerCase() !== address.toLowerCase()));
+
+        return {
+            customerAddress: address || undefined,
+            customerPayment: this.cleanInvoiceText(parsed.payment) || undefined,
+            customerNote: noteParts.length ? noteParts.join(' · ') : undefined,
+        };
+    }
+
+    private cleanInvoiceText(value?: string | null): string {
+        if (!value) {
+            return '';
+        }
+        return String(value)
+            .replace(/[📍🏛️🗺️📝💳📏?\uFFFD]+/gu, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    private parseDeliveryFieldsFromNotes(notes?: string | null): {
+        address?: string;
+        landmark?: string;
+        payment?: string;
+        specialNote?: string;
+        riderNote?: string;
+    } {
+        let text = (notes || '').trim();
+        if (!text) {
+            return {};
+        }
+
+        const clean = (value?: string | null) => {
+            const v = this.cleanInvoiceText(
+                (value || '')
+                    .replace(/^(?:Addr|Landmark|Maps|Notes|Payment|Distance)\s*:\s*/i, '')
+            );
+            return v || undefined;
+        };
+
+        // Pull rider delivery notes out first so they never stick to Payment/Address.
+        let riderNote: string | undefined;
+        const riderMatch =
+            text.match(/\[Rider[^\]]*delivery note:\s*([^\]]+)\]/i) ||
+            text.match(/Rider\s+[^\]]*?delivery note:\s*([^\]]+)/i);
+        if (riderMatch?.[1]) {
+            riderNote = clean(riderMatch[1]);
+            text = text
+                .replace(/\[Rider[^\]]*delivery note:\s*[^\]]+\]/gi, ' ')
+                .replace(/Rider\s+[^\]]*?delivery note:\s*[^\]]+/gi, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        const addrMatch = text.match(/(?:📍\s*)?Addr:\s*([^|]+)/i);
+        const landmarkMatch = text.match(/(?:🏛️\s*)?Landmark:\s*([^|]+)/i);
+        const paymentMatch = text.match(/(?:💳\s*)?Payment:\s*([^|]+)/i);
+        const notesMatch = text.match(/(?:📝\s*)?Notes:\s*([^|]+)/i);
+
+        let address = clean(addrMatch?.[1]);
+        let landmark = clean(landmarkMatch?.[1]);
+        let payment = clean(paymentMatch?.[1]);
+        let specialNote = clean(notesMatch?.[1]);
+
+        // Payment must never include rider/delivery note fragments.
+        if (payment) {
+            payment = clean(
+                payment
+                    .replace(/\[Rider[^\]]*\]/gi, ' ')
+                    .replace(/Rider\s+.+$/i, ' ')
+            );
+        }
+
+        // Legacy blobs used "?? address" when emoji encoding failed.
+        if (!address) {
+            const legacyAddr = text.match(/(?:^|\|)\s*\?{1,3}\s*([^|]+)/);
+            const candidate = clean(legacyAddr?.[1]);
+            if (
+                candidate &&
+                !/^(payment|distance|maps|landmark|options)\b/i.test(candidate) &&
+                !/maps\.google|google\.com\/maps/i.test(candidate)
+            ) {
+                address = candidate;
+            }
+        }
+
+        // Drop structured/noisy leftovers; keep only a real customer note.
+        const leftovers = text
+            .replace(/https?:\/\/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
+            .replace(/https?:\/\/maps\.google\.com[^\s|]*/gi, '')
+            .replace(/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
+            .replace(/maps\.google\.com[^\s|]*/gi, '')
+            .replace(/(?:📍\s*)?Addr:\s*[^|]+/gi, '')
+            .replace(/(?:🏛️\s*)?Landmark:\s*[^|]+/gi, '')
+            .replace(/(?:🗺️\s*)?Maps:\s*[^|]+/gi, '')
+            .replace(/(?:📝\s*)?Notes:\s*[^|]+/gi, '')
+            .replace(/(?:💳\s*)?Payment:\s*[^|]*/gi, '')
+            .replace(/(?:📏\s*)?Distance:\s*[^|]*/gi, '')
+            .replace(/Options:\s*[^|]*/gi, '')
+            .replace(/\[Rider[^\]]*\]/gi, '')
+            .replace(/\|\s*/g, ' ')
+            .replace(/[?？\uFFFD]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        if (leftovers) {
+            const lower = leftovers.toLowerCase();
+            if (
+                !address &&
+                leftovers.length > 8 &&
+                !lower.startsWith('payment') &&
+                !/\(\+?pkr/i.test(leftovers) &&
+                !/\d+x\s/i.test(leftovers)
+            ) {
+                address = leftovers;
+            } else if (
+                !specialNote &&
+                (!address || lower !== address.toLowerCase()) &&
+                leftovers.length > 2 &&
+                !lower.startsWith('payment')
+            ) {
+                specialNote = leftovers;
+            }
+        }
+
+        if (landmark && address && landmark.toLowerCase() === address.toLowerCase()) {
+            landmark = undefined;
+        }
+        if (specialNote && address && specialNote.toLowerCase() === address.toLowerCase()) {
+            specialNote = undefined;
+        }
+
+        return { address, landmark, payment, specialNote, riderNote };
     }
 
     // =========================================================================
@@ -1028,7 +1277,7 @@ export class ThermalPrintService {
 
         const bodyHtml = this.buildReferenceReceiptHtml({
             size,
-            logoUrl: config.showLogo && branch.logoUrl ? branch.logoUrl : undefined,
+            logoUrl: (config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
             branchName: overrideCompany?.name || branch.name,
             tagline: 'Taste & Quality',
             city,
@@ -1054,6 +1303,9 @@ export class ThermalPrintService {
             customerName: sale.customerName || 'Walk-in',
             orderTaker: this.authService.getPrinterIdentity().name || 'Staff',
             complaintPhone: branch.phone || '03080004248',
+            softwareDeveloperName: branch.softwareDeveloperName || overrideCompany?.softwareDeveloperName,
+            softwareDeveloperPhone: branch.softwareDeveloperPhone || overrideCompany?.softwareDeveloperPhone,
+            invoiceFooter: branch.footer || overrideCompany?.invoiceFooter,
         });
 
         this.executePrint(bodyHtml, `Sale-${sale.invoiceNo || sale.id}`, size);

@@ -79,7 +79,7 @@
   padding: 12px 14px 20px;
   background: #ffffff;
   color: #000000;
-  font-family: 'Courier New', Courier, monospace, 'Segoe UI', sans-serif;
+  font-family: Arial, Helvetica, 'Segoe UI', sans-serif;
   font-size: 12px;
   line-height: 1.35;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -143,7 +143,36 @@
 .thermal-meta-row {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
   margin-bottom: 2.5px;
+}
+
+.thermal-meta-row .meta-left,
+.thermal-meta-row .meta-right {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.thermal-meta-row .meta-right {
+  text-align: right;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.thermal-meta-row .meta-label {
+  font-weight: 700;
+}
+
+.thermal-meta-row .printed-at {
+  white-space: nowrap;
+  font-size: 10.5px;
+}
+
+.thermal-divider-solid {
+  border-bottom: 2px solid #000000;
+  margin: 8px 0;
+  width: 100%;
 }
 
 .thermal-items-header {

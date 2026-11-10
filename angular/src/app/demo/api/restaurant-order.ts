@@ -227,4 +227,5 @@ export interface WaiterDashboardDto {
     todayServedCount: number;
     todayServedAmount: number;
     activeOrders: RestaurantOrderDto[];
+    todayServedOrders?: RestaurantOrderDto[];
 }

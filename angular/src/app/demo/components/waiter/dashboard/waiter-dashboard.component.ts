@@ -13,7 +13,7 @@ import { AuthService } from 'src/app/demo/service/auth.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { RestaurantOrderService } from 'src/app/demo/service/restaurant-order.service';
 
-type WaiterOrderFilter = 'all' | 'pending' | 'ready' | 'billed';
+type WaiterOrderFilter = 'all' | 'pending' | 'ready' | 'billed' | 'served';
 
 @Component({
     selector: 'app-waiter-dashboard',
@@ -77,6 +77,9 @@ export class WaiterDashboardComponent implements OnInit, OnDestroy {
     }
 
     get filteredOrders(): RestaurantOrderDto[] {
+        if (this.filter === 'served') {
+            return this.data?.todayServedOrders || [];
+        }
         const list = this.data?.activeOrders || [];
         if (this.filter === 'pending') {
             return list.filter((o) => this.isPending(o));
@@ -132,6 +135,12 @@ export class WaiterDashboardComponent implements OnInit, OnDestroy {
     }
 
     statusLabel(order: RestaurantOrderDto): string {
+        if (
+            this.filter === 'served' ||
+            order.status === RestaurantOrderStatuses.Settled
+        ) {
+            return 'Served';
+        }
         if (order.status === RestaurantOrderStatuses.Billed) {
             return 'Billed';
         }
@@ -145,6 +154,12 @@ export class WaiterDashboardComponent implements OnInit, OnDestroy {
     }
 
     statusClass(order: RestaurantOrderDto): string {
+        if (
+            this.filter === 'served' ||
+            order.status === RestaurantOrderStatuses.Settled
+        ) {
+            return 'is-served';
+        }
         if (order.status === RestaurantOrderStatuses.Billed) {
             return 'is-billed';
         }

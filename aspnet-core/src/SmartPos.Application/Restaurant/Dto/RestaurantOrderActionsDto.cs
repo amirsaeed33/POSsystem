@@ -216,5 +216,8 @@ namespace SmartPos.Restaurant.Dto
         public decimal TodayServedAmount { get; set; }
 
         public List<RestaurantOrderDto> ActiveOrders { get; set; } = new List<RestaurantOrderDto>();
+
+        /// <summary>Settled tickets for this waiter today (history / old orders).</summary>
+        public List<RestaurantOrderDto> TodayServedOrders { get; set; } = new List<RestaurantOrderDto>();
     }
 }

@@ -1410,3 +1410,111 @@
         font-weight: 700 !important;
     }
 }
+
+.pos-customer-receipt {
+    font-family: Arial, Helvetica, 'Segoe UI', sans-serif;
+    background: #ffffff;
+    color: #111111;
+    line-height: 1.35;
+    font-size: 12px;
+}
+
+.pos-customer-receipt-logo {
+    max-width: 44mm;
+    max-height: 48px;
+    margin: 0 auto 4px;
+    display: block;
+    object-fit: contain;
+    filter: grayscale(100%) contrast(130%);
+}
+
+.pos-customer-receipt-title {
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.pos-customer-receipt-tagline {
+    font-size: 11px;
+    font-style: italic;
+    margin-top: 1px;
+}
+
+.pos-customer-receipt-meta {
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.pos-customer-receipt-status {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-top: 3px;
+}
+
+.pos-customer-receipt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 11px;
+    margin-bottom: 2px;
+}
+
+.pos-customer-receipt-printed {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    font-size: 10px;
+}
+
+.pos-customer-receipt-divider {
+    border-top: 1px dotted #000;
+    margin: 6px 0;
+}
+
+.pos-customer-receipt-solid {
+    border-top: 2px solid #000;
+    margin: 8px 0;
+}
+
+.pos-customer-receipt-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin: 2px 0 4px;
+}
+
+.pos-customer-receipt-table th,
+.pos-customer-receipt-table td {
+    font-size: 11px;
+    padding: 3px 2px;
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.pos-customer-receipt-table th {
+    border-bottom: 1px dotted #000;
+    font-weight: 700;
+}
+
+.pos-customer-receipt-badge {
+    display: inline-block;
+    background: #000;
+    color: #fff;
+    padding: 1px 3px;
+    font-size: 8px;
+    margin-right: 3px;
+}
+
+.pos-customer-receipt-extra {
+    font-size: 9px;
+    margin-top: 1px;
+    padding-left: 2px;
+}
+
+.pos-customer-receipt-grand {
+    font-size: 14px;
+    font-weight: 900;
+    margin-top: 2px;
+}

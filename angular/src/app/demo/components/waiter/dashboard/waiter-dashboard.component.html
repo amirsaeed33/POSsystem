@@ -63,7 +63,7 @@
             </button>
         </div>
         <div class="col-6 md:col-3">
-            <button type="button" class="waiter-kpi is-served" (click)="setFilter('all')">
+            <button type="button" class="waiter-kpi is-served" (click)="setFilter('served')">
                 <span class="waiter-kpi-label">Served Today</span>
                 <span class="waiter-kpi-value">{{ data?.todayServedCount || 0 }}</span>
                 <span class="waiter-kpi-sub">
@@ -106,6 +106,14 @@
         >
             Billed ({{ data?.billedCount || 0 }})
         </button>
+        <button
+            type="button"
+            class="waiter-filter"
+            [class.active]="filter === 'served'"
+            (click)="setFilter('served')"
+        >
+            Served Today ({{ data?.todayServedCount || 0 }})
+        </button>
     </div>
 
     <div *ngIf="loading && !data" class="waiter-empty">
@@ -116,7 +124,12 @@
     <div *ngIf="!loading && !filteredOrders.length" class="waiter-empty">
         <i class="pi pi-inbox"></i>
         <div class="font-semibold text-900">No orders in this view</div>
-        <div class="text-sm text-500 mb-3">Start a table or car order from POS.</div>
+        <div class="text-sm text-500 mb-3" *ngIf="filter === 'served'">
+            Settled orders for today will show here after payment is completed.
+        </div>
+        <div class="text-sm text-500 mb-3" *ngIf="filter !== 'served'">
+            Start a table or car order from POS.
+        </div>
         <button
             pButton
             type="button"
@@ -145,7 +158,10 @@
                     <span class="waiter-status" [ngClass]="statusClass(order)">
                         {{ statusLabel(order) }}
                     </span>
-                    <span class="waiter-timer" *ngIf="nowMs && elapsedLabel(order) as elapsed">
+                    <span
+                        class="waiter-timer"
+                        *ngIf="filter !== 'served' && nowMs && elapsedLabel(order) as elapsed"
+                    >
                         <i class="pi pi-clock"></i> {{ elapsed }}
                     </span>
                 </div>
@@ -155,7 +171,8 @@
                     {{ order.grandTotal | number: '1.0-0' }}
                 </div>
                 <span class="waiter-order-open">
-                    Open <i class="pi pi-arrow-right"></i>
+                    {{ filter === 'served' ? 'View' : 'Open' }}
+                    <i class="pi pi-arrow-right"></i>
                 </span>
             </div>
         </button>

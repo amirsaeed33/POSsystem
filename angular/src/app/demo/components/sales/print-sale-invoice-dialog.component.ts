@@ -53,6 +53,10 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
         return this.authService.getPrinterIdentity().text;
     }
 
+    get printerName(): string {
+        return this.authService.getPrinterIdentity().name || 'Staff';
+    }
+
     get companyLogoUrl(): string {
         return this.branchService.getImageUrl(this.company?.imagePath);
     }
@@ -111,10 +115,10 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
         const ampm = hours >= 12 ? 'pm' : 'am';
         hours = hours % 12 || 12;
         const hStr = String(hours).padStart(2, '0');
-        return `${day}/${month}/${year}' ${hStr}:${minutes}${ampm}`;
+        return `${day}/${month}/${year} ${hStr}:${minutes}${ampm}`;
     }
 
-    get printDateParts(): { dateStr: string; timeStr: string } {
+    get printDateParts(): { dateStr: string; timeStr: string; fullStr: string } {
         const d = new Date();
         const day = String(d.getDate()).padStart(2, '0');
         const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -125,10 +129,36 @@ export class PrintSaleInvoiceDialogComponent implements OnChanges {
         const ampm = hours >= 12 ? 'pm' : 'am';
         hours = hours % 12 || 12;
         const hStr = String(hours).padStart(2, '0');
+        const dateStr = `${day}/${month}/${year}`;
+        const timeStr = `${hStr}:${minutes}:${seconds}${ampm}`;
         return {
-            dateStr: `${day}/${month}/${year}'`,
-            timeStr: `${hStr}:${minutes}:${seconds}${ampm}`
+            dateStr,
+            timeStr,
+            fullStr: `${dateStr} ${timeStr}`,
         };
+    }
+
+    get uanLine(): string {
+        const phone = (this.company?.invoiceContactPhone || '03080004248').trim();
+        if (!phone) {
+            return 'UAN';
+        }
+        return /^uan\b/i.test(phone) ? phone : `UAN ${phone}`;
+    }
+
+    get softwareByLine(): string {
+        const raw = (this.company?.softwareDeveloperName || 'Software By AlmahirHub').trim();
+        if (/^software\s+by\b/i.test(raw)) {
+            return raw;
+        }
+        if (/^software\s+develop/i.test(raw)) {
+            return raw.replace(/^software\s+develop(?:ed)?\s+by\b/i, 'Software By');
+        }
+        return `Software By ${raw}`;
+    }
+
+    get softwareDeveloperPhone(): string {
+        return (this.company?.softwareDeveloperPhone || '03167854606').trim();
     }
     get currencyLabel(): string {
         return this.company?.currencyFormat || 'Rs';

@@ -29,6 +29,7 @@ import {
 } from 'src/app/demo/api/product-modifier';
 import { BranchDto } from 'src/app/demo/api/branch';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
+import { BranchService } from 'src/app/demo/service/branch.service';
 import { RestaurantTableService } from 'src/app/demo/service/restaurant-table.service';
 import { RestaurantOrderService } from 'src/app/demo/service/restaurant-order.service';
 import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
@@ -306,6 +307,7 @@ export class PosComponent implements OnInit, OnDestroy {
         private restaurantOrderService: RestaurantOrderService,
         private productModifierService: ProductModifierService,
         private branchContext: BranchContextService,
+        private branchService: BranchService,
         private staffService: StaffService,
         private dealService: DealService,
         private authService: AuthService,
@@ -4404,6 +4406,112 @@ export class PosComponent implements OnInit, OnDestroy {
         if (this.completedReceipt) {
             this.printReceiptSnapshot(this.completedReceipt);
         }
+    }
+
+    get completedReceiptLogoUrl(): string {
+        return this.branchService.getImageUrl(
+            this.branchContext.getCurrentBranch()?.imagePath
+        );
+    }
+
+    get completedReceiptCity(): string {
+        const addr = (
+            this.completedReceipt?.branchAddress ||
+            this.branchContext.getCurrentBranch()?.invoiceAddress ||
+            ''
+        ).trim();
+        if (!addr) {
+            return 'Faisalabad';
+        }
+        const parts = addr.split(',').map((p: string) => p.trim()).filter(Boolean);
+        return parts.length ? parts[parts.length - 1] : addr;
+    }
+
+    get completedReceiptOrderType(): string {
+        const r = this.completedReceipt;
+        if (!r) {
+            return 'Sale';
+        }
+        if (r.carNumber) {
+            return 'Car Service';
+        }
+        const table = String(r.tableNo || '').toLowerCase();
+        if (table.includes('takeaway') || table.includes('take-away')) {
+            return 'Take-Away';
+        }
+        if (table.includes('delivery') || table.includes('retail')) {
+            return table.includes('retail') ? 'Sale' : 'Online Delivery';
+        }
+        if (table.includes('dine') || this.orderType === 'dineIn') {
+            return 'Dine-In';
+        }
+        return 'Take-Away';
+    }
+
+    get completedReceiptSubLocation(): string {
+        const r = this.completedReceipt;
+        if (!r) {
+            return '';
+        }
+        if (r.carNumber) {
+            return `Car: ${r.carName || ''} (${r.carNumber})`;
+        }
+        if (this.completedReceiptOrderType === 'Dine-In' && r.tableNo) {
+            return `Table: ${r.tableNo}`;
+        }
+        return '';
+    }
+
+    formatReceiptDate(value: Date | string | null | undefined): string {
+        const d = value ? new Date(value) : new Date();
+        if (Number.isNaN(d.getTime())) {
+            return '';
+        }
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = String(d.getFullYear()).slice(-2);
+        let hours = d.getHours();
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const seconds = String(d.getSeconds()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12 || 12;
+        return `${day}/${month}/${year} ${String(hours).padStart(2, '0')}:${minutes}:${seconds}${ampm}`;
+    }
+
+    get completedReceiptUan(): string {
+        const phone = (
+            this.completedReceipt?.branchPhone ||
+            this.branchContext.getCurrentBranch()?.invoiceContactPhone ||
+            '03080004248'
+        ).trim();
+        return /^uan\b/i.test(phone) ? phone : `UAN ${phone}`;
+    }
+
+    get completedReceiptSoftwareBy(): string {
+        const branch = this.branchContext.getCurrentBranch();
+        const raw = (branch?.softwareDeveloperName || 'Software By AlmahirHub').trim();
+        if (/^software\s+by\b/i.test(raw)) {
+            return raw;
+        }
+        if (/^software\s+develop/i.test(raw)) {
+            return raw.replace(/^software\s+develop(?:ed)?\s+by\b/i, 'Software By');
+        }
+        return `Software By ${raw}`;
+    }
+
+    get completedReceiptSoftwarePhone(): string {
+        return (
+            this.branchContext.getCurrentBranch()?.softwareDeveloperPhone ||
+            '03167854606'
+        ).trim();
+    }
+
+    get completedReceiptInvoiceFooter(): string {
+        return (
+            this.completedReceipt?.branchFooter ||
+            this.branchContext.getCurrentBranch()?.invoiceFooter ||
+            ''
+        ).trim();
     }
 
     printReceiptSnapshot(receipt: any): void {
