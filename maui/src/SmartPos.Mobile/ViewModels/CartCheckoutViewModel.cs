@@ -67,6 +67,39 @@ public partial class CartCheckoutViewModel : BaseViewModel
     [ObservableProperty]
     private bool isLoadingAddresses;
 
+    [ObservableProperty]
+    private decimal freeDeliveryThreshold = 1500m;
+
+    [ObservableProperty]
+    private decimal standardDeliveryFee = 100m;
+
+    [ObservableProperty]
+    private decimal effectiveDeliveryFee;
+
+    [ObservableProperty]
+    private decimal minimumOrderAmount;
+
+    [ObservableProperty]
+    private double freeDeliveryProgress;
+
+    [ObservableProperty]
+    private decimal amountNeededForFreeDelivery;
+
+    [ObservableProperty]
+    private bool isFreeDeliveryUnlocked;
+
+    [ObservableProperty]
+    private bool isBelowMinimumOrder;
+
+    [ObservableProperty]
+    private decimal minimumOrderShortfall;
+
+    [ObservableProperty]
+    private string checkoutButtonText = "Place order";
+
+    [ObservableProperty]
+    private bool canPlaceOrder;
+
     public ObservableCollection<CartLine> Lines => _cart.Lines;
     public ObservableCollection<DeliveryAreaDto> Areas { get; } = new();
     public ObservableCollection<CustomerSavedAddressDto> SavedAddresses { get; } = new();
@@ -76,10 +109,21 @@ public partial class CartCheckoutViewModel : BaseViewModel
     public bool IsOfficeLabelSelected => string.Equals(AddressLabel, "Office", StringComparison.OrdinalIgnoreCase);
     public bool IsOtherLabelSelected => string.Equals(AddressLabel, "Other", StringComparison.OrdinalIgnoreCase);
 
+    public bool HasFreeDeliveryThreshold => FreeDeliveryThreshold > 0;
+    public bool IsFreeDeliveryLocked => !IsFreeDeliveryUnlocked;
+    public string StandardDeliveryFeeText => StandardDeliveryFee.ToString("0.00");
+    public string EffectiveDeliveryFeeText => EffectiveDeliveryFee == 0 ? "FREE" : EffectiveDeliveryFee.ToString("0.00");
+    public string AmountNeededForFreeDeliveryText => AmountNeededForFreeDelivery.ToString("N0");
+    public string MinimumOrderAmountText => MinimumOrderAmount.ToString("N0");
+    public string MinimumOrderShortfallText => MinimumOrderShortfall.ToString("N0");
+    public string FreeDeliveryMotivationText => IsFreeDeliveryUnlocked
+        ? "Awesome! You unlocked FREE Delivery! 🎉"
+        : $"Add PKR {AmountNeededForFreeDeliveryText} more to enjoy FREE delivery!";
+
     public decimal Subtotal => _cart.Subtotal;
-    public decimal GrandTotal => Subtotal + DeliveryFee;
+    public decimal GrandTotal => Subtotal + EffectiveDeliveryFee;
     public string SubtotalText => Subtotal.ToString("0.00");
-    public string DeliveryFeeText => DeliveryFee.ToString("0.00");
+    public string DeliveryFeeText => EffectiveDeliveryFee == 0 ? "FREE" : EffectiveDeliveryFee.ToString("0.00");
     public string GrandTotalText => GrandTotal.ToString("0.00");
     public bool HasItems => Lines.Count > 0;
     public bool IsEmpty => !HasItems;
@@ -110,13 +154,68 @@ public partial class CartCheckoutViewModel : BaseViewModel
 
     private void NotifyTotals()
     {
+        RecalculateThresholds();
         OnPropertyChanged(nameof(Subtotal));
         OnPropertyChanged(nameof(GrandTotal));
         OnPropertyChanged(nameof(SubtotalText));
         OnPropertyChanged(nameof(GrandTotalText));
+        OnPropertyChanged(nameof(DeliveryFeeText));
+        OnPropertyChanged(nameof(StandardDeliveryFeeText));
+        OnPropertyChanged(nameof(EffectiveDeliveryFeeText));
         OnPropertyChanged(nameof(HasItems));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(ItemCountLabel));
+        OnPropertyChanged(nameof(HasFreeDeliveryThreshold));
+        OnPropertyChanged(nameof(IsFreeDeliveryLocked));
+        OnPropertyChanged(nameof(FreeDeliveryMotivationText));
+        OnPropertyChanged(nameof(AmountNeededForFreeDeliveryText));
+        OnPropertyChanged(nameof(MinimumOrderAmountText));
+        OnPropertyChanged(nameof(MinimumOrderShortfallText));
+    }
+
+    private void RecalculateThresholds()
+    {
+        StandardDeliveryFee = SelectedArea?.DeliveryFee ?? 0;
+        MinimumOrderAmount = SelectedArea?.MinimumOrderAmount ?? 0;
+
+        if (FreeDeliveryThreshold > 0 && Subtotal >= FreeDeliveryThreshold)
+        {
+            IsFreeDeliveryUnlocked = true;
+            EffectiveDeliveryFee = 0;
+            AmountNeededForFreeDelivery = 0;
+            FreeDeliveryProgress = 1.0;
+        }
+        else if (FreeDeliveryThreshold > 0)
+        {
+            IsFreeDeliveryUnlocked = false;
+            EffectiveDeliveryFee = StandardDeliveryFee;
+            AmountNeededForFreeDelivery = Math.Max(0, FreeDeliveryThreshold - Subtotal);
+            FreeDeliveryProgress = (double)Math.Clamp(Subtotal / FreeDeliveryThreshold, 0m, 1m);
+        }
+        else
+        {
+            IsFreeDeliveryUnlocked = false;
+            EffectiveDeliveryFee = StandardDeliveryFee;
+            AmountNeededForFreeDelivery = 0;
+            FreeDeliveryProgress = 0;
+        }
+
+        DeliveryFee = EffectiveDeliveryFee;
+
+        if (MinimumOrderAmount > 0 && Subtotal < MinimumOrderAmount)
+        {
+            IsBelowMinimumOrder = true;
+            MinimumOrderShortfall = MinimumOrderAmount - Subtotal;
+            CheckoutButtonText = $"Min Order PKR {MinimumOrderAmount:N0}";
+            CanPlaceOrder = false;
+        }
+        else
+        {
+            IsBelowMinimumOrder = false;
+            MinimumOrderShortfall = 0;
+            CheckoutButtonText = "Place order";
+            CanPlaceOrder = HasItems && !IsBusy;
+        }
     }
 
     [RelayCommand]
@@ -149,6 +248,23 @@ public partial class CartCheckoutViewModel : BaseViewModel
 
         await RunBusyAsync(async () =>
         {
+            try
+            {
+                var header = await _orders.GetStoreHeaderAsync(branchId);
+                if (header != null && header.FreeDeliveryThreshold > 0)
+                {
+                    FreeDeliveryThreshold = header.FreeDeliveryThreshold;
+                }
+                else
+                {
+                    FreeDeliveryThreshold = 1500m;
+                }
+            }
+            catch
+            {
+                FreeDeliveryThreshold = 1500m;
+            }
+
             Areas.Clear();
             foreach (var area in await _orders.GetDeliveryAreasAsync(branchId))
             {
@@ -156,7 +272,6 @@ public partial class CartCheckoutViewModel : BaseViewModel
             }
 
             SelectedArea = Areas.FirstOrDefault();
-            DeliveryFee = SelectedArea?.DeliveryFee ?? 0;
             NotifyTotals();
 
             // Pin live location as soon as checkout opens.
@@ -173,8 +288,6 @@ public partial class CartCheckoutViewModel : BaseViewModel
 
     partial void OnSelectedAreaChanged(DeliveryAreaDto? value)
     {
-        DeliveryFee = value?.DeliveryFee ?? 0;
-        OnPropertyChanged(nameof(DeliveryFeeText));
         NotifyTotals();
     }
 
@@ -301,6 +414,16 @@ public partial class CartCheckoutViewModel : BaseViewModel
             return;
         }
 
+        // Strict guard clause for Minimum Order Amount
+        if (IsBelowMinimumOrder)
+        {
+            await Shell.Current.DisplayAlert(
+                "Minimum Order Required",
+                $"Minimum order amount for {SelectedArea?.Name ?? "delivery"} is PKR {MinimumOrderAmount:N0}.\n\nPlease add PKR {MinimumOrderShortfall:N0} more to place your order.",
+                "OK");
+            return;
+        }
+
         // Field errors: red borders only — no alert popups.
         if (!ValidateCheckoutFields())
         {
@@ -326,7 +449,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
                 DeliveryAreaId = SelectedArea?.Id,
                 DeliveryArea = SelectedArea?.Name,
                 Subtotal = Subtotal,
-                DeliveryCharges = DeliveryFee,
+                DeliveryCharges = EffectiveDeliveryFee,
                 GrandTotal = GrandTotal,
                 Latitude = _deliveryLocation.Latitude,
                 Longitude = _deliveryLocation.Longitude,

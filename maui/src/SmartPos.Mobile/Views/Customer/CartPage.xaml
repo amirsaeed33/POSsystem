@@ -76,6 +76,77 @@
                         </VerticalStackLayout>
                     </Border>
 
+                    <!-- Free Delivery Progress Card -->
+                    <Border IsVisible="{Binding HasItems}"
+                            StrokeThickness="1.5"
+                            Padding="14,12"
+                            Margin="0,0,0,2">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
+                                <Setter Property="Stroke" Value="#10B981" />
+                                <Setter Property="BackgroundColor" Value="#ECFDF5" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
+                                <Setter Property="Stroke" Value="#E2E8F0" />
+                                <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <VerticalStackLayout Spacing="8">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                <Label Text="🎉" FontSize="22" VerticalOptions="Center" IsVisible="{Binding IsFreeDeliveryUnlocked}" />
+                                <Label Text="🚚" FontSize="22" VerticalOptions="Center" IsVisible="{Binding IsFreeDeliveryLocked}" />
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="{Binding FreeDeliveryMotivationText}"
+                                           FontSize="13"
+                                           FontAttributes="Bold">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
+                                                <Setter Property="TextColor" Value="#065F46" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
+                                                <Setter Property="TextColor" Value="#1E293B" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                    <Label Text="Free delivery unlocked for your order!"
+                                           FontSize="11"
+                                           TextColor="#059669"
+                                           IsVisible="{Binding IsFreeDeliveryUnlocked}" />
+                                    <Label Text="{Binding FreeDeliveryThreshold, StringFormat='Orders over PKR {0:N0} qualify'}"
+                                           FontSize="11"
+                                           TextColor="#64748B"
+                                           IsVisible="{Binding IsFreeDeliveryLocked}" />
+                                </VerticalStackLayout>
+
+                                <Border Grid.Column="2"
+                                        BackgroundColor="#D1FAE5"
+                                        StrokeThickness="0"
+                                        Padding="8,4"
+                                        VerticalOptions="Center"
+                                        IsVisible="{Binding IsFreeDeliveryUnlocked}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Label Text="FREE"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#059669" />
+                                </Border>
+                            </Grid>
+
+                            <!-- Progress Bar (shown when not yet unlocked) -->
+                            <ProgressBar Progress="{Binding FreeDeliveryProgress}"
+                                         ProgressColor="#0F6B4C"
+                                         BackgroundColor="#E2E8F0"
+                                         HeightRequest="6"
+                                         IsVisible="{Binding IsFreeDeliveryLocked}" />
+                        </VerticalStackLayout>
+                    </Border>
+
                     <!-- Cart lines -->
                     <CollectionView ItemsSource="{Binding Lines}"
                                     IsVisible="{Binding HasItems}"
@@ -505,27 +576,95 @@
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="{Binding SubtotalText, StringFormat='Subtotal: {0}'}" TextColor="#475569" />
-                            <Label Text="{Binding DeliveryFeeText, StringFormat='Delivery: {0}'}" TextColor="#475569" />
-                            <Label Text="{Binding GrandTotalText, StringFormat='Total: {0}'}"
-                                   FontAttributes="Bold"
-                                   FontSize="18"
-                                   TextColor="#0F6B4C" />
+                        <VerticalStackLayout Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="Subtotal:" TextColor="#475569" FontSize="13" />
+                                <Label Grid.Column="1" Text="{Binding SubtotalText, StringFormat='PKR {0}'}" TextColor="#1E293B" FontAttributes="Bold" FontSize="13" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="Delivery Charges:" TextColor="#475569" FontSize="13" />
+                                <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                    <Label Text="{Binding StandardDeliveryFeeText, StringFormat='PKR {0}'}"
+                                           TextColor="#94A3B8"
+                                           TextDecorations="Strikethrough"
+                                           FontSize="12"
+                                           VerticalOptions="Center"
+                                           IsVisible="{Binding IsFreeDeliveryUnlocked}" />
+                                    <Label Text="{Binding EffectiveDeliveryFeeText}"
+                                           FontAttributes="Bold"
+                                           FontSize="13"
+                                           VerticalOptions="Center">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
+                                                <Setter Property="TextColor" Value="#059669" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
+                                                <Setter Property="TextColor" Value="#1E293B" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </HorizontalStackLayout>
+                            </Grid>
+
+                            <BoxView HeightRequest="1" Color="#E2E8F0" Margin="0,2" />
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="Total Payable:" FontAttributes="Bold" FontSize="16" TextColor="#1F2A24" VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding GrandTotalText, StringFormat='PKR {0}'}"
+                                       FontAttributes="Bold"
+                                       FontSize="18"
+                                       TextColor="#0F6B4C"
+                                       VerticalOptions="Center" />
+                            </Grid>
                         </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Minimum Order Warning Banner -->
+                    <Border Stroke="#F59E0B"
+                            StrokeThickness="1.5"
+                            BackgroundColor="#FFFBEB"
+                            Padding="12,10"
+                            IsVisible="{Binding IsBelowMinimumOrder}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
+                            <Label Text="⚠️" FontSize="20" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                <Label Text="{Binding MinimumOrderAmountText, StringFormat='Minimum Order: PKR {0}'}"
+                                       FontAttributes="Bold"
+                                       FontSize="13"
+                                       TextColor="#92400E" />
+                                <Label Text="{Binding MinimumOrderShortfallText, StringFormat='Please add PKR {0} more to qualify for delivery.'}"
+                                       FontSize="12"
+                                       TextColor="#B45309"
+                                       LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </Grid>
                     </Border>
                 </VerticalStackLayout>
             </ScrollView>
             <Button Grid.Row="1"
-                    Text="Place order"
+                    Text="{Binding CheckoutButtonText}"
                     Margin="16,8,16,64"
                     Command="{Binding PlaceOrderCommand}"
-                    BackgroundColor="#0F6B4C"
-                    TextColor="White"
                     IsVisible="{Binding HasItems}"
-                    HeightRequest="48"
+                    HeightRequest="50"
                     CornerRadius="14"
-                    FontAttributes="Bold" />
+                    FontAttributes="Bold"
+                    FontSize="16">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsBelowMinimumOrder}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#CBD5E1" />
+                        <Setter Property="TextColor" Value="#475569" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsBelowMinimumOrder}" Value="False">
+                        <Setter Property="BackgroundColor" Value="#0F6B4C" />
+                        <Setter Property="TextColor" Value="White" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
         </Grid>
 
         <controls:BubbleTabBar Mode="Customer"
