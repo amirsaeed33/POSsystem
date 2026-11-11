@@ -140,6 +140,12 @@ namespace SmartPos.Authorization
         public const string Pages_Developers_Edit = "Pages.Developers.Edit";
         public const string Pages_Developers_Delete = "Pages.Developers.Delete";
 
+        /// <summary>Host-only: software reseller applications (review / approve).</summary>
+        public const string Pages_Sellers = "Pages.Sellers";
+        public const string Pages_Sellers_Approve = "Pages.Sellers.Approve";
+        public const string Pages_Sellers_Edit = "Pages.Sellers.Edit";
+        public const string Pages_Sellers_Delete = "Pages.Sellers.Delete";
+
         /// <summary>Host-only: pricing packages for the public product page.</summary>
         public const string Pages_Packages = "Pages.Packages";
         public const string Pages_Packages_Create = "Pages.Packages.Create";

@@ -1,10 +1,13 @@
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { MessageService } from 'primeng/api';
 import { DeveloperDto } from 'src/app/demo/api/developer';
 import { PackageDto } from 'src/app/demo/api/package';
+import { PublicSellerDto, RegisterSellerDto } from 'src/app/demo/api/seller';
 import { AppSeoService } from 'src/app/demo/service/app-seo.service';
 import { BranchService } from 'src/app/demo/service/branch.service';
 import { DeveloperService } from 'src/app/demo/service/developer.service';
 import { PackageService } from 'src/app/demo/service/package.service';
+import { SellerService } from 'src/app/demo/service/seller.service';
 
 type LandingRevealKey =
     | 'hero'
@@ -12,6 +15,7 @@ type LandingRevealKey =
     | 'mobile'
     | 'how'
     | 'pricing'
+    | 'sellers'
     | 'feedbacks'
     | 'developers'
     | 'cta'
@@ -21,9 +25,11 @@ type LandingRevealKey =
     selector: 'app-landing',
     templateUrl: './landing.component.html',
     styleUrls: ['./landing.component.scss'],
+    providers: [MessageService],
 })
 export class LandingComponent implements OnInit, OnDestroy {
     readonly currentYear = new Date().getFullYear();
+    readonly sellerCommissionPkr = 3000;
 
     scrolled = false;
     developers: DeveloperDto[] = [];
@@ -31,6 +37,12 @@ export class LandingComponent implements OnInit, OnDestroy {
     packages: PackageDto[] = [];
     packagesLoading = false;
     feedbacksLoading = false;
+    sellers: PublicSellerDto[] = [];
+    sellersLoading = false;
+
+    sellerDialogVisible = false;
+    sellerSubmitting = false;
+    sellerForm: RegisterSellerDto = this.emptySellerForm();
 
     visible: Record<LandingRevealKey, boolean> = {
         hero: false,
@@ -38,6 +50,7 @@ export class LandingComponent implements OnInit, OnDestroy {
         mobile: false,
         how: false,
         pricing: false,
+        sellers: false,
         feedbacks: false,
         developers: false,
         cta: false,
@@ -128,7 +141,9 @@ export class LandingComponent implements OnInit, OnDestroy {
         private seo: AppSeoService,
         private developerService: DeveloperService,
         private packageService: PackageService,
-        private branchService: BranchService
+        private branchService: BranchService,
+        private sellerService: SellerService,
+        private messageService: MessageService
     ) {}
 
     get primaryDeveloper(): DeveloperDto | null {
@@ -166,7 +181,54 @@ export class LandingComponent implements OnInit, OnDestroy {
         void this.loadDevelopers();
         void this.loadPackages();
         void this.loadFeedbacks();
+        void this.loadSellers();
         setTimeout(() => this.setupReveal(), 40);
+    }
+
+    openSellerDialog(): void {
+        this.sellerForm = this.emptySellerForm();
+        this.sellerDialogVisible = true;
+    }
+
+    async submitSellerApplication(): Promise<void> {
+        const name = (this.sellerForm.fullName || '').trim();
+        const phone = (this.sellerForm.phoneNumber || '').trim();
+        if (!name || !phone) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Required',
+                detail: 'Full name and phone number are required.',
+            });
+            return;
+        }
+
+        this.sellerSubmitting = true;
+        try {
+            await this.sellerService.register({
+                ...this.sellerForm,
+                fullName: name,
+                phoneNumber: phone,
+                email: (this.sellerForm.email || '').trim() || undefined,
+                city: (this.sellerForm.city || '').trim() || undefined,
+                companyName: (this.sellerForm.companyName || '').trim() || undefined,
+                experienceNotes: (this.sellerForm.experienceNotes || '').trim() || undefined,
+                message: (this.sellerForm.message || '').trim() || undefined,
+            });
+            this.sellerDialogVisible = false;
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Application received',
+                detail: 'We’ll review your data and contact you after approval.',
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Could not submit',
+                detail: err?.message || 'Failed to submit seller application',
+            });
+        } finally {
+            this.sellerSubmitting = false;
+        }
     }
 
     ngOnDestroy(): void {
@@ -356,6 +418,30 @@ export class LandingComponent implements OnInit, OnDestroy {
             this.feedbacksLoading = false;
             setTimeout(() => this.setupReveal(), 40);
         }
+    }
+
+    private async loadSellers(): Promise<void> {
+        this.sellersLoading = true;
+        try {
+            this.sellers = await this.sellerService.getPublicSellers();
+        } catch {
+            this.sellers = [];
+        } finally {
+            this.sellersLoading = false;
+            setTimeout(() => this.setupReveal(), 40);
+        }
+    }
+
+    private emptySellerForm(): RegisterSellerDto {
+        return {
+            fullName: '',
+            email: '',
+            phoneNumber: '',
+            city: '',
+            companyName: '',
+            experienceNotes: '',
+            message: '',
+        };
     }
 
     private digitsOnly(phone?: string | null): string {

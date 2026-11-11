@@ -14,11 +14,35 @@ public class OnlineOrderService
         _cache = cache;
     }
 
-    public Task<List<OnlineBranchDto>> GetBranchesAsync() =>
-        _api.GetAsync<List<OnlineBranchDto>>("api/services/app/CustomerOrder/GetOnlineBranches");
+    public async Task<List<OnlineBranchDto>> GetBranchesAsync(bool forceRefresh = false)
+    {
+        if (!forceRefresh && _cache.TryGetBranches(out var cached) && cached != null)
+        {
+            return cached;
+        }
 
-    public Task<OnlineStoreHeaderDto> GetStoreHeaderAsync(int branchId) =>
-        _api.GetAsync<OnlineStoreHeaderDto>($"api/services/app/CustomerOrder/GetOnlineStoreHeader?branchId={branchId}");
+        var branches = await _api.GetAsync<List<OnlineBranchDto>>("api/services/app/CustomerOrder/GetOnlineBranches")
+            ?? new List<OnlineBranchDto>();
+        _cache.SetBranches(branches);
+        return branches;
+    }
+
+    public async Task<OnlineStoreHeaderDto> GetStoreHeaderAsync(int branchId, bool forceRefresh = false)
+    {
+        if (!forceRefresh && _cache.TryGetStoreHeader(branchId, out var cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var header = await _api.GetAsync<OnlineStoreHeaderDto>(
+            $"api/services/app/CustomerOrder/GetOnlineStoreHeader?branchId={branchId}");
+        if (header != null)
+        {
+            _cache.SetStoreHeader(branchId, header);
+        }
+
+        return header!;
+    }
 
     public async Task<List<OnlineProductDto>> GetCatalogAsync(int? branchId, bool forceRefresh = false)
     {
@@ -66,15 +90,23 @@ public class OnlineOrderService
     public Task<List<DeliveryAreaDto>> GetDeliveryAreasAsync(int branchId) =>
         _api.GetAsync<List<DeliveryAreaDto>>($"api/services/app/DeliveryArea/GetActiveAreasForBranch?branchId={branchId}");
 
-    public async Task<List<HeroSlideDto>> GetHeroSlidesAsync(int branchId)
+    public async Task<List<HeroSlideDto>> GetHeroSlidesAsync(int branchId, bool forceRefresh = false)
     {
+        if (!forceRefresh && _cache.TryGetHeroSlides(branchId, out var cached) && cached != null)
+        {
+            return cached;
+        }
+
         var url = $"api/services/app/OnlineOrderHeroSlide/GetActiveByBranch?branchId={branchId}";
+        List<HeroSlideDto> slides;
         try
         {
             var result = await _api.GetAsync<AbpListResult<HeroSlideDto>>(url);
             if (result.Items?.Count > 0)
             {
-                return result.Items;
+                slides = result.Items;
+                _cache.SetHeroSlides(branchId, slides);
+                return slides;
             }
         }
         catch
@@ -84,12 +116,15 @@ public class OnlineOrderService
 
         try
         {
-            return await _api.GetAsync<List<HeroSlideDto>>(url) ?? new List<HeroSlideDto>();
+            slides = await _api.GetAsync<List<HeroSlideDto>>(url) ?? new List<HeroSlideDto>();
         }
         catch
         {
-            return new List<HeroSlideDto>();
+            slides = new List<HeroSlideDto>();
         }
+
+        _cache.SetHeroSlides(branchId, slides);
+        return slides;
     }
 
     public async Task<DealDto?> GetDealByProductIdAsync(int productId)
@@ -126,8 +161,13 @@ public class OnlineOrderService
         }
     }
 
-    public async Task<List<DealDto>> GetActiveDealsAsync(int branchId)
+    public async Task<List<DealDto>> GetActiveDealsAsync(int branchId, bool forceRefresh = false)
     {
+        if (!forceRefresh && _cache.TryGetDeals(branchId, out var cached) && cached != null)
+        {
+            return cached;
+        }
+
         try
         {
             var paged = await _api.GetAsync<AbpPagedResult<DealDto>>($"api/services/app/Deal/GetAll?branchId={branchId}");
@@ -136,6 +176,8 @@ public class OnlineOrderService
             {
                 item.ImageUrl = _api.ResolveImageUrl(item.ImagePath);
             }
+
+            _cache.SetDeals(branchId, items);
             return items;
         }
         catch

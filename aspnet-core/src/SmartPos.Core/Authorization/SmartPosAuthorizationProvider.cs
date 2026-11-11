@@ -165,6 +165,23 @@ namespace SmartPos.Authorization
                 L("DeleteDeveloper"),
                 multiTenancySides: MultiTenancySides.Host);
 
+            var sellers = context.CreatePermission(
+                PermissionNames.Pages_Sellers,
+                L("Sellers"),
+                multiTenancySides: MultiTenancySides.Host);
+            sellers.CreateChildPermission(
+                PermissionNames.Pages_Sellers_Approve,
+                L("ApproveSeller"),
+                multiTenancySides: MultiTenancySides.Host);
+            sellers.CreateChildPermission(
+                PermissionNames.Pages_Sellers_Edit,
+                L("EditSeller"),
+                multiTenancySides: MultiTenancySides.Host);
+            sellers.CreateChildPermission(
+                PermissionNames.Pages_Sellers_Delete,
+                L("DeleteSeller"),
+                multiTenancySides: MultiTenancySides.Host);
+
             var packages = context.CreatePermission(
                 PermissionNames.Pages_Packages,
                 L("Packages"),

@@ -12,10 +12,11 @@ public partial class FavoritesViewModel : BaseViewModel
     private readonly OnlineOrderService _orders;
     private readonly SessionService _session;
     private readonly CartService _cart;
+    private int? _loadedBranchId;
+    private string _loadedFavoriteKey = string.Empty;
 
     [ObservableProperty]
     private int favoriteCount;
-
     [ObservableProperty]
     private bool isRefreshing;
 
@@ -67,6 +68,17 @@ public partial class FavoritesViewModel : BaseViewModel
     {
         FavoriteCount = _favorites.Count;
         CartCount = _cart.ItemCount;
+
+        var favoriteKey = BuildFavoriteKey(_favorites.GetFavoriteIds());
+        if (_loadedBranchId.HasValue &&
+            _session.BranchId == _loadedBranchId &&
+            favoriteKey == _loadedFavoriteKey &&
+            FavoriteProducts.Count > 0)
+        {
+            SyncCartQuantities();
+            return;
+        }
+
         await LoadFavoritesAsync();
     }
 
@@ -101,6 +113,8 @@ public partial class FavoritesViewModel : BaseViewModel
                 FavoriteProducts.Clear();
                 FavoriteCount = 0;
                 IsEmptyState = true;
+                _loadedBranchId = _session.BranchId;
+                _loadedFavoriteKey = string.Empty;
                 return;
             }
 
@@ -129,6 +143,9 @@ public partial class FavoritesViewModel : BaseViewModel
                 FavoriteProducts.Add(item);
             }
 
+            _loadedBranchId = branchId;
+            _loadedFavoriteKey = BuildFavoriteKey(favoriteIds);
+
             FavoriteCount = FavoriteProducts.Count;
             IsEmptyState = FavoriteProducts.Count == 0;
         }
@@ -151,6 +168,9 @@ public partial class FavoritesViewModel : BaseViewModel
             p.CartQty = _cart.GetQty(p.Id);
         }
     }
+
+    private static string BuildFavoriteKey(IEnumerable<int> ids) =>
+        string.Join(",", ids.OrderBy(x => x));
 
     [RelayCommand]
     public async Task RemoveFavoriteAsync(OnlineProductDto? product)
