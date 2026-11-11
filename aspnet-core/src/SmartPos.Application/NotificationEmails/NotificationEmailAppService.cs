@@ -180,7 +180,7 @@ namespace SmartPos.NotificationEmails
                 ? (await _branchRepository.FirstOrDefaultAsync(branchId.Value))?.Name ?? "Selected Branch"
                 : "All Branches";
 
-            var subject = $"[SmartPOS] Daily Business Summary - {branchName} ({today:yyyy-MM-dd})";
+            var subject = $"Al Jannat - Daily Business Summary - {branchName} ({today:yyyy-MM-dd})";
             var bodyHtml = BuildDailySummaryEmailHtml(
                 branchName,
                 today,

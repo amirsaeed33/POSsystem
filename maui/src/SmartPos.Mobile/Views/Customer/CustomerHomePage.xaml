@@ -363,238 +363,97 @@
                     </Border>
 
                     <!-- ========================================================= -->
-                    <!-- 4. CATEGORIES SECTION (4x2 GRID, 58x58 BOXES)             -->
+                    <!-- 4. CATEGORIES SECTION (4x2 DYNAMIC GRID, 58x58 BOXES)     -->
                     <!-- ========================================================= -->
                     <VerticalStackLayout Spacing="4" Padding="0,0">
                         <Grid ColumnDefinitions="*,*,*,*"
                               RowDefinitions="Auto,Auto"
                               RowSpacing="16"
                               ColumnSpacing="12"
-                              HorizontalOptions="Fill">
+                              HorizontalOptions="Fill"
+                              BindableLayout.ItemsSource="{Binding DisplayCategories}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:HomeCategoryDisplayDto">
+                                    <VerticalStackLayout Grid.Row="{Binding GridRow}"
+                                                         Grid.Column="{Binding GridColumn}"
+                                                         Spacing="2"
+                                                         HorizontalOptions="Center">
+                                        <VerticalStackLayout.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding BindingContext.SelectHomeCategoryCommand, Source={x:Reference ThisPage}}"
+                                                                  CommandParameter="{Binding .}" />
+                                        </VerticalStackLayout.GestureRecognizers>
+                                        <Border WidthRequest="58"
+                                                HeightRequest="58"
+                                                Stroke="{Binding CardBorderColor}"
+                                                StrokeThickness="{Binding CardBorderWidth}"
+                                                BackgroundColor="#FFFFFF"
+                                                HorizontalOptions="Center">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding BindingContext.SelectHomeCategoryCommand, Source={x:Reference ThisPage}}"
+                                                                      CommandParameter="{Binding .}" />
+                                            </Border.GestureRecognizers>
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="18" />
+                                            </Border.StrokeShape>
+                                            <Border.Shadow>
+                                                <Shadow Brush="#10000000"
+                                                        Offset="0,3"
+                                                        Radius="6"
+                                                        Opacity="0.8" />
+                                            </Border.Shadow>
+                                            <Grid InputTransparent="True">
+                                                <!-- 1. Emoji Icon Fallback (shown if not More button and no image) -->
+                                                <Label Text="{Binding IconOrEmoji}"
+                                                       FontSize="20"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center"
+                                                       IsVisible="{Binding ShowEmoji}" />
 
-                            <!-- Row 1: Promo (% tag) -->
-                            <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2" HorizontalOptions="Center">
-                                <VerticalStackLayout.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectCategoryByNameCommand}" CommandParameter="Promo" />
-                                </VerticalStackLayout.GestureRecognizers>
-                                <Border WidthRequest="58"
-                                        HeightRequest="58"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        BackgroundColor="#FFFFFF"
-                                        HorizontalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="18" />
-                                    </Border.StrokeShape>
-                                    <Border.Shadow>
-                                        <Shadow Brush="#10000000"
-                                                Offset="0,3"
-                                                Radius="6"
-                                                Opacity="0.8" />
-                                    </Border.Shadow>
-                                    <Grid>
-                                        <Label Text="🏷️" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
-                                        <Image Source="promo_icon.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" />
-                                    </Grid>
-                                </Border>
-                                <Label Text="Promo" FontSize="11" TextColor="#4B5563" HorizontalTextAlignment="Center" Margin="0,6,0,0" />
-                            </VerticalStackLayout>
+                                                <!-- 2. Remote / Local Image (shown when HasImageUrl is true) -->
+                                                <Image Source="{Binding ImageUrl}"
+                                                       WidthRequest="26"
+                                                       HeightRequest="26"
+                                                       Aspect="AspectFit"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center"
+                                                       IsVisible="{Binding HasImageUrl}" />
 
-                            <!-- Row 1: Taco -->
-                            <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="2" HorizontalOptions="Center">
-                                <VerticalStackLayout.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectCategoryByNameCommand}" CommandParameter="Taco" />
-                                </VerticalStackLayout.GestureRecognizers>
-                                <Border WidthRequest="58"
-                                        HeightRequest="58"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        BackgroundColor="#FFFFFF"
-                                        HorizontalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="18" />
-                                    </Border.StrokeShape>
-                                    <Border.Shadow>
-                                        <Shadow Brush="#10000000"
-                                                Offset="0,3"
-                                                Radius="6"
-                                                Opacity="0.8" />
-                                    </Border.Shadow>
-                                    <Grid>
-                                        <Label Text="🌮" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
-                                        <Image Source="taco.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" />
-                                    </Grid>
-                                </Border>
-                                <Label Text="Taco" FontSize="11" TextColor="#4B5563" HorizontalTextAlignment="Center" Margin="0,6,0,0" />
-                            </VerticalStackLayout>
-
-                            <!-- Row 1: Drinks -->
-                            <VerticalStackLayout Grid.Row="0" Grid.Column="2" Spacing="2" HorizontalOptions="Center">
-                                <VerticalStackLayout.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectCategoryByNameCommand}" CommandParameter="Drinks" />
-                                </VerticalStackLayout.GestureRecognizers>
-                                <Border WidthRequest="58"
-                                        HeightRequest="58"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        BackgroundColor="#FFFFFF"
-                                        HorizontalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="18" />
-                                    </Border.StrokeShape>
-                                    <Border.Shadow>
-                                        <Shadow Brush="#10000000"
-                                                Offset="0,3"
-                                                Radius="6"
-                                                Opacity="0.8" />
-                                    </Border.Shadow>
-                                    <Grid>
-                                        <Label Text="🥤" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
-                                        <Image Source="drinks.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" />
-                                    </Grid>
-                                </Border>
-                                <Label Text="Drinks" FontSize="11" TextColor="#4B5563" HorizontalTextAlignment="Center" Margin="0,6,0,0" />
-                            </VerticalStackLayout>
-
-                            <!-- Row 1: Meat -->
-                            <VerticalStackLayout Grid.Row="0" Grid.Column="3" Spacing="2" HorizontalOptions="Center">
-                                <VerticalStackLayout.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectCategoryByNameCommand}" CommandParameter="Meat" />
-                                </VerticalStackLayout.GestureRecognizers>
-                                <Border WidthRequest="58"
-                                        HeightRequest="58"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        BackgroundColor="#FFFFFF"
-                                        HorizontalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="18" />
-                                    </Border.StrokeShape>
-                                    <Border.Shadow>
-                                        <Shadow Brush="#10000000"
-                                                Offset="0,3"
-                                                Radius="6"
-                                                Opacity="0.8" />
-                                    </Border.Shadow>
-                                    <Grid>
-                                        <Label Text="🥩" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
-                                        <Image Source="meat.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" />
-                                    </Grid>
-                                </Border>
-                                <Label Text="Meat" FontSize="11" TextColor="#4B5563" HorizontalTextAlignment="Center" Margin="0,6,0,0" />
-                            </VerticalStackLayout>
-
-                            <!-- Row 2: Sushi -->
-                            <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="2" HorizontalOptions="Center">
-                                <VerticalStackLayout.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectCategoryByNameCommand}" CommandParameter="Sushi" />
-                                </VerticalStackLayout.GestureRecognizers>
-                                <Border WidthRequest="58"
-                                        HeightRequest="58"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        BackgroundColor="#FFFFFF"
-                                        HorizontalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="18" />
-                                    </Border.StrokeShape>
-                                    <Border.Shadow>
-                                        <Shadow Brush="#10000000"
-                                                Offset="0,3"
-                                                Radius="6"
-                                                Opacity="0.8" />
-                                    </Border.Shadow>
-                                    <Grid>
-                                        <Label Text="🍣" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
-                                        <Image Source="sushi.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" />
-                                    </Grid>
-                                </Border>
-                                <Label Text="Sushi" FontSize="11" TextColor="#4B5563" HorizontalTextAlignment="Center" Margin="0,6,0,0" />
-                            </VerticalStackLayout>
-
-                            <!-- Row 2: Pizza -->
-                            <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="2" HorizontalOptions="Center">
-                                <VerticalStackLayout.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectCategoryByNameCommand}" CommandParameter="Pizza" />
-                                </VerticalStackLayout.GestureRecognizers>
-                                <Border WidthRequest="58"
-                                        HeightRequest="58"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        BackgroundColor="#FFFFFF"
-                                        HorizontalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="18" />
-                                    </Border.StrokeShape>
-                                    <Border.Shadow>
-                                        <Shadow Brush="#10000000"
-                                                Offset="0,3"
-                                                Radius="6"
-                                                Opacity="0.8" />
-                                    </Border.Shadow>
-                                    <Grid>
-                                        <Label Text="🍕" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
-                                        <Image Source="pizza.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" />
-                                    </Grid>
-                                </Border>
-                                <Label Text="Pizza" FontSize="11" TextColor="#4B5563" HorizontalTextAlignment="Center" Margin="0,6,0,0" />
-                            </VerticalStackLayout>
-
-                            <!-- Row 2: Burger -->
-                            <VerticalStackLayout Grid.Row="1" Grid.Column="2" Spacing="2" HorizontalOptions="Center">
-                                <VerticalStackLayout.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectCategoryByNameCommand}" CommandParameter="Burger" />
-                                </VerticalStackLayout.GestureRecognizers>
-                                <Border WidthRequest="58"
-                                        HeightRequest="58"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        BackgroundColor="#FFFFFF"
-                                        HorizontalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="18" />
-                                    </Border.StrokeShape>
-                                    <Border.Shadow>
-                                        <Shadow Brush="#10000000"
-                                                Offset="0,3"
-                                                Radius="6"
-                                                Opacity="0.8" />
-                                    </Border.Shadow>
-                                    <Grid>
-                                        <Label Text="🍔" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
-                                        <Image Source="burger.png" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" VerticalOptions="Center" />
-                                    </Grid>
-                                </Border>
-                                <Label Text="Burger" FontSize="11" TextColor="#4B5563" HorizontalTextAlignment="Center" Margin="0,6,0,0" />
-                            </VerticalStackLayout>
-
-                            <!-- Row 2: More (More text colored in #10B981) -->
-                            <VerticalStackLayout Grid.Row="1" Grid.Column="3" Spacing="2" HorizontalOptions="Center">
-                                <VerticalStackLayout.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectCategoryByNameCommand}" CommandParameter="More" />
-                                </VerticalStackLayout.GestureRecognizers>
-                                <Border WidthRequest="58"
-                                        HeightRequest="58"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        BackgroundColor="#FFFFFF"
-                                        HorizontalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="18" />
-                                    </Border.StrokeShape>
-                                    <Border.Shadow>
-                                        <Shadow Brush="#10000000"
-                                                Offset="0,3"
-                                                Radius="6"
-                                                Opacity="0.8" />
-                                    </Border.Shadow>
-                                    <Grid>
-                                        <Image Source="more_dots.png" WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" VerticalOptions="Center" />
-                                    </Grid>
-                                </Border>
-                                <Label Text="More" FontSize="11" FontAttributes="Bold" TextColor="#10B981" HorizontalTextAlignment="Center" Margin="0,6,0,0" />
-                            </VerticalStackLayout>
-
+                                                <!-- 3. Distinct "More" 4-dot Grid Icon -->
+                                                <Grid WidthRequest="24"
+                                                      HeightRequest="24"
+                                                      HorizontalOptions="Center"
+                                                      VerticalOptions="Center"
+                                                      IsVisible="{Binding IsMoreButton}">
+                                                    <Image Source="more_dots.png"
+                                                           WidthRequest="24"
+                                                           HeightRequest="24"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center" />
+                                                    <Label Text="⠿"
+                                                           FontSize="18"
+                                                           TextColor="#10B981"
+                                                           FontAttributes="Bold"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center" />
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+                                        <Label Text="{Binding Name}"
+                                               FontSize="11"
+                                               TextColor="{Binding LabelColor}"
+                                               FontAttributes="{Binding LabelFontAttributes}"
+                                               HorizontalTextAlignment="Center"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1"
+                                               Margin="0,6,0,0">
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding BindingContext.SelectHomeCategoryCommand, Source={x:Reference ThisPage}}"
+                                                                      CommandParameter="{Binding .}" />
+                                            </Label.GestureRecognizers>
+                                        </Label>
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
                         </Grid>
                     </VerticalStackLayout>
 

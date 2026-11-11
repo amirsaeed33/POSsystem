@@ -104,6 +104,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
     public ObservableCollection<OnlineBranchDto> Branches { get; } = new();
     public ObservableCollection<CategoryChipItem> Categories { get; } = new();
     public ObservableCollection<CategoryChipItem> ExploreCategories { get; } = new();
+    public ObservableCollection<HomeCategoryDisplayDto> DisplayCategories { get; } = new();
     public ObservableCollection<OnlineProductDto> Products { get; } = new();
     public ObservableCollection<HeroSlideDto> HeroSlides { get; } = new();
     public ObservableCollection<ModifierGroupItem> ModalModifierGroups { get; } = new();
@@ -224,6 +225,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         };
 
         InitializeFilterPills();
+        BuildDisplayCategories(new List<string>());
     }
 
     private void InitializeFilterPills()
@@ -478,6 +480,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
             ExploreCategories.Add(chip);
         }
 
+        BuildDisplayCategories(names);
         ApplyCategorySearchFilter();
         OnPropertyChanged(nameof(DeliverToLabel));
     }
@@ -1146,6 +1149,262 @@ public partial class CustomerHomeViewModel : BaseViewModel
         OnPropertyChanged(nameof(SelectedCategoryTitle));
         OnPropertyChanged(nameof(HasActiveFilters));
         OnPropertyChanged(nameof(IsFavoritesCategorySelected));
+        UpdateDisplayCategorySelection();
+    }
+
+    [RelayCommand]
+    private async Task SelectHomeCategory(HomeCategoryDisplayDto? category)
+    {
+        if (category == null) return;
+
+        if (category.IsMoreButton)
+        {
+            await ViewAllMenuAsync();
+            return;
+        }
+
+        SelectCategoryByName(category.Name);
+        UpdateDisplayCategorySelection();
+
+        if (Shell.Current != null)
+        {
+            try
+            {
+                var route = $"//customer/order?category={Uri.EscapeDataString(category.Name)}";
+                await Shell.Current.GoToAsync(route);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SelectHomeCategory] Navigation error: {ex}");
+                await Shell.Current.GoToAsync("//customer/order");
+            }
+        }
+    }
+
+    private void UpdateDisplayCategorySelection()
+    {
+        foreach (var cat in DisplayCategories)
+        {
+            if (cat.IsMoreButton) continue;
+            cat.IsSelected = SelectedCategories.Contains(cat.Name);
+        }
+    }
+
+    private void BuildDisplayCategories(List<string> categoryNames)
+    {
+        DisplayCategories.Clear();
+
+        var categoriesToTake = categoryNames
+            .Where(n => !string.IsNullOrWhiteSpace(n) &&
+                        !string.Equals(n, "All", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(n, "❤️ Favorites", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(n, "Favorites", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var items = new List<HomeCategoryDisplayDto>();
+
+        if (categoriesToTake.Count > 7)
+        {
+            // Up to first 7 active categories, and 8th is "More"
+            for (var i = 0; i < 7; i++)
+            {
+                var name = categoriesToTake[i];
+                var catProducts = _allProducts
+                    .Where(p => string.Equals(p.CategoryName, name, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                var cover = catProducts.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.ImageUrl))
+                            ?? catProducts.FirstOrDefault();
+                var coverImg = !string.IsNullOrWhiteSpace(cover?.ImageUrl)
+                    ? _orders.ResolveImageUrl(cover!.ImageUrl)
+                    : null;
+                if (coverImg != null && !coverImg.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && !coverImg.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    coverImg = null;
+                }
+
+                items.Add(new HomeCategoryDisplayDto
+                {
+                    Id = catProducts.FirstOrDefault()?.CategoryId ?? (i + 1),
+                    Name = name,
+                    ImageUrl = coverImg,
+                    IconOrEmoji = ResolveCategoryEmoji(name),
+                    IsSelected = SelectedCategories.Contains(name),
+                    IsMoreButton = false,
+                    GridRow = i / 4,
+                    GridColumn = i % 4
+                });
+            }
+
+            // 8th card: "More"
+            items.Add(new HomeCategoryDisplayDto
+            {
+                Id = -1,
+                Name = "More",
+                IconOrEmoji = "⠿",
+                IsMoreButton = true,
+                IsSelected = false,
+                GridRow = 1,
+                GridColumn = 3
+            });
+        }
+        else if (categoriesToTake.Count > 0)
+        {
+            // 7 or fewer: show directly
+            for (var i = 0; i < categoriesToTake.Count; i++)
+            {
+                var name = categoriesToTake[i];
+                var catProducts = _allProducts
+                    .Where(p => string.Equals(p.CategoryName, name, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                var cover = catProducts.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.ImageUrl))
+                            ?? catProducts.FirstOrDefault();
+                var coverImg = !string.IsNullOrWhiteSpace(cover?.ImageUrl)
+                    ? _orders.ResolveImageUrl(cover!.ImageUrl)
+                    : null;
+                if (coverImg != null && !coverImg.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && !coverImg.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    coverImg = null;
+                }
+
+                items.Add(new HomeCategoryDisplayDto
+                {
+                    Id = catProducts.FirstOrDefault()?.CategoryId ?? (i + 1),
+                    Name = name,
+                    ImageUrl = coverImg,
+                    IconOrEmoji = ResolveCategoryEmoji(name),
+                    IsSelected = SelectedCategories.Contains(name),
+                    IsMoreButton = false,
+                    GridRow = i / 4,
+                    GridColumn = i % 4
+                });
+            }
+
+            // Append "More" shortcut if space allows and at least 4 categories exist
+            if (items.Count is >= 4 and < 8)
+            {
+                var moreIdx = items.Count;
+                items.Add(new HomeCategoryDisplayDto
+                {
+                    Id = -1,
+                    Name = "More",
+                    IconOrEmoji = "⠿",
+                    IsMoreButton = true,
+                    IsSelected = false,
+                    GridRow = moreIdx / 4,
+                    GridColumn = moreIdx % 4
+                });
+            }
+        }
+        else
+        {
+            items = CreateDefaultDisplayCategories();
+        }
+
+        foreach (var item in items)
+        {
+            DisplayCategories.Add(item);
+        }
+
+        OnPropertyChanged(nameof(DisplayCategories));
+    }
+
+    private static List<HomeCategoryDisplayDto> CreateDefaultDisplayCategories()
+    {
+        var defaults = new (string Name, string Emoji, string Image)[]
+        {
+            ("Promo", "🏷️", "promo_icon.png"),
+            ("Burger", "🍔", "burger.png"),
+            ("Pizza", "🍕", "pizza.png"),
+            ("Drinks", "🥤", "drinks.png"),
+            ("Chicken", "🍗", "meat.png"),
+            ("Fries", "🍟", "taco.png"),
+            ("Deals", "🔥", "sushi.png"),
+            ("More", "⠿", "more_dots.png")
+        };
+
+        var list = new List<HomeCategoryDisplayDto>();
+        for (var i = 0; i < defaults.Length; i++)
+        {
+            var isMore = string.Equals(defaults[i].Name, "More", StringComparison.OrdinalIgnoreCase);
+            list.Add(new HomeCategoryDisplayDto
+            {
+                Id = i + 1,
+                Name = defaults[i].Name,
+                IconOrEmoji = defaults[i].Emoji,
+                ImageUrl = defaults[i].Image,
+                IsMoreButton = isMore,
+                IsSelected = false,
+                GridRow = i / 4,
+                GridColumn = i % 4
+            });
+        }
+        return list;
+    }
+
+    public static string ResolveCategoryEmoji(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "🍽️";
+        }
+
+        var lower = name.ToLowerInvariant().Trim();
+
+        // Burgers, Zingers & Sandwiches
+        if (lower.Contains("burg") || lower.Contains("zinger") || lower.Contains("patty") || lower.Contains("bun")) return "🍔";
+        if (lower.Contains("sandw") || lower.Contains("sub") || lower.Contains("panini") || lower.Contains("toast")) return "🥪";
+
+        // Pan Fry, Tawa, Skillet Dishes (Checked before general BBQ so BBQ Pan Fry gets a skillet)
+        if (lower.Contains("pan") || lower.Contains("fry") || lower.Contains("tawa") || lower.Contains("skillet")) return "🍳";
+
+        // Platters & Combos
+        if (lower.Contains("platter") || lower.Contains("thali") || lower.Contains("bento")) return "🍱";
+
+        // Pizza & Pastas
+        if (lower.Contains("pizza") || lower.Contains("slice") || lower.Contains("calzone")) return "🍕";
+        if (lower.Contains("pasta") || lower.Contains("noodle") || lower.Contains("spaghetti") || lower.Contains("lasagna") || lower.Contains("macaroni") || lower.Contains("chowmein")) return "🍝";
+
+        // Starters, Appetizers & Finger Foods
+        if (lower.Contains("start") || lower.Contains("appetiz") || lower.Contains("finger") || lower.Contains("nugget") || lower.Contains("bite") || lower.Contains("snack") || lower.Contains("samosa") || lower.Contains("roll")) return "🍢";
+        if (lower.Contains("fries") || lower.Contains("potato") || lower.Contains("chips") || lower.Contains("wedges")) return "🍟";
+
+        // Main Course, Curries, Karahi, Handi & Boneless
+        if (lower.Contains("main") || lower.Contains("course") || lower.Contains("handi") || lower.Contains("karahi") || lower.Contains("curry") || lower.Contains("gravy") || lower.Contains("salan") || lower.Contains("nihari") || lower.Contains("korma") || lower.Contains("boneless")) return "🍲";
+        if (lower.Contains("rice") || lower.Contains("biryani") || lower.Contains("pulao") || lower.Contains("fried rice")) return "🍚";
+
+        // Chicken, BBQ & Meat
+        if (lower.Contains("chicken") || lower.Contains("broast") || lower.Contains("wings") || lower.Contains("drumstick") || lower.Contains("crispy")) return "🍗";
+        if (lower.Contains("bbq") || lower.Contains("barbecue") || lower.Contains("tikka") || lower.Contains("kabab") || lower.Contains("kebab") || lower.Contains("boti")) return "🔥";
+        if (lower.Contains("meat") || lower.Contains("beef") || lower.Contains("mutton") || lower.Contains("steak") || lower.Contains("lamb")) return "🥩";
+
+        // Seafood
+        if (lower.Contains("fish") || lower.Contains("prawn") || lower.Contains("shrimp") || lower.Contains("sea") || lower.Contains("sushi")) return "🍣";
+
+        // Drinks & Beverages
+        if (lower.Contains("drink") || lower.Contains("beverage") || lower.Contains("juice") || lower.Contains("cold") || lower.Contains("soda") || lower.Contains("cola") || lower.Contains("pepsi") || lower.Contains("shake") || lower.Contains("smoothie") || lower.Contains("mojito")) return "🥤";
+        if (lower.Contains("tea") || lower.Contains("chai") || lower.Contains("coffee") || lower.Contains("cappuccino") || lower.Contains("latte") || lower.Contains("green tea")) return "☕";
+
+        // Desserts & Ice Cream
+        if (lower.Contains("dessert") || lower.Contains("ice") || lower.Contains("cream") || lower.Contains("sweet") || lower.Contains("cake") || lower.Contains("pastry") || lower.Contains("kheer") || lower.Contains("halwa") || lower.Contains("brownie") || lower.Contains("waffle") || lower.Contains("donut")) return "🍦";
+
+        // Wraps & Mexican
+        if (lower.Contains("taco") || lower.Contains("shawarma") || lower.Contains("wrap") || lower.Contains("burrito") || lower.Contains("fajita")) return "🌮";
+
+        // Bread, Roti & Naan
+        if (lower.Contains("naan") || lower.Contains("roti") || lower.Contains("bread") || lower.Contains("paratha")) return "🫓";
+
+        // Deals & Combos
+        if (lower.Contains("deal") || lower.Contains("combo") || lower.Contains("special") || lower.Contains("promo") || lower.Contains("offer") || lower.Contains("discount") || lower.Contains("family")) return "🔥";
+
+        // Permanent Items / Specials / Favorites
+        if (lower.Contains("perman") || lower.Contains("fav") || lower.Contains("pop") || lower.Contains("chef") || lower.Contains("star") || lower.Contains("signat")) return "⭐";
+
+        // Soup & Salad
+        if (lower.Contains("soup")) return "🥣";
+        if (lower.Contains("salad") || lower.Contains("diet") || lower.Contains("green") || lower.Contains("veg")) return "🥗";
+
+        return "🍽️";
     }
 
     [RelayCommand]

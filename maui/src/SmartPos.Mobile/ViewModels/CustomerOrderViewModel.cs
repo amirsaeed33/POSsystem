@@ -7,6 +7,7 @@ using SmartPos.Mobile.Services;
 
 namespace SmartPos.Mobile.ViewModels;
 
+[QueryProperty(nameof(CategoryFilter), "category")]
 public partial class CustomerOrderViewModel : BaseViewModel
 {
     private readonly OnlineOrderService _orders;
@@ -19,6 +20,40 @@ public partial class CustomerOrderViewModel : BaseViewModel
     private int? _loadedBranchId;
 
     public HashSet<string> SelectedCategories { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    [ObservableProperty]
+    private string? categoryFilter;
+
+    partial void OnCategoryFilterChanged(string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var decoded = Uri.UnescapeDataString(value);
+            ApplyCategoryFilterByName(decoded);
+        }
+    }
+
+    public void ApplyCategoryFilterByName(string? categoryName)
+    {
+        if (string.IsNullOrWhiteSpace(categoryName) || string.Equals(categoryName, "All", StringComparison.OrdinalIgnoreCase))
+        {
+            ClearFilters();
+            return;
+        }
+
+        var trimmed = categoryName.Trim();
+        SelectedCategories.Clear();
+        SelectedCategories.Add(trimmed);
+        IsAllSelected = false;
+
+        foreach (var c in Categories)
+        {
+            c.IsSelected = string.Equals(c.Name?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase);
+        }
+
+        UpdateSelectedCategoryTitle();
+        ApplyFilters();
+    }
 
     [ObservableProperty]
     private string selectedCategoryTitle = "All Menu";
@@ -111,10 +146,20 @@ public partial class CustomerOrderViewModel : BaseViewModel
                 // Instant tab switch: keep last menu on screen, only sync badges.
                 SyncCartQtyBadges();
                 SyncFavorites();
+
+                if (!string.IsNullOrWhiteSpace(CategoryFilter))
+                {
+                    ApplyCategoryFilterByName(Uri.UnescapeDataString(CategoryFilter));
+                }
                 return;
             }
 
             await LoadMenuAsync(forceRefresh: false);
+
+            if (!string.IsNullOrWhiteSpace(CategoryFilter))
+            {
+                ApplyCategoryFilterByName(Uri.UnescapeDataString(CategoryFilter));
+            }
         }
         finally
         {
