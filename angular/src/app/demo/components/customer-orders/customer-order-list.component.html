@@ -1,4 +1,31 @@
 <div class="card">
+    <p-tabView
+        [activeIndex]="activeListTab"
+        (activeIndexChange)="onListTabChange($event)"
+        styleClass="order-list-tabs mb-2"
+    >
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-list"></i>
+                    <span>All Orders</span>
+                    <span class="order-tab-count">{{ totalRecords }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+        <p-tabPanel>
+            <ng-template pTemplate="header">
+                <span class="flex align-items-center gap-2">
+                    <i class="pi pi-map-marker"></i>
+                    <span>Area-Wise Order History</span>
+                    <span class="order-tab-count" *ngIf="areaGroups.length">{{ areaGroups.length }}</span>
+                </span>
+            </ng-template>
+        </p-tabPanel>
+    </p-tabView>
+
+    <!-- All Orders View (activeListTab === 0) -->
+    <div *ngIf="activeListTab === 0">
     <p-table
         #dt
         [value]="orders"
@@ -231,6 +258,252 @@
             </tr>
         </ng-template>
     </p-table>
+    </div>
+
+    <!-- Area-Wise Order History View (activeListTab === 1) -->
+    <div *ngIf="activeListTab === 1" class="mt-2">
+        <!-- Filter Toolbar -->
+        <div class="p-3 border-1 surface-border border-round surface-card mb-3 no-print">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <!-- Search Keyword -->
+                    <span class="p-input-icon-left w-full sm:w-16rem">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            class="w-full"
+                            placeholder="Search orders, customer..."
+                            [(ngModel)]="areaKeyword"
+                            (keyup.enter)="computeAreaWiseGroups()"
+                        />
+                    </span>
+
+                    <!-- Area Dropdown -->
+                    <p-dropdown
+                        [options]="areaOptions"
+                        [(ngModel)]="selectedArea"
+                        (onChange)="computeAreaWiseGroups()"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="All Areas"
+                        styleClass="w-full sm:w-13rem"
+                    ></p-dropdown>
+
+                    <!-- From Date & Time -->
+                    <div class="flex align-items-center gap-1">
+                        <span class="text-600 text-sm font-medium">From:</span>
+                        <input
+                            pInputText
+                            type="datetime-local"
+                            [(ngModel)]="areaFromDateTime"
+                            (change)="computeAreaWiseGroups()"
+                            class="w-full sm:w-13rem"
+                        />
+                    </div>
+
+                    <!-- To Date & Time -->
+                    <div class="flex align-items-center gap-1">
+                        <span class="text-600 text-sm font-medium">To:</span>
+                        <input
+                            pInputText
+                            type="datetime-local"
+                            [(ngModel)]="areaToDateTime"
+                            (change)="computeAreaWiseGroups()"
+                            class="w-full sm:w-13rem"
+                        />
+                    </div>
+
+                    <!-- Reset Filters Button -->
+                    <button
+                        *ngIf="areaKeyword || selectedArea !== null || areaFromDateTime || areaToDateTime"
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-times"
+                        class="p-button-text p-button-secondary"
+                        pTooltip="Reset filters"
+                        tooltipPosition="top"
+                        (click)="clearAreaFilters()"
+                    ></button>
+
+                    <!-- Search / Refresh Button -->
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-search"
+                        class="p-button-outlined"
+                        label="Search"
+                        (click)="computeAreaWiseGroups()"
+                    ></button>
+
+                    <!-- Print Button -->
+                    <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-print"
+                        class="p-button-outlined"
+                        label="Print"
+                        (click)="printAreaWiseReport()"
+                    ></button>
+                </div>
+
+                <!-- Grand Total badge -->
+                <div class="flex align-items-center gap-3">
+                    <div class="text-right">
+                        <div class="text-xs text-500 font-semibold uppercase">Total Area Sales</div>
+                        <div class="text-xl font-bold text-primary">
+                            {{ areaGrandTotalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                        </div>
+                        <div class="text-xs text-600 font-medium">
+                            {{ areaGrandTotalOrders }} {{ areaGrandTotalOrders === 1 ? 'Order' : 'Orders' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="areaGroups.length === 0" class="text-center p-5 surface-50 border-round border-1 surface-border my-3">
+            <i class="pi pi-inbox text-500 text-4xl mb-2"></i>
+            <div class="text-900 font-semibold text-lg">No area-wise orders found</div>
+            <div class="text-500 text-sm mt-1">There are no customer orders matching the selected area or date & time filters.</div>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-refresh"
+                label="Reset Filters"
+                class="p-button-outlined mt-3"
+                (click)="clearAreaFilters()"
+            ></button>
+        </div>
+
+        <!-- Area Groups Cards -->
+        <ng-container *ngIf="areaGroups.length > 0">
+            <div
+                class="mb-4 border-1 surface-border border-round overflow-hidden shadow-1"
+                *ngFor="let group of areaGroups"
+            >
+                <!-- Area Heading Banner -->
+                <div class="bg-primary-50 p-3 px-4 flex flex-wrap align-items-center justify-content-between border-bottom-1 surface-border">
+                    <div class="flex align-items-center gap-2">
+                        <i class="pi pi-map-marker text-primary text-xl"></i>
+                        <h5 class="m-0 text-900 font-bold">{{ group.areaName }}</h5>
+                        <span class="p-tag p-tag-info p-tag-rounded text-xs">{{ group.orders.length }} {{ group.orders.length === 1 ? 'Order' : 'Orders' }}</span>
+                    </div>
+                    <div class="flex align-items-center gap-3">
+                        <span class="text-600 text-sm">Orders Count: <strong class="text-900">{{ group.orderCount }}</strong></span>
+                        <span class="text-600 text-sm">Area Total: <strong class="text-primary text-base">{{ group.totalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}</strong></span>
+                    </div>
+                </div>
+
+                <!-- Orders Table -->
+                <p-table
+                    [value]="group.orders"
+                    responsiveLayout="scroll"
+                    styleClass="p-datatable-striped p-datatable-sm"
+                >
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="min-width: 130px;">Order No</th>
+                            <th style="min-width: 150px;">Order Date & Time</th>
+                            <th style="min-width: 150px;">Customer</th>
+                            <th style="min-width: 120px;" class="text-right">Delivery Fee</th>
+                            <th style="min-width: 110px;">Status</th>
+                            <th *ngIf="isRestaurant" style="min-width: 130px;">Rider</th>
+                            <th style="text-align: right; min-width: 120px;">Total Amount</th>
+                            <th class="text-center" style="width: 90px;">Actions</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-order let-i="rowIndex">
+                        <tr>
+                            <td class="text-500">{{ i + 1 }}</td>
+                            <td class="font-bold">
+                                <a href="javascript:void(0)" class="text-primary hover:underline cursor-pointer" (click)="openViewDialog(order)">
+                                    {{ order.orderNo || ('#' + order.id) }}
+                                </a>
+                            </td>
+                            <td>
+                                <div class="font-medium text-800">{{ order.orderDate | date: formatService.dateFormat }}</div>
+                                <div class="text-xs text-500 font-normal">{{ order.orderDate | date: 'shortTime' }}</div>
+                            </td>
+                            <td>
+                                <div class="font-medium text-900">{{ order.customerName || '—' }}</div>
+                                <div *ngIf="order.customerPhone" class="text-xs text-500">{{ order.customerPhone }}</div>
+                            </td>
+                            <td class="text-right font-semibold">
+                                <span *ngIf="order.deliveryFee === 0 || order.isFreeDelivery" class="text-green-600">
+                                    <span class="p-badge p-badge-success text-xs">FREE</span>
+                                </span>
+                                <span *ngIf="order.deliveryFee > 0" class="text-700">
+                                    PKR {{ order.deliveryFee | number: '1.2-2' }}
+                                </span>
+                            </td>
+                            <td>
+                                <p-tag
+                                    [value]="statusLabel(order)"
+                                    [severity]="statusSeverity(order.status)"
+                                ></p-tag>
+                            </td>
+                            <td *ngIf="isRestaurant">
+                                <span *ngIf="order.riderName" class="font-medium text-teal-800 text-sm flex align-items-center gap-1">
+                                    <i class="pi pi-compass text-teal-600"></i>{{ order.riderName }}
+                                </span>
+                                <span *ngIf="!order.riderName" class="text-400 text-xs">—</span>
+                            </td>
+                            <td style="text-align: right;" class="font-bold text-primary">
+                                {{ order.totalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                            </td>
+                            <td class="text-center">
+                                <div class="flex align-items-center justify-content-center gap-1">
+                                    <button
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        icon="pi pi-eye"
+                                        class="p-button-rounded p-button-text p-button-sm text-primary hover:surface-200"
+                                        pTooltip="View details"
+                                        tooltipPosition="top"
+                                        (click)="openViewDialog(order)"
+                                    ></button>
+                                    <app-row-actions
+                                        [items]="getRowActions(order)"
+                                    ></app-row-actions>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="footer">
+                        <tr>
+                            <td [attr.colspan]="isRestaurant ? 6 : 5" class="text-right font-bold text-700 bg-gray-50 uppercase text-sm">
+                                {{ group.areaName }} Total:
+                            </td>
+                            <td style="text-align: right;" class="font-bold bg-gray-50 text-900">
+                                {{ group.orderCount }} {{ group.orderCount === 1 ? 'Order' : 'Orders' }}
+                            </td>
+                            <td style="text-align: right;" class="font-bold text-primary bg-gray-50 text-base">
+                                {{ group.totalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}
+                            </td>
+                            <td class="bg-gray-50"></td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </div>
+
+            <!-- Grand Total Summary Card -->
+            <div *ngIf="areaGroups.length > 1" class="surface-card p-3 px-4 border-round border-1 surface-border shadow-1 flex flex-wrap justify-content-between align-items-center mt-3 bg-primary-100">
+                <span class="font-bold text-900 text-lg uppercase">All Areas Grand Total</span>
+                <div class="flex align-items-center gap-4">
+                    <span class="text-base text-700 font-medium">Total Orders: <strong class="text-900">{{ areaGrandTotalOrders }}</strong></span>
+                    <span class="text-base text-700 font-medium">Grand Total Sales: <strong class="text-primary text-xl">{{ areaGrandTotalAmount | currency : 'PKR ' : 'symbol' : '1.2-2' }}</strong></span>
+                </div>
+            </div>
+        </ng-container>
+    </div>
 
     <app-customer-order-form-dialog
         [(visible)]="createDialogVisible"

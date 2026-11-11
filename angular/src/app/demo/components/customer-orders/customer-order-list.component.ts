@@ -16,19 +16,42 @@ import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { AppSoundService } from 'src/app/demo/service/app-sound.service';
+import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
 import { Subscription } from 'rxjs';
+
+export interface AreaOrderGroup {
+    areaName: string;
+    deliveryAreaId?: number | null;
+    orders: CustomerOrderDto[];
+    orderCount: number;
+    totalAmount: number;
+    totalDeliveryFees: number;
+}
 
 @Component({
     templateUrl: './customer-order-list.component.html',
+    styleUrls: ['./customer-order-list.component.scss'],
     providers: [MessageService, ConfirmationService],
 })
 export class CustomerOrderListComponent implements OnInit, OnDestroy {
+    activeListTab = 0;
     orders: CustomerOrderDto[] = [];
     loading = false;
     isSilentSyncing = false;
     totalRecords = 0;
     keyword = '';
     statusFilter: number | null = null;
+
+    // Area-Wise Order History State
+    deliveryAreas: DeliveryAreaDto[] = [];
+    areaOptions: { label: string; value: string | null }[] = [];
+    selectedArea: string | null = null;
+    areaKeyword = '';
+    areaFromDateTime = '';
+    areaToDateTime = '';
+    areaGroups: AreaOrderGroup[] = [];
+    areaGrandTotalOrders = 0;
+    areaGrandTotalAmount = 0;
 
     // Real-Time Auto-Sync State
     autoSyncEnabled = true;
@@ -79,7 +102,8 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         private permissionService: PermissionService,
         private thermalPrintService: ThermalPrintService,
         private branchContext: BranchContextService,
-        private appSound: AppSoundService
+        private appSound: AppSoundService,
+        private deliveryAreaService: DeliveryAreaService
     ) {}
 
     get isRestaurant(): boolean {
@@ -87,6 +111,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.loadDeliveryAreas();
         this.canOverrideDeliveryFee = this.permissionService.isGranted(
             PermissionNames.CustomerOrdersOverrideDeliveryFee
         );
@@ -121,6 +146,7 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         this.branchSub = this.branchContext.currentBranch$.subscribe((b) => {
             if (b?.id) {
                 this.customerChatService.joinBranchChat(b.id);
+                this.loadDeliveryAreas();
                 this.loadOrders(true);
             }
         });
@@ -269,6 +295,8 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
                 this.orders = result.items;
                 this.totalRecords = result.totalCount;
                 this.lastUpdated = new Date();
+                this.updateAreaOptions();
+                this.computeAreaWiseGroups();
             })
             .catch((error) => {
                 if (!silent) {
@@ -287,6 +315,172 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
 
     onSearch(): void {
         this.loadOrders();
+    }
+
+    onListTabChange(index: number): void {
+        this.activeListTab = index;
+        if (this.activeListTab === 1) {
+            this.computeAreaWiseGroups();
+        }
+    }
+
+    async loadDeliveryAreas(): Promise<void> {
+        try {
+            const branchId = this.branchContext.getBranchId();
+            const res = await this.deliveryAreaService.getAll({
+                branchId: branchId || undefined,
+                maxResultCount: 1000,
+            });
+            this.deliveryAreas = res.items || [];
+        } catch (err) {
+            console.warn('Failed to load delivery areas lookup', err);
+            this.deliveryAreas = [];
+        } finally {
+            this.updateAreaOptions();
+            this.computeAreaWiseGroups();
+        }
+    }
+
+    updateAreaOptions(): void {
+        const areaMap = new Map<string, string>();
+        if (this.deliveryAreas && this.deliveryAreas.length > 0) {
+            this.deliveryAreas.forEach((a) => {
+                if (a.name && a.name.trim()) {
+                    areaMap.set(a.name.trim(), a.name.trim());
+                }
+            });
+        }
+        if (this.orders && this.orders.length > 0) {
+            this.orders.forEach((o) => {
+                if (o.deliveryAreaName && o.deliveryAreaName.trim()) {
+                    areaMap.set(o.deliveryAreaName.trim(), o.deliveryAreaName.trim());
+                }
+            });
+        }
+
+        const sortedNames = Array.from(areaMap.keys()).sort((a, b) => a.localeCompare(b));
+        this.areaOptions = [
+            { label: 'All Areas', value: null },
+            ...sortedNames.map((name) => ({ label: name, value: name })),
+            { label: 'Unassigned / Direct', value: '__UNASSIGNED__' },
+        ];
+    }
+
+    computeAreaWiseGroups(): void {
+        if (!this.orders || this.orders.length === 0) {
+            this.areaGroups = [];
+            this.areaGrandTotalOrders = 0;
+            this.areaGrandTotalAmount = 0;
+            return;
+        }
+
+        let filtered = [...this.orders];
+
+        // 1. Keyword search (orderNo, customerName, customerPhone, notes, area)
+        if (this.areaKeyword && this.areaKeyword.trim()) {
+            const kw = this.areaKeyword.trim().toLowerCase();
+            filtered = filtered.filter(
+                (o) =>
+                    (o.orderNo && o.orderNo.toLowerCase().includes(kw)) ||
+                    (o.customerName && o.customerName.toLowerCase().includes(kw)) ||
+                    (o.customerPhone && o.customerPhone.toLowerCase().includes(kw)) ||
+                    (o.notes && o.notes.toLowerCase().includes(kw)) ||
+                    (o.deliveryAreaName && o.deliveryAreaName.toLowerCase().includes(kw))
+            );
+        }
+
+        // 2. Area filter
+        if (this.selectedArea) {
+            if (this.selectedArea === '__UNASSIGNED__') {
+                filtered = filtered.filter((o) => !o.deliveryAreaName || !o.deliveryAreaName.trim());
+            } else {
+                const targetArea = this.selectedArea.toLowerCase();
+                filtered = filtered.filter(
+                    (o) => o.deliveryAreaName && o.deliveryAreaName.trim().toLowerCase() === targetArea
+                );
+            }
+        }
+
+        // 3. Date & Time from
+        if (this.areaFromDateTime) {
+            const fromTime = new Date(this.areaFromDateTime).getTime();
+            if (!isNaN(fromTime)) {
+                filtered = filtered.filter((o) => {
+                    const orderTime = new Date(o.orderDate).getTime();
+                    return !isNaN(orderTime) && orderTime >= fromTime;
+                });
+            }
+        }
+
+        // 4. Date & Time to
+        if (this.areaToDateTime) {
+            const toTime = new Date(this.areaToDateTime).getTime();
+            if (!isNaN(toTime)) {
+                filtered = filtered.filter((o) => {
+                    const orderTime = new Date(o.orderDate).getTime();
+                    return !isNaN(orderTime) && orderTime <= toTime;
+                });
+            }
+        }
+
+        // Grouping by area
+        const groupMap = new Map<string, CustomerOrderDto[]>();
+        for (const order of filtered) {
+            const areaName =
+                order.deliveryAreaName && order.deliveryAreaName.trim()
+                    ? order.deliveryAreaName.trim()
+                    : 'Unassigned / Direct';
+            if (!groupMap.has(areaName)) {
+                groupMap.set(areaName, []);
+            }
+            groupMap.get(areaName)!.push(order);
+        }
+
+        // Sort groups alphabetically, but put 'Unassigned / Direct' at the end
+        const sortedGroupNames = Array.from(groupMap.keys()).sort((a, b) => {
+            if (a === 'Unassigned / Direct') return 1;
+            if (b === 'Unassigned / Direct') return -1;
+            return a.localeCompare(b);
+        });
+
+        this.areaGroups = sortedGroupNames.map((areaName) => {
+            const groupOrders = groupMap.get(areaName) || [];
+            // Sort orders descending by date
+            groupOrders.sort(
+                (a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+            );
+            const orderCount = groupOrders.length;
+            const totalAmount = groupOrders.reduce(
+                (sum, o) => sum + (Number(o.totalAmount) || 0),
+                0
+            );
+            const totalDeliveryFees = groupOrders.reduce(
+                (sum, o) => sum + (Number(o.deliveryFee) || 0),
+                0
+            );
+            return {
+                areaName,
+                orders: groupOrders,
+                orderCount,
+                totalAmount,
+                totalDeliveryFees,
+            };
+        });
+
+        this.areaGrandTotalOrders = this.areaGroups.reduce((sum, g) => sum + g.orderCount, 0);
+        this.areaGrandTotalAmount = this.areaGroups.reduce((sum, g) => sum + g.totalAmount, 0);
+    }
+
+    clearAreaFilters(): void {
+        this.areaKeyword = '';
+        this.selectedArea = null;
+        this.areaFromDateTime = '';
+        this.areaToDateTime = '';
+        this.computeAreaWiseGroups();
+    }
+
+    printAreaWiseReport(): void {
+        window.print();
     }
 
     onGlobalFilter(table: Table, event: Event): void {

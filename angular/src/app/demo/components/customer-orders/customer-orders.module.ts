@@ -6,6 +6,7 @@ import { RippleModule } from 'primeng/ripple';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TableModule } from 'primeng/table';
+import { TabViewModule } from 'primeng/tabview';
 import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
@@ -32,6 +33,7 @@ import { StaffSharedModule } from '../staff/staff-shared.module';
         InputTextModule,
         InputNumberModule,
         TableModule,
+        TabViewModule,
         DialogModule,
         ToastModule,
         TooltipModule,
