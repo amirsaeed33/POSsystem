@@ -352,7 +352,13 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
         }
         if (this.orders && this.orders.length > 0) {
             this.orders.forEach((o) => {
-                if (o.deliveryAreaName && o.deliveryAreaName.trim()) {
+                const isRejectedOrCancelled =
+                    o.status === CustomerOrderStatus.Rejected ||
+                    o.statusName?.toLowerCase() === 'rejected' ||
+                    o.statusName?.toLowerCase() === 'cancelled' ||
+                    o.statusName?.toLowerCase() === 'canceled';
+
+                if (!isRejectedOrCancelled && o.deliveryAreaName && o.deliveryAreaName.trim()) {
                     areaMap.set(o.deliveryAreaName.trim(), o.deliveryAreaName.trim());
                 }
             });
@@ -374,7 +380,14 @@ export class CustomerOrderListComponent implements OnInit, OnDestroy {
             return;
         }
 
-        let filtered = [...this.orders];
+        // Exclude Cancelled and Rejected orders from Area-Wise Order History
+        let filtered = this.orders.filter(
+            (o) =>
+                o.status !== CustomerOrderStatus.Rejected &&
+                o.statusName?.toLowerCase() !== 'rejected' &&
+                o.statusName?.toLowerCase() !== 'cancelled' &&
+                o.statusName?.toLowerCase() !== 'canceled'
+        );
 
         // 1. Keyword search (orderNo, customerName, customerPhone, notes, area)
         if (this.areaKeyword && this.areaKeyword.trim()) {
