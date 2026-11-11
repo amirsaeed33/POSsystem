@@ -132,8 +132,8 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
     public double AverageRatingScore => AverageRating;
     public int TotalReviewsCount => Feedbacks.Count;
-    public string TotalReviewsLabel => $"{Math.Max(Feedbacks.Count, 4)} Verified Reviews";
-    public string TotalReviewsSubtitle => $"{Math.Max(Feedbacks.Count, 4)} reviews";
+    public string TotalReviewsLabel => $"{Feedbacks.Count} {(Feedbacks.Count == 1 ? "Review" : "Verified Reviews")}";
+    public string TotalReviewsSubtitle => $"{Feedbacks.Count} {(Feedbacks.Count == 1 ? "review" : "reviews")}";
     public bool HasFeedbacks => Feedbacks.Count > 0;
 
     public int CartCount => _cart.ItemCount;
