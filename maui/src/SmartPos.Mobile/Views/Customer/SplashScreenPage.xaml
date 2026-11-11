@@ -67,7 +67,7 @@
             </Border>
 
             <!-- Bold White Brand Text -->
-            <Label Text="MakanGes"
+            <Label Text="Aljannat"
                    FontSize="32"
                    FontAttributes="Bold"
                    TextColor="White"
