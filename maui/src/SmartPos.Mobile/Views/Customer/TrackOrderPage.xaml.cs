@@ -24,4 +24,10 @@ public partial class TrackOrderPage : ContentPage
         Shell.SetTabBarIsVisible(this, false);
         await _vm.AppearingAsync();
     }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _vm.Disappearing();
+    }
 }

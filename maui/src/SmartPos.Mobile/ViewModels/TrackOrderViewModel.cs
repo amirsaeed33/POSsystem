@@ -7,11 +7,14 @@ using SmartPos.Mobile.Services;
 namespace SmartPos.Mobile.ViewModels;
 
 [QueryProperty(nameof(OrderNo), "orderNo")]
-public partial class TrackOrderViewModel : BaseViewModel
+public partial class TrackOrderViewModel : BaseViewModel, IDisposable
 {
     private readonly OnlineOrderService _orders;
+    private CancellationTokenSource? _liveTrackingCts;
     private string? _lastTrackedNo;
     private bool _trackQueued;
+    private bool _isSilentPolling;
+    private int _countdownSeconds = 12;
 
     [ObservableProperty]
     private string orderNo = string.Empty;
@@ -21,6 +24,18 @@ public partial class TrackOrderViewModel : BaseViewModel
 
     [ObservableProperty]
     private string statusBanner = string.Empty;
+
+    [ObservableProperty]
+    private string elapsedTimeText = "Just now";
+
+    [ObservableProperty]
+    private string liveCountdownText = "Live • updates in 12s";
+
+    [ObservableProperty]
+    private bool isLivePollingActive;
+
+    [ObservableProperty]
+    private bool isItemsExpanded = true;
 
     [ObservableProperty]
     private int customerRatingDraft = 5;
@@ -34,29 +49,136 @@ public partial class TrackOrderViewModel : BaseViewModel
     public ObservableCollection<CustomerOrderLineDto> Lines { get; } = new();
 
     public bool HasOrder => Order != null && !string.IsNullOrWhiteSpace(Order.OrderNo);
-    public string OrderTitle => Order?.OrderNo ?? string.Empty;
-    public string StatusText => string.IsNullOrWhiteSpace(Order?.StatusName)
-        ? (Order == null ? string.Empty : $"Status {Order.Status}")
-        : Order!.StatusName!;
+    public string OrderTitle => Order?.FormattedOrderNo ?? OrderNo;
     public string TotalText => Order == null ? string.Empty : $"Rs {Order.TotalAmount:0.##}";
+    public string SubTotalText => Order == null ? string.Empty : $"Rs {Order.SubTotal:0.##}";
+    public string DeliveryFeeText => Order == null
+        ? string.Empty
+        : (Order.DeliveryFee == 0 ? "FREE" : $"Rs {Order.DeliveryFee:0.##}");
     public string AreaText => Order?.DeliveryAreaName ?? string.Empty;
-    public string RiderText => string.IsNullOrWhiteSpace(Order?.RiderName)
-        ? "Rider not assigned yet"
-        : $"Rider: {Order!.RiderName}";
+    public string CustomerAddressText => Order?.CustomerAddress ?? Order?.DeliveryAreaName ?? "Delivery Address";
+    public string CustomerNotesText => Order?.Notes ?? string.Empty;
+    public bool HasCustomerNotes => !string.IsNullOrWhiteSpace(CustomerNotesText);
+    public string CustomerText => Order?.CustomerName ?? string.Empty;
+    public string FormattedOrderDate => Order?.FormattedDate ?? string.Empty;
+
+    // --- Status Stage Logic ---
+    // 0 = Pending/Received, 1 = Approved/In Kitchen, 2 = Rejected/Cancelled, 3 = InProgress/On the Way, 4/5 = Delivered
+    public int CurrentStep => Order == null ? -1 : Order.Status switch
+    {
+        2 => -1,   // Cancelled / Rejected
+        0 => 0,    // Order Received
+        1 => 1,    // In Kitchen
+        3 => 2,    // Out for Delivery
+        >= 4 => 3, // Delivered
+        _ => 0
+    };
+
+    public bool IsCancelled => Order?.Status == 2;
+    public bool IsDelivered => Order?.Status >= 4;
+
+    public bool IsStep1Completed => CurrentStep >= 0 && !IsCancelled;
+    public bool IsStep1Active => CurrentStep == 0 && !IsCancelled;
+
+    public bool IsStep2Completed => CurrentStep >= 1 && !IsCancelled;
+    public bool IsStep2Active => CurrentStep == 1 && !IsCancelled;
+
+    public bool IsStep3Completed => CurrentStep >= 2 && !IsCancelled;
+    public bool IsStep3Active => CurrentStep == 2 && !IsCancelled;
+
+    public bool IsStep4Completed => CurrentStep >= 3 && !IsCancelled;
+    public bool IsStep4Active => CurrentStep == 3 && !IsCancelled;
+
+    public bool IsLine1Active => CurrentStep >= 1 && !IsCancelled;
+    public bool IsLine2Active => CurrentStep >= 2 && !IsCancelled;
+    public bool IsLine3Active => CurrentStep >= 3 && !IsCancelled;
+
+    // Stepper Glyphs
+    public string Step1Glyph => IsStep1Completed && !IsStep1Active ? "✓" : "📋";
+    public string Step2Glyph => IsStep2Completed && !IsStep2Active ? "✓" : "🍳";
+    public string Step3Glyph => IsStep3Completed && !IsStep3Active ? "✓" : "🛵";
+    public string Step4Glyph => IsStep4Completed ? "✓" : "📍";
+
+    // Status titles & badges
+    public string StatusHeadline => IsCancelled
+        ? "Order Cancelled"
+        : (CurrentStep switch
+        {
+            3 => "Delivered! Enjoy your meal 🎉",
+            2 => "Out for Delivery 🛵",
+            1 => "In Kitchen • Cooking your meal 🍳",
+            _ => "Order Received 📋"
+        });
+
+    public string StatusSubHeadline => IsCancelled
+        ? "The restaurant was unable to process this order."
+        : (CurrentStep switch
+        {
+            3 => "Your order has been delivered. Tell us how it was below!",
+            2 => $"Rider {(string.IsNullOrWhiteSpace(Order?.RiderName) ? "partner" : Order.RiderName)} is heading to your address.",
+            1 => "The chef is preparing your fresh meal with care.",
+            _ => "We have received your order and the store will confirm shortly."
+        });
+
+    public Color StatusPillBackgroundColor => IsCancelled
+        ? Color.FromArgb("#FEE2E2")
+        : (CurrentStep switch
+        {
+            3 => Color.FromArgb("#D1FAE5"),
+            2 => Color.FromArgb("#FEF3C7"),
+            1 => Color.FromArgb("#DBEAFE"),
+            _ => Color.FromArgb("#FEF3C7")
+        });
+
+    public Color StatusPillTextColor => IsCancelled
+        ? Color.FromArgb("#DC2626")
+        : (CurrentStep switch
+        {
+            3 => Color.FromArgb("#059669"),
+            2 => Color.FromArgb("#D97706"),
+            1 => Color.FromArgb("#2563EB"),
+            _ => Color.FromArgb("#D97706")
+        });
+
+    public string EstimatedDeliveryEta
+    {
+        get
+        {
+            if (Order == null || Order.OrderDate == default)
+            {
+                return "30 - 45 mins";
+            }
+            if (IsDelivered)
+            {
+                return "Delivered";
+            }
+            var target = Order.OrderDate.ToLocalTime().AddMinutes(40);
+            return $"Expected by {target:hh:mm tt}";
+        }
+    }
+
+    // --- Rider Info ---
+    public string RiderName => string.IsNullOrWhiteSpace(Order?.RiderName) ? "Delivery Partner" : Order.RiderName;
     public string RiderPhoneText => Order?.RiderPhone?.Trim() ?? string.Empty;
     public bool HasRiderPhone => !string.IsNullOrWhiteSpace(RiderPhoneText);
-    public string CustomerText => Order?.CustomerName ?? string.Empty;
+    public bool ShowRiderCard => !IsCancelled && !string.IsNullOrWhiteSpace(Order?.RiderName) && CurrentStep >= 2;
+    public string RiderBadgeText => "Verified Restaurant Delivery Partner 🛵";
 
-    public bool IsDelivered => Order?.Status == 4;
+    // --- Accordion ---
+    public string ItemsCountBadge => $"{Lines.Count} {(Lines.Count == 1 ? "item" : "items")}";
+    public string ItemsAccordionToggleGlyph => IsItemsExpanded ? "▲" : "▼";
+
+    // --- Feedback & Rating ---
+    public bool ShowRatingSection => IsDelivered;
     public bool HasExistingRating => Order?.CustomerRating.HasValue == true && Order.CustomerRating.Value > 0;
-    public string RatingSectionTitle => HasExistingRating ? "Your feedback" : "Rate your delivery";
-    public string RatingBadgeText => HasExistingRating ? $"{Order?.CustomerRating}/5" : string.Empty;
+    public string RatingSectionTitle => HasExistingRating ? "Your Verified Feedback" : "Rate Your Experience";
+    public string RatingBadgeText => HasExistingRating ? $"{Order?.CustomerRating}/5 ★" : string.Empty;
     public string RatingHintText => HasExistingRating
-        ? "You can update your stars or comment anytime."
-        : "How was your experience with this delivery?";
+        ? "You can update your rating or review anytime."
+        : "How was the food and delivery quality?";
     public string SubmitButtonLabel => IsSubmittingRating
-        ? "Saving…"
-        : (HasExistingRating ? "Update feedback" : "Submit feedback");
+        ? "Saving review…"
+        : (HasExistingRating ? "Update Review" : "Submit Review");
 
     public string Star1Glyph => CustomerRatingDraft >= 1 ? "★" : "☆";
     public string Star2Glyph => CustomerRatingDraft >= 2 ? "★" : "☆";
@@ -72,11 +194,11 @@ public partial class TrackOrderViewModel : BaseViewModel
 
     public string RatingDescriptionText => CustomerRatingDraft switch
     {
-        5 => "⭐⭐⭐⭐⭐ Excellent! Loved it",
-        4 => "⭐⭐⭐⭐ Very Good",
-        3 => "⭐⭐⭐ Average",
-        2 => "⭐⭐ Below Expectations",
-        1 => "⭐ Poor Experience",
+        5 => "⭐⭐⭐⭐⭐ Excellent! Loved the food & delivery",
+        4 => "⭐⭐⭐⭐ Very Good, enjoyed it",
+        3 => "⭐⭐⭐ Average experience",
+        2 => "⭐⭐ Below expectations",
+        1 => "⭐ Poor experience",
         _ => string.Empty
     };
 
@@ -88,7 +210,6 @@ public partial class TrackOrderViewModel : BaseViewModel
             {
                 return false;
             }
-
             var draftComment = (CustomerCommentDraft ?? string.Empty).Trim();
             var savedComment = (Order.CustomerFeedbackComment ?? string.Empty).Trim();
             var ratingChanged = CustomerRatingDraft != (Order.CustomerRating ?? 0);
@@ -118,13 +239,43 @@ public partial class TrackOrderViewModel : BaseViewModel
     {
         OnPropertyChanged(nameof(HasOrder));
         OnPropertyChanged(nameof(OrderTitle));
-        OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(TotalText));
+        OnPropertyChanged(nameof(SubTotalText));
+        OnPropertyChanged(nameof(DeliveryFeeText));
         OnPropertyChanged(nameof(AreaText));
-        OnPropertyChanged(nameof(RiderText));
+        OnPropertyChanged(nameof(CustomerAddressText));
+        OnPropertyChanged(nameof(CustomerNotesText));
+        OnPropertyChanged(nameof(HasCustomerNotes));
+        OnPropertyChanged(nameof(CustomerText));
+        OnPropertyChanged(nameof(FormattedOrderDate));
+        OnPropertyChanged(nameof(CurrentStep));
+        OnPropertyChanged(nameof(IsCancelled));
+        OnPropertyChanged(nameof(IsDelivered));
+        OnPropertyChanged(nameof(IsStep1Completed));
+        OnPropertyChanged(nameof(IsStep1Active));
+        OnPropertyChanged(nameof(IsStep2Completed));
+        OnPropertyChanged(nameof(IsStep2Active));
+        OnPropertyChanged(nameof(IsStep3Completed));
+        OnPropertyChanged(nameof(IsStep3Active));
+        OnPropertyChanged(nameof(IsStep4Completed));
+        OnPropertyChanged(nameof(IsStep4Active));
+        OnPropertyChanged(nameof(IsLine1Active));
+        OnPropertyChanged(nameof(IsLine2Active));
+        OnPropertyChanged(nameof(IsLine3Active));
+        OnPropertyChanged(nameof(Step1Glyph));
+        OnPropertyChanged(nameof(Step2Glyph));
+        OnPropertyChanged(nameof(Step3Glyph));
+        OnPropertyChanged(nameof(Step4Glyph));
+        OnPropertyChanged(nameof(StatusHeadline));
+        OnPropertyChanged(nameof(StatusSubHeadline));
+        OnPropertyChanged(nameof(StatusPillBackgroundColor));
+        OnPropertyChanged(nameof(StatusPillTextColor));
+        OnPropertyChanged(nameof(EstimatedDeliveryEta));
+        OnPropertyChanged(nameof(RiderName));
         OnPropertyChanged(nameof(RiderPhoneText));
         OnPropertyChanged(nameof(HasRiderPhone));
-        OnPropertyChanged(nameof(CustomerText));
+        OnPropertyChanged(nameof(ShowRiderCard));
+        OnPropertyChanged(nameof(ShowRatingSection));
 
         Lines.Clear();
         if (value?.Lines != null)
@@ -134,16 +285,18 @@ public partial class TrackOrderViewModel : BaseViewModel
                 Lines.Add(line);
             }
         }
+        OnPropertyChanged(nameof(ItemsCountBadge));
 
         StatusBanner = value == null
             ? string.Empty
             : value.Status switch
             {
-                0 => "Waiting for the restaurant to accept your order.",
-                1 or 3 => "Your order is being prepared.",
-                2 => "This order was rejected.",
+                0 => "Waiting for the restaurant to confirm your order.",
+                1 => "Your order is being prepared in the kitchen.",
+                2 => "This order was cancelled.",
+                3 => "Rider is delivering your food.",
                 4 => "Delivered — enjoy your meal!",
-                _ => StatusText
+                _ => StatusHeadline
             };
 
         if (value?.CustomerRating.HasValue == true && value.CustomerRating.Value > 0)
@@ -157,6 +310,7 @@ public partial class TrackOrderViewModel : BaseViewModel
             CustomerCommentDraft = string.Empty;
         }
         NotifyRatingProperties();
+        UpdateElapsedTime();
     }
 
     public async Task AppearingAsync()
@@ -194,6 +348,157 @@ public partial class TrackOrderViewModel : BaseViewModel
         {
             await TrackAsync();
         }
+        else if (HasOrder)
+        {
+            StartLiveTracking();
+        }
+    }
+
+    public void Disappearing()
+    {
+        StopLiveTracking();
+    }
+
+    public void Dispose()
+    {
+        StopLiveTracking();
+        GC.SuppressFinalize(this);
+    }
+
+    public void StartLiveTracking()
+    {
+        StopLiveTracking();
+        _countdownSeconds = 12;
+        IsLivePollingActive = true;
+        _liveTrackingCts = new CancellationTokenSource();
+        var token = _liveTrackingCts.Token;
+        _ = RunLiveTrackingLoopAsync(token);
+    }
+
+    public void StopLiveTracking()
+    {
+        IsLivePollingActive = false;
+        try
+        {
+            if (_liveTrackingCts != null)
+            {
+                _liveTrackingCts.Cancel();
+                _liveTrackingCts.Dispose();
+                _liveTrackingCts = null;
+            }
+        }
+        catch { }
+    }
+
+    private async Task RunLiveTrackingLoopAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(1000, token);
+                if (token.IsCancellationRequested) break;
+
+                MainThread.BeginInvokeOnMainThread(TickSecond);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TrackOrder] Loop error: {ex.Message}");
+            }
+        }
+    }
+
+    private void TickSecond()
+    {
+        UpdateElapsedTime();
+
+        if (IsDelivered || IsCancelled)
+        {
+            LiveCountdownText = IsDelivered ? "Delivered" : "Cancelled";
+            return;
+        }
+
+        _countdownSeconds--;
+        if (_countdownSeconds <= 0)
+        {
+            _countdownSeconds = 12;
+            _ = SilentPollOrderAsync();
+        }
+        LiveCountdownText = $"Live • updates in {_countdownSeconds}s";
+    }
+
+    private void UpdateElapsedTime()
+    {
+        if (Order == null || Order.OrderDate == default)
+        {
+            ElapsedTimeText = "Just now";
+            return;
+        }
+
+        var orderDate = Order.OrderDate.Kind == DateTimeKind.Utc
+            ? Order.OrderDate.ToLocalTime()
+            : Order.OrderDate;
+        var diff = DateTime.Now - orderDate;
+        if (diff < TimeSpan.Zero) diff = TimeSpan.Zero;
+
+        if (diff.TotalSeconds < 60)
+        {
+            ElapsedTimeText = $"{Math.Max(1, (int)diff.TotalSeconds)}s ago";
+        }
+        else if (diff.TotalHours < 1)
+        {
+            ElapsedTimeText = $"{(int)diff.TotalMinutes}m {diff.Seconds:D2}s ago";
+        }
+        else
+        {
+            ElapsedTimeText = $"{(int)diff.TotalHours}h {diff.Minutes:D2}m ago";
+        }
+    }
+
+    private async Task SilentPollOrderAsync()
+    {
+        if (_isSilentPolling || string.IsNullOrWhiteSpace(OrderNo) || IsBusy)
+        {
+            return;
+        }
+
+        try
+        {
+            _isSilentPolling = true;
+            var clean = OrderNo.Trim();
+            var live = await _orders.TrackOrderAsync(clean);
+            if (live != null && !string.IsNullOrWhiteSpace(live.OrderNo))
+            {
+                var previousStatus = Order?.Status;
+                Order = live;
+                if (previousStatus.HasValue && previousStatus.Value != live.Status && live.Status >= 4)
+                {
+                    _ = MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        Shell.Current?.DisplayAlert("Delivered! 🎉", "Your order has been delivered! Please rate your experience below.", "OK");
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TrackOrder] Silent poll error: {ex.Message}");
+        }
+        finally
+        {
+            _isSilentPolling = false;
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleItemsExpanded()
+    {
+        IsItemsExpanded = !IsItemsExpanded;
+        OnPropertyChanged(nameof(ItemsAccordionToggleGlyph));
     }
 
     [RelayCommand]
@@ -288,6 +593,11 @@ public partial class TrackOrderViewModel : BaseViewModel
             }
         });
 
+        if (HasOrder)
+        {
+            StartLiveTracking();
+        }
+
         if (_trackQueued)
         {
             _trackQueued = false;
@@ -333,6 +643,7 @@ public partial class TrackOrderViewModel : BaseViewModel
     private void NotifyRatingProperties()
     {
         OnPropertyChanged(nameof(IsDelivered));
+        OnPropertyChanged(nameof(ShowRatingSection));
         OnPropertyChanged(nameof(HasExistingRating));
         OnPropertyChanged(nameof(RatingSectionTitle));
         OnPropertyChanged(nameof(RatingBadgeText));
@@ -370,14 +681,14 @@ public partial class TrackOrderViewModel : BaseViewModel
 
                 await Shell.Current.DisplayAlert(
                     "Thanks!",
-                    isUpdate ? "Your feedback was updated." : "Your feedback was saved and verified.",
+                    isUpdate ? "Your feedback was updated." : "Your review was saved. Thank you!",
                     "OK");
             }
             else
             {
                 await Shell.Current.DisplayAlert(
                     "Rating",
-                    "Could not save your rating. Please check your connection and try again.",
+                    "Could not save your review. Please check your connection and try again.",
                     "OK");
             }
         }
@@ -394,8 +705,22 @@ public partial class TrackOrderViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private Task SubmitFeedbackAsync() => SubmitRatingAsync();
+
+    [RelayCommand]
+    private async Task GoBackAsync()
+    {
+        StopLiveTracking();
+        if (Shell.Current != null)
+        {
+            await Shell.Current.GoToAsync("..");
+        }
+    }
+
+    [RelayCommand]
     private async Task ViewOrderHistoryAsync()
     {
+        StopLiveTracking();
         if (Shell.Current != null)
         {
             await Shell.Current.GoToAsync("//customer/history");
