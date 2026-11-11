@@ -310,6 +310,16 @@ public class OnlineOrderService
         {
             var result = await _api.GetAsync<List<CustomerFeedbackDto>>(
                 $"api/services/app/CustomerOrder/GetBranchFeedbacks?branchId={branchId}&maxResultCount={maxResultCount}");
+            if (result != null)
+            {
+                foreach (var fb in result)
+                {
+                    if (!string.IsNullOrWhiteSpace(fb.CustomerImagePath))
+                    {
+                        fb.CustomerPhotoUrl = _api.ResolveImageUrl(fb.CustomerImagePath);
+                    }
+                }
+            }
             return result ?? new List<CustomerFeedbackDto>();
         }
         catch

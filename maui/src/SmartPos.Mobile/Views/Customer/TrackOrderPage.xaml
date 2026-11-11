@@ -239,7 +239,7 @@
                                TextColor="#111827" />
 
                         <!-- Normal Stepper (When NOT Cancelled) -->
-                        <VerticalStackLayout IsVisible="{Binding IsCancelled, Converter={StaticResource InvertedBoolConverter}}"
+                        <VerticalStackLayout IsVisible="{Binding ShowNormalStepper}"
                                              Spacing="14">
 
                             <!-- Stepper Graphic: 4 Dots with connecting lines -->
@@ -252,46 +252,43 @@
                                 <Border Grid.Column="0"
                                         WidthRequest="38"
                                         HeightRequest="38"
-                                        StrokeThickness="{Binding IsStep1Active, Converter={StaticResource InvertedBoolConverter}, ConverterParameter=2}"
-                                        Stroke="#10B981"
-                                        BackgroundColor="{Binding IsStep1Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#FFFFFF'}"
+                                        StrokeThickness="{Binding Step1StrokeThickness}"
+                                        Stroke="{Binding Step1StrokeColor}"
+                                        BackgroundColor="{Binding Step1BgColor}"
                                         HorizontalOptions="Center"
                                         VerticalOptions="Center">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="19" />
                                     </Border.StrokeShape>
-                                    <!-- Use green background when completed -->
-                                    <Grid BackgroundColor="{Binding IsStep1Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}">
-                                        <Label Text="{Binding Step1Glyph}"
-                                               TextColor="{Binding IsStep1Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='White'}"
-                                               FontSize="15"
-                                               FontAttributes="Bold"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center" />
-                                    </Grid>
+                                    <Label Text="{Binding Step1Glyph}"
+                                           TextColor="{Binding Step1TextColor}"
+                                           FontSize="15"
+                                           FontAttributes="Bold"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
                                 </Border>
 
                                 <!-- Connector Line 1 (Step 1 -> Step 2) -->
                                 <BoxView Grid.Column="1"
                                          HeightRequest="3"
                                          WidthRequest="36"
-                                         Color="{Binding IsLine1Active, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
+                                         Color="{Binding Line1Color}"
                                          VerticalOptions="Center" />
 
                                 <!-- Step 2 Dot (In Kitchen) -->
                                 <Border Grid.Column="2"
                                         WidthRequest="38"
                                         HeightRequest="38"
-                                        StrokeThickness="1.5"
-                                        Stroke="{Binding IsStep2Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
-                                        BackgroundColor="{Binding IsStep2Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
+                                        StrokeThickness="{Binding Step2StrokeThickness}"
+                                        Stroke="{Binding Step2StrokeColor}"
+                                        BackgroundColor="{Binding Step2BgColor}"
                                         HorizontalOptions="Center"
                                         VerticalOptions="Center">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="19" />
                                     </Border.StrokeShape>
                                     <Label Text="{Binding Step2Glyph}"
-                                           TextColor="{Binding IsStep2Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='White'}"
+                                           TextColor="{Binding Step2TextColor}"
                                            FontSize="15"
                                            FontAttributes="Bold"
                                            HorizontalOptions="Center"
@@ -302,23 +299,23 @@
                                 <BoxView Grid.Column="3"
                                          HeightRequest="3"
                                          WidthRequest="36"
-                                         Color="{Binding IsLine2Active, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
+                                         Color="{Binding Line2Color}"
                                          VerticalOptions="Center" />
 
                                 <!-- Step 3 Dot (Out for Delivery) -->
                                 <Border Grid.Column="4"
                                         WidthRequest="38"
                                         HeightRequest="38"
-                                        StrokeThickness="1.5"
-                                        Stroke="{Binding IsStep3Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
-                                        BackgroundColor="{Binding IsStep3Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
+                                        StrokeThickness="{Binding Step3StrokeThickness}"
+                                        Stroke="{Binding Step3StrokeColor}"
+                                        BackgroundColor="{Binding Step3BgColor}"
                                         HorizontalOptions="Center"
                                         VerticalOptions="Center">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="19" />
                                     </Border.StrokeShape>
                                     <Label Text="{Binding Step3Glyph}"
-                                           TextColor="{Binding IsStep3Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='White'}"
+                                           TextColor="{Binding Step3TextColor}"
                                            FontSize="15"
                                            FontAttributes="Bold"
                                            HorizontalOptions="Center"
@@ -329,23 +326,23 @@
                                 <BoxView Grid.Column="5"
                                          HeightRequest="3"
                                          WidthRequest="36"
-                                         Color="{Binding IsLine3Active, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
+                                         Color="{Binding Line3Color}"
                                          VerticalOptions="Center" />
 
                                 <!-- Step 4 Dot (Delivered) -->
                                 <Border Grid.Column="6"
                                         WidthRequest="38"
                                         HeightRequest="38"
-                                        StrokeThickness="1.5"
-                                        Stroke="{Binding IsStep4Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
-                                        BackgroundColor="{Binding IsStep4Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
+                                        StrokeThickness="{Binding Step4StrokeThickness}"
+                                        Stroke="{Binding Step4StrokeColor}"
+                                        BackgroundColor="{Binding Step4BgColor}"
                                         HorizontalOptions="Center"
                                         VerticalOptions="Center">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="19" />
                                     </Border.StrokeShape>
                                     <Label Text="{Binding Step4Glyph}"
-                                           TextColor="{Binding IsStep4Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='White'}"
+                                           TextColor="{Binding Step4TextColor}"
                                            FontSize="15"
                                            FontAttributes="Bold"
                                            HorizontalOptions="Center"
@@ -359,28 +356,28 @@
                                        Text="Received"
                                        FontSize="11"
                                        FontAttributes="Bold"
-                                       TextColor="{Binding IsStep1Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
+                                       TextColor="{Binding Step1LabelColor}"
                                        HorizontalTextAlignment="Center" />
 
                                 <Label Grid.Column="1"
                                        Text="In Kitchen"
                                        FontSize="11"
                                        FontAttributes="Bold"
-                                       TextColor="{Binding IsStep2Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
+                                       TextColor="{Binding Step2LabelColor}"
                                        HorizontalTextAlignment="Center" />
 
                                 <Label Grid.Column="2"
                                        Text="On the Way"
                                        FontSize="11"
                                        FontAttributes="Bold"
-                                       TextColor="{Binding IsStep3Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
+                                       TextColor="{Binding Step3LabelColor}"
                                        HorizontalTextAlignment="Center" />
 
                                 <Label Grid.Column="3"
                                        Text="Delivered"
                                        FontSize="11"
                                        FontAttributes="Bold"
-                                       TextColor="{Binding IsStep4Completed, Converter={StaticResource InvertedBoolConverter}, ConverterParameter='#10B981'}"
+                                       TextColor="{Binding Step4LabelColor}"
                                        HorizontalTextAlignment="Center" />
                             </Grid>
                         </VerticalStackLayout>

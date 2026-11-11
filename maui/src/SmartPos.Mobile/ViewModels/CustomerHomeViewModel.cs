@@ -113,6 +113,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
     public ObservableCollection<DealCustomiseItem> DealCustomiseItems { get; } = new();
     public ObservableCollection<QuickFilterPillItem> FilterPills { get; } = new();
     public ObservableCollection<CustomerFeedbackDto> Feedbacks { get; } = new();
+    public ObservableCollection<CustomerFeedbackDto> BranchFeedbacks => Feedbacks;
 
     [ObservableProperty]
     private string selectedPill = string.Empty;
@@ -129,8 +130,11 @@ public partial class CustomerHomeViewModel : BaseViewModel
     [ObservableProperty]
     private string ratingScoreDisplay = "4.9";
 
+    public double AverageRatingScore => AverageRating;
+    public int TotalReviewsCount => Feedbacks.Count;
     public string TotalReviewsLabel => $"{Math.Max(Feedbacks.Count, 4)} Verified Reviews";
-    public bool HasFeedbacks => Feedbacks.Count > 0 || IsLoadingFeedbacks;
+    public string TotalReviewsSubtitle => $"{Math.Max(Feedbacks.Count, 4)} reviews";
+    public bool HasFeedbacks => Feedbacks.Count > 0;
 
     public int CartCount => _cart.ItemCount;
     public bool HasCartItems => CartCount > 0;
@@ -651,8 +655,12 @@ public partial class CustomerHomeViewModel : BaseViewModel
             }
 
             FeedbackPosition = 0;
+            OnPropertyChanged(nameof(BranchFeedbacks));
             OnPropertyChanged(nameof(HasFeedbacks));
             OnPropertyChanged(nameof(TotalReviewsLabel));
+            OnPropertyChanged(nameof(TotalReviewsCount));
+            OnPropertyChanged(nameof(TotalReviewsSubtitle));
+            OnPropertyChanged(nameof(AverageRatingScore));
             StartFeedbackAutoAdvance();
         }
         catch
@@ -663,8 +671,12 @@ public partial class CustomerHomeViewModel : BaseViewModel
                 Feedbacks.Add(item);
             }
             FeedbackPosition = 0;
+            OnPropertyChanged(nameof(BranchFeedbacks));
             OnPropertyChanged(nameof(HasFeedbacks));
             OnPropertyChanged(nameof(TotalReviewsLabel));
+            OnPropertyChanged(nameof(TotalReviewsCount));
+            OnPropertyChanged(nameof(TotalReviewsSubtitle));
+            OnPropertyChanged(nameof(AverageRatingScore));
             StartFeedbackAutoAdvance();
         }
         finally

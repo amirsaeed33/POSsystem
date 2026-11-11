@@ -93,6 +93,39 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
     public bool IsLine2Active => CurrentStep >= 2 && !IsCancelled;
     public bool IsLine3Active => CurrentStep >= 3 && !IsCancelled;
 
+    public bool ShowNormalStepper => HasOrder && !IsCancelled;
+
+    // Stepper Styling Properties (Colors, Thickness, Text Colors)
+    public double Step1StrokeThickness => IsStep1Active ? 2.5 : 1.5;
+    public Color Step1StrokeColor => Color.FromArgb("#10B981");
+    public Color Step1BgColor => IsStep1Completed && !IsStep1Active ? Color.FromArgb("#10B981") : (IsStep1Active ? Color.FromArgb("#ECFDF5") : Color.FromArgb("#FFFFFF"));
+    public Color Step1TextColor => IsStep1Completed && !IsStep1Active ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#10B981");
+    public Color Step1LabelColor => IsStep1Completed ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF");
+
+    public Color Line1Color => IsLine1Active ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
+
+    public double Step2StrokeThickness => IsStep2Active ? 2.5 : 1.5;
+    public Color Step2StrokeColor => IsStep2Completed || IsStep2Active ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
+    public Color Step2BgColor => IsStep2Completed && !IsStep2Active ? Color.FromArgb("#10B981") : (IsStep2Active ? Color.FromArgb("#ECFDF5") : Color.FromArgb("#F9FAFB"));
+    public Color Step2TextColor => IsStep2Completed && !IsStep2Active ? Color.FromArgb("#FFFFFF") : (IsStep2Active ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF"));
+    public Color Step2LabelColor => IsStep2Completed || IsStep2Active ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF");
+
+    public Color Line2Color => IsLine2Active ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
+
+    public double Step3StrokeThickness => IsStep3Active ? 2.5 : 1.5;
+    public Color Step3StrokeColor => IsStep3Completed || IsStep3Active ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
+    public Color Step3BgColor => IsStep3Completed && !IsStep3Active ? Color.FromArgb("#10B981") : (IsStep3Active ? Color.FromArgb("#ECFDF5") : Color.FromArgb("#F9FAFB"));
+    public Color Step3TextColor => IsStep3Completed && !IsStep3Active ? Color.FromArgb("#FFFFFF") : (IsStep3Active ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF"));
+    public Color Step3LabelColor => IsStep3Completed || IsStep3Active ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF");
+
+    public Color Line3Color => IsLine3Active ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
+
+    public double Step4StrokeThickness => IsStep4Active ? 2.5 : 1.5;
+    public Color Step4StrokeColor => IsStep4Completed ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
+    public Color Step4BgColor => IsStep4Completed ? Color.FromArgb("#10B981") : Color.FromArgb("#F9FAFB");
+    public Color Step4TextColor => IsStep4Completed ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#9CA3AF");
+    public Color Step4LabelColor => IsStep4Completed ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF");
+
     // Stepper Glyphs
     public string Step1Glyph => IsStep1Completed && !IsStep1Active ? "✓" : "📋";
     public string Step2Glyph => IsStep2Completed && !IsStep2Active ? "✓" : "🍳";
@@ -276,6 +309,30 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
         OnPropertyChanged(nameof(HasRiderPhone));
         OnPropertyChanged(nameof(ShowRiderCard));
         OnPropertyChanged(nameof(ShowRatingSection));
+        OnPropertyChanged(nameof(ShowNormalStepper));
+        OnPropertyChanged(nameof(Step1StrokeThickness));
+        OnPropertyChanged(nameof(Step1StrokeColor));
+        OnPropertyChanged(nameof(Step1BgColor));
+        OnPropertyChanged(nameof(Step1TextColor));
+        OnPropertyChanged(nameof(Step1LabelColor));
+        OnPropertyChanged(nameof(Line1Color));
+        OnPropertyChanged(nameof(Step2StrokeThickness));
+        OnPropertyChanged(nameof(Step2StrokeColor));
+        OnPropertyChanged(nameof(Step2BgColor));
+        OnPropertyChanged(nameof(Step2TextColor));
+        OnPropertyChanged(nameof(Step2LabelColor));
+        OnPropertyChanged(nameof(Line2Color));
+        OnPropertyChanged(nameof(Step3StrokeThickness));
+        OnPropertyChanged(nameof(Step3StrokeColor));
+        OnPropertyChanged(nameof(Step3BgColor));
+        OnPropertyChanged(nameof(Step3TextColor));
+        OnPropertyChanged(nameof(Step3LabelColor));
+        OnPropertyChanged(nameof(Line3Color));
+        OnPropertyChanged(nameof(Step4StrokeThickness));
+        OnPropertyChanged(nameof(Step4StrokeColor));
+        OnPropertyChanged(nameof(Step4BgColor));
+        OnPropertyChanged(nameof(Step4TextColor));
+        OnPropertyChanged(nameof(Step4LabelColor));
 
         Lines.Clear();
         if (value?.Lines != null)

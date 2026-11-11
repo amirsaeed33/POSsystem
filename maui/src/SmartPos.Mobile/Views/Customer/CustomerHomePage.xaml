@@ -7,6 +7,7 @@
              xmlns:helpers="clr-namespace:SmartPos.Mobile.Helpers"
              x:Class="SmartPos.Mobile.Views.Customer.CustomerHomePage"
              x:DataType="vm:CustomerHomeViewModel"
+             x:Name="ThisPage"
              Title="{Binding Title}"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
@@ -751,196 +752,195 @@
                     </VerticalStackLayout>
 
                     <!-- ========================================================= -->
-                    <!-- 6. "HIGHEST RATING IN TOWN" SECTION                       -->
+                    <!-- 6. DYNAMIC "CUSTOMER FEEDBACKS" SHOWCASE                  -->
                     <!-- ========================================================= -->
-                    <VerticalStackLayout Spacing="6" Margin="0,0,0,0">
-                        <!-- Section Header -->
-                        <Grid ColumnDefinitions="*,Auto" Padding="0">
-                            <Label Grid.Column="0"
-                                   Text="Highest rating in town"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   TextColor="#111827"
-                                   Margin="0,2,0,0"
-                                   VerticalOptions="Center" />
-                            <Button Grid.Column="1"
-                                    Text="View all"
-                                    Command="{Binding ViewAllMenuCommand}"
-                                    BackgroundColor="Transparent"
-                                    TextColor="#10B981"
-                                    FontAttributes="Bold"
-                                    FontSize="11"
-                                    Padding="0"
-                                    HeightRequest="24"
-                                    VerticalOptions="Center" />
+                    <VerticalStackLayout Spacing="10"
+                                         Margin="0,4,0,0"
+                                         IsVisible="{Binding HasFeedbacks}">
+
+                        <!-- Section Header (Left: Eyebrow + Title + Subtitle | Right: Rating Summary Card) -->
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="0">
+                            <!-- Left Headings -->
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Border BackgroundColor="#ECFDF5"
+                                        StrokeThickness="0"
+                                        Padding="8,2"
+                                        HorizontalOptions="Start">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="6" />
+                                    </Border.StrokeShape>
+                                    <Label Text="WHAT CUSTOMERS SAY"
+                                           FontSize="9"
+                                           FontAttributes="Bold"
+                                           TextColor="#059669"
+                                           CharacterSpacing="0.8" />
+                                </Border>
+
+                                <Label Text="Customer Feedbacks"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#111827"
+                                       Margin="0,2,0,0" />
+
+                                <Label Text="Recent delivery ratings at this branch"
+                                       FontSize="11"
+                                       TextColor="#6B7280" />
+                            </VerticalStackLayout>
+
+                            <!-- Right Side: Rating Summary Card -->
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#FFFBEB"
+                                    Stroke="#FDE68A"
+                                    StrokeThickness="1"
+                                    Padding="10,6"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="0" HorizontalOptions="Center">
+                                    <HorizontalStackLayout Spacing="4" HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Label Text="{Binding RatingScoreDisplay}"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="#B45309"
+                                               VerticalOptions="Center" />
+                                        <Label Text="★"
+                                               FontSize="15"
+                                               TextColor="#F59E0B"
+                                               VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding TotalReviewsSubtitle}"
+                                           FontSize="9"
+                                           TextColor="#92400E"
+                                           FontAttributes="Bold"
+                                           HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
                         </Grid>
 
-                        <!-- Horizontal ScrollView containing styled restaurant/food cards (Width 160) -->
-                        <ScrollView Orientation="Horizontal"
-                                    HorizontalScrollBarVisibility="Never"
-                                    BackgroundColor="Transparent">
-                            <HorizontalStackLayout Spacing="12" Padding="0,2,0,6">
+                        <!-- Auto-Rotating CarouselView with PeekAreaInsets -->
+                        <CarouselView ItemsSource="{Binding Feedbacks}"
+                                      Position="{Binding FeedbackPosition, Mode=TwoWay}"
+                                      PeekAreaInsets="20"
+                                      Loop="True"
+                                      HeightRequest="170"
+                                      HorizontalScrollBarVisibility="Never"
+                                      IsSwipeEnabled="True">
+                            <CarouselView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10" />
+                            </CarouselView.ItemsLayout>
+                            <CarouselView.ItemTemplate>
+                                <DataTemplate x:DataType="models:CustomerFeedbackDto">
+                                    <Border BackgroundColor="#FFFFFF"
+                                            Stroke="#E5E7EB"
+                                            StrokeThickness="1"
+                                            Margin="4,2,4,6"
+                                            Padding="14,12">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="16" />
+                                        </Border.StrokeShape>
+                                        <Border.Shadow>
+                                            <Shadow Brush="#10000000"
+                                                    Offset="0,2"
+                                                    Radius="6"
+                                                    Opacity="0.8" />
+                                        </Border.Shadow>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding BindingContext.PauseFeedbackAutoAdvanceCommand, Source={x:Reference ThisPage}}" />
+                                        </Border.GestureRecognizers>
 
-                                <!-- Card 1: Real photo (pizza) with red "30% off" badge, subtitle, title "Rumah Pizza Nih", star rating "4.8 • 100+ review" -->
-                                <Border WidthRequest="160"
-                                        BackgroundColor="#FFFFFF"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        Margin="0,2,0,6"
-                                        Padding="0">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="16" />
-                                    </Border.StrokeShape>
-                                    <Border.Shadow>
-                                        <Shadow Brush="#10000000"
-                                                Offset="0,3"
-                                                Radius="6"
-                                                Opacity="0.8" />
-                                    </Border.Shadow>
-                                    <Border.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding NavigateToProductDetailCommand}" CommandParameter="1" />
-                                    </Border.GestureRecognizers>
-                                    <VerticalStackLayout Spacing="0">
-                                        <!-- Top Image Area (Grid HeightRequest="110") -->
-                                        <Border HeightRequest="110"
-                                                WidthRequest="160"
-                                                StrokeThickness="0"
-                                                BackgroundColor="#F3F4F6">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="16,16,0,0" />
-                                            </Border.StrokeShape>
-                                            <Grid HeightRequest="110" WidthRequest="160">
-                                                <Image Source="pizza_photo.png"
-                                                       Aspect="AspectFill"
-                                                       HeightRequest="110"
-                                                       WidthRequest="160" />
-
-                                                <!-- Badge for Card 1 (Red "30% off") -->
-                                                <Border HorizontalOptions="Start"
-                                                        VerticalOptions="Start"
-                                                        Margin="6"
-                                                        BackgroundColor="#EF4444"
+                                        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
+                                            <!-- Top Row: Avatar + Name/Date + Stars -->
+                                            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                                <!-- Avatar / Initials Circle -->
+                                                <Border Grid.Column="0"
+                                                        WidthRequest="38"
+                                                        HeightRequest="38"
                                                         StrokeThickness="0"
-                                                        Padding="4,2">
+                                                        BackgroundColor="{Binding AvatarBgColor}"
+                                                        VerticalOptions="Center">
                                                     <Border.StrokeShape>
-                                                        <RoundRectangle CornerRadius="4" />
+                                                        <RoundRectangle CornerRadius="19" />
                                                     </Border.StrokeShape>
-                                                    <Label Text="30% off"
-                                                           TextColor="White"
-                                                           FontSize="9"
-                                                           FontAttributes="Bold" />
+                                                    <Grid WidthRequest="38" HeightRequest="38">
+                                                        <Image Source="{Binding CustomerPhotoUrl}"
+                                                               Aspect="AspectFill"
+                                                               WidthRequest="38"
+                                                               HeightRequest="38"
+                                                               IsVisible="{Binding HasPhoto}" />
+                                                        <Label Text="{Binding Initials}"
+                                                               TextColor="White"
+                                                               FontAttributes="Bold"
+                                                               FontSize="13"
+                                                               HorizontalOptions="Center"
+                                                               VerticalOptions="Center"
+                                                               IsVisible="{Binding HasPhoto, Converter={StaticResource InvertedBoolConverter}}" />
+                                                    </Grid>
                                                 </Border>
+
+                                                <!-- Name & Date -->
+                                                <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                                    <Label Text="{Binding CustomerName}"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#111827"
+                                                           LineBreakMode="TailTruncation"
+                                                           MaxLines="1" />
+                                                    <Label Text="{Binding FormattedDate}"
+                                                           FontSize="10"
+                                                           TextColor="#6B7280" />
+                                                </VerticalStackLayout>
+
+                                                <!-- 5 Golden Stars -->
+                                                <HorizontalStackLayout Grid.Column="2" Spacing="1" VerticalOptions="Center">
+                                                    <Label Text="★" FontSize="13" TextColor="{Binding Star1Color}" />
+                                                    <Label Text="★" FontSize="13" TextColor="{Binding Star2Color}" />
+                                                    <Label Text="★" FontSize="13" TextColor="{Binding Star3Color}" />
+                                                    <Label Text="★" FontSize="13" TextColor="{Binding Star4Color}" />
+                                                    <Label Text="★" FontSize="13" TextColor="{Binding Star5Color}" />
+                                                </HorizontalStackLayout>
                                             </Grid>
-                                        </Border>
 
-                                        <!-- Bottom Info Area (VerticalStackLayout Padding="10,5,10,8" Spacing="2") -->
-                                        <VerticalStackLayout Padding="10,5,10,8" Spacing="2">
-                                            <!-- Distance & Delivery Time subtitle -->
-                                            <Label Text="1.2km • 15min"
-                                                   FontSize="10"
-                                                   TextColor="#9CA3AF" />
-
-                                            <!-- Restaurant Title -->
-                                            <Label Text="Rumah Pizza Nih"
-                                                   FontSize="13"
-                                                   FontAttributes="Bold"
-                                                   TextColor="#111827"
-                                                   MaxLines="1"
-                                                   LineBreakMode="TailTruncation" />
-
-                                            <!-- Rating Row -->
-                                            <HorizontalStackLayout Spacing="3" VerticalOptions="Center">
-                                                <Image Source="star_icon.png"
-                                                       WidthRequest="11"
-                                                       HeightRequest="11"
-                                                       VerticalOptions="Center" />
-                                                <Label Text="4.8"
+                                            <!-- Middle Row: Food Pill -->
+                                            <Border Grid.Row="1"
+                                                    BackgroundColor="#F3F4F6"
+                                                    StrokeThickness="0"
+                                                    Padding="8,4"
+                                                    HorizontalOptions="Start">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="8" />
+                                                </Border.StrokeShape>
+                                                <Label Text="{Binding DisplayFoodPill}"
                                                        FontSize="10"
+                                                       TextColor="#374151"
                                                        FontAttributes="Bold"
-                                                       TextColor="#111827"
-                                                       VerticalOptions="Center" />
-                                                <Label Text="• 100+ review"
-                                                       FontSize="9"
-                                                       TextColor="#6B7280"
-                                                       VerticalOptions="Center" />
-                                            </HorizontalStackLayout>
-                                        </VerticalStackLayout>
-                                    </VerticalStackLayout>
-                                </Border>
+                                                       LineBreakMode="TailTruncation"
+                                                       MaxLines="1" />
+                                            </Border>
 
-                                <!-- Card 2: Real photo (burger), subtitle, title "Burger Anzay", star rating "4.3 • 150+ review" -->
-                                <Border WidthRequest="160"
-                                        BackgroundColor="#FFFFFF"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        Margin="0,2,0,6"
-                                        Padding="0">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="16" />
-                                    </Border.StrokeShape>
-                                    <Border.Shadow>
-                                        <Shadow Brush="#10000000"
-                                                Offset="0,3"
-                                                Radius="6"
-                                                Opacity="0.8" />
-                                    </Border.Shadow>
-                                    <Border.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding NavigateToProductDetailCommand}" CommandParameter="2" />
-                                    </Border.GestureRecognizers>
-                                    <VerticalStackLayout Spacing="0">
-                                        <!-- Top Image Area (Grid HeightRequest="110") -->
-                                        <Border HeightRequest="110"
-                                                WidthRequest="160"
-                                                StrokeThickness="0"
-                                                BackgroundColor="#F3F4F6">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="16,16,0,0" />
-                                            </Border.StrokeShape>
-                                            <Grid HeightRequest="110" WidthRequest="160">
-                                                <Image Source="burger_photo.png"
-                                                       Aspect="AspectFill"
-                                                       HeightRequest="110"
-                                                       WidthRequest="160" />
+                                            <!-- Bottom Row: Quote + Comment -->
+                                            <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="4">
+                                                <Label Grid.Column="0"
+                                                       Text="“"
+                                                       FontSize="16"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#10B981"
+                                                       VerticalOptions="Start"
+                                                       Margin="0,-3,0,0" />
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding DisplayComment}"
+                                                       FontSize="11"
+                                                       TextColor="#4B5563"
+                                                       FontAttributes="Italic"
+                                                       LineBreakMode="TailTruncation"
+                                                       MaxLines="2"
+                                                       LineHeight="1.15" />
                                             </Grid>
-                                        </Border>
-
-                                        <!-- Bottom Info Area (VerticalStackLayout Padding="10,5,10,8" Spacing="2") -->
-                                        <VerticalStackLayout Padding="10,5,10,8" Spacing="2">
-                                            <!-- Distance & Delivery Time subtitle -->
-                                            <Label Text="1.2km • 15min"
-                                                   FontSize="10"
-                                                   TextColor="#9CA3AF" />
-
-                                            <!-- Restaurant Title -->
-                                            <Label Text="Burger Anzay"
-                                                   FontSize="13"
-                                                   FontAttributes="Bold"
-                                                   TextColor="#111827"
-                                                   MaxLines="1"
-                                                   LineBreakMode="TailTruncation" />
-
-                                            <!-- Rating Row -->
-                                            <HorizontalStackLayout Spacing="3" VerticalOptions="Center">
-                                                <Image Source="star_icon.png"
-                                                       WidthRequest="11"
-                                                       HeightRequest="11"
-                                                       VerticalOptions="Center" />
-                                                <Label Text="4.3"
-                                                       FontSize="10"
-                                                       FontAttributes="Bold"
-                                                       TextColor="#111827"
-                                                       VerticalOptions="Center" />
-                                                <Label Text="• 150+ review"
-                                                       FontSize="9"
-                                                       TextColor="#6B7280"
-                                                       VerticalOptions="Center" />
-                                            </HorizontalStackLayout>
-                                        </VerticalStackLayout>
-                                    </VerticalStackLayout>
-                                </Border>
-
-                            </HorizontalStackLayout>
-                        </ScrollView>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CarouselView.ItemTemplate>
+                        </CarouselView>
                     </VerticalStackLayout>
 
                 </VerticalStackLayout>
