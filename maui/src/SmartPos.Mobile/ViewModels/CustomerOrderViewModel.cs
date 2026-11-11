@@ -17,8 +17,13 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
     private List<OnlineProductDto> _allProducts = new();
 
+    public HashSet<string> SelectedCategories { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     [ObservableProperty]
-    private string selectedCategory = "All";
+    private string selectedCategoryTitle = "All Menu";
+
+    [ObservableProperty]
+    private bool isAllSelected = true;
 
     [ObservableProperty]
     private string searchText = string.Empty;
@@ -39,6 +44,9 @@ public partial class CustomerOrderViewModel : BaseViewModel
     public string DishesCountLabel => $"{Products.Count} {(Products.Count == 1 ? "dish" : "dishes")}";
     public bool HasProducts => Products.Count > 0;
     public string DeliverToLabel => StoreHeader?.BranchName ?? "Al meezan";
+    public bool HasSearchText => !string.IsNullOrWhiteSpace(SearchText);
+    public bool HasActiveFilters => !IsAllSelected || HasSearchText;
+    public string ActiveFilterBadgeText => SelectedCategories.Count > 0 ? $"{SelectedCategories.Count} active" : string.Empty;
 
     public CustomerOrderViewModel(
         OnlineOrderService orders,
@@ -224,52 +232,144 @@ public partial class CustomerOrderViewModel : BaseViewModel
                 ? _allProducts.Count
                 : _allProducts.Count(p => string.Equals(p.CategoryName, name, StringComparison.OrdinalIgnoreCase));
 
+            var isSel = string.Equals(name, "All", StringComparison.OrdinalIgnoreCase)
+                ? (IsAllSelected || SelectedCategories.Count == 0)
+                : SelectedCategories.Contains(name);
+
             Categories.Add(new CategoryChipItem
             {
                 Name = name,
                 Count = count,
-                IsSelected = string.Equals(SelectedCategory, name, StringComparison.OrdinalIgnoreCase)
+                IsSelected = isSel
             });
         }
 
-        if (!names.Contains(SelectedCategory, StringComparer.OrdinalIgnoreCase))
-        {
-            SelectedCategory = "All";
-        }
+        UpdateSelectedCategoryTitle();
     }
 
-    partial void OnSelectedCategoryChanged(string value)
+    [RelayCommand]
+    public void ToggleCategory(CategoryChipItem? chip)
     {
-        foreach (var chip in Categories)
-        {
-            chip.IsSelected = string.Equals(chip.Name, value, StringComparison.OrdinalIgnoreCase);
-        }
-        ApplyFilters();
-    }
+        if (chip == null) return;
 
-    partial void OnSearchTextChanged(string value)
-    {
+        if (chip.IsAll)
+        {
+            SelectedCategories.Clear();
+            IsAllSelected = true;
+            foreach (var c in Categories)
+            {
+                c.IsSelected = c.IsAll;
+            }
+        }
+        else
+        {
+            var targetName = chip.Name?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(targetName)) return;
+
+            if (SelectedCategories.Contains(targetName))
+            {
+                SelectedCategories.Remove(targetName);
+                chip.IsSelected = false;
+            }
+            else
+            {
+                SelectedCategories.Add(targetName);
+                chip.IsSelected = true;
+            }
+
+            var allChip = Categories.FirstOrDefault(c => c.IsAll);
+            if (SelectedCategories.Count > 0)
+            {
+                if (allChip != null) allChip.IsSelected = false;
+                IsAllSelected = false;
+            }
+            else
+            {
+                if (allChip != null) allChip.IsSelected = true;
+                IsAllSelected = true;
+            }
+        }
+
+        UpdateSelectedCategoryTitle();
         ApplyFilters();
     }
 
     [RelayCommand]
-    private void SelectCategory(string? category)
+    public void SelectCategory(string? category)
     {
-        if (string.IsNullOrWhiteSpace(category))
+        if (string.IsNullOrWhiteSpace(category) || string.Equals(category, "All", StringComparison.OrdinalIgnoreCase))
         {
-            category = "All";
+            var allChip = Categories.FirstOrDefault(c => c.IsAll);
+            ToggleCategory(allChip);
         }
-        SelectedCategory = category;
+        else
+        {
+            var chip = Categories.FirstOrDefault(c => string.Equals(c.Name, category, StringComparison.OrdinalIgnoreCase));
+            if (chip != null)
+            {
+                ToggleCategory(chip);
+            }
+        }
+    }
+
+    [RelayCommand]
+    public void ClearSearch()
+    {
+        SearchText = string.Empty;
+    }
+
+    [RelayCommand]
+    public void ClearFilters()
+    {
+        SearchText = string.Empty;
+        SelectedCategories.Clear();
+        foreach (var c in Categories)
+        {
+            c.IsSelected = c.IsAll;
+        }
+        IsAllSelected = true;
+        UpdateSelectedCategoryTitle();
+        ApplyFilters();
+    }
+
+    private void UpdateSelectedCategoryTitle()
+    {
+        if (IsAllSelected || SelectedCategories.Count == 0)
+        {
+            SelectedCategoryTitle = "All Menu";
+        }
+        else if (SelectedCategories.Count == 1)
+        {
+            SelectedCategoryTitle = $"{SelectedCategories.First()} Menu";
+        }
+        else
+        {
+            var firstTwo = string.Join(", ", SelectedCategories.Take(2));
+            SelectedCategoryTitle = SelectedCategories.Count > 2
+                ? $"{firstTwo} +{SelectedCategories.Count - 2}"
+                : $"{firstTwo} Menu";
+        }
+
+        OnPropertyChanged(nameof(HasActiveFilters));
+        OnPropertyChanged(nameof(ActiveFilterBadgeText));
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasSearchText));
+        OnPropertyChanged(nameof(HasActiveFilters));
+        ApplyFilters();
     }
 
     private void ApplyFilters()
     {
         IEnumerable<OnlineProductDto> query = _allProducts;
 
-        if (!string.IsNullOrWhiteSpace(SelectedCategory) &&
-            !string.Equals(SelectedCategory, "All", StringComparison.OrdinalIgnoreCase))
+        if (!IsAllSelected && SelectedCategories.Count > 0)
         {
-            query = query.Where(p => string.Equals(p.CategoryName, SelectedCategory, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(p =>
+                !string.IsNullOrWhiteSpace(p.CategoryName) &&
+                SelectedCategories.Contains(p.CategoryName.Trim()));
         }
 
         if (!string.IsNullOrWhiteSpace(SearchText))
@@ -291,6 +391,8 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
         OnPropertyChanged(nameof(DishesCountLabel));
         OnPropertyChanged(nameof(HasProducts));
+        OnPropertyChanged(nameof(HasActiveFilters));
+        OnPropertyChanged(nameof(HasSearchText));
     }
 
     private void SyncCartQtyBadges()

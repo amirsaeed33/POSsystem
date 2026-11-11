@@ -45,17 +45,20 @@ public partial class CategoryChipItem : ObservableObject
     [ObservableProperty]
     private bool isSelected;
 
+    public bool IsSelectedAndNotAll => IsSelected && !IsAll;
+    public string CheckmarkGlyph => IsSelected && !IsAll ? "✓ " : string.Empty;
+
     public Color ChipBorderColor =>
-        IsSelected ? Color.FromArgb("#0F6B4C") : Color.FromArgb("#E5E7EB");
+        IsSelected ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
 
     public Color ChipBackgroundColor =>
-        IsSelected ? Color.FromArgb("#0F6B4C") : Color.FromArgb("#F3F6F4");
+        IsSelected ? Color.FromArgb("#10B981") : Color.FromArgb("#FFFFFF");
 
     public Color ChipTextColor =>
-        IsSelected ? Colors.White : Color.FromArgb("#1F2A24");
+        IsSelected ? Colors.White : Color.FromArgb("#111827");
 
     public Color ChipCountTextColor =>
-        IsSelected ? Color.FromArgb("#D7EDE4") : Color.FromArgb("#6B7A72");
+        IsSelected ? Color.FromArgb("#D1FAE5") : Color.FromArgb("#6B7280");
 
     public Color BackgroundColor => ChipBackgroundColor;
 
@@ -72,5 +75,7 @@ public partial class CategoryChipItem : ObservableObject
         OnPropertyChanged(nameof(BackgroundColor));
         OnPropertyChanged(nameof(TitleColor));
         OnPropertyChanged(nameof(CountColor));
+        OnPropertyChanged(nameof(IsSelectedAndNotAll));
+        OnPropertyChanged(nameof(CheckmarkGlyph));
     }
 }

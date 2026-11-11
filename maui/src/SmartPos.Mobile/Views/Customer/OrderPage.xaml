@@ -6,6 +6,7 @@
              xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
              x:Class="SmartPos.Mobile.Views.Customer.OrderPage"
              x:DataType="vm:CustomerOrderViewModel"
+             x:Name="ThisPage"
              Title="All Menu"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
@@ -97,7 +98,7 @@
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
                             <Image Grid.Column="0"
                                    Source="search_icon.png"
                                    WidthRequest="18"
@@ -110,13 +111,33 @@
                                    TextColor="#111827"
                                    FontSize="13"
                                    VerticalOptions="Center"
-                                   ClearButtonVisibility="WhileEditing"
                                    BackgroundColor="Transparent" />
+                            <!-- Clear Search Button -->
+                            <Border Grid.Column="2"
+                                    WidthRequest="24"
+                                    HeightRequest="24"
+                                    StrokeThickness="0"
+                                    BackgroundColor="{StaticResource Gray200}"
+                                    VerticalOptions="Center"
+                                    IsVisible="{Binding HasSearchText}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ClearSearchCommand}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="✕"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
                         </Grid>
                     </Border>
 
                     <!-- ========================================================= -->
-                    <!-- 3. CATEGORY CHIPS SCROLLER                                -->
+                    <!-- 3. CATEGORY CHIPS SCROLLER (MULTI-SELECT)                 -->
                     <!-- ========================================================= -->
                     <ScrollView Orientation="Horizontal"
                                 HorizontalScrollBarVisibility="Never">
@@ -133,10 +154,16 @@
                                             <RoundRectangle CornerRadius="20" />
                                         </Border.StrokeShape>
                                         <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerOrderViewModel}}, Path=SelectCategoryCommand}"
-                                                                  CommandParameter="{Binding Name}" />
+                                            <TapGestureRecognizer Command="{Binding BindingContext.ToggleCategoryCommand, Source={x:Reference ThisPage}}"
+                                                                  CommandParameter="{Binding .}" />
                                         </Border.GestureRecognizers>
                                         <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                            <Label Text="{Binding CheckmarkGlyph}"
+                                                   FontSize="11"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{Binding ChipTextColor}"
+                                                   VerticalOptions="Center"
+                                                   IsVisible="{Binding IsSelectedAndNotAll}" />
                                             <Label Text="{Binding Name}"
                                                    FontSize="12"
                                                    FontAttributes="Bold"
@@ -154,20 +181,38 @@
                     </ScrollView>
 
                     <!-- ========================================================= -->
-                    <!-- 4. "ALL MENU" SECTION HEADER                             -->
+                    <!-- 4. SECTION HEADER & ACTIVE FILTER STATUS                 -->
                     <!-- ========================================================= -->
-                    <Grid ColumnDefinitions="*,Auto" Padding="18,4,18,0">
-                        <Label Grid.Column="0"
-                               Text="{Binding SelectedCategory, StringFormat='{0} Menu'}"
-                               FontSize="17"
-                               FontAttributes="Bold"
-                               TextColor="#111827"
-                               VerticalOptions="Center" />
-                        <Label Grid.Column="1"
-                               Text="{Binding DishesCountLabel}"
-                               FontSize="12"
-                               TextColor="#6B7280"
-                               VerticalOptions="Center" />
+                    <Grid ColumnDefinitions="*,Auto" Padding="18,4,18,0" VerticalOptions="Center">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding SelectedCategoryTitle}"
+                                   FontSize="17"
+                                   FontAttributes="Bold"
+                                   TextColor="#111827" />
+                            <Label Text="{Binding DishesCountLabel}"
+                                   FontSize="12"
+                                   TextColor="#6B7280" />
+                        </VerticalStackLayout>
+
+                        <!-- Clear All Filters Pill Button -->
+                        <Border Grid.Column="1"
+                                StrokeThickness="1"
+                                Stroke="{StaticResource BorderSubtle}"
+                                BackgroundColor="White"
+                                Padding="10,5"
+                                VerticalOptions="Center"
+                                IsVisible="{Binding HasActiveFilters}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ClearFiltersCommand}" />
+                            </Border.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                <Label Text="Clear All" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+                                <Label Text="✕" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </Border>
                     </Grid>
 
                     <!-- ========================================================= -->
@@ -191,17 +236,28 @@
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="16" />
                                 </Border.StrokeShape>
-                                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                                <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                                     <Label Text="🍽️" FontSize="36" HorizontalOptions="Center" />
                                     <Label Text="No dishes found"
-                                           FontSize="15"
+                                           FontSize="16"
                                            FontAttributes="Bold"
                                            TextColor="#111827"
                                            HorizontalTextAlignment="Center" />
-                                    <Label Text="Try selecting another category or clear search."
+                                    <Label Text="No items match your selected categories and search keyword."
                                            FontSize="12"
                                            TextColor="#6B7280"
                                            HorizontalTextAlignment="Center" />
+                                    <Button Text="Reset All Filters"
+                                            Command="{Binding ClearFiltersCommand}"
+                                            BackgroundColor="{StaticResource Primary}"
+                                            TextColor="White"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            CornerRadius="10"
+                                            HeightRequest="36"
+                                            Padding="16,0"
+                                            Margin="0,6,0,0"
+                                            HorizontalOptions="Center" />
                                 </VerticalStackLayout>
                             </Border>
                         </CollectionView.EmptyView>
@@ -218,7 +274,7 @@
                                         <Shadow Brush="#0A000000" Offset="0,2" Radius="6" Opacity="0.04" />
                                     </Border.Shadow>
                                     <Border.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerOrderViewModel}}, Path=OpenProductCommand}"
+                                        <TapGestureRecognizer Command="{Binding BindingContext.OpenProductCommand, Source={x:Reference ThisPage}}"
                                                               CommandParameter="{Binding .}" />
                                     </Border.GestureRecognizers>
                                     <VerticalStackLayout Spacing="6">
@@ -247,7 +303,7 @@
                                                     <RoundRectangle CornerRadius="15" />
                                                 </Border.StrokeShape>
                                                 <Border.GestureRecognizers>
-                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerOrderViewModel}}, Path=ToggleFavoriteCommand}"
+                                                    <TapGestureRecognizer Command="{Binding BindingContext.ToggleFavoriteCommand, Source={x:Reference ThisPage}}"
                                                                           CommandParameter="{Binding .}" />
                                                 </Border.GestureRecognizers>
                                                 <Path Aspect="Uniform"
@@ -297,7 +353,7 @@
                                                         <RoundRectangle CornerRadius="9" />
                                                     </Border.StrokeShape>
                                                     <Border.GestureRecognizers>
-                                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerOrderViewModel}}, Path=IncreaseCardCommand}"
+                                                        <TapGestureRecognizer Command="{Binding BindingContext.IncreaseCardCommand, Source={x:Reference ThisPage}}"
                                                                               CommandParameter="{Binding .}" />
                                                     </Border.GestureRecognizers>
                                                     <Label Text="+"

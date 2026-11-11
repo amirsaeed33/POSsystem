@@ -28,6 +28,11 @@ public partial class CustomerHomeViewModel : BaseViewModel
     [ObservableProperty]
     private string selectedCategory = "All";
 
+    public HashSet<string> SelectedCategories { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    [ObservableProperty]
+    private bool isAllCategoriesSelected = true;
+
     [ObservableProperty]
     private string searchText = string.Empty;
 
@@ -143,11 +148,21 @@ public partial class CustomerHomeViewModel : BaseViewModel
         SelectedBranch?.Name
         ?? StoreHeader?.BranchName
         ?? "Select branch";
-    public string SelectedCategoryTitle =>
-        string.Equals(SelectedCategory, "All", StringComparison.OrdinalIgnoreCase)
-            ? "All Menu"
-            : SelectedCategory;
+    public string SelectedCategoryTitle
+    {
+        get
+        {
+            if (IsFavoritesCategorySelected) return "❤️ Favorites";
+            if (IsAllCategoriesSelected || SelectedCategories.Count == 0) return "All Menu";
+            if (SelectedCategories.Count == 1) return $"{SelectedCategories.First()} Menu";
+            var firstTwo = string.Join(", ", SelectedCategories.Take(2));
+            return SelectedCategories.Count > 2 ? $"{firstTwo} +{SelectedCategories.Count - 2}" : $"{firstTwo} Menu";
+        }
+    }
     public string FilteredItemsLabel => $"({Products.Count})";
+    public bool HasSearchText => !string.IsNullOrWhiteSpace(SearchText);
+    public bool HasActiveFilters => !IsAllCategoriesSelected || HasSearchText || !string.IsNullOrWhiteSpace(SelectedPill);
+    public bool HasProducts => Products.Count > 0;
 
     public bool IsFavoritesCategorySelected =>
         string.Equals(SelectedCategory, "❤️ Favorites", StringComparison.OrdinalIgnoreCase) ||
@@ -446,7 +461,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
                 Name = name,
                 Count = categoryProducts.Count,
                 ImageUrl = cover?.ImageUrl,
-                IsSelected = string.Equals(SelectedCategory, name, StringComparison.OrdinalIgnoreCase)
+                IsSelected = SelectedCategories.Contains(name)
             };
             _allCategoryChips.Add(chip);
             ExploreCategories.Add(chip);
@@ -471,7 +486,9 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
         foreach (var chip in query)
         {
-            chip.IsSelected = string.Equals(chip.Name, SelectedCategory, StringComparison.OrdinalIgnoreCase);
+            chip.IsSelected = chip.IsAll
+                ? IsAllCategoriesSelected
+                : (chip.IsFavorites ? IsFavoritesCategorySelected : SelectedCategories.Contains(chip.Name));
             Categories.Add(chip);
         }
     }
@@ -947,16 +964,58 @@ public partial class CustomerHomeViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private void SelectCategory(CategoryChipItem? category)
+    public void ToggleCategory(CategoryChipItem? chip)
     {
-        SelectedCategory = string.IsNullOrWhiteSpace(category?.Name) ? "All" : category!.Name;
-        foreach (var chip in _allCategoryChips)
+        if (chip == null) return;
+
+        if (chip.IsAll)
         {
-            chip.IsSelected = string.Equals(chip.Name, SelectedCategory, StringComparison.OrdinalIgnoreCase);
+            SelectedCategories.Clear();
+            IsAllCategoriesSelected = true;
+            foreach (var c in _allCategoryChips)
+            {
+                c.IsSelected = c.IsAll;
+            }
+        }
+        else
+        {
+            var targetName = chip.Name?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(targetName)) return;
+
+            if (SelectedCategories.Contains(targetName))
+            {
+                SelectedCategories.Remove(targetName);
+                chip.IsSelected = false;
+            }
+            else
+            {
+                SelectedCategories.Add(targetName);
+                chip.IsSelected = true;
+            }
+
+            var allChip = _allCategoryChips.FirstOrDefault(c => c.IsAll);
+            if (SelectedCategories.Count > 0)
+            {
+                if (allChip != null) allChip.IsSelected = false;
+                IsAllCategoriesSelected = false;
+            }
+            else
+            {
+                if (allChip != null) allChip.IsSelected = true;
+                IsAllCategoriesSelected = true;
+            }
         }
 
+        UpdateCategorySelectionTitles();
+        ApplyCategorySearchFilter();
         ShowProductGrid = true;
         ApplyFilters();
+    }
+
+    [RelayCommand]
+    private void SelectCategory(CategoryChipItem? category)
+    {
+        ToggleCategory(category);
     }
 
     [RelayCommand]
@@ -975,19 +1034,88 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
         if (string.Equals(categoryName, "Promo", StringComparison.OrdinalIgnoreCase))
         {
-            SelectedCategory = "Deals";
+            SelectedPill = "Top Deals";
             ApplyFilters();
             return;
         }
 
-        SelectedCategory = categoryName;
-        foreach (var chip in _allCategoryChips)
+        var chip = _allCategoryChips.FirstOrDefault(c => string.Equals(c.Name?.Trim(), categoryName.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (chip != null)
         {
-            chip.IsSelected = chip.Name.Contains(categoryName, StringComparison.OrdinalIgnoreCase);
+            ToggleCategory(chip);
+        }
+        else
+        {
+            var targetName = categoryName.Trim();
+            if (SelectedCategories.Contains(targetName))
+            {
+                SelectedCategories.Remove(targetName);
+            }
+            else
+            {
+                SelectedCategories.Add(targetName);
+            }
+
+            IsAllCategoriesSelected = SelectedCategories.Count == 0;
+            var allChip = _allCategoryChips.FirstOrDefault(c => c.IsAll);
+            if (allChip != null) allChip.IsSelected = IsAllCategoriesSelected;
+
+            foreach (var c in _allCategoryChips)
+            {
+                c.IsSelected = c.IsAll ? IsAllCategoriesSelected : SelectedCategories.Contains(c.Name?.Trim() ?? "");
+            }
+
+            UpdateCategorySelectionTitles();
+            ApplyCategorySearchFilter();
+            ShowProductGrid = true;
+            ApplyFilters();
+        }
+    }
+
+    [RelayCommand]
+    public void ClearSearch()
+    {
+        SearchText = string.Empty;
+        ApplyFilters();
+    }
+
+    [RelayCommand]
+    public void ClearFilters()
+    {
+        SearchText = string.Empty;
+        SelectedPill = string.Empty;
+        foreach (var p in FilterPills) p.IsSelected = false;
+        SelectedCategories.Clear();
+        foreach (var c in _allCategoryChips)
+        {
+            c.IsSelected = c.IsAll;
+        }
+        IsAllCategoriesSelected = true;
+        UpdateCategorySelectionTitles();
+        ApplyFilters();
+    }
+
+    private void UpdateCategorySelectionTitles()
+    {
+        if (IsAllCategoriesSelected || SelectedCategories.Count == 0)
+        {
+            SelectedCategory = "All";
+        }
+        else if (SelectedCategories.Count == 1)
+        {
+            SelectedCategory = SelectedCategories.First();
+        }
+        else
+        {
+            var firstTwo = string.Join(", ", SelectedCategories.Take(2));
+            SelectedCategory = SelectedCategories.Count > 2
+                ? $"{firstTwo} +{SelectedCategories.Count - 2}"
+                : firstTwo;
         }
 
-        ShowProductGrid = true;
-        ApplyFilters();
+        OnPropertyChanged(nameof(SelectedCategoryTitle));
+        OnPropertyChanged(nameof(HasActiveFilters));
+        OnPropertyChanged(nameof(IsFavoritesCategorySelected));
     }
 
     [RelayCommand]
@@ -1084,16 +1212,20 @@ public partial class CustomerHomeViewModel : BaseViewModel
         {
             query = query.Where(p => p.IsFavorite);
         }
-        else if (!string.Equals(SelectedCategory, "All", StringComparison.OrdinalIgnoreCase))
+        else if (!IsAllCategoriesSelected && SelectedCategories.Count > 0)
         {
-            query = query.Where(p => string.Equals(p.CategoryName, SelectedCategory, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(p =>
+                !string.IsNullOrWhiteSpace(p.CategoryName) &&
+                SelectedCategories.Contains(p.CategoryName));
         }
 
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
+            var st = SearchText.Trim();
             query = query.Where(p =>
-                (p.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (p.Description?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false));
+                (p.Name?.Contains(st, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Description?.Contains(st, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.CategoryName?.Contains(st, StringComparison.OrdinalIgnoreCase) ?? false));
         }
 
         // 3. Smart Quick Capsule Filters matching Web logic
@@ -1143,6 +1275,9 @@ public partial class CustomerHomeViewModel : BaseViewModel
         OnPropertyChanged(nameof(EmptyStateIcon));
         OnPropertyChanged(nameof(EmptyStateTitle));
         OnPropertyChanged(nameof(EmptyStateSubtitle));
+        OnPropertyChanged(nameof(HasProducts));
+        OnPropertyChanged(nameof(HasActiveFilters));
+        OnPropertyChanged(nameof(HasSearchText));
     }
 
     [RelayCommand]
