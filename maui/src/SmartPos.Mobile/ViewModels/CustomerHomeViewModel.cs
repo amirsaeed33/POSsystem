@@ -329,8 +329,8 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
             // Soft refresh: reload header/catalog without clearing the cart.
             var branch = SelectedBranch;
-            StoreHeader = await _orders.GetStoreHeaderAsync(branch.Id);
-            await LoadHeroSlidesAsync(branch.Id);
+            StoreHeader = await _orders.GetStoreHeaderAsync(branch.Id, forceRefresh: true);
+            await LoadHeroSlidesAsync(branch.Id, forceRefresh: true);
             _allProducts = await _orders.GetCatalogAsync(branch.Id, forceRefresh: true);
             foreach (var p in _allProducts)
             {
@@ -340,7 +340,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
             RebuildCategories();
             ApplyFilters();
-            await LoadDealsAsync(branch.Id);
+            await LoadDealsAsync(branch.Id, forceRefresh: true);
             _ = LoadFeedbacksAsync(branch.Id);
             _orders.PrefetchModifiersForCatalog(_allProducts);
         }
@@ -497,11 +497,11 @@ public partial class CustomerHomeViewModel : BaseViewModel
         }
     }
 
-    private async Task LoadHeroSlidesAsync(int branchId)
+    private async Task LoadHeroSlidesAsync(int branchId, bool forceRefresh = false)
     {
         ClearHeroSlides();
 
-        var slides = await _orders.GetHeroSlidesAsync(branchId);
+        var slides = await _orders.GetHeroSlidesAsync(branchId, forceRefresh);
         if (slides.Count == 0)
         {
             slides = CreateDefaultHeroSlides();
@@ -832,7 +832,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
     // =========================================================================
     // 🔥 DEALS FETCHING & DATA ENGINE
     // =========================================================================
-    public async Task LoadDealsAsync(int branchId)
+    public async Task LoadDealsAsync(int branchId, bool forceRefresh = false)
     {
         try
         {
@@ -854,7 +854,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
             }
 
             // 2. Fetch active deals from the dedicated DealAppService backend endpoint
-            var remoteDeals = await _orders.GetActiveDealsAsync(branchId);
+            var remoteDeals = await _orders.GetActiveDealsAsync(branchId, forceRefresh);
             foreach (var rd in remoteDeals.Where(x => x.IsActive && !x.IsExpired))
             {
                 if (DealsList.Any(x => x.Id == rd.ProductId || (rd.ProductId.HasValue && x.Id == rd.ProductId.Value) || x.DealId == rd.Id))

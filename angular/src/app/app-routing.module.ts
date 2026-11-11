@@ -124,6 +124,14 @@ const routes: Routes = [
                     ),
             },
             {
+                path: 'sellers',
+                data: { breadcrumb: 'Sellers', permission: PermissionNames.Sellers },
+                loadChildren: () =>
+                    import('./demo/components/sellers/sellers.module').then(
+                        (m) => m.SellersModule
+                    ),
+            },
+            {
                 path: 'packages',
                 data: { breadcrumb: 'Packages', permission: PermissionNames.Packages },
                 loadChildren: () =>

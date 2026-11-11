@@ -110,6 +110,32 @@ export class ProductListComponent implements OnInit {
         return this.products.filter((p) => this.isDealProduct(p)).length;
     }
 
+    get onlineVisibleCount(): number {
+        return this.products.filter(
+            (p) => !this.isDealProduct(p) && p.isVisibleOnline !== false
+        ).length;
+    }
+
+    get categoryCount(): number {
+        return Math.max(0, this.categoryOptions.length - 1);
+    }
+
+    get pageSubtitle(): string {
+        if (this.isDealsTab) {
+            return 'Build meal bundles and combo offers for the POS and kitchen.';
+        }
+        return this.isRestaurant
+            ? 'Manage menu items, modifiers, online visibility, and pricing.'
+            : 'Manage catalog, barcodes, wholesale pricing, and stock alerts.';
+    }
+
+    setListTab(index: number): void {
+        if (!this.isRestaurant || this.activeListTab === index) {
+            return;
+        }
+        this.onListTabChange(index);
+    }
+
     onListTabChange(index: number): void {
         this.activeListTab = index;
         this.selectedProducts = [];

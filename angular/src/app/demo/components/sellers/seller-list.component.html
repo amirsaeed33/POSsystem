@@ -1,0 +1,291 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="dev-page">
+    <div class="flex flex-wrap gap-2 align-items-center justify-content-between mb-4">
+        <div class="flex flex-wrap gap-2 align-items-center">
+            <span class="p-input-icon-left w-full sm:w-20rem">
+                <i class="pi pi-search"></i>
+                <input
+                    pInputText
+                    type="text"
+                    class="w-full"
+                    placeholder="Search sellers"
+                    [(ngModel)]="keyword"
+                    (keyup.enter)="onSearch()"
+                />
+            </span>
+            <p-dropdown
+                [options]="statusOptions"
+                [(ngModel)]="selectedStatus"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full sm:w-12rem"
+                appendTo="body"
+                (onChange)="onSearch()"
+            ></p-dropdown>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-search"
+                class="p-button-outlined"
+                label="Search"
+                (click)="onSearch()"
+            ></button>
+        </div>
+        <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-refresh"
+            label="Refresh"
+            class="p-button-outlined w-full sm:w-auto"
+            [loading]="loading"
+            (click)="load()"
+        ></button>
+    </div>
+
+    <div *ngIf="loading" class="flex justify-content-center align-items-center py-6 text-500">
+        <i class="pi pi-spin pi-spinner text-2xl mr-2"></i>
+        Loading sellers…
+    </div>
+
+    <div
+        *ngIf="!loading && !sellers.length"
+        class="surface-card border-round-xl p-5 text-center text-500"
+    >
+        <i class="pi pi-briefcase text-4xl mb-3 block text-400"></i>
+        No seller applications yet.
+    </div>
+
+    <div *ngIf="!loading && sellers.length" class="grid">
+        <div
+            class="col-12 sm:col-6 lg:col-4 xl:col-3"
+            *ngFor="let s of sellers; let i = index"
+        >
+            <article
+                class="dev-card h-full flex flex-column"
+                [class.dev-card--inactive]="s.status === SellerStatuses.Rejected"
+                [style.animation-delay.ms]="i * 40"
+            >
+                <div class="dev-card__cover">
+                    <div class="dev-card__cover-fallback seller-cover"></div>
+
+                    <div class="dev-card__actions" *ngIf="canApprove || canDelete">
+                        <app-row-actions
+                            [items]="getRowActions(s)"
+                        ></app-row-actions>
+                    </div>
+
+                    <div class="dev-card__avatar-wrap">
+                        <div class="dev-card__avatar-fallback seller-avatar">
+                            {{ initials(s) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dev-card__body flex flex-column flex-1">
+                    <div class="flex align-items-start justify-content-between gap-2 mb-2">
+                        <div class="min-w-0">
+                            <h3
+                                class="dev-card__title m-0 cursor-pointer"
+                                (click)="openView(s)"
+                            >
+                                {{ s.fullName }}
+                            </h3>
+                            <div class="dev-card__status">
+                                <span
+                                    class="dev-badge"
+                                    [class.dev-badge--ok]="s.status === SellerStatuses.Approved"
+                                    [class.dev-badge--warn]="s.status === SellerStatuses.Pending"
+                                    [class.dev-badge--muted]="s.status === SellerStatuses.Rejected"
+                                >
+                                    {{ s.statusName || sellerService.statusLabel(s.status) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="dev-card__desc" *ngIf="s.companyName || s.message">
+                        {{ s.companyName || s.message }}
+                    </p>
+
+                    <div class="dev-card__meta flex flex-column gap-2 mb-3">
+                        <div class="dev-meta-row" *ngIf="s.phoneNumber">
+                            <i class="pi pi-phone"></i>
+                            <span>{{ s.phoneNumber }}</span>
+                        </div>
+                        <div class="dev-meta-row" *ngIf="s.email">
+                            <i class="pi pi-envelope"></i>
+                            <span>{{ s.email }}</span>
+                        </div>
+                        <div class="dev-meta-row" *ngIf="s.city">
+                            <i class="pi pi-map-marker"></i>
+                            <span>{{ s.city }}</span>
+                        </div>
+                    </div>
+
+                    <div class="dev-card__edu mb-3" *ngIf="s.experienceNotes">
+                        <div class="dev-section-label">Experience</div>
+                        <p class="seller-notes m-0">{{ s.experienceNotes }}</p>
+                    </div>
+
+                    <div class="dev-card__tags mt-auto">
+                        <span class="dev-tag">
+                            Rs {{ (s.commissionPerSalePkr || commissionPkr) | number: '1.0-0' }} / sale
+                        </span>
+                        <span class="dev-tag seller-tag-date" *ngIf="s.creationTime">
+                            {{ s.creationTime | date: 'dd/MM/yyyy' }}
+                        </span>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </div>
+</div>
+
+<p-dialog
+    header="Seller application"
+    [(visible)]="viewVisible"
+    [modal]="true"
+    appendTo="body"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '34rem', maxWidth: '95vw' }"
+>
+    <div *ngIf="selected" class="flex flex-column gap-3">
+        <div class="flex align-items-center justify-content-between gap-2">
+            <div>
+                <div class="text-xl font-bold text-900">{{ selected.fullName }}</div>
+                <div class="text-sm text-500" *ngIf="selected.companyName">{{ selected.companyName }}</div>
+            </div>
+            <span
+                class="dev-badge"
+                [class.dev-badge--ok]="selected.status === SellerStatuses.Approved"
+                [class.dev-badge--warn]="selected.status === SellerStatuses.Pending"
+                [class.dev-badge--muted]="selected.status === SellerStatuses.Rejected"
+            >
+                {{ selected.statusName || sellerService.statusLabel(selected.status) }}
+            </span>
+        </div>
+
+        <div class="grid">
+            <div class="col-6">
+                <div class="text-xs text-500 mb-1">Phone</div>
+                <div class="font-medium">{{ selected.phoneNumber }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-xs text-500 mb-1">Email</div>
+                <div class="font-medium">{{ selected.email || '—' }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-xs text-500 mb-1">City</div>
+                <div class="font-medium">{{ selected.city || '—' }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-xs text-500 mb-1">CNIC</div>
+                <div class="font-medium">{{ selected.cnic || '—' }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-xs text-500 mb-1">Commission</div>
+                <div class="font-medium">
+                    Rs {{ (selected.commissionPerSalePkr || commissionPkr) | number: '1.0-0' }}
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="text-xs text-500 mb-1">Applied</div>
+                <div class="font-medium">{{ selected.creationTime | date: 'medium' }}</div>
+            </div>
+        </div>
+
+        <div *ngIf="selected.experienceNotes">
+            <div class="text-xs text-500 mb-1">Experience / notes</div>
+            <div class="surface-50 border-round p-2 text-sm white-space-pre-wrap">
+                {{ selected.experienceNotes }}
+            </div>
+        </div>
+        <div *ngIf="selected.message">
+            <div class="text-xs text-500 mb-1">Message</div>
+            <div class="surface-50 border-round p-2 text-sm white-space-pre-wrap">
+                {{ selected.message }}
+            </div>
+        </div>
+        <div *ngIf="selected.rejectionReason">
+            <div class="text-xs text-500 mb-1">Rejection reason</div>
+            <div class="surface-50 border-round p-2 text-sm text-red-700">
+                {{ selected.rejectionReason }}
+            </div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            *ngIf="selected && canApprove && selected.status !== SellerStatuses.Approved"
+            pButton
+            type="button"
+            icon="pi pi-check"
+            label="Approve"
+            class="p-button-success"
+            [loading]="approvingId === selected.id"
+            (click)="confirmApprove(selected)"
+        ></button>
+        <button
+            *ngIf="selected && canApprove && selected.status !== SellerStatuses.Rejected"
+            pButton
+            type="button"
+            icon="pi pi-times"
+            label="Reject"
+            class="p-button-outlined p-button-danger"
+            (click)="openReject(selected)"
+        ></button>
+        <button
+            pButton
+            type="button"
+            label="Close"
+            class="p-button-text"
+            (click)="viewVisible = false"
+        ></button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog
+    header="Reject seller"
+    [(visible)]="rejectVisible"
+    [modal]="true"
+    appendTo="body"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '28rem', maxWidth: '95vw' }"
+>
+    <div class="flex flex-column gap-2">
+        <label class="font-medium" for="rejectReason">Reason (optional)</label>
+        <textarea
+            id="rejectReason"
+            pInputTextarea
+            rows="4"
+            class="w-full"
+            [(ngModel)]="rejectReason"
+            maxlength="1000"
+        ></textarea>
+    </div>
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            [disabled]="rejecting"
+            (click)="rejectVisible = false"
+        ></button>
+        <button
+            pButton
+            type="button"
+            label="Reject"
+            icon="pi pi-times"
+            class="p-button-danger"
+            [loading]="rejecting"
+            (click)="submitReject()"
+        ></button>
+    </ng-template>
+</p-dialog>

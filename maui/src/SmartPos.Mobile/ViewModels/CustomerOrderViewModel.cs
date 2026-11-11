@@ -16,6 +16,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
     private readonly FavoritesService _favorites;
 
     private List<OnlineProductDto> _allProducts = new();
+    private int? _loadedBranchId;
 
     public HashSet<string> SelectedCategories { get; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -80,7 +81,18 @@ public partial class CustomerOrderViewModel : BaseViewModel
         {
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await LoadMenuAsync(forceRefresh: true);
+                // Only reload when the active branch changes; reuse in-memory/cache otherwise.
+                if (_loadedBranchId.HasValue &&
+                    _session.BranchId.HasValue &&
+                    _loadedBranchId.Value == _session.BranchId.Value &&
+                    _allProducts.Count > 0)
+                {
+                    SyncCartQtyBadges();
+                    SyncFavorites();
+                    return;
+                }
+
+                await LoadMenuAsync(forceRefresh: false);
             });
         };
     }
@@ -88,7 +100,19 @@ public partial class CustomerOrderViewModel : BaseViewModel
     [RelayCommand]
     private async Task AppearingAsync()
     {
-        await LoadMenuAsync(forceRefresh: true);
+        await _session.LoadAsync();
+        if (_loadedBranchId.HasValue &&
+            _session.BranchId.HasValue &&
+            _loadedBranchId.Value == _session.BranchId.Value &&
+            _allProducts.Count > 0)
+        {
+            // Instant tab switch: keep last menu on screen, only sync badges.
+            SyncCartQtyBadges();
+            SyncFavorites();
+            return;
+        }
+
+        await LoadMenuAsync(forceRefresh: false);
     }
 
     [RelayCommand]
@@ -166,9 +190,13 @@ public partial class CustomerOrderViewModel : BaseViewModel
             ErrorMessage = null;
             var branchId = await ResolveActiveBranchIdAsync();
 
+            // Load header + catalog together; both are cached so warm visits are near-instant.
+            var headerTask = _orders.GetStoreHeaderAsync(branchId, forceRefresh);
+            var catalogTask = _orders.GetCatalogAsync(branchId, forceRefresh);
+
             try
             {
-                StoreHeader = await _orders.GetStoreHeaderAsync(branchId);
+                StoreHeader = await headerTask;
                 OnPropertyChanged(nameof(DeliverToLabel));
             }
             catch (Exception ex)
@@ -176,7 +204,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
                 System.Diagnostics.Debug.WriteLine($"[CustomerOrderViewModel] Store header failed: {ex.Message}");
             }
 
-            _allProducts = await _orders.GetCatalogAsync(branchId, forceRefresh);
+            _allProducts = await catalogTask;
             foreach (var p in _allProducts)
             {
                 p.ImageUrl = ResolveProductImageUrl(_api, p.ImagePath, p.Name, p.CategoryName);
@@ -184,6 +212,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
                 p.CartQty = _cart.GetQty(p.Id);
             }
 
+            _loadedBranchId = branchId;
             RebuildCategories();
             ApplyFilters();
         }

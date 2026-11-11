@@ -26,6 +26,7 @@ using SmartPos.Suppliers;
 using SmartPos.Departments;
 using SmartPos.Developers;
 using SmartPos.Packages;
+using SmartPos.Sellers;
 using SmartPos.Units;
 
 namespace SmartPos.EntityFrameworkCore
@@ -51,6 +52,8 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<HostCatalogItem> HostCatalogItems { get; set; }
 
         public virtual DbSet<Developer> Developers { get; set; }
+
+        public virtual DbSet<Seller> Sellers { get; set; }
 
         public virtual DbSet<Package> Packages { get; set; }
 
@@ -188,6 +191,15 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasIndex(x => new { x.TenantId, x.Type, x.Name })
                     .IsUnique()
                     .HasFilter("[IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<Seller>(b =>
+            {
+                b.Property(x => x.CommissionPerSalePkr).HasPrecision(18, 2);
+                b.HasIndex(x => new { x.Status, x.CreationTime });
+                b.HasIndex(x => new { x.IsPubliclyListed, x.Status });
+                b.HasIndex(x => x.Email);
+                b.HasIndex(x => x.PhoneNumber);
             });
 
             modelBuilder.Entity<HostCatalogItem>(b =>

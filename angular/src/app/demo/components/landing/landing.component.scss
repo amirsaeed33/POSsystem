@@ -612,3 +612,29 @@
     font-weight: 700;
   }
 }
+
+.landing-seller-policy {
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--surface-border));
+  background: linear-gradient(160deg, #fffbeb, #fff);
+  border-radius: 1rem;
+  padding: 1.15rem 1.25rem;
+}
+
+.landing-seller-amount {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #b45309;
+  line-height: 1.15;
+
+  span {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-color-secondary);
+    margin-top: 0.15rem;
+  }
+}
+
+.landing-seller-card {
+  border-left: 3px solid #f59e0b;
+}
