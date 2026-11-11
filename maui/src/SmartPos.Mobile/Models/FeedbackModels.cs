@@ -19,6 +19,23 @@ public class CustomerFeedbackDto
     [JsonPropertyName("customerImagePath")]
     public string? CustomerImagePath { get; set; }
 
+    [JsonPropertyName("customerPhotoUrl")]
+    public string? CustomerPhotoUrl { get; set; }
+
+    public bool HasPhoto => !string.IsNullOrWhiteSpace(CustomerPhotoUrl) || !string.IsNullOrWhiteSpace(CustomerImagePath);
+
+    public string? OrderNumber
+    {
+        get => OrderNo;
+        set => OrderNo = value;
+    }
+
+    public string? OrderedItemsSummary
+    {
+        get => ItemsSummary;
+        set => ItemsSummary = value;
+    }
+
     [JsonPropertyName("rating")]
     public int Rating { get; set; } = 5;
 
@@ -91,5 +108,19 @@ public class CustomerFeedbackDto
 
     public bool HasItemsSummary => !string.IsNullOrWhiteSpace(ItemsSummary);
     public string DisplayItemsSummary => $"Ordered: {ItemsSummary}";
+
+    public string DisplayFoodPill =>
+        !string.IsNullOrWhiteSpace(ItemsSummary)
+            ? $"🍔 {ItemsSummary}"
+            : "🍔 Delicious Customer Favorite";
+
+    public Color Star1Color => Rating >= 1 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#E5E7EB");
+    public Color Star2Color => Rating >= 2 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#E5E7EB");
+    public Color Star3Color => Rating >= 3 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#E5E7EB");
+    public Color Star4Color => Rating >= 4 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#E5E7EB");
+    public Color Star5Color => Rating >= 5 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#E5E7EB");
+
+    public string StarGlyphs => new string('★', Math.Clamp(Rating, 1, 5));
+    public string RatingText => $"{Math.Clamp(Rating, 1, 5)}.0";
 }
 

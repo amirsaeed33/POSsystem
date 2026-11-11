@@ -584,6 +584,9 @@ public partial class CustomerSavedAddressDto : ObservableObject
     };
 
     [JsonIgnore]
+    public string LabelEmoji => DisplayIcon;
+
+    [JsonIgnore]
     public string DisplayLabel => string.IsNullOrWhiteSpace(Label) ? "Address" : Label;
 
     [JsonIgnore]
