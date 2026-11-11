@@ -49,7 +49,8 @@ $prodSettings = @{
     ServerRootAddress = "https://aljannatapp.com/"
     ClientRootAddress = "https://aljannatapp.com/"
     RunDbSeed = $false
-    SkipDbMigration = $false
+    # Skip EF migrate-on-boot in production (run migrations explicitly when deploying schema).
+    SkipDbMigration = $true
     CorsOrigins = "http://localhost:4200,http://localhost:4201,http://localhost:8080,http://localhost:8081,http://localhost:3000,https://aljannatapp.com,http://aljannatapp.com,https://www.aljannatapp.com,http://www.aljannatapp.com"
     BranchActivation = @{ ExpirationHours = 72 }
   }
@@ -108,9 +109,14 @@ $webConfigPath = Join-Path $deployDir "web.config"
 if (Test-Path $webConfigPath) {
     $wc = Get-Content $webConfigPath -Raw
     $wc = $wc -replace 'hostingModel="InProcess"', 'hostingModel="OutOfProcess"'
-    $wc = $wc -replace 'stdoutLogEnabled="false"', 'stdoutLogEnabled="true"'
+    # Keep stdout off in production (disk I/O + file locks on shared hosting).
+    $wc = $wc -replace 'stdoutLogEnabled="true"', 'stdoutLogEnabled="false"'
+    if ($wc -notmatch 'applicationInitialization') {
+        $initBlock = "      <applicationInitialization doAppInitAfterRestart=`"true`">`r`n        <add initializationPage=`"/health`" />`r`n      </applicationInitialization>`r`n    </system.webServer>"
+        $wc = $wc -replace '</system\.webServer>', $initBlock
+    }
     Set-Content $webConfigPath -Value $wc -Encoding UTF8
-    Write-Host "web.config: OutOfProcess + stdout logging"
+    Write-Host "web.config: OutOfProcess + app init /health + stdout off"
 }
 New-Item -ItemType Directory -Path (Join-Path $deployDir "logs") -Force | Out-Null
 Set-Content -Path (Join-Path $deployDir "logs\.keep") -Value ""

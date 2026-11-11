@@ -18,6 +18,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using System.IO;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Net.Http.Headers;
 using SmartPos.Chat;
 
 namespace SmartPos.Web.Host.Startup
@@ -126,8 +127,54 @@ namespace SmartPos.Web.Host.Startup
 
             app.UseCors(_defaultCorsPolicyName); // Enable CORS!
 
+            var staticFileOptions = new StaticFileOptions
+            {
+                OnPrepareResponse = ctx =>
+                {
+                    var headers = ctx.Context.Response.GetTypedHeaders();
+                    var path = ctx.Context.Request.Path.Value ?? string.Empty;
+                    // Hashed Angular bundles (main.abc123.js) can be cached long-term.
+                    if (path.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
+                        || path.EndsWith(".css", StringComparison.OrdinalIgnoreCase)
+                        || path.EndsWith(".woff2", StringComparison.OrdinalIgnoreCase)
+                        || path.EndsWith(".woff", StringComparison.OrdinalIgnoreCase))
+                    {
+                        headers.CacheControl = new CacheControlHeaderValue
+                        {
+                            Public = true,
+                            MaxAge = TimeSpan.FromDays(30)
+                        };
+                    }
+                    else if (path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/ProductImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/BranchImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/CompanyImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/CategoryImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/DeveloperImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/CustomerImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/OnlineOrderHeroImages/", StringComparison.OrdinalIgnoreCase)
+                             || path.StartsWith("/UserImages/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        headers.CacheControl = new CacheControlHeaderValue
+                        {
+                            Public = true,
+                            MaxAge = TimeSpan.FromDays(7)
+                        };
+                    }
+                    else if (path.Equals("/index.html", StringComparison.OrdinalIgnoreCase) || path == "/" || path.Length == 0)
+                    {
+                        headers.CacheControl = new CacheControlHeaderValue
+                        {
+                            NoCache = true,
+                            NoStore = true,
+                            MustRevalidate = true
+                        };
+                    }
+                }
+            };
+
             app.UseDefaultFiles();
-            app.UseStaticFiles();
+            app.UseStaticFiles(staticFileOptions);
 
             // Angular PathLocationStrategy deep links → index.html, without stealing API/ABP JSON routes.
             app.Use(async (context, next) =>
@@ -145,7 +192,7 @@ namespace SmartPos.Web.Host.Startup
             });
             // Serve rewritten /index.html after SPA path rewrite.
             app.UseDefaultFiles();
-            app.UseStaticFiles();
+            app.UseStaticFiles(staticFileOptions);
 
             app.UseRouting();
 
@@ -169,6 +216,12 @@ namespace SmartPos.Web.Host.Startup
 
             app.UseEndpoints(endpoints =>
             {
+                // Cheap warm-up / uptime ping (no DB). Used by IIS applicationInitialization when available.
+                endpoints.MapGet("/health", async context =>
+                {
+                    context.Response.ContentType = "text/plain";
+                    await context.Response.WriteAsync("ok");
+                });
                 endpoints.MapHub<AbpCommonHub>("/signalr");
                 endpoints.MapHub<OrderChatHub>("/signalr-order-chat");
                 endpoints.MapControllers(); // attribute routes (robots.txt / sitemap.xml)
@@ -198,6 +251,7 @@ namespace SmartPos.Web.Host.Startup
                 || path.StartsWith("/Abp", StringComparison.OrdinalIgnoreCase)
                 || path.StartsWith("/Home", StringComparison.OrdinalIgnoreCase)
                 || path.StartsWith("/AntiForgery", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/health", StringComparison.OrdinalIgnoreCase)
                 || path.Equals("/robots.txt", StringComparison.OrdinalIgnoreCase)
                 || path.Equals("/sitemap.xml", StringComparison.OrdinalIgnoreCase))
             {
