@@ -1,101 +1,7 @@
 <p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 
-<div class="product-page">
-    <div class="product-page-hero surface-card">
-        <div class="flex flex-column md:flex-row align-items-start md:align-items-center justify-content-between gap-3">
-            <div class="min-w-0">
-                <div class="flex flex-wrap align-items-center gap-2 mb-1">
-                    <span class="product-page-avatar">
-                        <i class="pi" [ngClass]="isDealsTab ? 'pi-bolt' : 'pi-box'"></i>
-                    </span>
-                    <h2 class="text-xl md:text-2xl font-bold text-900 m-0">
-                        {{ isDealsTab ? 'Deals' : 'Products' }}
-                    </h2>
-                    <span class="product-page-badge">Catalog</span>
-                </div>
-                <p class="text-600 text-sm m-0">{{ pageSubtitle }}</p>
-            </div>
-            <div class="flex flex-wrap align-items-center gap-2 w-full md:w-auto justify-content-end">
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-refresh"
-                    label="Refresh"
-                    class="p-button-outlined p-button-sm"
-                    [loading]="loading"
-                    (click)="loadProducts(true)"
-                ></button>
-                <button
-                    *ngIf="isDealsTab"
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-bolt"
-                    label="Create Deal"
-                    class="p-button-warning font-semibold"
-                    (click)="openCreateDealDialog()"
-                    [disabled]="!canCreate"
-                    pTooltip="Create a combo deal or meal bundle"
-                    tooltipPosition="top"
-                ></button>
-                <button
-                    *ngIf="!isDealsTab"
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-plus"
-                    label="Create Product"
-                    class="p-button-primary font-semibold"
-                    (click)="openCreateDialog()"
-                    [disabled]="!canCreate"
-                    [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
-                    tooltipPosition="top"
-                ></button>
-            </div>
-        </div>
-    </div>
-
-    <div class="grid product-kpi-grid">
-        <div class="col-6 md:col-3">
-            <button type="button" class="product-kpi is-products" (click)="isRestaurant && setListTab(0)">
-                <span class="product-kpi-label">Products</span>
-                <span class="product-kpi-value">{{ productsTabCount }}</span>
-                <span class="product-kpi-sub">In catalog</span>
-            </button>
-        </div>
-        <div class="col-6 md:col-3" *ngIf="isRestaurant">
-            <button type="button" class="product-kpi is-deals" (click)="setListTab(1)">
-                <span class="product-kpi-label">Deals</span>
-                <span class="product-kpi-value">{{ dealsTabCount }}</span>
-                <span class="product-kpi-sub">Combo offers</span>
-            </button>
-        </div>
-        <div class="col-6 md:col-3" *ngIf="!isRestaurant">
-            <div class="product-kpi is-categories">
-                <span class="product-kpi-label">Categories</span>
-                <span class="product-kpi-value">{{ categoryCount }}</span>
-                <span class="product-kpi-sub">Active groups</span>
-            </div>
-        </div>
-        <div class="col-6 md:col-3">
-            <div class="product-kpi is-online">
-                <span class="product-kpi-label">Online Visible</span>
-                <span class="product-kpi-value">{{ onlineVisibleCount }}</span>
-                <span class="product-kpi-sub">Shown on storefront</span>
-            </div>
-        </div>
-        <div class="col-6 md:col-3">
-            <div class="product-kpi is-selected">
-                <span class="product-kpi-label">Selected</span>
-                <span class="product-kpi-value">{{ selectedProducts.length }}</span>
-                <span class="product-kpi-sub">For bulk actions</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="product-page-card card">
+<div class="card">
     <p-tabView
         *ngIf="isRestaurant"
         [activeIndex]="activeListTab"
@@ -132,21 +38,20 @@
         [showCurrentPageReport]="true"
         responsiveLayout="scroll"
         [loading]="loading"
-        styleClass="product-list-table"
         [currentPageReportTemplate]="isDealsTab ? 'Showing {first} to {last} of {totalRecords} deals' : 'Showing {first} to {last} of {totalRecords} products'"
         [rowsPerPageOptions]="[10, 25, 50]"
         [globalFilterFields]="['name', 'barcode', 'categoryName', 'brandName', 'unitName']"
     >
         <ng-template pTemplate="caption">
-            <div class="product-toolbar">
-                <div class="product-toolbar-filters">
-                    <span class="p-input-icon-left product-search">
+            <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="flex flex-wrap gap-2 align-items-center flex-order-1 sm:flex-order-0">
+                    <span class="p-input-icon-left w-full sm:w-20rem">
                         <i class="pi pi-search"></i>
                         <input
                             pInputText
                             type="text"
                             class="w-full"
-                            [placeholder]="isDealsTab ? 'Search deals by name…' : 'Search name, barcode, category…'"
+                            [placeholder]="isDealsTab ? 'Search deals' : 'Search products'"
                             [(ngModel)]="keyword"
                             (keyup.enter)="onSearch()"
                             (input)="onGlobalFilter(dt, $event)"
@@ -162,7 +67,7 @@
                         [showClear]="true"
                         [filter]="true"
                         filterBy="label"
-                        styleClass="product-category-dd"
+                        styleClass="w-full sm:w-12rem"
                         appendTo="body"
                         (onChange)="onCategoryFilterChange()"
                     ></p-dropdown>
@@ -181,7 +86,7 @@
                         pRipple
                         type="button"
                         icon="pi pi-print"
-                        class="p-button-outlined p-button-secondary font-semibold"
+                        class="p-button-outlined p-button-secondary"
                         [label]="selectedProducts.length ? 'Print Barcodes (' + selectedProducts.length + ')' : 'Print All Barcodes'"
                         pTooltip="Print barcodes for selected products or all products"
                         tooltipPosition="top"
@@ -193,7 +98,7 @@
                             pRipple
                             type="button"
                             icon="pi pi-file-excel"
-                            class="p-button-outlined p-button-success font-semibold"
+                            class="p-button-outlined p-button-success"
                             label="Import Excel"
                             [pTooltip]="!canCreate ? 'You do not have permission to Import' : 'Import products from Excel sheet'"
                             tooltipPosition="top"
@@ -205,7 +110,7 @@
                             pRipple
                             type="button"
                             icon="pi pi-download"
-                            class="p-button-text p-button-secondary font-semibold"
+                            class="p-button-text p-button-secondary"
                             label="Template"
                             pTooltip="Download Excel Sample Template"
                             tooltipPosition="top"
@@ -220,6 +125,32 @@
                         />
                     </ng-container>
                 </div>
+                <button
+                    *ngIf="isDealsTab"
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-bolt"
+                    label="Create Deal"
+                    class="p-button-warning w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
+                    (click)="openCreateDealDialog()"
+                    [disabled]="!canCreate"
+                    pTooltip="Create a combo deal or meal bundle"
+                    tooltipPosition="top"
+                ></button>
+                <button
+                    *ngIf="!isDealsTab"
+                    pButton
+                    pRipple
+                    type="button"
+                    icon="pi pi-plus"
+                    label="Create"
+                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
+                    (click)="openCreateDialog()"
+                    [disabled]="!canCreate"
+                    [pTooltip]="!canCreate ? 'You do not have permission to Create' : ''"
+                    tooltipPosition="top"
+                ></button>
             </div>
         </ng-template>
 
@@ -372,7 +303,6 @@
             </tr>
         </ng-template>
     </p-table>
-    </div>
 
     <app-product-form-dialog
         [(visible)]="dialogVisible"
