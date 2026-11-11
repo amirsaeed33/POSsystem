@@ -591,7 +591,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         }
 
         _feedbackTimer = Application.Current.Dispatcher.CreateTimer();
-        _feedbackTimer.Interval = TimeSpan.FromMilliseconds(4200);
+        _feedbackTimer.Interval = TimeSpan.FromMilliseconds(3800);
         _feedbackTimer.Tick += OnFeedbackTimerTick;
         _feedbackTimer.Start();
     }
@@ -619,10 +619,10 @@ public partial class CustomerHomeViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private void PauseFeedbackAutoAdvance() => _isFeedbackPaused = true;
+    public void PauseFeedbackAutoAdvance() => _isFeedbackPaused = true;
 
     [RelayCommand]
-    private void ResumeFeedbackAutoAdvance() => _isFeedbackPaused = false;
+    public void ResumeFeedbackAutoAdvance() => _isFeedbackPaused = false;
 
     public void OnPageDisappearing()
     {
@@ -642,8 +642,19 @@ public partial class CustomerHomeViewModel : BaseViewModel
                 list = CreateDefaultFeedbacks(SelectedBranch?.Name ?? "Our Kitchen");
             }
 
+            var localAvatarFile = Path.Combine(FileSystem.AppDataDirectory, "customer_avatar.jpg");
+            var localAvatarExists = File.Exists(localAvatarFile);
+            var currentCustomerName = Preferences.Default.Get("sp.customerName", string.Empty).Trim();
+
             foreach (var item in list)
             {
+                if (localAvatarExists && !string.IsNullOrWhiteSpace(currentCustomerName)
+                    && (string.Equals(item.CustomerName?.Trim(), currentCustomerName, StringComparison.OrdinalIgnoreCase)
+                        || (currentCustomerName.Length >= 4 && item.CustomerName != null && item.CustomerName.Contains(currentCustomerName, StringComparison.OrdinalIgnoreCase))))
+                {
+                    item.CustomerPhotoUrl = localAvatarFile;
+                }
+
                 Feedbacks.Add(item);
             }
 

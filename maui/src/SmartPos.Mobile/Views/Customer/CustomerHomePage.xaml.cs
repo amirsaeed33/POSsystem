@@ -7,6 +7,8 @@ namespace SmartPos.Mobile.Views.Customer;
 public partial class CustomerHomePage : ContentPage
 {
     private readonly CustomerHomeViewModel _vm;
+    private IDispatcherTimer? _feedbackResumeTimer;
+    private bool _isProgrammaticFeedbackScroll;
 
     public CustomerHomePage() : this(ServiceHelper.Get<CustomerHomeViewModel>())
     {
@@ -32,12 +34,59 @@ public partial class CustomerHomePage : ContentPage
         {
             BottomTabBar.UpdateCartBadge(_vm.CartCount);
         }
+
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _vm.PropertyChanged += OnVmPropertyChanged;
     }
 
     protected override void OnDisappearing()
     {
+        _vm.PropertyChanged -= OnVmPropertyChanged;
+        _feedbackResumeTimer?.Stop();
+        _feedbackResumeTimer = null;
         _vm.OnPageDisappearing();
         base.OnDisappearing();
+    }
+
+    private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(CustomerHomeViewModel.FeedbackPosition))
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (FeedbacksCollectionView != null && _vm.Feedbacks.Count > 0)
+                {
+                    _isProgrammaticFeedbackScroll = true;
+                    var targetIndex = Math.Clamp(_vm.FeedbackPosition, 0, _vm.Feedbacks.Count - 1);
+                    FeedbacksCollectionView.ScrollTo(targetIndex, animate: true, position: ScrollToPosition.Center);
+                    _ = Task.Delay(600).ContinueWith(_ => _isProgrammaticFeedbackScroll = false);
+                }
+            });
+        }
+    }
+
+    private void OnFeedbacksScrolled(object? sender, ItemsViewScrolledEventArgs e)
+    {
+        if (_isProgrammaticFeedbackScroll)
+        {
+            return;
+        }
+
+        _vm.PauseFeedbackAutoAdvance();
+
+        _feedbackResumeTimer?.Stop();
+        if (Dispatcher != null)
+        {
+            _feedbackResumeTimer = Dispatcher.CreateTimer();
+            _feedbackResumeTimer.Interval = TimeSpan.FromSeconds(4);
+            _feedbackResumeTimer.Tick += (s, args) =>
+            {
+                _feedbackResumeTimer?.Stop();
+                _feedbackResumeTimer = null;
+                _vm.ResumeFeedbackAutoAdvance();
+            };
+            _feedbackResumeTimer.Start();
+        }
     }
 
     private async Task AnimateAddButtonFeedbackAsync(VisualElement view)

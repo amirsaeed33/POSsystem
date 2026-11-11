@@ -818,63 +818,65 @@
                             </Border>
                         </Grid>
 
-                        <!-- Auto-Rotating CarouselView with PeekAreaInsets -->
-                        <CarouselView ItemsSource="{Binding Feedbacks}"
-                                      Position="{Binding FeedbackPosition, Mode=TwoWay}"
-                                      PeekAreaInsets="20"
-                                      Loop="True"
-                                      HeightRequest="170"
-                                      HorizontalScrollBarVisibility="Never"
-                                      IsSwipeEnabled="True">
-                            <CarouselView.ItemsLayout>
-                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10" />
-                            </CarouselView.ItemsLayout>
-                            <CarouselView.ItemTemplate>
+                        <!-- Horizontal Scrolling CollectionView for Customer Feedbacks -->
+                        <CollectionView x:Name="FeedbacksCollectionView"
+                                        ItemsSource="{Binding Feedbacks}"
+                                        HeightRequest="156"
+                                        HorizontalScrollBarVisibility="Never"
+                                        SelectionMode="None"
+                                        Scrolled="OnFeedbacksScrolled">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="14" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
                                 <DataTemplate x:DataType="models:CustomerFeedbackDto">
-                                    <Border BackgroundColor="#FFFFFF"
-                                            Stroke="#E5E7EB"
+                                    <Border WidthRequest="270"
+                                            HeightRequest="148"
+                                            BackgroundColor="#FFFFFF"
+                                            Stroke="#E2E8F0"
                                             StrokeThickness="1"
-                                            Margin="4,2,4,6"
-                                            Padding="14,12">
+                                            Margin="0,2,0,6"
+                                            Padding="12,10">
                                         <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="16" />
+                                            <RoundRectangle CornerRadius="14" />
                                         </Border.StrokeShape>
                                         <Border.Shadow>
-                                            <Shadow Brush="#10000000"
+                                            <Shadow Brush="#000000"
                                                     Offset="0,2"
                                                     Radius="6"
-                                                    Opacity="0.8" />
+                                                    Opacity="0.06" />
                                         </Border.Shadow>
                                         <Border.GestureRecognizers>
                                             <TapGestureRecognizer Command="{Binding BindingContext.PauseFeedbackAutoAdvanceCommand, Source={x:Reference ThisPage}}" />
                                         </Border.GestureRecognizers>
 
-                                        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
-                                            <!-- Top Row: Avatar + Name/Date + Stars -->
-                                            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="6">
+                                            <!-- Top Row: Avatar + Name/Date + 5 Stars -->
+                                            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalOptions="Center">
                                                 <!-- Avatar / Initials Circle -->
                                                 <Border Grid.Column="0"
-                                                        WidthRequest="38"
-                                                        HeightRequest="38"
+                                                        WidthRequest="36"
+                                                        HeightRequest="36"
                                                         StrokeThickness="0"
                                                         BackgroundColor="{Binding AvatarBgColor}"
                                                         VerticalOptions="Center">
                                                     <Border.StrokeShape>
-                                                        <RoundRectangle CornerRadius="19" />
+                                                        <RoundRectangle CornerRadius="18" />
                                                     </Border.StrokeShape>
-                                                    <Grid WidthRequest="38" HeightRequest="38">
-                                                        <Image Source="{Binding CustomerPhotoUrl}"
-                                                               Aspect="AspectFill"
-                                                               WidthRequest="38"
-                                                               HeightRequest="38"
-                                                               IsVisible="{Binding HasPhoto}" />
+                                                    <Grid WidthRequest="36" HeightRequest="36">
+                                                        <!-- Initials are always rendered cleanly at center -->
                                                         <Label Text="{Binding Initials}"
                                                                TextColor="White"
                                                                FontAttributes="Bold"
-                                                               FontSize="13"
+                                                               FontSize="12"
                                                                HorizontalOptions="Center"
-                                                               VerticalOptions="Center"
-                                                               IsVisible="{Binding HasPhoto, Converter={StaticResource InvertedBoolConverter}}" />
+                                                               VerticalOptions="Center" />
+                                                        <!-- Photo renders on top if present, covering initials -->
+                                                        <Image Source="{Binding CustomerPhotoUrl}"
+                                                               Aspect="AspectFill"
+                                                               WidthRequest="36"
+                                                               HeightRequest="36"
+                                                               IsVisible="{Binding HasPhoto}" />
                                                     </Grid>
                                                 </Border>
 
@@ -888,31 +890,32 @@
                                                            MaxLines="1" />
                                                     <Label Text="{Binding FormattedDate}"
                                                            FontSize="10"
-                                                           TextColor="#6B7280" />
+                                                           TextColor="#718096" />
                                                 </VerticalStackLayout>
 
                                                 <!-- 5 Golden Stars -->
                                                 <HorizontalStackLayout Grid.Column="2" Spacing="1" VerticalOptions="Center">
-                                                    <Label Text="★" FontSize="13" TextColor="{Binding Star1Color}" />
-                                                    <Label Text="★" FontSize="13" TextColor="{Binding Star2Color}" />
-                                                    <Label Text="★" FontSize="13" TextColor="{Binding Star3Color}" />
-                                                    <Label Text="★" FontSize="13" TextColor="{Binding Star4Color}" />
-                                                    <Label Text="★" FontSize="13" TextColor="{Binding Star5Color}" />
+                                                    <Label Text="★" FontSize="12" TextColor="{Binding Star1Color}" />
+                                                    <Label Text="★" FontSize="12" TextColor="{Binding Star2Color}" />
+                                                    <Label Text="★" FontSize="12" TextColor="{Binding Star3Color}" />
+                                                    <Label Text="★" FontSize="12" TextColor="{Binding Star4Color}" />
+                                                    <Label Text="★" FontSize="12" TextColor="{Binding Star5Color}" />
                                                 </HorizontalStackLayout>
                                             </Grid>
 
                                             <!-- Middle Row: Food Pill -->
                                             <Border Grid.Row="1"
-                                                    BackgroundColor="#F3F4F6"
-                                                    StrokeThickness="0"
-                                                    Padding="8,4"
+                                                    BackgroundColor="#F8FAFC"
+                                                    Stroke="#E2E8F0"
+                                                    StrokeThickness="0.5"
+                                                    Padding="6,2"
                                                     HorizontalOptions="Start">
                                                 <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="8" />
+                                                    <RoundRectangle CornerRadius="6" />
                                                 </Border.StrokeShape>
                                                 <Label Text="{Binding DisplayFoodPill}"
                                                        FontSize="10"
-                                                       TextColor="#374151"
+                                                       TextColor="#475569"
                                                        FontAttributes="Bold"
                                                        LineBreakMode="TailTruncation"
                                                        MaxLines="1" />
@@ -922,7 +925,7 @@
                                             <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="4">
                                                 <Label Grid.Column="0"
                                                        Text="“"
-                                                       FontSize="16"
+                                                       FontSize="15"
                                                        FontAttributes="Bold"
                                                        TextColor="#10B981"
                                                        VerticalOptions="Start"
@@ -939,8 +942,8 @@
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </CarouselView.ItemTemplate>
-                        </CarouselView>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
                     </VerticalStackLayout>
 
                 </VerticalStackLayout>

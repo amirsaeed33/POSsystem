@@ -424,7 +424,14 @@ public partial class CustomerProfileViewModel : BaseViewModel
                 ProfilePictureUrl = dataUri;
                 Preferences.Default.Set("sp.customerAvatar", dataUri);
 
-                if (!string.IsNullOrWhiteSpace(PhoneNumber))
+                var phoneToSync = !string.IsNullOrWhiteSpace(PhoneNumber)
+                    ? PhoneNumber.Trim()
+                    : Preferences.Default.Get("sp.customerPhone", string.Empty).Trim();
+                var nameToSync = !string.IsNullOrWhiteSpace(FullName)
+                    ? FullName.Trim()
+                    : Preferences.Default.Get("sp.customerName", "Customer").Trim();
+
+                if (!string.IsNullOrWhiteSpace(phoneToSync))
                 {
                     _ = Task.Run(async () =>
                     {
@@ -433,8 +440,8 @@ public partial class CustomerProfileViewModel : BaseViewModel
                             await _orders.UpsertOnlineCustomerProfileAsync(new UpsertOnlineCustomerProfileInput
                             {
                                 BranchId = _session.BranchId > 0 ? _session.BranchId : null,
-                                Name = string.IsNullOrWhiteSpace(FullName) ? "Customer" : FullName.Trim(),
-                                Phone = PhoneNumber.Trim(),
+                                Name = nameToSync,
+                                Phone = phoneToSync,
                                 Email = EmailAddress,
                                 ImageBase64 = dataUri
                             });
