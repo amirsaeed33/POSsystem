@@ -16,7 +16,13 @@ public partial class BubbleTabBar : ContentView
             typeof(int),
             typeof(BubbleTabBar),
             0,
-            propertyChanged: OnConfigChanged);
+            propertyChanged: (bindable, oldValue, newValue) =>
+            {
+                if (bindable is BubbleTabBar bar)
+                {
+                    bar.RefreshVisuals();
+                }
+            });
 
     public static readonly BindableProperty ModeProperty =
         BindableProperty.Create(
@@ -24,7 +30,13 @@ public partial class BubbleTabBar : ContentView
             typeof(BubbleTabMode),
             typeof(BubbleTabBar),
             BubbleTabMode.Customer,
-            propertyChanged: OnConfigChanged);
+            propertyChanged: (bindable, oldValue, newValue) =>
+            {
+                if (bindable is BubbleTabBar bar)
+                {
+                    bar.ApplyMode();
+                }
+            });
 
     public static readonly BindableProperty CartCountProperty =
         BindableProperty.Create(
@@ -42,7 +54,7 @@ public partial class BubbleTabBar : ContentView
 
     private static readonly Color CustomerAccent = Color.FromArgb("#10B981");
     private static readonly Color StaffAccent = Color.FromArgb("#0F6B4C");
-    private static readonly Color Inactive = Color.FromArgb("#9CA3AF");
+    private static readonly Color Inactive = Color.FromArgb("#94A3B8");
 
     private Color Accent => Mode == BubbleTabMode.Customer ? CustomerAccent : StaffAccent;
 
@@ -56,11 +68,10 @@ public partial class BubbleTabBar : ContentView
     public BubbleTabBar()
     {
         InitializeComponent();
-        Loaded += (_, _) =>
-        {
-            ApplyMode();
-            RefreshVisuals();
-        };
+        ApplyMode();
+
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     public int SelectedIndex
@@ -81,12 +92,197 @@ public partial class BubbleTabBar : ContentView
         set => SetValue(CartCountProperty, value);
     }
 
-    private static void OnConfigChanged(BindableObject bindable, object oldValue, object newValue)
+    private void OnLoaded(object? sender, EventArgs e)
     {
-        if (bindable is BubbleTabBar bar)
+        ApplyMode();
+        HookShellNavigated();
+        SyncActiveTab();
+    }
+
+    private void OnUnloaded(object? sender, EventArgs e)
+    {
+        UnhookShellNavigated();
+    }
+
+    private void HookShellNavigated()
+    {
+        if (Shell.Current != null)
         {
-            bar.ApplyMode();
+            Shell.Current.Navigated -= OnShellNavigated;
+            Shell.Current.Navigated += OnShellNavigated;
         }
+    }
+
+    private void UnhookShellNavigated()
+    {
+        if (Shell.Current != null)
+        {
+            Shell.Current.Navigated -= OnShellNavigated;
+        }
+    }
+
+    private void OnShellNavigated(object? sender, ShellNavigatedEventArgs e)
+    {
+        MainThread.BeginInvokeOnMainThread(SyncActiveTab);
+    }
+
+    public void SyncActiveTab()
+    {
+        try
+        {
+            var hostPage = GetParentPage();
+            var targetIndex = -1;
+
+            switch (Mode)
+            {
+                case BubbleTabMode.Customer:
+                    targetIndex = ResolveCustomerTabIndex(hostPage);
+                    break;
+                case BubbleTabMode.Rider:
+                    targetIndex = ResolveRiderTabIndex(hostPage);
+                    break;
+                case BubbleTabMode.Waiter:
+                    targetIndex = ResolveWaiterTabIndex(hostPage);
+                    break;
+                case BubbleTabMode.Admin:
+                    targetIndex = ResolveAdminTabIndex(hostPage);
+                    break;
+            }
+
+            if (targetIndex >= 0 && targetIndex < _tabCount)
+            {
+                if (SelectedIndex != targetIndex)
+                {
+                    SelectedIndex = targetIndex;
+                }
+                else
+                {
+                    RefreshVisuals();
+                }
+            }
+        }
+        catch
+        {
+            // Defensive against navigation race conditions
+        }
+    }
+
+    private Page? GetParentPage()
+    {
+        Element? current = Parent;
+        while (current != null)
+        {
+            if (current is Page page)
+            {
+                return page;
+            }
+            current = current.Parent;
+        }
+        return Shell.Current?.CurrentPage;
+    }
+
+    private int ResolveCustomerTabIndex(Page? page)
+    {
+        if (page != null)
+        {
+            var pageType = page.GetType().Name;
+            if (pageType.Equals("CustomerHomePage", StringComparison.OrdinalIgnoreCase))
+                return 0;
+            if (pageType.Equals("OrderPage", StringComparison.OrdinalIgnoreCase) ||
+                pageType.Equals("CartPage", StringComparison.OrdinalIgnoreCase) ||
+                pageType.Equals("ProductDetailPage", StringComparison.OrdinalIgnoreCase) ||
+                pageType.Equals("TrackOrderPage", StringComparison.OrdinalIgnoreCase))
+                return 1;
+            if (pageType.Equals("FavoritesPage", StringComparison.OrdinalIgnoreCase))
+                return 2;
+            if (pageType.Equals("CustomerProfilePage", StringComparison.OrdinalIgnoreCase) ||
+                pageType.Equals("OrderHistoryPage", StringComparison.OrdinalIgnoreCase))
+                return 3;
+        }
+
+        var route = (Shell.Current?.CurrentState?.Location?.OriginalString ?? string.Empty).ToLowerInvariant();
+        if (route.Contains("favorite"))
+            return 2;
+        if (route.Contains("account") || route.Contains("profile") || route.Contains("history"))
+            return 3;
+        if (route.Contains("order") || route.Contains("product") || route.Contains("cart") || route.Contains("track"))
+            return 1;
+        if (route.Contains("home"))
+            return 0;
+
+        return SelectedIndex;
+    }
+
+    private int ResolveRiderTabIndex(Page? page)
+    {
+        if (page != null)
+        {
+            var pageType = page.GetType().Name;
+            if (pageType.Equals("RiderDashboardPage", StringComparison.OrdinalIgnoreCase))
+                return 0;
+            if (pageType.Equals("RiderHistoryPage", StringComparison.OrdinalIgnoreCase))
+                return 1;
+            if (pageType.Equals("LoginPage", StringComparison.OrdinalIgnoreCase))
+                return 2;
+        }
+
+        var route = (Shell.Current?.CurrentState?.Location?.OriginalString ?? string.Empty).ToLowerInvariant();
+        if (route.Contains("history"))
+            return 1;
+        if (route.Contains("account") || route.Contains("login"))
+            return 2;
+        if (route.Contains("dashboard") || route.Contains("home"))
+            return 0;
+
+        return SelectedIndex;
+    }
+
+    private int ResolveWaiterTabIndex(Page? page)
+    {
+        if (page != null)
+        {
+            var pageType = page.GetType().Name;
+            if (pageType.Equals("WaiterTablesPage", StringComparison.OrdinalIgnoreCase))
+                return 0;
+            if (pageType.Equals("WaiterOrderPage", StringComparison.OrdinalIgnoreCase))
+                return 1;
+            if (pageType.Equals("WaiterMyOrdersPage", StringComparison.OrdinalIgnoreCase))
+                return 2;
+            if (pageType.Equals("LoginPage", StringComparison.OrdinalIgnoreCase))
+                return 3;
+        }
+
+        var route = (Shell.Current?.CurrentState?.Location?.OriginalString ?? string.Empty).ToLowerInvariant();
+        if (route.Contains("table"))
+            return 0;
+        if (route.Contains("myorder"))
+            return 2;
+        if (route.Contains("order"))
+            return 1;
+        if (route.Contains("account") || route.Contains("login"))
+            return 3;
+
+        return SelectedIndex;
+    }
+
+    private int ResolveAdminTabIndex(Page? page)
+    {
+        if (page != null)
+        {
+            var pageType = page.GetType().Name;
+            if (pageType.Equals("AdminDashboardPage", StringComparison.OrdinalIgnoreCase))
+                return 0;
+            if (pageType.Equals("LoginPage", StringComparison.OrdinalIgnoreCase))
+                return 1;
+        }
+
+        var route = (Shell.Current?.CurrentState?.Location?.OriginalString ?? string.Empty).ToLowerInvariant();
+        if (route.Contains("account") || route.Contains("login"))
+            return 1;
+        if (route.Contains("home") || route.Contains("dashboard"))
+            return 0;
+
+        return SelectedIndex;
     }
 
     private void ApplyMode()
@@ -123,25 +319,34 @@ public partial class BubbleTabBar : ContentView
                 break;
         }
 
-        Label0.Text = _labels.ElementAtOrDefault(0) ?? string.Empty;
-        Label1.Text = _labels.ElementAtOrDefault(1) ?? string.Empty;
-        Label2.Text = _labels.ElementAtOrDefault(2) ?? string.Empty;
-        Label3.Text = _labels.ElementAtOrDefault(3) ?? string.Empty;
+        if (Label0 != null) Label0.Text = _labels.ElementAtOrDefault(0) ?? string.Empty;
+        if (Label1 != null) Label1.Text = _labels.ElementAtOrDefault(1) ?? string.Empty;
+        if (Label2 != null) Label2.Text = _labels.ElementAtOrDefault(2) ?? string.Empty;
+        if (Label3 != null) Label3.Text = _labels.ElementAtOrDefault(3) ?? string.Empty;
 
         var buttons = new[] { Tab0, Tab1, Tab2, Tab3 };
         var visuals = new[] { Tab0Visual, Tab1Visual, Tab2Visual, Tab3Visual };
         for (var i = 0; i < 4; i++)
         {
             var on = i < _tabCount;
-            buttons[i].IsVisible = on;
-            buttons[i].IsEnabled = on;
-            visuals[i].IsVisible = on;
+            if (buttons[i] != null)
+            {
+                buttons[i].IsVisible = on;
+                buttons[i].IsEnabled = on;
+            }
+            if (visuals[i] != null)
+            {
+                visuals[i].IsVisible = on;
+            }
         }
 
-        TabsGrid.ColumnDefinitions.Clear();
-        for (var i = 0; i < _tabCount; i++)
+        if (TabsGrid != null)
         {
-            TabsGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            TabsGrid.ColumnDefinitions.Clear();
+            for (var i = 0; i < _tabCount; i++)
+            {
+                TabsGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            }
         }
 
         RefreshVisuals();
@@ -149,6 +354,12 @@ public partial class BubbleTabBar : ContentView
 
     private void RefreshVisuals()
     {
+        if (_activeIcons.Length < _tabCount || _inactiveIcons.Length < _tabCount)
+        {
+            ApplyMode();
+            return;
+        }
+
         var icons = new[] { Icon0, Icon1, Icon2, Icon3 };
         var labels = new[] { Label0, Label1, Label2, Label3 };
         var buttons = new[] { Tab0, Tab1, Tab2, Tab3 };
@@ -157,16 +368,27 @@ public partial class BubbleTabBar : ContentView
         {
             if (i >= _tabCount)
             {
-                buttons[i].IsVisible = false;
+                if (buttons[i] != null) buttons[i].IsVisible = false;
                 continue;
             }
 
-            buttons[i].IsVisible = true;
-            buttons[i].IsEnabled = true;
+            if (buttons[i] != null)
+            {
+                buttons[i].IsVisible = true;
+                buttons[i].IsEnabled = true;
+            }
+
             var active = i == SelectedIndex;
-            icons[i].Source = active ? _activeIcons[i] : _inactiveIcons[i];
-            labels[i].TextColor = active ? Accent : Inactive;
-            labels[i].FontAttributes = active ? FontAttributes.Bold : FontAttributes.None;
+            if (icons[i] != null)
+            {
+                icons[i].Source = active ? _activeIcons[i] : _inactiveIcons[i];
+            }
+
+            if (labels[i] != null)
+            {
+                labels[i].TextColor = active ? Accent : Inactive;
+                labels[i].FontAttributes = active ? FontAttributes.Bold : FontAttributes.None;
+            }
         }
     }
 
@@ -196,7 +418,6 @@ public partial class BubbleTabBar : ContentView
         }
 
         _navigating = true;
-        SelectedIndex = index;
         try
         {
             await Shell.Current.GoToAsync(route);
