@@ -115,6 +115,15 @@
                             placeholder="Filter by Type"
                             styleClass="w-full sm:w-11rem"
                         ></p-dropdown>
+
+                        <p-dropdown
+                            [options]="paymentStatusOptions"
+                            [(ngModel)]="selectedPaymentStatus"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Payment Status"
+                            styleClass="w-full sm:w-12rem"
+                        ></p-dropdown>
                     </div>
                     <div class="flex flex-wrap gap-2 align-items-center">
                         <button

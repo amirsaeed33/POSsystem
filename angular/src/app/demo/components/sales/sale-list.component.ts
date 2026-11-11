@@ -51,6 +51,15 @@ export class SaleListComponent implements OnInit {
         { label: 'Online Order', value: 'Online Order' }
     ];
 
+    // Payment Status Filter
+    selectedPaymentStatus = 'All';
+    paymentStatusOptions = [
+        { label: 'All Payments', value: 'All' },
+        { label: 'Paid', value: 'Paid' },
+        { label: 'Partially Paid', value: 'Partial' },
+        { label: 'Unpaid', value: 'Unpaid' }
+    ];
+
     // Collect Payment Dialog State
     collectDialogVisible = false;
     selectedSaleForPayment: SaleDto | null = null;
@@ -143,10 +152,31 @@ export class SaleListComponent implements OnInit {
     }
 
     get filteredSales(): SaleDto[] {
-        if (!this.selectedSaleType || this.selectedSaleType === 'All') {
-            return this.sales;
+        let result = this.sales;
+
+        if (this.selectedSaleType && this.selectedSaleType !== 'All') {
+            result = result.filter(s => this.getSaleType(s) === this.selectedSaleType);
         }
-        return this.sales.filter(s => this.getSaleType(s) === this.selectedSaleType);
+
+        if (this.selectedPaymentStatus && this.selectedPaymentStatus !== 'All') {
+            if (this.selectedPaymentStatus === 'Paid') {
+                result = result.filter(s => this.getDueAmount(s) <= 0.009);
+            } else if (this.selectedPaymentStatus === 'Partial') {
+                result = result.filter(s => {
+                    const paid = this.getPaidAmount(s);
+                    const due = this.getDueAmount(s);
+                    return paid > 0.009 && due > 0.009;
+                });
+            } else if (this.selectedPaymentStatus === 'Unpaid') {
+                result = result.filter(s => {
+                    const paid = this.getPaidAmount(s);
+                    const due = this.getDueAmount(s);
+                    return paid <= 0.009 && due > 0.009;
+                });
+            }
+        }
+
+        return result;
     }
 
     getSaleType(sale: SaleDto): string {
