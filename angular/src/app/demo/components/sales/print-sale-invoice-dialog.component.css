@@ -48,39 +48,49 @@
   padding: 8px 6px 14px;
   font-size: 10px;
 }
+
 .thermal-sheet.thermal-58 .thermal-logo {
-  width: 42px;
-  height: 42px;
+  max-width: 45mm;
+  max-height: 60px;
+  width: auto;
+  height: auto;
 }
+
 .thermal-sheet.thermal-58 .thermal-store-name {
-  font-size: 13px;
+  font-size: 15px;
 }
+
 .thermal-sheet.thermal-58 .thermal-store-info {
-  font-size: 9px;
+  font-size: 9.5px;
 }
+
 .thermal-sheet.thermal-58 .thermal-meta {
   font-size: 9.5px;
 }
+
 .thermal-sheet.thermal-58 .thermal-table th,
 .thermal-sheet.thermal-58 .thermal-table td {
   font-size: 9.5px;
   padding: 2px 0;
 }
+
 .thermal-sheet.thermal-58 .thermal-total-row {
-  font-size: 9.5px;
+  font-size: 10px;
 }
+
 .thermal-sheet.thermal-58 .thermal-grand-total {
-  font-size: 13px;
+  font-size: 13.5px;
 }
+
 .thermal-sheet {
   width: 78mm;
   max-width: 100%;
   margin: 0 auto;
-  padding: 12px 14px 20px;
+  padding: 10px 12px 18px;
   background: #ffffff;
   color: #000000;
-  font-family: Arial, Helvetica, 'Segoe UI', sans-serif;
-  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
   line-height: 1.35;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   border: 1px solid #e5e7eb;
@@ -89,16 +99,17 @@
 }
 
 .thermal-logo {
-  width: 58px;
-  height: 58px;
+  width: 75%;
+  max-width: 68mm;
+  max-height: 150px;
+  height: auto;
   object-fit: contain;
-  border-radius: 50%;
   margin: 0 auto 6px;
   display: block;
 }
 
 .thermal-store-name {
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -143,36 +154,7 @@
 .thermal-meta-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
   margin-bottom: 2.5px;
-}
-
-.thermal-meta-row .meta-left,
-.thermal-meta-row .meta-right {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.thermal-meta-row .meta-right {
-  text-align: right;
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-
-.thermal-meta-row .meta-label {
-  font-weight: 700;
-}
-
-.thermal-meta-row .printed-at {
-  white-space: nowrap;
-  font-size: 10.5px;
-}
-
-.thermal-divider-solid {
-  border-bottom: 2px solid #000000;
-  margin: 8px 0;
-  width: 100%;
 }
 
 .thermal-items-header {
@@ -242,9 +224,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 16px;
-  font-weight: 900;
-  padding: 3px 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 3.5px 0;
+  border-top: 1px dashed #000;
+  border-bottom: 1px dashed #000;
+  margin: 3px 0;
 }
 
 .thermal-notes {
@@ -411,6 +396,7 @@
   color: #111;
   margin-top: 1px;
 }
+
 .thermal-token-row {
   display: flex;
   justify-content: space-between;
@@ -418,13 +404,16 @@
   margin: 6px 0 2px 0;
   font-weight: bold;
 }
+
 .thermal-token-num {
   font-size: 15px;
   font-family: monospace;
 }
+
 .thermal-token-type {
   font-size: 14px;
 }
+
 .thermal-deal-items {
   font-size: 9px;
   color: #222;

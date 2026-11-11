@@ -121,22 +121,22 @@ export class ThermalPrintService {
     // =========================================================================
     public getBaseThermalStyles(paperSize: ThermalPaperSize): string {
         const is58 = paperSize === '58mm';
-        const bodyWidth = is58 ? '48mm' : '72mm';
+        const bodyWidth = is58 ? '48mm' : '76mm';
         const baseFontSize = is58 ? '9.5px' : '12px';
         const titleFontSize = is58 ? '13px' : '16px';
-        const subTitleFontSize = is58 ? '10.5px' : '13px';
-        const metaFontSize = is58 ? '8.5px' : '10.5px';
+        const subTitleFontSize = is58 ? '11px' : '14px';
+        const metaFontSize = is58 ? '9px' : '11.5px';
 
         return `
             @page {
-                margin: 0mm !important;
+                margin: 0 !important;
             }
             @media print {
                 html, body {
-                    width: ${bodyWidth} !important;
+                    width: 100% !important;
                     max-width: ${bodyWidth} !important;
-                    margin: 0 auto !important;
-                    padding: ${is58 ? '1mm' : '2mm'} !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
                     background: #ffffff !important;
                     color: #000000 !important;
                 }
@@ -150,21 +150,22 @@ export class ThermalPrintService {
             body {
                 font-family: Arial, Helvetica, 'Segoe UI', sans-serif;
                 font-size: ${baseFontSize};
-                line-height: 1.3;
+                line-height: 1.34;
                 color: #000000;
                 background: #ffffff;
-                width: ${bodyWidth};
+                width: 100%;
                 max-width: ${bodyWidth};
                 margin: 0 auto;
-                padding: ${is58 ? '2mm 1.5mm' : '3mm 2.5mm'};
+                padding: ${is58 ? '1.5mm 1mm' : '2.5mm 1.5mm'};
+                font-weight: 400;
             }
             .text-center { text-align: center; }
             .text-right { text-align: right; }
             .text-left { text-align: left; }
             .bold { font-weight: 700; }
             .uppercase { text-transform: uppercase; }
-            .divider { border-top: 1px dotted #000000; margin: 5px 0; }
-            .double-divider { border-top: 2px solid #000000; margin: 5px 0; }
+            .divider { border-top: 1px dashed #000000; margin: 4px 0; }
+            .double-divider { border-top: 1px dashed #000000; margin: 4px 0; }
             .dotted-divider { border-top: 1px dotted #000000; margin: 3px 0; }
             .row {
                 display: flex;
@@ -179,12 +180,12 @@ export class ThermalPrintService {
             .printed-at {
                 white-space: nowrap;
                 flex: 0 0 auto;
-                font-size: ${is58 ? '8px' : '9.5px'};
+                font-size: ${is58 ? '8.5px' : '10px'};
             }
             .header-title {
                 font-size: ${titleFontSize};
-                font-weight: 800;
-                letter-spacing: 0.4px;
+                font-weight: 700;
+                letter-spacing: 0.3px;
                 margin-top: 2px;
             }
             .header-subtitle {
@@ -199,20 +200,29 @@ export class ThermalPrintService {
             }
             .section-title {
                 text-align: center;
-                font-weight: 800;
-                text-transform: uppercase;
-                font-size: ${is58 ? '10px' : '11.5px'};
+                font-weight: 700;
+                font-size: ${is58 ? '11px' : '13px'};
                 letter-spacing: 0.3px;
-                margin: 2px 0;
+                margin: 3px 0;
             }
             table {
                 width: 100%;
                 border-collapse: collapse;
                 margin: 2px 0 4px 0;
                 table-layout: fixed;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            tr, td, th {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            .receipt-instance {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
             th {
-                border-bottom: 1px dotted #000000;
+                border-bottom: 1px dashed #000000;
                 padding: 3px 2px;
                 font-size: ${metaFontSize};
                 font-weight: 700;
@@ -231,11 +241,13 @@ export class ThermalPrintService {
                 padding-right: 0;
             }
             .logo-img {
-                max-width: ${is58 ? '34mm' : '44mm'};
-                max-height: 48px;
-                margin: 0 auto 2px auto;
+                width: ${is58 ? '80%' : '76%'};
+                max-width: ${is58 ? '48mm' : '70mm'};
+                max-height: ${is58 ? '85px' : '115px'};
+                height: auto;
+                margin: 0 auto 3px auto;
                 display: block;
-                filter: grayscale(100%) contrast(130%);
+                filter: grayscale(100%) contrast(140%);
                 object-fit: contain;
             }
             .badge {
@@ -249,8 +261,8 @@ export class ThermalPrintService {
                 margin-right: 2px;
             }
             .grand-total {
-                font-size: ${subTitleFontSize};
-                font-weight: 800;
+                font-size: ${is58 ? '11.5px' : '13px'};
+                font-weight: 700;
                 padding: 3px 0;
                 margin: 2px 0 1px 0;
             }
@@ -314,7 +326,7 @@ export class ThermalPrintService {
                     : '';
             finalContent += `<div class="receipt-instance">${copyBadge}${bodyHtml}</div>`;
             if (i < copies) {
-                finalContent += `<div class="receipt-copy-separator">✂ - - - - - - CUT HERE - - - - - - ✂</div>`;
+                finalContent += `<div class="receipt-copy-separator">âœ‚ - - - - - - CUT HERE - - - - - - âœ‚</div>`;
             }
         }
 
@@ -364,7 +376,7 @@ export class ThermalPrintService {
         frameDoc.write(fullHtml);
         frameDoc.close();
 
-        // Guard: logo/img onload + fallback timeout previously both called print() → duplicate invoices.
+        // Guard: logo/img onload + fallback timeout previously both called print() â†’ duplicate invoices.
         let printed = false;
         let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
         const triggerPrint = () => {
@@ -403,7 +415,7 @@ export class ThermalPrintService {
                     img.onerror = onImgDone;
                 }
             }
-            // Fallback only if images never finish — never a second print after success.
+            // Fallback only if images never finish â€” never a second print after success.
             fallbackTimer = setTimeout(triggerPrint, 1200);
         } else {
             fallbackTimer = setTimeout(triggerPrint, 250);
@@ -499,7 +511,7 @@ export class ThermalPrintService {
         const branchInfo = this.getBranchInfo();
 
         const logoHtml = params.logoUrl
-            ? `<img src="${params.logoUrl}" class="logo-img" alt="Logo" />`
+            ? `<img src="${params.logoUrl}" class="logo-img" alt="" onerror="this.style.display='none'" />`
             : '';
 
         const linesHtml = (params.lines || []).map((l: any) => {
@@ -518,48 +530,62 @@ export class ThermalPrintService {
 
             return `
                 <tr>
-                    <td style="width: 46%; padding-top: 3px;">
+                    <td style="width: 48%; padding-top: 3px;">
                         <span class="bold">${dealBadge}${l.productName || 'Item'}</span>${extrasHtml}
                     </td>
                     <td style="width: 14%; text-align: center; font-weight: 700; padding-top: 3px;">${qty}</td>
-                    <td style="width: 20%; text-align: right; padding-top: 3px;">${rate.toFixed(0)}</td>
+                    <td style="width: 18%; text-align: right; padding-top: 3px;">${rate.toFixed(0)}</td>
                     <td style="width: 20%; text-align: right; font-weight: 700; padding-top: 3px;">${total.toFixed(0)}</td>
                 </tr>
             `;
         }).join('');
 
         const discountHtml = (params.discountAmount && params.discountAmount > 0)
-            ? `<div class="row"><span>Discount${params.discountPercent ? ' (' + params.discountPercent + '%)' : ''}</span><span>-${Number(params.discountAmount).toFixed(0)} Rs</span></div>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Discount${params.discountPercent ? ' (' + params.discountPercent + '%)' : ''}</td><td style="text-align: right; padding: 1.5px 0;">-${Number(params.discountAmount).toFixed(0)} Rs</td></tr>`
             : '';
         const taxHtml = (params.taxAmount && params.taxAmount > 0)
-            ? `<div class="row"><span>Tax${params.taxPercent ? ' (' + params.taxPercent + '%)' : ''}</span><span>+${Number(params.taxAmount).toFixed(0)} Rs</span></div>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Tax${params.taxPercent ? ' (' + params.taxPercent + '%)' : ''}</td><td style="text-align: right; padding: 1.5px 0;">+${Number(params.taxAmount).toFixed(0)} Rs</td></tr>`
             : '';
         const deliveryHtml = (params.deliveryFee && params.deliveryFee > 0)
-            ? `<div class="row"><span>Delivery Charges</span><span>+${Number(params.deliveryFee).toFixed(0)} Rs</span></div>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Delivery Fee</td><td style="text-align: right; padding: 1.5px 0;">+${Number(params.deliveryFee).toFixed(0)} Rs</td></tr>`
             : '';
         const serviceHtml = (params.serviceChargeAmount && params.serviceChargeAmount > 0)
-            ? `<div class="row"><span>Service Charge${params.serviceChargePercent ? ' (' + params.serviceChargePercent + '%)' : ''}</span><span>+${Number(params.serviceChargeAmount).toFixed(0)} Rs</span></div>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Service Charge${params.serviceChargePercent ? ' (' + params.serviceChargePercent + '%)' : ''}</td><td style="text-align: right; padding: 1.5px 0;">+${Number(params.serviceChargeAmount).toFixed(0)} Rs</td></tr>`
             : '';
 
         const cashPaidHtml = (params.cashPaid && params.cashPaid > 0)
-            ? `<div class="row"><span>Cash Paid</span><span>${Number(params.cashPaid).toFixed(0)} Rs</span></div>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Cash Paid</td><td style="text-align: right; padding: 1.5px 0;">${Number(params.cashPaid).toFixed(0)} Rs</td></tr>`
             : '';
         const cardPaidHtml = (params.cardPaid && params.cardPaid > 0)
-            ? `<div class="row"><span>Card Paid</span><span>${Number(params.cardPaid).toFixed(0)} Rs</span></div>`
+            ? `<tr><td colspan="3" style="text-align: left; padding: 1.5px 0;">Card Paid</td><td style="text-align: right; padding: 1.5px 0;">${Number(params.cardPaid).toFixed(0)} Rs</td></tr>`
             : '';
         const dueHtml = (params.dueAmount && params.dueAmount > 0.009)
-            ? `<div class="row bold"><span>Due Amount</span><span>${Number(params.dueAmount).toFixed(0)} Rs</span></div>`
+            ? `<tr style="font-weight: 700;"><td colspan="3" style="text-align: left; padding: 2px 0;">Due Amount</td><td style="text-align: right; padding: 2px 0;">${Number(params.dueAmount).toFixed(0)} Rs</td></tr>`
             : '';
         const changeHtml = (params.changeReturned && params.changeReturned > 0)
-            ? `<div class="row bold"><span>Change Returned</span><span>${Number(params.changeReturned).toFixed(0)} Rs</span></div>`
+            ? `<tr style="font-weight: 700;"><td colspan="3" style="text-align: left; padding: 2px 0;">Change Returned</td><td style="text-align: right; padding: 2px 0;">${Number(params.changeReturned).toFixed(0)} Rs</td></tr>`
             : '';
 
-        const tokenRowHtml = (params.tokenNo != null && params.tokenNo > 0)
-            ? `<div class="row" style="margin-top: 6px; margin-bottom: 2px;">
-                <span class="bold" style="font-size: ${is58 ? '12px' : '14px'};">Token# ${params.tokenNo}</span>
-                <span></span>
-               </div>`
-            : '';
+        const tokenRowHtml = `
+            <div style="margin-top: 4px;">
+                <div class="row" style="font-size: ${is58 ? '12px' : '14px'}; font-weight: 700; margin-bottom: 2px;">
+                    <span>${params.tokenNo != null && params.tokenNo > 0 ? `Token# ${params.tokenNo}` : ''}</span>
+                    <span>${params.orderType}</span>
+                </div>
+                <div class="row" style="white-space: nowrap; font-size: ${is58 ? '8.5px' : '10.5px'};">
+                    <span style="white-space: nowrap;">Order ID: <strong>${params.orderId}</strong></span>
+                    <span style="white-space: nowrap;">Date: ${dateParts.fullStr}</span>
+                </div>
+                <div class="row" style="white-space: nowrap; font-size: ${is58 ? '8.5px' : '10.5px'};">
+                    <span style="white-space: nowrap;">Invoice#: <strong>${params.invoiceNo || '#' + params.orderId}</strong></span>
+                    <span style="white-space: nowrap;">User: <strong>${params.userName || 'Staff'}</strong></span>
+                </div>
+                <div class="row" style="white-space: nowrap; font-size: ${is58 ? '8.5px' : '10.5px'};">
+                    <span style="white-space: nowrap;">Order Type : <strong>${params.orderType}</strong></span>
+                    ${params.subLocation ? `<span style="white-space: nowrap;"><strong>${params.subLocation}</strong></span>` : '<span></span>'}
+                </div>
+            </div>
+        `;
 
         const softwareName =
             params.softwareDeveloperName ||
@@ -569,9 +595,6 @@ export class ThermalPrintService {
             params.softwareDeveloperPhone ||
             branchInfo.softwareDeveloperPhone ||
             '';
-        const invoiceFooter = this.escapeThermalText(
-            (params.invoiceFooter || branchInfo.footer || '').trim()
-        );
 
         const addressHtml = params.customerAddress
             ? `<div><span class="label">Address:</span> ${params.customerAddress}</div>`
@@ -586,31 +609,27 @@ export class ThermalPrintService {
             ? `<div><span class="label">Payment:</span> ${params.customerPayment}</div>`
             : '';
 
+        const headerHtml = params.logoUrl
+            ? `
+                <div class="text-center">
+                    ${logoHtml}
+                    <div class="meta-text" style="margin-top: 3px; font-size: ${is58 ? '10px' : '12px'};">${params.city || 'Faisalabad'}</div>
+                    <div class="bold" style="font-size: ${is58 ? '11px' : '13px'}; margin-top: 2px;">${params.statusLabel}</div>
+                </div>
+              `
+            : `
+                <div class="text-center">
+                    <div class="header-title uppercase">${params.branchName}</div>
+                    <div class="meta-text" style="font-style: italic; margin-top: 1px;">${params.tagline || 'Taste & Quality'}</div>
+                    <div class="meta-text" style="margin-top: 2px; font-size: ${is58 ? '10px' : '12px'};">${params.city || 'Faisalabad'}</div>
+                    <div class="bold" style="font-size: ${is58 ? '11px' : '13px'}; margin-top: 2px;">${params.statusLabel}</div>
+                </div>
+              `;
+
         return `
-            <div class="text-center">
-                ${logoHtml}
-                <div class="header-title uppercase">${params.branchName}</div>
-                <div class="meta-text" style="font-style: italic; margin-top: 1px;">${params.tagline || 'Taste & Quality'}</div>
-                <div class="meta-text" style="margin-top: 2px;">${params.city || 'Faisalabad'}</div>
-                <div class="bold uppercase" style="font-size: ${is58 ? '11px' : '12px'}; margin-top: 3px;">${params.statusLabel}</div>
-            </div>
+            ${headerHtml}
 
             ${tokenRowHtml}
-
-            <div style="margin-top: 3px;">
-                <div class="row">
-                    <span><span class="label">Order ID:</span> <strong>${params.orderId}</strong></span>
-                    <span><span class="label">Date:</span> ${dateParts.fullStr}</span>
-                </div>
-                <div class="row">
-                    <span><span class="label">Invoice#:</span> <strong>${params.invoiceNo || '#' + params.orderId}</strong></span>
-                    <span><span class="label">User:</span> <strong>${params.userName || 'Staff'}</strong></span>
-                </div>
-                <div class="row">
-                    <span><span class="label">Order Type:</span> <strong>${params.orderType}</strong></span>
-                    ${params.subLocation ? `<span><strong>${params.subLocation}</strong></span>` : '<span></span>'}
-                </div>
-            </div>
 
             <div class="divider"></div>
             <div class="section-title">Order Detail</div>
@@ -619,57 +638,60 @@ export class ThermalPrintService {
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 46%; text-align: left;">Item</th>
+                        <th style="width: 48%; text-align: left;">Item</th>
                         <th style="width: 14%; text-align: center;">Qty</th>
-                        <th style="width: 20%; text-align: right;">Rate</th>
+                        <th style="width: 18%; text-align: right;">Rate</th>
                         <th style="width: 20%; text-align: right;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${linesHtml}
+                    <tr style="border-top: 1px dashed #000000;">
+                        <td colspan="3" style="text-align: left; padding: 2.5px 0;">Sub Total</td>
+                        <td style="text-align: right; font-weight: 700; padding: 2.5px 0;">${Number(params.subTotal || 0).toFixed(0)} Rs</td>
+                    </tr>
+                    ${discountHtml}
+                    ${taxHtml}
+                    ${serviceHtml}
+                    ${deliveryHtml}
+                    <tr style="border-top: 1px dashed #000000; border-bottom: 1px dashed #000000;">
+                        <td colspan="3" style="text-align: left; font-weight: 700; font-size: ${is58 ? '11px' : '13px'}; padding: 3px 0;">GRAND TOTAL</td>
+                        <td style="text-align: right; font-weight: 700; font-size: ${is58 ? '11px' : '13px'}; padding: 3px 0;">${Number(params.grandTotal || 0).toFixed(0)} Rs</td>
+                    </tr>
+                    ${cashPaidHtml}
+                    ${cardPaidHtml}
+                    ${dueHtml}
+                    ${changeHtml}
                 </tbody>
             </table>
-
-            <div class="divider"></div>
-
-            <div>
-                <div class="row"><span>Sub Total</span><span class="bold">${Number(params.subTotal || 0).toFixed(0)} Rs</span></div>
-                ${discountHtml}
-                ${taxHtml}
-                ${serviceHtml}
-                ${deliveryHtml}
-                <div class="row grand-total">
-                    <span>GRAND TOTAL</span>
-                    <span>${Number(params.grandTotal || 0).toFixed(0)} Rs</span>
-                </div>
-                ${cashPaidHtml}
-                ${cardPaidHtml}
-                ${dueHtml}
-                ${changeHtml}
-            </div>
 
             <div class="divider"></div>
             <div class="section-title">Customer Detail</div>
             <div class="divider"></div>
 
             <div class="customer-block">
-                <div class="bold">${params.customerName || 'Walk-in'}</div>
+                <div class="bold" style="font-size: ${is58 ? '11.5px' : '13px'};">${params.customerName || 'Walk-in'}</div>
                 ${phoneHtml}
                 ${addressHtml}
                 ${notesHtml}
                 ${paymentHtml}
-                <div class="row" style="margin-top: 5px; align-items: center;">
-                    <span>Order-Taker: <strong>${params.orderTaker || ''}</strong></span>
-                    <span class="printed-at">Printed: ${printParts.dateStr} ${printParts.timeStr}</span>
+                <div class="row" style="margin-top: 4px; align-items: flex-start;">
+                    <span>Order-Taker: <strong>${params.orderTaker || 'Waiter'}</strong></span>
+                    <span class="printed-at" style="text-align: right;">Printed: ${printParts.dateStr}<br/>${printParts.timeStr}</span>
                 </div>
             </div>
 
-            <div class="double-divider"></div>
-            <div class="text-center meta-text" style="margin-top: 4px;">
-                ${invoiceFooter ? `<div style="margin-bottom: 5px; white-space: pre-wrap;">${invoiceFooter}</div>` : ''}
-                <div class="bold">${this.formatUanLine(params.complaintPhone || '')}</div>
-                <div style="margin-top: 4px;">${this.formatSoftwareByLine(softwareName)}</div>
-                ${softwarePhone ? `<div style="margin-top: 1px;">${softwarePhone}</div>` : ''}
+            <div class="receipt-footer" style="page-break-inside: avoid !important; break-inside: avoid !important; page-break-before: avoid !important; break-before: avoid !important;">
+                <div class="divider"></div>
+                <div class="text-center meta-text" style="font-size: ${is58 ? '9px' : '11px'}; line-height: 1.35;">
+                    <div>For any Complaint &amp; Suggestions</div>
+                    <div>Please Contact us @ ${params.complaintPhone || branchInfo.phone || '03080004248'}</div>
+                </div>
+                <div class="divider"></div>
+                <div class="text-center meta-text" style="font-size: ${is58 ? '8.5px' : '10px'}; margin-top: 3px;">
+                    <div>${softwareName}</div>
+                    ${softwarePhone ? `<div>${softwarePhone}</div>` : ''}
+                </div>
             </div>
         `;
     }
@@ -729,13 +751,20 @@ export class ThermalPrintService {
         const cityParts = (branch.address || '').split(',').map((p) => p.trim()).filter(Boolean);
         const city = cityParts.length ? cityParts[cityParts.length - 1] : 'Faisalabad';
 
+        const total = Number(receipt.grandTotal || receipt.totalAmount || 0);
+        const paid = Number(receipt.paidAmount || receipt.cashAmount || 0) + Number(receipt.cardAmount || 0);
+        const computedDue = Math.max(0, total - paid);
+        const isUnpaid = (receipt.dueAmount && receipt.dueAmount > 0.009) || (computedDue > 0.009 && paid === 0);
+        const statusLabel = receipt.statusLabel || (isUnpaid ? 'Unpaid' : 'Paid');
+        const dueAmount = receipt.dueAmount != null ? Number(receipt.dueAmount) : (isUnpaid ? computedDue : 0);
+
         const bodyHtml = this.buildReferenceReceiptHtml({
             size,
             logoUrl: (config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
             branchName: receipt.branchName || branch.name,
             tagline: 'Taste & Quality',
             city,
-            statusLabel: 'Paid',
+            statusLabel,
             tokenNo: receipt.tokenNo,
             orderType: orderTypeLabel,
             orderId: receipt.orderNo || receipt.id,
@@ -752,9 +781,10 @@ export class ThermalPrintService {
             deliveryFee: Number(receipt.deliveryFee || 0),
             serviceChargeAmount: Number(receipt.serviceChargeAmount || 0),
             serviceChargePercent: Number(receipt.serviceChargePercent || 0),
-            grandTotal: Number(receipt.grandTotal || receipt.totalAmount || 0),
+            grandTotal: total,
             cashPaid: Number(receipt.paidAmount || receipt.cashAmount || 0),
             cardPaid: Number(receipt.cardAmount || 0),
+            dueAmount: dueAmount,
             changeReturned: Number(receipt.changeAmount || 0),
             customerName: receipt.customerName || 'Walk-in',
             orderTaker: receipt.serverName || printerIdentity.name || 'Waiter',
@@ -831,10 +861,10 @@ export class ThermalPrintService {
 
                     return `
                         <tr style="border-bottom: 1px dashed #000;">
-                            <td style="width: 25%; font-size: ${is58 ? '12px' : '14px'}; font-weight: bold; vertical-align: top;">
+                            <td style="width: 22%; font-size: ${is58 ? '14px' : '18px'}; font-weight: bold; vertical-align: top; padding: 4px 0;">
                                 ${item.quantity}x
                             </td>
-                            <td style="width: 75%; font-size: ${is58 ? '10px' : '12px'}; font-weight: bold;">
+                            <td style="width: 78%; font-size: ${is58 ? '12px' : '15px'}; font-weight: bold; padding: 4px 0;">
                                 <div>${item.productName}</div>
                                 ${qtyChange}
                                 ${dealList}
@@ -853,32 +883,50 @@ export class ThermalPrintService {
 
         const tokenHtml = (kot.tokenNo != null && kot.tokenNo > 0)
             ? `<div style="display: flex; justify-content: space-between; align-items: baseline; margin: 4px 0 2px 0; font-weight: bold;">
-                <span style="font-size: ${is58 ? '13px' : '15px'}; font-family: monospace;">Token# ${kot.tokenNo}</span>
-                <span style="font-size: ${is58 ? '12px' : '14px'};">${kot.orderTypeLabel || 'KOT'}</span>
+                <span style="font-size: ${is58 ? '15px' : '18px'}; font-family: monospace;">Token# ${kot.tokenNo}</span>
+                <span style="font-size: ${is58 ? '13px' : '15px'};">${kot.orderTypeLabel || 'KOT'}</span>
                </div>`
             : '';
 
+        const logoHtml = (config.showLogo !== false && branch.logoUrl)
+            ? `<img src="${branch.logoUrl}" class="logo-img" alt="Logo" style="margin-bottom: 3px;" />`
+            : '';
+
+        const branchTitleHtml = `<div class="header-title uppercase" style="font-size: ${is58 ? '15px' : '18px'}; font-weight: 700; letter-spacing: 0.3px; margin-top: 2px;">${branch.name}</div>`;
+
+        const headerHtml = logoHtml
+            ? `
+                <div class="text-center">
+                    ${logoHtml}
+                    <div class="divider"></div>
+                    <div class="header-subtitle uppercase" style="font-size: ${is58 ? '12px' : '14px'}; font-weight: 700; letter-spacing: 0.3px;">${slipTitle}</div>
+                </div>
+              `
+            : `
+                <div class="text-center">
+                    ${branchTitleHtml}
+                    <div class="divider"></div>
+                    <div class="header-subtitle uppercase" style="font-size: ${is58 ? '12px' : '14px'}; font-weight: 700; letter-spacing: 0.3px;">${slipTitle}</div>
+                </div>
+              `;
+
         const bodyHtml = `
-            <div class="text-center">
-                <div class="header-title">${branch.name}</div>
-                <div class="double-divider"></div>
-                <div class="header-subtitle">${slipTitle}</div>
-            </div>
+            ${headerHtml}
 
             ${tokenHtml}
 
-            <div class="meta-text bold" style="font-size: ${is58 ? '11px' : '13px'}; margin: 3px 0;">
-                ${locationMeta} &bull; Order: #${kot.orderNo || kot.orderId}
+            <div class="meta-text" style="font-size: ${is58 ? '11px' : '12.5px'}; margin: 3px 0;">
+                ${locationMeta} &bull; Order: <strong>#${kot.orderNo || kot.orderId}</strong>
             </div>
-            <div class="meta-text">Server: ${kot.waiterName || 'Staff'} &bull; ${kot.printTime ? new Date(kot.printTime).toLocaleTimeString() : new Date().toLocaleTimeString()}</div>
-            ${kot.printedByName ? `<div class="meta-text">Sent By: ${kot.printedByName} (${kot.printedByRole || 'Staff'})</div>` : ''}
+            <div class="meta-text" style="font-size: ${is58 ? '9px' : '11px'};">Server: <strong>${kot.waiterName || 'Staff'}</strong> &bull; ${kot.printTime ? new Date(kot.printTime).toLocaleTimeString() : new Date().toLocaleTimeString()}</div>
+            ${kot.printedByName ? `<div class="meta-text" style="font-size: ${is58 ? '9px' : '11px'};">Sent By: <strong>${kot.printedByName}</strong> (${kot.printedByRole || 'Staff'})</div>` : ''}
             <div class="divider"></div>
 
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 25%; text-align: left;">Qty</th>
-                        <th style="width: 75%; text-align: left;">Item Description</th>
+                        <th style="width: 22%; text-align: left; font-size: ${is58 ? '11px' : '13px'};">Qty</th>
+                        <th style="width: 78%; text-align: left; font-size: ${is58 ? '11px' : '13px'};">Item Description</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -886,13 +934,15 @@ export class ThermalPrintService {
                 </tbody>
             </table>
 
-            <div class="double-divider"></div>
-            <div class="text-center meta-text">
-                <div>Print Time: ${new Date().toLocaleString()}</div>
-                <div class="bold" style="margin-top: 3px;">* * * END OF ORDER * * *</div>
-                <div style="font-size: 8.5px; margin-top: 4px; color: #444; line-height: 1.35;">
-                    <div>${branch.softwareDeveloperName || 'Software develop by AlNawabTech'}</div>
-                    ${branch.softwareDeveloperPhone ? `<div>${branch.softwareDeveloperPhone}</div>` : ''}
+            <div class="receipt-footer" style="page-break-inside: avoid !important; break-inside: avoid !important; page-break-before: avoid !important; break-before: avoid !important;">
+                <div class="divider"></div>
+                <div class="text-center meta-text" style="font-size: ${is58 ? '9px' : '11px'};">
+                    <div>Print Time: ${new Date().toLocaleString()}</div>
+                    <div class="bold" style="margin-top: 3px; font-size: ${is58 ? '11px' : '12.5px'};">* * * END OF ORDER * * *</div>
+                    <div style="font-size: 9px; margin-top: 4px; color: #444; line-height: 1.35;">
+                        <div>${branch.softwareDeveloperName || 'Software develop by AlNawabTech'}</div>
+                        ${branch.softwareDeveloperPhone ? `<div>${branch.softwareDeveloperPhone}</div>` : ''}
+                    </div>
                 </div>
             </div>
         `;
@@ -901,7 +951,7 @@ export class ThermalPrintService {
     }
 
     /**
-     * Compact token sticker for kitchen — attach Token# to the physical order.
+     * Compact token sticker for kitchen â€” attach Token# to the physical order.
      */
     public printTokenSlip(order: {
         tokenNo?: number | null;
@@ -1073,7 +1123,7 @@ export class ThermalPrintService {
 
     /**
      * Online orders store delivery fields inside Notes (Addr/Landmark/Payment).
-     * Never dump the raw notes blob into Address — that duplicates text and shows "??".
+     * Never dump the raw notes blob into Address â€” that duplicates text and shows "??".
      */
     private buildCustomerDetailForInvoice(
         customerAddress?: string | null,
@@ -1108,7 +1158,7 @@ export class ThermalPrintService {
         return {
             customerAddress: address || undefined,
             customerPayment: this.cleanInvoiceText(parsed.payment) || undefined,
-            customerNote: noteParts.length ? noteParts.join(' · ') : undefined,
+            customerNote: noteParts.length ? noteParts.join(' Â· ') : undefined,
         };
     }
 
@@ -1117,7 +1167,7 @@ export class ThermalPrintService {
             return '';
         }
         return String(value)
-            .replace(/[📍🏛️🗺️📝💳📏?\uFFFD]+/gu, ' ')
+            .replace(/[ðŸ“ðŸ›ï¸ðŸ—ºï¸ðŸ“ðŸ’³ðŸ“?\uFFFD]+/gu, ' ')
             .replace(/\s+/g, ' ')
             .trim();
     }
@@ -1156,10 +1206,10 @@ export class ThermalPrintService {
                 .trim();
         }
 
-        const addrMatch = text.match(/(?:📍\s*)?Addr:\s*([^|]+)/i);
-        const landmarkMatch = text.match(/(?:🏛️\s*)?Landmark:\s*([^|]+)/i);
-        const paymentMatch = text.match(/(?:💳\s*)?Payment:\s*([^|]+)/i);
-        const notesMatch = text.match(/(?:📝\s*)?Notes:\s*([^|]+)/i);
+        const addrMatch = text.match(/(?:ðŸ“\s*)?Addr:\s*([^|]+)/i);
+        const landmarkMatch = text.match(/(?:ðŸ›ï¸\s*)?Landmark:\s*([^|]+)/i);
+        const paymentMatch = text.match(/(?:ðŸ’³\s*)?Payment:\s*([^|]+)/i);
+        const notesMatch = text.match(/(?:ðŸ“\s*)?Notes:\s*([^|]+)/i);
 
         let address = clean(addrMatch?.[1]);
         let landmark = clean(landmarkMatch?.[1]);
@@ -1194,16 +1244,16 @@ export class ThermalPrintService {
             .replace(/https?:\/\/maps\.google\.com[^\s|]*/gi, '')
             .replace(/(?:www\.)?google\.com\/maps[^\s|]*/gi, '')
             .replace(/maps\.google\.com[^\s|]*/gi, '')
-            .replace(/(?:📍\s*)?Addr:\s*[^|]+/gi, '')
-            .replace(/(?:🏛️\s*)?Landmark:\s*[^|]+/gi, '')
-            .replace(/(?:🗺️\s*)?Maps:\s*[^|]+/gi, '')
-            .replace(/(?:📝\s*)?Notes:\s*[^|]+/gi, '')
-            .replace(/(?:💳\s*)?Payment:\s*[^|]*/gi, '')
-            .replace(/(?:📏\s*)?Distance:\s*[^|]*/gi, '')
+            .replace(/(?:ðŸ“\s*)?Addr:\s*[^|]+/gi, '')
+            .replace(/(?:ðŸ›ï¸\s*)?Landmark:\s*[^|]+/gi, '')
+            .replace(/(?:ðŸ—ºï¸\s*)?Maps:\s*[^|]+/gi, '')
+            .replace(/(?:ðŸ“\s*)?Notes:\s*[^|]+/gi, '')
+            .replace(/(?:ðŸ’³\s*)?Payment:\s*[^|]*/gi, '')
+            .replace(/(?:ðŸ“\s*)?Distance:\s*[^|]*/gi, '')
             .replace(/Options:\s*[^|]*/gi, '')
             .replace(/\[Rider[^\]]*\]/gi, '')
             .replace(/\|\s*/g, ' ')
-            .replace(/[?？\uFFFD]+/g, ' ')
+            .replace(/[?ï¼Ÿ\uFFFD]+/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
 
@@ -1576,7 +1626,7 @@ export class ThermalPrintService {
 
             <div class="row"><span>Paid From Account:</span><strong>${expense.paymentAccountName || 'Cash Account'}</strong></div>
             <div class="row"><span>Expense Category:</span><strong>${expense.expenseAccountName || 'General Expense'}</strong></div>
-            <div class="row" style="margin-top: 4px;"><span>Description:</span><span>${expense.description || '—'}</span></div>
+            <div class="row" style="margin-top: 4px;"><span>Description:</span><span>${expense.description || 'â€”'}</span></div>
 
             <div class="row grand-total" style="margin-top: 8px;">
                 <span>VOUCHER AMOUNT:</span>

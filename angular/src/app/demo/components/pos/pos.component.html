@@ -1273,18 +1273,18 @@
                     <span></span>
                 </div>
 
-                <div style="margin-top: 4px;">
-                    <div class="pos-customer-receipt-row">
-                        <span><strong>Order ID:</strong> {{ completedReceipt.orderNo }}</span>
-                        <span><strong>Date:</strong> {{ formatReceiptDate(completedReceipt.date) }}</span>
+                <div style="margin-top: 4px; font-size: 10.5px;">
+                    <div class="pos-customer-receipt-row" style="white-space: nowrap;">
+                        <span style="white-space: nowrap;"><strong>Order ID:</strong> {{ completedReceipt.orderNo }}</span>
+                        <span style="white-space: nowrap;"><strong>Date:</strong> {{ formatReceiptDate(completedReceipt.date) }}</span>
                     </div>
-                    <div class="pos-customer-receipt-row">
-                        <span><strong>Invoice#:</strong> {{ completedReceipt.invoiceNo || completedReceipt.orderNo }}</span>
-                        <span><strong>User:</strong> {{ completedReceipt.cashierName || completedReceipt.serverName || 'Staff' }}</span>
+                    <div class="pos-customer-receipt-row" style="white-space: nowrap;">
+                        <span style="white-space: nowrap;"><strong>Invoice#:</strong> {{ completedReceipt.invoiceNo || completedReceipt.orderNo }}</span>
+                        <span style="white-space: nowrap;"><strong>User:</strong> {{ completedReceipt.cashierName || completedReceipt.serverName || 'Staff' }}</span>
                     </div>
-                    <div class="pos-customer-receipt-row">
-                        <span><strong>Order Type:</strong> {{ completedReceiptOrderType }}</span>
-                        <span *ngIf="completedReceiptSubLocation"><strong>{{ completedReceiptSubLocation }}</strong></span>
+                    <div class="pos-customer-receipt-row" style="white-space: nowrap;">
+                        <span style="white-space: nowrap;"><strong>Order Type:</strong> {{ completedReceiptOrderType }}</span>
+                        <span *ngIf="completedReceiptSubLocation" style="white-space: nowrap;"><strong>{{ completedReceiptSubLocation }}</strong></span>
                     </div>
                 </div>
 
@@ -1364,6 +1364,13 @@
                 >
                     <span>Change Returned</span>
                     <span>{{ completedReceipt.changeAmount | number:'1.0-0' }} Rs</span>
+                </div>
+                <div
+                    class="pos-customer-receipt-row font-bold"
+                    *ngIf="completedReceipt.dueAmount > 0.009"
+                >
+                    <span>Due Amount</span>
+                    <span>{{ completedReceipt.dueAmount | number:'1.0-0' }} Rs</span>
                 </div>
 
                 <div class="pos-customer-receipt-divider"></div>

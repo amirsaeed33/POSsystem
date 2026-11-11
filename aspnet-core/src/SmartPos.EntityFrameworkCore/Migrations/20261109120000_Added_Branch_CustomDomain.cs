@@ -26,6 +26,11 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppBranc
 BEGIN
     ALTER TABLE [AppBranches] ADD [StorefrontTitle] nvarchar(256) NULL;
 END
+");
+
+            migrationBuilder.Sql(@"
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
 
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes
@@ -33,9 +38,9 @@ IF NOT EXISTS (
       AND object_id = OBJECT_ID(N'[AppBranches]')
 )
 BEGIN
-    CREATE UNIQUE NONCLUSTERED INDEX [IX_AppBranches_CustomDomain]
+    EXEC(N'CREATE UNIQUE NONCLUSTERED INDEX [IX_AppBranches_CustomDomain]
     ON [AppBranches]([CustomDomain])
-    WHERE [CustomDomain] IS NOT NULL AND [CustomDomain] <> N'';
+    WHERE [CustomDomain] IS NOT NULL AND [CustomDomain] <> N'''';');
 END
 ");
         }
@@ -55,6 +60,11 @@ IF EXISTS (
 BEGIN
     DROP INDEX [IX_AppBranches_CustomDomain] ON [AppBranches];
 END
+");
+
+            migrationBuilder.Sql(@"
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
 
 IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[AppBranches]') AND name = N'StorefrontTitle')
 BEGIN

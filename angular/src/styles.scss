@@ -2,15 +2,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Public product landing (Cursor-style dark page) — no staff layout chrome */
-body.aljannat-landing-active {
-  background: #09090b !important;
-  color: #f4f4f5;
-}
-
-body.aljannat-landing-active .layout-config-button {
-  display: none !important;
-}
 /* You can add global styles to this file, and also import other style files */
 $gutter: 1rem; //for primeflex grid system
 
@@ -93,10 +84,12 @@ $gutter: 1rem; //for primeflex grid system
   width: 32rem !important;
   max-width: 95vw !important;
 }
+
 .dialog-md {
   width: 48rem !important;
   max-width: 95vw !important;
 }
+
 .dialog-lg {
   width: 72rem !important;
   max-width: 98vw !important;
@@ -221,6 +214,7 @@ $gutter: 1rem; //for primeflex grid system
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
   }
+
   .p-datatable table {
     min-width: 650px;
   }
@@ -233,6 +227,7 @@ $gutter: 1rem; //for primeflex grid system
 }
 
 @media print {
+
   /* ---- Thermal Receipt print (body.printing-thermal) ---- */
   body.printing-thermal * {
     visibility: hidden !important;
@@ -256,8 +251,8 @@ $gutter: 1rem; //for primeflex grid system
     background: #fff !important;
     color: #000 !important;
     color-scheme: light !important;
-    font-family: 'Courier New', Courier, monospace, 'Segoe UI', sans-serif !important;
-    font-size: 12px !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    font-size: 13px !important;
     line-height: 1.35 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -642,23 +637,20 @@ $gutter: 1rem; //for primeflex grid system
     transform: translate(0, 0) scale(1);
     opacity: 1;
   }
+
   35% {
     /* Rise into an arc while still fully visible */
-    transform: translate(
-        calc(var(--fp-dx) * 0.38),
-        calc(var(--fp-dy) * 0.28 - var(--fp-arc))
-      )
-      scale(1.05);
+    transform: translate(calc(var(--fp-dx) * 0.38),
+        calc(var(--fp-dy) * 0.28 - var(--fp-arc))) scale(1.05);
     opacity: 1;
   }
+
   70% {
-    transform: translate(
-        calc(var(--fp-dx) * 0.78),
-        calc(var(--fp-dy) * 0.72 - var(--fp-arc) * 0.25)
-      )
-      scale(0.7);
+    transform: translate(calc(var(--fp-dx) * 0.78),
+        calc(var(--fp-dy) * 0.72 - var(--fp-arc) * 0.25)) scale(0.7);
     opacity: 0.95;
   }
+
   100% {
     transform: translate(var(--fp-dx), var(--fp-dy)) scale(0.22);
     opacity: 0.2;
@@ -722,9 +714,11 @@ $gutter: 1rem; //for primeflex grid system
   0% {
     transform: rotateX(-78deg) translateY(-0.2rem);
   }
+
   55% {
     transform: rotateX(12deg) translateY(0.08rem);
   }
+
   100% {
     transform: rotateX(0deg) translateY(0);
   }
@@ -734,9 +728,11 @@ $gutter: 1rem; //for primeflex grid system
   0% {
     transform: scale(1.12) translateY(-0.12rem);
   }
+
   45% {
     transform: scale(0.88) translateY(0.1rem);
   }
+
   100% {
     transform: scale(1) translateY(0);
   }
@@ -759,15 +755,19 @@ $gutter: 1rem; //for primeflex grid system
   0% {
     transform: scale(1);
   }
+
   28% {
     transform: scale(1.22);
   }
+
   55% {
     transform: scale(0.92);
   }
+
   78% {
     transform: scale(1.08);
   }
+
   100% {
     transform: scale(1);
   }
