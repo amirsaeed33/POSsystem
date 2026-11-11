@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:services="clr-namespace:SmartPos.Mobile.Services"
+             x:Class="SmartPos.Mobile.Controls.TabLoadingOverlay"
+             HorizontalOptions="Fill"
+             VerticalOptions="Fill"
+             InputTransparent="False"
+             IsVisible="{Binding IsTabLoading}"
+             ZIndex="9999">
+
+    <Grid BackgroundColor="#40000000"
+          HorizontalOptions="Fill"
+          VerticalOptions="Fill"
+          InputTransparent="False">
+
+        <Border BackgroundColor="White"
+                HeightRequest="100"
+                WidthRequest="100"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Padding="24"
+                StrokeShape="RoundRectangle 16"
+                StrokeThickness="0">
+            <Border.Shadow>
+                <Shadow Brush="#000000"
+                        Offset="0,4"
+                        Radius="10"
+                        Opacity="0.15" />
+            </Border.Shadow>
+            <VerticalStackLayout HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="10">
+                <ActivityIndicator Color="{StaticResource Primary}"
+                                   HeightRequest="36"
+                                   WidthRequest="36"
+                                   IsRunning="True" />
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+</ContentView>
+

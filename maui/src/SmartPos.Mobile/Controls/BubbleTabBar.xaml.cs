@@ -1,3 +1,5 @@
+using SmartPos.Mobile.Services;
+
 namespace SmartPos.Mobile.Controls;
 
 public enum BubbleTabMode
@@ -418,13 +420,14 @@ public partial class BubbleTabBar : ContentView
         }
 
         _navigating = true;
+        LoadingService.Current.ShowTabLoader();
         try
         {
             await Shell.Current.GoToAsync(route);
         }
         catch
         {
-            // ignore navigation races between Shell tabs
+            LoadingService.Current.HideTabLoader();
         }
         finally
         {

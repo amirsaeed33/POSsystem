@@ -100,19 +100,26 @@ public partial class CustomerOrderViewModel : BaseViewModel
     [RelayCommand]
     private async Task AppearingAsync()
     {
-        await _session.LoadAsync();
-        if (_loadedBranchId.HasValue &&
-            _session.BranchId.HasValue &&
-            _loadedBranchId.Value == _session.BranchId.Value &&
-            _allProducts.Count > 0)
+        try
         {
-            // Instant tab switch: keep last menu on screen, only sync badges.
-            SyncCartQtyBadges();
-            SyncFavorites();
-            return;
-        }
+            await _session.LoadAsync();
+            if (_loadedBranchId.HasValue &&
+                _session.BranchId.HasValue &&
+                _loadedBranchId.Value == _session.BranchId.Value &&
+                _allProducts.Count > 0)
+            {
+                // Instant tab switch: keep last menu on screen, only sync badges.
+                SyncCartQtyBadges();
+                SyncFavorites();
+                return;
+            }
 
-        await LoadMenuAsync(forceRefresh: false);
+            await LoadMenuAsync(forceRefresh: false);
+        }
+        finally
+        {
+            LoadingService.Current.HideTabLoader();
+        }
     }
 
     [RelayCommand]

@@ -30,6 +30,16 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("login", typeof(LoginPage));
 
         Loaded += OnShellLoaded;
+        Navigating += OnShellNavigating;
+    }
+
+    private void OnShellNavigating(object? sender, ShellNavigatingEventArgs e)
+    {
+        var target = e.Target?.Location?.OriginalString ?? string.Empty;
+        if (target.Contains("customer/") || target.Contains("home") || target.Contains("order") || target.Contains("favorites") || target.Contains("account"))
+        {
+            LoadingService.Current.ShowTabLoader();
+        }
     }
 
     private async void OnShellLoaded(object? sender, EventArgs e)

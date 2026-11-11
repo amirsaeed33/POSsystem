@@ -111,46 +111,53 @@ public partial class CustomerProfileViewModel : BaseViewModel
     [RelayCommand]
     public async Task AppearingAsync()
     {
-        FullName = Preferences.Default.Get("sp.customerName", string.Empty);
-        PhoneNumber = Preferences.Default.Get("sp.customerPhone", string.Empty);
-        EmailAddress = Preferences.Default.Get("sp.customerEmail", string.Empty);
-        ProfilePictureUrl = Preferences.Default.Get("sp.customerAvatar", string.Empty);
-
-        ActiveBranchName = "Smart POS Storefront";
-        if (_session.BranchId is int bid && bid > 0)
-        {
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var branches = await _orders.GetBranchesAsync();
-                    var branch = branches?.FirstOrDefault(b => b.Id == bid);
-                    if (branch != null && !string.IsNullOrWhiteSpace(branch.Name))
-                    {
-                        MainThread.BeginInvokeOnMainThread(() => ActiveBranchName = branch.Name);
-                    }
-                }
-                catch { }
-            });
-        }
-
-        FavoriteCount = _favorites.Count;
-
         try
         {
-            AppVersionText = $"Version {AppInfo.Current.VersionString} (Build {AppInfo.Current.BuildString})";
-        }
-        catch
-        {
-            AppVersionText = "Version 1.0.0";
-        }
+            FullName = Preferences.Default.Get("sp.customerName", string.Empty);
+            PhoneNumber = Preferences.Default.Get("sp.customerPhone", string.Empty);
+            EmailAddress = Preferences.Default.Get("sp.customerEmail", string.Empty);
+            ProfilePictureUrl = Preferences.Default.Get("sp.customerAvatar", string.Empty);
 
-        LoadAvatarImage();
+            ActiveBranchName = "Smart POS Storefront";
+            if (_session.BranchId is int bid && bid > 0)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var branches = await _orders.GetBranchesAsync();
+                        var branch = branches?.FirstOrDefault(b => b.Id == bid);
+                        if (branch != null && !string.IsNullOrWhiteSpace(branch.Name))
+                        {
+                            MainThread.BeginInvokeOnMainThread(() => ActiveBranchName = branch.Name);
+                        }
+                    }
+                    catch { }
+                });
+            }
 
-        if (!string.IsNullOrWhiteSpace(PhoneNumber) && NormalizePhoneDigits(PhoneNumber).Length >= 7)
+            FavoriteCount = _favorites.Count;
+
+            try
+            {
+                AppVersionText = $"Version {AppInfo.Current.VersionString} (Build {AppInfo.Current.BuildString})";
+            }
+            catch
+            {
+                AppVersionText = "Version 1.0.0";
+            }
+
+            LoadAvatarImage();
+
+            if (!string.IsNullOrWhiteSpace(PhoneNumber) && NormalizePhoneDigits(PhoneNumber).Length >= 7)
+            {
+                await LoadSavedAddressesAsync();
+                await LoadCustomerStatsAndProfileAsync();
+            }
+        }
+        finally
         {
-            await LoadSavedAddressesAsync();
-            await LoadCustomerStatsAndProfileAsync();
+            LoadingService.Current.HideTabLoader();
         }
     }
 

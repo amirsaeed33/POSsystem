@@ -382,6 +382,9 @@
                                VerticalOptions="End"
                                HorizontalOptions="Fill"
                                ZIndex="40" />
+
+        <!-- Tab-Switching Global Loading Overlay -->
+        <controls:TabLoadingOverlay />
     </Grid>
 </ContentPage>
 

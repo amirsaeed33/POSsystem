@@ -1506,5 +1506,8 @@
                         ZIndex="999"
                         InputTransparent="True"
                         CascadeInputTransparent="True" />
+
+        <!-- 7. Tab-Switching Global Loading Overlay -->
+        <controls:TabLoadingOverlay />
     </Grid>
 </ContentPage>

@@ -66,20 +66,27 @@ public partial class FavoritesViewModel : BaseViewModel
     [RelayCommand]
     public async Task AppearingAsync()
     {
-        FavoriteCount = _favorites.Count;
-        CartCount = _cart.ItemCount;
-
-        var favoriteKey = BuildFavoriteKey(_favorites.GetFavoriteIds());
-        if (_loadedBranchId.HasValue &&
-            _session.BranchId == _loadedBranchId &&
-            favoriteKey == _loadedFavoriteKey &&
-            FavoriteProducts.Count > 0)
+        try
         {
-            SyncCartQuantities();
-            return;
-        }
+            FavoriteCount = _favorites.Count;
+            CartCount = _cart.ItemCount;
 
-        await LoadFavoritesAsync();
+            var favoriteKey = BuildFavoriteKey(_favorites.GetFavoriteIds());
+            if (_loadedBranchId.HasValue &&
+                _session.BranchId == _loadedBranchId &&
+                favoriteKey == _loadedFavoriteKey &&
+                FavoriteProducts.Count > 0)
+            {
+                SyncCartQuantities();
+                return;
+            }
+
+            await LoadFavoritesAsync();
+        }
+        finally
+        {
+            LoadingService.Current.HideTabLoader();
+        }
     }
 
     [RelayCommand]

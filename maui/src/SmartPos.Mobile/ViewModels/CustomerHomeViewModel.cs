@@ -261,51 +261,58 @@ public partial class CustomerHomeViewModel : BaseViewModel
     [RelayCommand]
     private async Task AppearingAsync()
     {
-        // Same as website public storefront: no tenancy cookie required.
-        _session.ClearTenantHeader();
-
-        // Already on a branch: quiet re-appear (no center loader, no pull spinner).
-        if (SelectedBranch != null && !NeedsBranchSelection)
+        try
         {
-            return;
+            // Same as website public storefront: no tenancy cookie required.
+            _session.ClearTenantHeader();
+
+            // Already on a branch: quiet re-appear (no center loader, no pull spinner).
+            if (SelectedBranch != null && !NeedsBranchSelection)
+            {
+                return;
+            }
+
+            await RunBusyAsync(async () =>
+            {
+                await LoadBranchesAsync();
+
+                // Resume last branch if user already picked one (like ?branchId= on web).
+                if (_session.BranchId is int savedBranchId)
+                {
+                    var saved = Branches.FirstOrDefault(b => b.Id == savedBranchId);
+                    if (saved != null)
+                    {
+                        await OpenBranchAsync(saved);
+                        return;
+                    }
+                }
+
+                // Optional default from config (mirrors /online-order?branchId=2 for local testing).
+                if (_settings.DefaultBranchId is int defaultBranchId and > 0)
+                {
+                    var def = Branches.FirstOrDefault(b => b.Id == defaultBranchId);
+                    if (def != null)
+                    {
+                        await OpenBranchAsync(def);
+                        return;
+                    }
+                }
+
+                NeedsBranchSelection = true;
+                SelectedBranch = null;
+                StoreHeader = null;
+                Products.Clear();
+                Categories.Clear();
+                DealsList.Clear();
+                OnPropertyChanged(nameof(HasDeals));
+                ClearHeroSlides();
+                _allProducts.Clear();
+            });
         }
-
-        await RunBusyAsync(async () =>
+        finally
         {
-            await LoadBranchesAsync();
-
-            // Resume last branch if user already picked one (like ?branchId= on web).
-            if (_session.BranchId is int savedBranchId)
-            {
-                var saved = Branches.FirstOrDefault(b => b.Id == savedBranchId);
-                if (saved != null)
-                {
-                    await OpenBranchAsync(saved);
-                    return;
-                }
-            }
-
-            // Optional default from config (mirrors /online-order?branchId=2 for local testing).
-            if (_settings.DefaultBranchId is int defaultBranchId and > 0)
-            {
-                var def = Branches.FirstOrDefault(b => b.Id == defaultBranchId);
-                if (def != null)
-                {
-                    await OpenBranchAsync(def);
-                    return;
-                }
-            }
-
-            NeedsBranchSelection = true;
-            SelectedBranch = null;
-            StoreHeader = null;
-            Products.Clear();
-            Categories.Clear();
-            DealsList.Clear();
-            OnPropertyChanged(nameof(HasDeals));
-            ClearHeroSlides();
-            _allProducts.Clear();
-        });
+            LoadingService.Current.HideTabLoader();
+        }
     }
 
     [RelayCommand]

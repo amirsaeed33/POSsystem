@@ -63,6 +63,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ProductCatalogCache>();
         builder.Services.AddSingleton<DeliveryLocationService>();
         builder.Services.AddSingleton<NavigationService>();
+        builder.Services.AddSingleton<LoadingService>();
         builder.Services.AddSingleton(_ =>
         {
             var client = new HttpClient
