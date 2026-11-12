@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MenuItem, MessageService } from 'primeng/api';
 import { Router } from '@angular/router';
 import { LayoutService } from './service/app.layout.service';
@@ -42,6 +42,8 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     currentBranch: BranchDto | null = null;
     changingBranch = false;
     branchLogoFailed = false;
+    isFullscreen = false;
+
     get printerConfigVisible(): boolean {
         return this.layoutService.printerConfigVisible;
     }
@@ -194,7 +196,57 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         return name.substring(0, 8).trimEnd() + '…';
     }
 
+    @HostListener('document:fullscreenchange')
+    @HostListener('document:webkitfullscreenchange')
+    onFullscreenChange(): void {
+        const doc: any = document;
+        this.isFullscreen = !!(
+            document.fullscreenElement ||
+            doc.webkitFullscreenElement ||
+            doc.msFullscreenElement
+        );
+    }
+
+    async toggleFullscreen(): Promise<void> {
+        try {
+            const doc: any = document;
+            const el: any = document.documentElement;
+            const isFs = !!(
+                document.fullscreenElement ||
+                doc.webkitFullscreenElement ||
+                doc.msFullscreenElement
+            );
+            if (!isFs) {
+                const req =
+                    el.requestFullscreen ||
+                    el.webkitRequestFullscreen ||
+                    el.msRequestFullscreen;
+                if (req) {
+                    await Promise.resolve(req.call(el));
+                }
+            } else {
+                const exit =
+                    document.exitFullscreen ||
+                    doc.webkitExitFullscreen ||
+                    doc.msExitFullscreen;
+                if (exit) {
+                    await Promise.resolve(exit.call(document));
+                }
+            }
+        } catch {
+            // Browser blocked fullscreen (policy / unsupported) — ignore.
+        } finally {
+            const doc: any = document;
+            this.isFullscreen = !!(
+                document.fullscreenElement ||
+                doc.webkitFullscreenElement ||
+                doc.msFullscreenElement
+            );
+        }
+    }
+
     ngOnInit(): void {
+        this.onFullscreenChange();
         this.currentBranch = this.branchContext.getCurrentBranch();
         this.branchLogoFailed = false;
         this.branchSubscription = this.branchContext.currentBranch$.subscribe((b) => {

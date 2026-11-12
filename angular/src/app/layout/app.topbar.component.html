@@ -521,6 +521,18 @@
             </div>
         </div>
 
+        <button
+            type="button"
+            class="p-link topbar-fullscreen-btn flex align-items-center justify-content-center border-round hover:surface-hover"
+            (click)="toggleFullscreen()"
+            [pTooltip]="isFullscreen ? 'Exit full screen' : 'Full screen'"
+            tooltipPosition="bottom"
+            [attr.aria-label]="isFullscreen ? 'Exit full screen' : 'Enter full screen'"
+            [attr.aria-pressed]="isFullscreen"
+        >
+            <i class="pi text-xl" [ngClass]="isFullscreen ? 'pi-window-minimize' : 'pi-window-maximize'"></i>
+        </button>
+
         <div class="topbar-profile">
             <button
                 class="topbar-profile-button p-link"
