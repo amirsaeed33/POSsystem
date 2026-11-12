@@ -25,7 +25,7 @@ using SmartPos.Staffs;
 using SmartPos.Suppliers;
 using SmartPos.Departments;
 using SmartPos.Developers;
-//using SmartPos.Packages;
+using SmartPos.Packages;
 using SmartPos.Sellers;
 using SmartPos.Units;
 
@@ -55,7 +55,7 @@ namespace SmartPos.EntityFrameworkCore
 
         public virtual DbSet<Seller> Sellers { get; set; }
 
-        //public virtual DbSet<Package> Packages { get; set; }
+        public virtual DbSet<Package> Packages { get; set; }
 
         public virtual DbSet<BranchSeedRequest> BranchSeedRequests { get; set; }
 
