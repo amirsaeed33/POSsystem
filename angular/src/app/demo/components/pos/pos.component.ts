@@ -3286,6 +3286,7 @@ export class PosComponent implements OnInit, OnDestroy {
         this.bumpQty(line, -1);
     }
 
+    /** Empty→sale = included; 0 = free; other >0 = add as +extra when customer selects. */
     hasModifierPlusSign(
         optionPrice: number | null | undefined,
         productSalePrice?: number | null
@@ -3293,7 +3294,7 @@ export class PosComponent implements OnInit, OnDestroy {
         const price = Number(optionPrice) || 0;
         if (price <= 0) return false;
         const sale = Number(productSalePrice);
-        if (Number.isFinite(sale) && sale > 0 && Math.abs(price - sale) < 0.0001) {
+        if (Number.isFinite(sale) && sale > 0 && Math.abs(price - sale) < 0.01) {
             return false;
         }
         return true;
@@ -3310,7 +3311,7 @@ export class PosComponent implements OnInit, OnDestroy {
             sale > 0 &&
             Number.isFinite(price) &&
             price > 0 &&
-            Math.abs(price - sale) < 0.0001
+            Math.abs(price - sale) < 0.01
         );
     }
 

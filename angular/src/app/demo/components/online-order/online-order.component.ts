@@ -2952,6 +2952,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return opt.price ?? opt.extraPrice ?? 0;
     }
 
+    /** Empty→sale = included; 0 = free; other >0 = +extra when customer selects size. */
     hasModifierPlusSign(
         optionPrice: number | null | undefined,
         productSalePrice?: number | null
@@ -2959,7 +2960,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         const price = Number(optionPrice) || 0;
         if (price <= 0) return false;
         const sale = Number(productSalePrice);
-        if (Number.isFinite(sale) && sale > 0 && Math.abs(price - sale) < 0.0001) {
+        if (Number.isFinite(sale) && sale > 0 && Math.abs(price - sale) < 0.01) {
             return false;
         }
         return true;
@@ -2976,7 +2977,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             sale > 0 &&
             Number.isFinite(price) &&
             price > 0 &&
-            Math.abs(price - sale) < 0.0001
+            Math.abs(price - sale) < 0.01
         );
     }
 
@@ -2988,7 +2989,11 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         if (price <= 0) {
             return '';
         }
-        const formatted = price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        const formatted = price.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+        });
+        // Sale-price size (from empty) is included — no "+".
         if (this.isModifierSalePrice(price, productSalePrice)) {
             return `PKR ${formatted}`;
         }

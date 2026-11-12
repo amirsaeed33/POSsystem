@@ -247,7 +247,12 @@ export class ProductListComponent implements OnInit {
         return false;
     }
 
-    /** Empty price saves as product sale price — show that amount without a "+" prefix. */
+    /**
+     * Pricing rules for size/options:
+     * - empty → saved as product sale price (included; no "+" when customer selects)
+     * - 0 → Free
+     * - > 0 and not sale price → "+ price" extra when customer selects
+     */
     isModifierSalePrice(optionPrice: number | null | undefined): boolean {
         const sale = Number(this.modifierTargetProduct?.price);
         const price = Number(optionPrice);
@@ -256,7 +261,7 @@ export class ProductListComponent implements OnInit {
             sale > 0 &&
             Number.isFinite(price) &&
             price > 0 &&
-            Math.abs(price - sale) < 0.0001
+            Math.abs(price - sale) < 0.01
         );
     }
 
@@ -265,11 +270,11 @@ export class ProductListComponent implements OnInit {
         if (price <= 0) {
             return 'Free';
         }
-        const formatted = price.toFixed(2);
+        // Empty→sale: show amount only (no "+"). Real extras keep "+".
         if (this.isModifierSalePrice(price)) {
-            return formatted;
+            return price.toFixed(2);
         }
-        return `+ ${formatted}`;
+        return `+ ${price.toFixed(2)}`;
     }
 
     isNewOptionPriceEmpty(groupId: number): boolean {
@@ -381,19 +386,24 @@ export class ProductListComponent implements OnInit {
         const name = (this.newOptionName[groupId] || '').trim();
         if (!name || !this.modifierTargetProduct) return;
 
-        // Empty price → product sale price. Explicit 0 → Free.
+        // Empty price → product sale price (included, no "+"). Explicit 0 → Free.
+        // Typing the same amount as sale also counts as included.
         const rawPrice = this.newOptionPrice[groupId];
         const isEmpty =
             rawPrice === null ||
             rawPrice === undefined ||
             (typeof rawPrice === 'number' && Number.isNaN(rawPrice));
+        const sale = Number(this.modifierTargetProduct.price);
+        const salePrice = Number.isFinite(sale) && sale > 0 ? sale : 0;
         let price: number;
         if (isEmpty) {
-            const sale = Number(this.modifierTargetProduct.price);
-            price = Number.isFinite(sale) && sale > 0 ? sale : 0;
+            price = salePrice;
         } else {
             const parsed = Number(rawPrice);
             price = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+            if (salePrice > 0 && Math.abs(price - salePrice) < 0.01) {
+                price = salePrice;
+            }
         }
 
         this.addingOption[groupId] = true;

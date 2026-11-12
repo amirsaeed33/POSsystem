@@ -332,7 +332,7 @@
 
     <!-- Product Modifiers Management Dialog -->
     <p-dialog
-        [header]="'🍕 Manage Modifiers & Options - ' + (modifierTargetProduct?.name || '')"
+        [header]="'Manage Modifiers & Options - ' + (modifierTargetProduct?.name || '')"
         [(visible)]="modifierDialogVisible"
         [modal]="true"
         appendTo="body"
@@ -448,7 +448,7 @@
                             <div class="flex flex-column gap-1 modifier-option-price">
                                 <p-inputNumber
                                     [inputId]="'modifier-option-price-' + group.id"
-                                    placeholder="Empty = sale price, 0 = Free"
+                                    placeholder="Empty = sale · 0 = Free · >0 = +extra"
                                     [(ngModel)]="newOptionPrice[group.id]"
                                     [min]="0"
                                     mode="decimal"
@@ -461,13 +461,19 @@
                                     *ngIf="isNewOptionPriceEmpty(group.id)"
                                     class="text-primary font-semibold"
                                 >
-                                    {{ modifierTargetProduct?.price | number: '1.2-2' }}
+                                    Sale {{ modifierTargetProduct?.price | number: '1.2-2' }} (no +)
                                 </small>
                                 <small
                                     *ngIf="!isNewOptionPriceEmpty(group.id) && (newOptionPrice[group.id] || 0) === 0"
                                     class="text-500"
                                 >
                                     Free
+                                </small>
+                                <small
+                                    *ngIf="!isNewOptionPriceEmpty(group.id) && (newOptionPrice[group.id] || 0) > 0 && !isModifierSalePrice(newOptionPrice[group.id])"
+                                    class="text-primary font-semibold"
+                                >
+                                    + {{ newOptionPrice[group.id] | number: '1.2-2' }} when selected
                                 </small>
                             </div>
                             <button
