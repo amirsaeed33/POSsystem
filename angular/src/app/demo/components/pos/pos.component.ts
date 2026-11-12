@@ -5005,7 +5005,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.loadTopProducts();
 
                 this.completedReceipt = settledReceipt;
-                this.completedReceiptVisible = true;
+                this.completedReceiptVisible = false;
                 this.printReceiptSnapshot(settledReceipt);
             } else {
                 const branch = this.branchContext.getCurrentBranch();
@@ -5090,7 +5090,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.loadTopProducts();
 
                 this.completedReceipt = retailReceipt;
-                this.completedReceiptVisible = true;
+                this.completedReceiptVisible = false;
                 this.printReceiptSnapshot(retailReceipt);
             }
         } catch (error: any) {

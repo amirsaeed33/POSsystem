@@ -613,17 +613,10 @@ export class ThermalPrintService {
             ? `<div><span class="label">Payment:</span> ${params.customerPayment}</div>`
             : '';
 
-        const headerHtml = params.logoUrl
-            ? `
+        const headerHtml = `
                 <div class="text-center">
                     ${logoHtml}
-                    <div class="meta-text" style="margin-top: 3px; font-size: ${is58 ? '10px' : '12px'};">${params.city || 'Faisalabad'}</div>
-                    <div class="bold" style="font-size: ${is58 ? '11px' : '13px'}; margin-top: 2px;">${params.statusLabel}</div>
-                </div>
-              `
-            : `
-                <div class="text-center">
-                    <div class="header-title uppercase">${params.branchName}</div>
+                    <div class="header-title uppercase">${params.branchName || ''}</div>
                     <div class="meta-text" style="font-style: italic; margin-top: 1px;">${params.tagline || 'Taste & Quality'}</div>
                     <div class="meta-text" style="margin-top: 2px; font-size: ${is58 ? '10px' : '12px'};">${params.city || 'Faisalabad'}</div>
                     <div class="bold" style="font-size: ${is58 ? '11px' : '13px'}; margin-top: 2px;">${params.statusLabel}</div>
