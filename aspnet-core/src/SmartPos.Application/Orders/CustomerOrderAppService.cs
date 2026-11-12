@@ -858,6 +858,7 @@ namespace SmartPos.Orders
             order.DeliveryAreaId = input.DeliveryAreaId;
             order.DeliveryAreaName = input.DeliveryArea;
             order.TotalAmount = Math.Round(total + deliveryFee, 2);
+            order.TokenNo = await _tokenNumberManager.AllocateNextTokenNoAsync(branchId);
 
             await Repository.InsertAsync(order);
             await CurrentUnitOfWork.SaveChangesAsync();
@@ -2695,6 +2696,11 @@ namespace SmartPos.Orders
                 if (order.Status == CustomerOrderStatus.Approved || order.Status == CustomerOrderStatus.Pending)
                 {
                     order.Status = CustomerOrderStatus.InProgress;
+                }
+
+                if (!order.TokenNo.HasValue)
+                {
+                    order.TokenNo = await _tokenNumberManager.AllocateNextTokenNoAsync(order.BranchId);
                 }
 
                 await CurrentUnitOfWork.SaveChangesAsync();

@@ -1578,10 +1578,12 @@ export class PosComponent implements OnInit, OnDestroy {
             const prepared = await this.customerOrderService.prepareManualOnlineOrder(created.id);
             this.pendingOnlineReceiptPrint = true;
             await this.openAssignRiderDialog(prepared);
+            const tokenLabel =
+                prepared.tokenNo != null ? ` · Token #${prepared.tokenNo}` : '';
             this.messageService.add({
                 severity: 'success',
                 summary: mode === 'kot' ? 'Online KOT Ready' : 'Online Guest Bill Ready',
-                detail: `Order ${prepared.orderNo || '#' + prepared.id} created. Assign a delivery rider to print the receipt.`,
+                detail: `Order ${prepared.orderNo || '#' + prepared.id}${tokenLabel} created. Assign a delivery rider to print the receipt.`,
                 life: 5000,
             });
         } catch (err: any) {

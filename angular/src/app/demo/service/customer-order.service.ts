@@ -683,6 +683,7 @@ export class CustomerOrderService {
             customerAddress: item.customerAddress ?? item.CustomerAddress,
             orderDate: this.asUtcDateValue(item.orderDate ?? item.OrderDate),
             orderNo: item.orderNo ?? item.OrderNo,
+            tokenNo: item.tokenNo ?? item.TokenNo ?? null,
             status: item.status ?? item.Status ?? 0,
             statusName: item.statusName ?? item.StatusName,
             subTotal: item.subTotal ?? item.SubTotal ?? 0,

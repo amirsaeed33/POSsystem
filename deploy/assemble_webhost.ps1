@@ -1,9 +1,13 @@
 $ErrorActionPreference = "Stop"
-$root = "e:\Github\POSsystem"
+$root = Split-Path -Parent $PSScriptRoot
+if (-not (Test-Path (Join-Path $root "aspnet-core"))) {
+    $root = "d:\POSsystem"
+}
 $hostProject = Join-Path $root "aspnet-core\src\SmartPos.Web.Host\SmartPos.Web.Host.csproj"
 $deployDir = Join-Path $root "publish\webhost"
 $angularDist = Join-Path $root "angular\dist\verona-ng"
 $backupDir = Join-Path $root ("publish\_backup_" + (Get-Date -Format "yyyyMMdd_HHmmss"))
+Write-Host ("Root: " + $root)
 
 New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
 

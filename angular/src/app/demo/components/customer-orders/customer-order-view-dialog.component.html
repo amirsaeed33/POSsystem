@@ -22,6 +22,10 @@
                 <div class="text-500 text-sm mb-1">Order No</div>
                 <div class="font-bold text-lg text-900">{{ order.orderNo || ('#' + order.id) }}</div>
             </div>
+            <div class="col-12 md:col-6" *ngIf="order.tokenNo != null">
+                <div class="text-500 text-sm mb-1">Token No</div>
+                <div class="font-bold text-lg text-primary">Token #{{ order.tokenNo }}</div>
+            </div>
             <div class="col-12 md:col-6">
                 <div class="text-500 text-sm mb-1">Order Date</div>
                 <div class="font-medium text-900">{{ order.orderDate | date: formatService.dateFormat }} <span class="text-xs text-500 font-normal">({{ order.orderDate | date: 'shortTime' }})</span></div>

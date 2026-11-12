@@ -17,9 +17,13 @@ $password = $profile.userPWD
 $site = $profile.msdeploySite
 $serviceUrl = $profile.publishUrl
 
-$source = "e:\Github\POSsystem\publish\webhost"
+$root = Split-Path -Parent $PSScriptRoot
+if (-not (Test-Path (Join-Path $root "publish"))) {
+    $root = "d:\POSsystem"
+}
+$source = Join-Path $root "publish\webhost"
 if (-not (Test-Path (Join-Path $source "SmartPos.Web.Host.dll"))) {
-    $alt = "e:\Github\POSsystem\publish\webhost_seo"
+    $alt = Join-Path $root "publish\webhost_seo"
     if (Test-Path (Join-Path $alt "SmartPos.Web.Host.dll")) {
         $source = $alt
     }

@@ -285,7 +285,7 @@ export class KitchenComponent implements OnInit, OnDestroy {
     orderTitle(order: RunningOrderRow): string {
         if (order.orderType === OrderTypes.Delivery) {
             const token = order.tokenNo ?? order.customerOrder?.tokenNo;
-            return token != null ? `Online #${token}` : order.orderNo || 'Online';
+            return token != null ? `Token #${token}` : order.orderNo || 'Online';
         }
         if (order.orderType === OrderTypes.Takeaway) {
             return order.tokenNo != null ? `Token #${order.tokenNo}` : order.orderNo;

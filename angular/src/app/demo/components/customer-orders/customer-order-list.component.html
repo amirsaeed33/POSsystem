@@ -151,6 +151,12 @@
                 <td class="font-bold">
                     <div class="flex align-items-center gap-2">
                         <span>{{ order.orderNo || ('#' + order.id) }}</span>
+                        <span
+                            *ngIf="order.tokenNo != null"
+                            class="text-xs font-semibold text-primary white-space-nowrap"
+                        >
+                            Token #{{ order.tokenNo }}
+                        </span>
                         <button
                             pButton
                             type="button"
