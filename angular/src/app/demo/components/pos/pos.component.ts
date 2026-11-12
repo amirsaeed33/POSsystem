@@ -84,6 +84,8 @@ export class PosComponent implements OnInit, OnDestroy {
     scanning = false;
     searchText = '';
     suggestions: ProductDto[] = [];
+    /** Keyboard highlight index in menu search dropdown (-1 = none). */
+    suggestionHighlightIndex = -1;
     customers: CustomerDto[] = [];
     cart: PosCartLine[] = [];
 
@@ -3233,19 +3235,110 @@ export class PosComponent implements OnInit, OnDestroy {
         const q = (this.searchText || '').trim();
         if (!q) {
             this.suggestions = [];
+            this.suggestionHighlightIndex = -1;
             return;
         }
-        // Restaurant: filter the on-screen menu grid locally (no suggestion dropdown).
+        // Restaurant: dropdown from loaded menu + keep grid filter via searchText.
         if (this.isRestaurantMode) {
-            this.suggestions = [];
+            this.suggestions = this.buildMenuSuggestions(q);
+            this.suggestionHighlightIndex = this.suggestions.length ? 0 : -1;
             return;
         }
         this.searchTimer = setTimeout(() => this.loadSuggestions(q), 250);
     }
 
+    onSearchKeydown(event: KeyboardEvent): void {
+        const key = event.key;
+        if (key === 'ArrowDown') {
+            if (!this.suggestions.length) {
+                const q = (this.searchText || '').trim();
+                if (q && this.isRestaurantMode) {
+                    this.suggestions = this.buildMenuSuggestions(q);
+                }
+            }
+            if (!this.suggestions.length) {
+                return;
+            }
+            event.preventDefault();
+            this.suggestionHighlightIndex =
+                this.suggestionHighlightIndex < 0
+                    ? 0
+                    : Math.min(
+                          this.suggestionHighlightIndex + 1,
+                          this.suggestions.length - 1
+                      );
+            return;
+        }
+        if (key === 'ArrowUp') {
+            if (!this.suggestions.length) {
+                return;
+            }
+            event.preventDefault();
+            this.suggestionHighlightIndex = Math.max(
+                this.suggestionHighlightIndex - 1,
+                0
+            );
+            return;
+        }
+        if (key === 'Escape') {
+            if (this.suggestions.length) {
+                event.preventDefault();
+                this.suggestions = [];
+                this.suggestionHighlightIndex = -1;
+            }
+            return;
+        }
+        if (key === 'Enter') {
+            event.preventDefault();
+            if (
+                this.suggestionHighlightIndex >= 0 &&
+                this.suggestions[this.suggestionHighlightIndex]
+            ) {
+                void this.selectSuggestion(
+                    this.suggestions[this.suggestionHighlightIndex]
+                );
+                return;
+            }
+            this.onSearchEnter();
+        }
+    }
+
+    /** Local menu matches for restaurant search dropdown (max 12). */
+    private buildMenuSuggestions(keyword: string): ProductDto[] {
+        const q = (keyword || '').trim().toLowerCase();
+        if (!q) {
+            return [];
+        }
+        return (this.menuProducts || [])
+            .filter(
+                (p) =>
+                    !this.isGroceryProduct(p) &&
+                    ((p.name || '').toLowerCase().includes(q) ||
+                        (p.barcode || '').toLowerCase().includes(q) ||
+                        (p.categoryName || '').toLowerCase().includes(q))
+            )
+            .slice(0, 12);
+    }
+
     onSearchEnter(): void {
         const code = (this.searchText || '').trim();
         if (!code || this.scanning || this.saving) {
+            return;
+        }
+
+        // Restaurant: pick first dropdown match → add to cart immediately.
+        if (this.isRestaurantMode) {
+            const match =
+                this.suggestions[0] || this.buildMenuSuggestions(code)[0] || null;
+            if (match) {
+                void this.selectSuggestion(match);
+                return;
+            }
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Not found',
+                detail: 'No menu item matches your search',
+            });
             return;
         }
 
@@ -3285,6 +3378,7 @@ export class PosComponent implements OnInit, OnDestroy {
         this.addProduct(product);
         this.searchText = '';
         this.suggestions = [];
+        this.suggestionHighlightIndex = -1;
         this.focusSearch();
     }
 
@@ -4575,9 +4669,11 @@ export class PosComponent implements OnInit, OnDestroy {
                     return;
                 }
                 this.suggestions = (items || []).filter((p) => !this.isGroceryProduct(p));
+                this.suggestionHighlightIndex = this.suggestions.length ? 0 : -1;
             })
             .catch(() => {
                 this.suggestions = [];
+                this.suggestionHighlightIndex = -1;
             });
     }
 

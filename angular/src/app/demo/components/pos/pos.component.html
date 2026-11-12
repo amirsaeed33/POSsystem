@@ -393,7 +393,7 @@
                     </span>
                 </div>
 
-                <div class="p-inputgroup mb-3">
+                <div class="pos-menu-search-wrap mb-3">
                     <input
                         #barcodeInput
                         pInputText
@@ -401,7 +401,7 @@
                         class="pos-barcode-input w-full"
                         [(ngModel)]="searchText"
                         (input)="onSearchInput()"
-                        (keyup.enter)="onSearchEnter()"
+                        (keydown)="onSearchKeydown($event)"
                         placeholder="Search food by name…"
                         [disabled]="scanning || saving"
                         autocomplete="off"
@@ -410,17 +410,35 @@
                         spellcheck="false"
                         inputmode="search"
                         enterkeyhint="go"
+                        aria-autocomplete="list"
+                        [attr.aria-expanded]="suggestions.length > 0"
                     />
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-search"
-                        class="p-button-outlined"
-                        [disabled]="scanning || saving"
-                        (click)="onSearchInput()"
-                        title="Search"
-                    ></button>
+                    <div
+                        class="pos-menu-suggestions"
+                        *ngIf="suggestions.length"
+                        role="listbox"
+                    >
+                        <button
+                            type="button"
+                            class="pos-menu-suggestion-item"
+                            *ngFor="let product of suggestions; let i = index"
+                            [class.is-active]="i === suggestionHighlightIndex"
+                            (click)="selectSuggestion(product)"
+                            [disabled]="scanning || saving"
+                            role="option"
+                            [attr.aria-selected]="i === suggestionHighlightIndex"
+                        >
+                            <span class="pos-menu-suggestion-main">
+                                <span class="pos-menu-suggestion-name">{{ product.name }}</span>
+                                <span class="pos-menu-suggestion-cat text-500" *ngIf="product.categoryName">
+                                    {{ product.categoryName }}
+                                </span>
+                            </span>
+                            <span class="pos-menu-suggestion-price font-semibold">
+                                {{ getUnitPrice(product) | number: '1.2-2' }}
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="pos-menu-categories-wrap mb-3">
