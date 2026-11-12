@@ -249,29 +249,26 @@ export class ProductListComponent implements OnInit {
 
     /**
      * Pricing rules for size/options:
-     * - empty → saved as product sale price (included; no "+" when customer selects)
+     * - empty box → included in sale (no "+" when customer selects)
      * - 0 → Free
-     * - > 0 and not sale price → "+ price" extra when customer selects
+     * - any typed > 0 (even equal to sale) → "+ price" extra when selected
      */
-    isModifierSalePrice(optionPrice: number | null | undefined): boolean {
-        const sale = Number(this.modifierTargetProduct?.price);
-        const price = Number(optionPrice);
-        return (
-            Number.isFinite(sale) &&
-            sale > 0 &&
-            Number.isFinite(price) &&
-            price > 0 &&
-            Math.abs(price - sale) < 0.01
-        );
+    isModifierIncludedOption(option: {
+        price?: number | null;
+        isIncludedInBasePrice?: boolean;
+    } | null | undefined): boolean {
+        return !!option?.isIncludedInBasePrice;
     }
 
-    formatModifierOptionPrice(optionPrice: number | null | undefined): string {
-        const price = Number(optionPrice) || 0;
+    formatModifierOptionPrice(option: {
+        price?: number | null;
+        isIncludedInBasePrice?: boolean;
+    } | null | undefined): string {
+        const price = Number(option?.price) || 0;
         if (price <= 0) {
             return 'Free';
         }
-        // Empty→sale: show amount only (no "+"). Real extras keep "+".
-        if (this.isModifierSalePrice(price)) {
+        if (this.isModifierIncludedOption(option)) {
             return price.toFixed(2);
         }
         return `+ ${price.toFixed(2)}`;
@@ -386,8 +383,8 @@ export class ProductListComponent implements OnInit {
         const name = (this.newOptionName[groupId] || '').trim();
         if (!name || !this.modifierTargetProduct) return;
 
-        // Empty price → product sale price (included, no "+"). Explicit 0 → Free.
-        // Typing the same amount as sale also counts as included.
+        // Empty price → product sale (included, no "+"). Typed amount (even sale) → +extra.
+        // Explicit 0 → Free.
         const rawPrice = this.newOptionPrice[groupId];
         const isEmpty =
             rawPrice === null ||
@@ -396,14 +393,14 @@ export class ProductListComponent implements OnInit {
         const sale = Number(this.modifierTargetProduct.price);
         const salePrice = Number.isFinite(sale) && sale > 0 ? sale : 0;
         let price: number;
+        let isIncludedInBasePrice = false;
         if (isEmpty) {
             price = salePrice;
+            isIncludedInBasePrice = true;
         } else {
             const parsed = Number(rawPrice);
             price = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
-            if (salePrice > 0 && Math.abs(price - salePrice) < 0.01) {
-                price = salePrice;
-            }
+            isIncludedInBasePrice = false;
         }
 
         this.addingOption[groupId] = true;
@@ -412,6 +409,7 @@ export class ProductListComponent implements OnInit {
                 name,
                 price,
                 extraPrice: price,
+                isIncludedInBasePrice,
             });
             this.newOptionName[groupId] = '';
             this.newOptionPrice[groupId] = null;

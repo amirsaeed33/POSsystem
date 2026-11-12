@@ -2952,39 +2952,15 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         return opt.price ?? opt.extraPrice ?? 0;
     }
 
-    /** Empty→sale = included; 0 = free; other >0 = +extra when customer selects size. */
-    hasModifierPlusSign(
-        optionPrice: number | null | undefined,
-        productSalePrice?: number | null
-    ): boolean {
-        const price = Number(optionPrice) || 0;
+    /** Empty box → included (no +). Typed >0 (even sale) → +extra. 0 → free. */
+    hasModifierPlusSign(opt: ProductModifierOptionDto | null | undefined): boolean {
+        const price = this.getOptionPrice(opt as ProductModifierOptionDto);
         if (price <= 0) return false;
-        const sale = Number(productSalePrice);
-        if (Number.isFinite(sale) && sale > 0 && Math.abs(price - sale) < 0.01) {
-            return false;
-        }
+        if (opt?.isIncludedInBasePrice) return false;
         return true;
     }
 
-    isModifierSalePrice(
-        optionPrice: number | null | undefined,
-        productSalePrice?: number | null
-    ): boolean {
-        const sale = Number(productSalePrice);
-        const price = Number(optionPrice);
-        return (
-            Number.isFinite(sale) &&
-            sale > 0 &&
-            Number.isFinite(price) &&
-            price > 0 &&
-            Math.abs(price - sale) < 0.01
-        );
-    }
-
-    formatOptionDisplayPrice(
-        opt: ProductModifierOptionDto,
-        productSalePrice?: number | null
-    ): string {
+    formatOptionDisplayPrice(opt: ProductModifierOptionDto): string {
         const price = this.getOptionPrice(opt);
         if (price <= 0) {
             return '';
@@ -2993,8 +2969,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             minimumFractionDigits: 0,
             maximumFractionDigits: 2,
         });
-        // Sale-price size (from empty) is included — no "+".
-        if (this.isModifierSalePrice(price, productSalePrice)) {
+        if (opt?.isIncludedInBasePrice) {
             return `PKR ${formatted}`;
         }
         return `+PKR ${formatted}`;
@@ -3003,7 +2978,6 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
     getDetailUnitPrice(): number {
         if (!this.selectedProduct) return 0;
         let price = this.selectedProduct.price || 0;
-        const productSalePrice = Number(this.selectedProduct.price) || 0;
 
         for (const g of this.productModifierGroups) {
             const selectedIds = this.selectedModifierOptions[g.id] || [];
@@ -3011,21 +2985,20 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 const opt = g.options.find((o) => o.id === optId);
                 if (opt) {
                     const optPrice = this.getOptionPrice(opt);
-                    if (optPrice > 0 && this.hasModifierPlusSign(optPrice, productSalePrice)) {
+                    if (optPrice > 0 && this.hasModifierPlusSign(opt)) {
                         price += optPrice;
                     }
                 }
             }
         }
         for (const item of this.dealCustomiseItems) {
-            const itemPrice = Number(item.unitPrice) || 0;
             for (const g of item.modifierGroups || []) {
                 const selectedIds = item.selectedOptions[g.id] || [];
                 for (const optId of selectedIds) {
                     const opt = g.options.find((o) => o.id === optId);
                     if (opt) {
                         const optPrice = this.getOptionPrice(opt);
-                        if (optPrice > 0 && this.hasModifierPlusSign(optPrice, itemPrice)) {
+                        if (optPrice > 0 && this.hasModifierPlusSign(opt)) {
                             price += optPrice;
                         }
                     }
@@ -3058,7 +3031,6 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
         const selectedOptionNames: string[] = [];
         const allSelectedIds: number[] = [];
-        const productSalePrice = Number(this.selectedProduct.price) || 0;
 
         for (const g of this.productModifierGroups) {
             const selectedIds = this.selectedModifierOptions[g.id] || [];
@@ -3067,7 +3039,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                 if (opt) {
                     allSelectedIds.push(opt.id);
                     const extra = this.getOptionPrice(opt);
-                    const hasPlus = this.hasModifierPlusSign(extra, productSalePrice);
+                    const hasPlus = this.hasModifierPlusSign(opt);
                     selectedOptionNames.push(hasPlus ? `${opt.name} (+PKR ${extra})` : opt.name);
                 }
             }
@@ -3092,7 +3064,6 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
         if (this.dealCustomiseItems.length > 0) {
             for (const item of this.dealCustomiseItems) {
                 const itemOpts: string[] = [];
-                const itemPrice = Number(item.unitPrice) || 0;
                 for (const g of item.modifierGroups || []) {
                     const selectedIds = item.selectedOptions[g.id] || [];
                     for (const optId of selectedIds) {
@@ -3100,7 +3071,7 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                         if (opt) {
                             allSelectedIds.push(opt.id);
                             const extra = this.getOptionPrice(opt);
-                            const hasPlus = this.hasModifierPlusSign(extra, itemPrice);
+                            const hasPlus = this.hasModifierPlusSign(opt);
                             itemOpts.push(hasPlus ? `${opt.name} (+PKR ${extra})` : opt.name);
                         }
                     }

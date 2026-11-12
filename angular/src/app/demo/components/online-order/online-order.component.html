@@ -1040,10 +1040,10 @@
                                             (click)="toggleDealItemOption(item, group, opt)"
                                         >
                                             <span>{{ opt.name }}</span>
-                                            <span *ngIf="formatOptionDisplayPrice(opt, item.unitPrice)" class="ml-1 font-bold text-xs" [class.text-500]="!hasModifierPlusSign(getOptionPrice(opt), item.unitPrice)">
-                                                {{ formatOptionDisplayPrice(opt, item.unitPrice) }}
+                                            <span *ngIf="formatOptionDisplayPrice(opt)" class="ml-1 font-bold text-xs" [class.text-500]="!hasModifierPlusSign(opt)">
+                                                {{ formatOptionDisplayPrice(opt) }}
                                             </span>
-                                            <span *ngIf="!formatOptionDisplayPrice(opt, item.unitPrice)" class="ml-1 text-500 text-xs">
+                                            <span *ngIf="!formatOptionDisplayPrice(opt)" class="ml-1 text-500 text-xs">
                                                 (Free)
                                             </span>
                                         </div>
@@ -1077,10 +1077,10 @@
                                 (click)="toggleOption(group, opt)"
                             >
                                 <span>{{ opt.name }}</span>
-                                <span *ngIf="formatOptionDisplayPrice(opt, selectedProduct?.price)" class="ml-1 font-bold text-xs" [class.text-500]="!hasModifierPlusSign(getOptionPrice(opt), selectedProduct?.price)">
-                                    {{ formatOptionDisplayPrice(opt, selectedProduct?.price) }}
+                                <span *ngIf="formatOptionDisplayPrice(opt)" class="ml-1 font-bold text-xs" [class.text-500]="!hasModifierPlusSign(opt)">
+                                    {{ formatOptionDisplayPrice(opt) }}
                                 </span>
-                                <span *ngIf="!formatOptionDisplayPrice(opt, selectedProduct?.price)" class="ml-1 text-500 text-xs">
+                                <span *ngIf="!formatOptionDisplayPrice(opt)" class="ml-1 text-500 text-xs">
                                     (Free)
                                 </span>
                             </div>

@@ -15,6 +15,8 @@ export interface ProductModifierOptionDto {
     name: string;
     price: number;
     extraPrice?: number;
+    /** Empty price box on create — display sale, do not add as +extra. */
+    isIncludedInBasePrice?: boolean;
     isDefault: boolean;
 }
 
@@ -32,5 +34,7 @@ export interface CreateModifierOptionDto {
     name: string;
     price?: number;
     extraPrice?: number;
+    /** True only when admin left the price field empty. */
+    isIncludedInBasePrice?: boolean;
     isDefault?: boolean;
 }

@@ -27,6 +27,9 @@ namespace SmartPos.Restaurant.Dto
 
         public decimal Price { get; set; }
 
+        /// <summary>True when admin left price empty (included in sale; no +extra).</summary>
+        public bool IsIncludedInBasePrice { get; set; }
+
         public bool IsDefault { get; set; }
     }
 
@@ -55,6 +58,9 @@ namespace SmartPos.Restaurant.Dto
         public string Name { get; set; }
 
         public decimal Price { get; set; } = 0;
+
+        /// <summary>True when admin left the price box empty.</summary>
+        public bool IsIncludedInBasePrice { get; set; } = false;
 
         public bool IsDefault { get; set; } = false;
     }

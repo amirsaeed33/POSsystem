@@ -69,6 +69,7 @@ namespace SmartPos.Restaurant
                 {
                     Name = o.Name.Trim(),
                     Price = o.Price,
+                    IsIncludedInBasePrice = o.IsIncludedInBasePrice,
                     IsDefault = o.IsDefault
                 }).ToList()
             };
@@ -94,6 +95,7 @@ namespace SmartPos.Restaurant
                 ModifierGroupId = groupId,
                 Name = input.Name.Trim(),
                 Price = input.Price,
+                IsIncludedInBasePrice = input.IsIncludedInBasePrice,
                 IsDefault = input.IsDefault
             };
 

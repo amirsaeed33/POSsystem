@@ -1352,7 +1352,12 @@ namespace SmartPos.Orders
             }
 
             var fullName = $"{user.Name} {user.Surname}".Trim();
-            return string.IsNullOrWhiteSpace(fullName) ? (user.UserName || "Staff") : fullName;
+            if (!string.IsNullOrWhiteSpace(fullName))
+            {
+                return fullName;
+            }
+
+            return string.IsNullOrWhiteSpace(user.UserName) ? "Staff" : user.UserName;
         }
 
         private async Task SettleKitchenTicketForOnlineOrderAsync(int customerOrderId)

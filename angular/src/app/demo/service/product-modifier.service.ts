@@ -61,6 +61,7 @@ export class ProductModifierService {
             options: (dto.options || []).map((o) => ({
                 name: o.name,
                 price: o.price ?? o.extraPrice ?? 0,
+                isIncludedInBasePrice: !!o.isIncludedInBasePrice,
                 isDefault: !!o.isDefault,
             })),
         };
@@ -96,6 +97,7 @@ export class ProductModifierService {
             name: dto.name,
             // Always send numeric price (including 0 = Free). Never omit 0.
             price: Number.isFinite(price) ? Math.max(0, price) : 0,
+            isIncludedInBasePrice: !!dto.isIncludedInBasePrice,
             isDefault: !!dto.isDefault,
         };
         const res: any = await firstValueFrom(
@@ -147,6 +149,9 @@ export class ProductModifierService {
             name: o.name ?? o.Name,
             price: price,
             extraPrice: price,
+            isIncludedInBasePrice: !!(
+                o.isIncludedInBasePrice ?? o.IsIncludedInBasePrice
+            ),
             isDefault: !!(o.isDefault ?? o.IsDefault),
         };
     }
