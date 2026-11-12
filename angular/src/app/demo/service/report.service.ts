@@ -196,13 +196,18 @@ export class ReportService {
         const items = data.items || data.Items || [];
         return {
             totalAmount: data.totalAmount ?? data.TotalAmount ?? 0,
+            totalPaidAmount: data.totalPaidAmount ?? data.TotalPaidAmount ?? 0,
+            totalDueAmount: data.totalDueAmount ?? data.TotalDueAmount ?? 0,
             items: (Array.isArray(items) ? items : []).map(
                 (item: any): SaleReportRowDto => ({
                     id: item.id ?? item.Id,
                     invoiceNo: item.invoiceNo ?? item.InvoiceNo,
                     saleDate: item.saleDate ?? item.SaleDate,
+                    saleType: item.saleType ?? item.SaleType,
                     customerName: item.customerName ?? item.CustomerName,
                     totalAmount: item.totalAmount ?? item.TotalAmount ?? 0,
+                    paidAmount: item.paidAmount ?? item.PaidAmount ?? 0,
+                    dueAmount: item.dueAmount ?? item.DueAmount ?? 0,
                     notes: item.notes ?? item.Notes,
                 })
             ),

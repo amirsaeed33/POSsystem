@@ -895,48 +895,37 @@ export class ThermalPrintService {
                 .join('')
             : `<tr><td colspan="2" class="text-center meta-text" style="padding: 8px 0;">No items for this station</td></tr>`;
 
-        const locationMeta = kot.carNumber
-            ? `Car: <strong>${kot.carName || ''} (${kot.carNumber})</strong> ${kot.carLocation ? '&bull; Spot: ' + kot.carLocation : ''}`
+        const locationLabel = kot.carNumber
+            ? `Car: <strong>${kot.carName || ''} (${kot.carNumber})</strong>${kot.carLocation ? ' &bull; Spot: ' + kot.carLocation : ''}`
             : `Table: <strong>${kot.tableNo || 'Takeaway'}</strong>`;
 
-        const tokenHtml = (kot.tokenNo != null && kot.tokenNo > 0)
-            ? `<div style="display: flex; justify-content: space-between; align-items: baseline; margin: 4px 0 2px 0; font-weight: bold;">
-                <span style="font-size: ${is58 ? '15px' : '18px'}; font-family: monospace;">Token# ${kot.tokenNo}</span>
-                <span style="font-size: ${is58 ? '13px' : '15px'};">${kot.orderTypeLabel || 'KOT'}</span>
-               </div>`
-            : '';
-
-        const logoHtml = (config.showLogo !== false && branch.logoUrl)
-            ? `<img src="${branch.logoUrl}" class="logo-img" alt="Logo" style="margin-bottom: 3px;" />`
-            : '';
-
-        const branchTitleHtml = `<div class="header-title uppercase" style="font-size: ${is58 ? '15px' : '18px'}; font-weight: 700; letter-spacing: 0.3px; margin-top: 2px;">${branch.name}</div>`;
-
-        const headerHtml = logoHtml
-            ? `
-                <div class="text-center">
-                    ${logoHtml}
-                    <div class="divider"></div>
-                    <div class="header-subtitle uppercase" style="font-size: ${is58 ? '12px' : '14px'}; font-weight: 700; letter-spacing: 0.3px;">${slipTitle}</div>
-                </div>
-              `
-            : `
-                <div class="text-center">
-                    ${branchTitleHtml}
-                    <div class="divider"></div>
-                    <div class="header-subtitle uppercase" style="font-size: ${is58 ? '12px' : '14px'}; font-weight: 700; letter-spacing: 0.3px;">${slipTitle}</div>
-                </div>
-              `;
+        const hasToken = kot.tokenNo != null && kot.tokenNo > 0;
+        const orderTypeLabel = kot.orderTypeLabel || 'KOT';
 
         const bodyHtml = `
-            ${headerHtml}
+            <div class="text-center">
+                <div class="header-title uppercase" style="font-size: ${is58 ? '15px' : '18px'}; font-weight: 700; letter-spacing: 0.3px; margin-top: 2px;">${branch.name}</div>
+                <div class="divider"></div>
+                <div class="header-subtitle uppercase" style="font-size: ${is58 ? '12px' : '14px'}; font-weight: 700; letter-spacing: 0.3px;">${slipTitle}</div>
+            </div>
 
-            ${tokenHtml}
+            ${hasToken
+                ? `<div style="display: flex; justify-content: space-between; align-items: baseline; margin: 4px 0 2px 0; font-weight: bold;">
+                        <span style="font-size: ${is58 ? '15px' : '18px'}; font-family: monospace;">Token# ${kot.tokenNo}</span>
+                        <span style="font-size: ${is58 ? '13px' : '15px'};">${orderTypeLabel}</span>
+                   </div>`
+                : `<div class="meta-text bold" style="font-size: ${is58 ? '13px' : '15px'}; margin: 4px 0 2px 0;">${orderTypeLabel}</div>`
+            }
 
             <div class="meta-text" style="font-size: ${is58 ? '11px' : '12.5px'}; margin: 3px 0;">
-                ${locationMeta} &bull; Order: <strong>#${kot.orderNo || kot.orderId}</strong>
+                ${locationLabel}
             </div>
-            <div class="meta-text" style="font-size: ${is58 ? '9px' : '11px'};">Server: <strong>${kot.waiterName || 'Staff'}</strong> &bull; ${kot.printTime ? new Date(kot.printTime).toLocaleTimeString() : new Date().toLocaleTimeString()}</div>
+            <div class="meta-text" style="font-size: ${is58 ? '11px' : '12.5px'};">
+                Order: <strong>#${kot.orderNo || kot.orderId}</strong>
+            </div>
+            <div class="meta-text" style="font-size: ${is58 ? '9px' : '11px'};">
+                Server: <strong>${kot.waiterName || 'Staff'}</strong> &bull; ${kot.printTime ? new Date(kot.printTime).toLocaleTimeString() : new Date().toLocaleTimeString()}
+            </div>
             ${kot.printedByName ? `<div class="meta-text" style="font-size: ${is58 ? '9px' : '11px'};">Sent By: <strong>${kot.printedByName}</strong> (${kot.printedByRole || 'Staff'})</div>` : ''}
             <div class="divider"></div>
 
