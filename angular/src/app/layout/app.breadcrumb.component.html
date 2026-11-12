@@ -1,4 +1,4 @@
-<nav class="layout-breadcrumb">
+<nav class="layout-breadcrumb" *ngIf="!hideBreadcrumb">
     <ol>
         <li>
             <a [routerLink]="isWaiter ? ['/pos'] : (isDeliveryRider ? ['/rider/dashboard'] : ['/'])">

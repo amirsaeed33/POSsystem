@@ -52,8 +52,8 @@ import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart'
 /** POS third-party delivery channel (runs as takeaway with a named customer). */
 export type PosThirdPartyChannel = 'foodpanda' | null;
 
-/** Single UI source of truth for Dine-In / Takeaway / Third Party button highlight. */
-export type PosOrderChannelUi = 'dineIn' | 'takeaway' | 'foodpanda';
+/** Single UI source of truth for Dine-In / Takeaway / Third Party / Online button highlight. */
+export type PosOrderChannelUi = 'dineIn' | 'takeaway' | 'foodpanda' | 'online';
 
 const THIRD_PARTY_CUSTOMER_NAME = 'Third Party';
 /** Legacy customer name — still recognized for existing orders/customers. */
@@ -196,6 +196,9 @@ export class PosComponent implements OnInit, OnDestroy {
         if (this.thirdPartyChannel === 'foodpanda') {
             return 'Third Party';
         }
+        if (this.isOnlineOrder) {
+            return 'Online';
+        }
         if (this.orderType === 'takeaway') {
             return 'Take-Away';
         }
@@ -204,6 +207,10 @@ export class PosComponent implements OnInit, OnDestroy {
 
     get isFoodpandaOrder(): boolean {
         return this.selectedChannel === 'foodpanda' || this.thirdPartyChannel === 'foodpanda';
+    }
+
+    get isOnlineOrder(): boolean {
+        return this.selectedChannel === 'online';
     }
 
     private syncActiveOrderMeta(order: {
@@ -331,7 +338,11 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     get showDeliveryAddressPanel(): boolean {
-        return !this.isRestaurantMode || this.orderType === 'takeaway';
+        return (
+            !this.isRestaurantMode ||
+            this.orderType === 'takeaway' ||
+            this.isOnlineOrder
+        );
     }
 
     get isWaiter(): boolean {
@@ -1162,9 +1173,9 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Dine-In / Takeaway / Foodpanda (third-party).
+     * Dine-In / Takeaway / Foodpanda (third-party) / Online delivery.
      * UI highlight uses selectedChannel only (not orderType), because Foodpanda
-     * still sets orderType=takeaway for kitchen/settle flows.
+     * and Online still use takeaway kitchen/settle flows under the hood.
      */
     async selectOrderChannel(channel: PosOrderChannelUi): Promise<void> {
         // Set highlight synchronously first so Takeaway cannot keep .active.
@@ -1180,6 +1191,20 @@ export class PosComponent implements OnInit, OnDestroy {
             this.selectedChannel = 'foodpanda';
             this.thirdPartyChannel = 'foodpanda';
             this.orderType = 'takeaway';
+            this.cdr.detectChanges();
+            return;
+        }
+
+        if (channel === 'online') {
+            const wasFoodpanda = this.thirdPartyChannel === 'foodpanda';
+            this.thirdPartyChannel = null;
+            this.orderType = 'takeaway';
+            this.selectedChannel = 'online';
+            this.clearTableSelection();
+            if (wasFoodpanda) {
+                this.selectWalkInCustomer();
+            }
+            void this.loadDeliveryAreasForPos();
             this.cdr.detectChanges();
             return;
         }
@@ -1201,6 +1226,9 @@ export class PosComponent implements OnInit, OnDestroy {
 
     /** Keep the chip highlight in sync when order type is set outside the toggle. */
     private syncSelectedChannelFromOrderState(): void {
+        if (this.selectedChannel === 'online') {
+            return;
+        }
         if (this.thirdPartyChannel === 'foodpanda' && this.orderType === 'takeaway') {
             this.selectedChannel = 'foodpanda';
             return;
@@ -3034,9 +3062,16 @@ export class PosComponent implements OnInit, OnDestroy {
     } {
         const isCar = !isTakeaway && this.isCarService;
         if (isTakeaway) {
+            if (this.isOnlineOrder) {
+                return {
+                    tableId: null,
+                    tableNo: 'Online',
+                    orderType: OrderTypes.Delivery,
+                };
+            }
             return {
                 tableId: null,
-                tableNo: 'Takeaway',
+                tableNo: this.isFoodpandaOrder ? 'Third Party' : 'Takeaway',
                 orderType: OrderTypes.Takeaway,
             };
         }

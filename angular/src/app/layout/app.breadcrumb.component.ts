@@ -20,6 +20,8 @@ export class AppBreadcrumbComponent {
 
     readonly breadcrumbs$ = this._breadcrumbs$.asObservable();
 
+    hideBreadcrumb = false;
+
     get isWaiter(): boolean {
         return this.authService.isWaiter();
     }
@@ -29,13 +31,22 @@ export class AppBreadcrumbComponent {
     }
 
     constructor(private router: Router, private authService: AuthService) {
-        this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(event => {
+        this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
             const root = this.router.routerState.snapshot.root;
+            this.hideBreadcrumb = this.routeHasFlag(root, 'hideBreadcrumb');
             const breadcrumbs: Breadcrumb[] = [];
-            this.addBreadcrumb(root, [], breadcrumbs);
-
+            if (!this.hideBreadcrumb) {
+                this.addBreadcrumb(root, [], breadcrumbs);
+            }
             this._breadcrumbs$.next(breadcrumbs);
         });
+    }
+
+    private routeHasFlag(route: ActivatedRouteSnapshot, flag: string): boolean {
+        if (route.data?.[flag]) {
+            return true;
+        }
+        return route.firstChild ? this.routeHasFlag(route.firstChild, flag) : false;
     }
 
     private addBreadcrumb(route: ActivatedRouteSnapshot, parentUrl: string[], breadcrumbs: Breadcrumb[]) {

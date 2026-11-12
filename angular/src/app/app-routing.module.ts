@@ -28,6 +28,7 @@ const routes: Routes = [
                 path: 'pos',
                 data: {
                     breadcrumb: 'POS',
+                    hideBreadcrumb: true,
                     anyPermission: [
                         PermissionNames.Pos,
                         PermissionNames.DiningTables,

@@ -8,7 +8,7 @@ import { PosComponent } from './pos.component';
             {
                 path: '',
                 component: PosComponent,
-                data: { breadcrumb: 'POS' },
+                data: { breadcrumb: 'POS', hideBreadcrumb: true },
             },
         ]),
     ],

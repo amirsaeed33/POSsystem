@@ -112,23 +112,6 @@
                 <div class="min-w-0">
                     <div class="pos-resto-bar-title">
                         <span>Restaurant Mode</span>
-                        <span
-                            class="pos-resto-badge"
-                            [class.dine]="orderType === 'dineIn' && !isCarService"
-                            [class.car]="isCarService"
-                            [class.takeaway]="orderType === 'takeaway' && !isFoodpandaOrder"
-                            [class.foodpanda]="isFoodpandaOrder"
-                        >
-                            {{
-                                isCarService
-                                    ? 'Car Service'
-                                    : isFoodpandaOrder
-                                      ? 'Third Party'
-                                      : orderType === 'dineIn'
-                                        ? 'Dine-In'
-                                        : 'Takeaway'
-                            }}
-                        </span>
                     </div>
                     <div class="pos-resto-bar-status">
                         <ng-container *ngIf="orderType === 'dineIn'">
@@ -206,6 +189,17 @@
                     >
                         <i class="pi pi-send"></i>
                         <span>Third Party</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="pos-order-type-btn"
+                        [ngClass]="{ 'is-selected': selectedChannel === 'online' }"
+                        [attr.aria-pressed]="selectedChannel === 'online'"
+                        (click)="selectOrderChannel('online')"
+                        title="Online delivery order"
+                    >
+                        <i class="pi pi-globe"></i>
+                        <span>Online</span>
                     </button>
                 </div>
 
@@ -399,7 +393,6 @@
                     </span>
                 </div>
 
-                <label class="font-semibold block mb-2">Search menu or pick one or more categories</label>
                 <div class="p-inputgroup mb-3">
                     <input
                         #barcodeInput
@@ -949,9 +942,9 @@
                         ></button>
                     </div>
 
-                    <!-- Admin / Cashier Mode: Full Actions (Send to Kitchen, Save Tab, Guest Bill, Split Bill) -->
+                    <!-- Admin / Cashier Mode: Send to Kitchen + Guest Bill -->
                     <div *ngIf="!isWaiter" class="grid formgrid p-fluid">
-                        <div class="col-6 pr-1 pb-1">
+                        <div class="col-6 pr-1">
                             <button
                                 pButton
                                 pRipple
@@ -964,20 +957,7 @@
                                 [title]="sendKotButtonTitle"
                             ></button>
                         </div>
-                        <div class="col-6 pl-1 pb-1">
-                            <button
-                                pButton
-                                pRipple
-                                type="button"
-                                label="💾 Save Tab"
-                                class="p-button-secondary p-button-outlined w-full p-button-sm font-semibold"
-                                [disabled]="!cart.length || savingOrder"
-                                [loading]="savingOrder"
-                                (click)="saveRunningTab()"
-                                title="Hold running order for this table"
-                            ></button>
-                        </div>
-                        <div class="col-6 pr-1 pt-1">
+                        <div class="col-6 pl-1">
                             <button
                                 pButton
                                 pRipple
@@ -988,18 +968,6 @@
                                 [loading]="printingBill"
                                 (click)="printGuestBill()"
                                 title="Print customer guest check / bill preview"
-                            ></button>
-                        </div>
-                        <div class="col-6 pl-1 pt-1">
-                            <button
-                                pButton
-                                pRipple
-                                type="button"
-                                label="➗ Split Bill"
-                                class="p-button-help p-button-outlined w-full p-button-sm font-semibold"
-                                [disabled]="!cart.length"
-                                (click)="openSplitBill()"
-                                title="Calculate or split bill among guests"
                             ></button>
                         </div>
                     </div>
@@ -1021,7 +989,7 @@
                         pButton
                         pRipple
                         type="button"
-                        [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : (orderType === 'takeaway' ? 'Complete' : 'Complete Bill')) : 'Complete Sale'"
+                        [label]="isRestaurantMode ? (isCarService ? 'Settle & Close Car' : (orderType === 'takeaway' ? 'Complete' : 'Paid')) : 'Complete Sale'"
                         icon="pi pi-check"
                         class="flex-grow-1"
                         [disabled]="!canSave()"
@@ -1033,7 +1001,7 @@
                         pButton
                         pRipple
                         type="button"
-                        label="Clear Cart"
+                        label="Clear"
                         class="p-button-outlined pos-settle-clear-btn"
                         [disabled]="!cart.length || saving"
                         (click)="clearCart()"
