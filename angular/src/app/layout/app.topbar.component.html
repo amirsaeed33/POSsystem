@@ -177,7 +177,6 @@
                     </div>
                 </div>
 
-                <!-- Audio Blocked Notice -->
                 <div *ngIf="takeawayAudioBlocked" class="p-2 mb-2 border-round bg-yellow-100 border-1 border-yellow-300 text-yellow-900 text-xs flex align-items-center justify-content-between">
                     <div class="flex align-items-center gap-1">
                         <i class="pi pi-volume-off text-base text-yellow-800"></i>
@@ -521,18 +520,6 @@
             </div>
         </div>
 
-        <button
-            type="button"
-            class="p-link topbar-fullscreen-btn flex align-items-center justify-content-center border-round hover:surface-hover"
-            (click)="toggleFullscreen()"
-            [pTooltip]="isFullscreen ? 'Exit full screen' : 'Full screen'"
-            tooltipPosition="bottom"
-            [attr.aria-label]="isFullscreen ? 'Exit full screen' : 'Enter full screen'"
-            [attr.aria-pressed]="isFullscreen"
-        >
-            <i class="pi text-xl" [ngClass]="isFullscreen ? 'pi-window-minimize' : 'pi-window-maximize'"></i>
-        </button>
-
         <div class="topbar-profile">
             <button
                 class="topbar-profile-button p-link"
@@ -565,7 +552,7 @@
                 <i class="pi pi-angle-down"></i>
             </button>
             <ul
-                class="list-none p-3 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top w-full sm:w-12rem mt-2 right-0 top-auto"
+                class="list-none p-3 m-0 border-round shadow-2 hidden absolute surface-overlay origin-top w-full sm:w-12rem mt-2 right-0 top-auto z-5"
             >
                 <li>
                     <a
@@ -583,6 +570,17 @@
                     >
                         <i class="pi pi-key mr-3"></i>
                         <span>Change Password</span>
+                    </a>
+                    <a
+                        pRipple
+                        class="flex p-2 border-round align-items-center hover:surface-hover transition-colors transition-duration-150 cursor-pointer"
+                        (click)="toggleFullscreen()"
+                    >
+                        <i
+                            class="pi mr-3"
+                            [ngClass]="isFullscreen ? 'pi-window-minimize' : 'pi-window-maximize'"
+                        ></i>
+                        <span>{{ isFullscreen ? 'Exit Full Screen' : 'Full Screen' }}</span>
                     </a>
                     <a
                         pRipple

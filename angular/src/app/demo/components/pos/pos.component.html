@@ -1,4 +1,4 @@
-<div class="pos-page" [class.pos-page--restaurant]="isRestaurantMode">
+﻿<div class="pos-page" [class.pos-page--restaurant]="isRestaurantMode">
     <!-- Waiter: currently assigned open/billed tables & car orders -->
     <div *ngIf="isWaiter" class="pos-waiter-assigned card mb-3">
         <div class="pos-waiter-assigned-head">
@@ -925,7 +925,6 @@
 
                 <!-- Staff: saved address + delivery zone (takeaway / online / retail) -->
                 <div class="field" *ngIf="showDeliveryAddressPanel">
-                    <label class="font-medium">Delivery address / zone</label>
                     <p-dropdown
                         *ngIf="savedAddresses.length > 0"
                         [options]="savedAddresses"
@@ -947,6 +946,7 @@
                             </div>
                         </ng-template>
                     </p-dropdown>
+                    <label class="font-medium block mb-1" *ngIf="deliveryAreas.length > 0">Delivery Area</label>
                     <p-dropdown
                         *ngIf="deliveryAreas.length > 0"
                         [options]="deliveryAreas"
@@ -954,10 +954,12 @@
                         (ngModelChange)="selectedSavedAddressId = null"
                         optionLabel="name"
                         optionValue="id"
-                        placeholder="Select zone"
+                        placeholder="Select delivery area"
                         styleClass="w-full mb-2"
                         appendTo="body"
                     ></p-dropdown>
+                                        <label class="font-medium">Delivery address / zone</label>
+
                     <input
                         pInputText
                         class="w-full mb-2"
@@ -972,9 +974,9 @@
                         placeholder="Landmark (optional)"
                     />
                     <small class="text-500 block mt-1" *ngIf="loadingSavedAddresses">Loading saved addresses…</small>
-                    <small class="text-500 block mt-1" *ngIf="deliveryAddress.trim() && selectedDeliveryArea">
+                    <small class="text-500 block mt-1" *ngIf="selectedDeliveryArea">
                         Fee: {{ deliveryCharges === 0 ? 'FREE' : (deliveryCharges | number:'1.0-0') }}
-                        · Zone {{ selectedDeliveryArea.name }}
+                        · Delivery Area {{ selectedDeliveryArea.name }}
                     </small>
                 </div>
 
@@ -1462,6 +1464,15 @@
                 <div class="pos-customer-receipt-divider"></div>
 
                 <div class="font-bold">{{ completedReceipt.customerName || 'Walk-in' }}</div>
+                <div class="text-sm mt-1" *ngIf="completedReceipt.customerPhone">
+                    Phone: {{ completedReceipt.customerPhone }}
+                </div>
+                <div class="text-sm mt-1" *ngIf="completedReceipt.deliveryAreaName">
+                    Delivery Area: {{ completedReceipt.deliveryAreaName }}
+                </div>
+                <div class="text-sm mt-1" *ngIf="completedReceipt.deliveryAddress">
+                    Address: {{ completedReceipt.deliveryAddress }}
+                </div>
                 <div class="pos-customer-receipt-row" style="margin-top: 4px;">
                     <span>Order-Taker: <strong>{{ completedReceipt.serverName || 'Staff' }}</strong></span>
                     <span class="pos-customer-receipt-printed">Printed: {{ formatReceiptDate(completedReceipt.date) }}</span>

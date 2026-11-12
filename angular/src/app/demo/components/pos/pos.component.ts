@@ -117,6 +117,8 @@ export class PosComponent implements OnInit, OnDestroy {
     private onlinePhoneLookupSeq = 0;
     /** Last phone digits that successfully matched a customer profile. */
     private lastOnlineLookupDigits = '';
+    /** Skip ngModelChange side-effects when autofill sets the phone programmatically. */
+    private suppressOnlinePhoneEvents = false;
 
     get hasOnlineCustomerDraft(): boolean {
         return !!(
@@ -1222,7 +1224,8 @@ export class PosComponent implements OnInit, OnDestroy {
             this.orderType = 'takeaway';
             this.thirdPartyChannel = 'foodpanda';
             this.clearOnlineCustomerFields();
-            this.clearTableSelection();
+            // Keep already-selected products when switching channel.
+            this.clearTableSelection({ preserveCart: true });
             await this.ensureThirdPartyCustomer(THIRD_PARTY_CUSTOMER_NAME);
             // Re-assert after async work in case anything touched order flags.
             this.selectedChannel = 'foodpanda';
@@ -1237,7 +1240,8 @@ export class PosComponent implements OnInit, OnDestroy {
             this.thirdPartyChannel = null;
             this.orderType = 'takeaway';
             this.selectedChannel = 'online';
-            this.clearTableSelection();
+            // Keep products selected in Dine-In / Takeaway when moving to Online.
+            this.clearTableSelection({ preserveCart: true });
             if (wasFoodpanda) {
                 this.selectWalkInCustomer();
             }
@@ -1286,12 +1290,12 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     onOnlinePhoneChanged(): void {
-        if (!this.isOnlineOrder) {
+        if (!this.isOnlineOrder || this.suppressOnlinePhoneEvents) {
             return;
         }
 
         const digits = (this.onlineCustomerPhone || '').replace(/\D/g, '');
-        // Phone changed away from last match — clear autofilled name/address so old customer does not stick.
+        // Phone changed away from last match — clear autofilled name/address only (never cart).
         if (
             this.lastOnlineLookupDigits &&
             digits !== this.lastOnlineLookupDigits &&
@@ -1312,17 +1316,17 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     private resetOnlineAutofillExceptPhone(): void {
+        // Soft reset only — do not touch cart / order lines.
         this.lastOnlineLookupDigits = '';
         this.onlineCustomerName = '';
         this.deliveryAddress = '';
         this.deliveryLandmark = '';
         this.selectedSavedAddressId = null;
         this.savedAddresses = [];
-        this.selectWalkInCustomer();
     }
 
     private async lookupOnlineCustomerByPhone(): Promise<void> {
-        if (!this.isOnlineOrder) {
+        if (!this.isOnlineOrder || this.suppressOnlinePhoneEvents) {
             return;
         }
         const phone = (this.onlineCustomerPhone || '').trim();
@@ -1333,6 +1337,8 @@ export class PosComponent implements OnInit, OnDestroy {
             return;
         }
 
+        // Preserve cart across async customer autofill (must not wipe selected products).
+        const cartSnapshot = this.cart.map((line) => ({ ...line }));
         const seq = ++this.onlinePhoneLookupSeq;
         this.onlineCustomerLookingUp = true;
         try {
@@ -1354,8 +1360,13 @@ export class PosComponent implements OnInit, OnDestroy {
 
             this.lastOnlineLookupDigits = digits;
             this.onlineCustomerName = (profile.name || '').trim();
-            if (profile.phone) {
-                this.onlineCustomerPhone = profile.phone;
+            const profilePhone = (profile.phone || '').trim();
+            if (profilePhone) {
+                const profileDigits = profilePhone.replace(/\D/g, '');
+                if (profileDigits !== digits) {
+                    this.setOnlinePhoneWithoutLookup(profilePhone);
+                    this.lastOnlineLookupDigits = profileDigits || digits;
+                }
             }
             const matchedAddress = (profile.address || '').trim();
             if (matchedAddress) {
@@ -1369,18 +1380,29 @@ export class PosComponent implements OnInit, OnDestroy {
                 if (def) {
                     this.applyPosSavedAddress(def);
                 }
-            } else {
+            } else if (!matchedAddress) {
                 this.savedAddresses = [];
                 this.selectedSavedAddressId = null;
             }
-            this.cdr.detectChanges();
         } catch {
             /* keep typed draft when lookup fails */
         } finally {
+            if (!this.cart.length && cartSnapshot.length) {
+                this.cart = cartSnapshot;
+            }
             if (seq === this.onlinePhoneLookupSeq) {
                 this.onlineCustomerLookingUp = false;
             }
         }
+    }
+
+    private setOnlinePhoneWithoutLookup(phone: string): void {
+        this.suppressOnlinePhoneEvents = true;
+        this.onlineCustomerPhone = phone;
+        // Release on next macrotask so ngModelChange from this write is ignored.
+        setTimeout(() => {
+            this.suppressOnlinePhoneEvents = false;
+        });
     }
 
     private selectOnlineCustomerInDropdown(profile: {
@@ -1391,6 +1413,7 @@ export class PosComponent implements OnInit, OnDestroy {
         if (!profile?.id) {
             return;
         }
+        const cartSnapshot = this.cart.map((line) => ({ ...line }));
         if (!this.customers.some((c) => c.id === profile.id)) {
             this.customers = [
                 ...this.customers,
@@ -1402,10 +1425,14 @@ export class PosComponent implements OnInit, OnDestroy {
             ];
         }
         this.customerId = profile.id;
+        // Reprice only — do not call onCustomerSelected() (focus/side-effects).
         for (const line of this.cart) {
             line.unitPrice = this.resolveUnitPrice(line.retailPrice, line.wholesalePrice);
         }
         void this.loadSavedAddressesForPosCustomer();
+        if (!this.cart.length && cartSnapshot.length) {
+            this.cart = cartSnapshot;
+        }
     }
 
     /**
@@ -1460,13 +1487,14 @@ export class PosComponent implements OnInit, OnDestroy {
                 throw new Error('Customer could not be saved.');
             }
             this.onlineCustomerName = (profile.name || name).trim();
-            this.onlineCustomerPhone = (profile.phone || phone).trim();
+            const savedPhone = (profile.phone || phone).trim();
+            this.setOnlinePhoneWithoutLookup(savedPhone);
+            this.lastOnlineLookupDigits = savedPhone.replace(/\D/g, '');
             const savedAddress = (profile.address || '').trim();
             if (savedAddress) {
                 this.deliveryAddress = savedAddress;
             }
             this.selectOnlineCustomerInDropdown(profile);
-            this.cdr.detectChanges();
             return true;
         } catch (err: any) {
             this.messageService.add({
@@ -2488,7 +2516,7 @@ export class PosComponent implements OnInit, OnDestroy {
         }
     }
 
-    clearTableSelection(): void {
+    clearTableSelection(options?: { preserveCart?: boolean }): void {
         this.selectedTable = null;
         this.selectedCarOrder = null;
         this.selectedCarName = '';
@@ -2500,6 +2528,16 @@ export class PosComponent implements OnInit, OnDestroy {
         }
         // Keep last waiterName for admins so the next table/car auto-assigns the same person
         this.pendingSendToTable = false;
+        if (options?.preserveCart) {
+            // Detach lines from any previous table/KOT order so they can be reused on the new channel.
+            this.cart = (this.cart || []).map((line) => ({
+                ...line,
+                id: undefined,
+                isSentToKitchen: false,
+                printedQuantity: 0,
+            }));
+            return;
+        }
         this.clearCart();
     }
 
@@ -3503,6 +3541,7 @@ export class PosComponent implements OnInit, OnDestroy {
         }
 
         if (elementId === 'guestCheckPrint') {
+            const guestCustomer = this.customers.find((c) => c.id === this.customerId);
             this.thermalPrintService.printGuestBill({
                 orderNo: this.activeOrderNo,
                 tokenNo: this.activeTokenNo,
@@ -3521,6 +3560,15 @@ export class PosComponent implements OnInit, OnDestroy {
                 taxPercent: this.taxPercent,
                 serviceChargeAmount: this.serviceChargeAmount,
                 serviceChargePercent: this.serviceChargePercent,
+                deliveryFee:
+                    this.showDeliveryAddressPanel && this.deliveryAddress.trim()
+                        ? this.deliveryCharges
+                        : 0,
+                deliveryAreaName: this.selectedDeliveryArea?.name,
+                deliveryAddress: this.deliveryAddress || undefined,
+                customerName:
+                    this.onlineCustomerName || guestCustomer?.name || 'Walk-in',
+                customerPhone: this.onlineCustomerPhone || guestCustomer?.phone,
                 grandTotal: this.grandTotal,
             });
             return;
@@ -4869,6 +4917,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
                 const branch = this.branchContext.getCurrentBranch();
                 const isCar = this.isCarService;
+                const selectedCustomer = this.customers.find((c) => c.id === this.customerId);
                 const settledReceipt = {
                     branchName: branch?.name || 'SmartPOS Restaurant',
                     branchAddress: branch?.invoiceAddress,
@@ -4903,7 +4952,19 @@ export class PosComponent implements OnInit, OnDestroy {
                     serviceChargeAmount: this.serviceChargeAmount,
                     grandTotal: total,
                     paidAmount: paid,
+                    cashAmount: appliedCash,
+                    cardAmount,
                     changeAmount: change,
+                    dueAmount: remaining,
+                    statusLabel: remaining > 0.009 ? 'Unpaid' : 'Paid',
+                    customerName: selectedCustomer?.name || 'Walk-in',
+                    customerPhone: this.onlineCustomerPhone || selectedCustomer?.phone,
+                    deliveryAddress: this.deliveryAddress || undefined,
+                    deliveryAreaName: this.selectedDeliveryArea?.name,
+                    deliveryFee:
+                        this.showDeliveryAddressPanel && this.deliveryAddress.trim()
+                            ? this.deliveryCharges
+                            : 0,
                     paymentType: paymentType === PaymentType.Cash ? 'CASH' : 'MIXED / CARD',
                 };
 
@@ -4948,6 +5009,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.printReceiptSnapshot(settledReceipt);
             } else {
                 const branch = this.branchContext.getCurrentBranch();
+                const retailCustomer = this.customers.find((c) => c.id === this.customerId);
                 const retailReceipt = {
                     branchName: branch?.name || 'SmartPOS Store',
                     branchAddress: branch?.invoiceAddress,
@@ -4973,7 +5035,19 @@ export class PosComponent implements OnInit, OnDestroy {
                     serviceChargeAmount: 0,
                     grandTotal: total,
                     paidAmount: paid,
+                    cashAmount: appliedCash,
+                    cardAmount,
                     changeAmount: change,
+                    dueAmount: remaining,
+                    statusLabel: remaining > 0.009 ? 'Unpaid' : 'Paid',
+                    customerName: retailCustomer?.name || 'Walk-in',
+                    customerPhone: retailCustomer?.phone,
+                    deliveryAddress: this.deliveryAddress || undefined,
+                    deliveryAreaName: this.selectedDeliveryArea?.name,
+                    deliveryFee:
+                        this.showDeliveryAddressPanel && this.deliveryAddress.trim()
+                            ? this.deliveryCharges
+                            : 0,
                     paymentType: paymentType === PaymentType.Cash ? 'CASH' : 'MIXED / CARD',
                 };
 
@@ -5087,6 +5161,9 @@ export class PosComponent implements OnInit, OnDestroy {
         }
         if (this.completedReceiptOrderType === 'Dine-In' && r.tableNo) {
             return `Table: ${r.tableNo}`;
+        }
+        if (r.deliveryAreaName) {
+            return `Delivery Area: ${r.deliveryAreaName}`;
         }
         return '';
     }

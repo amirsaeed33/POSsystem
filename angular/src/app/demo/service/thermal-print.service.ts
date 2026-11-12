@@ -497,6 +497,7 @@ export class ThermalPrintService {
         customerPhone?: string;
         customerAddress?: string;
         customerLandmark?: string;
+        deliveryArea?: string;
         customerPayment?: string;
         customerNote?: string;
         orderTaker?: string;
@@ -599,6 +600,9 @@ export class ThermalPrintService {
         const addressHtml = params.customerAddress
             ? `<div><span class="label">Address:</span> ${params.customerAddress}</div>`
             : '';
+        const deliveryAreaHtml = params.deliveryArea
+            ? `<div><span class="label">Delivery Area:</span> ${params.deliveryArea}</div>`
+            : '';
         const notesHtml = params.customerNote
             ? `<div><span class="label">Notes:</span> ${params.customerNote}</div>`
             : '';
@@ -672,6 +676,7 @@ export class ThermalPrintService {
             <div class="customer-block">
                 <div class="bold" style="font-size: ${is58 ? '11.5px' : '13px'};">${params.customerName || 'Walk-in'}</div>
                 ${phoneHtml}
+                ${deliveryAreaHtml}
                 ${addressHtml}
                 ${notesHtml}
                 ${paymentHtml}
@@ -752,11 +757,21 @@ export class ThermalPrintService {
         const city = cityParts.length ? cityParts[cityParts.length - 1] : 'Faisalabad';
 
         const total = Number(receipt.grandTotal || receipt.totalAmount || 0);
-        const paid = Number(receipt.paidAmount || receipt.cashAmount || 0) + Number(receipt.cardAmount || 0);
-        const computedDue = Math.max(0, total - paid);
-        const isUnpaid = (receipt.dueAmount && receipt.dueAmount > 0.009) || (computedDue > 0.009 && paid === 0);
-        const statusLabel = receipt.statusLabel || (isUnpaid ? 'Unpaid' : 'Paid');
-        const dueAmount = receipt.dueAmount != null ? Number(receipt.dueAmount) : (isUnpaid ? computedDue : 0);
+        const cashPaid = Number(receipt.cashAmount != null ? receipt.cashAmount : (receipt.paidAmount || 0));
+        const cardPaid = Number(receipt.cardAmount || 0);
+        const paid = cashPaid + cardPaid;
+        const computedDue = Math.max(0, Math.round((total - paid) * 100) / 100);
+        const dueAmount =
+            receipt.dueAmount != null && receipt.dueAmount !== undefined
+                ? Math.max(0, Number(receipt.dueAmount))
+                : computedDue;
+        const statusLabel =
+            receipt.statusLabel || (dueAmount > 0.009 ? 'Unpaid' : 'Paid');
+        const deliveryAreaName = (
+            receipt.deliveryAreaName ||
+            receipt.deliveryArea ||
+            ''
+        ).trim();
 
         const bodyHtml = this.buildReferenceReceiptHtml({
             size,
@@ -771,22 +786,25 @@ export class ThermalPrintService {
             orderDate: receipt.date || new Date(),
             invoiceNo: receipt.invoiceNo || receipt.orderNo || receipt.id,
             userName: printerIdentity.name || receipt.branchName || branch.name,
-            subLocation,
+            subLocation: subLocation || (deliveryAreaName ? `Area: ${deliveryAreaName}` : ''),
             lines: receipt.lines || [],
             subTotal: Number(receipt.subTotal || 0),
             discountAmount: Number(receipt.discountAmount || 0),
             discountPercent: Number(receipt.discountPercent || 0),
             taxAmount: Number(receipt.taxAmount || 0),
             taxPercent: Number(receipt.taxPercent || 0),
-            deliveryFee: Number(receipt.deliveryFee || 0),
+            deliveryFee: Number(receipt.deliveryFee || receipt.deliveryCharges || 0),
             serviceChargeAmount: Number(receipt.serviceChargeAmount || 0),
             serviceChargePercent: Number(receipt.serviceChargePercent || 0),
             grandTotal: total,
-            cashPaid: Number(receipt.paidAmount || receipt.cashAmount || 0),
-            cardPaid: Number(receipt.cardAmount || 0),
-            dueAmount: dueAmount,
+            cashPaid,
+            cardPaid,
+            dueAmount,
             changeReturned: Number(receipt.changeAmount || 0),
             customerName: receipt.customerName || 'Walk-in',
+            customerPhone: receipt.customerPhone,
+            customerAddress: receipt.customerAddress || receipt.deliveryAddress,
+            deliveryArea: deliveryAreaName || undefined,
             orderTaker: receipt.serverName || printerIdentity.name || 'Waiter',
             complaintPhone: receipt.branchPhone || branch.phone || '03080004248',
             softwareDeveloperName: branch.softwareDeveloperName,
@@ -1023,6 +1041,13 @@ export class ThermalPrintService {
         const cityParts = (branch.address || '').split(',').map((p) => p.trim()).filter(Boolean);
         const city = cityParts.length ? cityParts[cityParts.length - 1] : 'Faisalabad';
 
+        const guestTotal = Number(bill.grandTotal || 0);
+        const deliveryAreaName = (
+            bill.deliveryAreaName ||
+            bill.deliveryArea ||
+            ''
+        ).trim();
+
         const bodyHtml = this.buildReferenceReceiptHtml({
             size,
             logoUrl: (config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
@@ -1036,18 +1061,22 @@ export class ThermalPrintService {
             orderDate: new Date(),
             invoiceNo: bill.orderNo || 'N/A',
             userName: bill.waiterName || 'Staff',
-            subLocation,
+            subLocation: subLocation || (deliveryAreaName ? `Area: ${deliveryAreaName}` : ''),
             lines: bill.lines || [],
             subTotal: Number(bill.subTotal || 0),
             discountAmount: Number(bill.discountAmount || 0),
             discountPercent: Number(bill.discountPercent || 0),
             taxAmount: Number(bill.taxAmount || 0),
             taxPercent: Number(bill.taxPercent || 0),
+            deliveryFee: Number(bill.deliveryFee || bill.deliveryCharges || 0),
             serviceChargeAmount: Number(bill.serviceChargeAmount || 0),
             serviceChargePercent: Number(bill.serviceChargePercent || 0),
-            grandTotal: Number(bill.grandTotal || 0),
-            dueAmount: Number(bill.grandTotal || 0),
-            customerName: 'Walk-in',
+            grandTotal: guestTotal,
+            dueAmount: guestTotal,
+            customerName: bill.customerName || 'Walk-in',
+            customerPhone: bill.customerPhone,
+            customerAddress: bill.customerAddress || bill.deliveryAddress,
+            deliveryArea: deliveryAreaName || undefined,
             orderTaker: bill.waiterName || 'Waiter',
             complaintPhone: branch.phone || '03080004248',
             softwareDeveloperName: branch.softwareDeveloperName,
@@ -1108,6 +1137,7 @@ export class ThermalPrintService {
             dueAmount: isDelivered ? 0 : Number(order.dueAmount != null ? order.dueAmount : order.totalAmount),
             customerName: order.customerName || 'Online Customer',
             customerPhone: order.customerPhone,
+            deliveryArea: (order.deliveryAreaName || '').trim() || undefined,
             ...this.buildCustomerDetailForInvoice(order.customerAddress, order.notes),
             orderTaker: order.riderName
                 ? String(order.riderName).replace(/^Rider:\s*/i, '').trim() || 'Rider'
@@ -1351,6 +1381,8 @@ export class ThermalPrintService {
             cardPaid: Number(sale.cardAmount || 0),
             dueAmount: due,
             customerName: sale.customerName || 'Walk-in',
+            customerPhone: (sale as any).customerPhone,
+            deliveryArea: (sale.deliveryAreaName || '').trim() || undefined,
             orderTaker: this.authService.getPrinterIdentity().name || 'Staff',
             complaintPhone: branch.phone || '03080004248',
             softwareDeveloperName: branch.softwareDeveloperName || overrideCompany?.softwareDeveloperName,
