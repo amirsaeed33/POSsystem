@@ -1164,8 +1164,8 @@ namespace SmartPos.Orders
 
                 await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
 
+                // Keep kitchen ticket open until payment (Complete) so Running Orders can show Delivered → Paid.
                 order.Status = CustomerOrderStatus.Delivered;
-                await SettleKitchenTicketForOnlineOrderAsync(order.Id);
                 await CurrentUnitOfWork.SaveChangesAsync();
 
                 await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
@@ -1215,10 +1215,8 @@ namespace SmartPos.Orders
 
                 await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
 
-                if (order.Status != CustomerOrderStatus.Delivered)
-                {
-                    await SettleKitchenTicketForOnlineOrderAsync(order.Id);
-                }
+                // Payment closes the kitchen/running ticket (not Deliver).
+                await SettleKitchenTicketForOnlineOrderAsync(order.Id);
 
                 order.Status = CustomerOrderStatus.Completed;
                 await CurrentUnitOfWork.SaveChangesAsync();
@@ -1281,6 +1279,8 @@ namespace SmartPos.Orders
                 noteParts.Add($"Area: {order.DeliveryAreaName.Trim()}");
             }
 
+            var staffName = await ResolveCurrentStaffDisplayNameAsync();
+
             var kitchenOrder = new RestaurantOrder
             {
                 TenantId = order.TenantId,
@@ -1294,13 +1294,13 @@ namespace SmartPos.Orders
                 KitchenStatus = RestaurantKitchenStatus.InProgress,
                 CustomerId = order.CustomerId,
                 CustomerOrderId = order.Id,
-                WaiterName = "Online",
+                WaiterName = staffName,
                 TableNo = "Online Delivery",
                 Notes = noteParts.Count > 0 ? string.Join(" · ", noteParts) : null,
                 SubTotal = order.SubTotal,
                 GrandTotal = order.TotalAmount,
                 LastPrintedTime = now,
-                LastPrintedBy = "Online Approve",
+                LastPrintedBy = staffName,
                 Lines = new List<RestaurantOrderLine>()
             };
 
@@ -1329,6 +1329,30 @@ namespace SmartPos.Orders
             }
 
             await _restaurantOrderRepository.InsertAsync(kitchenOrder);
+        }
+
+        private async Task<string> ResolveCurrentStaffDisplayNameAsync()
+        {
+            if (!AbpSession.UserId.HasValue)
+            {
+                return "Staff";
+            }
+
+            var userId = AbpSession.UserId.Value;
+            var staff = await _staffRepository.FirstOrDefaultAsync(s => s.UserId == userId && !s.IsDeleted);
+            if (staff != null && !string.IsNullOrWhiteSpace(staff.Name))
+            {
+                return staff.Name.Trim();
+            }
+
+            var user = await _userRepository.FirstOrDefaultAsync(userId);
+            if (user == null)
+            {
+                return "Staff";
+            }
+
+            var fullName = $"{user.Name} {user.Surname}".Trim();
+            return string.IsNullOrWhiteSpace(fullName) ? (user.UserName || "Staff") : fullName;
         }
 
         private async Task SettleKitchenTicketForOnlineOrderAsync(int customerOrderId)

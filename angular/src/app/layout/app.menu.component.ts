@@ -123,8 +123,8 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                           icon: 'pi pi-compass',
                           items: [
                               {
-                                  label: 'Kitchen',
-                                  icon: 'pi pi-inbox',
+                                  label: 'Running Orders',
+                                  icon: 'pi pi-list',
                                   routerLink: ['/kitchen'],
                                   anyPermission: [
                                       PermissionNames.DiningTables,

@@ -17,7 +17,6 @@ using SmartPos.Deals;
 using SmartPos.Orders;
 using SmartPos.Orders.Dto;
 using SmartPos.Products;
-using SmartPos.Restaurant;
 using SmartPos.Staffs;
 using SmartPos.Sales;
 using Abp.Timing;
@@ -34,7 +33,6 @@ namespace SmartPos.Orders
         private readonly IRepository<Branch> _branchRepository;
         private readonly IRepository<Deal> _dealRepository;
         private readonly IRepository<DealDetail> _dealDetailRepository;
-        private readonly IRepository<RestaurantOrder> _restaurantOrderRepository;
         private readonly SavedAddressManager _savedAddresses;
 
         public RiderOrderAppService(
@@ -43,7 +41,6 @@ namespace SmartPos.Orders
             IRepository<Branch> branchRepository,
             IRepository<Deal> dealRepository,
             IRepository<DealDetail> dealDetailRepository,
-            IRepository<RestaurantOrder> restaurantOrderRepository,
             SavedAddressManager savedAddresses)
         {
             _orderRepository = orderRepository;
@@ -51,7 +48,6 @@ namespace SmartPos.Orders
             _branchRepository = branchRepository;
             _dealRepository = dealRepository;
             _dealDetailRepository = dealDetailRepository;
-            _restaurantOrderRepository = restaurantOrderRepository;
             _savedAddresses = savedAddresses;
         }
 
@@ -369,7 +365,7 @@ namespace SmartPos.Orders
                     order.Notes = combined;
                 }
 
-                await SettleKitchenTicketForOnlineOrderAsync(order.Id);
+                // Keep kitchen/running ticket open until admin records payment (Complete).
                 await CurrentUnitOfWork.SaveChangesAsync();
 
                 await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
@@ -380,33 +376,6 @@ namespace SmartPos.Orders
 
                 var dtos = await MapToRiderOrderDtosAsync(new List<CustomerOrder> { order });
                 return dtos.FirstOrDefault();
-            }
-        }
-
-        private async Task SettleKitchenTicketForOnlineOrderAsync(int customerOrderId)
-        {
-            var tickets = await _restaurantOrderRepository.GetAll()
-                .Where(o =>
-                    o.CustomerOrderId == customerOrderId &&
-                    (o.Status == RestaurantOrderStatus.Open || o.Status == RestaurantOrderStatus.Billed))
-                .ToListAsync();
-
-            if (tickets.Count == 0)
-            {
-                return;
-            }
-
-            var now = Clock.Now;
-            foreach (var ticket in tickets)
-            {
-                ticket.Status = RestaurantOrderStatus.Settled;
-                ticket.SettledTime = now;
-                if (ticket.KitchenStatus != RestaurantKitchenStatus.ReadyToPick)
-                {
-                    ticket.KitchenStatus = RestaurantKitchenStatus.ReadyToPick;
-                    ticket.KitchenReadyTime ??= now;
-                }
-                await _restaurantOrderRepository.UpdateAsync(ticket);
             }
         }
 

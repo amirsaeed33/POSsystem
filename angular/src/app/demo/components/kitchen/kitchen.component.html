@@ -1,35 +1,36 @@
 <p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
 
-<div class="kitchen-page">
-    <div class="kitchen-toolbar">
-        <div class="kitchen-title-block">
-            <h2 class="kitchen-title m-0">
-                <i class="pi pi-inbox mr-2"></i>
-                Kitchen
+<div class="running-page">
+    <div class="running-toolbar">
+        <div class="running-title-block">
+            <h2 class="running-title m-0">
+                <i class="pi pi-list mr-2"></i>
+                Running Orders
             </h2>
-            <span class="kitchen-sub">
-                Running orders only
+            <span class="running-sub">
+                KOT / Guest Bill printed · payment not settled
                 <span *ngIf="lastRefreshedAt"> · Updated {{ lastRefreshedAt | date: 'shortTime' }}</span>
             </span>
         </div>
 
-        <div class="kitchen-actions">
-            <span class="kitchen-count-pill">{{ filteredOrders.length }} / {{ openCount }} tickets</span>
-            <div class="kitchen-filters">
-                <button type="button" class="kit-filter kit-all" [class.active]="filter === 'all'" (click)="setFilter('all')">
-                    All <span class="kit-filter-count">{{ openCount }}</span>
+        <div class="running-actions">
+            <span class="running-count-pill">{{ filteredOrders.length }} shown</span>
+            <div class="running-filters">
+                <button type="button" class="run-filter kit-all" [class.active]="filter === 'all'" (click)="setFilter('all')">
+                    All <span class="run-filter-count">{{ openCount }}</span>
                 </button>
-                <button type="button" class="kit-filter kit-dinein" [class.active]="filter === 'dinein'" (click)="setFilter('dinein')">
-                    Dine-in <span class="kit-filter-count">{{ dineInCount }}</span>
+                <button type="button" class="run-filter kit-dinein" [class.active]="filter === 'dinein'" (click)="setFilter('dinein')">
+                    Dine-in <span class="run-filter-count">{{ dineInCount }}</span>
                 </button>
-                <button type="button" class="kit-filter kit-takeaway" [class.active]="filter === 'takeaway'" (click)="setFilter('takeaway')">
-                    Takeaway <span class="kit-filter-count">{{ takeawayCount }}</span>
+                <button type="button" class="run-filter kit-takeaway" [class.active]="filter === 'takeaway'" (click)="setFilter('takeaway')">
+                    Takeaway <span class="run-filter-count">{{ takeawayCount }}</span>
                 </button>
-                <button type="button" class="kit-filter kit-car" [class.active]="filter === 'car'" (click)="setFilter('car')">
-                    Car <span class="kit-filter-count">{{ carCount }}</span>
+                <button type="button" class="run-filter kit-car" [class.active]="filter === 'car'" (click)="setFilter('car')">
+                    Car <span class="run-filter-count">{{ carCount }}</span>
                 </button>
-                <button type="button" class="kit-filter kit-online" [class.active]="filter === 'online'" (click)="setFilter('online')">
-                    Online <span class="kit-filter-count">{{ onlineCount }}</span>
+                <button type="button" class="run-filter kit-online" [class.active]="filter === 'online'" (click)="setFilter('online')">
+                    Online <span class="run-filter-count">{{ onlineCount }}</span>
                 </button>
             </div>
             <button
@@ -37,140 +38,314 @@
                 pRipple
                 type="button"
                 icon="pi pi-refresh"
-                label="Refresh"
-                class="p-button-outlined p-button-sm"
+                class="p-button-outlined p-button-sm running-refresh"
                 [loading]="loading"
+                pTooltip="Refresh"
+                tooltipPosition="top"
                 (click)="loadOrders()"
             ></button>
         </div>
     </div>
 
-    <div class="kitchen-empty" *ngIf="!loading && !filteredOrders.length">
-        <i class="pi pi-check-circle text-4xl text-green-500 mb-3"></i>
-        <h3 class="m-0 mb-1">No running kitchen orders</h3>
-        <p class="text-600 m-0">Tickets appear here after POS sends them to KOT.</p>
-    </div>
-
-    <div class="kitchen-grid" *ngIf="filteredOrders.length">
+    <div class="running-cards" *ngIf="filteredOrders.length; else emptyState">
         <article
-            class="kitchen-card"
+            class="run-card"
             *ngFor="let order of filteredOrders; trackBy: trackByOrderId"
-            [class.late]="isLate(order)"
-            [class.ready-ticket]="isReadyToPick(order)"
             [ngClass]="orderTypeClass(order)"
         >
-            <header class="kitchen-card-head">
-                <div>
-                    <div class="kitchen-card-title">{{ orderTitle(order) }}</div>
-                    <div class="kitchen-card-meta">
-                        <span class="kit-type">{{ orderTypeLabel(order) }}</span>
-                        <span *ngIf="hasToken(order)" class="kit-token"> · Token #{{ order.tokenNo }}</span>
-                        <span *ngIf="order.orderNo"> · {{ order.orderNo }}</span>
-                        <span *ngIf="order.waiterName"> · {{ order.waiterName }}</span>
+            <header class="run-card-head">
+                <div class="run-card-head-main">
+                    <div class="run-card-title">{{ orderTitle(order) }}</div>
+                    <div class="run-card-meta">
+                        <span *ngIf="order.orderNo">{{ order.orderNo }}</span>
+                        <span *ngIf="order.tokenNo != null">Token #{{ order.tokenNo }}</span>
                     </div>
                 </div>
-                <div class="kitchen-card-side">
-                    <span
-                        class="kitchen-status-pill"
-                        [class.ready]="isReadyToPick(order)"
-                        [class.progress]="!isReadyToPick(order)"
-                    >
-                        {{ kitchenStatusLabel(order) }}
-                    </span>
-                    <div class="kitchen-card-age" [class.warn]="isLate(order)">
-                        {{ elapsedLabel(order) }}
-                    </div>
-                    <button
-                        *ngIf="hasToken(order)"
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-print"
-                        class="p-button-rounded p-button-sm kitchen-print-token-btn"
-                        title="Print token"
-                        (click)="printToken(order, $event)"
-                    ></button>
+                <div class="run-card-head-side">
+                    <span class="type-pill" [ngClass]="orderTypeClass(order)">{{ orderTypeLabel(order) }}</span>
+                    <span class="status-pill" [ngClass]="statusClass(order)">{{ statusLabel(order) }}</span>
+                    <span class="age-chip">{{ elapsedLabel(order) }}</span>
                 </div>
             </header>
 
-            <div class="kitchen-lines-scroll">
-                <ul class="kitchen-lines">
-                    <li *ngFor="let line of kitchenLines(order)">
-                        <div class="line-row">
-                            <div class="line-thumb">
-                                <img
-                                    *ngIf="getLineImage(line) as img"
-                                    [src]="img"
-                                    [alt]="line.productName"
-                                    loading="lazy"
-                                />
-                                <span *ngIf="!getLineImage(line)" class="line-thumb-fallback">
-                                    {{ getLineInitials(line) }}
-                                </span>
-                            </div>
-                            <div class="line-body">
-                                <div class="line-main">
-                                    <span class="line-qty">{{ line.quantity }}×</span>
-                                    <span class="line-name">{{ line.productName }}</span>
-                                </div>
-                                <div class="line-mods" *ngIf="getLineModifiers(line).length">
-                                    <div class="line-mod-item" *ngFor="let mod of getLineModifiers(line)">
-                                        <span class="line-mod-bullet">•</span>
-                                        <span>{{ mod }}</span>
-                                    </div>
-                                </div>
-                                <div class="line-note" *ngIf="getLineNote(line)">
-                                    <i class="pi pi-comment"></i>
-                                    <span class="line-note-label">Note:</span>
-                                    <span>{{ getLineNote(line) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </li>
-                </ul>
+            <div class="run-card-people">
+                <div class="people-row" *ngIf="customerDisplayName(order)">
+                    <span class="people-label">Customer</span>
+                    <span class="people-value">{{ customerDisplayName(order) }}</span>
+                </div>
+                <div class="people-row" *ngIf="waiterDisplayName(order)">
+                    <span class="people-label">Waiter</span>
+                    <span class="people-value">{{ waiterDisplayName(order) }}</span>
+                </div>
+                <div class="people-row" *ngIf="riderDisplayName(order)">
+                    <span class="people-label">Rider</span>
+                    <span class="people-value">
+                        <i class="pi pi-compass"></i>
+                        {{ riderDisplayName(order) }}
+                        <span *ngIf="order.customerOrder?.riderPhone" class="people-phone">
+                            · {{ order.customerOrder?.riderPhone }}
+                        </span>
+                    </span>
+                </div>
+                <div class="people-row" *ngIf="order.customerOrder?.deliveryAreaName">
+                    <span class="people-label">Area</span>
+                    <span class="people-value">
+                        <i class="pi pi-map-marker text-red-500"></i>
+                        {{ order.customerOrder?.deliveryAreaName }}
+                    </span>
+                </div>
             </div>
 
-            <footer class="kitchen-card-foot">
-                <div class="kitchen-foot-meta" *ngIf="order.customerName || order.carLocation || kitchenCardNote(order)">
-                    <div *ngIf="order.customerName"><i class="pi pi-user mr-1"></i>{{ order.customerName }}</div>
-                    <div *ngIf="order.carLocation"><i class="pi pi-map-marker mr-1"></i>{{ order.carLocation }}</div>
-                    <div *ngIf="kitchenCardNote(order) as note" class="order-note">{{ note }}</div>
+            <div class="run-card-items">
+                <div class="items-label">Items ({{ itemCount(order) }})</div>
+                <div class="item-row" *ngFor="let line of order.lines">
+                    <div class="item-main">
+                        <span class="item-qty">{{ line.quantity }}×</span>
+                        <span class="item-name">{{ line.productName }}</span>
+                        <div class="item-note" *ngIf="line.kitchenNotes">{{ line.kitchenNotes }}</div>
+                    </div>
+                    <div class="item-price">
+                        {{ line.lineTotal || line.quantity * line.unitPrice | number: '1.2-2' }}
+                    </div>
                 </div>
-                <div class="kitchen-card-actions">
-                    <button
-                        *ngIf="hasToken(order)"
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-print"
-                        label="Print Token"
-                        class="p-button-sm p-button-outlined kitchen-print-btn"
-                        (click)="printToken(order, $event)"
-                    ></button>
-                    <button
-                        *ngIf="!isReadyToPick(order)"
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-check"
-                        label="Ready to Pick"
-                        class="p-button-sm p-button-success kitchen-ready-btn"
-                        [loading]="statusBusy[order.id]"
-                        (click)="markReadyToPick(order)"
-                    ></button>
-                    <button
-                        *ngIf="isReadyToPick(order)"
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-replay"
-                        label="Back to In Progress"
-                        class="p-button-sm p-button-outlined kitchen-progress-btn"
-                        [loading]="statusBusy[order.id]"
-                        (click)="markInProgress(order)"
-                    ></button>
+                <div class="item-row item-total">
+                    <span>Total</span>
+                    <span>{{ paymentTotal(order) | number: '1.2-2' }}</span>
                 </div>
+            </div>
+
+            <footer class="run-card-actions">
+                <button
+                    *ngIf="canAssignRider(order)"
+                    pButton
+                    pRipple
+                    type="button"
+                    [label]="hasRider(order) ? 'Change Rider' : 'Assign Rider'"
+                    icon="pi pi-compass"
+                    class="p-button-help p-button-sm"
+                    [disabled]="actionBusyId === order.id || settling"
+                    (click)="openAssignRider(order)"
+                ></button>
+                <button
+                    *ngIf="canCompleteOrder(order)"
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Complete Order"
+                    icon="pi pi-send"
+                    class="p-button-warning p-button-sm"
+                    [disabled]="actionBusyId === order.id || settling"
+                    (click)="confirmCompleteOrder(order)"
+                ></button>
+                <button
+                    *ngIf="canPay(order)"
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Paid"
+                    icon="pi pi-check"
+                    class="p-button-success p-button-sm"
+                    [disabled]="actionBusyId === order.id || settling"
+                    (click)="payOrder(order)"
+                ></button>
+                <button
+                    *ngIf="!isOnlineDelivered(order)"
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Cancel"
+                    icon="pi pi-times"
+                    class="p-button-danger p-button-outlined p-button-sm"
+                    [loading]="actionBusyId === order.id && !settling && !assigningRider"
+                    [disabled]="settling"
+                    (click)="confirmCancel(order)"
+                ></button>
             </footer>
         </article>
     </div>
+
+    <ng-template #emptyState>
+        <div class="running-empty" *ngIf="!loading">
+            <i class="pi pi-check-circle empty-icon"></i>
+            <div class="font-bold text-900 mb-1">No running orders</div>
+            <div class="text-500 text-sm">Only unpaid orders with KOT or Guest Bill appear here.</div>
+        </div>
+        <div class="running-empty" *ngIf="loading">
+            <i class="pi pi-spin pi-spinner text-2xl text-500"></i>
+        </div>
+    </ng-template>
 </div>
+
+<!-- In-page payment -->
+<p-dialog
+    header="Customer payment"
+    [(visible)]="paymentDialogVisible"
+    [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
+    [style]="{ width: '28rem' }"
+    [breakpoints]="{ '960px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="!settling"
+    (onHide)="onPaymentDialogHide()"
+>
+    <div class="flex flex-column gap-3 p-fluid" *ngIf="payingOrder as order">
+        <div class="surface-ground border-round p-3">
+            <div class="text-500 text-sm mb-1">
+                {{ orderTitle(order) }}
+                <span *ngIf="order.orderNo"> · {{ order.orderNo }}</span>
+            </div>
+            <div class="text-2xl font-bold">{{ paymentTotal(order) | number: '1.2-2' }}</div>
+            <div class="flex justify-content-between align-items-center mt-2 pt-2 border-top-1 surface-border">
+                <span class="text-sm text-600 font-medium">
+                    <i class="pi pi-user mr-1 text-primary"></i>
+                    {{ customerDisplayName(order) || waiterDisplayName(order) || 'Customer' }}
+                </span>
+                <span class="type-pill" [ngClass]="orderTypeClass(order)">{{ orderTypeLabel(order) }}</span>
+            </div>
+        </div>
+
+        <div class="field mb-0">
+            <label for="runningPaidAmount" class="font-medium">Amount paid by customer</label>
+            <p-inputNumber
+                inputId="runningPaidAmount"
+                [(ngModel)]="paidAmount"
+                [min]="0"
+                mode="decimal"
+                [minFractionDigits]="0"
+                [maxFractionDigits]="2"
+                [showButtons]="false"
+                styleClass="w-full"
+                [disabled]="settling"
+                (onFocus)="onPaidAmountFocus($event)"
+            ></p-inputNumber>
+        </div>
+
+        <div class="field mb-0">
+            <label for="runningSaleNotes" class="font-medium">Notes</label>
+            <input
+                pInputText
+                id="runningSaleNotes"
+                type="text"
+                maxlength="512"
+                [(ngModel)]="paymentNotes"
+                [disabled]="settling"
+                placeholder="Optional"
+            />
+        </div>
+
+        <div class="border-round p-3" *ngIf="changeToReturn > 0" [ngStyle]="{ background: 'rgba(34, 197, 94, 0.12)' }">
+            <div class="text-sm mb-1">Change to return</div>
+            <div class="text-xl font-bold text-green-600">{{ changeToReturn | number: '1.2-2' }}</div>
+        </div>
+
+        <div class="border-round p-3" *ngIf="remainingDue > 0" [ngStyle]="{ background: 'rgba(249, 115, 22, 0.12)' }">
+            <div class="text-sm mb-1">Remaining on credit</div>
+            <div class="text-xl font-bold text-orange-600">{{ remainingDue | number: '1.2-2' }}</div>
+            <small class="text-600">Balance will be posted to the customer ledger.</small>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Back"
+            class="p-button-text"
+            [disabled]="settling"
+            (click)="paymentDialogVisible = false"
+        ></button>
+        <button
+            pButton
+            pRipple
+            type="button"
+            label="Confirm &amp; save"
+            icon="pi pi-check"
+            [loading]="settling"
+            (click)="confirmPayment()"
+        ></button>
+    </ng-template>
+</p-dialog>
+
+<!-- Assign / reassign rider (Online) -->
+<p-dialog
+    [header]="
+        selectedOrderForRider?.customerOrder?.riderName
+            ? 'Reassign Rider · ' + orderTitle(selectedOrderForRider!)
+            : 'Assign Rider · ' + (selectedOrderForRider ? orderTitle(selectedOrderForRider) : '')
+    "
+    [(visible)]="assignRiderDialogVisible"
+    [modal]="true"
+    appendTo="body"
+    [style]="{ width: '36rem', maxWidth: '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="!assigningRider"
+>
+    <div class="flex flex-column gap-3" *ngIf="selectedOrderForRider as order">
+        <div class="surface-50 border-round p-3 border-1 surface-border">
+            <div class="font-bold text-900">{{ customerDisplayName(order) || 'Customer' }}</div>
+            <div class="text-sm text-600 mt-1" *ngIf="order.customerOrder?.deliveryAreaName">
+                <i class="pi pi-map-marker text-red-500 mr-1"></i>{{ order.customerOrder?.deliveryAreaName }}
+            </div>
+            <div class="font-bold text-primary mt-2">Total: {{ paymentTotal(order) | number: '1.2-2' }}</div>
+        </div>
+
+        <div *ngIf="loadingRiders" class="text-center py-4 text-500">
+            <i class="pi pi-spin pi-spinner text-xl mr-2"></i>Loading riders...
+        </div>
+
+        <div *ngIf="!loadingRiders && !availableRiders.length" class="text-center py-4 surface-50 border-round">
+            <div class="font-bold text-700">No delivery riders found</div>
+            <div class="text-xs text-500 mt-1">Add staff with designation “Delivery Rider”.</div>
+        </div>
+
+        <div *ngIf="!loadingRiders && availableRiders.length" class="flex flex-column gap-2 max-h-24rem overflow-y-auto">
+            <div
+                *ngFor="let rider of availableRiders"
+                class="p-3 border-round-xl border-1 flex align-items-center justify-content-between gap-2"
+                [style.background]="rider.isBusy ? '#fef2f2' : selectedRider?.riderId === rider.riderId ? '#e0f2fe' : '#fff'"
+                [style.borderColor]="rider.isBusy ? '#fca5a5' : selectedRider?.riderId === rider.riderId ? '#0284c7' : '#e2e8f0'"
+                [style.cursor]="rider.isBusy ? 'not-allowed' : 'pointer'"
+                (click)="!rider.isBusy && (selectedRider = rider)"
+            >
+                <div>
+                    <div class="font-bold text-900">{{ rider.riderName }}</div>
+                    <div class="text-xs text-600 mt-1">{{ rider.riderPhone || 'No phone' }}</div>
+                    <div class="text-xs mt-1" [class.text-red-600]="rider.isBusy" [class.text-green-700]="!rider.isBusy">
+                        {{ rider.isBusy ? ('Busy · #' + (rider.busyOrderNo || '')) : 'Available' }}
+                    </div>
+                </div>
+                <p-radioButton
+                    *ngIf="!rider.isBusy"
+                    name="runningRiderGroup"
+                    [value]="rider"
+                    [(ngModel)]="selectedRider"
+                ></p-radioButton>
+            </div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button
+            pButton
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            [disabled]="assigningRider"
+            (click)="assignRiderDialogVisible = false"
+        ></button>
+        <button
+            pButton
+            type="button"
+            [label]="selectedOrderForRider?.customerOrder?.riderName ? 'Reassign Rider' : 'Assign Rider'"
+            icon="pi pi-check"
+            class="p-button-success"
+            [loading]="assigningRider"
+            [disabled]="!selectedRider || selectedRider.isBusy || assigningRider"
+            (click)="confirmAssignRider()"
+        ></button>
+    </ng-template>
+</p-dialog>

@@ -43,7 +43,7 @@ const routes: Routes = [
             {
                 path: 'kitchen',
                 data: {
-                    breadcrumb: 'Kitchen',
+                    breadcrumb: 'Running Orders',
                     anyPermission: [
                         PermissionNames.Pos,
                         PermissionNames.DiningTables,

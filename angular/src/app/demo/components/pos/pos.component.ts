@@ -3039,16 +3039,8 @@ export class PosComponent implements OnInit, OnDestroy {
                             : `Table ${kotResult.tableNo || this.selectedTable?.tableNo || ''} order #${kotResult.orderNo} sent to kitchen KOT`),
                     life: 2500,
                 });
-                // Takeaway KOT is parked in unpaid list — clear cart so the next order can start immediately.
-                if (isTakeaway) {
-                    const keepOrderType = this.orderType;
-                    const keepChannel = this.selectedChannel;
-                    const keepThirdParty = this.thirdPartyChannel;
-                    this.clearCart();
-                    this.orderType = keepOrderType;
-                    this.thirdPartyChannel = keepThirdParty;
-                    this.selectedChannel = keepChannel;
-                }
+                // Dine-in / Takeaway / Car: park order and clear POS for the next order.
+                this.resetPosAfterKotOrGuestBill();
             }
         } catch (err: any) {
             this.messageService.add({
@@ -3257,14 +3249,22 @@ export class PosComponent implements OnInit, OnDestroy {
             if (billed) {
                 this.syncActiveOrderMeta(billed);
             }
-            this.guestBillDialogVisible = true;
+            // Print while cart still has lines, then clear POS for next order.
+            this.printCurrentModal('guestCheckPrint');
             this.loadTables();
             this.messageService.add({
                 severity: 'info',
-                summary: 'Guest Check Ready',
-                detail: `Bill printed for ${this.isCarService ? this.carServiceLabel : (this.selectedTable?.tableNo || 'Table')}`,
+                summary: 'Guest Check Printed',
+                detail: `Bill printed for ${
+                    this.isCarService
+                        ? this.carServiceLabel
+                        : this.orderType === 'takeaway'
+                          ? 'Takeaway'
+                          : this.selectedTable?.tableNo || 'Table'
+                }. Cart cleared.`,
                 life: 3000,
             });
+            this.resetPosAfterKotOrGuestBill();
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',
@@ -3274,6 +3274,18 @@ export class PosComponent implements OnInit, OnDestroy {
         } finally {
             this.printingBill = false;
         }
+    }
+
+    /** After KOT / Guest Bill: clear cart but keep current dine-in / takeaway channel. */
+    private resetPosAfterKotOrGuestBill(): void {
+        const keepOrderType = this.orderType;
+        const keepChannel = this.selectedChannel;
+        const keepThirdParty = this.thirdPartyChannel;
+        this.guestBillDialogVisible = false;
+        this.clearCart();
+        this.orderType = keepOrderType;
+        this.thirdPartyChannel = keepThirdParty;
+        this.selectedChannel = keepChannel;
     }
 
     openSplitBill(): void {
