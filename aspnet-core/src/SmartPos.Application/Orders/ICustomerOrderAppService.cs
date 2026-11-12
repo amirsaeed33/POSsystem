@@ -18,6 +18,12 @@ namespace SmartPos.Orders
     {
         Task<SaleDto> ApproveAsync(EntityDto<int> input);
 
+        /// <summary>
+        /// POS manual Online: send Pending order to kitchen without auto-assigning a rider
+        /// so staff can pick a rider in the Assign Delivery Rider popup.
+        /// </summary>
+        Task<CustomerOrderDto> PrepareManualOnlineOrderAsync(EntityDto<int> input);
+
         Task DeliverAsync(EntityDto<int> input);
 
         /// <summary>Admin: complete order and insert payment/sale.</summary>

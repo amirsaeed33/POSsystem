@@ -533,6 +533,14 @@ export class CustomerOrderService {
         this.unwrap(res, 'Failed to delete customer order');
     }
 
+    /** POS Online: kitchen ticket + Approved, without auto rider (staff assigns next). */
+    async prepareManualOnlineOrder(id: number): Promise<CustomerOrderDto> {
+        const res: any = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/PrepareManualOnlineOrder`, { id })
+        );
+        return this.map(this.unwrap(res, 'Failed to prepare online order for kitchen'));
+    }
+
     async approve(id: number): Promise<SaleDto> {
         const res: any = await firstValueFrom(
             this.http.post<any>(`${this.apiUrl}/Approve`, { id })

@@ -987,6 +987,52 @@ namespace SmartPos.Orders
             }
         }
 
+        /// <summary>
+        /// POS Dine Hub Online: create kitchen ticket and mark Approved without auto rider assignment.
+        /// </summary>
+        public async Task<CustomerOrderDto> PrepareManualOnlineOrderAsync(EntityDto<int> input)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                var order = await GetEntityByIdAsync(input.Id);
+                if (order == null)
+                {
+                    throw new UserFriendlyException("Order not found.");
+                }
+
+                if (order.Status != CustomerOrderStatus.Pending)
+                {
+                    throw new UserFriendlyException("Only pending orders can be prepared for kitchen.");
+                }
+
+                if (order.Lines == null || !order.Lines.Any())
+                {
+                    throw new UserFriendlyException("Order has no product lines.");
+                }
+
+                await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+
+                var branch = await _branchRepository.FirstOrDefaultAsync(order.BranchId);
+                var isRestaurant = branch != null && branch.BusinessType == BusinessType.Restaurant;
+                if (!isRestaurant)
+                {
+                    throw new UserFriendlyException("Manual online prepare is only available for Restaurant branches.");
+                }
+
+                order.Status = CustomerOrderStatus.Approved;
+                await CreateKitchenTicketForOnlineOrderAsync(order);
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
+                    order.Id,
+                    order.OrderNo,
+                    order.BranchId,
+                    order.Status));
+
+                return await GetAsync(new EntityDto<int>(order.Id));
+            }
+        }
+
         public async Task<SaleDto> ApproveAsync(EntityDto<int> input)
         {
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))

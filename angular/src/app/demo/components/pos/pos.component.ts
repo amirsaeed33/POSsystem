@@ -46,7 +46,12 @@ import { ThermalPrintService } from 'src/app/demo/service/thermal-print.service'
 import { CustomerService } from 'src/app/demo/service/customer.service';
 import { CustomerOrderService } from 'src/app/demo/service/customer-order.service';
 import { DeliveryAreaService, DeliveryAreaDto } from 'src/app/demo/service/delivery-area.service';
-import { CustomerSavedAddressDto } from 'src/app/demo/api/customer-order';
+import {
+    CreateCustomerOrderDto,
+    CustomerOrderDto,
+    CustomerSavedAddressDto,
+    DeliveryRiderStatusDto,
+} from 'src/app/demo/api/customer-order';
 import { findProductImageNear, flyToCart } from 'src/app/demo/utils/fly-to-cart';
 
 /** POS third-party delivery channel (runs as takeaway with a named customer). */
@@ -325,6 +330,15 @@ export class PosComponent implements OnInit, OnDestroy {
     cancelTakeawayDialogVisible = false;
     cancellingTakeawayOrder = false;
     private alarmOrdersSub?: Subscription;
+
+    /** POS Online → Customer Orders rider assign (same popup as Orders page). */
+    assignRiderDialogVisible = false;
+    selectedOrderForRider: CustomerOrderDto | null = null;
+    availableRiders: DeliveryRiderStatusDto[] = [];
+    selectedRider: DeliveryRiderStatusDto | null = null;
+    loadingRiders = false;
+    assigningRider = false;
+    private pendingOnlineReceiptPrint = false;
 
     private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -1461,6 +1475,225 @@ export class PosComponent implements OnInit, OnDestroy {
                 detail: err?.message || 'Failed to create or update online customer.',
             });
             return false;
+        }
+    }
+
+    /**
+     * Online channel KOT / Guest Bill: create CustomerOrder (Orders page),
+     * send to kitchen without auto-rider, then open Assign Delivery Rider popup.
+     * Receipt prints like Online Orders after rider is assigned.
+     */
+    private async submitPosOnlineOrder(mode: 'kot' | 'guestBill'): Promise<void> {
+        if (!(await this.ensureOnlineCustomerForCheckout())) {
+            return;
+        }
+
+        if (!(this.deliveryAddress || '').trim() && !this.selectedDeliveryAreaId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Delivery Required',
+                detail: 'Enter delivery address or select a zone for this online order.',
+            });
+            return;
+        }
+
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId || !this.customerId) {
+            return;
+        }
+
+        const lines = this.cart
+            .filter((line) => line.productId && (line.quantity || 0) > 0)
+            .map((line) => ({
+                productId: line.productId,
+                quantity: line.quantity,
+                unitPrice: line.unitPrice || 0,
+            }));
+        if (!lines.length) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Cart Empty',
+                detail: 'Add at least one product before creating the online order.',
+            });
+            return;
+        }
+
+        const area = this.selectedDeliveryArea;
+        const noteParts: string[] = [];
+        if (this.notes?.trim()) noteParts.push(this.notes.trim());
+        if (this.deliveryAddress.trim()) noteParts.push(`📍 ${this.deliveryAddress.trim()}`);
+        if (this.deliveryLandmark.trim()) noteParts.push(`🚩 ${this.deliveryLandmark.trim()}`);
+
+        const payload: CreateCustomerOrderDto = {
+            customerId: this.customerId,
+            orderDate: new Date(),
+            notes: noteParts.join(' | ') || undefined,
+            deliveryAddress: this.deliveryAddress.trim() || undefined,
+            deliveryLandmark: this.deliveryLandmark.trim() || undefined,
+            deliveryAreaId: this.selectedDeliveryAreaId || undefined,
+            deliveryArea: area?.name,
+            deliveryCharges:
+                this.showDeliveryAddressPanel && this.deliveryAddress.trim()
+                    ? this.deliveryCharges
+                    : area?.deliveryFee ?? 0,
+            paymentMethod: 'CashOnDelivery',
+            lines,
+        };
+
+        if (mode === 'kot') {
+            this.sendingKOT = true;
+        } else {
+            this.printingBill = true;
+        }
+        try {
+            const created = await this.customerOrderService.create(payload);
+            const prepared = await this.customerOrderService.prepareManualOnlineOrder(created.id);
+            this.pendingOnlineReceiptPrint = true;
+            await this.openAssignRiderDialog(prepared);
+            this.messageService.add({
+                severity: 'success',
+                summary: mode === 'kot' ? 'Online KOT Ready' : 'Online Guest Bill Ready',
+                detail: `Order ${prepared.orderNo || '#' + prepared.id} created. Assign a delivery rider to print the receipt.`,
+                life: 5000,
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Online Order Failed',
+                detail:
+                    err?.error?.error?.message ||
+                    err?.error?.message ||
+                    err?.message ||
+                    'Failed to create online order.',
+                life: 6000,
+            });
+        } finally {
+            this.sendingKOT = false;
+            this.printingBill = false;
+        }
+    }
+
+    async openAssignRiderDialog(order: CustomerOrderDto): Promise<void> {
+        this.selectedOrderForRider = order;
+        this.selectedRider = null;
+        this.assignRiderDialogVisible = true;
+        await this.reloadAvailableRiders();
+    }
+
+    private async reloadAvailableRiders(): Promise<void> {
+        const order = this.selectedOrderForRider;
+        if (!order) {
+            return;
+        }
+
+        this.loadingRiders = true;
+        try {
+            const branchId = (order.branchId || this.branchContext.getBranchId()) ?? undefined;
+            this.availableRiders = await this.customerOrderService.getAvailableRiders(
+                branchId,
+                order.id
+            );
+            if (order.riderId) {
+                this.selectedRider =
+                    this.availableRiders.find((r) => r.riderId === order.riderId) || null;
+            } else {
+                this.selectedRider = null;
+            }
+        } catch (err: any) {
+            console.error('Failed to load available delivery riders', err);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Failed to load delivery riders list.',
+            });
+        } finally {
+            this.loadingRiders = false;
+        }
+    }
+
+    async confirmAssignOrReassignRider(): Promise<void> {
+        if (!this.selectedOrderForRider) {
+            return;
+        }
+
+        if (!this.selectedRider) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Select Rider',
+                detail: 'Please select an available delivery rider from the list.',
+            });
+            return;
+        }
+
+        if (this.selectedRider.isBusy) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Rider Busy',
+                detail: `Rider ${this.selectedRider.riderName} is already delivering Order #${this.selectedRider.busyOrderNo}.`,
+                life: 5000,
+            });
+            return;
+        }
+
+        this.assigningRider = true;
+        const order = this.selectedOrderForRider;
+        try {
+            await this.customerOrderService.assignRider({
+                orderId: order.id,
+                riderId: this.selectedRider.riderId,
+                riderName: this.selectedRider.riderName,
+                riderPhone: this.selectedRider.riderPhone,
+            });
+
+            let fullOrder: CustomerOrderDto = order;
+            try {
+                fullOrder = await this.customerOrderService.get(order.id);
+            } catch {
+                fullOrder = {
+                    ...order,
+                    riderId: this.selectedRider.riderId,
+                    riderName: this.selectedRider.riderName,
+                    riderPhone: this.selectedRider.riderPhone,
+                };
+            }
+
+            if (this.pendingOnlineReceiptPrint) {
+                this.thermalPrintService.printCustomerOrder(fullOrder);
+                this.pendingOnlineReceiptPrint = false;
+            }
+
+            this.assignRiderDialogVisible = false;
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Rider Assigned',
+                detail: `Order ${fullOrder.orderNo || '#' + fullOrder.id} assigned to ${this.selectedRider.riderName}. Receipt printed.`,
+                life: 5000,
+            });
+
+            this.clearCart();
+            this.clearOnlineCustomerData();
+            this.selectedChannel = 'online';
+            this.orderType = 'takeaway';
+            void this.loadDeliveryAreasForPos();
+        } catch (error: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Assign Failed',
+                detail:
+                    error?.error?.error?.message ||
+                    error?.error?.message ||
+                    error?.message ||
+                    'Failed to assign rider',
+                life: 6000,
+            });
+        } finally {
+            this.assigningRider = false;
+        }
+    }
+
+    onAssignRiderDialogHide(): void {
+        if (!this.assigningRider) {
+            this.pendingOnlineReceiptPrint = false;
         }
     }
 
@@ -2651,6 +2884,11 @@ export class PosComponent implements OnInit, OnDestroy {
             return;
         }
 
+        if (this.isOnlineOrder) {
+            await this.submitPosOnlineOrder('kot');
+            return;
+        }
+
         if (this.orderType === 'dineIn' && !this.selectedTable && !this.isCarService) {
             this.openTableDialog(true);
             this.messageService.add({
@@ -2659,10 +2897,6 @@ export class PosComponent implements OnInit, OnDestroy {
                 detail: 'Please select a dining table or car service before sending to kitchen.',
                 life: 3000,
             });
-            return;
-        }
-
-        if (!(await this.ensureOnlineCustomerForCheckout())) {
             return;
         }
 
@@ -2940,7 +3174,8 @@ export class PosComponent implements OnInit, OnDestroy {
 
     async printGuestBill(): Promise<void> {
         if (this.isWaiter || !this.cart.length) return;
-        if (!(await this.ensureOnlineCustomerForCheckout())) {
+        if (this.isOnlineOrder) {
+            await this.submitPosOnlineOrder('guestBill');
             return;
         }
         const branchId = this.branchContext.getBranchId();
@@ -4525,7 +4760,13 @@ export class PosComponent implements OnInit, OnDestroy {
             return;
         }
 
-        if (!(await this.ensureOnlineCustomerForCheckout())) {
+        if (this.isOnlineOrder) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Online Order',
+                detail: 'Use Send to KOT or Guest Bill, then assign a rider. Complete the bill from the Orders page after delivery.',
+                life: 5000,
+            });
             return;
         }
 

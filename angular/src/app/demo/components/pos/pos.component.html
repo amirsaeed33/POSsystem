@@ -1066,6 +1066,7 @@
 
                 <div *ngIf="!isWaiter" class="align-items-stretch gap-2 mt-3 hidden md:flex">
                     <button
+                        *ngIf="!isOnlineOrder"
                         pButton
                         pRipple
                         type="button"
@@ -1083,10 +1084,18 @@
                         type="button"
                         label="Clear"
                         class="p-button-outlined pos-settle-clear-btn"
+                        [class.flex-grow-1]="isOnlineOrder"
                         [disabled]="!cart.length || saving"
                         (click)="clearCart()"
                     ></button>
                 </div>
+                <small
+                    class="text-xs text-primary font-medium block text-center mt-2 hidden md:block"
+                    *ngIf="isOnlineOrder && !isWaiter"
+                >
+                    <i class="pi pi-info-circle mr-1"></i>
+                    Online: use KOT or Guest Bill, assign rider, then finish from Orders page
+                </small>
                 <div *ngIf="isWaiter" class="p-2 border-round bg-yellow-50 border-1 border-yellow-200 text-center text-xs text-yellow-800 mt-3 font-medium">
                     <i class="pi pi-lock mr-1"></i> Waiter Account: Orders are sent to KOT / Table. Payments are settled by Cashier or Admin.
                 </div>
@@ -1175,7 +1184,7 @@
                 <strong>{{ grandTotal | number: '1.2-2' }}</strong>
             </div>
             <button
-                *ngIf="!isWaiter"
+                *ngIf="!isWaiter && !isOnlineOrder"
                 pButton
                 pRipple
                 type="button"
@@ -2256,7 +2265,7 @@
                         (click)="printCurrentModal('guestCheckPrint')"
                     ></button>
                     <button
-                        *ngIf="!isWaiter"
+                        *ngIf="!isWaiter && !isOnlineOrder"
                         pButton
                         pRipple
                         type="button"
@@ -3082,6 +3091,154 @@
                     class="p-button-danger"
                     [loading]="cancellingTakeawayOrder"
                     (click)="confirmCancelTakeawayOrder()"
+                ></button>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Assign Delivery Rider (same flow as Customer Orders page) -->
+    <p-dialog
+        [header]="selectedOrderForRider?.riderName ? ('🛵 Reassign Delivery Rider - Order #' + (selectedOrderForRider?.orderNo || selectedOrderForRider?.id)) : ('🛵 Assign Delivery Rider - Order #' + (selectedOrderForRider?.orderNo || selectedOrderForRider?.id))"
+        [(visible)]="assignRiderDialogVisible"
+        [modal]="true"
+        appendTo="body"
+        [style]="{ width: '42rem', maxWidth: '95vw' }"
+        [draggable]="false"
+        [resizable]="false"
+        (onHide)="onAssignRiderDialogHide()"
+    >
+        <div class="flex flex-column gap-3" *ngIf="selectedOrderForRider">
+            <div class="surface-50 border-round p-3 grid m-0 border-1 surface-border">
+                <div class="col-12 sm:col-6 p-2">
+                    <span class="text-500 text-xs block mb-1">Customer:</span>
+                    <span class="font-bold text-900 text-base">{{ selectedOrderForRider.customerName || onlineCustomerName || 'Customer' }}</span>
+                    <div class="text-xs text-600 mt-1" *ngIf="selectedOrderForRider.customerPhone || onlineCustomerPhone">
+                        <i class="pi pi-phone mr-1"></i>{{ selectedOrderForRider.customerPhone || onlineCustomerPhone }}
+                    </div>
+                </div>
+                <div class="col-12 sm:col-6 p-2">
+                    <span class="text-500 text-xs block mb-1">Destination:</span>
+                    <span class="font-semibold text-900 text-sm">
+                        <i class="pi pi-map-marker text-red-500 mr-1"></i>{{ selectedOrderForRider.deliveryAreaName || deliveryAddress || 'Area not specified' }}
+                    </span>
+                    <div class="font-bold text-primary mt-1 text-base">
+                        Total: PKR {{ selectedOrderForRider.totalAmount | number: '1.2-2' }}
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="mb-2">
+                    <label class="font-bold text-900 m-0">Select Delivery Rider</label>
+                    <div class="text-xs text-500 mt-1">Staff with designation 'Delivery Rider'</div>
+                </div>
+
+                <div *ngIf="loadingRiders" class="text-center py-4 text-500">
+                    <i class="pi pi-spin pi-spinner text-xl mr-2"></i>Loading delivery riders...
+                </div>
+
+                <div *ngIf="!loadingRiders && !availableRiders.length" class="text-center py-4 surface-50 border-round">
+                    <i class="pi pi-users text-400 text-3xl mb-2 block"></i>
+                    <div class="font-bold text-700">No Delivery Riders Found</div>
+                    <div class="text-xs text-500 mt-1">
+                        Add active staff with designation "Delivery Rider" for this branch.
+                    </div>
+                </div>
+
+                <div *ngIf="!loadingRiders && availableRiders.length" class="flex flex-column gap-2 max-h-24rem overflow-y-auto pr-1">
+                    <div
+                        *ngFor="let rider of availableRiders"
+                        class="p-3 border-round-xl border-1 flex flex-wrap align-items-center justify-content-between gap-2 transition-all transition-duration-150"
+                        [style.background]="rider.isBusy ? '#fef2f2' : selectedRider?.riderId === rider.riderId ? '#e0f2fe' : '#ffffff'"
+                        [style.borderColor]="rider.isBusy ? '#fca5a5' : selectedRider?.riderId === rider.riderId ? '#0284c7' : '#e2e8f0'"
+                        [style.cursor]="rider.isBusy ? 'not-allowed' : 'pointer'"
+                        (click)="!rider.isBusy && (selectedRider = rider)"
+                    >
+                        <div class="flex align-items-center gap-3">
+                            <div
+                                class="border-circle flex align-items-center justify-content-center text-lg font-bold"
+                                [style.background]="rider.isBusy ? '#fee2e2' : selectedRider?.riderId === rider.riderId ? '#0284c7' : '#f1f5f9'"
+                                [style.color]="rider.isBusy ? '#dc2626' : selectedRider?.riderId === rider.riderId ? '#ffffff' : '#475569'"
+                                style="width: 2.75rem; height: 2.75rem; flex-shrink: 0;"
+                            >
+                                <i class="pi pi-compass"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-900 text-base flex align-items-center gap-2">
+                                    {{ rider.riderName }}
+                                    <span *ngIf="rider.employeeCode" class="text-xs text-500 font-normal">({{ rider.employeeCode }})</span>
+                                </div>
+                                <div class="text-xs text-600 mt-1">
+                                    <i class="pi pi-phone mr-1" *ngIf="rider.riderPhone"></i>{{ rider.riderPhone || 'No contact phone' }}
+                                </div>
+                                <div class="mt-2 flex flex-wrap align-items-center gap-2">
+                                    <span
+                                        class="inline-flex align-items-center gap-1 px-2 py-0.5 border-round text-xs font-medium"
+                                        [ngClass]="rider.lastOrderTime ? 'bg-indigo-50 text-indigo-700 border-1 border-indigo-200' : 'bg-gray-100 text-gray-600 border-1 border-gray-200'"
+                                    >
+                                        <i class="pi pi-clock text-xs"></i>
+                                        {{ rider.lastOrderTimeText || 'No previous orders' }}
+                                    </span>
+                                    <span
+                                        class="inline-flex align-items-center gap-1 px-2 py-0.5 border-round text-xs font-medium"
+                                        [ngClass]="(rider.todayDeliveredCount || 0) > 0 ? 'bg-green-50 text-green-700 border-1 border-green-200' : 'bg-orange-50 text-orange-700 border-1 border-orange-200'"
+                                    >
+                                        <i [class]="(rider.todayDeliveredCount || 0) > 0 ? 'pi pi-check-circle text-xs' : 'pi pi-info-circle text-xs'"></i>
+                                        {{ rider.todayDeliveredText || 'No order delivered today' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex align-items-center gap-2">
+                            <span
+                                *ngIf="rider.isBusy"
+                                class="px-2.5 py-1.5 border-round font-bold text-xs bg-red-100 text-red-700 border-1 border-red-300 flex align-items-center gap-1"
+                            >
+                                <i class="pi pi-exclamation-triangle"></i>
+                                Already delivering Order #{{ rider.busyOrderNo }}
+                            </span>
+                            <span
+                                *ngIf="!rider.isBusy"
+                                class="px-2 py-1 border-round font-semibold text-xs bg-green-100 text-green-800"
+                            >
+                                <i class="pi pi-check mr-1"></i>Available
+                            </span>
+                            <p-radioButton
+                                *ngIf="!rider.isBusy"
+                                name="posRiderGroup"
+                                [value]="rider"
+                                [(ngModel)]="selectedRider"
+                                [disabled]="rider.isBusy"
+                            ></p-radioButton>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="flex flex-wrap align-items-center justify-content-between gap-2 w-full pt-2">
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    label="Cancel"
+                    icon="pi pi-times"
+                    class="p-button-text p-button-secondary border-round-lg px-3"
+                    [disabled]="assigningRider"
+                    (click)="assignRiderDialogVisible = false"
+                ></button>
+                <button
+                    pButton
+                    pRipple
+                    type="button"
+                    [label]="selectedOrderForRider?.riderName ? 'Reassign Rider' : 'Assign Rider'"
+                    icon="pi pi-check"
+                    class="p-button-success border-round-lg px-4 font-semibold shadow-2"
+                    [disabled]="!selectedRider || selectedRider.isBusy || assigningRider"
+                    [loading]="assigningRider"
+                    (click)="confirmAssignOrReassignRider()"
                 ></button>
             </div>
         </ng-template>
