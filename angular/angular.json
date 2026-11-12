@@ -27,7 +27,20 @@
                         "inlineStyleLanguage": "scss",
                         "assets": [
                             "src/favicon.ico",
-                            "src/assets",
+                            {
+                                "glob": "**/*",
+                                "input": "src/assets",
+                                "output": "/assets",
+                                "ignore": [
+                                    "pos_background.jpg",
+                                    "demo/images/ecommerce/**",
+                                    "demo/images/blog/**",
+                                    "demo/images/galleria/**",
+                                    "demo/images/nature/**",
+                                    "demo/images/avatar/circle-big/**",
+                                    "demo/images/avatar/square/**"
+                                ]
+                            },
                             {
                                 "glob": "**/*",
                                 "input": "hosting",
