@@ -2513,7 +2513,8 @@ export class PosComponent implements OnInit, OnDestroy {
                     life: 3500,
                 });
             } else {
-                this.kotDialogVisible = true;
+                // Print KOT immediately — no preview popup.
+                this.printCurrentModal('kotThermalPrint', 'all');
                 this.messageService.add({
                     severity: 'success',
                     summary: isCar ? 'Sent to Car (KOT)' : 'Sent to KOT',
@@ -2522,7 +2523,7 @@ export class PosComponent implements OnInit, OnDestroy {
                         : (isTakeaway
                             ? `Takeaway order #${kotResult.orderNo} sent to kitchen KOT (Unpaid)`
                             : `Table ${kotResult.tableNo || this.selectedTable?.tableNo || ''} order #${kotResult.orderNo} sent to kitchen KOT`),
-                    life: 3500,
+                    life: 2500,
                 });
                 // Takeaway KOT is parked in unpaid list — clear cart so the next order can start immediately.
                 if (isTakeaway) {

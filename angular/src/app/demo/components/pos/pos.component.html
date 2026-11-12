@@ -569,7 +569,7 @@
                         <ng-template pTemplate="header">
                             <tr>
                                 <th>Product</th>
-                                <th style="width: 8rem">Quantity</th>
+                                <th style="width: 7.5rem">Quantity</th>
                                 <th style="width: 9rem">Unit Price</th>
                                 <th style="width: 8rem" class="text-right">Line Total</th>
                                 <th style="width: 4rem"></th>
@@ -655,13 +655,33 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <p-inputNumber
-                                        [ngModel]="line.quantity"
-                                        (ngModelChange)="updateQty(line, $event)"
-                                        [min]="getMinQty(line)"
-                                        [showButtons]="false"
-                                        styleClass="w-full"
-                                    ></p-inputNumber>
+                                    <div class="pos-qty-control pos-qty-control--table">
+                                        <button
+                                            pButton
+                                            pRipple
+                                            type="button"
+                                            label="−"
+                                            class="p-button-outlined pos-touch-btn"
+                                            [disabled]="isWaiter && line.quantity <= getMinQty(line)"
+                                            (click)="bumpQty(line, -1)"
+                                        ></button>
+                                        <p-inputNumber
+                                            [ngModel]="line.quantity"
+                                            (ngModelChange)="updateQty(line, $event)"
+                                            [min]="getMinQty(line)"
+                                            [showButtons]="false"
+                                            inputStyleClass="text-center"
+                                            styleClass="pos-qty-input-sm"
+                                        ></p-inputNumber>
+                                        <button
+                                            pButton
+                                            pRipple
+                                            type="button"
+                                            label="+"
+                                            class="p-button-outlined pos-touch-btn"
+                                            (click)="bumpQty(line, 1)"
+                                        ></button>
+                                    </div>
                                 </td>
                                 <td class="white-space-nowrap">
                                     {{ line.unitPrice | number: '1.2-2' }}
@@ -1034,6 +1054,33 @@
                 >
                     <i class="pi pi-info-circle mr-1"></i> Send to KOT first to enable settlement
                 </small>
+
+                <!-- Compact current cart under settle actions (fills empty checkout space) -->
+                <div class="pos-checkout-cart-summary hidden md:block mt-3">
+                    <div class="pos-checkout-cart-summary__head">
+                        <span>Current cart</span>
+                        <span class="text-500">{{ cart.length ? (cart.length + ' item(s)') : 'Empty' }}</span>
+                    </div>
+                    <div *ngIf="cart.length; else checkoutCartEmpty" class="pos-checkout-cart-summary__list">
+                        <div
+                            class="pos-checkout-cart-summary__row"
+                            *ngFor="let line of cart"
+                        >
+                            <span class="pos-checkout-cart-summary__name" [title]="line.productName">
+                                {{ line.productName }}
+                            </span>
+                            <span class="pos-checkout-cart-summary__qty">×{{ line.quantity }}</span>
+                            <span class="pos-checkout-cart-summary__amt">
+                                {{ line.quantity * line.unitPrice | number: '1.0-0' }}
+                            </span>
+                        </div>
+                    </div>
+                    <ng-template #checkoutCartEmpty>
+                        <div class="pos-checkout-cart-summary__empty">
+                            No products in cart yet
+                        </div>
+                    </ng-template>
+                </div>
             </div>
         </div>
     </div>
