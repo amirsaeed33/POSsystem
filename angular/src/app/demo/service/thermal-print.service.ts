@@ -565,13 +565,16 @@ export class ThermalPrintService {
         softwareDeveloperName?: string;
         softwareDeveloperPhone?: string;
         invoiceFooter?: string;
+        /** Short guest bill: no logo, customer block, or complaint section. */
+        shortFormat?: boolean;
     }): string {
         const is58 = params.size === '58mm';
+        const shortFormat = !!params.shortFormat;
         const dateParts = this.formatThermalDate(params.orderDate);
         const printParts = this.formatThermalDate(new Date());
         const branchInfo = this.getBranchInfo();
 
-        const logoHtml = params.logoUrl
+        const logoHtml = !shortFormat && params.logoUrl
             ? `<img src="${params.logoUrl}" class="logo-img" alt="" onerror="this.style.display='none'" />`
             : '';
 
@@ -636,7 +639,7 @@ export class ThermalPrintService {
             <div style="margin-top: 4px;">
                 <div class="row" style="font-size: ${is58 ? '12px' : '14px'}; font-weight: 700; margin-bottom: 2px;">
                     <span>${params.tokenNo != null && params.tokenNo > 0 ? `Token# ${params.tokenNo}` : ''}</span>
-                    <span>${params.orderType}</span>
+                    <span>Order Type: ${params.orderType}</span>
                 </div>
                 <div class="row" style="white-space: nowrap; font-size: ${is58 ? '8.5px' : '10.5px'};">
                     <span style="white-space: nowrap;">Order ID: <strong>${params.orderId}</strong></span>
@@ -646,10 +649,12 @@ export class ThermalPrintService {
                     <span style="white-space: nowrap;">Invoice#: <strong>${params.invoiceNo || '#' + params.orderId}</strong></span>
                     <span style="white-space: nowrap;">User: <strong>${params.userName || 'Staff'}</strong></span>
                 </div>
-                <div class="row" style="white-space: nowrap; font-size: ${is58 ? '8.5px' : '10.5px'};">
-                    <span style="white-space: nowrap;">Order Type : <strong>${params.orderType}</strong></span>
-                    ${params.subLocation ? `<span style="white-space: nowrap;"><strong>${params.subLocation}</strong></span>` : '<span></span>'}
-                </div>
+                ${params.subLocation
+                    ? `<div class="row" style="white-space: nowrap; font-size: ${is58 ? '8.5px' : '10.5px'};">
+                            <span style="white-space: nowrap;"><strong>${params.subLocation}</strong></span>
+                            <span></span>
+                       </div>`
+                    : ''}
             </div>
         `;
 
@@ -727,12 +732,15 @@ export class ThermalPrintService {
                 </tbody>
             </table>
 
+            ${shortFormat
+                ? ''
+                : `
             <div class="divider"></div>
             <div class="section-title">Customer Detail</div>
             <div class="divider"></div>
 
             <div class="customer-block">
-                <div class="bold" style="font-size: ${is58 ? '11.5px' : '13px'};">${params.customerName || 'Walk-in'}</div>
+                <div class="bold" style="font-size: ${is58 ? '11.5px' : '13px'};"><span class="label">Customer:</span> ${params.customerName || 'Walk-in'}</div>
                 ${phoneHtml}
                 ${deliveryAreaHtml}
                 ${addressHtml}
@@ -740,16 +748,19 @@ export class ThermalPrintService {
                 ${paymentHtml}
                 <div class="row" style="margin-top: 4px; align-items: flex-start;">
                     <span>Order-Taker: <strong>${params.orderTaker || 'Waiter'}</strong></span>
-                    <span class="printed-at" style="text-align: right;">Printed: ${printParts.dateStr}<br/>${printParts.timeStr}</span>
+                    <span class="printed-at" style="text-align: right; white-space: nowrap;">Printed: ${printParts.dateStr} ${printParts.timeStr}</span>
                 </div>
-            </div>
+            </div>`}
 
             <div class="receipt-footer" style="page-break-inside: avoid !important; break-inside: avoid !important; page-break-before: avoid !important; break-before: avoid !important;">
+                ${shortFormat
+                    ? ''
+                    : `
                 <div class="divider"></div>
                 <div class="text-center meta-text" style="font-size: ${is58 ? '9px' : '11px'}; line-height: 1.35;">
                     <div>For any Complaint &amp; Suggestions</div>
                     <div>Please Contact us @ ${params.complaintPhone || branchInfo.phone || '03080004248'}</div>
-                </div>
+                </div>`}
                 <div class="divider"></div>
                 <div class="text-center meta-text" style="font-size: ${is58 ? '8.5px' : '10px'}; margin-top: 3px;">
                     <div>${softwareName}</div>
@@ -831,9 +842,10 @@ export class ThermalPrintService {
             ''
         ).trim();
 
+        const shortFormat = !!receipt.shortFormat;
         const bodyHtml = this.buildReferenceReceiptHtml({
             size,
-            logoUrl: (config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
+            logoUrl: (!shortFormat && config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
             branchName: receipt.branchName || branch.name,
             tagline: 'Taste & Quality',
             city,
@@ -868,6 +880,7 @@ export class ThermalPrintService {
             softwareDeveloperName: branch.softwareDeveloperName,
             softwareDeveloperPhone: branch.softwareDeveloperPhone,
             invoiceFooter: receipt.branchFooter || branch.footer,
+            shortFormat,
         });
 
         this.executePrint(bodyHtml, `Receipt-${receipt.orderNo || receipt.id}`, size);
