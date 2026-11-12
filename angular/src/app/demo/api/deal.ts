@@ -6,6 +6,8 @@ export interface DealDetailDto {
     productBarcode?: string;
     quantity: number;
     unitPrice: number;
+    selectedModifiers?: string;
+    selectedOptionIds?: string;
     subTotal?: number;
 }
 
@@ -32,6 +34,8 @@ export interface CreateDealDetailDto {
     productId: number;
     quantity: number;
     unitPrice?: number;
+    selectedModifiers?: string;
+    selectedOptionIds?: string;
 }
 
 export interface CreateDealDto {

@@ -647,18 +647,24 @@
                     />
                 </div>
 
-                <!-- Category (Fixed to Deals, uneditable) -->
+                <!-- Category (selectable) -->
                 <div class="col-12 md:col-6 field">
                     <label class="font-semibold text-900">
                         Category
                     </label>
-                    <input
-                        pInputText
-                        type="text"
-                        [value]="'Deals'"
-                        [disabled]="true"
-                        class="p-disabled font-bold"
-                    />
+                    <p-dropdown
+                        [options]="dealCategoryOptions"
+                        [(ngModel)]="dealCategoryId"
+                        (onChange)="onDealCategoryChange($event.value)"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Select category"
+                        [filter]="true"
+                        filterBy="label"
+                        [showClear]="false"
+                        appendTo="body"
+                        styleClass="w-full"
+                    ></p-dropdown>
                 </div>
 
                 <!-- Description -->
@@ -675,12 +681,14 @@
                 </div>
             </div>
 
-            <!-- Products Selection Section -->
+            <!-- Products catalog -->
             <div class="mt-3 border-top-1 surface-border pt-3">
                 <div class="flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                     <div>
                         <span class="font-bold text-900 text-base">Select Products for Deal</span>
-                        <div class="text-500 text-xs">Choose items and adjust quantities for this bundle</div>
+                        <div class="text-500 text-xs">
+                            Click Add — if the product has options (Small / Full / etc.), choose them first
+                        </div>
                     </div>
                     <span class="p-input-icon-left w-full sm:w-18rem">
                         <i class="pi pi-search"></i>
@@ -694,31 +702,21 @@
                     </span>
                 </div>
 
-                <!-- Table of available products -->
                 <div class="deal-products-table-wrapper">
                     <table class="w-full text-sm" style="border-collapse: collapse;">
                         <thead class="bg-surface-50 text-700">
                             <tr>
-                                <th style="width: 3.5rem; padding: 0.5rem; text-align: center;">Select</th>
                                 <th style="padding: 0.5rem; text-align: left;">Product</th>
                                 <th style="width: 9rem; padding: 0.5rem; text-align: left;">Category</th>
                                 <th style="width: 7rem; padding: 0.5rem; text-align: right;">Unit Price</th>
-                                <th style="width: 10rem; padding: 0.5rem; text-align: center;">Quantity</th>
+                                <th style="width: 6.5rem; padding: 0.5rem; text-align: center;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr
                                 *ngFor="let item of filteredAvailableProducts"
-                                [class.surface-hover]="item.selected"
                                 class="border-bottom-1 surface-border"
                             >
-                                <td style="padding: 0.5rem; text-align: center;">
-                                    <p-checkbox
-                                        [binary]="true"
-                                        [(ngModel)]="item.selected"
-                                        (onChange)="onDealProductCheckboxChange(item)"
-                                    ></p-checkbox>
-                                </td>
                                 <td style="padding: 0.5rem; font-weight: 500;">
                                     {{ item.product.name }}
                                 </td>
@@ -728,41 +726,21 @@
                                 <td style="padding: 0.5rem; text-align: right; font-weight: 600;">
                                     {{ item.product.price | number: '1.2-2' }}
                                 </td>
-                                <td style="padding: 0.5rem;">
-                                    <div class="flex align-items-center justify-content-center gap-1">
-                                        <button
-                                            pButton
-                                            type="button"
-                                            icon="pi pi-minus"
-                                            class="p-button-outlined p-button-sm p-button-secondary p-0"
-                                            style="width: 1.75rem; height: 1.75rem;"
-                                            [disabled]="!item.selected || item.quantity <= 1"
-                                            (click)="decrementDealQuantity(item)"
-                                        ></button>
-                                        <input
-                                            pInputText
-                                            type="number"
-                                            min="1"
-                                            class="text-center p-inputtext-sm"
-                                            style="width: 3.5rem; padding: 0.25rem;"
-                                            [(ngModel)]="item.quantity"
-                                            [disabled]="!item.selected"
-                                            (change)="onDealQuantityChange(item)"
-                                        />
-                                        <button
-                                            pButton
-                                            type="button"
-                                            icon="pi pi-plus"
-                                            class="p-button-outlined p-button-sm p-button-secondary p-0"
-                                            style="width: 1.75rem; height: 1.75rem;"
-                                            [disabled]="!item.selected"
-                                            (click)="incrementDealQuantity(item)"
-                                        ></button>
-                                    </div>
+                                <td style="padding: 0.5rem; text-align: center;">
+                                    <button
+                                        pButton
+                                        pRipple
+                                        type="button"
+                                        label="Add"
+                                        icon="pi pi-plus"
+                                        class="p-button-sm p-button-outlined"
+                                        [disabled]="savingDeal"
+                                        (click)="startAddDealProduct(item.product)"
+                                    ></button>
                                 </td>
                             </tr>
                             <tr *ngIf="!filteredAvailableProducts.length">
-                                <td colspan="5" class="text-center p-3 text-500">
+                                <td colspan="4" class="text-center p-3 text-500">
                                     No products found matching filter.
                                 </td>
                             </tr>
@@ -770,12 +748,76 @@
                     </table>
                 </div>
 
+                <!-- Added products tab / panel -->
+                <div class="mt-3 surface-ground border-1 surface-border border-round p-3">
+                    <div class="flex align-items-center justify-content-between gap-2 mb-2">
+                        <div>
+                            <span class="font-bold text-900">Added Products</span>
+                            <div class="text-500 text-xs">Increase / decrease quantity or remove items here</div>
+                        </div>
+                        <span class="p-tag p-tag-info font-bold">{{ selectedDealItems.length }} added</span>
+                    </div>
+
+                    <div *ngIf="!selectedDealItems.length" class="text-center text-500 text-sm py-3">
+                        No products added yet. Use Add above.
+                    </div>
+
+                    <div *ngIf="selectedDealItems.length" class="flex flex-column gap-2">
+                        <div
+                            *ngFor="let item of selectedDealItems"
+                            class="surface-card border-1 surface-border border-round p-2 flex flex-wrap align-items-center justify-content-between gap-2"
+                        >
+                            <div class="min-w-0 flex-1">
+                                <div class="font-semibold text-900">{{ item.product.name }}</div>
+                                <div class="text-xs text-600" *ngIf="item.selectedOptionLabels?.length">
+                                    Options: {{ item.selectedOptionLabels.join(', ') }}
+                                </div>
+                                <div class="text-xs text-500 mt-1">
+                                    Unit {{ item.unitPrice | number: '1.2-2' }}
+                                </div>
+                            </div>
+                            <div class="flex align-items-center gap-1">
+                                <button
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-minus"
+                                    class="p-button-outlined p-button-sm p-button-secondary p-0"
+                                    style="width: 1.75rem; height: 1.75rem;"
+                                    (click)="decrementAddedDealQty(item)"
+                                ></button>
+                                <input
+                                    pInputText
+                                    type="number"
+                                    min="1"
+                                    class="text-center p-inputtext-sm"
+                                    style="width: 3.5rem; padding: 0.25rem;"
+                                    [(ngModel)]="item.quantity"
+                                    (change)="onAddedDealQtyChange(item)"
+                                />
+                                <button
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-plus"
+                                    class="p-button-outlined p-button-sm p-button-secondary p-0"
+                                    style="width: 1.75rem; height: 1.75rem;"
+                                    (click)="incrementAddedDealQty(item)"
+                                ></button>
+                                <button
+                                    pButton
+                                    type="button"
+                                    icon="pi pi-trash"
+                                    class="p-button-text p-button-danger p-button-sm"
+                                    pTooltip="Remove"
+                                    (click)="removeAddedDealItem(item)"
+                                ></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Summary Bar -->
                 <div class="surface-100 border-round p-3 mt-3 flex flex-wrap align-items-center justify-content-between gap-2">
                     <div class="flex align-items-center gap-2">
-                        <span class="p-tag p-tag-info font-bold">
-                            {{ selectedDealItems.length }} Product(s) Selected
-                        </span>
                         <span class="text-sm text-700">
                             Original Items Value: <strong>{{ totalDealOriginalPrice | number: '1.2-2' }}</strong>
                         </span>
@@ -814,6 +856,65 @@
                 class="p-button-primary font-semibold"
                 (click)="saveDeal()"
                 [loading]="savingDeal"
+            ></button>
+        </ng-template>
+    </p-dialog>
+
+    <!-- Choose options before adding product to deal -->
+    <p-dialog
+        [(visible)]="dealOptionDialogVisible"
+        [modal]="true"
+        appendTo="body"
+        [style]="{ width: '28rem', maxWidth: '95vw' }"
+        [header]="'Choose Options · ' + (dealOptionProduct?.name || '')"
+        [draggable]="false"
+        [resizable]="false"
+        [closable]="!dealOptionAdding"
+    >
+        <div *ngIf="dealOptionLoading" class="text-center py-4 text-500">
+            <i class="pi pi-spin pi-spinner text-xl mr-2"></i>Loading options...
+        </div>
+
+        <div *ngIf="!dealOptionLoading" class="flex flex-column gap-3">
+            <div *ngFor="let group of dealOptionGroups" class="border-1 surface-border border-round p-2">
+                <div class="font-bold text-900 mb-2 flex align-items-center gap-2">
+                    {{ group.name }}
+                    <span class="text-xs font-semibold" [class.text-red-500]="group.isRequired" [class.text-500]="!group.isRequired">
+                        {{ group.isRequired ? 'Required' : 'Optional' }}
+                    </span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        *ngFor="let opt of group.options"
+                        pButton
+                        type="button"
+                        class="p-button-sm border-round-lg"
+                        [class.p-button-outlined]="!isDealOptionSelected(group.id, opt.id)"
+                        [label]="opt.name + ' · ' + formatDealBuildOptionPrice(opt)"
+                        (click)="toggleDealBuildOption(group, opt)"
+                    ></button>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                [disabled]="dealOptionAdding"
+                (click)="dealOptionDialogVisible = false"
+            ></button>
+            <button
+                pButton
+                type="button"
+                label="Add to Deal"
+                icon="pi pi-check"
+                class="p-button-success"
+                [loading]="dealOptionAdding"
+                [disabled]="dealOptionLoading"
+                (click)="confirmDealProductOptions()"
             ></button>
         </ng-template>
     </p-dialog>
@@ -882,7 +983,10 @@
                     </thead>
                     <tbody>
                         <tr *ngFor="let item of selectedDealDetails.items" class="border-bottom-1 surface-border">
-                            <td style="padding: 0.5rem; font-weight: 500;">{{ item.productName }}</td>
+                            <td style="padding: 0.5rem; font-weight: 500;">
+                                <div>{{ item.productName }}</div>
+                                <div class="text-xs text-500" *ngIf="item.selectedModifiers">{{ item.selectedModifiers }}</div>
+                            </td>
                             <td style="padding: 0.5rem; text-align: center;" class="font-bold">{{ item.quantity }}</td>
                             <td style="padding: 0.5rem; text-align: right;">{{ item.unitPrice | number: '1.2-2' }}</td>
                             <td style="padding: 0.5rem; text-align: right; font-weight: 600;">{{ item.subTotal | number: '1.2-2' }}</td>

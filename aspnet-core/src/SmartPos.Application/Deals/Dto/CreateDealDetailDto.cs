@@ -12,5 +12,13 @@ namespace SmartPos.Deals.Dto
         public decimal Quantity { get; set; } = 1;
 
         public decimal UnitPrice { get; set; }
+
+        /// <summary>Display labels for pre-selected options (e.g. "Size: Small").</summary>
+        [StringLength(1024)]
+        public string SelectedModifiers { get; set; }
+
+        /// <summary>Comma-separated ProductModifierOption ids.</summary>
+        [StringLength(512)]
+        public string SelectedOptionIds { get; set; }
     }
 }

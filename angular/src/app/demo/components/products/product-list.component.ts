@@ -8,13 +8,24 @@ import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
 
-import { ProductModifierGroupDto } from 'src/app/demo/api/product-modifier';
+import {
+    ProductModifierGroupDto,
+    ProductModifierOptionDto,
+} from 'src/app/demo/api/product-modifier';
 import { ProductModifierService } from 'src/app/demo/service/product-modifier.service';
 
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { CategoryService } from 'src/app/demo/service/category.service';
 import { DealService } from 'src/app/demo/service/deal.service';
 import { CreateDealDto, UpdateDealDto, DealDto } from 'src/app/demo/api/deal';
+
+export interface DealAddedItem {
+    product: ProductDto;
+    quantity: number;
+    unitPrice: number;
+    selectedOptionIds: number[];
+    selectedOptionLabels: string[];
+}
 
 @Component({
     templateUrl: './product-list.component.html',
@@ -66,13 +77,25 @@ export class ProductListComponent implements OnInit {
     dealName = '';
     dealPrice: number | null = null;
     dealExpiryDate = '';
+    dealCategoryId: number | null = null;
     dealCategoryType = 'Deals';
+    dealCategoryOptions: { label: string; value: number }[] = [];
     dealDescription = '';
     dealProductSearch = '';
     dealImagePreview = '';
     dealImageBase64: string | undefined;
-    availableDealProducts: { product: ProductDto; selected: boolean; quantity: number }[] = [];
+    /** Catalog rows (not yet / already addable). */
+    availableDealProducts: { product: ProductDto }[] = [];
+    /** Products confirmed into the deal (with options). */
+    dealAddedItems: DealAddedItem[] = [];
     savingDeal = false;
+
+    dealOptionDialogVisible = false;
+    dealOptionLoading = false;
+    dealOptionProduct: ProductDto | null = null;
+    dealOptionGroups: ProductModifierGroupDto[] = [];
+    dealOptionSelections: Record<number, number[]> = {};
+    dealOptionAdding = false;
 
     viewDealDialogVisible = false;
     selectedDealDetails: DealDto | null = null;
@@ -460,16 +483,39 @@ export class ProductListComponent implements OnInit {
     private async loadCategories(): Promise<void> {
         try {
             const categories = await this.categoryService.getLookup();
+            const mapped = (categories || []).map((c) => ({
+                label: c.name,
+                value: c.id,
+            }));
             this.categoryOptions = [
                 { label: 'All categories', value: null },
-                ...(categories || []).map((c) => ({
-                    label: c.name,
-                    value: c.id,
-                })),
+                ...mapped,
             ];
+            this.dealCategoryOptions = mapped;
+            this.ensureDefaultDealCategory();
         } catch {
             this.categoryOptions = [{ label: 'All categories', value: null }];
+            this.dealCategoryOptions = [];
         }
+    }
+
+    private ensureDefaultDealCategory(): void {
+        if (this.dealCategoryId) {
+            return;
+        }
+        const deals = this.dealCategoryOptions.find((c) =>
+            (c.label || '').trim().toLowerCase().startsWith('deal')
+        );
+        if (deals) {
+            this.dealCategoryId = deals.value;
+            this.dealCategoryType = deals.label;
+        }
+    }
+
+    onDealCategoryChange(categoryId: number | null): void {
+        this.dealCategoryId = categoryId;
+        const match = this.dealCategoryOptions.find((c) => c.value === categoryId);
+        this.dealCategoryType = match?.label || 'Deals';
     }
 
     loadProducts(forceRefresh = false): void {
@@ -794,18 +840,17 @@ export class ProductListComponent implements OnInit {
         this.dealName = '';
         this.dealPrice = null;
         this.dealExpiryDate = '';
+        this.dealCategoryId = null;
         this.dealCategoryType = 'Deals';
+        this.ensureDefaultDealCategory();
         this.dealDescription = '';
         this.dealProductSearch = '';
         this.dealImagePreview = '';
         this.dealImageBase64 = undefined;
+        this.dealAddedItems = [];
         this.availableDealProducts = this.products
             .filter((p) => !this.isGroceryInventoryItem(p) && !this.isDealProduct(p))
-            .map((p) => ({
-                product: p,
-                selected: false,
-                quantity: 1,
-            }));
+            .map((p) => ({ product: p }));
         this.dealDialogVisible = true;
     }
 
@@ -857,29 +902,50 @@ export class ProductListComponent implements OnInit {
             this.dealName = deal.name || product.name || '';
             this.dealPrice = deal.dealPrice ?? product.price ?? 0;
             this.dealExpiryDate = deal.expiryDate ? this.toDateInputValue(deal.expiryDate) : '';
-            this.dealCategoryType = deal.categoryType || 'Deals';
+            this.dealCategoryId = deal.categoryId || null;
+            this.dealCategoryType = deal.categoryName || deal.categoryType || 'Deals';
+            if (!this.dealCategoryId) {
+                this.ensureDefaultDealCategory();
+            }
             this.dealDescription = deal.description || product.description || '';
             this.dealImageBase64 = undefined;
             this.dealImagePreview =
                 this.productService.getImageUrl(deal.imagePath || product.imagePath) || '';
 
-            const dealItemsMap = new Map<number, number>();
-            for (const it of deal.items || []) {
-                dealItemsMap.set(it.productId, it.quantity);
-            }
-
+            const dealProductIds = new Set((deal.items || []).map((it) => it.productId));
             this.availableDealProducts = this.products
-                .filter((p) => !this.isGroceryInventoryItem(p) && p.id !== product.id && (!this.isDealProduct(p) || dealItemsMap.has(p.id)))
-                .map((p) => {
-                    const isSelected = dealItemsMap.has(p.id);
-                    const qty = isSelected ? (dealItemsMap.get(p.id) || 1) : 1;
-                    return {
-                        product: p,
-                        selected: isSelected,
-                        quantity: qty,
-                    };
-                })
-                .sort((a, b) => (b.selected ? 1 : 0) - (a.selected ? 1 : 0));
+                .filter(
+                    (p) =>
+                        !this.isGroceryInventoryItem(p) &&
+                        p.id !== product.id &&
+                        (!this.isDealProduct(p) || dealProductIds.has(p.id))
+                )
+                .map((p) => ({ product: p }));
+
+            this.dealAddedItems = (deal.items || []).map((it) => {
+                const prod =
+                    this.products.find((p) => p.id === it.productId) ||
+                    ({
+                        id: it.productId,
+                        name: it.productName || `Product #${it.productId}`,
+                        price: it.unitPrice,
+                    } as ProductDto);
+                const optionIds = (it.selectedOptionIds || '')
+                    .split(',')
+                    .map((x) => Number(x.trim()))
+                    .filter((n) => Number.isFinite(n) && n > 0);
+                const labels = (it.selectedModifiers || '')
+                    .split(',')
+                    .map((x) => x.trim())
+                    .filter(Boolean);
+                return {
+                    product: prod,
+                    quantity: Number(it.quantity) || 1,
+                    unitPrice: Number(it.unitPrice) || Number(prod.price) || 0,
+                    selectedOptionIds: optionIds,
+                    selectedOptionLabels: labels,
+                };
+            });
 
             this.dealDialogVisible = true;
         } catch (err: any) {
@@ -926,49 +992,19 @@ export class ProductListComponent implements OnInit {
         }
     }
 
-    onDealProductCheckboxChange(item: { product: ProductDto; selected: boolean; quantity: number }): void {
-        if (item.selected && (!item.quantity || item.quantity < 1)) {
-            item.quantity = 1;
-        }
-    }
-
-    incrementDealQuantity(item: { product: ProductDto; selected: boolean; quantity: number }): void {
-        if (!item.selected) {
-            item.selected = true;
-        }
-        item.quantity = (item.quantity || 0) + 1;
-    }
-
-    decrementDealQuantity(item: { product: ProductDto; selected: boolean; quantity: number }): void {
-        if (item.quantity > 1) {
-            item.quantity--;
-        } else {
-            item.quantity = 1;
-            item.selected = false;
-        }
-    }
-
-    onDealQuantityChange(item: { product: ProductDto; selected: boolean; quantity: number }): void {
-        if (!item.quantity || item.quantity < 1) {
-            item.quantity = 1;
-        }
-        if (!item.selected) {
-            item.selected = true;
-        }
-    }
-
-    get selectedDealItems(): { product: ProductDto; selected: boolean; quantity: number }[] {
-        return (this.availableDealProducts || []).filter((x) => x.selected && x.quantity > 0);
+    get selectedDealItems(): DealAddedItem[] {
+        return (this.dealAddedItems || []).filter((x) => x.quantity > 0);
     }
 
     get totalDealOriginalPrice(): number {
         return this.selectedDealItems.reduce(
-            (sum, x) => sum + (x.product.price || 0) * x.quantity,
+            (sum, x) => sum + (Number(x.unitPrice) || 0) * (Number(x.quantity) || 0),
             0
         );
     }
 
-    get filteredAvailableProducts(): { product: ProductDto; selected: boolean; quantity: number }[] {
+    get filteredAvailableProducts(): { product: ProductDto }[] {
+        // Keep catalog rows visible even after add — same product can be added again with other options.
         const available = (this.availableDealProducts || []).filter(
             (x) => !this.isGroceryInventoryItem(x.product)
         );
@@ -981,6 +1017,181 @@ export class ProductListComponent implements OnInit {
                 (x.product.name || '').toLowerCase().includes(q) ||
                 (x.product.categoryName || '').toLowerCase().includes(q)
         );
+    }
+
+    private sameDealOptionSet(a: number[], b: number[]): boolean {
+        if (a.length !== b.length) {
+            return false;
+        }
+        const left = [...a].sort((x, y) => x - y);
+        const right = [...b].sort((x, y) => x - y);
+        return left.every((id, i) => id === right[i]);
+    }
+
+    async startAddDealProduct(product: ProductDto): Promise<void> {
+        if (!product?.id) {
+            return;
+        }
+
+        this.dealOptionProduct = product;
+        this.dealOptionSelections = {};
+        this.dealOptionGroups = [];
+        this.dealOptionLoading = true;
+        this.dealOptionDialogVisible = true;
+        try {
+            const groups = await this.productModifierService.getByProduct(product.id);
+            this.dealOptionGroups = groups || [];
+            if (!this.dealOptionGroups.length) {
+                this.dealOptionDialogVisible = false;
+                this.commitDealProduct(product, [], []);
+                return;
+            }
+            for (const g of this.dealOptionGroups) {
+                this.dealOptionSelections[g.id] = [];
+            }
+        } catch (err: any) {
+            this.dealOptionDialogVisible = false;
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Options',
+                detail: err?.message || 'Failed to load product options',
+            });
+        } finally {
+            this.dealOptionLoading = false;
+        }
+    }
+
+    isDealOptionSelected(groupId: number, optionId: number): boolean {
+        return (this.dealOptionSelections[groupId] || []).includes(optionId);
+    }
+
+    isDealOptionGroupSingle(group: ProductModifierGroupDto): boolean {
+        if (!group) return false;
+        if (group.maxSelection === 1 || group.allowMultiple === false) return true;
+        const name = (group.name || '').trim().toLowerCase();
+        return name.includes('size') || name.includes('portion');
+    }
+
+    toggleDealBuildOption(group: ProductModifierGroupDto, option: ProductModifierOptionDto): void {
+        if (!group?.id || !option?.id) return;
+        const current = [...(this.dealOptionSelections[group.id] || [])];
+        const idx = current.indexOf(option.id);
+        if (this.isDealOptionGroupSingle(group)) {
+            this.dealOptionSelections[group.id] = idx >= 0 ? [] : [option.id];
+            return;
+        }
+        if (idx >= 0) {
+            current.splice(idx, 1);
+        } else {
+            current.push(option.id);
+        }
+        this.dealOptionSelections[group.id] = current;
+    }
+
+    private isIncludedModifierOption(option: ProductModifierOptionDto): boolean {
+        return !!option?.isIncludedInBasePrice;
+    }
+
+    formatDealBuildOptionPrice(option: ProductModifierOptionDto): string {
+        const price = Number(option?.price) || 0;
+        if (price <= 0) return 'Free';
+        if (this.isIncludedModifierOption(option)) return price.toFixed(2);
+        return `+ ${price.toFixed(2)}`;
+    }
+
+    confirmDealProductOptions(): void {
+        const product = this.dealOptionProduct;
+        if (!product) return;
+
+        for (const g of this.dealOptionGroups) {
+            if (g.isRequired && !(this.dealOptionSelections[g.id] || []).length) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Required',
+                    detail: `Please select an option for "${g.name}".`,
+                });
+                return;
+            }
+        }
+
+        const optionIds: number[] = [];
+        const labels: string[] = [];
+        let extra = 0;
+        for (const g of this.dealOptionGroups) {
+            for (const optId of this.dealOptionSelections[g.id] || []) {
+                const opt = g.options?.find((o) => o.id === optId);
+                if (!opt) continue;
+                optionIds.push(opt.id);
+                const price = Number(opt.price) || 0;
+                if (price > 0 && !this.isIncludedModifierOption(opt)) {
+                    extra += price;
+                    labels.push(`${opt.name} (+${price.toFixed(2)})`);
+                } else {
+                    labels.push(opt.name);
+                }
+            }
+        }
+
+        this.dealOptionDialogVisible = false;
+        this.commitDealProduct(product, optionIds, labels, extra);
+    }
+
+    private commitDealProduct(
+        product: ProductDto,
+        optionIds: number[],
+        labels: string[],
+        extra = 0
+    ): void {
+        const ids = optionIds || [];
+        const existing = this.dealAddedItems.find(
+            (x) =>
+                x.product.id === product.id &&
+                this.sameDealOptionSet(x.selectedOptionIds || [], ids)
+        );
+        if (existing) {
+            existing.quantity = (Number(existing.quantity) || 0) + 1;
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Quantity Updated',
+                detail: `"${product.name}" with the same options — quantity increased.`,
+                life: 2500,
+            });
+            return;
+        }
+
+        const base = Number(product.price) || 0;
+        this.dealAddedItems = [
+            ...this.dealAddedItems,
+            {
+                product,
+                quantity: 1,
+                unitPrice: base + (Number(extra) || 0),
+                selectedOptionIds: ids,
+                selectedOptionLabels: labels || [],
+            },
+        ];
+    }
+
+    incrementAddedDealQty(item: DealAddedItem): void {
+        item.quantity = (Number(item.quantity) || 0) + 1;
+    }
+
+    decrementAddedDealQty(item: DealAddedItem): void {
+        if ((Number(item.quantity) || 0) > 1) {
+            item.quantity--;
+        } else {
+            this.removeAddedDealItem(item);
+        }
+    }
+
+    onAddedDealQtyChange(item: DealAddedItem): void {
+        if (!item.quantity || item.quantity < 1) {
+            item.quantity = 1;
+        }
+    }
+
+    removeAddedDealItem(item: DealAddedItem): void {
+        this.dealAddedItems = this.dealAddedItems.filter((x) => x !== item);
     }
 
     async saveDeal(): Promise<void> {
@@ -1017,7 +1228,13 @@ export class ProductListComponent implements OnInit {
             const itemsPayload = selectedItems.map((x) => ({
                 productId: x.product.id,
                 quantity: x.quantity,
-                unitPrice: x.product.price,
+                unitPrice: x.unitPrice,
+                selectedModifiers: x.selectedOptionLabels.length
+                    ? x.selectedOptionLabels.join(', ')
+                    : undefined,
+                selectedOptionIds: x.selectedOptionIds.length
+                    ? x.selectedOptionIds.join(',')
+                    : undefined,
             }));
 
             const imageBase64 = this.dealImageBase64?.startsWith('data:image')
@@ -1030,6 +1247,7 @@ export class ProductListComponent implements OnInit {
                     name: this.dealName.trim(),
                     dealPrice: Number(this.dealPrice),
                     expiryDate: this.dealExpiryDate ? new Date(this.dealExpiryDate).toISOString() : undefined,
+                    categoryId: this.dealCategoryId || undefined,
                     categoryType: this.dealCategoryType?.trim() || 'Deals',
                     description: this.dealDescription?.trim() || undefined,
                     imageBase64,
@@ -1047,6 +1265,7 @@ export class ProductListComponent implements OnInit {
                     name: this.dealName.trim(),
                     dealPrice: Number(this.dealPrice),
                     expiryDate: this.dealExpiryDate ? new Date(this.dealExpiryDate).toISOString() : undefined,
+                    categoryId: this.dealCategoryId || undefined,
                     categoryType: this.dealCategoryType?.trim() || 'Deals',
                     description: this.dealDescription?.trim() || undefined,
                     imageBase64,

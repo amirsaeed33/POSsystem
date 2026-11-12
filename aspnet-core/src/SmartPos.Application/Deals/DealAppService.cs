@@ -89,11 +89,7 @@ namespace SmartPos.Deals
                     throw new UserFriendlyException("Please select at least one product for the deal.");
                 }
 
-                var productIds = input.Items.Select(x => x.ProductId).ToList();
-                if (productIds.Distinct().Count() != productIds.Count)
-                {
-                    throw new UserFriendlyException("Each product can only be added once to a deal. Adjust the quantity instead.");
-                }
+                var productIds = input.Items.Select(x => x.ProductId).Distinct().ToList();
 
                 var products = await _productRepository.GetAllListAsync(p => productIds.Contains(p.Id));
                 if (products.Count != productIds.Count)
@@ -226,7 +222,13 @@ namespace SmartPos.Deals
                         DealId = createdDeal.Id,
                         ProductId = item.ProductId,
                         Quantity = item.Quantity > 0 ? item.Quantity : 1,
-                        UnitPrice = unitPrice
+                        UnitPrice = unitPrice,
+                        SelectedModifiers = string.IsNullOrWhiteSpace(item.SelectedModifiers)
+                            ? null
+                            : item.SelectedModifiers.Trim(),
+                        SelectedOptionIds = string.IsNullOrWhiteSpace(item.SelectedOptionIds)
+                            ? null
+                            : item.SelectedOptionIds.Trim()
                     });
                 }
                 await CurrentUnitOfWork.SaveChangesAsync();
@@ -265,6 +267,19 @@ namespace SmartPos.Deals
                     deal.CategoryType = input.CategoryType.Trim();
                 }
 
+                if (input.CategoryId.HasValue && input.CategoryId.Value > 0)
+                {
+                    var selectedCategory = await _categoryRepository.FirstOrDefaultAsync(input.CategoryId.Value);
+                    if (selectedCategory != null)
+                    {
+                        deal.CategoryId = selectedCategory.Id;
+                        if (string.IsNullOrWhiteSpace(input.CategoryType))
+                        {
+                            deal.CategoryType = selectedCategory.Name;
+                        }
+                    }
+                }
+
                 // Sync linked Product
                 Product product = null;
                 if (deal.ProductId.HasValue)
@@ -284,6 +299,10 @@ namespace SmartPos.Deals
                     product.Description = input.Description;
                     product.IsDeal = true;
                     product.DealId = deal.Id;
+                    if (deal.CategoryId.HasValue)
+                    {
+                        product.CategoryId = deal.CategoryId.Value;
+                    }
                     if (ProductImageStore.IsNewImagePayload(input.ImageBase64))
                     {
                         ProductImageStore.DeleteIfExists(product.ImagePath);
@@ -320,7 +339,13 @@ namespace SmartPos.Deals
                             DealId = deal.Id,
                             ProductId = item.ProductId,
                             Quantity = item.Quantity > 0 ? item.Quantity : 1,
-                            UnitPrice = unitPrice
+                            UnitPrice = unitPrice,
+                            SelectedModifiers = string.IsNullOrWhiteSpace(item.SelectedModifiers)
+                                ? null
+                                : item.SelectedModifiers.Trim(),
+                            SelectedOptionIds = string.IsNullOrWhiteSpace(item.SelectedOptionIds)
+                                ? null
+                                : item.SelectedOptionIds.Trim()
                         });
                     }
                     await CurrentUnitOfWork.SaveChangesAsync();
@@ -476,7 +501,9 @@ namespace SmartPos.Deals
                     ProductName = dd.Product?.Name ?? "Product #" + dd.ProductId,
                     ProductBarcode = dd.Product?.Barcode,
                     Quantity = dd.Quantity,
-                    UnitPrice = dd.UnitPrice
+                    UnitPrice = dd.UnitPrice,
+                    SelectedModifiers = dd.SelectedModifiers,
+                    SelectedOptionIds = dd.SelectedOptionIds
                 }).ToList()
             };
         }

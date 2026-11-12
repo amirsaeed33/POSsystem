@@ -16,6 +16,10 @@ namespace SmartPos.Deals.Dto
 
         public decimal UnitPrice { get; set; }
 
+        public string SelectedModifiers { get; set; }
+
+        public string SelectedOptionIds { get; set; }
+
         public decimal SubTotal => Quantity * UnitPrice;
     }
 }
