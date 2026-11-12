@@ -166,6 +166,7 @@ export class CustomerService {
             imagePath: item.imagePath ?? item.ImagePath ?? null,
             accountId: item.accountId ?? item.AccountId,
             balance: item.balance ?? item.Balance ?? 0,
+            onlineOrderCount: item.onlineOrderCount ?? item.OnlineOrderCount ?? 0,
         };
     }
 }

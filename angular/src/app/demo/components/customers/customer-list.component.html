@@ -59,6 +59,7 @@
                 <th pSortableColumn="email">Email <p-sortIcon field="email"></p-sortIcon></th>
                 <th pSortableColumn="address">Address <p-sortIcon field="address"></p-sortIcon></th>
                 <th pSortableColumn="balance">Balance <p-sortIcon field="balance"></p-sortIcon></th>
+                <th pSortableColumn="onlineOrderCount">Online Order Count <p-sortIcon field="onlineOrderCount"></p-sortIcon></th>
                 <th class="text-center" style="width: 4.5rem">Actions</th>
             </tr>
         </ng-template>
@@ -104,6 +105,7 @@
                 <td>{{ customer.email || '—' }}</td>
                 <td>{{ customer.address || '—' }}</td>
                 <td>{{ customer.balance }}</td>
+                <td>{{ customer.onlineOrderCount ?? 0 }}</td>
                 <td class="text-center">
                     <app-row-actions
                         [items]="getRowActions(customer)"
@@ -114,7 +116,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="7" class="text-center p-4">
+                <td colspan="8" class="text-center p-4">
                     <div class="text-500">No customers found</div>
                 </td>
             </tr>

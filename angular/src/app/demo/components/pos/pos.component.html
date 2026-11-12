@@ -144,9 +144,13 @@
                             <i class="pi pi-send"></i>
                             <span>Third-party takeaway · customer <strong>Third Party</strong></span>
                         </ng-container>
-                        <ng-container *ngIf="orderType === 'takeaway' && !isFoodpandaOrder">
+                        <ng-container *ngIf="orderType === 'takeaway' && !isFoodpandaOrder && !isOnlineOrder">
                             <i class="pi pi-shopping-bag"></i>
                             <span>Quick counter takeaway order</span>
+                        </ng-container>
+                        <ng-container *ngIf="isOnlineOrder">
+                            <i class="pi pi-globe"></i>
+                            <span>Online delivery order</span>
                         </ng-container>
                     </div>
                 </div>
@@ -863,7 +867,45 @@
             [class.hidden]="isRestaurantMode && posLeftTab !== 'order'"
         >
             <div class="card pos-checkout-card">
-                <div class="field">
+                <div class="field" *ngIf="isOnlineOrder">
+                    <label for="onlineCustomerPhone">Phone Number</label>
+                    <div class="flex gap-2 align-items-center">
+                        <input
+                            pInputText
+                            id="onlineCustomerPhone"
+                            class="w-full flex-1"
+                            [(ngModel)]="onlineCustomerPhone"
+                            (ngModelChange)="onOnlinePhoneChanged()"
+                            placeholder="Enter phone to find customer"
+                            autocomplete="tel"
+                        />
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            label="Clear data"
+                            icon="pi pi-times"
+                            class="p-button-outlined p-button-secondary white-space-nowrap"
+                            (click)="clearOnlineCustomerData()"
+                            [disabled]="!hasOnlineCustomerDraft"
+                        ></button>
+                    </div>
+                    <small class="text-500 block mt-1" *ngIf="onlineCustomerLookingUp">Looking up customer…</small>
+                </div>
+
+                <div class="field" *ngIf="isOnlineOrder">
+                    <label for="onlineCustomerName">Customer Name</label>
+                    <input
+                        pInputText
+                        id="onlineCustomerName"
+                        class="w-full"
+                        [(ngModel)]="onlineCustomerName"
+                        placeholder="Customer name"
+                        autocomplete="name"
+                    />
+                </div>
+
+                <div class="field" *ngIf="!isOnlineOrder">
                     <label for="customerId">Customer</label>
                     <p-dropdown
                         inputId="customerId"
@@ -881,7 +923,7 @@
                     ></p-dropdown>
                 </div>
 
-                <!-- Staff: saved address + delivery zone (takeaway / retail) -->
+                <!-- Staff: saved address + delivery zone (takeaway / online / retail) -->
                 <div class="field" *ngIf="showDeliveryAddressPanel">
                     <label class="font-medium">Delivery address / zone</label>
                     <p-dropdown

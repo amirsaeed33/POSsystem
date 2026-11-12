@@ -95,7 +95,7 @@ export class PosComponent implements OnInit, OnDestroy {
     discountPercent = 0;
     taxPercent = 0;
 
-    /** Staff delivery address + zone (takeaway / retail delivery). */
+    /** Staff delivery address + zone (online / retail delivery). */
     deliveryAreas: DeliveryAreaDto[] = [];
     selectedDeliveryAreaId: number | null = null;
     deliveryAddress = '';
@@ -103,6 +103,25 @@ export class PosComponent implements OnInit, OnDestroy {
     savedAddresses: CustomerSavedAddressDto[] = [];
     selectedSavedAddressId: number | null = null;
     loadingSavedAddresses = false;
+
+    /** Online channel: phone lookup + name for autofill / auto-create. */
+    onlineCustomerPhone = '';
+    onlineCustomerName = '';
+    onlineCustomerLookingUp = false;
+    private onlinePhoneLookupTimer: ReturnType<typeof setTimeout> | null = null;
+    private onlinePhoneLookupSeq = 0;
+    /** Last phone digits that successfully matched a customer profile. */
+    private lastOnlineLookupDigits = '';
+
+    get hasOnlineCustomerDraft(): boolean {
+        return !!(
+            (this.onlineCustomerPhone || '').trim() ||
+            (this.onlineCustomerName || '').trim() ||
+            (this.deliveryAddress || '').trim() ||
+            (this.deliveryLandmark || '').trim() ||
+            this.selectedSavedAddressId
+        );
+    }
 
     // Restaurant Mode
     isRestaurantMode = false;
@@ -339,6 +358,7 @@ export class PosComponent implements OnInit, OnDestroy {
         return this.selectedDeliveryArea?.deliveryFee ?? 0;
     }
 
+    /** Delivery zone/address: retail always; restaurant takeaway / online / third-party (unchanged). */
     get showDeliveryAddressPanel(): boolean {
         return (
             !this.isRestaurantMode ||
@@ -1187,6 +1207,7 @@ export class PosComponent implements OnInit, OnDestroy {
         if (channel === 'foodpanda') {
             this.orderType = 'takeaway';
             this.thirdPartyChannel = 'foodpanda';
+            this.clearOnlineCustomerFields();
             this.clearTableSelection();
             await this.ensureThirdPartyCustomer(THIRD_PARTY_CUSTOMER_NAME);
             // Re-assert after async work in case anything touched order flags.
@@ -1215,6 +1236,7 @@ export class PosComponent implements OnInit, OnDestroy {
         this.thirdPartyChannel = null;
         this.orderType = channel;
         this.selectedChannel = channel;
+        this.clearOnlineCustomerFields();
 
         if (wasFoodpanda) {
             this.selectWalkInCustomer();
@@ -1224,6 +1246,222 @@ export class PosComponent implements OnInit, OnDestroy {
             this.onOrderTypeChange();
         }
         this.cdr.detectChanges();
+    }
+
+    private clearOnlineCustomerFields(): void {
+        if (this.onlinePhoneLookupTimer) {
+            clearTimeout(this.onlinePhoneLookupTimer);
+            this.onlinePhoneLookupTimer = null;
+        }
+        this.onlineCustomerPhone = '';
+        this.onlineCustomerName = '';
+        this.onlineCustomerLookingUp = false;
+        this.lastOnlineLookupDigits = '';
+        this.onlinePhoneLookupSeq++;
+    }
+
+    /** Clears phone/name/customer/address fields so a new phone can be filtered. */
+    clearOnlineCustomerData(): void {
+        this.clearOnlineCustomerFields();
+        this.deliveryAddress = '';
+        this.deliveryLandmark = '';
+        this.selectedSavedAddressId = null;
+        this.savedAddresses = [];
+        this.selectWalkInCustomer();
+        this.cdr.detectChanges();
+    }
+
+    onOnlinePhoneChanged(): void {
+        if (!this.isOnlineOrder) {
+            return;
+        }
+
+        const digits = (this.onlineCustomerPhone || '').replace(/\D/g, '');
+        // Phone changed away from last match — clear autofilled name/address so old customer does not stick.
+        if (
+            this.lastOnlineLookupDigits &&
+            digits !== this.lastOnlineLookupDigits &&
+            !digits.startsWith(this.lastOnlineLookupDigits) &&
+            !this.lastOnlineLookupDigits.startsWith(digits)
+        ) {
+            this.resetOnlineAutofillExceptPhone();
+        } else if (digits.length < 7 && this.lastOnlineLookupDigits) {
+            this.resetOnlineAutofillExceptPhone();
+        }
+
+        if (this.onlinePhoneLookupTimer) {
+            clearTimeout(this.onlinePhoneLookupTimer);
+        }
+        this.onlinePhoneLookupTimer = setTimeout(() => {
+            void this.lookupOnlineCustomerByPhone();
+        }, 450);
+    }
+
+    private resetOnlineAutofillExceptPhone(): void {
+        this.lastOnlineLookupDigits = '';
+        this.onlineCustomerName = '';
+        this.deliveryAddress = '';
+        this.deliveryLandmark = '';
+        this.selectedSavedAddressId = null;
+        this.savedAddresses = [];
+        this.selectWalkInCustomer();
+    }
+
+    private async lookupOnlineCustomerByPhone(): Promise<void> {
+        if (!this.isOnlineOrder) {
+            return;
+        }
+        const phone = (this.onlineCustomerPhone || '').trim();
+        const digits = phone.replace(/\D/g, '');
+        const branchId = this.branchContext.getBranchId();
+        if (!branchId || digits.length < 7) {
+            this.onlineCustomerLookingUp = false;
+            return;
+        }
+
+        const seq = ++this.onlinePhoneLookupSeq;
+        this.onlineCustomerLookingUp = true;
+        try {
+            const profile = await this.customerOrderService.getOnlineCustomerProfile(
+                phone,
+                branchId
+            );
+            if (seq !== this.onlinePhoneLookupSeq || !this.isOnlineOrder) {
+                return;
+            }
+            if (!profile?.id) {
+                // New / unknown number — keep typed phone; clear previous match fields.
+                if (this.lastOnlineLookupDigits && this.lastOnlineLookupDigits !== digits) {
+                    this.resetOnlineAutofillExceptPhone();
+                }
+                this.lastOnlineLookupDigits = '';
+                return;
+            }
+
+            this.lastOnlineLookupDigits = digits;
+            this.onlineCustomerName = (profile.name || '').trim();
+            if (profile.phone) {
+                this.onlineCustomerPhone = profile.phone;
+            }
+            const matchedAddress = (profile.address || '').trim();
+            if (matchedAddress) {
+                this.deliveryAddress = matchedAddress;
+            }
+            this.selectOnlineCustomerInDropdown(profile);
+            if (profile.savedAddresses?.length) {
+                this.savedAddresses = profile.savedAddresses;
+                const def =
+                    this.savedAddresses.find((a) => a.isDefault) || this.savedAddresses[0];
+                if (def) {
+                    this.applyPosSavedAddress(def);
+                }
+            } else {
+                this.savedAddresses = [];
+                this.selectedSavedAddressId = null;
+            }
+            this.cdr.detectChanges();
+        } catch {
+            /* keep typed draft when lookup fails */
+        } finally {
+            if (seq === this.onlinePhoneLookupSeq) {
+                this.onlineCustomerLookingUp = false;
+            }
+        }
+    }
+
+    private selectOnlineCustomerInDropdown(profile: {
+        id: number;
+        name?: string;
+        customerType?: number;
+    }): void {
+        if (!profile?.id) {
+            return;
+        }
+        if (!this.customers.some((c) => c.id === profile.id)) {
+            this.customers = [
+                ...this.customers,
+                {
+                    id: profile.id,
+                    name: profile.name || `Customer #${profile.id}`,
+                    customerType: profile.customerType ?? CustomerType.Direct,
+                } as CustomerDto,
+            ];
+        }
+        this.customerId = profile.id;
+        for (const line of this.cart) {
+            line.unitPrice = this.resolveUnitPrice(line.retailPrice, line.wholesalePrice);
+        }
+        void this.loadSavedAddressesForPosCustomer();
+    }
+
+    /**
+     * For Online channel: upsert customer by phone+name before KOT / guest bill / complete.
+     * Returns false when validation fails (caller should abort).
+     */
+    private async ensureOnlineCustomerForCheckout(): Promise<boolean> {
+        if (!this.isOnlineOrder) {
+            return true;
+        }
+
+        const phone = (this.onlineCustomerPhone || '').trim();
+        const name = (this.onlineCustomerName || '').trim();
+        const digits = phone.replace(/\D/g, '');
+        const branchId = this.branchContext.getBranchId();
+
+        if (!branchId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Branch Required',
+                detail: 'Select a branch before placing an online order.',
+            });
+            return false;
+        }
+
+        if (digits.length < 7) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Phone Required',
+                detail: 'Enter a valid phone number for the online customer.',
+            });
+            return false;
+        }
+
+        if (!name) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Name Required',
+                detail: 'Enter the customer name for this online order.',
+            });
+            return false;
+        }
+
+        try {
+            const profile = await this.customerOrderService.upsertOnlineCustomerProfile({
+                branchId,
+                name,
+                phone,
+                address: (this.deliveryAddress || '').trim() || undefined,
+            });
+            if (!profile?.id) {
+                throw new Error('Customer could not be saved.');
+            }
+            this.onlineCustomerName = (profile.name || name).trim();
+            this.onlineCustomerPhone = (profile.phone || phone).trim();
+            const savedAddress = (profile.address || '').trim();
+            if (savedAddress) {
+                this.deliveryAddress = savedAddress;
+            }
+            this.selectOnlineCustomerInDropdown(profile);
+            this.cdr.detectChanges();
+            return true;
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Customer',
+                detail: err?.message || 'Failed to create or update online customer.',
+            });
+            return false;
+        }
     }
 
     /** Keep the chip highlight in sync when order type is set outside the toggle. */
@@ -2424,6 +2662,10 @@ export class PosComponent implements OnInit, OnDestroy {
             return;
         }
 
+        if (!(await this.ensureOnlineCustomerForCheckout())) {
+            return;
+        }
+
         const branchId = this.branchContext.getBranchId();
         if (!branchId) return;
 
@@ -2698,6 +2940,9 @@ export class PosComponent implements OnInit, OnDestroy {
 
     async printGuestBill(): Promise<void> {
         if (this.isWaiter || !this.cart.length) return;
+        if (!(await this.ensureOnlineCustomerForCheckout())) {
+            return;
+        }
         const branchId = this.branchContext.getBranchId();
         if (!branchId) return;
 
@@ -4194,6 +4439,10 @@ export class PosComponent implements OnInit, OnDestroy {
         this.selectedCarNumber = '';
         this.selectedCarLocation = '';
         this.thirdPartyChannel = null;
+        this.clearOnlineCustomerFields();
+        this.deliveryAddress = '';
+        this.deliveryLandmark = '';
+        this.selectedSavedAddressId = null;
         this.syncSelectedChannelFromOrderState();
         this.discountPercent = 0;
         this.discountAmount = 0;
@@ -4266,13 +4515,17 @@ export class PosComponent implements OnInit, OnDestroy {
         }
     }
 
-    completeSale(): void {
+    async completeSale(): Promise<void> {
         if (this.isWaiter) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Access Restricted',
                 detail: 'Waiters are not authorized to settle payments or close bills.',
             });
+            return;
+        }
+
+        if (!(await this.ensureOnlineCustomerForCheckout())) {
             return;
         }
 
@@ -4303,6 +4556,10 @@ export class PosComponent implements OnInit, OnDestroy {
                 summary: 'Access Restricted',
                 detail: 'Waiters are not authorized to settle payments.',
             });
+            return;
+        }
+
+        if (!(await this.ensureOnlineCustomerForCheckout())) {
             return;
         }
 

@@ -35,5 +35,10 @@ namespace SmartPos.Customers.Dto
         public int? AccountId { get; set; }
 
         public decimal Balance { get; set; }
+
+        /// <summary>
+        /// Online orders for this customer (storefront CustomerOrders + POS Online/Delivery restaurant orders).
+        /// </summary>
+        public int OnlineOrderCount { get; set; }
     }
 }

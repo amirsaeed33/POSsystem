@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Abp.Application.Services;
@@ -13,6 +14,8 @@ using SmartPos.Authorization.Users;
 using SmartPos.Accounts;
 using SmartPos.Branches;
 using SmartPos.Customers.Dto;
+using SmartPos.Orders;
+using SmartPos.Restaurant;
 
 namespace SmartPos.Customers
 {
@@ -20,6 +23,8 @@ namespace SmartPos.Customers
     public class CustomerAppService : AsyncCrudAppService<Customer, CustomerDto, int, PagedCustomerResultRequestDto, CreateCustomerDto, CustomerDto>, ICustomerAppService
     {
         private readonly IRepository<BusinessAccount> _accountRepository;
+        private readonly IRepository<CustomerOrder> _customerOrderRepository;
+        private readonly IRepository<RestaurantOrder> _restaurantOrderRepository;
         private readonly SavedAddressManager _savedAddresses;
         private readonly IRepository<User, long> _userRepository;
         private readonly IBranchAccessChecker _branchAccessChecker;
@@ -29,6 +34,8 @@ namespace SmartPos.Customers
         public CustomerAppService(
             IRepository<Customer> repository,
             IRepository<BusinessAccount> accountRepository,
+            IRepository<CustomerOrder> customerOrderRepository,
+            IRepository<RestaurantOrder> restaurantOrderRepository,
             SavedAddressManager savedAddresses,
             IRepository<User, long> userRepository,
             IBranchAccessChecker branchAccessChecker,
@@ -37,6 +44,8 @@ namespace SmartPos.Customers
             : base(repository)
         {
             _accountRepository = accountRepository;
+            _customerOrderRepository = customerOrderRepository;
+            _restaurantOrderRepository = restaurantOrderRepository;
             _savedAddresses = savedAddresses;
             _userRepository = userRepository;
             _branchAccessChecker = branchAccessChecker;
@@ -119,6 +128,7 @@ namespace SmartPos.Customers
             await FillBalance(dto);
             dto.Address = await _savedAddresses.GetDefaultAddressTextAsync(
                 SavedAddressOwnerTypes.Customer, dto.Id);
+            await FillOnlineOrderCountsAsync(new[] { dto });
             return dto;
         }
 
@@ -132,6 +142,7 @@ namespace SmartPos.Customers
                 item.Address = await _savedAddresses.GetDefaultAddressTextAsync(
                     SavedAddressOwnerTypes.Customer, item.Id);
             }
+            await FillOnlineOrderCountsAsync(result.Items);
             return result;
         }
 
@@ -181,6 +192,50 @@ namespace SmartPos.Customers
             if (dto.AccountId.HasValue)
             {
                 dto.Balance = await _accountBalanceManager.GetBalanceAsync(dto.AccountId.Value);
+            }
+        }
+
+        private async Task FillOnlineOrderCountsAsync(IReadOnlyList<CustomerDto> items)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return;
+            }
+
+            var ids = items.Select(x => x.Id).Distinct().ToList();
+
+            var storefrontCounts = await _customerOrderRepository.GetAll()
+                .AsNoTracking()
+                .Where(o => ids.Contains(o.CustomerId))
+                .GroupBy(o => o.CustomerId)
+                .Select(g => new { CustomerId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var posOnlineCounts = await _restaurantOrderRepository.GetAll()
+                .AsNoTracking()
+                .Where(o =>
+                    o.CustomerId.HasValue &&
+                    ids.Contains(o.CustomerId.Value) &&
+                    o.OrderType == OrderType.Delivery)
+                .GroupBy(o => o.CustomerId.Value)
+                .Select(g => new { CustomerId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var totals = new Dictionary<int, int>();
+            foreach (var row in storefrontCounts)
+            {
+                totals[row.CustomerId] = row.Count;
+            }
+            foreach (var row in posOnlineCounts)
+            {
+                totals[row.CustomerId] = totals.TryGetValue(row.CustomerId, out var existing)
+                    ? existing + row.Count
+                    : row.Count;
+            }
+
+            foreach (var item in items)
+            {
+                item.OnlineOrderCount = totals.TryGetValue(item.Id, out var count) ? count : 0;
             }
         }
 
