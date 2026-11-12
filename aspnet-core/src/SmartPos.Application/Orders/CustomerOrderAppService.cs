@@ -1500,6 +1500,19 @@ namespace SmartPos.Orders
             if (entity.Lines != null)
             {
                 var productIds = entity.Lines.Select(l => l.ProductId).Distinct().ToList();
+                var productsById = _productRepository.GetAll()
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToList()
+                    .ToDictionary(p => p.Id);
+
+                foreach (var line in entity.Lines)
+                {
+                    if (line.Product == null && productsById.TryGetValue(line.ProductId, out var product))
+                    {
+                        line.Product = product;
+                    }
+                }
+
                 var dealIds = entity.Lines
                     .Where(l => l.Product != null && (l.Product.IsDeal || l.Product.DealId.HasValue))
                     .Select(l => l.Product.DealId)
@@ -1532,7 +1545,15 @@ namespace SmartPos.Orders
                         .GroupBy(d => d.DealId)
                         .ToDictionary(
                             g => g.Key,
-                            g => g.Select(d => $"{d.Quantity:0.#}x {d.Product?.Name ?? "Item"}").ToList());
+                            g => g.Select(d =>
+                            {
+                                var label = $"{d.Quantity:0.#}x {d.Product?.Name ?? "Item"}";
+                                if (!string.IsNullOrWhiteSpace(d.SelectedModifiers))
+                                {
+                                    label += $": {d.SelectedModifiers.Trim()}";
+                                }
+                                return label;
+                            }).ToList());
                 }
 
                 foreach (var line in entity.Lines)
