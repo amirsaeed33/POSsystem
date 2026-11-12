@@ -1030,10 +1030,11 @@ export class PosComponent implements OnInit, OnDestroy {
             }
         }
         if (!summary) return [];
-        const parts = summary.includes(' • ')
-            ? summary.split(' • ')
-            : summary.includes(' â€¢ ')
-              ? summary.split(' â€¢ ')
+        // Prefer bullet separators used when saving deals; fall back to comma.
+        const parts = /(?:\s*[•·▪]\s*|\s+â€¢\s+)/.test(summary)
+            ? summary.split(/(?:\s*[•·▪]\s*|\s+â€¢\s+)/)
+            : summary.includes(' • ')
+              ? summary.split(' • ')
               : summary.split(',');
         return parts.map((s: string) => s.trim()).filter(Boolean);
     }
@@ -3566,7 +3567,12 @@ export class PosComponent implements OnInit, OnDestroy {
                 carLocation: this.selectedCarLocation,
                 isCarService: this.isCarService,
                 waiterName: this.waiterName || (this.isWaiter ? this.authService.getPrinterIdentity().name : 'Staff'),
-                lines: this.cart,
+                lines: this.cart.map((l) => ({
+                    ...l,
+                    isDeal: this.isDealItemOrModifiers(l),
+                    dealItems: this.getDealItemsFromLine(l),
+                    modifiers: this.isDealCartLine(l) ? [] : this.getExtraModifiersFromLine(l),
+                })),
                 subTotal: this.subTotal,
                 discountAmount: this.computedDiscount,
                 discountPercent: this.discountPercent,
@@ -4095,6 +4101,10 @@ export class PosComponent implements OnInit, OnDestroy {
         this.pushToCart(product);
     }
 
+    /**
+     * Deal options are fixed when the deal is created — do not re-ask Size/etc at sale time.
+     * Add the deal using its preset selectedModifiers / dealPrice.
+     */
     async openDealCustomiseDialog(product: ProductDto): Promise<void> {
         try {
             this.loadingDealCustomise = true;
@@ -4110,45 +4120,36 @@ export class PosComponent implements OnInit, OnDestroy {
                 return;
             }
 
-            this.selectedDealProduct = product;
-            this.currentDeal = deal;
-            this.dealKitchenNote = '';
+            const dealItemsSummary = deal.items
+                .map((item) => {
+                    const name = item.productName || `Product #${item.productId}`;
+                    const mods = (item.selectedModifiers || '').trim();
+                    return `${item.quantity}x ${name}${mods ? ' (' + mods + ')' : ''}`;
+                })
+                .join(' • ');
 
-            const itemsWithModifiers: DealCustomiseItem[] = [];
-            for (const item of deal.items) {
-                let groups: ProductModifierGroupDto[] = [];
-                try {
-                    groups = await this.productModifierService.getByProduct(item.productId);
-                } catch (e) {
-                    console.warn('Could not load modifiers for deal item:', item.productId, e);
-                }
-
-                const selectedOptions: Record<number, number[]> = {};
-                for (const g of groups || []) {
-                    selectedOptions[g.id] = [];
-                    if (g.isRequired && g.options?.length) {
-                        selectedOptions[g.id] = [g.options[0].id];
-                    }
-                }
-
-                itemsWithModifiers.push({
-                    productId: item.productId,
-                    productName: item.productName || 'Product #' + item.productId,
-                    quantity: item.quantity,
-                    unitPrice: item.unitPrice,
-                    modifierGroups: groups || [],
-                    selectedOptions,
+            const modifierNames = deal.items
+                .filter((item) => (item.selectedModifiers || '').trim())
+                .map((item) => {
+                    const name = item.productName || `Product #${item.productId}`;
+                    const qtyPrefix = item.quantity > 1 ? `${item.quantity}x ` : '';
+                    return `${qtyPrefix}${name}: ${(item.selectedModifiers || '').trim()}`;
                 });
-            }
 
-            this.dealCustomiseItems = itemsWithModifiers;
-            this.dealCustomiseDialogVisible = true;
+            this.pushDealToCart(
+                product,
+                deal,
+                { names: modifierNames, extraPrice: 0 },
+                undefined,
+                dealItemsSummary
+            );
+            this.focusSearch();
         } catch (err: any) {
             console.error('Failed to load deal details:', err);
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Deal Info',
-                detail: 'Could not load deal options. Adding deal to cart.',
+                detail: 'Could not load deal details. Adding deal to cart.',
             });
             this.pushToCart(product);
         } finally {

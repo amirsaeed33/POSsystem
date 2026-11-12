@@ -754,8 +754,12 @@ namespace SmartPos.Reports
         private static (DateTime from, DateTime toExclusive) NormalizeRange(ReportDateRangeInput input)
         {
             var now = Abp.Timing.Clock.Now;
-            var from = input.FromDate?.Date ?? new DateTime(now.Year, now.Month, 1);
-            var toDate = input.ToDate?.Date ?? now.Date;
+            var from = input.FromDate.HasValue
+                ? ToLocalCalendarDate(input.FromDate.Value)
+                : new DateTime(now.Year, now.Month, 1);
+            var toDate = input.ToDate.HasValue
+                ? ToLocalCalendarDate(input.ToDate.Value)
+                : now.Date;
             var toExclusive = toDate.AddDays(1);
             if (toExclusive <= from)
             {
@@ -763,6 +767,20 @@ namespace SmartPos.Reports
             }
 
             return (from, toExclusive);
+        }
+
+        /// <summary>
+        /// Use the business calendar day the user selected. UTC ISO midnight from the
+        /// client (e.g. 2026-11-12T19:00:00Z for PKT Nov 13) must map to local date.
+        /// </summary>
+        private static DateTime ToLocalCalendarDate(DateTime value)
+        {
+            if (value.Kind == DateTimeKind.Utc)
+            {
+                return value.ToLocalTime().Date;
+            }
+
+            return value.Date;
         }
 
         private async Task<string> GetEffectiveBranchNameAsync()

@@ -546,8 +546,8 @@ namespace SmartPos.Sales
             return Repository.GetAllIncluding(x => x.Customer, x => x.Lines)
                 .WhereIf(branchId.HasValue, x => x.BranchId == branchId.Value)
                 .WhereIf(input.CustomerId.HasValue, x => x.CustomerId == input.CustomerId.Value)
-                .WhereIf(input.FromDate.HasValue, x => x.SaleDate >= input.FromDate.Value.Date)
-                .WhereIf(input.ToDate.HasValue, x => x.SaleDate < input.ToDate.Value.Date.AddDays(1))
+                .WhereIf(input.FromDate.HasValue, x => x.SaleDate >= ToLocalCalendarDate(input.FromDate.Value))
+                .WhereIf(input.ToDate.HasValue, x => x.SaleDate < ToLocalCalendarDate(input.ToDate.Value).AddDays(1))
                 .WhereIf(!input.Keyword.IsNullOrWhiteSpace(),
                     x => (x.InvoiceNo != null && x.InvoiceNo.Contains(input.Keyword))
                          || (x.Notes != null && x.Notes.Contains(input.Keyword))
@@ -1371,13 +1371,13 @@ namespace SmartPos.Sales
 
             if (input.FromDate.HasValue)
             {
-                var from = input.FromDate.Value.Date;
+                var from = ToLocalCalendarDate(input.FromDate.Value);
                 salesQuery = salesQuery.Where(x => x.SaleDate >= from);
             }
 
             if (input.ToDate.HasValue)
             {
-                var to = input.ToDate.Value.Date.AddDays(1);
+                var to = ToLocalCalendarDate(input.ToDate.Value).AddDays(1);
                 salesQuery = salesQuery.Where(x => x.SaleDate < to);
             }
 
@@ -1574,6 +1574,19 @@ namespace SmartPos.Sales
             public string CategoryName { get; set; }
             public int? DepartmentId { get; set; }
             public string DepartmentName { get; set; }
+        }
+
+        /// <summary>
+        /// Map filter DateTime to the user's local calendar day (UTC ISO midnight day-shift safe).
+        /// </summary>
+        private static DateTime ToLocalCalendarDate(DateTime value)
+        {
+            if (value.Kind == DateTimeKind.Utc)
+            {
+                return value.ToLocalTime().Date;
+            }
+
+            return value.Date;
         }
 
     }

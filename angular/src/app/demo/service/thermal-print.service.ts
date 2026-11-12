@@ -452,6 +452,66 @@ export class ThermalPrintService {
         };
     }
 
+    /**
+     * Extract deal product lines (point-wise) and extra modifiers from a cart/KOT line.
+     * Handles dealSummary, dealItems[], or JSON selectedModifiers with a DEAL: entry.
+     */
+    private parseDealAndModifiers(line: any): { dealItems: string[]; extraModifiers: string[] } {
+        const dealItems: string[] = [];
+        const extraModifiers: string[] = [];
+
+        const splitDealSummary = (summary: string): string[] => {
+            const raw = (summary || '').trim();
+            if (!raw) return [];
+            if (/(?:\s*[•·▪]\s*|\s+â€¢\s+)/.test(raw)) {
+                return raw.split(/(?:\s*[•·▪]\s*|\s+â€¢\s+)/).map((s) => s.trim()).filter(Boolean);
+            }
+            if (raw.includes(' • ')) {
+                return raw.split(' • ').map((s) => s.trim()).filter(Boolean);
+            }
+            return raw.split(',').map((s) => s.trim()).filter(Boolean);
+        };
+
+        if (Array.isArray(line?.dealItems) && line.dealItems.length) {
+            dealItems.push(
+                ...line.dealItems.map((d: any) => String(d || '').trim()).filter(Boolean)
+            );
+        } else if (line?.dealSummary) {
+            dealItems.push(...splitDealSummary(String(line.dealSummary)));
+        }
+
+        let mods: string[] = [];
+        if (Array.isArray(line?.modifiers) && line.modifiers.length) {
+            mods = line.modifiers.map((m: any) => String(m || '').trim()).filter(Boolean);
+        } else if (line?.selectedModifiers) {
+            const raw = line.selectedModifiers;
+            if (Array.isArray(raw)) {
+                mods = raw.map((m: any) => String(m || '').trim()).filter(Boolean);
+            } else if (typeof raw === 'string') {
+                try {
+                    const parsed = JSON.parse(raw);
+                    mods = Array.isArray(parsed)
+                        ? parsed.map((m: any) => String(m || '').trim()).filter(Boolean)
+                        : [raw.trim()].filter(Boolean);
+                } catch {
+                    mods = [raw.trim()].filter(Boolean);
+                }
+            }
+        }
+
+        for (const m of mods) {
+            if (m.startsWith('DEAL:')) {
+                if (!dealItems.length) {
+                    dealItems.push(...splitDealSummary(m.substring(5).trim()));
+                }
+            } else if (!dealItems.length) {
+                extraModifiers.push(m);
+            }
+        }
+
+        return { dealItems, extraModifiers };
+    }
+
     // =========================================================================
     // Standard Unified Reference Thermal Receipt Builder (Matches Al Meezan reference)
     // =========================================================================
@@ -519,14 +579,19 @@ export class ThermalPrintService {
             const qty = Number(l.quantity || 0);
             const rate = Number(l.unitPrice || 0);
             const total = Number(l.lineTotal != null ? l.lineTotal : qty * rate);
-            const dealBadge = l.isDeal ? `<span class="badge">DEAL</span>` : '';
+            const parsed = this.parseDealAndModifiers(l);
+            const isDeal = !!(l.isDeal || parsed.dealItems.length);
+            const dealBadge = isDeal ? `<span class="badge">DEAL</span>` : '';
+            const dealBullets = parsed.dealItems.map((d: string) => `&bull; ${d}`);
             const extras = [
-                ...(l.dealItems || []).map((d: string) => `&bull; ${d}`),
-                ...(l.modifiers?.length ? [`Opts: ${l.modifiers.join(', ')}`] : []),
+                ...dealBullets,
+                ...(parsed.extraModifiers.length && !parsed.dealItems.length
+                    ? [`Opts: ${parsed.extraModifiers.join(', ')}`]
+                    : []),
                 ...(l.notes ? [`* ${l.notes}`] : []),
             ];
             const extrasHtml = extras.length
-                ? `<div style="font-size: ${is58 ? '8px' : '8.5px'}; margin-top: 1px; padding-left: 2px;">${extras.join('<br/>')}</div>`
+                ? `<div style="font-size: ${is58 ? '8px' : '8.5px'}; margin-top: 1px; padding-left: 2px; line-height: 1.35;">${extras.join('<br/>')}</div>`
                 : '';
 
             return `
@@ -857,13 +922,14 @@ export class ThermalPrintService {
                     const notes = item.kitchenNotes
                         ? `<div style="font-size: 9px; color: #b91c1c; font-style: italic; font-weight: bold;">NOTE: ${item.kitchenNotes}</div>`
                         : '';
-                    const mods = item.selectedModifiers
-                        ? `<div style="font-size: 8.5px; color: #444;">Opts: ${item.selectedModifiers}</div>`
-                        : '';
-                    const dealList = item.dealItems?.length
-                        ? `<div style="font-size: 8.5px; color: #222; margin-top: 1px; padding-left: 6px;">
-                              ${item.dealItems.map((d: string) => `<div>&bull; ${d}</div>`).join('')}
+                    const parsed = this.parseDealAndModifiers(item);
+                    const dealList = parsed.dealItems.length
+                        ? `<div style="font-size: ${is58 ? '9px' : '10px'}; color: #222; margin-top: 2px; padding-left: 4px; font-weight: 600;">
+                              ${parsed.dealItems.map((d: string) => `<div>&bull; ${d}</div>`).join('')}
                              </div>`
+                        : '';
+                    const mods = parsed.extraModifiers.length
+                        ? `<div style="font-size: 8.5px; color: #444; margin-top: 1px;">Opts: ${parsed.extraModifiers.join(', ')}</div>`
                         : '';
                     const qtyChange =
                         item.previousQuantity && item.previousQuantity > 0

@@ -610,11 +610,18 @@
                                             (click)="openEditLineNote(line)"
                                         ></button>
                                     </div>
-                                    <div class="text-xs text-purple-700 mt-1 flex align-items-center gap-1" *ngIf="getDealItemsFromLine(line)?.length">
-                                        <i class="pi pi-box text-xs text-purple-600"></i>
-                                        <span class="font-medium">{{ getDealItemsFromLine(line).join(' • ') }}</span>
+                                    <div class="text-xs text-purple-700 mt-1" *ngIf="getDealItemsFromLine(line)?.length">
+                                        <div
+                                            *ngFor="let d of getDealItemsFromLine(line)"
+                                            class="font-medium pl-1"
+                                        >
+                                            &bull; {{ d }}
+                                        </div>
                                     </div>
-                                    <div class="flex flex-wrap gap-1 mt-1" *ngIf="getExtraModifiersFromLine(line)?.length">
+                                    <div
+                                        class="flex flex-wrap gap-1 mt-1"
+                                        *ngIf="!isDealCartLine(line) && getExtraModifiersFromLine(line)?.length"
+                                    >
                                         <span
                                             class="surface-200 text-700 text-xs px-2 py-0.5 border-round font-medium"
                                             *ngFor="let m of getExtraModifiersFromLine(line)"
@@ -756,11 +763,18 @@
                                         (click)="openEditLineNote(line)"
                                     ></button>
                                 </div>
-                                <div class="text-xs text-purple-700 mt-1 flex align-items-center gap-1" *ngIf="getDealItemsFromLine(line)?.length">
-                                    <i class="pi pi-box text-xs text-purple-600"></i>
-                                    <span class="font-medium">{{ getDealItemsFromLine(line).join(' • ') }}</span>
+                                <div class="text-xs text-purple-700 mt-1" *ngIf="getDealItemsFromLine(line)?.length">
+                                    <div
+                                        *ngFor="let d of getDealItemsFromLine(line)"
+                                        class="font-medium pl-1"
+                                    >
+                                        &bull; {{ d }}
+                                    </div>
                                 </div>
-                                <div class="flex flex-wrap gap-1 mt-1" *ngIf="getExtraModifiersFromLine(line)?.length">
+                                <div
+                                    class="flex flex-wrap gap-1 mt-1"
+                                    *ngIf="!isDealCartLine(line) && getExtraModifiersFromLine(line)?.length"
+                                >
                                     <span
                                         class="surface-200 text-700 text-xs px-2 py-0.5 border-round font-medium"
                                         *ngFor="let m of getExtraModifiersFromLine(line)"

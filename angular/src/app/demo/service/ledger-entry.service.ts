@@ -82,13 +82,27 @@ export class LedgerEntryService {
         this.unwrap(res, 'Failed to delete ledger entry');
     }
 
+    /** Calendar date only — avoid toISOString() day-shift in UTC+ timezones. */
     private toApiDate(value?: string | Date): string | undefined {
         if (!value) return undefined;
-        if (value instanceof Date) return value.toISOString();
-        const parsed = new Date(
-            value.includes('T') ? value : `${value}T00:00:00`
-        );
-        return isNaN(parsed.getTime()) ? value : parsed.toISOString();
+        if (value instanceof Date) {
+            if (isNaN(value.getTime())) return undefined;
+            const y = value.getFullYear();
+            const m = `${value.getMonth() + 1}`.padStart(2, '0');
+            const d = `${value.getDate()}`.padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        const raw = String(value).trim();
+        const dateOnly = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (dateOnly) return dateOnly[1];
+        const parsed = new Date(raw);
+        if (!isNaN(parsed.getTime())) {
+            const y = parsed.getFullYear();
+            const m = `${parsed.getMonth() + 1}`.padStart(2, '0');
+            const d = `${parsed.getDate()}`.padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        return raw || undefined;
     }
 
     private unwrap(res: any, fallback: string): any {

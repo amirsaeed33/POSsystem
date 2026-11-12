@@ -164,20 +164,37 @@ export class ReportService {
         return params;
     }
 
+    /**
+     * Send calendar dates (yyyy-MM-dd) only — never toISOString().
+     * Local midnight → UTC shifts the day back (e.g. PKT+5), so reports
+     * required selecting the next day to see the intended day.
+     */
     private toApiDate(value?: string | Date): string | undefined {
         if (!value) {
             return undefined;
         }
         if (value instanceof Date) {
-            return value.toISOString();
+            if (isNaN(value.getTime())) {
+                return undefined;
+            }
+            const y = value.getFullYear();
+            const m = `${value.getMonth() + 1}`.padStart(2, '0');
+            const d = `${value.getDate()}`.padStart(2, '0');
+            return `${y}-${m}-${d}`;
         }
-        const parsed = new Date(
-            value.includes('T') ? value : `${value}T00:00:00`
-        );
+        const raw = String(value).trim();
+        const dateOnly = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (dateOnly) {
+            return dateOnly[1];
+        }
+        const parsed = new Date(raw);
         if (!isNaN(parsed.getTime())) {
-            return parsed.toISOString();
+            const y = parsed.getFullYear();
+            const m = `${parsed.getMonth() + 1}`.padStart(2, '0');
+            const d = `${parsed.getDate()}`.padStart(2, '0');
+            return `${y}-${m}-${d}`;
         }
-        return value;
+        return raw || undefined;
     }
 
     private unwrap(res: any, fallbackMessage: string): any {
