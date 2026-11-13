@@ -279,7 +279,6 @@ public partial class WaiterOrderViewModel : BaseViewModel
             WaiterOrderSession.CurrentOrder = saved;
             _cart.LoadFromOrder(saved);
             OrderTitle = $"{table?.DisplayTitle ?? saved.TableNo} · {saved.OrderNo}";
-            await Shell.Current.DisplayAlert("Saved", "Order saved.", "OK");
         });
     }
 

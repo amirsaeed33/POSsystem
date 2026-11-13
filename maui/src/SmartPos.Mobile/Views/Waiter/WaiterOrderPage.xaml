@@ -241,57 +241,15 @@
             <Border Grid.Row="2"
                     BackgroundColor="White"
                     StrokeThickness="0"
-                    Padding="10,10,10,8">
-                <VerticalStackLayout Spacing="8">
-                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                        <Button Text="Save"
-                                Command="{Binding SaveOrderCommand}"
-                                BackgroundColor="#0F6B4C"
-                                TextColor="White"
-                                CornerRadius="12"
-                                HeightRequest="42"
-                                FontAttributes="Bold" />
-                        <Button Grid.Column="1"
-                                Text="KOT"
-                                Command="{Binding SendToKitchenCommand}"
-                                BackgroundColor="#12261D"
-                                TextColor="White"
-                                CornerRadius="12"
-                                HeightRequest="42"
-                                FontAttributes="Bold" />
-                        <Button Grid.Column="2"
-                                Text="Bill"
-                                Command="{Binding PrintBillCommand}"
-                                BackgroundColor="#3558C7"
-                                TextColor="White"
-                                CornerRadius="12"
-                                HeightRequest="42"
-                                FontAttributes="Bold" />
-                    </Grid>
-                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                        <Button Text="Settle"
-                                Command="{Binding SettleCommand}"
-                                BackgroundColor="#147A55"
-                                TextColor="White"
-                                CornerRadius="12"
-                                HeightRequest="40"
-                                FontAttributes="Bold" />
-                        <Button Grid.Column="1"
-                                Text="Split"
-                                Command="{Binding SplitBillCommand}"
-                                BackgroundColor="#EEF2F0"
-                                TextColor="#1F2A24"
-                                CornerRadius="12"
-                                HeightRequest="40" />
-                        <Button Grid.Column="2"
-                                Text="Cancel"
-                                Command="{Binding CancelOrderCommand}"
-                                BackgroundColor="#B42318"
-                                TextColor="White"
-                                CornerRadius="12"
-                                HeightRequest="40" />
-                    </Grid>
-                </VerticalStackLayout>
+                    Padding="12,10">
+                <Button Text="Send KOT"
+                        Command="{Binding SendToKitchenCommand}"
+                        BackgroundColor="#0F6B4C"
+                        TextColor="White"
+                        CornerRadius="14"
+                        HeightRequest="48"
+                        FontAttributes="Bold"
+                        FontSize="16" />
             </Border>
         </Grid>
 
