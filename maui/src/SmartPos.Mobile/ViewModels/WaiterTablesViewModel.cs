@@ -19,6 +19,15 @@ public partial class WaiterTablesViewModel : BaseViewModel
     [ObservableProperty]
     private string branchName = string.Empty;
 
+    [ObservableProperty]
+    private string availableCount = "0";
+
+    [ObservableProperty]
+    private string occupiedCount = "0";
+
+    [ObservableProperty]
+    private string billedCount = "0";
+
     public ObservableCollection<RestaurantTableDto> Tables { get; } = new();
 
     public WaiterTablesViewModel(RestaurantService restaurant, SessionService session, AuthService auth, CartService cart)
@@ -55,10 +64,15 @@ public partial class WaiterTablesViewModel : BaseViewModel
                 : all;
 
             Tables.Clear();
-            foreach (var table in filtered.Where(t => t.IsActive))
+            var active = filtered.Where(t => t.IsActive).ToList();
+            foreach (var table in active)
             {
                 Tables.Add(table);
             }
+
+            AvailableCount = active.Count(t => t.IsFree).ToString();
+            OccupiedCount = active.Count(t => t.IsOccupied).ToString();
+            BilledCount = active.Count(t => t.IsBilled).ToString();
         });
     }
 

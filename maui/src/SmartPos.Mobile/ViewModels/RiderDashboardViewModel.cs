@@ -17,6 +17,19 @@ public partial class RiderDashboardViewModel : BaseViewModel
     private RiderDashboardStatsDto? stats;
 
     public ObservableCollection<RiderOrderDto> Orders { get; } = new();
+    public ObservableCollection<RiderOrderDto> NewOrders { get; } = new();
+    public ObservableCollection<RiderOrderDto> ActiveOrders { get; } = new();
+
+    public bool HasNewOrders => NewOrders.Count > 0;
+    public bool HasActiveOrders => ActiveOrders.Count > 0;
+    public bool HasAnyOrders => Orders.Count > 0;
+    public bool IsEmpty => Orders.Count == 0 && !IsBusy;
+    public string NewOrdersTitle => $"New orders ({NewOrders.Count})";
+    public string ActiveOrdersTitle => $"On the way ({ActiveOrders.Count})";
+    public string ActiveCountText => (Stats?.ActiveAssignedCount ?? 0).ToString();
+    public string DeliveredCountText => (Stats?.TodayDeliveredCount ?? 0).ToString();
+    public string PendingAmountText => $"Rs {Stats?.ActivePendingAmount ?? 0:0.##}";
+    public string TodayAmountText => $"Rs {Stats?.TodayDeliveredAmount ?? 0:0.##}";
 
     public RiderDashboardViewModel(RiderOrderService rider, SessionService session, AuthService auth)
     {
@@ -67,12 +80,45 @@ public partial class RiderDashboardViewModel : BaseViewModel
         await RunBusyAsync(async () =>
         {
             Stats = await _rider.GetDashboardStatsAsync();
+            NotifyStatTexts();
+
+            var list = await _rider.GetAssignedOrdersAsync() ?? new List<RiderOrderDto>();
             Orders.Clear();
-            foreach (var order in await _rider.GetAssignedOrdersAsync())
+            NewOrders.Clear();
+            ActiveOrders.Clear();
+            foreach (var order in list)
             {
                 Orders.Add(order);
+                if (order.IsNewOrder)
+                {
+                    NewOrders.Add(order);
+                }
+                else
+                {
+                    ActiveOrders.Add(order);
+                }
             }
+
+            NotifyOrderLists();
         });
+    }
+
+    private void NotifyStatTexts()
+    {
+        OnPropertyChanged(nameof(ActiveCountText));
+        OnPropertyChanged(nameof(DeliveredCountText));
+        OnPropertyChanged(nameof(PendingAmountText));
+        OnPropertyChanged(nameof(TodayAmountText));
+    }
+
+    private void NotifyOrderLists()
+    {
+        OnPropertyChanged(nameof(HasNewOrders));
+        OnPropertyChanged(nameof(HasActiveOrders));
+        OnPropertyChanged(nameof(HasAnyOrders));
+        OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(NewOrdersTitle));
+        OnPropertyChanged(nameof(ActiveOrdersTitle));
     }
 
     [RelayCommand]
@@ -114,6 +160,55 @@ public partial class RiderDashboardViewModel : BaseViewModel
             await _rider.CompleteDeliveryAsync(order.Id);
             await RefreshAsync();
         });
+    }
+
+    [RelayCommand]
+    private async Task CallCustomerAsync(RiderOrderDto? order)
+    {
+        var phone = order?.CustomerPhone?.Trim();
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            await Shell.Current.DisplayAlert("Call", "This order has no customer phone.", "OK");
+            return;
+        }
+
+        try
+        {
+            await Launcher.Default.OpenAsync(new Uri($"tel:{Uri.EscapeDataString(phone)}"));
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Call", ex.Message, "OK");
+        }
+    }
+
+    [RelayCommand]
+    private async Task WhatsAppCustomerAsync(RiderOrderDto? order)
+    {
+        if (order == null)
+        {
+            return;
+        }
+
+        var number = order.WhatsAppNumber;
+        if (string.IsNullOrWhiteSpace(number))
+        {
+            await Shell.Current.DisplayAlert("WhatsApp", "This order has no customer phone.", "OK");
+            return;
+        }
+
+        var rider = string.IsNullOrWhiteSpace(Stats?.RiderName) ? "your rider" : Stats!.RiderName;
+        var message = $"Hi {order.CustomerName}, this is {rider} from Aljannat. I'm your rider for order {order.OrderNo}.";
+        var url = $"https://wa.me/{number}?text={Uri.EscapeDataString(message)}";
+
+        try
+        {
+            await Launcher.Default.OpenAsync(new Uri(url));
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("WhatsApp", ex.Message, "OK");
+        }
     }
 
     [RelayCommand]

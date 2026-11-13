@@ -10,43 +10,75 @@
              Title="Tables"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F4F7F5">
+             BackgroundColor="#EDF3EF">
 
     <ContentPage.Resources>
         <helpers:StatusToColorConverter x:Key="StatusBg" />
         <helpers:StatusToAccentConverter x:Key="StatusAccent" />
     </ContentPage.Resources>
 
-    <Grid BackgroundColor="#F4F7F5">
-        <Grid RowDefinitions="Auto,*" BackgroundColor="#F4F7F5">
-            <Border BackgroundColor="#0F6B4C"
-                    Padding="16,14,16,14"
+    <Grid RowDefinitions="*,Auto" BackgroundColor="#EDF3EF">
+        <Grid Grid.Row="0" RowDefinitions="Auto,*" BackgroundColor="#EDF3EF">
+            <Border BackgroundColor="#0B3D2E"
+                    Padding="18,18,18,16"
                     StrokeThickness="0">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="0,0,20,20" />
+                    <RoundRectangle CornerRadius="0,0,28,28" />
                 </Border.StrokeShape>
-                <VerticalStackLayout Spacing="12">
-                    <VerticalStackLayout Spacing="2">
+                <VerticalStackLayout Spacing="14">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="WAITER"
+                               FontSize="10"
+                               FontAttributes="Bold"
+                               TextColor="#A7F3D0"
+                               CharacterSpacing="1.2" />
                         <Label Text="{Binding BranchName}"
-                               FontSize="22"
+                               FontSize="24"
                                FontAttributes="Bold"
                                TextColor="White"
                                LineBreakMode="TailTruncation" />
-                        <Label Text="Tap a table to open the order"
+                        <Label Text="Tap a table to take or continue an order"
                                FontSize="13"
-                               TextColor="#C8E6D9" />
+                               TextColor="#9CB9AE" />
                     </VerticalStackLayout>
 
-                    <!-- Light card: dark text for contrast (no white-on-yellow/peach) -->
-                    <Border BackgroundColor="#F0F7F3"
-                            Stroke="#C8E6D9"
-                            StrokeThickness="1"
-                            Padding="12,10">
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Border StrokeThickness="0" BackgroundColor="#147A55" Padding="10,10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="1">
+                                <Label Text="FREE" FontSize="10" TextColor="#A7F3D0" />
+                                <Label Text="{Binding AvailableCount}" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="#147A55" Padding="10,10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="1">
+                                <Label Text="BUSY" FontSize="10" TextColor="#A7F3D0" />
+                                <Label Text="{Binding OccupiedCount}" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="#147A55" Padding="10,10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="1">
+                                <Label Text="BILLED" FontSize="10" TextColor="#A7F3D0" />
+                                <Label Text="{Binding BilledCount}" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <Border BackgroundColor="#F4FBF7"
+                            StrokeThickness="0"
+                            Padding="12,8">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
+                            <RoundRectangle CornerRadius="16" />
                         </Border.StrokeShape>
-                        <Grid ColumnDefinitions="*,Auto,Auto"
-                              ColumnSpacing="10">
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                             <Label Text="My tables only"
                                    TextColor="#0F2A1F"
                                    FontAttributes="Bold"
@@ -60,10 +92,10 @@
                             <Border Grid.Column="2"
                                     StrokeThickness="0"
                                     BackgroundColor="#0F6B4C"
-                                    Padding="12,8"
+                                    Padding="14,8"
                                     VerticalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10" />
+                                    <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding RefreshCommand}" />
@@ -82,7 +114,7 @@
             <CollectionView Grid.Row="1"
                             ItemsSource="{Binding Tables}"
                             SelectionMode="None"
-                            Margin="14,14,14,72">
+                            Margin="14,14,14,12">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
                 </CollectionView.ItemsLayout>
@@ -101,13 +133,15 @@
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:RestaurantTableDto">
-                        <Border Stroke="#E4EBE6"
-                                StrokeThickness="1"
+                        <Border StrokeThickness="0"
                                 BackgroundColor="White"
                                 Padding="0">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="16" />
+                                <RoundRectangle CornerRadius="18" />
                             </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="#0B3D2E" Opacity="0.08" Radius="14" Offset="0,6" />
+                            </Border.Shadow>
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterTablesViewModel}}, Path=OpenTableCommand}"
@@ -176,7 +210,7 @@
                                     <Label Grid.Row="2"
                                            Grid.Column="1"
                                            Grid.ColumnSpan="2"
-                                           Text="{Binding AreaDisplay}"
+                                           Text="{Binding MetaLine}"
                                            FontSize="12"
                                            TextColor="#8A9690"
                                            LineBreakMode="TailTruncation" />
@@ -188,10 +222,10 @@
             </CollectionView>
         </Grid>
 
-        <controls:BubbleTabBar Mode="Waiter"
+        <controls:BubbleTabBar Grid.Row="1"
+                               Mode="Waiter"
                                SelectedIndex="0"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill"
-                               ZIndex="40" />
+                               VerticalOptions="Fill"
+                               HorizontalOptions="Fill" />
     </Grid>
 </ContentPage>

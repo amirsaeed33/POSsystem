@@ -30,8 +30,10 @@ public class AdminDashboardViewModel : BaseViewModel
     private string _statusSummary = "Loading restaurant status…";
     private string _errorText = string.Empty;
     private string _chartEmptyText = "No sales or purchases in the last 7 days.";
+    private string _topAreaSummary = "Loading delivery areas…";
     private bool _hasChartData;
     private bool _hasTimeline;
+    private bool _hasAreaStats;
     private Color _growthColor = Color.FromArgb("#86EFAC");
 
     public AdminDashboardViewModel(DashboardService dashboard, SessionService session)
@@ -42,6 +44,7 @@ public class AdminDashboardViewModel : BaseViewModel
         DayBars = new ObservableCollection<AdminDayBarItem>();
         Timeline = new ObservableCollection<AdminTimelineItem>();
         PipelineStages = new ObservableCollection<OnlineOrderPipelineStageDto>();
+        AreaRanks = new ObservableCollection<AdminAreaRankItem>();
     }
 
     public string Greeting
@@ -195,6 +198,26 @@ public class AdminDashboardViewModel : BaseViewModel
 
     public string TimelineCountText => HasTimeline ? $"{Timeline.Count} events" : "None yet";
 
+    public string TopAreaSummary
+    {
+        get => _topAreaSummary;
+        set => SetProperty(ref _topAreaSummary, value);
+    }
+
+    public bool HasAreaStats
+    {
+        get => _hasAreaStats;
+        set
+        {
+            if (SetProperty(ref _hasAreaStats, value))
+            {
+                OnPropertyChanged(nameof(IsAreaStatsEmpty));
+            }
+        }
+    }
+
+    public bool IsAreaStatsEmpty => !HasAreaStats;
+
     public string ErrorText
     {
         get => _errorText;
@@ -212,6 +235,7 @@ public class AdminDashboardViewModel : BaseViewModel
     public ObservableCollection<AdminDayBarItem> DayBars { get; }
     public ObservableCollection<AdminTimelineItem> Timeline { get; }
     public ObservableCollection<OnlineOrderPipelineStageDto> PipelineStages { get; }
+    public ObservableCollection<AdminAreaRankItem> AreaRanks { get; }
 
     public ICommand RefreshCommand { get; }
 
@@ -296,6 +320,38 @@ public class AdminDashboardViewModel : BaseViewModel
                 PipelineStages.Add(stage);
             }
 
+            AreaRanks.Clear();
+            var areas = (pipe.TopAreas ?? new List<OrderAreaStatDto>()).ToList();
+            var maxAreaOrders = areas.Select(a => a.OrderCount).DefaultIfEmpty(0).Max();
+            if (maxAreaOrders <= 0)
+            {
+                maxAreaOrders = 1;
+            }
+
+            for (var i = 0; i < areas.Count; i++)
+            {
+                var area = areas[i];
+                var isTop = area.IsTopArea || i == 0;
+                AreaRanks.Add(new AdminAreaRankItem
+                {
+                    Rank = i + 1,
+                    RankLabel = $"#{i + 1}",
+                    AreaName = string.IsNullOrWhiteSpace(area.AreaName) ? "Unknown area" : area.AreaName!,
+                    OrderCountText = $"{area.OrderCount} order{(area.OrderCount == 1 ? "" : "s")}",
+                    AmountText = FormatMoney(area.TotalAmount),
+                    ShareText = $"{area.SharePercent:0.#}%",
+                    BarWidth = Math.Max(12, (double)area.OrderCount / maxAreaOrders * 220),
+                    IsTopArea = isTop,
+                    Accent = isTop ? Color.FromArgb("#0F6B4C") : Color.FromArgb("#64748B"),
+                    SoftAccent = isTop ? Color.FromArgb("#DCFCE7") : Color.FromArgb("#F1F5F9")
+                });
+            }
+
+            HasAreaStats = AreaRanks.Count > 0;
+            TopAreaSummary = HasAreaStats
+                ? $"Most ordered: {pipe.TopAreaName ?? AreaRanks[0].AreaName} · last 30 days ({pipe.AreaOrdersInWindow} orders)"
+                : "No delivery-area orders in the last 30 days.";
+
             Timeline.Clear();
             foreach (var item in (dash.Timeline ?? new List<DashboardTimelineEventDto>()).Take(12))
             {
@@ -319,6 +375,8 @@ public class AdminDashboardViewModel : BaseViewModel
             StatusSummary = "Could not load restaurant status.";
             HasChartData = false;
             HasTimeline = false;
+            HasAreaStats = false;
+            TopAreaSummary = "Could not load area stats.";
         }
         finally
         {

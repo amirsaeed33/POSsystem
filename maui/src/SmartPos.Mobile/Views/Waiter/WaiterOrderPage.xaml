@@ -10,31 +10,38 @@
              Title="Order"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F4F7F5">
+             BackgroundColor="#EDF3EF">
 
     <ContentPage.Resources>
         <helpers:InvertedBoolConverter x:Key="InvertedBoolConverter" />
     </ContentPage.Resources>
 
-    <Grid BackgroundColor="#F4F7F5">
-        <Grid RowDefinitions="Auto,*,Auto" BackgroundColor="#F4F7F5">
-            <Border BackgroundColor="#0F6B4C"
-                    Padding="14,14,14,12"
+    <Grid RowDefinitions="*,Auto" BackgroundColor="#EDF3EF">
+        <Grid Grid.Row="0" RowDefinitions="Auto,*,Auto" BackgroundColor="#EDF3EF">
+            <Border BackgroundColor="#0B3D2E"
+                    Padding="16,16,16,14"
                     StrokeThickness="0">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="0,0,18,18" />
+                    <RoundRectangle CornerRadius="0,0,24,24" />
                 </Border.StrokeShape>
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="{Binding OrderTitle}"
-                           FontAttributes="Bold"
-                           FontSize="18"
-                           TextColor="White"
-                           LineBreakMode="TailTruncation" />
+                <VerticalStackLayout Spacing="12">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="TABLE ORDER"
+                               FontSize="10"
+                               FontAttributes="Bold"
+                               TextColor="#A7F3D0"
+                               CharacterSpacing="1.1" />
+                        <Label Text="{Binding OrderTitle}"
+                               FontAttributes="Bold"
+                               FontSize="20"
+                               TextColor="White"
+                               LineBreakMode="TailTruncation" />
+                    </VerticalStackLayout>
                     <Border StrokeThickness="0"
                             BackgroundColor="White"
-                            Padding="12,2">
+                            Padding="14,4">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
+                            <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
                         <Entry Placeholder="Search menu"
                                Text="{Binding SearchText}"
@@ -42,15 +49,22 @@
                                TextColor="#1F2A24"
                                PlaceholderColor="#8A9690" />
                     </Border>
-                    <CollectionView ItemsSource="{Binding Categories}" HeightRequest="36">
+                    <CollectionView ItemsSource="{Binding Categories}" HeightRequest="40">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="x:String">
-                                <Border BackgroundColor="#FFFFFF22"
-                                        Padding="12,6"
+                            <DataTemplate x:DataType="vm:WaiterCategoryChip">
+                                <Border Padding="14,8"
                                         StrokeThickness="0">
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#F7F3C8" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="#147A55" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="16" />
                                     </Border.StrokeShape>
@@ -59,10 +73,18 @@
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=SelectCategoryCommand}"
                                             CommandParameter="{Binding .}" />
                                     </Border.GestureRecognizers>
-                                    <Label Text="{Binding .}"
-                                           TextColor="White"
+                                    <Label Text="{Binding Name}"
                                            FontSize="12"
-                                           FontAttributes="Bold" />
+                                           FontAttributes="Bold">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="TextColor" Value="#3F3A12" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="False">
+                                                <Setter Property="TextColor" Value="White" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
                                 </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
@@ -80,13 +102,15 @@
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:ProductDto">
-                            <Border Stroke="#E4EBE6"
+                            <Border StrokeThickness="0"
                                     BackgroundColor="White"
-                                    StrokeThickness="1"
                                     Padding="0">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="14" />
+                                    <RoundRectangle CornerRadius="16" />
                                 </Border.StrokeShape>
+                                <Border.Shadow>
+                                    <Shadow Brush="#0B3D2E" Opacity="0.08" Radius="12" Offset="0,4" />
+                                </Border.Shadow>
                                 <VerticalStackLayout Spacing="0">
                                     <Grid HeightRequest="112" BackgroundColor="#E8F0EB">
                                         <Label Text="{Binding Initials}"
@@ -175,13 +199,15 @@
 
                 <Border Grid.Row="1"
                         BackgroundColor="White"
-                        Stroke="#E4EBE6"
-                        StrokeThickness="1"
-                        Padding="12,10"
+                        StrokeThickness="0"
+                        Padding="14,12"
                         Margin="10,8,10,0">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="14" />
+                        <RoundRectangle CornerRadius="16" />
                     </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#0B3D2E" Opacity="0.08" Radius="12" Offset="0,4" />
+                    </Border.Shadow>
                     <VerticalStackLayout Spacing="6">
                         <Grid ColumnDefinitions="*,Auto">
                             <Label Text="Current order"
@@ -212,60 +238,67 @@
                 </Border>
             </Grid>
 
-            <ScrollView Grid.Row="2"
-                        Orientation="Horizontal"
-                        HeightRequest="58"
-                        Margin="0,0,0,64"
-                        BackgroundColor="#F4F7F5">
-                <HorizontalStackLayout Padding="12,8" Spacing="8">
-                    <Button Text="Save"
-                            Command="{Binding SaveOrderCommand}"
-                            BackgroundColor="#0F6B4C"
-                            TextColor="White"
-                            CornerRadius="12"
-                            Padding="16,10"
-                            FontAttributes="Bold" />
-                    <Button Text="KOT"
-                            Command="{Binding SendToKitchenCommand}"
-                            BackgroundColor="#1F2A24"
-                            TextColor="White"
-                            CornerRadius="12"
-                            Padding="16,10"
-                            FontAttributes="Bold" />
-                    <Button Text="Bill"
-                            Command="{Binding PrintBillCommand}"
-                            BackgroundColor="#3558C7"
-                            TextColor="White"
-                            CornerRadius="12"
-                            Padding="16,10"
-                            FontAttributes="Bold" />
-                    <Button Text="Settle"
-                            Command="{Binding SettleCommand}"
-                            BackgroundColor="#0F6B4C"
-                            TextColor="White"
-                            CornerRadius="12"
-                            Padding="16,10"
-                            FontAttributes="Bold" />
-                    <Button Text="Split"
-                            Command="{Binding SplitBillCommand}"
-                            BackgroundColor="#EEF2F0"
-                            TextColor="#1F2A24"
-                            CornerRadius="12"
-                            Padding="16,10" />
-                    <Button Text="Cancel"
-                            Command="{Binding CancelOrderCommand}"
-                            BackgroundColor="#B42318"
-                            TextColor="White"
-                            CornerRadius="12"
-                            Padding="16,10" />
-                </HorizontalStackLayout>
-            </ScrollView>
+            <Border Grid.Row="2"
+                    BackgroundColor="White"
+                    StrokeThickness="0"
+                    Padding="10,10,10,8">
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Text="Save"
+                                Command="{Binding SaveOrderCommand}"
+                                BackgroundColor="#0F6B4C"
+                                TextColor="White"
+                                CornerRadius="12"
+                                HeightRequest="42"
+                                FontAttributes="Bold" />
+                        <Button Grid.Column="1"
+                                Text="KOT"
+                                Command="{Binding SendToKitchenCommand}"
+                                BackgroundColor="#12261D"
+                                TextColor="White"
+                                CornerRadius="12"
+                                HeightRequest="42"
+                                FontAttributes="Bold" />
+                        <Button Grid.Column="2"
+                                Text="Bill"
+                                Command="{Binding PrintBillCommand}"
+                                BackgroundColor="#3558C7"
+                                TextColor="White"
+                                CornerRadius="12"
+                                HeightRequest="42"
+                                FontAttributes="Bold" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Text="Settle"
+                                Command="{Binding SettleCommand}"
+                                BackgroundColor="#147A55"
+                                TextColor="White"
+                                CornerRadius="12"
+                                HeightRequest="40"
+                                FontAttributes="Bold" />
+                        <Button Grid.Column="1"
+                                Text="Split"
+                                Command="{Binding SplitBillCommand}"
+                                BackgroundColor="#EEF2F0"
+                                TextColor="#1F2A24"
+                                CornerRadius="12"
+                                HeightRequest="40" />
+                        <Button Grid.Column="2"
+                                Text="Cancel"
+                                Command="{Binding CancelOrderCommand}"
+                                BackgroundColor="#B42318"
+                                TextColor="White"
+                                CornerRadius="12"
+                                HeightRequest="40" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
         </Grid>
 
-        <controls:BubbleTabBar Mode="Waiter"
+        <controls:BubbleTabBar Grid.Row="1"
+                               Mode="Waiter"
                                SelectedIndex="1"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill"
-                               ZIndex="40" />
+                               VerticalOptions="Fill"
+                               HorizontalOptions="Fill" />
     </Grid>
 </ContentPage>

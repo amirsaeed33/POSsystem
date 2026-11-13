@@ -957,6 +957,38 @@ namespace SmartPos.Dashboard
             int inProgressCount = countsByStatus.TryGetValue(CustomerOrderStatus.InProgress, out var ip) ? ip : 0;
             int deliveredCount = countsByStatus.TryGetValue(CustomerOrderStatus.Delivered, out var d) ? d : 0;
 
+            // Area-wise demand: last 30 days, exclude rejected, rank by order count.
+            var areaWindowStart = Clock.Now.Date.AddDays(-29);
+            var areaRows = await baseQuery
+                .Where(x => x.OrderDate >= areaWindowStart)
+                .Where(x => x.Status != CustomerOrderStatus.Rejected)
+                .Where(x => x.DeliveryAreaId != null || (x.DeliveryAreaName != null && x.DeliveryAreaName != ""))
+                .GroupBy(x => new { x.DeliveryAreaId, x.DeliveryAreaName })
+                .Select(g => new
+                {
+                    g.Key.DeliveryAreaId,
+                    g.Key.DeliveryAreaName,
+                    OrderCount = g.Count(),
+                    TotalAmount = g.Sum(x => x.TotalAmount)
+                })
+                .OrderByDescending(x => x.OrderCount)
+                .ThenByDescending(x => x.TotalAmount)
+                .Take(8)
+                .ToListAsync();
+
+            var areaOrdersInWindow = areaRows.Sum(x => x.OrderCount);
+            var topAreas = areaRows.Select((row, index) => new OrderAreaStatDto
+            {
+                DeliveryAreaId = row.DeliveryAreaId,
+                AreaName = string.IsNullOrWhiteSpace(row.DeliveryAreaName) ? "Unknown area" : row.DeliveryAreaName.Trim(),
+                OrderCount = row.OrderCount,
+                TotalAmount = row.TotalAmount,
+                SharePercent = areaOrdersInWindow > 0
+                    ? Math.Round((decimal)row.OrderCount * 100m / areaOrdersInWindow, 1)
+                    : 0,
+                IsTopArea = index == 0
+            }).ToList();
+
             return new OnlineOrderPipelineDto
             {
                 TodayTotalOrders = todayTotalOrders,
@@ -972,7 +1004,10 @@ namespace SmartPos.Dashboard
                     new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.InProgress, StatusName = "Preparing", Count = inProgressCount },
                     new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.Delivered, StatusName = "Delivered", Count = deliveredCount },
                     new OnlineOrderPipelineStageDto { Status = (int)CustomerOrderStatus.Rejected, StatusName = "Rejected", Count = rejectedCount }
-                }
+                },
+                TopAreas = topAreas,
+                TopAreaName = topAreas.FirstOrDefault()?.AreaName,
+                AreaOrdersInWindow = areaOrdersInWindow
             };
         }
         // ONLINE-PIPELINE END

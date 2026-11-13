@@ -10,8 +10,8 @@
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
              BackgroundColor="#F4F7F5">
-    <Grid BackgroundColor="#F4F7F5">
-        <Grid RowDefinitions="Auto,*" BackgroundColor="#F4F7F5">
+    <Grid RowDefinitions="*,Auto" BackgroundColor="#F4F7F5">
+        <Grid Grid.Row="0" RowDefinitions="Auto,*" BackgroundColor="#F4F7F5">
             <Border BackgroundColor="#0F6B4C"
                     Padding="16,18,16,16"
                     StrokeThickness="0">
@@ -101,10 +101,10 @@
             </RefreshView>
         </Grid>
 
-        <controls:BubbleTabBar Mode="Waiter"
+        <controls:BubbleTabBar Grid.Row="1"
+                               Mode="Waiter"
                                SelectedIndex="2"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill"
-                               ZIndex="40" />
+                               VerticalOptions="Fill"
+                               HorizontalOptions="Fill" />
     </Grid>
 </ContentPage>

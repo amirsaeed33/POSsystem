@@ -68,6 +68,10 @@ public class RestaurantTableDto : EntityDto
         string.IsNullOrWhiteSpace(Area) ? (IsCarBay ? "Car Parking" : "Dining") : Area!;
 
     public string TypeLabel => IsCarBay ? "CAR" : "TABLE";
+
+    public string CapacityLine => Capacity > 0 ? $"{Capacity} seats" : (IsCarBay ? "Vehicle bay" : "Open seating");
+
+    public string MetaLine => $"{AreaDisplay}  ·  {CapacityLine}";
 }
 
 public class RestaurantOrderDto : EntityDto

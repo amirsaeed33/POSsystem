@@ -6,6 +6,14 @@ using SmartPos.Mobile.Services;
 
 namespace SmartPos.Mobile.ViewModels;
 
+public partial class WaiterCategoryChip : ObservableObject
+{
+    public string Name { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    private bool isSelected;
+}
+
 public partial class WaiterOrderViewModel : BaseViewModel
 {
     private readonly RestaurantService _restaurant;
@@ -27,7 +35,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
     private string kotMessage = string.Empty;
 
     public ObservableCollection<ProductDto> Products { get; } = new();
-    public ObservableCollection<string> Categories { get; } = new();
+    public ObservableCollection<WaiterCategoryChip> Categories { get; } = new();
     public ObservableCollection<CartLine> Lines => _cart.Lines;
     public ObservableCollection<KitchenSlipItemDto> PendingKotItems { get; } = new();
 
@@ -76,20 +84,27 @@ public partial class WaiterOrderViewModel : BaseViewModel
             }
 
             Categories.Clear();
-            Categories.Add("All");
+            Categories.Add(new WaiterCategoryChip { Name = "All", IsSelected = true });
             foreach (var cat in _allProducts.Select(p => p.CategoryName).Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().OrderBy(c => c))
             {
-                Categories.Add(cat!);
+                Categories.Add(new WaiterCategoryChip { Name = cat! });
             }
 
+            SelectedCategory = "All";
             ApplyFilters();
         });
     }
 
     [RelayCommand]
-    private void SelectCategory(string? category)
+    private void SelectCategory(WaiterCategoryChip? category)
     {
-        SelectedCategory = string.IsNullOrWhiteSpace(category) ? "All" : category;
+        var name = string.IsNullOrWhiteSpace(category?.Name) ? "All" : category!.Name;
+        SelectedCategory = name;
+        foreach (var chip in Categories)
+        {
+            chip.IsSelected = string.Equals(chip.Name, name, StringComparison.OrdinalIgnoreCase);
+        }
+
         ApplyFilters();
     }
 

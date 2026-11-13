@@ -91,7 +91,58 @@ public class RiderOrderDto : EntityDto
     [JsonPropertyName("items")]
     public List<RiderOrderItemDto> Items { get; set; } = new();
 
-    public string TotalText => TotalAmount.ToString("0.00");
+    public string TotalText => $"Rs {TotalAmount:0.##}";
+
+    public bool IsNewOrder => !IsAcceptedByRider;
+
+    public string BadgeText => IsNewOrder ? "NEW" : (StatusText ?? "Active");
+
+    public string PhoneDisplay => string.IsNullOrWhiteSpace(CustomerPhone) ? "No phone" : CustomerPhone.Trim();
+
+    public bool HasPhone => NormalizePhone(CustomerPhone) != null;
+
+    public string AreaLine => string.IsNullOrWhiteSpace(DeliveryAreaName) ? "Delivery" : DeliveryAreaName.Trim();
+
+    public string ItemsSummary
+    {
+        get
+        {
+            if (Items == null || Items.Count == 0)
+            {
+                return "No items listed";
+            }
+
+            var names = Items
+                .Where(i => !string.IsNullOrWhiteSpace(i.ProductName))
+                .Take(3)
+                .Select(i => $"{i.Quantity:0.#}× {i.ProductName}");
+            var text = string.Join(" · ", names);
+            return Items.Count > 3 ? $"{text} +{Items.Count - 3}" : text;
+        }
+    }
+
+    public string? WhatsAppNumber => NormalizePhone(CustomerPhone);
+
+    public static string? NormalizePhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return null;
+        }
+
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("00", StringComparison.Ordinal))
+        {
+            digits = digits[2..];
+        }
+
+        if (digits.StartsWith('0') && digits.Length >= 10)
+        {
+            digits = "92" + digits[1..];
+        }
+
+        return digits.Length >= 10 ? digits : null;
+    }
 }
 
 public class RiderOrderItemDto

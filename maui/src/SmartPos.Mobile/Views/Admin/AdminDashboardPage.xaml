@@ -355,6 +355,108 @@
                         </VerticalStackLayout>
                     </Border>
 
+                    <!-- Area-wise orders -->
+                    <Label Text="Orders by area"
+                           FontAttributes="Bold"
+                           FontSize="17"
+                           TextColor="#12261D" />
+                    <Border StrokeThickness="0" BackgroundColor="White" Padding="14">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#0B3D2E" Opacity="0.08" Radius="16" Offset="0,6" />
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding TopAreaSummary}"
+                                       FontSize="13"
+                                       TextColor="#475569"
+                                       LineBreakMode="WordWrap" />
+                                <Border Grid.Column="1"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#DCFCE7"
+                                        Padding="8,4"
+                                        VerticalOptions="Start"
+                                        IsVisible="{Binding HasAreaStats}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Label Text="TOP ZONE"
+                                           FontSize="10"
+                                           FontAttributes="Bold"
+                                           TextColor="#166534" />
+                                </Border>
+                            </Grid>
+
+                            <Label Text="No area orders yet. Delivery orders with a zone will appear here."
+                                   FontSize="13"
+                                   TextColor="#94A3B8"
+                                   IsVisible="{Binding IsAreaStatsEmpty}" />
+
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding AreaRanks}"
+                                                 Spacing="10"
+                                                 IsVisible="{Binding HasAreaStats}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:AdminAreaRankItem">
+                                        <Border StrokeThickness="0"
+                                                BackgroundColor="{Binding SoftAccent}"
+                                                Padding="12">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="14" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="8">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                                    <Border StrokeThickness="0"
+                                                            BackgroundColor="{Binding Accent}"
+                                                            WidthRequest="28"
+                                                            HeightRequest="28"
+                                                            VerticalOptions="Center">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="14" />
+                                                        </Border.StrokeShape>
+                                                        <Label Text="{Binding RankLabel}"
+                                                               FontSize="11"
+                                                               FontAttributes="Bold"
+                                                               TextColor="White"
+                                                               HorizontalTextAlignment="Center"
+                                                               VerticalTextAlignment="Center" />
+                                                    </Border>
+                                                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                                        <Label Text="{Binding AreaName}"
+                                                               FontAttributes="Bold"
+                                                               FontSize="14"
+                                                               TextColor="#12261D"
+                                                               LineBreakMode="TailTruncation" />
+                                                        <Label Text="{Binding OrderCountText}"
+                                                               FontSize="12"
+                                                               TextColor="#64748B" />
+                                                    </VerticalStackLayout>
+                                                    <VerticalStackLayout Grid.Column="2" Spacing="1" HorizontalOptions="End">
+                                                        <Label Text="{Binding ShareText}"
+                                                               FontAttributes="Bold"
+                                                               FontSize="14"
+                                                               TextColor="{Binding Accent}"
+                                                               HorizontalTextAlignment="End" />
+                                                        <Label Text="{Binding AmountText}"
+                                                               FontSize="11"
+                                                               TextColor="#64748B"
+                                                               HorizontalTextAlignment="End" />
+                                                    </VerticalStackLayout>
+                                                </Grid>
+                                                <BoxView Color="{Binding Accent}"
+                                                         HeightRequest="7"
+                                                         CornerRadius="4"
+                                                         HorizontalOptions="Start"
+                                                         WidthRequest="{Binding BarWidth}" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
                     <!-- Inventory health -->
                     <Label Text="Inventory health"
                            FontAttributes="Bold"

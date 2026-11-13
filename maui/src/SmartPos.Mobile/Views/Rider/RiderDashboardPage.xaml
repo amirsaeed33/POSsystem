@@ -9,80 +9,273 @@
              Title="Rider"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F5F5F5">
-    <Grid BackgroundColor="#F5F5F5">
-        <ScrollView
-                    BackgroundColor="#F5F5F5">
-            <VerticalStackLayout Padding="16,16,16,16" Spacing="12" BackgroundColor="#F5F5F5">
-                <VerticalStackLayout Spacing="2">
-                    <Label Text="{Binding Stats.RiderName}" FontSize="22" FontAttributes="Bold" TextColor="#1F2A24" />
-                    <Label Text="{Binding Stats.BranchName}" TextColor="#5C6B63" />
-                </VerticalStackLayout>
-                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-                    <Border Padding="12" Stroke="#E8ECEA" StrokeThickness="1" BackgroundColor="#FAFBFA">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Label Text="{Binding Stats.ActiveAssignedCount, StringFormat='Active: {0}'}" TextColor="#1F2A24" />
-                    </Border>
-                    <Border Grid.Column="1" Padding="12" Stroke="#E8ECEA" StrokeThickness="1" BackgroundColor="#FAFBFA">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Label Text="{Binding Stats.TodayDeliveredCount, StringFormat='Delivered: {0}'}" TextColor="#1F2A24" />
-                    </Border>
-                    <Border Grid.Row="1" Padding="12" Stroke="#E8ECEA" StrokeThickness="1" BackgroundColor="#FAFBFA">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Label Text="{Binding Stats.ActivePendingAmount, StringFormat='Pending: {0:0.00}'}" TextColor="#1F2A24" />
-                    </Border>
-                    <Border Grid.Row="1" Grid.Column="1" Padding="12" Stroke="#E8ECEA" StrokeThickness="1" BackgroundColor="#FAFBFA">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Label Text="{Binding Stats.TodayDeliveredAmount, StringFormat='Today: {0:0.00}'}" TextColor="#1F2A24" />
-                    </Border>
-                </Grid>
-                <CollectionView ItemsSource="{Binding Orders}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:RiderOrderDto">
-                            <Border Stroke="#E8ECEA" StrokeThickness="1" Padding="12" Margin="0,0,0,10" BackgroundColor="#FAFBFA">
+             BackgroundColor="#EDF3EF">
+    <Grid RowDefinitions="*,Auto" BackgroundColor="#EDF3EF">
+        <ScrollView Grid.Row="0" BackgroundColor="#EDF3EF">
+            <VerticalStackLayout Spacing="0">
+                <Border StrokeThickness="0" BackgroundColor="#0B3D2E" Padding="20,22,20,22">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="0,0,28,28" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="RIDER"
+                                       FontSize="10"
+                                       FontAttributes="Bold"
+                                       TextColor="#A7F3D0"
+                                       CharacterSpacing="1.2" />
+                                <Label Text="{Binding Stats.RiderName, TargetNullValue=Rider}"
+                                       FontSize="24"
+                                       FontAttributes="Bold"
+                                       TextColor="White" />
+                                <Label Text="{Binding Stats.BranchName, TargetNullValue=Delivery desk}"
+                                       FontSize="13"
+                                       TextColor="#9CB9AE" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#147A55"
+                                    WidthRequest="44"
+                                    HeightRequest="44"
+                                    VerticalOptions="Start">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="22" />
+                                </Border.StrokeShape>
+                                <Label Text="↻"
+                                       FontSize="20"
+                                       TextColor="White"
+                                       HorizontalTextAlignment="Center"
+                                       VerticalTextAlignment="Center">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding RefreshCommand}" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Border>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8" RowDefinitions="Auto,Auto" RowSpacing="8">
+                            <Border StrokeThickness="0" BackgroundColor="#147A55" Padding="12,10">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="14" />
                                 </Border.StrokeShape>
-                                <VerticalStackLayout Spacing="6">
-                                    <Label Text="{Binding OrderNo}" FontAttributes="Bold" FontSize="18" TextColor="#1F2A24" />
-                                    <Label Text="{Binding CustomerName}" TextColor="#1F2A24" />
-                                    <Label Text="{Binding CustomerAddress}" TextColor="#5C6B63" />
-                                    <Label Text="{Binding StatusText}" TextColor="#5C6B63" />
-                                    <Label Text="{Binding TotalText, StringFormat='Total {0}'}" TextColor="#0F6B4C" />
-                                    <FlexLayout Wrap="Wrap" JustifyContent="Start">
-                                        <Button Text="Accept" Margin="0,0,8,8"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=AcceptCommand}"
-                                                CommandParameter="{Binding .}" BackgroundColor="#0F6B4C" TextColor="White" />
-                                        <Button Text="Reject" Margin="0,0,8,8"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=RejectCommand}"
-                                                CommandParameter="{Binding .}" />
-                                        <Button Text="Complete" Margin="0,0,8,8"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=CompleteCommand}"
-                                                CommandParameter="{Binding .}" BackgroundColor="#1F2A24" TextColor="White" />
-                                        <Button Text="Map" Margin="0,0,8,8"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=OpenMapsCommand}"
-                                                CommandParameter="{Binding .}" />
-                                    </FlexLayout>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="ACTIVE" FontSize="10" TextColor="#A7F3D0" />
+                                    <Label Text="{Binding ActiveCountText}" FontSize="20" FontAttributes="Bold" TextColor="White" />
                                 </VerticalStackLayout>
                             </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                            <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="#147A55" Padding="12,10">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="DELIVERED" FontSize="10" TextColor="#A7F3D0" />
+                                    <Label Text="{Binding DeliveredCountText}" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="1" StrokeThickness="0" BackgroundColor="#147A55" Padding="12,10">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="TO COLLECT" FontSize="10" TextColor="#A7F3D0" />
+                                    <Label Text="{Binding PendingAmountText}" FontSize="16" FontAttributes="Bold" TextColor="White" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" StrokeThickness="0" BackgroundColor="#147A55" Padding="12,10">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="TODAY" FontSize="10" TextColor="#A7F3D0" />
+                                    <Label Text="{Binding TodayAmountText}" FontSize="16" FontAttributes="Bold" TextColor="White" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout Padding="16,16,16,16" Spacing="12">
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#0F6B4C" />
+
+                    <Border StrokeThickness="0"
+                            BackgroundColor="White"
+                            Padding="18"
+                            IsVisible="{Binding IsEmpty}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="No new orders"
+                                   FontAttributes="Bold"
+                                   FontSize="16"
+                                   TextColor="#12261D" />
+                            <Label Text="Assigned deliveries will show up here. Pull refresh or tap the refresh icon."
+                                   FontSize="13"
+                                   TextColor="#64748B" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label Text="{Binding NewOrdersTitle}"
+                           FontAttributes="Bold"
+                           FontSize="17"
+                           TextColor="#12261D"
+                           IsVisible="{Binding HasNewOrders}" />
+
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding NewOrders}" Spacing="10" IsVisible="{Binding HasNewOrders}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:RiderOrderDto">
+                                <Border StrokeThickness="0" BackgroundColor="White" Padding="14">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="18" />
+                                    </Border.StrokeShape>
+                                    <Border.Shadow>
+                                        <Shadow Brush="#0B3D2E" Opacity="0.08" Radius="14" Offset="0,6" />
+                                    </Border.Shadow>
+                                    <VerticalStackLayout Spacing="8">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Text="{Binding OrderNo}" FontAttributes="Bold" FontSize="18" TextColor="#12261D" />
+                                            <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="#FEF3C7" Padding="8,3">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="10" />
+                                                </Border.StrokeShape>
+                                                <Label Text="{Binding BadgeText}" FontSize="11" FontAttributes="Bold" TextColor="#92400E" />
+                                            </Border>
+                                        </Grid>
+                                        <Label Text="{Binding CustomerName}" FontSize="15" FontAttributes="Bold" TextColor="#1F2A24" />
+                                        <Label Text="{Binding AreaLine}" FontSize="12" TextColor="#0F6B4C" />
+                                        <Label Text="{Binding CustomerAddress}" FontSize="13" TextColor="#64748B" LineBreakMode="WordWrap" />
+                                        <Label Text="{Binding ItemsSummary}" FontSize="12" TextColor="#475569" />
+                                        <Label Text="{Binding PhoneDisplay}" FontSize="13" TextColor="#334155" />
+                                        <Label Text="{Binding TotalText}" FontSize="16" FontAttributes="Bold" TextColor="#0F6B4C" />
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                            <Button Text="Call"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=CallCustomerCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#0F6B4C"
+                                                    TextColor="White"
+                                                    CornerRadius="12"
+                                                    HeightRequest="42"
+                                                    FontAttributes="Bold" />
+                                            <Button Grid.Column="1"
+                                                    Text="WhatsApp"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=WhatsAppCustomerCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#16A34A"
+                                                    TextColor="White"
+                                                    CornerRadius="12"
+                                                    HeightRequest="42"
+                                                    FontAttributes="Bold" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                            <Button Text="Accept"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=AcceptCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#12261D"
+                                                    TextColor="White"
+                                                    CornerRadius="12"
+                                                    HeightRequest="40" />
+                                            <Button Grid.Column="1"
+                                                    Text="Map"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=OpenMapsCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#E2E8F0"
+                                                    TextColor="#1E293B"
+                                                    CornerRadius="12"
+                                                    HeightRequest="40" />
+                                            <Button Grid.Column="2"
+                                                    Text="Reject"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=RejectCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#FEE2E2"
+                                                    TextColor="#B91C1C"
+                                                    CornerRadius="12"
+                                                    HeightRequest="40" />
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Label Text="{Binding ActiveOrdersTitle}"
+                           FontAttributes="Bold"
+                           FontSize="17"
+                           TextColor="#12261D"
+                           IsVisible="{Binding HasActiveOrders}" />
+
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding ActiveOrders}" Spacing="10" IsVisible="{Binding HasActiveOrders}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:RiderOrderDto">
+                                <Border StrokeThickness="0" BackgroundColor="White" Padding="14">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="18" />
+                                    </Border.StrokeShape>
+                                    <VerticalStackLayout Spacing="8">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Text="{Binding OrderNo}" FontAttributes="Bold" FontSize="18" TextColor="#12261D" />
+                                            <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="#DBEAFE" Padding="8,3">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="10" />
+                                                </Border.StrokeShape>
+                                                <Label Text="{Binding BadgeText}" FontSize="11" FontAttributes="Bold" TextColor="#1E40AF" />
+                                            </Border>
+                                        </Grid>
+                                        <Label Text="{Binding CustomerName}" FontSize="15" FontAttributes="Bold" TextColor="#1F2A24" />
+                                        <Label Text="{Binding AreaLine}" FontSize="12" TextColor="#0F6B4C" />
+                                        <Label Text="{Binding CustomerAddress}" FontSize="13" TextColor="#64748B" />
+                                        <Label Text="{Binding PhoneDisplay}" FontSize="13" TextColor="#334155" />
+                                        <Label Text="{Binding TotalText}" FontSize="16" FontAttributes="Bold" TextColor="#0F6B4C" />
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                            <Button Text="Call"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=CallCustomerCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#0F6B4C"
+                                                    TextColor="White"
+                                                    CornerRadius="12"
+                                                    HeightRequest="42"
+                                                    FontAttributes="Bold" />
+                                            <Button Grid.Column="1"
+                                                    Text="WhatsApp"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=WhatsAppCustomerCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#16A34A"
+                                                    TextColor="White"
+                                                    CornerRadius="12"
+                                                    HeightRequest="42"
+                                                    FontAttributes="Bold" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                            <Button Text="Map"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=OpenMapsCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#E2E8F0"
+                                                    TextColor="#1E293B"
+                                                    CornerRadius="12"
+                                                    HeightRequest="40" />
+                                            <Button Grid.Column="1"
+                                                    Text="Delivered"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RiderDashboardViewModel}}, Path=CompleteCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#12261D"
+                                                    TextColor="White"
+                                                    CornerRadius="12"
+                                                    HeightRequest="40"
+                                                    FontAttributes="Bold" />
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
             </VerticalStackLayout>
         </ScrollView>
 
-        <controls:BubbleTabBar Mode="Rider"
+        <controls:BubbleTabBar Grid.Row="1"
+                               Mode="Rider"
                                SelectedIndex="0"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill"
-                               ZIndex="40" />
+                               VerticalOptions="Fill"
+                               HorizontalOptions="Fill" />
     </Grid>
 </ContentPage>

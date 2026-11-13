@@ -208,6 +208,22 @@ namespace SmartPos.Dashboard.Dto
         public int Count { get; set; }
     }
 
+    public class OrderAreaStatDto
+    {
+        public int? DeliveryAreaId { get; set; }
+
+        public string AreaName { get; set; }
+
+        public int OrderCount { get; set; }
+
+        public decimal TotalAmount { get; set; }
+
+        /// <summary>Share of all area-tagged orders in the window (0–100).</summary>
+        public decimal SharePercent { get; set; }
+
+        public bool IsTopArea { get; set; }
+    }
+
     public class OnlineOrderPipelineDto
     {
         /// <summary>
@@ -250,6 +266,15 @@ namespace SmartPos.Dashboard.Dto
         /// Pipeline stages breakdown for UI iteration.
         /// </summary>
         public List<OnlineOrderPipelineStageDto> Stages { get; set; } = new List<OnlineOrderPipelineStageDto>();
+
+        /// <summary>
+        /// Delivery areas ranked by order volume (last 30 days, non-rejected).
+        /// </summary>
+        public List<OrderAreaStatDto> TopAreas { get; set; } = new List<OrderAreaStatDto>();
+
+        public string TopAreaName { get; set; }
+
+        public int AreaOrdersInWindow { get; set; }
     }
     // ONLINE-PIPELINE END
 }

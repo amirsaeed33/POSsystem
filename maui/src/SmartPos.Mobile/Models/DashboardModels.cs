@@ -117,6 +117,15 @@ public class OnlineOrderPipelineDto
 
     [JsonPropertyName("stages")]
     public List<OnlineOrderPipelineStageDto> Stages { get; set; } = new();
+
+    [JsonPropertyName("topAreas")]
+    public List<OrderAreaStatDto> TopAreas { get; set; } = new();
+
+    [JsonPropertyName("topAreaName")]
+    public string? TopAreaName { get; set; }
+
+    [JsonPropertyName("areaOrdersInWindow")]
+    public int AreaOrdersInWindow { get; set; }
 }
 
 public class OnlineOrderPipelineStageDto
@@ -129,6 +138,41 @@ public class OnlineOrderPipelineStageDto
 
     [JsonPropertyName("count")]
     public int Count { get; set; }
+}
+
+public class OrderAreaStatDto
+{
+    [JsonPropertyName("deliveryAreaId")]
+    public int? DeliveryAreaId { get; set; }
+
+    [JsonPropertyName("areaName")]
+    public string? AreaName { get; set; }
+
+    [JsonPropertyName("orderCount")]
+    public int OrderCount { get; set; }
+
+    [JsonPropertyName("totalAmount")]
+    public decimal TotalAmount { get; set; }
+
+    [JsonPropertyName("sharePercent")]
+    public decimal SharePercent { get; set; }
+
+    [JsonPropertyName("isTopArea")]
+    public bool IsTopArea { get; set; }
+}
+
+public class AdminAreaRankItem
+{
+    public int Rank { get; set; }
+    public string RankLabel { get; set; } = string.Empty;
+    public string AreaName { get; set; } = string.Empty;
+    public string OrderCountText { get; set; } = string.Empty;
+    public string AmountText { get; set; } = string.Empty;
+    public string ShareText { get; set; } = string.Empty;
+    public double BarWidth { get; set; }
+    public bool IsTopArea { get; set; }
+    public Color Accent { get; set; } = Color.FromArgb("#0F6B4C");
+    public Color SoftAccent { get; set; } = Color.FromArgb("#DCFCE7");
 }
 
 public class AdminDayBarItem
