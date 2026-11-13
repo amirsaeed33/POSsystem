@@ -280,6 +280,8 @@ export class PosComponent implements OnInit, OnDestroy {
 
     // Guest Bill Check Dialog
     guestBillDialogVisible = false;
+    /** When true, settle-payment prints a short receipt (no logo / customer / complaint). */
+    shortGuestBillMode = false;
 
     // Split Bill Dialog
     splitBillDialogVisible = false;
@@ -374,13 +376,33 @@ export class PosComponent implements OnInit, OnDestroy {
         return this.selectedDeliveryArea?.deliveryFee ?? 0;
     }
 
-    /** Delivery zone/address: retail always; restaurant takeaway / online / third-party (unchanged). */
+    /** Address / landmark panel: retail, takeaway, online (not dine-in). */
     get showDeliveryAddressPanel(): boolean {
         return (
             !this.isRestaurantMode ||
             this.orderType === 'takeaway' ||
             this.isOnlineOrder
         );
+    }
+
+    /**
+     * Delivery Area dropdown + fee only.
+     * Hidden for plain Takeaway — Online / Third Party / retail still show it.
+     */
+    get showDeliveryAreaDropdown(): boolean {
+        if (!this.isRestaurantMode) {
+            return true;
+        }
+        if (this.isOnlineOrder || this.isFoodpandaOrder) {
+            return true;
+        }
+        return false;
+    }
+
+    private clearDeliveryFields(): void {
+        this.selectedDeliveryAreaId = null;
+        this.deliveryAddress = '';
+        this.deliveryLandmark = '';
     }
 
     get isWaiter(): boolean {
@@ -693,7 +715,7 @@ export class PosComponent implements OnInit, OnDestroy {
 
     get grandTotal(): number {
         const delivery =
-            this.showDeliveryAddressPanel && this.deliveryAddress.trim()
+            this.showDeliveryAreaDropdown && this.deliveryCharges > 0
                 ? this.deliveryCharges
                 : 0;
         return (
@@ -1030,10 +1052,11 @@ export class PosComponent implements OnInit, OnDestroy {
             }
         }
         if (!summary) return [];
-        const parts = summary.includes(' • ')
-            ? summary.split(' • ')
-            : summary.includes(' â€¢ ')
-              ? summary.split(' â€¢ ')
+        // Prefer bullet separators used when saving deals; fall back to comma.
+        const parts = /(?:\s*[•·▪]\s*|\s+â€¢\s+)/.test(summary)
+            ? summary.split(/(?:\s*[•·▪]\s*|\s+â€¢\s+)/)
+            : summary.includes(' • ')
+              ? summary.split(' • ')
               : summary.split(',');
         return parts.map((s: string) => s.trim()).filter(Boolean);
     }
@@ -1260,7 +1283,12 @@ export class PosComponent implements OnInit, OnDestroy {
             this.selectWalkInCustomer();
         }
 
+        if (channel === 'takeaway') {
+            // Keep address fields; only drop the delivery-area zone/fee.
+            this.selectedDeliveryAreaId = null;
+        }
         if (channel === 'dineIn') {
+            this.clearDeliveryFields();
             this.onOrderTypeChange();
         }
         this.cdr.detectChanges();
@@ -1375,10 +1403,15 @@ export class PosComponent implements OnInit, OnDestroy {
             this.selectOnlineCustomerInDropdown(profile);
             if (profile.savedAddresses?.length) {
                 this.savedAddresses = profile.savedAddresses;
-                const def =
-                    this.savedAddresses.find((a) => a.isDefault) || this.savedAddresses[0];
-                if (def) {
-                    this.applyPosSavedAddress(def);
+                if (this.showDeliveryAreaDropdown) {
+                    const def =
+                        this.savedAddresses.find((a) => a.isDefault) || this.savedAddresses[0];
+                    if (def) {
+                        this.applyPosSavedAddress(def);
+                    }
+                } else {
+                    this.selectedSavedAddressId = null;
+                    this.selectedDeliveryAreaId = null;
                 }
             } else if (!matchedAddress) {
                 this.savedAddresses = [];
@@ -3198,14 +3231,20 @@ export class PosComponent implements OnInit, OnDestroy {
                 });
                 return;
             }
-            this.completeSale();
+            this.completeSale({ shortReceipt: false });
         } finally {
             this.tableBillBusyId = null;
         }
     }
 
+    /** Opens settle-payment dialog; confirmed sale prints short receipt. */
+    openShortGuestBill(): void {
+        this.completeSale({ shortReceipt: true });
+    }
+
     async printGuestBill(): Promise<void> {
         if (this.isWaiter || !this.cart.length) return;
+        this.shortGuestBillMode = false;
         if (this.isOnlineOrder) {
             await this.submitPosOnlineOrder('guestBill');
             return;
@@ -3566,7 +3605,12 @@ export class PosComponent implements OnInit, OnDestroy {
                 carLocation: this.selectedCarLocation,
                 isCarService: this.isCarService,
                 waiterName: this.waiterName || (this.isWaiter ? this.authService.getPrinterIdentity().name : 'Staff'),
-                lines: this.cart,
+                lines: this.cart.map((l) => ({
+                    ...l,
+                    isDeal: this.isDealItemOrModifiers(l),
+                    dealItems: this.getDealItemsFromLine(l),
+                    modifiers: this.isDealCartLine(l) ? [] : this.getExtraModifiersFromLine(l),
+                })),
                 subTotal: this.subTotal,
                 discountAmount: this.computedDiscount,
                 discountPercent: this.discountPercent,
@@ -3574,11 +3618,10 @@ export class PosComponent implements OnInit, OnDestroy {
                 taxPercent: this.taxPercent,
                 serviceChargeAmount: this.serviceChargeAmount,
                 serviceChargePercent: this.serviceChargePercent,
-                deliveryFee:
-                    this.showDeliveryAddressPanel && this.deliveryAddress.trim()
-                        ? this.deliveryCharges
-                        : 0,
-                deliveryAreaName: this.selectedDeliveryArea?.name,
+                deliveryFee: this.showDeliveryAreaDropdown ? this.deliveryCharges : 0,
+                deliveryAreaName: this.showDeliveryAreaDropdown
+                    ? this.selectedDeliveryArea?.name
+                    : undefined,
                 deliveryAddress: this.deliveryAddress || undefined,
                 customerName:
                     this.onlineCustomerName || guestCustomer?.name || 'Walk-in',
@@ -4095,6 +4138,10 @@ export class PosComponent implements OnInit, OnDestroy {
         this.pushToCart(product);
     }
 
+    /**
+     * Deal options are fixed when the deal is created — do not re-ask Size/etc at sale time.
+     * Add the deal using its preset selectedModifiers / dealPrice.
+     */
     async openDealCustomiseDialog(product: ProductDto): Promise<void> {
         try {
             this.loadingDealCustomise = true;
@@ -4110,45 +4157,36 @@ export class PosComponent implements OnInit, OnDestroy {
                 return;
             }
 
-            this.selectedDealProduct = product;
-            this.currentDeal = deal;
-            this.dealKitchenNote = '';
+            const dealItemsSummary = deal.items
+                .map((item) => {
+                    const name = item.productName || `Product #${item.productId}`;
+                    const mods = (item.selectedModifiers || '').trim();
+                    return `${item.quantity}x ${name}${mods ? ' (' + mods + ')' : ''}`;
+                })
+                .join(' • ');
 
-            const itemsWithModifiers: DealCustomiseItem[] = [];
-            for (const item of deal.items) {
-                let groups: ProductModifierGroupDto[] = [];
-                try {
-                    groups = await this.productModifierService.getByProduct(item.productId);
-                } catch (e) {
-                    console.warn('Could not load modifiers for deal item:', item.productId, e);
-                }
-
-                const selectedOptions: Record<number, number[]> = {};
-                for (const g of groups || []) {
-                    selectedOptions[g.id] = [];
-                    if (g.isRequired && g.options?.length) {
-                        selectedOptions[g.id] = [g.options[0].id];
-                    }
-                }
-
-                itemsWithModifiers.push({
-                    productId: item.productId,
-                    productName: item.productName || 'Product #' + item.productId,
-                    quantity: item.quantity,
-                    unitPrice: item.unitPrice,
-                    modifierGroups: groups || [],
-                    selectedOptions,
+            const modifierNames = deal.items
+                .filter((item) => (item.selectedModifiers || '').trim())
+                .map((item) => {
+                    const name = item.productName || `Product #${item.productId}`;
+                    const qtyPrefix = item.quantity > 1 ? `${item.quantity}x ` : '';
+                    return `${qtyPrefix}${name}: ${(item.selectedModifiers || '').trim()}`;
                 });
-            }
 
-            this.dealCustomiseItems = itemsWithModifiers;
-            this.dealCustomiseDialogVisible = true;
+            this.pushDealToCart(
+                product,
+                deal,
+                { names: modifierNames, extraPrice: 0 },
+                undefined,
+                dealItemsSummary
+            );
+            this.focusSearch();
         } catch (err: any) {
             console.error('Failed to load deal details:', err);
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Deal Info',
-                detail: 'Could not load deal options. Adding deal to cart.',
+                detail: 'Could not load deal details. Adding deal to cart.',
             });
             this.pushToCart(product);
         } finally {
@@ -4552,6 +4590,12 @@ export class PosComponent implements OnInit, OnDestroy {
             this.savedAddresses = await this.customerOrderService.getSavedAddresses({
                 customerId: this.customerId,
             });
+            // Takeaway: do not open/auto-bind zone-linked saved addresses.
+            if (!this.showDeliveryAreaDropdown) {
+                this.selectedSavedAddressId = null;
+                this.selectedDeliveryAreaId = null;
+                return;
+            }
             const def = this.savedAddresses.find((a) => a.isDefault) || this.savedAddresses[0];
             if (def && !this.deliveryAddress.trim()) {
                 this.applyPosSavedAddress(def);
@@ -4576,8 +4620,15 @@ export class PosComponent implements OnInit, OnDestroy {
         this.selectedSavedAddressId = addr.id;
         this.deliveryAddress = addr.address || '';
         this.deliveryLandmark = addr.landmark || '';
-        if (addr.deliveryAreaId && this.deliveryAreas.some((a) => a.id === addr.deliveryAreaId)) {
+        // Takeaway: never attach delivery zone/fee from saved address.
+        if (
+            this.showDeliveryAreaDropdown &&
+            addr.deliveryAreaId &&
+            this.deliveryAreas.some((a) => a.id === addr.deliveryAreaId)
+        ) {
             this.selectedDeliveryAreaId = addr.deliveryAreaId;
+        } else {
+            this.selectedDeliveryAreaId = null;
         }
     }
 
@@ -4795,16 +4846,24 @@ export class PosComponent implements OnInit, OnDestroy {
     onPaymentDialogHide(): void {
         if (!this.saving) {
             this.paymentDialogVisible = false;
+            this.shortGuestBillMode = false;
         }
     }
 
-    async completeSale(): Promise<void> {
+    async completeSale(options?: { shortReceipt?: boolean }): Promise<void> {
+        if (options?.shortReceipt) {
+            this.shortGuestBillMode = true;
+        } else if (options && options.shortReceipt === false) {
+            this.shortGuestBillMode = false;
+        }
+
         if (this.isWaiter) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Access Restricted',
                 detail: 'Waiters are not authorized to settle payments or close bills.',
             });
+            this.shortGuestBillMode = false;
             return;
         }
 
@@ -4815,10 +4874,12 @@ export class PosComponent implements OnInit, OnDestroy {
                 detail: 'Use Send to KOT or Guest Bill, then assign a rider. Complete the bill from the Orders page after delivery.',
                 life: 5000,
             });
+            this.shortGuestBillMode = false;
             return;
         }
 
         if (!this.canSave()) {
+            this.shortGuestBillMode = false;
             return;
         }
 
@@ -4960,11 +5021,10 @@ export class PosComponent implements OnInit, OnDestroy {
                     customerName: selectedCustomer?.name || 'Walk-in',
                     customerPhone: this.onlineCustomerPhone || selectedCustomer?.phone,
                     deliveryAddress: this.deliveryAddress || undefined,
-                    deliveryAreaName: this.selectedDeliveryArea?.name,
-                    deliveryFee:
-                        this.showDeliveryAddressPanel && this.deliveryAddress.trim()
-                            ? this.deliveryCharges
-                            : 0,
+                    deliveryAreaName: this.showDeliveryAreaDropdown
+                        ? this.selectedDeliveryArea?.name
+                        : undefined,
+                    deliveryFee: this.showDeliveryAreaDropdown ? this.deliveryCharges : 0,
                     paymentType: paymentType === PaymentType.Cash ? 'CASH' : 'MIXED / CARD',
                 };
 
@@ -5004,9 +5064,13 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.loadTables();
                 this.loadTopProducts();
 
-                this.completedReceipt = settledReceipt;
+                const settledForPrint = this.shortGuestBillMode
+                    ? { ...settledReceipt, shortFormat: true }
+                    : settledReceipt;
+                this.completedReceipt = settledForPrint;
                 this.completedReceiptVisible = false;
-                this.printReceiptSnapshot(settledReceipt);
+                this.printReceiptSnapshot(settledForPrint);
+                this.shortGuestBillMode = false;
             } else {
                 const branch = this.branchContext.getCurrentBranch();
                 const retailCustomer = this.customers.find((c) => c.id === this.customerId);
@@ -5044,10 +5108,7 @@ export class PosComponent implements OnInit, OnDestroy {
                     customerPhone: retailCustomer?.phone,
                     deliveryAddress: this.deliveryAddress || undefined,
                     deliveryAreaName: this.selectedDeliveryArea?.name,
-                    deliveryFee:
-                        this.showDeliveryAddressPanel && this.deliveryAddress.trim()
-                            ? this.deliveryCharges
-                            : 0,
+                    deliveryFee: this.showDeliveryAreaDropdown ? this.deliveryCharges : 0,
                     paymentType: paymentType === PaymentType.Cash ? 'CASH' : 'MIXED / CARD',
                 };
 
@@ -5061,11 +5122,10 @@ export class PosComponent implements OnInit, OnDestroy {
                     paymentType,
                     cashAmount,
                     cardAmount,
-                    deliveryCharges:
-                        this.showDeliveryAddressPanel && this.deliveryAddress.trim()
-                            ? this.deliveryCharges
-                            : 0,
-                    deliveryAreaName: this.selectedDeliveryArea?.name,
+                    deliveryCharges: this.showDeliveryAreaDropdown ? this.deliveryCharges : 0,
+                    deliveryAreaName: this.showDeliveryAreaDropdown
+                        ? this.selectedDeliveryArea?.name
+                        : undefined,
                     lines: this.cart.map((line) => ({
                         productId: line.productId,
                         quantity: line.quantity,
@@ -5089,9 +5149,13 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.clearCart();
                 this.loadTopProducts();
 
-                this.completedReceipt = retailReceipt;
+                const retailForPrint = this.shortGuestBillMode
+                    ? { ...retailReceipt, shortFormat: true }
+                    : retailReceipt;
+                this.completedReceipt = retailForPrint;
                 this.completedReceiptVisible = false;
-                this.printReceiptSnapshot(retailReceipt);
+                this.printReceiptSnapshot(retailForPrint);
+                this.shortGuestBillMode = false;
             }
         } catch (error: any) {
             this.messageService.add({

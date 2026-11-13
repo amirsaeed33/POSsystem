@@ -1012,48 +1012,13 @@
                                 <span class="text-xs text-green-700 bg-green-50 px-2 py-0.5 border-round font-semibold">Included in Deal</span>
                             </div>
 
-                            <!-- Item Modifiers / Options (e.g. Portion: Half / Full) -->
-                            <div *ngIf="item.modifierGroups && item.modifierGroups.length > 0" class="flex flex-column gap-2 mt-2">
-                                <div
-                                    *ngFor="let group of item.modifierGroups"
-                                    class="surface-50 border-round-lg p-2"
-                                >
-                                    <div class="flex align-items-center justify-content-between mb-2">
-                                        <div class="flex align-items-center gap-2">
-                                            <span class="font-semibold text-800 text-xs">{{ group.name }}</span>
-                                            <small class="text-500 font-normal">({{ group.allowMultiple ? 'Multi-select' : 'Single-select' }})</small>
-                                        </div>
-                                        <span
-                                            class="text-xs px-2 py-0.5 border-round font-medium"
-                                            [style.background]="group.isRequired ? '#fee2e2' : '#f1f5f9'"
-                                            [style.color]="group.isRequired ? '#b91c1c' : '#475569'"
-                                        >
-                                            {{ group.isRequired ? 'Required' : 'Optional' }}
-                                        </span>
-                                    </div>
-
-                                    <div class="option-pills">
-                                        <div
-                                            *ngFor="let opt of group.options"
-                                            class="opt-chip"
-                                            [class.selected]="isDealItemOptionSelected(item, group.id, opt.id)"
-                                            (click)="toggleDealItemOption(item, group, opt)"
-                                        >
-                                            <span>{{ opt.name }}</span>
-                                            <span *ngIf="formatOptionDisplayPrice(opt)" class="ml-1 font-bold text-xs" [class.text-500]="!hasModifierPlusSign(opt)">
-                                                {{ formatOptionDisplayPrice(opt) }}
-                                            </span>
-                                            <span *ngIf="!formatOptionDisplayPrice(opt)" class="ml-1 text-500 text-xs">
-                                                (Free)
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
+                            <!-- Preset options from deal creation (not editable at order time) -->
+                            <div *ngIf="item.presetModifiers" class="text-xs text-700 mt-1">
+                                <i class="pi pi-check text-xs text-green-500 mr-1"></i>
+                                <span class="font-medium">{{ item.presetModifiers }}</span>
                             </div>
-
-                            <!-- No Modifiers fallback -->
-                            <div *ngIf="!item.modifierGroups || item.modifierGroups.length === 0" class="text-xs text-500 italic py-1">
-                                <i class="pi pi-check text-xs text-green-500 mr-1"></i> Standard preparation (no options needed)
+                            <div *ngIf="!item.presetModifiers" class="text-xs text-500 italic py-1">
+                                <i class="pi pi-check text-xs text-green-500 mr-1"></i> Included in deal
                             </div>
                         </div>
                     </div>

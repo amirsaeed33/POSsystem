@@ -716,15 +716,25 @@ export class CustomerOrderService {
                 item.riderAssignedTime ?? item.RiderAssignedTime
             ),
             lines: (Array.isArray(lines) ? lines : []).map(
-                (line: any): CustomerOrderLineDto => ({
-                    id: line.id ?? line.Id,
-                    orderId: line.orderId ?? line.OrderId,
-                    productId: line.productId ?? line.ProductId,
-                    productName: line.productName ?? line.ProductName,
-                    quantity: line.quantity ?? line.Quantity ?? 0,
-                    unitPrice: line.unitPrice ?? line.UnitPrice ?? 0,
-                    lineTotal: line.lineTotal ?? line.LineTotal ?? 0,
-                })
+                (line: any): CustomerOrderLineDto => {
+                    const dealRaw = line.dealItems ?? line.DealItems ?? [];
+                    const dealItems = Array.isArray(dealRaw)
+                        ? dealRaw
+                              .map((d: any) => String(d || '').trim())
+                              .filter(Boolean)
+                        : [];
+                    return {
+                        id: line.id ?? line.Id,
+                        orderId: line.orderId ?? line.OrderId,
+                        productId: line.productId ?? line.ProductId,
+                        productName: line.productName ?? line.ProductName,
+                        quantity: line.quantity ?? line.Quantity ?? 0,
+                        unitPrice: line.unitPrice ?? line.UnitPrice ?? 0,
+                        lineTotal: line.lineTotal ?? line.LineTotal ?? 0,
+                        isDeal: !!(line.isDeal ?? line.IsDeal) || dealItems.length > 0,
+                        dealItems,
+                    };
+                }
             ),
         };
     }

@@ -610,11 +610,18 @@
                                             (click)="openEditLineNote(line)"
                                         ></button>
                                     </div>
-                                    <div class="text-xs text-purple-700 mt-1 flex align-items-center gap-1" *ngIf="getDealItemsFromLine(line)?.length">
-                                        <i class="pi pi-box text-xs text-purple-600"></i>
-                                        <span class="font-medium">{{ getDealItemsFromLine(line).join(' • ') }}</span>
+                                    <div class="text-xs text-purple-700 mt-1" *ngIf="getDealItemsFromLine(line)?.length">
+                                        <div
+                                            *ngFor="let d of getDealItemsFromLine(line)"
+                                            class="font-medium pl-1"
+                                        >
+                                            &bull; {{ d }}
+                                        </div>
                                     </div>
-                                    <div class="flex flex-wrap gap-1 mt-1" *ngIf="getExtraModifiersFromLine(line)?.length">
+                                    <div
+                                        class="flex flex-wrap gap-1 mt-1"
+                                        *ngIf="!isDealCartLine(line) && getExtraModifiersFromLine(line)?.length"
+                                    >
                                         <span
                                             class="surface-200 text-700 text-xs px-2 py-0.5 border-round font-medium"
                                             *ngFor="let m of getExtraModifiersFromLine(line)"
@@ -756,11 +763,18 @@
                                         (click)="openEditLineNote(line)"
                                     ></button>
                                 </div>
-                                <div class="text-xs text-purple-700 mt-1 flex align-items-center gap-1" *ngIf="getDealItemsFromLine(line)?.length">
-                                    <i class="pi pi-box text-xs text-purple-600"></i>
-                                    <span class="font-medium">{{ getDealItemsFromLine(line).join(' • ') }}</span>
+                                <div class="text-xs text-purple-700 mt-1" *ngIf="getDealItemsFromLine(line)?.length">
+                                    <div
+                                        *ngFor="let d of getDealItemsFromLine(line)"
+                                        class="font-medium pl-1"
+                                    >
+                                        &bull; {{ d }}
+                                    </div>
                                 </div>
-                                <div class="flex flex-wrap gap-1 mt-1" *ngIf="getExtraModifiersFromLine(line)?.length">
+                                <div
+                                    class="flex flex-wrap gap-1 mt-1"
+                                    *ngIf="!isDealCartLine(line) && getExtraModifiersFromLine(line)?.length"
+                                >
                                     <span
                                         class="surface-200 text-700 text-xs px-2 py-0.5 border-round font-medium"
                                         *ngFor="let m of getExtraModifiersFromLine(line)"
@@ -928,7 +942,7 @@
                 <!-- Staff: saved address + delivery zone (takeaway / online / retail) -->
                 <div class="field" *ngIf="showDeliveryAddressPanel">
                     <p-dropdown
-                        *ngIf="savedAddresses.length > 0"
+                        *ngIf="showDeliveryAreaDropdown && savedAddresses.length > 0"
                         [options]="savedAddresses"
                         [(ngModel)]="selectedSavedAddressId"
                         (onChange)="onPosSavedAddressPicked($event.value)"
@@ -948,19 +962,20 @@
                             </div>
                         </ng-template>
                     </p-dropdown>
-                    <label class="font-medium block mb-1" *ngIf="deliveryAreas.length > 0">Delivery Area</label>
-                    <p-dropdown
-                        *ngIf="deliveryAreas.length > 0"
-                        [options]="deliveryAreas"
-                        [(ngModel)]="selectedDeliveryAreaId"
-                        (ngModelChange)="selectedSavedAddressId = null"
-                        optionLabel="name"
-                        optionValue="id"
-                        placeholder="Select delivery area"
-                        styleClass="w-full mb-2"
-                        appendTo="body"
-                    ></p-dropdown>
-                                        <label class="font-medium">Delivery address / zone</label>
+                    <ng-container *ngIf="showDeliveryAreaDropdown && deliveryAreas.length > 0">
+                        <label class="font-medium block mb-1">Delivery Area</label>
+                        <p-dropdown
+                            [options]="deliveryAreas"
+                            [(ngModel)]="selectedDeliveryAreaId"
+                            (ngModelChange)="selectedSavedAddressId = null"
+                            optionLabel="name"
+                            optionValue="id"
+                            placeholder="Select delivery area"
+                            styleClass="w-full mb-2"
+                            appendTo="body"
+                        ></p-dropdown>
+                    </ng-container>
+                    <label class="font-medium">Delivery address / zone</label>
 
                     <input
                         pInputText
@@ -976,7 +991,10 @@
                         placeholder="Landmark (optional)"
                     />
                     <small class="text-500 block mt-1" *ngIf="loadingSavedAddresses">Loading saved addresses…</small>
-                    <small class="text-500 block mt-1" *ngIf="selectedDeliveryArea">
+                    <small
+                        class="text-500 block mt-1"
+                        *ngIf="showDeliveryAreaDropdown && selectedDeliveryArea"
+                    >
                         Fee: {{ deliveryCharges === 0 ? 'FREE' : (deliveryCharges | number:'1.0-0') }}
                         · Delivery Area {{ selectedDeliveryArea.name }}
                     </small>
@@ -1054,6 +1072,20 @@
                                 title="Print customer guest check / bill preview"
                             ></button>
                         </div>
+                        <div class="col-12 mt-1" *ngIf="!isOnlineOrder">
+                            <button
+                                pButton
+                                pRipple
+                                type="button"
+                                label="Short Guest Bill"
+                                icon="pi pi-file"
+                                class="p-button-help p-button-outlined w-full p-button-sm font-semibold"
+                                [disabled]="!canSave() || saving"
+                                [loading]="saving && shortGuestBillMode"
+                                (click)="openShortGuestBill()"
+                                title="Settle payment and print short receipt (no logo / customer / complaint)"
+                            ></button>
+                        </div>
                     </div>
                 </div>
 
@@ -1079,7 +1111,7 @@
                         class="flex-grow-1"
                         [disabled]="!canSave()"
                         [loading]="saving"
-                        (click)="completeSale()"
+                        (click)="completeSale({ shortReceipt: false })"
                         [title]="settleButtonTooltip"
                     ></button>
                     <button
@@ -1196,7 +1228,7 @@
                 class="flex-grow-1 p-button-sm"
                 [disabled]="!canSave()"
                 [loading]="saving"
-                (click)="completeSale()"
+                (click)="completeSale({ shortReceipt: false })"
                 [title]="settleButtonTooltip"
             ></button>
             <button
@@ -1465,7 +1497,7 @@
                 <div class="text-center font-bold uppercase text-xs">Customer Detail</div>
                 <div class="pos-customer-receipt-divider"></div>
 
-                <div class="font-bold">{{ completedReceipt.customerName || 'Walk-in' }}</div>
+                <div class="font-bold">Customer: {{ completedReceipt.customerName || 'Walk-in' }}</div>
                 <div class="text-sm mt-1" *ngIf="completedReceipt.customerPhone">
                     Phone: {{ completedReceipt.customerPhone }}
                 </div>
@@ -2285,7 +2317,7 @@
                         label="Settle Payment"
                         icon="pi pi-check"
                         class="p-button-success border-round-lg px-3 font-semibold shadow-2"
-                        (click)="guestBillDialogVisible = false; completeSale()"
+                        (click)="guestBillDialogVisible = false; completeSale({ shortReceipt: false })"
                     ></button>
                 </div>
             </div>

@@ -36,6 +36,8 @@ export interface OnlineDealCustomiseItem {
     productName: string;
     quantity: number;
     unitPrice: number;
+    /** Options already fixed when the deal was created (read-only at order time). */
+    presetModifiers?: string;
     modifierGroups: ProductModifierGroupDto[];
     selectedOptions: Record<number, number[]>;
 }
@@ -2753,33 +2755,38 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
 
         const promises: Promise<any>[] = [];
 
-        // 1. Fetch product direct modifiers
-        promises.push(
-            this.productModifierService
-                .getByProduct(product.id)
-                .then((groups) => {
-                    this.productModifierGroups = (groups || []).filter(
-                        (g) => g.options && g.options.length > 0
-                    );
-                    for (const g of this.productModifierGroups) {
-                        this.selectedModifierOptions[g.id] = [];
-                        // Pre-select only an explicit default; otherwise the customer must choose.
-                        const defaultOpt = g.options.find((o) => o.isDefault);
-                        if (defaultOpt) {
-                            this.selectedModifierOptions[g.id] = [defaultOpt.id];
+        // 1. Product modifiers — skip for deals (options were fixed when the deal was created).
+        if (!isDealCandidate) {
+            promises.push(
+                this.productModifierService
+                    .getByProduct(product.id)
+                    .then((groups) => {
+                        this.productModifierGroups = (groups || []).filter(
+                            (g) => g.options && g.options.length > 0
+                        );
+                        for (const g of this.productModifierGroups) {
+                            this.selectedModifierOptions[g.id] = [];
+                            const defaultOpt = g.options.find((o) => o.isDefault);
+                            if (defaultOpt) {
+                                this.selectedModifierOptions[g.id] = [defaultOpt.id];
+                            }
                         }
-                    }
-                })
-                .catch((err) => {
-                    console.warn('Failed to load modifiers for product', err);
-                    this.productModifierGroups = [];
-                })
-                .finally(() => {
-                    this.loadingModifiers = false;
-                })
-        );
+                    })
+                    .catch((err) => {
+                        console.warn('Failed to load modifiers for product', err);
+                        this.productModifierGroups = [];
+                    })
+                    .finally(() => {
+                        this.loadingModifiers = false;
+                    })
+            );
+        } else {
+            this.productModifierGroups = [];
+            this.selectedModifierOptions = {};
+            this.loadingModifiers = false;
+        }
 
-        // 2. If product is a deal, fetch deal items and their options
+        // 2. Deal items: show included products + preset options (read-only, no re-select).
         if (isDealCandidate) {
             this.loadingDeal = true;
             promises.push(
@@ -2800,38 +2807,15 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
                                 return true;
                             });
 
-                            const itemsWithModifiers: OnlineDealCustomiseItem[] = [];
-                            for (const item of distinctItems) {
-                                let groups: ProductModifierGroupDto[] = [];
-                                try {
-                                    groups = await this.productModifierService.getByProduct(item.productId);
-                                } catch (e) {
-                                    console.warn('Could not load modifiers for deal item:', item.productId, e);
-                                }
-
-                                const filteredGroups = (groups || []).filter(
-                                    (g) => g.options && g.options.length > 0
-                                );
-
-                                const selectedOptions: Record<number, number[]> = {};
-                                for (const g of filteredGroups) {
-                                    selectedOptions[g.id] = [];
-                                    const defaultOpt = g.options.find((o) => o.isDefault);
-                                    if (defaultOpt) {
-                                        selectedOptions[g.id] = [defaultOpt.id];
-                                    }
-                                }
-
-                                itemsWithModifiers.push({
-                                    productId: item.productId,
-                                    productName: item.productName || 'Product #' + item.productId,
-                                    quantity: item.quantity,
-                                    unitPrice: item.unitPrice,
-                                    modifierGroups: filteredGroups,
-                                    selectedOptions,
-                                });
-                            }
-                            this.dealCustomiseItems = itemsWithModifiers;
+                            this.dealCustomiseItems = distinctItems.map((item) => ({
+                                productId: item.productId,
+                                productName: item.productName || 'Product #' + item.productId,
+                                quantity: item.quantity,
+                                unitPrice: item.unitPrice,
+                                presetModifiers: (item.selectedModifiers || '').trim() || undefined,
+                                modifierGroups: [],
+                                selectedOptions: {},
+                            }));
                         }
                     } catch (err) {
                         console.warn('Failed to load deal items for product', product.id, err);
@@ -3045,39 +3029,11 @@ export class OnlineOrderComponent implements OnInit, OnDestroy {
             }
         }
 
-        for (const item of this.dealCustomiseItems) {
-            for (const g of item.modifierGroups || []) {
-                if (g.isRequired) {
-                    const sel = item.selectedOptions[g.id] || [];
-                    if (!sel.length) {
-                        this.messageService.add({
-                            severity: 'warn',
-                            summary: 'Option Required',
-                            detail: `Please select an option for "${g.name}" on ${item.productName}`,
-                        });
-                        return;
-                    }
-                }
-            }
-        }
-
         if (this.dealCustomiseItems.length > 0) {
             for (const item of this.dealCustomiseItems) {
-                const itemOpts: string[] = [];
-                for (const g of item.modifierGroups || []) {
-                    const selectedIds = item.selectedOptions[g.id] || [];
-                    for (const optId of selectedIds) {
-                        const opt = g.options.find((o) => o.id === optId);
-                        if (opt) {
-                            allSelectedIds.push(opt.id);
-                            const extra = this.getOptionPrice(opt);
-                            const hasPlus = this.hasModifierPlusSign(opt);
-                            itemOpts.push(hasPlus ? `${opt.name} (+PKR ${extra})` : opt.name);
-                        }
-                    }
-                }
-                if (itemOpts.length > 0) {
-                    selectedOptionNames.push(`${item.quantity}x ${item.productName} (${itemOpts.join(', ')})`);
+                const preset = (item.presetModifiers || '').trim();
+                if (preset) {
+                    selectedOptionNames.push(`${item.quantity}x ${item.productName} (${preset})`);
                 } else {
                     selectedOptionNames.push(`${item.quantity}x ${item.productName}`);
                 }

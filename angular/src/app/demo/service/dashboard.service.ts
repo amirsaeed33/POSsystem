@@ -175,7 +175,16 @@ export class DashboardService {
             params.branchId = branchId;
         }
         if (date) {
-            params.date = date instanceof Date ? date.toISOString() : date;
+            if (date instanceof Date) {
+                const y = date.getFullYear();
+                const m = `${date.getMonth() + 1}`.padStart(2, '0');
+                const d = `${date.getDate()}`.padStart(2, '0');
+                params.date = `${y}-${m}-${d}`;
+            } else {
+                const raw = String(date).trim();
+                const m = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+                params.date = m ? m[1] : raw;
+            }
         }
 
         const res: any = await firstValueFrom(
