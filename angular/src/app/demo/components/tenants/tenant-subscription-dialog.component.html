@@ -1,0 +1,69 @@
+<p-dialog
+    [header]="'Plan · ' + tenantName"
+    [(visible)]="visible"
+    [modal]="true"
+    [style]="{ width: '28rem' }"
+    [draggable]="false"
+>
+    <div class="text-500" *ngIf="loading">Loading plan…</div>
+    <div class="flex flex-column gap-3" *ngIf="!loading">
+        <div class="flex flex-column gap-2">
+            <label class="font-medium">Plan</label>
+            <p-dropdown
+                class="w-full"
+                styleClass="w-full"
+                [options]="plans"
+                [(ngModel)]="packageId"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Choose a plan"
+                appendTo="body"
+            ></p-dropdown>
+        </div>
+        <div class="flex flex-column gap-2">
+            <label class="font-medium">Billing</label>
+            <p-dropdown
+                class="w-full"
+                styleClass="w-full"
+                [options]="cycles"
+                [(ngModel)]="cycle"
+                optionLabel="label"
+                optionValue="value"
+                appendTo="body"
+            ></p-dropdown>
+        </div>
+        <div class="flex flex-column gap-2">
+            <label class="font-medium">Amount (PKR)</label>
+            <p-inputNumber
+                class="w-full"
+                styleClass="w-full"
+                inputStyleClass="w-full"
+                [(ngModel)]="amount"
+                mode="decimal"
+                [minFractionDigits]="2"
+                [maxFractionDigits]="2"
+                [min]="0"
+            ></p-inputNumber>
+        </div>
+        <div class="flex flex-column gap-2">
+            <label class="font-medium">Paid until</label>
+            <p-calendar
+                class="w-full"
+                styleClass="w-full"
+                inputStyleClass="w-full"
+                [(ngModel)]="paidUntil"
+                dateFormat="dd.mm.yy"
+                [showIcon]="true"
+                appendTo="body"
+            ></p-calendar>
+        </div>
+        <div class="flex align-items-center gap-2">
+            <p-checkbox [(ngModel)]="clearPaidUntil" [binary]="true" inputId="clearPaidUntil"></p-checkbox>
+            <label for="clearPaidUntil">Clear the paid-until date</label>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button pButton type="button" label="Cancel" class="p-button-text" (click)="visible = false"></button>
+        <button pButton type="button" label="Save" icon="pi pi-check" [loading]="saving" [disabled]="loading" (click)="save()"></button>
+    </ng-template>
+</p-dialog>

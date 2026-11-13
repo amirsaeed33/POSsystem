@@ -146,6 +146,12 @@ namespace SmartPos.Authorization
         public const string Pages_Sellers_Edit = "Pages.Sellers.Edit";
         public const string Pages_Sellers_Delete = "Pages.Sellers.Delete";
 
+        /// <summary>Host-only: subscription plans, payment methods, and receipt approval.</summary>
+        public const string Pages_Subscriptions = "Pages.Subscriptions";
+
+        /// <summary>Tenant admin: view the business plan and submit a payment receipt.</summary>
+        public const string Pages_Billing = "Pages.Billing";
+
         /// <summary>Host-only: pricing packages for the public product page.</summary>
         public const string Pages_Packages = "Pages.Packages";
         public const string Pages_Packages_Create = "Pages.Packages.Create";

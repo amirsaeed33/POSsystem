@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { BranchContextService } from './branch-context.service';
 import { PermissionService } from './permission.service';
 import { SessionService } from './session.service';
+import { SubscriptionService } from './subscription.service';
 
 @Injectable({
     providedIn: 'root',
@@ -20,6 +21,7 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
         private authService: AuthService,
         private sessionService: SessionService,
         private permissionService: PermissionService,
+        private subscriptions: SubscriptionService,
         private router: Router
     ) {}
 
@@ -56,6 +58,19 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
                 }
             } catch {
                 // Ignore session load error
+            }
+        }
+
+        if (!BranchContextService.isHostAdminSession()) {
+            try {
+                const access = await this.subscriptions.getAccessStatus();
+                const path = url.split('?')[0];
+                const onBilling = path === '/billing' || path.startsWith('/billing/');
+                if (access.expired && !onBilling) {
+                    return this.router.createUrlTree(['/billing']);
+                }
+            } catch {
+                // A failed status check must not unlock a plan the server already marked expired.
             }
         }
 
@@ -139,11 +154,13 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
             return false;
         }
         return (
+            permission.startsWith('Pages.Users') ||
             permission.startsWith('Pages.Packages') ||
             permission.startsWith('Pages.Developers') ||
             permission.startsWith('Pages.Sellers') ||
             permission.startsWith('Pages.HostCatalog') ||
-            permission.startsWith('Pages.Tenants')
+            permission.startsWith('Pages.Tenants') ||
+            permission.startsWith('Pages.Subscriptions')
         );
     }
 

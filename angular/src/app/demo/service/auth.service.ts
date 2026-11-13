@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { PermissionService } from './permission.service';
 import { TenantContextService } from './tenant-context.service';
 import { BranchContextService } from './branch-context.service';
+import { UserPresenceService } from './user-presence.service';
 
 const TOKEN_KEY = 'accessToken';
 const ENCRYPTED_TOKEN_KEY = 'encryptedAccessToken';
@@ -40,7 +41,8 @@ export class AuthService {
     constructor(
         private http: HttpClient,
         private permissionService: PermissionService,
-        private tenantContext: TenantContextService
+        private tenantContext: TenantContextService,
+        private presence: UserPresenceService
     ) {}
 
     async authenticate(model: AuthenticateModel): Promise<AuthenticateResultModel> {
@@ -170,6 +172,9 @@ export class AuthService {
     }
 
     logout(): void {
+        if (this.getAccessToken()) {
+            this.presence.signOut();
+        }
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(ENCRYPTED_TOKEN_KEY);
         localStorage.removeItem(USER_ID_KEY);

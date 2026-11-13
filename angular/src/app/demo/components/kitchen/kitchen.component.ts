@@ -416,15 +416,8 @@ export class KitchenComponent implements OnInit, OnDestroy {
         }
         const totalSec = Math.max(0, Math.floor((this.nowMs - start) / 1000));
         const mins = Math.floor(totalSec / 60);
-        if (mins < 1) {
-            return `${totalSec}s`;
-        }
-        if (mins < 60) {
-            return `${mins}m`;
-        }
-        const h = Math.floor(mins / 60);
-        const m = mins % 60;
-        return `${h}h ${m}m`;
+        const secs = totalSec % 60;
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 
     paymentTotal(order: RunningOrderRow): number {

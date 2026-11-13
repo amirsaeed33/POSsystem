@@ -1,0 +1,148 @@
+<p-toast></p-toast>
+
+<div class="card billing-card">
+    <div class="flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+        <div class="flex align-items-start gap-3">
+            <i class="pi pi-credit-card text-2xl text-primary mt-1"></i>
+            <div>
+                <div class="flex align-items-center gap-2">
+                    <h2 class="m-0 text-900">Subscriptions &amp; billing</h2>
+                    <span class="billing-count">1</span>
+                </div>
+                <p class="text-color-secondary mt-1 mb-0">Your plan, renewal date, and invoices in one place.</p>
+            </div>
+        </div>
+        <button pButton type="button" label="All invoices" class="p-button-text" (click)="showInvoices = !showInvoices"></button>
+    </div>
+
+    <div class="billing-sheet" *ngIf="!loading && subscription as sub; else loadingState">
+        <div class="billing-sheet-head">
+            <span>Subscription</span>
+            <span>Price</span>
+            <span>Status</span>
+        </div>
+        <div class="billing-sheet-row">
+            <div>
+                <div class="flex align-items-center gap-2">
+                    <span class="billing-dot" [class.billing-dot--off]="sub.status === 'Expired' || sub.status === 'Unassigned'"></span>
+                    <span class="font-bold text-900">{{ sub.planName || 'No plan assigned' }}</span>
+                </div>
+                <div class="text-500 text-sm mt-1" *ngIf="sub.planName">
+                    {{ sub.planName }}
+                    <span *ngIf="sub.paidUntil"> · paid until {{ sub.paidUntil | date: 'dd.MM.yyyy' }}</span>
+                    · {{ sub.daysLeft }} days left
+                </div>
+                <div class="text-500 text-sm mt-1" *ngIf="!sub.planName">
+                    Your host has not assigned a plan yet.
+                </div>
+            </div>
+            <div>
+                <div class="font-bold text-900">{{ money(sub.amount) }}</div>
+                <div class="text-500 text-sm">{{ sub.cycleName }}</div>
+            </div>
+            <div class="flex align-items-center justify-content-between gap-2">
+                <span [class]="statusClass(sub.status)">{{ statusLabel(sub) }}</span>
+                <button
+                    *ngIf="sub.canPay"
+                    pButton
+                    type="button"
+                    label="Pay"
+                    class="p-button-sm p-button-outlined"
+                    (click)="openPay()"
+                ></button>
+            </div>
+        </div>
+
+        <div class="billing-next" *ngIf="sub.planName">
+            <i class="pi pi-calendar"></i>
+            <span>
+                Next payment <strong>{{ money(sub.amount) }}</strong>
+                <span *ngIf="sub.paidUntil"> · {{ sub.paidUntil | date: 'dd.MM.yyyy' }}</span>
+                · {{ sub.daysLeft }} days left
+            </span>
+        </div>
+        <div class="billing-next billing-next--ok" *ngIf="!sub.hasPendingPayment">
+            <i class="pi pi-check"></i>
+            <span>No unpaid invoices</span>
+        </div>
+        <div class="billing-next billing-next--wait" *ngIf="sub.hasPendingPayment">
+            <i class="pi pi-clock"></i>
+            <span>Waiting for approval</span>
+        </div>
+    </div>
+    <ng-template #loadingState>
+        <div class="text-500 p-4">Loading your plan…</div>
+    </ng-template>
+</div>
+
+<div class="card" id="invoices" *ngIf="showInvoices">
+    <h3 class="mt-0">Invoices</h3>
+    <p-table [value]="data?.payments || []" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Date</th>
+                <th>Plan</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Note</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+            <tr>
+                <td>{{ row.creationTime | date: 'dd.MM.yyyy' }}</td>
+                <td>{{ row.planName }}</td>
+                <td>{{ money(row.amount) }}</td>
+                <td>{{ row.methodName }}</td>
+                <td>{{ row.statusName }}</td>
+                <td>{{ row.reviewNote || '—' }}</td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="6" class="text-center text-500 p-4">No invoices yet.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog header="Pay subscription" [(visible)]="payVisible" [modal]="true" [style]="{ width: '36rem' }" [draggable]="false">
+    <p class="mt-0" *ngIf="subscription as sub">
+        Pay <strong>{{ money(sub.amount) }}</strong> {{ sub.cycleName }} for {{ sub.planName }}.
+        After you upload the receipt it stays on the waiting list until the host approves it.
+    </p>
+    <div class="flex flex-wrap gap-2 mb-3" *ngIf="data?.paymentMethods?.length; else noMethods">
+        <button
+            *ngFor="let method of data?.paymentMethods"
+            pButton
+            type="button"
+            [label]="method.kindName"
+            class="p-button-sm"
+            [class.p-button-outlined]="selectedMethod?.id !== method.id"
+            (click)="selectMethod(method)"
+        ></button>
+    </div>
+    <ng-template #noMethods>
+        <p class="text-500">No payment methods are available yet.</p>
+    </ng-template>
+
+    <div class="billing-pay-box" *ngIf="selectedMethod as method">
+        <div class="font-bold">{{ method.kindName }}</div>
+        <div>{{ method.accountTitle }}</div>
+        <div class="text-lg font-semibold">{{ method.accountNumber }}</div>
+        <div class="text-500" *ngIf="method.bankName">{{ method.bankName }}</div>
+        <p class="mb-2" *ngIf="method.instructions">{{ method.instructions }}</p>
+        <img *ngIf="qrSrc(method) as src" [src]="src" alt="Payment QR code" class="billing-qr" />
+    </div>
+
+    <div class="flex flex-column gap-2 mt-3">
+        <label>Payment receipt</label>
+        <input type="file" accept="image/png,image/jpeg,image/webp" (change)="onReceiptSelected($event)" />
+        <img *ngIf="receiptPreview" [src]="receiptPreview" alt="Receipt preview" class="billing-receipt" />
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button pButton type="button" label="Cancel" class="p-button-text" (click)="payVisible = false"></button>
+        <button pButton type="button" label="Submit receipt" icon="pi pi-upload" [loading]="submitting" [disabled]="!data?.paymentMethods?.length" (click)="submit()"></button>
+    </ng-template>
+</p-dialog>

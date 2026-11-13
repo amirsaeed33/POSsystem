@@ -27,6 +27,8 @@
     <text name="Surname" value="Surname" />
     <text name="EmailAddress" value="Email address" />
     <text name="Tenants" value="Tenants" />
+    <text name="Subscriptions" value="Subscriptions" />
+    <text name="Billing" value="Billing" />
     <text name="SavedSuccessfully" value="Saved successfully" />
     <text name="CreateNewTenant" value="Create new tenant" />
     <text name="AdminEmailAddress" value="Admin email address" />

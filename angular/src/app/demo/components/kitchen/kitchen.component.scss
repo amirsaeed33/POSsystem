@@ -197,9 +197,16 @@
 }
 
 .age-chip {
-  font-size: 0.72rem;
+  min-width: 3.4rem;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
   font-weight: 700;
-  color: #475569;
+  letter-spacing: 0.02em;
+  text-align: center;
+  color: #334155;
   font-variant-numeric: tabular-nums;
 }
 

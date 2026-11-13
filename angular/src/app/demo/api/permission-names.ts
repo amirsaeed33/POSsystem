@@ -141,6 +141,9 @@ export const PermissionNames = {
     SellersEdit: 'Pages.Sellers.Edit',
     SellersDelete: 'Pages.Sellers.Delete',
 
+    Subscriptions: 'Pages.Subscriptions',
+    Billing: 'Pages.Billing',
+
     Packages: 'Pages.Packages',
     PackagesCreate: 'Pages.Packages.Create',
     PackagesEdit: 'Pages.Packages.Edit',

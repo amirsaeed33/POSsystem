@@ -38,8 +38,22 @@ if (-not (Test-Path (Join-Path $source "wwwroot\index.html"))) {
 # ComputerName for WMSVC — siteasp requires ?site= on the axd URL
 $computerName = "https://" + $serviceUrl + ":8172/msdeploy.axd?site=" + $site
 
+# Leave uploaded pictures on the server. sync would otherwise delete any file
+# the new package does not contain, and those folders only exist on the server.
+$imageFolders = @(
+    "CompanyImages","ProductImages","UserImages","BranchImages",
+    "CustomerImages","OnlineOrderHeroImages","CategoryImages","DeveloperImages"
+)
+$skipArgs = @()
+foreach ($folder in $imageFolders) {
+    $pattern = "wwwroot[/\\]" + $folder
+    $skipArgs += ("-skip:objectName=dirPath,absolutePath=" + $pattern)
+    $skipArgs += ("-skip:objectName=filePath,absolutePath=" + $pattern + "[/\\]")
+}
+
 Write-Host ("==> Deploying to " + $site + " via " + $computerName)
 Write-Host ("Source: " + $source)
+Write-Host "Keeping server image folders: $($imageFolders -join ', ')"
 
 & $msdeploy `
   -verb:sync `
@@ -48,7 +62,8 @@ Write-Host ("Source: " + $source)
   -allowUntrusted `
   -enableRule:AppOffline `
   -retryAttempts:3 `
-  -retryInterval:3000
+  -retryInterval:3000 `
+  @skipArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw ("msdeploy failed with exit code " + $LASTEXITCODE)

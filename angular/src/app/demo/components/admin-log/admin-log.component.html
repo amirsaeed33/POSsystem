@@ -1,0 +1,88 @@
+<p-toast></p-toast>
+
+<div class="card">
+    <div class="flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="m-0 text-900">Logged in</h2>
+            <p class="text-color-secondary mt-1 mb-0">
+                {{
+                    isHost
+                        ? 'Everyone currently using the app.'
+                        : 'People currently signed in to this branch.'
+                }}
+            </p>
+        </div>
+        <div class="flex align-items-center gap-2">
+            <span class="px-2 py-1 border-round bg-green-100 text-green-700 text-sm font-semibold">
+                {{ visibleUsers.length }} online
+            </span>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-refresh"
+                class="p-button-outlined p-button-sm"
+                label="Refresh"
+                (click)="load()"
+                [disabled]="loading"
+            ></button>
+        </div>
+    </div>
+
+    <div class="flex flex-wrap gap-2 align-items-center mb-3">
+        <span class="p-input-icon-left w-full sm:w-20rem">
+            <i class="pi pi-search"></i>
+            <input
+                pInputText
+                type="text"
+                class="w-full"
+                placeholder="Search name, branch, or role"
+                [(ngModel)]="keyword"
+            />
+        </span>
+    </div>
+
+    <p-table
+        [value]="visibleUsers"
+        [loading]="loading"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} users"
+        responsiveLayout="scroll"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th *ngIf="isHost">Business</th>
+                <th>Branch</th>
+                <th>Signed in</th>
+                <th>Time spent</th>
+                <th>Last seen</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+            <tr>
+                <td>
+                    <div class="font-medium text-900">{{ row.fullName || row.userName }}</div>
+                    <div class="text-500 text-sm">{{ row.userName }}</div>
+                </td>
+                <td>{{ row.roleNames || '—' }}</td>
+                <td *ngIf="isHost">{{ row.tenancyName || '—' }}</td>
+                <td>{{ row.branchName || '—' }}</td>
+                <td class="white-space-nowrap">{{ formatWhen(row.loginTime) }}</td>
+                <td class="white-space-nowrap font-medium">{{ timeSpent(row) }}</td>
+                <td class="white-space-nowrap">{{ formatWhen(row.lastSeen) }}</td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td [attr.colspan]="isHost ? 7 : 6" class="text-center text-500 p-4">
+                    Nobody is signed in right now.
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>

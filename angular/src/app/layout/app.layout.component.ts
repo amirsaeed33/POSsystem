@@ -5,6 +5,8 @@ import { BranchDto, BranchStatuses } from 'src/app/demo/api/branch';
 import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { TenantContextService } from 'src/app/demo/service/tenant-context.service';
 import { AuthService } from 'src/app/demo/service/auth.service';
+import { SubscriptionService } from 'src/app/demo/service/subscription.service';
+import { UserPresenceService } from 'src/app/demo/service/user-presence.service';
 import { TabCloseEvent } from './api/tabcloseevent';
 import { MenuService } from './app.menu.service';
 import { AppSidebarComponent } from './app.sidebar.component';
@@ -33,6 +35,12 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
     branchOpsLocked = false;
     /** True when locked and not on an allowed page (e.g. Branches). */
     showBranchLockOverlay = false;
+    /** Paid-until date has passed. The business can only open Billing. */
+    subscriptionExpired = false;
+    subscriptionPending = false;
+    subscriptionPaidUntil: string | null = null;
+    showSubscriptionLock = false;
+    private readonly billingRoute = '/billing';
     lockedBranch: BranchDto | null = null;
     readonly BranchStatuses = BranchStatuses;
     private readonly unlockedRoutes = ['/branches', '/rider'];
@@ -48,7 +56,9 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
         public router: Router,
         private branchContext: BranchContextService,
         private tenantContext: TenantContextService,
-        private authService: AuthService
+        private authService: AuthService,
+        private presence: UserPresenceService,
+        private subscriptionsApi: SubscriptionService
     ) {
         this.overlayMenuOpenSubscription = this.layoutService.overlayOpen$.subscribe(() => {
             if (!this.menuOutsideClickListener) {
@@ -78,6 +88,7 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
             .subscribe(() => {
                 this.hideMenu();
                 this.updateLockOverlay();
+                void this.refreshSubscriptionLock();
             });
 
         this.tabOpenSubscription = this.layoutService.tabOpen$.subscribe(tab => {
@@ -105,6 +116,8 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.presence.startHeartbeat(() => this.authService.isAuthenticated());
+        void this.refreshSubscriptionLock();
         this.refreshBranchLock(this.branchContext.getCurrentBranch());
         this.branchSubscription = this.branchContext.currentBranch$.subscribe((branch) => {
             this.refreshBranchLock(branch);
@@ -127,7 +140,40 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
         this.updateLockOverlay();
     }
 
+    private async refreshSubscriptionLock(): Promise<void> {
+        if (!this.authService.isAuthenticated() || BranchContextService.isHostAdminSession()) {
+            this.subscriptionExpired = false;
+            this.subscriptionPending = false;
+            this.showSubscriptionLock = false;
+            return;
+        }
+
+        try {
+            const status = await this.subscriptionsApi.getAccessStatus(true);
+            this.subscriptionExpired = status.expired;
+            this.subscriptionPending = status.hasPendingPayment;
+            this.subscriptionPaidUntil = status.paidUntil || null;
+        } catch {
+            this.subscriptionExpired = false;
+            this.showSubscriptionLock = false;
+            return;
+        }
+
+        this.updateSubscriptionLock();
+    }
+
+    private updateSubscriptionLock(): void {
+        if (!this.subscriptionExpired) {
+            this.showSubscriptionLock = false;
+            return;
+        }
+        const url = (this.router.url || '').split('?')[0];
+        const onBilling = url === this.billingRoute || url.startsWith(this.billingRoute + '/');
+        this.showSubscriptionLock = !onBilling;
+    }
+
     private updateLockOverlay(): void {
+        this.updateSubscriptionLock();
         if (!this.branchOpsLocked) {
             this.showBranchLockOverlay = false;
             return;
@@ -199,6 +245,7 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy() {
+        this.presence.stopHeartbeat();
         if (this.overlayMenuOpenSubscription) {
             this.overlayMenuOpenSubscription.unsubscribe();
         }

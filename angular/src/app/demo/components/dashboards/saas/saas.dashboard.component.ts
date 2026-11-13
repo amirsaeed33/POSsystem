@@ -146,6 +146,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     todayPurchases = 0;
     todayExpenses = 0;
     todayProfit = 0;
+    kpiLoading = true;
 
     // Animated display counters for first-load numbers
     displayedTodaySales = 0;
@@ -312,6 +313,7 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
     }
 
     async loadDashboard() {
+        this.kpiLoading = true;
         this.loadTableOccupancy();
         this.loadRunningOrders();
         this.loadOnlineOrderPipeline();
@@ -377,6 +379,8 @@ export class SaaSDashboardComponent implements OnInit, OnDestroy {
             this.branchCount = 0;
             this.latestListTitle = 'Latest Sales';
             this.timelineEvents = [];
+        } finally {
+            this.kpiLoading = false;
         }
         this.animateCounters();
         this.buildOverviewChart();

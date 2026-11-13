@@ -1,4 +1,4 @@
-<div class="layout-container" [ngClass]="containerClass">
+<div class="layout-container" [ngClass]="containerClass" [class.subscription-locked]="subscriptionExpired">
     <app-topbar></app-topbar>
     <app-sidebar></app-sidebar>
     <div class="layout-content-wrapper">
@@ -30,10 +30,45 @@
                     >View branches</a>
                 </div>
 
+                <div
+                    *ngIf="subscriptionExpired"
+                    class="branch-lock-banner branch-lock-banner--rejected mb-3 p-3 border-round flex align-items-start gap-3"
+                >
+                    <i class="pi pi-exclamation-circle text-xl mt-1"></i>
+                    <div class="flex-1">
+                        <div class="font-semibold mb-1">Subscription payment date has passed</div>
+                        <div class="text-sm line-height-3" *ngIf="!subscriptionPending">
+                            Paid until {{ subscriptionPaidUntil | date: 'dd.MM.yyyy' }}.
+                            The app is locked until this plan is paid.
+                        </div>
+                        <div class="text-sm line-height-3" *ngIf="subscriptionPending">
+                            Your receipt is waiting for approval. You cannot use the app until the host approves it.
+                        </div>
+                    </div>
+                    <a
+                        *ngIf="!subscriptionPending"
+                        routerLink="/billing"
+                        class="p-button p-button-sm p-button-outlined white-space-nowrap"
+                    >Pay now</a>
+                </div>
+
                 <app-breadcrumb></app-breadcrumb>
 
-                <div class="branch-lock-content" [class.branch-lock-content--locked]="showBranchLockOverlay">
-                    <div *ngIf="showBranchLockOverlay" class="branch-lock-overlay">
+                <div class="branch-lock-content" [class.branch-lock-content--locked]="showBranchLockOverlay || showSubscriptionLock">
+                    <div *ngIf="showSubscriptionLock" class="branch-lock-overlay">
+                        <div class="branch-lock-overlay__card surface-card border-round-xl p-4 text-center shadow-2">
+                            <i class="pi pi-lock text-4xl text-red-500 mb-3"></i>
+                            <h3 class="mt-0 mb-2">Plan expired</h3>
+                            <p class="text-600 m-0 mb-3" *ngIf="!subscriptionPending">
+                                The payment date has passed. Pay the plan to continue. Nothing else is available until then.
+                            </p>
+                            <p class="text-600 m-0 mb-3" *ngIf="subscriptionPending">
+                                Payment is waiting for the host to approve. The app stays locked until that is done.
+                            </p>
+                            <a *ngIf="!subscriptionPending" routerLink="/billing" class="p-button p-button-sm">Go to billing</a>
+                        </div>
+                    </div>
+                    <div *ngIf="showBranchLockOverlay && !showSubscriptionLock" class="branch-lock-overlay">
                         <div class="branch-lock-overlay__card surface-card border-round-xl p-4 text-center shadow-2">
                             <i class="pi pi-hourglass text-4xl text-orange-500 mb-3"></i>
                             <h3 class="mt-0 mb-2">Awaiting approval</h3>

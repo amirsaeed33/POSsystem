@@ -182,6 +182,16 @@ namespace SmartPos.Authorization
                 L("DeleteSeller"),
                 multiTenancySides: MultiTenancySides.Host);
 
+            context.CreatePermission(
+                PermissionNames.Pages_Subscriptions,
+                L("Subscriptions"),
+                multiTenancySides: MultiTenancySides.Host);
+
+            context.CreatePermission(
+                PermissionNames.Pages_Billing,
+                L("Billing"),
+                multiTenancySides: MultiTenancySides.Tenant);
+
             var packages = context.CreatePermission(
                 PermissionNames.Pages_Packages,
                 L("Packages"),

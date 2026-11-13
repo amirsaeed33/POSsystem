@@ -1,12 +1,20 @@
 ﻿<div class="grid dashboard-grid">
     <div [ngClass]="isRestaurant ? 'col-12 md:col-6 xl:col-4' : 'col-12 lg:col-6 xl:col-3'" class="anim-card anim-delay-1">
-        <div class="card kpi-card sales-card p-0 overflow-hidden flex flex-column h-full">
+        <div class="card kpi-card sales-card p-0 overflow-hidden flex flex-column h-full" [class.is-loading]="kpiLoading" [attr.aria-busy]="kpiLoading">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-users text-6xl text-blue-500"></i>
                 <div class="ml-3">
                     <span class="text-blue-500 block white-space-nowrap">Today's Sales</span>
-                    <span class="text-blue-500 block text-4xl font-bold">{{ formatPkr(displayedTodaySales) }}</span>
-                    <span class="text-blue-500 block kpi-subtitle">{{ salesSubtitle }}</span>
+                    <ng-container *ngIf="!kpiLoading; else salesKpiLoader">
+                        <span class="text-blue-500 block text-4xl font-bold">{{ formatPkr(displayedTodaySales) }}</span>
+                        <span class="text-blue-500 block kpi-subtitle">{{ salesSubtitle }}</span>
+                    </ng-container>
+                    <ng-template #salesKpiLoader>
+                        <div class="kpi-skeleton" aria-hidden="true">
+                            <span class="kpi-skeleton-bar kpi-skeleton-bar--amount"></span>
+                            <span class="kpi-skeleton-bar kpi-skeleton-bar--hint"></span>
+                        </div>
+                    </ng-template>
                 </div>
             </div>
             <img [src]="'assets/demo/images/dashboard/users' + (colorScheme === 'light' ? '' : '-dark') + '.svg'"
@@ -14,13 +22,21 @@
         </div>
     </div>
     <div [ngClass]="isRestaurant ? 'col-12 md:col-6 xl:col-4' : 'col-12 lg:col-6 xl:col-3'" class="anim-card anim-delay-2">
-        <div class="card kpi-card purchases-card p-0 overflow-hidden flex flex-column h-full">
+        <div class="card kpi-card purchases-card p-0 overflow-hidden flex flex-column h-full" [class.is-loading]="kpiLoading" [attr.aria-busy]="kpiLoading">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-map text-6xl text-orange-500"></i>
                 <div class="ml-3">
                     <span class="text-orange-500 block white-space-nowrap">Today's Purchases</span>
-                    <span class="text-orange-500 block text-4xl font-bold">{{ formatPkr(displayedTodayPurchases) }}</span>
-                    <span class="text-orange-500 block kpi-subtitle">{{ purchasesSubtitle }}</span>
+                    <ng-container *ngIf="!kpiLoading; else purchasesKpiLoader">
+                        <span class="text-orange-500 block text-4xl font-bold">{{ formatPkr(displayedTodayPurchases) }}</span>
+                        <span class="text-orange-500 block kpi-subtitle">{{ purchasesSubtitle }}</span>
+                    </ng-container>
+                    <ng-template #purchasesKpiLoader>
+                        <div class="kpi-skeleton" aria-hidden="true">
+                            <span class="kpi-skeleton-bar kpi-skeleton-bar--amount"></span>
+                            <span class="kpi-skeleton-bar kpi-skeleton-bar--hint"></span>
+                        </div>
+                    </ng-template>
                 </div>
             </div>
             <img [src]="'assets/demo/images/dashboard/locations' + (colorScheme === 'light' ? '' : '-dark') + '.svg'"
@@ -28,13 +44,21 @@
         </div>
     </div>
     <div [ngClass]="isRestaurant ? 'col-12 md:col-6 xl:col-4' : 'col-12 lg:col-6 xl:col-3'" class="anim-card anim-delay-3">
-        <div class="card kpi-card expenses-card p-0 overflow-hidden flex flex-column h-full">
+        <div class="card kpi-card expenses-card p-0 overflow-hidden flex flex-column h-full" [class.is-loading]="kpiLoading" [attr.aria-busy]="kpiLoading">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-directions text-6xl text-green-500"></i>
                 <div class="ml-3">
                     <span class="text-green-500 block white-space-nowrap">Today's Expenses</span>
-                    <span class="text-green-500 block text-4xl font-bold">{{ formatPkr(displayedTodayExpenses) }}</span>
-                    <span class="text-green-500 block kpi-subtitle">{{ expensesSubtitle }}</span>
+                    <ng-container *ngIf="!kpiLoading; else expensesKpiLoader">
+                        <span class="text-green-500 block text-4xl font-bold">{{ formatPkr(displayedTodayExpenses) }}</span>
+                        <span class="text-green-500 block kpi-subtitle">{{ expensesSubtitle }}</span>
+                    </ng-container>
+                    <ng-template #expensesKpiLoader>
+                        <div class="kpi-skeleton" aria-hidden="true">
+                            <span class="kpi-skeleton-bar kpi-skeleton-bar--amount"></span>
+                            <span class="kpi-skeleton-bar kpi-skeleton-bar--hint"></span>
+                        </div>
+                    </ng-template>
                 </div>
             </div>
             <img [src]="'assets/demo/images/dashboard/rate' + (colorScheme === 'light' ? '' : '-dark') + '.svg'"
@@ -42,13 +66,21 @@
         </div>
     </div>
     <div *ngIf="!isRestaurant" class="col-12 lg:col-6 xl:col-3 anim-card anim-delay-4">
-        <div class="card kpi-card profit-card p-0 overflow-hidden flex flex-column h-full">
+        <div class="card kpi-card profit-card p-0 overflow-hidden flex flex-column h-full" [class.is-loading]="kpiLoading" [attr.aria-busy]="kpiLoading">
             <div class="flex align-items-center p-3 flex-grow-1">
                 <i class="pi pi-comments text-6xl text-purple-500"></i>
                 <div class="ml-3">
                     <span class="text-purple-500 block white-space-nowrap">Today's Profit</span>
-                    <span class="text-purple-500 block text-4xl font-bold">{{ formatPkr(displayedTodayProfit) }}</span>
-                    <span class="text-purple-500 block kpi-subtitle">{{ profitSubtitle }}</span>
+                    <ng-container *ngIf="!kpiLoading; else profitKpiLoader">
+                        <span class="text-purple-500 block text-4xl font-bold">{{ formatPkr(displayedTodayProfit) }}</span>
+                        <span class="text-purple-500 block kpi-subtitle">{{ profitSubtitle }}</span>
+                    </ng-container>
+                    <ng-template #profitKpiLoader>
+                        <div class="kpi-skeleton" aria-hidden="true">
+                            <span class="kpi-skeleton-bar kpi-skeleton-bar--amount"></span>
+                            <span class="kpi-skeleton-bar kpi-skeleton-bar--hint"></span>
+                        </div>
+                    </ng-template>
                 </div>
             </div>
             <img [src]="'assets/demo/images/dashboard/interactions' + (colorScheme === 'light' ? '' : '-dark') + '.svg'"

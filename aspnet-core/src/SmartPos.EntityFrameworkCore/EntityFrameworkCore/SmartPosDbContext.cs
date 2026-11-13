@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Abp.Domain.Entities;
 using Abp.Zero.EntityFrameworkCore;
 using SmartPos.Accounts;
+using SmartPos.Authorization;
 using SmartPos.Authorization.Roles;
 using SmartPos.Authorization.Users;
 using SmartPos.Branches;
@@ -26,6 +27,7 @@ using SmartPos.Suppliers;
 using SmartPos.Departments;
 using SmartPos.Developers;
 using SmartPos.Packages;
+using SmartPos.Billing;
 using SmartPos.Sellers;
 using SmartPos.Units;
 
@@ -136,6 +138,14 @@ namespace SmartPos.EntityFrameworkCore
         public virtual DbSet<Deal> Deals { get; set; }
 
         public virtual DbSet<DealDetail> DealDetails { get; set; }
+
+        public virtual DbSet<UserPresence> UserPresences { get; set; }
+
+        public virtual DbSet<PaymentMethod> PaymentMethods { get; set; }
+
+        public virtual DbSet<TenantSubscription> TenantSubscriptions { get; set; }
+
+        public virtual DbSet<SubscriptionPayment> SubscriptionPayments { get; set; }
 
         public SmartPosDbContext(DbContextOptions<SmartPosDbContext> options)
             : base(options)
@@ -886,6 +896,37 @@ namespace SmartPos.EntityFrameworkCore
                     .OnDelete(DeleteBehavior.Restrict);
 
                 b.HasIndex(x => x.DealId);
+            });
+
+            modelBuilder.Entity<UserPresence>(b =>
+            {
+                b.HasIndex(x => x.UserId).IsUnique();
+                b.HasIndex(x => new { x.TenantId, x.BranchId, x.LastSeen });
+            });
+
+            modelBuilder.Entity<PaymentMethod>(b =>
+            {
+                b.Property(x => x.AccountTitle).HasMaxLength(PaymentMethod.MaxAccountTitleLength).IsRequired();
+                b.Property(x => x.AccountNumber).HasMaxLength(PaymentMethod.MaxAccountNumberLength).IsRequired();
+                b.HasIndex(x => x.Kind).IsUnique().HasFilter("[IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<TenantSubscription>(b =>
+            {
+                b.Property(x => x.PlanName).HasMaxLength(TenantSubscription.MaxPlanNameLength).IsRequired();
+                b.Property(x => x.Amount).HasPrecision(18, 2);
+                b.HasIndex(x => x.TenantId).IsUnique().HasFilter("[IsDeleted] = 0");
+            });
+
+            modelBuilder.Entity<SubscriptionPayment>(b =>
+            {
+                b.Property(x => x.PlanName).HasMaxLength(SubscriptionPayment.MaxPlanNameLength).IsRequired();
+                b.Property(x => x.Amount).HasPrecision(18, 2);
+                b.Property(x => x.ApprovalToken).HasMaxLength(SubscriptionPayment.MaxApprovalTokenLength);
+                b.HasIndex(x => new { x.TenantId, x.Status });
+                b.HasIndex(x => x.ApprovalToken)
+                    .IsUnique()
+                    .HasFilter("[ApprovalToken] IS NOT NULL AND [IsDeleted] = 0");
             });
         }
     }

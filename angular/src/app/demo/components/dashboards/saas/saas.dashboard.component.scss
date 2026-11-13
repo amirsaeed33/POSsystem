@@ -1074,3 +1074,64 @@
         padding: 0.5rem 0.65rem;
     }
 }
+
+.kpi-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 9rem;
+    padding-top: 0.7rem;
+}
+
+.kpi-skeleton-bar {
+    display: block;
+    border-radius: 999px;
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--kpi-color, #3b82f6) 16%, var(--surface-200, #e2e8f0)) 0%,
+        color-mix(in srgb, var(--kpi-color, #3b82f6) 55%, white) 45%,
+        color-mix(in srgb, var(--kpi-color, #3b82f6) 16%, var(--surface-200, #e2e8f0)) 100%
+    );
+    background-size: 220% 100%;
+    animation: kpi-shimmer 1.15s ease-in-out infinite;
+}
+
+.kpi-skeleton-bar--amount {
+    width: 78%;
+    height: 1.7rem;
+}
+
+.kpi-skeleton-bar--hint {
+    width: 48%;
+    height: 0.55rem;
+    animation-delay: 0.12s;
+}
+
+.kpi-card.is-loading {
+    img {
+        opacity: 0.35;
+    }
+
+    i {
+        animation: kpi-icon-pulse 1.3s ease-in-out infinite;
+    }
+}
+
+@keyframes kpi-shimmer {
+    0% {
+        background-position: 120% 0;
+    }
+    100% {
+        background-position: -120% 0;
+    }
+}
+
+@keyframes kpi-icon-pulse {
+    0%,
+    100% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 1;
+    }
+}

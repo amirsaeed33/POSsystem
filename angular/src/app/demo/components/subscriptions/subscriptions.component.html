@@ -1,0 +1,149 @@
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="card">
+    <div class="mb-3">
+        <h2 class="m-0 text-900">Subscriptions</h2>
+        <p class="text-color-secondary mt-1 mb-0">
+            Payment accounts, QR codes, and receipts waiting for your approval.
+        </p>
+    </div>
+
+    <p-tabView>
+        <p-tabPanel header="Payment methods">
+            <div class="flex justify-content-end mb-3">
+                <button pButton type="button" label="Add method" icon="pi pi-plus" class="p-button-outlined" (click)="openCreate()"></button>
+            </div>
+            <p-table [value]="methods" [loading]="loadingMethods" responsiveLayout="scroll">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Method</th>
+                        <th>Account</th>
+                        <th>Number</th>
+                        <th>QR</th>
+                        <th>Active</th>
+                        <th></th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-row>
+                    <tr>
+                        <td>{{ row.kindName }}</td>
+                        <td>
+                            <div class="font-medium">{{ row.accountTitle }}</div>
+                            <div class="text-500 text-sm" *ngIf="row.bankName">{{ row.bankName }}</div>
+                        </td>
+                        <td>{{ row.accountNumber }}</td>
+                        <td>{{ row.hasQr ? 'Yes' : 'No' }}</td>
+                        <td>
+                            <span [class]="row.isActive ? 'p-tag p-tag-success' : 'p-tag p-tag-danger'">
+                                {{ row.isActive ? 'Active' : 'Hidden' }}
+                            </span>
+                        </td>
+                        <td class="text-right white-space-nowrap">
+                            <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-sm" (click)="openEdit(row)"></button>
+                            <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" (click)="deleteMethod(row)"></button>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="6" class="text-center text-500 p-4">No payment methods yet.</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </p-tabPanel>
+
+        <p-tabPanel [header]="'Waiting list (' + pending.length + ')'">
+            <div class="flex justify-content-end mb-3">
+                <button pButton type="button" label="Refresh" icon="pi pi-refresh" class="p-button-outlined p-button-sm" (click)="loadPending()"></button>
+            </div>
+            <p-table [value]="pending" [loading]="loadingPending" responsiveLayout="scroll">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Business</th>
+                        <th>Plan</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Submitted</th>
+                        <th></th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-row>
+                    <tr>
+                        <td>
+                            <div class="font-medium">{{ row.tenantName || row.tenancyName }}</div>
+                            <div class="text-500 text-sm">{{ row.tenancyName }}</div>
+                        </td>
+                        <td>{{ row.planName }} · {{ row.cycleName }}</td>
+                        <td class="white-space-nowrap">{{ money(row.amount) }}</td>
+                        <td>{{ row.methodName }}</td>
+                        <td class="white-space-nowrap">{{ row.creationTime | date: 'dd.MM.yyyy HH:mm' }}</td>
+                        <td class="text-right white-space-nowrap">
+                            <button pButton type="button" label="Receipt" icon="pi pi-image" class="p-button-text p-button-sm" (click)="openReceipt(row)"></button>
+                            <button pButton type="button" label="Approve" icon="pi pi-check" class="p-button-text p-button-sm" [disabled]="reviewing" (click)="approve(row)"></button>
+                            <button pButton type="button" label="Reject" icon="pi pi-times" class="p-button-text p-button-danger p-button-sm" [disabled]="reviewing" (click)="openReject(row)"></button>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="6" class="text-center text-500 p-4">No receipts are waiting.</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </p-tabPanel>
+    </p-tabView>
+</div>
+
+<p-dialog header="Payment method" [(visible)]="methodDialog" [modal]="true" [style]="{ width: '32rem' }" [draggable]="false">
+    <div class="flex flex-column gap-3">
+        <div class="flex flex-column gap-2">
+            <label>Method</label>
+            <p-dropdown [options]="kinds" [(ngModel)]="kind" optionLabel="label" optionValue="value" appendTo="body"></p-dropdown>
+        </div>
+        <div class="flex flex-column gap-2">
+            <label>Account title</label>
+            <input pInputText [(ngModel)]="accountTitle" />
+        </div>
+        <div class="flex flex-column gap-2">
+            <label>Account number or IBAN</label>
+            <input pInputText [(ngModel)]="accountNumber" />
+        </div>
+        <div class="flex flex-column gap-2">
+            <label>Bank name</label>
+            <input pInputText [(ngModel)]="bankName" />
+        </div>
+        <div class="flex flex-column gap-2">
+            <label>Instructions</label>
+            <textarea pInputTextarea [(ngModel)]="instructions" rows="3" class="w-full"></textarea>
+        </div>
+        <div class="flex align-items-center gap-2">
+            <p-checkbox [(ngModel)]="isActive" [binary]="true" inputId="methodActive"></p-checkbox>
+            <label for="methodActive">Show this method to businesses</label>
+        </div>
+        <div class="flex flex-column gap-2">
+            <label>QR code</label>
+            <input type="file" accept="image/png,image/jpeg,image/webp" (change)="onQrSelected($event)" />
+            <img *ngIf="qrPreview" [src]="qrPreview" alt="QR code" style="width: 140px; height: 140px; object-fit: contain;" />
+            <button *ngIf="qrPreview" pButton type="button" label="Remove QR" class="p-button-text p-button-sm p-button-danger w-max" (click)="removeQr()"></button>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button pButton type="button" label="Cancel" class="p-button-text" (click)="methodDialog = false"></button>
+        <button pButton type="button" label="Save" icon="pi pi-check" [loading]="methodSaving" (click)="saveMethod()"></button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog header="Receipt" [(visible)]="receiptVisible" [modal]="true" [style]="{ width: '28rem' }" [draggable]="false">
+    <div class="flex justify-content-center" *ngIf="receiptLoading">Loading receipt…</div>
+    <img *ngIf="receiptSrc" [src]="receiptSrc" alt="Payment receipt" class="w-full" />
+</p-dialog>
+
+<p-dialog header="Reject payment" [(visible)]="rejectVisible" [modal]="true" [style]="{ width: '28rem' }" [draggable]="false">
+    <p class="mt-0">The paid-until date stays as it is. The business can send another receipt.</p>
+    <textarea pInputTextarea [(ngModel)]="rejectNote" rows="3" class="w-full" placeholder="Why is this rejected?"></textarea>
+    <ng-template pTemplate="footer">
+        <button pButton type="button" label="Cancel" class="p-button-text" (click)="rejectVisible = false"></button>
+        <button pButton type="button" label="Reject" icon="pi pi-times" class="p-button-danger" [loading]="reviewing" (click)="confirmReject()"></button>
+    </ng-template>
+</p-dialog>

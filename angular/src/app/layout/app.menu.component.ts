@@ -264,6 +264,7 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                 icon: 'pi pi-cog',
                 items: [
                     { label: 'Users', icon: 'pi pi-user', routerLink: ['/profile/list'], permission: PermissionNames.Users },
+                    { label: 'Logged in', icon: 'pi pi-users', routerLink: ['/admin-log'], permission: PermissionNames.Users },
                     {
                         label: 'Staff',
                         icon: 'pi pi-id-card',
@@ -283,6 +284,8 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                     { label: 'Product pricing', icon: 'pi pi-tag', routerLink: ['/packages'], permission: PermissionNames.Packages },
                     { label: 'Templates', icon: 'pi pi-envelope', routerLink: ['/email-templates'], permission: PermissionNames.EmailTemplates },
                     { label: 'Tenants', icon: 'pi pi-globe', routerLink: ['/tenants'], permission: PermissionNames.Tenants },
+                    { label: 'Subscriptions', icon: 'pi pi-credit-card', routerLink: ['/subscriptions'], permission: PermissionNames.Subscriptions },
+                    { label: 'Billing', icon: 'pi pi-wallet', routerLink: ['/billing'], permission: PermissionNames.Billing },
                 ]
             }
         ];
@@ -331,11 +334,13 @@ export class AppMenuComponent implements OnInit, OnDestroy {
             return false;
         }
         return (
+            permission.startsWith('Pages.Users') ||
             permission.startsWith('Pages.Packages') ||
             permission.startsWith('Pages.Developers') ||
             permission.startsWith('Pages.Sellers') ||
             permission.startsWith('Pages.HostCatalog') ||
-            permission.startsWith('Pages.Tenants')
+            permission.startsWith('Pages.Tenants') ||
+            permission.startsWith('Pages.Subscriptions')
         );
     }
 }
