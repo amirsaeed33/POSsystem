@@ -142,6 +142,8 @@ export class PackageListComponent implements OnInit {
                 features: this.form.features?.trim() || undefined,
                 ctaLabel: this.form.ctaLabel?.trim() || 'Get started',
                 sortOrder: this.form.sortOrder ?? 0,
+                monthlyAmount: this.form.monthlyAmount ?? 0,
+                yearlyAmount: this.form.yearlyAmount ?? 0,
             };
 
             if (this.editing?.id) {
@@ -213,6 +215,8 @@ export class PackageListComponent implements OnInit {
             contactViaWhatsApp: false,
             isActive: true,
             sortOrder: 0,
+            monthlyAmount: 0,
+            yearlyAmount: 0,
         };
     }
 }

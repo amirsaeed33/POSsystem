@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import {
+    AssignablePlanDto,
     MySubscriptionDto,
     PaymentMethodDto,
     SubscriptionService,
@@ -19,11 +20,21 @@ export class BillingComponent implements OnInit {
     data: MySubscriptionDto | null = null;
     payVisible = false;
     selectedMethod: PaymentMethodDto | null = null;
+    selectedPackageId: number | null = null;
+    selectedCycle = 0;
+    selectedAmount = 0;
+    cycleOptions: { label: string; value: number }[] = [];
     receiptBase64: string | null = null;
     receiptContentType: string | null = null;
     receiptFileName = '';
     receiptPreview: string | null = null;
     showInvoices = false;
+
+    private readonly allCycles = [
+        { label: 'Monthly', value: 0 },
+        { label: 'Yearly', value: 1 },
+    ];
+    private readonly emptyPlans: AssignablePlanDto[] = [];
 
     constructor(
         private billing: SubscriptionService,
@@ -36,6 +47,21 @@ export class BillingComponent implements OnInit {
 
     get subscription(): TenantSubscriptionDto | null {
         return this.data?.subscription || null;
+    }
+
+    get availablePlans(): AssignablePlanDto[] {
+        return this.data?.availablePlans?.length ? this.data.availablePlans : this.emptyPlans;
+    }
+
+    get canChangePlan(): boolean {
+        return !this.subscription?.hasPendingPayment;
+    }
+
+    get selectedPlan(): AssignablePlanDto | null {
+        if (this.selectedPackageId == null) {
+            return null;
+        }
+        return this.availablePlans.find((p) => p.id === this.selectedPackageId) || null;
     }
 
     async load(): Promise<void> {
@@ -54,12 +80,40 @@ export class BillingComponent implements OnInit {
     }
 
     openPay(): void {
+        const sub = this.subscription;
+        const plans = this.availablePlans;
+        const preferred =
+            plans.find((p) => sub?.packageId != null && p.id === sub.packageId) ||
+            plans.find((p) => !!sub?.planName && p.name === sub.planName) ||
+            plans[0] ||
+            null;
+
+        this.selectedPackageId = preferred ? preferred.id : sub?.packageId ?? null;
+        this.selectedCycle = this.pickCycle(preferred, sub?.cycle ?? 0);
+        this.refreshCycleOptions();
+        this.refreshSelectedAmount();
+        if (this.selectedAmount <= 0 && sub?.amount) {
+            this.selectedCycle = sub.cycle ?? 0;
+            this.refreshCycleOptions();
+            this.refreshSelectedAmount();
+        }
+
         this.selectedMethod = this.data?.paymentMethods?.[0] || null;
         this.receiptBase64 = null;
         this.receiptContentType = null;
         this.receiptFileName = '';
         this.receiptPreview = null;
         this.payVisible = true;
+    }
+
+    onPlanChange(): void {
+        this.selectedCycle = this.pickCycle(this.selectedPlan, this.selectedCycle);
+        this.refreshCycleOptions();
+        this.refreshSelectedAmount();
+    }
+
+    onCycleChange(): void {
+        this.refreshSelectedAmount();
     }
 
     selectMethod(method: PaymentMethodDto): void {
@@ -106,6 +160,27 @@ export class BillingComponent implements OnInit {
     }
 
     async submit(): Promise<void> {
+        const sub = this.subscription;
+        const canRenewCurrent =
+            !!sub?.planName &&
+            (sub.amount || 0) > 0 &&
+            (this.selectedPackageId == null ||
+                this.selectedPackageId === 0 ||
+                this.selectedPackageId === sub.packageId ||
+                this.selectedPlan?.name === sub.planName);
+
+        if (this.selectedPackageId == null && !canRenewCurrent) {
+            this.messageService.add({ severity: 'warn', summary: 'Payment', detail: 'Choose a plan.' });
+            return;
+        }
+        if (this.selectedAmount <= 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Payment',
+                detail: 'That billing cycle is not available for the selected plan.',
+            });
+            return;
+        }
         if (!this.selectedMethod) {
             this.messageService.add({ severity: 'warn', summary: 'Payment', detail: 'Choose how you paid.' });
             return;
@@ -114,9 +189,12 @@ export class BillingComponent implements OnInit {
             this.messageService.add({ severity: 'warn', summary: 'Payment', detail: 'Upload the payment receipt.' });
             return;
         }
+
         this.submitting = true;
         try {
             await this.billing.submitPayment({
+                packageId: this.selectedPackageId ?? 0,
+                cycle: this.selectedCycle,
                 paymentMethodId: this.selectedMethod.id,
                 receiptBase64: this.receiptBase64,
                 receiptContentType: this.receiptContentType,
@@ -175,5 +253,95 @@ export class BillingComponent implements OnInit {
             return 'Waiting for approval';
         }
         return sub.status;
+    }
+
+    payButtonLabel(sub: TenantSubscriptionDto | null): string {
+        if (!sub?.planName || sub.status === 'Expired' || sub.status === 'Unassigned') {
+            return 'Purchase';
+        }
+        if (sub.canPay) {
+            return 'Renew';
+        }
+        return 'Buy more';
+    }
+
+    private refreshCycleOptions(): void {
+        // Always offer Monthly and Yearly when the client can purchase.
+        this.cycleOptions = this.allCycles;
+    }
+
+    private refreshSelectedAmount(): void {
+        const plan = this.selectedPlan;
+        if (plan) {
+            const fromPlan = this.amountForCycle(plan.monthlyAmount, plan.yearlyAmount, this.selectedCycle);
+            if (fromPlan > 0) {
+                this.selectedAmount = fromPlan;
+                return;
+            }
+        }
+
+        const sub = this.subscription;
+        const amount = sub?.amount ?? 0;
+        if (
+            sub &&
+            amount > 0 &&
+            (this.selectedPackageId == null ||
+                this.selectedPackageId === sub.packageId ||
+                plan?.name === sub.planName)
+        ) {
+            this.selectedAmount = this.amountFromSubscription(sub.cycle ?? 0, amount, this.selectedCycle);
+            return;
+        }
+
+        this.selectedAmount = 0;
+    }
+
+    /** Prefer explicit cycle price; otherwise yearly = monthly x 12 (and the reverse). */
+    private amountForCycle(monthly: number, yearly: number, cycle: number): number {
+        if (cycle === 1) {
+            if (yearly > 0) {
+                return yearly;
+            }
+            return monthly > 0 ? monthly * 12 : 0;
+        }
+        if (monthly > 0) {
+            return monthly;
+        }
+        return yearly > 0 ? Math.round((yearly / 12) * 100) / 100 : 0;
+    }
+
+    private amountFromSubscription(subCycle: number, amount: number, cycle: number): number {
+        if (amount <= 0) {
+            return 0;
+        }
+        if (subCycle === cycle) {
+            return amount;
+        }
+        if (cycle === 1 && subCycle === 0) {
+            return amount * 12;
+        }
+        if (cycle === 0 && subCycle === 1) {
+            return Math.round((amount / 12) * 100) / 100;
+        }
+        return amount;
+    }
+
+    private pickCycle(plan: AssignablePlanDto | null | undefined, preferred: number): number {
+        if (!plan) {
+            return preferred;
+        }
+        if (preferred === 1 && plan.yearlyAmount > 0) {
+            return 1;
+        }
+        if (preferred === 0 && plan.monthlyAmount > 0) {
+            return 0;
+        }
+        if (plan.monthlyAmount > 0) {
+            return 0;
+        }
+        if (plan.yearlyAmount > 0) {
+            return 1;
+        }
+        return preferred;
     }
 }

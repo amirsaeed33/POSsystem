@@ -62,6 +62,9 @@ export class TenantSubscriptionDialogComponent {
             this.cycle = current.planName ? current.cycle : 1;
             this.amount = current.planName ? current.amount : null;
             this.paidUntil = current.paidUntil ? new Date(current.paidUntil) : null;
+            if (!current.planName) {
+                this.applyPlanAmount();
+            }
         } catch (err: any) {
             this.messageService.add({
                 severity: 'error',
@@ -107,6 +110,21 @@ export class TenantSubscriptionDialogComponent {
             });
         } finally {
             this.saving = false;
+        }
+    }
+
+    onPlanOrCycleChange(): void {
+        this.applyPlanAmount();
+    }
+
+    private applyPlanAmount(): void {
+        const plan = this.plans.find((p) => p.id === this.packageId);
+        if (!plan) {
+            return;
+        }
+        const amount = this.cycle === 1 ? plan.yearlyAmount : plan.monthlyAmount;
+        if (amount > 0) {
+            this.amount = amount;
         }
     }
 

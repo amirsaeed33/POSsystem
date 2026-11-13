@@ -159,9 +159,17 @@ namespace SmartPos.Billing
                 .Select(x => new AssignablePlanDto
                 {
                     Id = x.Id,
-                    Name = x.Name
+                    Name = x.Name,
+                    MonthlyAmount = x.MonthlyAmount,
+                    YearlyAmount = x.YearlyAmount
                 })
                 .ToListAsync();
+        }
+
+        [AbpAuthorize(PermissionNames.Pages_Billing)]
+        public virtual async Task<List<AssignablePlanDto>> GetAvailablePlans()
+        {
+            return await LoadAvailablePlans();
         }
 
         [AbpAuthorize(PermissionNames.Pages_Subscriptions)]
@@ -398,13 +406,15 @@ namespace SmartPos.Billing
                 .Take(20)
                 .ToListAsync();
 
+            var plans = await LoadAvailablePlans();
             return new MySubscriptionDto
             {
                 Subscription = subscription == null
                     ? EmptySubscription(tenantId, tenants)
                     : MapSubscription(subscription, pending, tenants),
                 PaymentMethods = methods.Select(x => MapMethod(x, includeQr: true)).ToList(),
-                Payments = payments.Select(x => MapPayment(x, tenants)).ToList()
+                Payments = payments.Select(x => MapPayment(x, tenants)).ToList(),
+                AvailablePlans = MergeCurrentPlanForRenewal(plans, subscription)
             };
         }
 
@@ -417,22 +427,13 @@ namespace SmartPos.Billing
                 throw new UserFriendlyException("Choose how you paid.");
             }
 
-            var subscription = await _subscriptions.GetAll().FirstOrDefaultAsync(x => x.TenantId == tenantId);
-            if (subscription == null || subscription.Amount <= 0)
-            {
-                throw new UserFriendlyException("Your plan is not ready for payment yet. Contact your host.");
-            }
-
             if (await HasPending(tenantId))
             {
                 throw new UserFriendlyException("A receipt is already waiting for approval.");
             }
 
-            var view = MapSubscription(subscription, false, new List<Tenant>());
-            if (!view.CanPay)
-            {
-                throw new UserFriendlyException("This plan is not due for payment yet.");
-            }
+            var subscription = await _subscriptions.GetAll().FirstOrDefaultAsync(x => x.TenantId == tenantId);
+            var resolved = await ResolvePurchase(input, subscription);
 
             var method = await _paymentMethods.GetAll()
                 .FirstOrDefaultAsync(x => x.Id == input.PaymentMethodId && x.IsActive);
@@ -445,10 +446,10 @@ namespace SmartPos.Billing
             var payment = new SubscriptionPayment
             {
                 TenantId = tenantId,
-                PackageId = subscription.PackageId,
-                PlanName = subscription.PlanName,
-                Cycle = subscription.Cycle,
-                Amount = subscription.Amount,
+                PackageId = resolved.PackageId,
+                PlanName = resolved.PlanName,
+                Cycle = resolved.Cycle,
+                Amount = resolved.Amount,
                 Method = method.Kind,
                 PaymentMethodId = method.Id,
                 Status = SubscriptionPaymentStatus.Pending,
@@ -465,6 +466,214 @@ namespace SmartPos.Billing
             return MapPayment(payment, tenants);
         }
 
+        private async Task<List<AssignablePlanDto>> LoadAvailablePlans()
+        {
+            var rows = await _packages.GetAll()
+                .Where(x => x.IsActive && !x.ContactViaWhatsApp && (x.MonthlyAmount > 0 || x.YearlyAmount > 0))
+                .OrderBy(x => x.SortOrder)
+                .Select(x => new AssignablePlanDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    MonthlyAmount = x.MonthlyAmount,
+                    YearlyAmount = x.YearlyAmount
+                })
+                .ToListAsync();
+
+            foreach (var row in rows)
+            {
+                FillMissingCycleAmounts(row);
+            }
+
+            return rows;
+        }
+
+        /// <summary>
+        /// Clients can renew the plan the host already assigned, even when package monthly/yearly
+        /// catalog prices are still zero. Missing yearly is offered as monthly x 12 (and the reverse).
+        /// </summary>
+        private static List<AssignablePlanDto> MergeCurrentPlanForRenewal(
+            List<AssignablePlanDto> plans,
+            TenantSubscription subscription)
+        {
+            var list = plans == null ? new List<AssignablePlanDto>() : plans.ToList();
+            if (subscription == null ||
+                subscription.Amount <= 0 ||
+                string.IsNullOrWhiteSpace(subscription.PlanName))
+            {
+                return list;
+            }
+
+            AssignablePlanDto row = null;
+            if (subscription.PackageId.HasValue && subscription.PackageId.Value > 0)
+            {
+                row = list.FirstOrDefault(x => x.Id == subscription.PackageId.Value);
+            }
+
+            if (row == null)
+            {
+                row = new AssignablePlanDto
+                {
+                    Id = subscription.PackageId.GetValueOrDefault(),
+                    Name = subscription.PlanName,
+                    MonthlyAmount = 0,
+                    YearlyAmount = 0
+                };
+                list.Insert(0, row);
+            }
+
+            if (subscription.Cycle == BillingCycle.Yearly)
+            {
+                if (row.YearlyAmount <= 0)
+                {
+                    row.YearlyAmount = subscription.Amount;
+                }
+            }
+            else if (row.MonthlyAmount <= 0)
+            {
+                row.MonthlyAmount = subscription.Amount;
+            }
+
+            FillMissingCycleAmounts(row);
+            return list;
+        }
+
+        private static void FillMissingCycleAmounts(AssignablePlanDto row)
+        {
+            if (row == null)
+            {
+                return;
+            }
+
+            if (row.MonthlyAmount > 0 && row.YearlyAmount <= 0)
+            {
+                row.YearlyAmount = row.MonthlyAmount * 12;
+            }
+            else if (row.YearlyAmount > 0 && row.MonthlyAmount <= 0)
+            {
+                row.MonthlyAmount = Math.Round(row.YearlyAmount / 12m, 2, MidpointRounding.AwayFromZero);
+            }
+        }
+
+        private static decimal AmountForCycle(decimal monthly, decimal yearly, BillingCycle cycle)
+        {
+            if (cycle == BillingCycle.Yearly)
+            {
+                if (yearly > 0)
+                {
+                    return yearly;
+                }
+
+                return monthly > 0 ? monthly * 12 : 0;
+            }
+
+            if (monthly > 0)
+            {
+                return monthly;
+            }
+
+            return yearly > 0
+                ? Math.Round(yearly / 12m, 2, MidpointRounding.AwayFromZero)
+                : 0;
+        }
+
+        private static decimal AmountFromSubscription(TenantSubscription subscription, BillingCycle cycle)
+        {
+            if (subscription == null || subscription.Amount <= 0)
+            {
+                return 0;
+            }
+
+            if (subscription.Cycle == cycle)
+            {
+                return subscription.Amount;
+            }
+
+            if (cycle == BillingCycle.Yearly && subscription.Cycle == BillingCycle.Monthly)
+            {
+                return subscription.Amount * 12;
+            }
+
+            if (cycle == BillingCycle.Monthly && subscription.Cycle == BillingCycle.Yearly)
+            {
+                return Math.Round(subscription.Amount / 12m, 2, MidpointRounding.AwayFromZero);
+            }
+
+            return subscription.Amount;
+        }
+
+        private async Task<(int? PackageId, string PlanName, BillingCycle Cycle, decimal Amount)> ResolvePurchase(
+            SubmitSubscriptionPaymentInput input,
+            TenantSubscription subscription)
+        {
+            // Renew / buy more of the assigned plan when catalog prices are missing.
+            if (input.PackageId <= 0)
+            {
+                if (subscription == null ||
+                    subscription.Amount <= 0 ||
+                    string.IsNullOrWhiteSpace(subscription.PlanName))
+                {
+                    throw new UserFriendlyException("Choose a subscription plan.");
+                }
+
+                var renewAmount = AmountFromSubscription(subscription, input.Cycle);
+                if (renewAmount <= 0)
+                {
+                    throw new UserFriendlyException("That billing cycle is not available for your plan.");
+                }
+
+                return (
+                    subscription.PackageId,
+                    subscription.PlanName,
+                    input.Cycle,
+                    renewAmount);
+            }
+
+            var package = await _packages.GetAll()
+                .FirstOrDefaultAsync(x => x.Id == input.PackageId && x.IsActive);
+            if (package == null || package.ContactViaWhatsApp)
+            {
+                // Still allow renewing the assigned package even if it was later deactivated.
+                if (subscription != null &&
+                    subscription.PackageId == input.PackageId &&
+                    subscription.Amount > 0 &&
+                    !string.IsNullOrWhiteSpace(subscription.PlanName))
+                {
+                    var fallback = AmountFromSubscription(subscription, input.Cycle);
+                    if (fallback > 0)
+                    {
+                        return (
+                            subscription.PackageId,
+                            subscription.PlanName,
+                            input.Cycle,
+                            fallback);
+                    }
+                }
+
+                throw new UserFriendlyException("That plan is not available.");
+            }
+
+            var amount = AmountForCycle(package.MonthlyAmount, package.YearlyAmount, input.Cycle);
+
+            if (amount <= 0 &&
+                subscription != null &&
+                subscription.PackageId == package.Id &&
+                subscription.Amount > 0)
+            {
+                amount = AmountFromSubscription(subscription, input.Cycle);
+            }
+
+            if (amount <= 0)
+            {
+                throw new UserFriendlyException(
+                    input.Cycle == BillingCycle.Yearly
+                        ? "Yearly billing is not available for that plan."
+                        : "Monthly billing is not available for that plan.");
+            }
+
+            return (package.Id, package.Name, input.Cycle, amount);
+        }
+
         private async Task<TenantSubscriptionDto> ApplyApproval(SubscriptionPayment payment, string note)
         {
             var subscription = await _subscriptions.GetAll()
@@ -475,6 +684,7 @@ namespace SmartPos.Billing
             }
 
             var today = Clock.Now.Date;
+            // Always add the purchased period onto remaining time (or today if expired / new).
             var stillActive = subscription.PaidUntil.HasValue && !IsPaymentDatePassed(subscription.PaidUntil, today);
             var start = stillActive ? subscription.PaidUntil.Value.Date : today;
             subscription.PaidUntil = payment.Cycle == BillingCycle.Yearly
@@ -535,7 +745,7 @@ namespace SmartPos.Billing
                     (string.IsNullOrWhiteSpace(method?.AccountNumber) ? "" : " · " + WebUtility.HtmlEncode(method.AccountNumber)) +
                     "</p>" +
                     button +
-                    "<p style=\"color:#64748b;font-size:13px;\">Approving reactivates the plan from today, or adds the period onto a date that is still in the future.</p>" +
+                    "<p style=\"color:#64748b;font-size:13px;\">Approving adds one month or one year onto the current paid-until date (or from today if it has already passed).</p>" +
                     "</div>";
 
                 await _mailSender.SendAsync(

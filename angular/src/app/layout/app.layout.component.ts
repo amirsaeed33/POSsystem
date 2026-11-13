@@ -37,8 +37,11 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
     showBranchLockOverlay = false;
     /** Paid-until date has passed. The business can only open Billing. */
     subscriptionExpired = false;
+    /** Plan is still active but due within 7 days. Banner only — not a lock. */
+    subscriptionExpiringSoon = false;
     subscriptionPending = false;
     subscriptionPaidUntil: string | null = null;
+    subscriptionDaysLeft = 0;
     showSubscriptionLock = false;
     private readonly billingRoute = '/billing';
     lockedBranch: BranchDto | null = null;
@@ -143,7 +146,9 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
     private async refreshSubscriptionLock(): Promise<void> {
         if (!this.authService.isAuthenticated() || BranchContextService.isHostAdminSession()) {
             this.subscriptionExpired = false;
+            this.subscriptionExpiringSoon = false;
             this.subscriptionPending = false;
+            this.subscriptionDaysLeft = 0;
             this.showSubscriptionLock = false;
             return;
         }
@@ -153,8 +158,14 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
             this.subscriptionExpired = status.expired;
             this.subscriptionPending = status.hasPendingPayment;
             this.subscriptionPaidUntil = status.paidUntil || null;
+            this.subscriptionDaysLeft = status.daysLeft ?? 0;
+            this.subscriptionExpiringSoon =
+                !status.expired &&
+                !!status.paidUntil &&
+                this.subscriptionDaysLeft <= 7;
         } catch {
             this.subscriptionExpired = false;
+            this.subscriptionExpiringSoon = false;
             this.showSubscriptionLock = false;
             return;
         }

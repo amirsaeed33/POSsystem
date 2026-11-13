@@ -90,6 +90,8 @@ export class PackageService {
                 raw.contactViaWhatsApp ?? raw.ContactViaWhatsApp ?? false,
             isActive: raw.isActive ?? raw.IsActive ?? true,
             sortOrder: raw.sortOrder ?? raw.SortOrder ?? 0,
+            monthlyAmount: Number(raw.monthlyAmount ?? raw.MonthlyAmount ?? 0),
+            yearlyAmount: Number(raw.yearlyAmount ?? raw.YearlyAmount ?? 0),
         };
     }
 

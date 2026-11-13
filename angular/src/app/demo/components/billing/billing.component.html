@@ -33,7 +33,7 @@
                     · {{ sub.daysLeft }} days left
                 </div>
                 <div class="text-500 text-sm mt-1" *ngIf="!sub.planName">
-                    Your host has not assigned a plan yet.
+                    Purchase a package, upload the receipt, and wait for host approval.
                 </div>
             </div>
             <div>
@@ -43,10 +43,10 @@
             <div class="flex align-items-center justify-content-between gap-2">
                 <span [class]="statusClass(sub.status)">{{ statusLabel(sub) }}</span>
                 <button
-                    *ngIf="sub.canPay"
+                    *ngIf="canChangePlan"
                     pButton
                     type="button"
-                    label="Pay"
+                    [label]="payButtonLabel(sub)"
                     class="p-button-sm p-button-outlined"
                     (click)="openPay()"
                 ></button>
@@ -91,7 +91,7 @@
         <ng-template pTemplate="body" let-row>
             <tr>
                 <td>{{ row.creationTime | date: 'dd.MM.yyyy' }}</td>
-                <td>{{ row.planName }}</td>
+                <td>{{ row.planName }} · {{ row.cycleName }}</td>
                 <td>{{ money(row.amount) }}</td>
                 <td>{{ row.methodName }}</td>
                 <td>{{ row.statusName }}</td>
@@ -106,11 +106,60 @@
     </p-table>
 </div>
 
-<p-dialog header="Pay subscription" [(visible)]="payVisible" [modal]="true" [style]="{ width: '36rem' }" [draggable]="false">
-    <p class="mt-0" *ngIf="subscription as sub">
-        Pay <strong>{{ money(sub.amount) }}</strong> {{ sub.cycleName }} for {{ sub.planName }}.
-        After you upload the receipt it stays on the waiting list until the host approves it.
+<p-dialog header="Purchase package" [(visible)]="payVisible" [modal]="true" [style]="{ width: '36rem' }" [draggable]="false">
+    <p class="mt-0">
+        Choose a package and Monthly or Yearly, pay that amount, then upload the receipt.
+        When the host approves, your next payment date moves forward by one month or one year
+        from your current paid-until date (or from today if it has already passed).
     </p>
+
+    <div class="formgrid grid mb-3" *ngIf="availablePlans.length; else noPlans">
+        <div class="field col-12 md:col-6 mb-0">
+            <label class="font-medium">Plan</label>
+            <p-dropdown
+                class="w-full"
+                styleClass="w-full"
+                [options]="availablePlans"
+                [(ngModel)]="selectedPackageId"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Choose a plan"
+                appendTo="body"
+                (onChange)="onPlanChange()"
+            ></p-dropdown>
+        </div>
+        <div class="field col-12 md:col-6 mb-0" *ngIf="selectedPlan || subscription?.planName">
+            <label class="font-medium">Billing</label>
+            <p-dropdown
+                class="w-full"
+                styleClass="w-full"
+                [options]="cycleOptions"
+                [(ngModel)]="selectedCycle"
+                optionLabel="label"
+                optionValue="value"
+                appendTo="body"
+                (onChange)="onCycleChange()"
+            ></p-dropdown>
+        </div>
+    </div>
+    <ng-template #noPlans>
+        <p class="text-500" *ngIf="subscription?.planName && subscription?.amount; else noAssigned">
+            You can renew your current plan ({{ subscription?.planName }} · {{ money(subscription?.amount) }}).
+        </p>
+        <ng-template #noAssigned>
+            <p class="text-500">
+                No plan is assigned yet. Ask the host to assign a plan, or to set monthly/yearly amounts on a package.
+            </p>
+        </ng-template>
+    </ng-template>
+
+    <div class="mb-3" *ngIf="selectedPlan || subscription?.planName">
+        <div class="font-bold text-900">{{ money(selectedAmount) }}</div>
+        <div class="text-500 text-sm" *ngIf="selectedCycle === 1 && selectedAmount > 0">
+            Yearly total. Approving adds 1 year to the paid-until date.
+        </div>
+    </div>
+
     <div class="flex flex-wrap gap-2 mb-3" *ngIf="data?.paymentMethods?.length; else noMethods">
         <button
             *ngFor="let method of data?.paymentMethods"
@@ -143,6 +192,14 @@
 
     <ng-template pTemplate="footer">
         <button pButton type="button" label="Cancel" class="p-button-text" (click)="payVisible = false"></button>
-        <button pButton type="button" label="Submit receipt" icon="pi pi-upload" [loading]="submitting" [disabled]="!data?.paymentMethods?.length" (click)="submit()"></button>
+        <button
+            pButton
+            type="button"
+            label="Submit receipt"
+            icon="pi pi-upload"
+            [loading]="submitting"
+            [disabled]="(!availablePlans.length && !(subscription?.planName && subscription?.amount)) || !data?.paymentMethods?.length"
+            (click)="submit()"
+        ></button>
     </ng-template>
 </p-dialog>

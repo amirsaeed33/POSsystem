@@ -904,6 +904,12 @@ namespace SmartPos.EntityFrameworkCore
                 b.HasIndex(x => new { x.TenantId, x.BranchId, x.LastSeen });
             });
 
+            modelBuilder.Entity<Package>(b =>
+            {
+                b.Property(x => x.MonthlyAmount).HasPrecision(18, 2);
+                b.Property(x => x.YearlyAmount).HasPrecision(18, 2);
+            });
+
             modelBuilder.Entity<PaymentMethod>(b =>
             {
                 b.Property(x => x.AccountTitle).HasMaxLength(PaymentMethod.MaxAccountTitleLength).IsRequired();

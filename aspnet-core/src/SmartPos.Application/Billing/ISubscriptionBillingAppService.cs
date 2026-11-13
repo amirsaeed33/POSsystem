@@ -15,6 +15,8 @@ namespace SmartPos.Billing
 
         Task<List<AssignablePlanDto>> GetAssignablePlans();
 
+        Task<List<AssignablePlanDto>> GetAvailablePlans();
+
         Task<List<TenantSubscriptionDto>> GetSubscriptions();
 
         Task<TenantSubscriptionDto> GetTenantSubscription(int tenantId);

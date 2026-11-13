@@ -52,6 +52,26 @@
                     >Pay now</a>
                 </div>
 
+                <div
+                    *ngIf="!subscriptionExpired && subscriptionExpiringSoon"
+                    class="branch-lock-banner branch-lock-banner--pending mb-3 p-3 border-round flex align-items-start gap-3"
+                >
+                    <i class="pi pi-clock text-xl mt-1"></i>
+                    <div class="flex-1">
+                        <div class="font-semibold mb-1">
+                            Subscription renews in {{ subscriptionDaysLeft }} day{{ subscriptionDaysLeft === 1 ? '' : 's' }}
+                        </div>
+                        <div class="text-sm line-height-3">
+                            Paid until {{ subscriptionPaidUntil | date: 'dd.MM.yyyy' }}.
+                            You can buy another month or year from Billing to push that date forward.
+                        </div>
+                    </div>
+                    <a
+                        routerLink="/billing"
+                        class="p-button p-button-sm p-button-outlined white-space-nowrap"
+                    >Go to billing</a>
+                </div>
+
                 <app-breadcrumb></app-breadcrumb>
 
                 <div class="branch-lock-content" [class.branch-lock-content--locked]="showBranchLockOverlay || showSubscriptionLock">

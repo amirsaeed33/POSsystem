@@ -63,6 +63,10 @@ namespace SmartPos.Billing.Dto
         public int Id { get; set; }
 
         public string Name { get; set; }
+
+        public decimal MonthlyAmount { get; set; }
+
+        public decimal YearlyAmount { get; set; }
     }
 
     public class TenantSubscriptionDto
@@ -153,10 +157,16 @@ namespace SmartPos.Billing.Dto
         public List<PaymentMethodDto> PaymentMethods { get; set; }
 
         public List<SubscriptionPaymentDto> Payments { get; set; }
+
+        public List<AssignablePlanDto> AvailablePlans { get; set; }
     }
 
     public class SubmitSubscriptionPaymentInput
     {
+        public int PackageId { get; set; }
+
+        public BillingCycle Cycle { get; set; }
+
         public int PaymentMethodId { get; set; }
 
         [Required]

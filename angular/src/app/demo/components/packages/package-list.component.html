@@ -87,6 +87,11 @@
                             <ng-template #customPrice>{{ pkg.price }}</ng-template>
                             <span class="pkg-card__period" *ngIf="pkg.period">{{ pkg.period }}</span>
                         </div>
+                        <div class="text-500 text-sm mt-1" *ngIf="pkg.monthlyAmount || pkg.yearlyAmount">
+                            <span *ngIf="pkg.monthlyAmount">Bill monthly PKR {{ pkg.monthlyAmount | number: '1.0-0' }}</span>
+                            <span *ngIf="pkg.monthlyAmount && pkg.yearlyAmount"> · </span>
+                            <span *ngIf="pkg.yearlyAmount">yearly PKR {{ pkg.yearlyAmount | number: '1.0-0' }}</span>
+                        </div>
                     </div>
                     <app-row-actions
                         *ngIf="canEdit || canDelete"
@@ -131,7 +136,7 @@
 
         <div class="formgrid grid">
             <div class="field col-12 md:col-6">
-                <label for="pkgPrice">Price</label>
+                <label for="pkgPrice">Price (display)</label>
                 <input
                     id="pkgPrice"
                     pInputText
@@ -141,7 +146,7 @@
                 />
             </div>
             <div class="field col-12 md:col-6">
-                <label for="pkgPeriod">Period</label>
+                <label for="pkgPeriod">Period (display)</label>
                 <input
                     id="pkgPeriod"
                     pInputText
@@ -149,6 +154,35 @@
                     maxlength="64"
                     placeholder="/ month"
                 />
+            </div>
+        </div>
+
+        <div class="formgrid grid">
+            <div class="field col-12 md:col-6">
+                <label for="pkgMonthly">Monthly amount (PKR)</label>
+                <p-inputNumber
+                    inputId="pkgMonthly"
+                    [(ngModel)]="form.monthlyAmount"
+                    mode="decimal"
+                    [minFractionDigits]="2"
+                    [maxFractionDigits]="2"
+                    [min]="0"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                ></p-inputNumber>
+            </div>
+            <div class="field col-12 md:col-6">
+                <label for="pkgYearly">Yearly amount (PKR)</label>
+                <p-inputNumber
+                    inputId="pkgYearly"
+                    [(ngModel)]="form.yearlyAmount"
+                    mode="decimal"
+                    [minFractionDigits]="2"
+                    [maxFractionDigits]="2"
+                    [min]="0"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                ></p-inputNumber>
             </div>
         </div>
 

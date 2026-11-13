@@ -51,6 +51,7 @@ namespace SmartPos.Web.Host.Startup
             {
                 EnsureUserPresenceTable();
                 EnsureSubscriptionBillingTables();
+                EnsurePackageBillingAmounts();
             }
 
             var runDbSeed = string.Equals(
@@ -246,6 +247,32 @@ IF NOT EXISTS (
             catch
             {
                 // Tables are created by EF migrations when migrate-on-boot is enabled.
+            }
+        }
+
+        private void EnsurePackageBillingAmounts()
+        {
+            try
+            {
+                using (var uowManager = IocManager.ResolveAsDisposable<IUnitOfWorkManager>())
+                using (var uow = uowManager.Object.Begin())
+                {
+                    var context = uowManager.Object.Current.GetDbContext<SmartPosDbContext>(MultiTenancySides.Host);
+                    context.Database.ExecuteSqlRaw(@"
+IF OBJECT_ID(N'dbo.AppPackages', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH(N'dbo.AppPackages', N'MonthlyAmount') IS NULL
+        ALTER TABLE [dbo].[AppPackages] ADD [MonthlyAmount] decimal(18,2) NOT NULL CONSTRAINT [DF_AppPackages_MonthlyAmount] DEFAULT (0);
+    IF COL_LENGTH(N'dbo.AppPackages', N'YearlyAmount') IS NULL
+        ALTER TABLE [dbo].[AppPackages] ADD [YearlyAmount] decimal(18,2) NOT NULL CONSTRAINT [DF_AppPackages_YearlyAmount] DEFAULT (0);
+END
+");
+                    uow.Complete();
+                }
+            }
+            catch
+            {
+                // Columns are created by EF migrations when migrate-on-boot is enabled.
             }
         }
     }

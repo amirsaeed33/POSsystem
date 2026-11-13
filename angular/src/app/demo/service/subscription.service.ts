@@ -20,6 +20,8 @@ export interface PaymentMethodDto {
 export interface AssignablePlanDto {
     id: number;
     name: string;
+    monthlyAmount: number;
+    yearlyAmount: number;
 }
 
 export interface TenantSubscriptionDto {
@@ -62,6 +64,7 @@ export interface MySubscriptionDto {
     subscription: TenantSubscriptionDto;
     paymentMethods: PaymentMethodDto[];
     payments: SubscriptionPaymentDto[];
+    availablePlans: AssignablePlanDto[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -112,10 +115,7 @@ export class SubscriptionService {
     }
 
     getAssignablePlans(): Promise<AssignablePlanDto[]> {
-        return this.getList('/GetAssignablePlans', 'Failed to load plans', (x) => ({
-            id: x.id ?? x.Id,
-            name: x.name ?? x.Name,
-        }));
+        return this.getList('/GetAssignablePlans', 'Failed to load plans', (x) => this.mapPlan(x));
     }
 
     getSubscriptions(): Promise<TenantSubscriptionDto[]> {
@@ -211,11 +211,14 @@ export class SubscriptionService {
                 subscription: this.mapSubscription(raw.subscription ?? raw.Subscription),
                 paymentMethods: (raw.paymentMethods ?? raw.PaymentMethods ?? []).map((x: any) => this.mapMethod(x)),
                 payments: (raw.payments ?? raw.Payments ?? []).map((x: any) => this.mapPayment(x)),
+                availablePlans: (raw.availablePlans ?? raw.AvailablePlans ?? []).map((x: any) => this.mapPlan(x)),
             };
         });
     }
 
     submitPayment(input: {
+        packageId: number;
+        cycle: number;
         paymentMethodId: number;
         receiptBase64: string;
         receiptContentType: string;
@@ -223,6 +226,15 @@ export class SubscriptionService {
     }): Promise<SubscriptionPaymentDto> {
         return this.post('/SubmitPayment', input, 'Failed to submit the receipt')
             .then((x) => this.mapPayment(x));
+    }
+
+    private mapPlan(raw: any): AssignablePlanDto {
+        return {
+            id: raw.id ?? raw.Id,
+            name: raw.name ?? raw.Name,
+            monthlyAmount: Number(raw.monthlyAmount ?? raw.MonthlyAmount ?? 0),
+            yearlyAmount: Number(raw.yearlyAmount ?? raw.YearlyAmount ?? 0),
+        };
     }
 
     private async getList<T>(path: string, fallback: string, map: (raw: any) => T): Promise<T[]> {

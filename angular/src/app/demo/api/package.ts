@@ -10,6 +10,8 @@ export interface PackageDto {
     contactViaWhatsApp?: boolean;
     isActive?: boolean;
     sortOrder?: number;
+    monthlyAmount?: number;
+    yearlyAmount?: number;
 }
 
 export interface CreatePackageDto {
@@ -23,6 +25,8 @@ export interface CreatePackageDto {
     contactViaWhatsApp?: boolean;
     isActive?: boolean;
     sortOrder?: number;
+    monthlyAmount?: number;
+    yearlyAmount?: number;
 }
 
 export interface PagedPackageResultRequestDto {
