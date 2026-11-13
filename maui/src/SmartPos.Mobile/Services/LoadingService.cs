@@ -31,22 +31,21 @@ public partial class LoadingService : ObservableObject
     [ObservableProperty]
     private bool isTabLoading;
 
-    private CancellationTokenSource? _timeoutCts;
+    private int _token;
+    private DateTimeOffset _shownAt = DateTimeOffset.MinValue;
+    private static readonly TimeSpan MinimumVisible = TimeSpan.FromMilliseconds(450);
 
-    public void ShowTabLoader(int timeoutMs = 3500)
+    public void ShowTabLoader(int timeoutMs = 4000)
     {
+        var token = Interlocked.Increment(ref _token);
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            _timeoutCts?.Cancel();
-            _timeoutCts = new CancellationTokenSource();
-            var token = _timeoutCts.Token;
-
+            _shownAt = DateTimeOffset.UtcNow;
             IsTabLoading = true;
 
-            // Safety timeout: automatically hide after timeoutMs if not already hidden
-            _ = Task.Delay(timeoutMs, token).ContinueWith(t =>
+            _ = Task.Delay(timeoutMs).ContinueWith(_ =>
             {
-                if (!t.IsCanceled)
+                if (token == Volatile.Read(ref _token))
                 {
                     HideTabLoader();
                 }
@@ -56,10 +55,20 @@ public partial class LoadingService : ObservableObject
 
     public void HideTabLoader()
     {
-        MainThread.BeginInvokeOnMainThread(() =>
+        var token = Volatile.Read(ref _token);
+        MainThread.BeginInvokeOnMainThread(async () =>
         {
-            _timeoutCts?.Cancel();
-            _timeoutCts = null;
+            var wait = MinimumVisible - (DateTimeOffset.UtcNow - _shownAt);
+            if (wait > TimeSpan.Zero)
+            {
+                await Task.Delay(wait);
+            }
+
+            if (token != Volatile.Read(ref _token))
+            {
+                return;
+            }
+
             IsTabLoading = false;
         });
     }

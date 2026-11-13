@@ -1,4 +1,5 @@
 using SmartPos.Mobile.Helpers;
+using SmartPos.Mobile.Services;
 using SmartPos.Mobile.ViewModels;
 
 namespace SmartPos.Mobile.Views.Admin;
@@ -22,6 +23,13 @@ public partial class AdminDashboardPage : ContentPage
     {
         base.OnAppearing();
         Shell.SetTabBarIsVisible(this, false);
-        await _vm.LoadAsync();
+        try
+        {
+            await _vm.LoadAsync();
+        }
+        finally
+        {
+            LoadingService.Current.HideTabLoader();
+        }
     }
 }

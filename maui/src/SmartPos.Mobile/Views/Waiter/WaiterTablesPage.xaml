@@ -18,7 +18,7 @@
     </ContentPage.Resources>
 
     <Grid RowDefinitions="*,Auto" BackgroundColor="#EDF3EF">
-        <Grid Grid.Row="0" RowDefinitions="Auto,*" BackgroundColor="#EDF3EF">
+        <Grid Grid.Row="0" RowDefinitions="Auto,*,Auto" BackgroundColor="#EDF3EF">
             <Border BackgroundColor="#0B3D2E"
                     Padding="18,18,18,16"
                     StrokeThickness="0">
@@ -37,7 +37,7 @@
                                FontAttributes="Bold"
                                TextColor="White"
                                LineBreakMode="TailTruncation" />
-                        <Label Text="Tap a table to take or continue an order"
+                        <Label Text="Select a table, then start the order"
                                FontSize="13"
                                TextColor="#9CB9AE" />
                     </VerticalStackLayout>
@@ -133,9 +133,19 @@
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:RestaurantTableDto">
-                        <Border StrokeThickness="0"
+                        <Border Stroke="#0F6B4C"
                                 BackgroundColor="White"
                                 Padding="0">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                    <Setter Property="StrokeThickness" Value="2" />
+                                    <Setter Property="BackgroundColor" Value="#F4FBF7" />
+                                </DataTrigger>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
+                                    <Setter Property="StrokeThickness" Value="0" />
+                                    <Setter Property="BackgroundColor" Value="White" />
+                                </DataTrigger>
+                            </Border.Triggers>
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="18" />
                             </Border.StrokeShape>
@@ -144,7 +154,7 @@
                             </Border.Shadow>
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterTablesViewModel}}, Path=OpenTableCommand}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterTablesViewModel}}, Path=SelectTableCommand}"
                                     CommandParameter="{Binding .}" />
                             </Border.GestureRecognizers>
 
@@ -229,7 +239,37 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+
+            <Border Grid.Row="2"
+                    IsVisible="{Binding HasSelectedTable}"
+                    BackgroundColor="White"
+                    StrokeThickness="0"
+                    Padding="14,10">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <VerticalStackLayout VerticalOptions="Center" Spacing="1">
+                        <Label Text="Selected table"
+                               FontSize="11"
+                               TextColor="#8A9690" />
+                        <Label Text="{Binding SelectedTableTitle}"
+                               FontAttributes="Bold"
+                               FontSize="16"
+                               TextColor="#1F2A24"
+                               LineBreakMode="TailTruncation" />
+                    </VerticalStackLayout>
+                    <Button Grid.Column="1"
+                            Text="{Binding StartOrderText}"
+                            Command="{Binding OpenTableCommand}"
+                            BackgroundColor="#0F6B4C"
+                            TextColor="White"
+                            CornerRadius="12"
+                            HeightRequest="44"
+                            Padding="18,0"
+                            FontAttributes="Bold" />
+                </Grid>
+            </Border>
         </Grid>
+
+        <controls:TabLoadingOverlay Grid.Row="0" />
 
         <controls:BubbleTabBar Grid.Row="1"
                                Mode="Waiter"

@@ -279,7 +279,10 @@ namespace SmartPos.Restaurant
             }
 
             var isWaiter = await IsCurrentUserWaiterAsync();
-            order.CustomerId = input.CustomerId;
+            if (input.CustomerId.HasValue && input.CustomerId.Value > 0)
+            {
+                order.CustomerId = input.CustomerId;
+            }
             if (isWaiter)
             {
                 var printer = await GetCurrentPrinterIdentityAsync();
@@ -590,9 +593,15 @@ namespace SmartPos.Restaurant
                     {
                         existing.WaiterName = input.WaiterName.Trim();
                         table.WaiterName = existing.WaiterName;
-                        await _orderRepository.UpdateAsync(existing);
-                        await _tableRepository.UpdateAsync(table);
                     }
+
+                    if (input.CustomerId.HasValue && input.CustomerId.Value > 0)
+                    {
+                        existing.CustomerId = input.CustomerId;
+                    }
+
+                    await _orderRepository.UpdateAsync(existing);
+                    await _tableRepository.UpdateAsync(table);
                     return ObjectMapper.Map<RestaurantOrderDto>(existing);
                 }
             }
@@ -632,6 +641,9 @@ namespace SmartPos.Restaurant
                     ? (string.IsNullOrWhiteSpace(table.Area) ? "Car Parking" : table.Area)
                     : null,
                 WaiterName = waiter.Trim(),
+                CustomerId = input.CustomerId.HasValue && input.CustomerId.Value > 0
+                    ? input.CustomerId
+                    : null,
                 Notes = input.Notes,
                 Lines = new List<RestaurantOrderLine>()
             };
@@ -648,6 +660,37 @@ namespace SmartPos.Restaurant
             var saved = await _orderRepository.GetAll()
                 .Include(o => o.Lines)
                 .FirstOrDefaultAsync(o => o.Id == id);
+
+            return ObjectMapper.Map<RestaurantOrderDto>(saved);
+        }
+
+        public async Task<RestaurantOrderDto> SetOrderCustomerAsync(int orderId, int customerId)
+        {
+            if (orderId <= 0)
+            {
+                throw new UserFriendlyException("Order is required.");
+            }
+
+            if (customerId <= 0)
+            {
+                throw new UserFriendlyException("Select a customer.");
+            }
+
+            var order = await _orderRepository.FirstOrDefaultAsync(orderId);
+            if (order == null)
+            {
+                throw new UserFriendlyException("Order not found.");
+            }
+
+            await _branchAccessChecker.EnsureCanAccessBranchAsync(order.BranchId);
+            order.CustomerId = customerId;
+            await _orderRepository.UpdateAsync(order);
+            await CurrentUnitOfWork.SaveChangesAsync();
+
+            var saved = await _orderRepository.GetAll()
+                .Include(o => o.Lines)
+                .Include(o => o.Customer)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
 
             return ObjectMapper.Map<RestaurantOrderDto>(saved);
         }

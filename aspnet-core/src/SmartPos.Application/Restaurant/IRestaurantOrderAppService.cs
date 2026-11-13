@@ -20,6 +20,8 @@ namespace SmartPos.Restaurant
 
         Task<RestaurantOrderDto> OpenTableSessionAsync(OpenTableSessionDto input);
 
+        Task<RestaurantOrderDto> SetOrderCustomerAsync(int orderId, int customerId);
+
         Task<List<RestaurantOrderDto>> GetActiveCarOrdersAsync(int branchId);
 
         Task<SendToKitchenResultDto> SendToKitchenAsync(int orderId);

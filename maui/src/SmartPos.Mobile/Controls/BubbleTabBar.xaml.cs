@@ -1,4 +1,5 @@
 using SmartPos.Mobile.Services;
+using SmartPos.Mobile.ViewModels;
 
 namespace SmartPos.Mobile.Controls;
 
@@ -422,6 +423,17 @@ public partial class BubbleTabBar : ContentView
         var route = _routes[index];
         if (string.IsNullOrWhiteSpace(route))
         {
+            return;
+        }
+
+        if (Mode == BubbleTabMode.Waiter
+            && string.Equals(route, "//waiter/order", StringComparison.OrdinalIgnoreCase)
+            && WaiterOrderSession.CurrentOrder == null)
+        {
+            await Shell.Current.DisplayAlert(
+                "Select a table",
+                "Choose a table first, then start the order.",
+                "OK");
             return;
         }
 

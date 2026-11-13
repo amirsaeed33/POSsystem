@@ -333,6 +333,9 @@ public partial class CustomerOrderViewModel : BaseViewModel
     {
         if (chip == null) return;
 
+        LoadingService.Current.ShowTabLoader();
+        try
+        {
         if (chip.IsAll)
         {
             SelectedCategories.Clear();
@@ -373,6 +376,11 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
         UpdateSelectedCategoryTitle();
         ApplyFilters();
+        }
+        finally
+        {
+            LoadingService.Current.HideTabLoader();
+        }
     }
 
     [RelayCommand]

@@ -22,7 +22,17 @@ public partial class RiderHistoryViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task AppearingAsync() => await LoadAsync();
+    private async Task AppearingAsync()
+    {
+        try
+        {
+            await LoadAsync();
+        }
+        finally
+        {
+            LoadingService.Current.HideTabLoader();
+        }
+    }
 
     [RelayCommand]
     private async Task LoadAsync()

@@ -125,6 +125,23 @@ public class RestaurantTableDto : EntityDto, INotifyPropertyChanged
     public string CapacityLine => Capacity > 0 ? $"{Capacity} seats" : (IsCarBay ? "Vehicle bay" : "Open seating");
 
     public string MetaLine => $"{AreaDisplay}  ·  {CapacityLine}";
+
+    private bool _isSelected;
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value)
+            {
+                return;
+            }
+
+            _isSelected = value;
+            OnPropertyChanged();
+        }
+    }
 }
 
 public class RestaurantOrderDto : EntityDto
@@ -332,6 +349,9 @@ public class OpenTableSessionDto
     [JsonPropertyName("waiterName")]
     public string? WaiterName { get; set; }
 
+    [JsonPropertyName("customerId")]
+    public int? CustomerId { get; set; }
+
     [JsonPropertyName("carNumber")]
     public string? CarNumber { get; set; }
 
@@ -430,6 +450,36 @@ public class SplitBillDto
 
     [JsonPropertyName("moveLineIds")]
     public List<int> MoveLineIds { get; set; } = new();
+}
+
+public class ChangeTableStatusDto
+{
+    [JsonPropertyName("tableId")]
+    public int TableId { get; set; }
+
+    [JsonPropertyName("status")]
+    public int Status { get; set; }
+
+    [JsonPropertyName("currentOrderId")]
+    public int? CurrentOrderId { get; set; }
+}
+
+public class PosCustomerDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("phone")]
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("customerType")]
+    public int CustomerType { get; set; }
+
+    public string Display =>
+        string.IsNullOrWhiteSpace(Phone) ? (Name ?? "Customer") : $"{Name}  ·  {Phone}";
 }
 
 public class AssignWaiterDto

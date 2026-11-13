@@ -17,6 +17,16 @@ public class RestaurantService
     public Task AssignWaiterAsync(AssignWaiterDto input) =>
         _api.PostAsync("api/services/app/RestaurantTable/AssignWaiter", input);
 
+    public Task ChangeStatusAsync(ChangeTableStatusDto input) =>
+        _api.PostAsync("api/services/app/RestaurantTable/ChangeStatus", input);
+
+    public async Task<List<PosCustomerDto>> GetPosCustomersAsync()
+    {
+        var result = await _api.GetAsync<AbpListResult<PosCustomerDto>>(
+            "api/services/app/Sale/GetPosCustomers");
+        return result?.Items ?? new List<PosCustomerDto>();
+    }
+
     public Task<List<RestaurantOrderDto>> GetActiveOrdersAsync(int branchId) =>
         _api.GetAsync<List<RestaurantOrderDto>>($"api/services/app/RestaurantOrder/GetActiveOrders?branchId={branchId}");
 
@@ -28,6 +38,11 @@ public class RestaurantService
 
     public Task<RestaurantOrderDto> OpenTableSessionAsync(OpenTableSessionDto input) =>
         _api.PostAsync<RestaurantOrderDto>("api/services/app/RestaurantOrder/OpenTableSession", input);
+
+    public Task<RestaurantOrderDto> SetOrderCustomerAsync(int orderId, int customerId) =>
+        _api.PostAsync<RestaurantOrderDto>(
+            $"api/services/app/RestaurantOrder/SetOrderCustomer?orderId={orderId}&customerId={customerId}",
+            null);
 
     public Task<RestaurantOrderDto> SaveOrderAsync(CreateOrUpdateRestaurantOrderDto input) =>
         _api.PostAsync<RestaurantOrderDto>("api/services/app/RestaurantOrder/SaveOrder", input);

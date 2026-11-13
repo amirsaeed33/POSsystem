@@ -42,10 +42,17 @@ public partial class RiderDashboardViewModel : BaseViewModel
     [RelayCommand]
     private async Task AppearingAsync()
     {
-        await RefreshAsync();
-        _pollCts?.Cancel();
-        _pollCts = new CancellationTokenSource();
-        _ = PollAsync(_pollCts.Token);
+        try
+        {
+            await RefreshAsync();
+            _pollCts?.Cancel();
+            _pollCts = new CancellationTokenSource();
+            _ = PollAsync(_pollCts.Token);
+        }
+        finally
+        {
+            LoadingService.Current.HideTabLoader();
+        }
     }
 
     [RelayCommand]

@@ -23,7 +23,17 @@ public partial class WaiterMyOrdersViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task AppearingAsync() => await RefreshAsync();
+    private async Task AppearingAsync()
+    {
+        try
+        {
+            await RefreshAsync();
+        }
+        finally
+        {
+            LoadingService.Current.HideTabLoader();
+        }
+    }
 
     [RelayCommand]
     private async Task RefreshAsync()

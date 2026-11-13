@@ -101,6 +101,8 @@
             </RefreshView>
         </Grid>
 
+        <controls:TabLoadingOverlay Grid.Row="0" />
+
         <controls:BubbleTabBar Grid.Row="1"
                                Mode="Waiter"
                                SelectedIndex="2"

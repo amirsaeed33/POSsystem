@@ -28,6 +28,18 @@ public partial class WaiterTablesViewModel : BaseViewModel
     [ObservableProperty]
     private string billedCount = "0";
 
+    [ObservableProperty]
+    private RestaurantTableDto? selectedTable;
+
+    [ObservableProperty]
+    private bool hasSelectedTable;
+
+    [ObservableProperty]
+    private string selectedTableTitle = string.Empty;
+
+    [ObservableProperty]
+    private string startOrderText = "Start order";
+
     public ObservableCollection<RestaurantTableDto> Tables { get; } = new();
 
     private IDispatcherTimer? _clock;
@@ -45,8 +57,15 @@ public partial class WaiterTablesViewModel : BaseViewModel
     [RelayCommand]
     private async Task AppearingAsync()
     {
-        StartClock();
-        await RefreshAsync();
+        try
+        {
+            StartClock();
+            await RefreshAsync();
+        }
+        finally
+        {
+            LoadingService.Current.HideTabLoader();
+        }
     }
 
     [RelayCommand]
@@ -108,12 +127,18 @@ public partial class WaiterTablesViewModel : BaseViewModel
                     string.IsNullOrWhiteSpace(t.WaiterName)).ToList()
                 : all;
 
+            var previousId = SelectedTable?.Id;
             Tables.Clear();
             var active = filtered.Where(t => t.IsActive).ToList();
             foreach (var table in active)
             {
                 Tables.Add(table);
             }
+
+            var stillSelected = previousId is int id
+                ? active.FirstOrDefault(t => t.Id == id)
+                : null;
+            ApplySelection(stillSelected);
 
             AvailableCount = active.Count(t => t.IsFree).ToString();
             OccupiedCount = active.Count(t => t.IsOccupied).ToString();
@@ -155,22 +180,106 @@ public partial class WaiterTablesViewModel : BaseViewModel
     partial void OnMyTablesOnlyChanged(bool value) => _ = RefreshAsync();
 
     [RelayCommand]
-    private async Task OpenTableAsync(RestaurantTableDto? table)
+    private void SelectTable(RestaurantTableDto? table) => ApplySelection(table);
+
+    private void ApplySelection(RestaurantTableDto? table)
     {
-        if (table == null || _session.BranchId is not int branchId)
+        foreach (var item in Tables)
         {
+            item.IsSelected = table != null && item.Id == table.Id;
+        }
+
+        SelectedTable = table;
+        HasSelectedTable = table != null;
+        SelectedTableTitle = table?.DisplayTitle ?? string.Empty;
+        StartOrderText = table == null || table.IsFree ? "Start order" : "Continue order";
+    }
+
+    private async Task<RestaurantOrderDto?> ResolveLiveOrderAsync(RestaurantTableDto table)
+    {
+        if (table.IsFree)
+        {
+            return null;
+        }
+
+        if (table.CurrentOrderId is int orderId && orderId > 0)
+        {
+            var byId = await TryGetOrderAsync(orderId);
+            if (IsLiveOrder(byId))
+            {
+                return byId;
+            }
+        }
+
+        var byTable = await TryGetByTableAsync(table.Id);
+        return IsLiveOrder(byTable) ? byTable : null;
+    }
+
+    private async Task<RestaurantOrderDto?> TryGetOrderAsync(int orderId)
+    {
+        try
+        {
+            return await _restaurant.GetOrderAsync(orderId);
+        }
+        catch (ApiException ex) when (IsMissingOrder(ex))
+        {
+            return null;
+        }
+    }
+
+    private async Task<RestaurantOrderDto?> TryGetByTableAsync(int tableId)
+    {
+        try
+        {
+            return await _restaurant.GetByTableAsync(tableId);
+        }
+        catch (ApiException ex) when (IsMissingOrder(ex))
+        {
+            return null;
+        }
+    }
+
+    private static bool IsLiveOrder(RestaurantOrderDto? order) =>
+        order != null && order.Id > 0 && order.Status is 0 or 1;
+
+    private static bool IsMissingOrder(Exception ex) =>
+        ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase);
+
+    [RelayCommand]
+    private async Task OpenTableAsync()
+    {
+        var table = SelectedTable;
+        if (table == null)
+        {
+            await Shell.Current.DisplayAlert("Select a table", "Choose a table first.", "OK");
             return;
         }
 
-        await RunBusyAsync(async () =>
+        if (_session.BranchId is not int branchId)
         {
-            RestaurantOrderDto order;
-            if (table.CurrentOrderId is int orderId && orderId > 0)
+            await Shell.Current.DisplayAlert("Order", "No branch assigned to this waiter.", "OK");
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            var order = await ResolveLiveOrderAsync(table);
+
+            if (order == null)
             {
-                order = await _restaurant.GetOrderAsync(orderId);
-            }
-            else if (table.IsFree)
-            {
+                if (!table.IsFree)
+                {
+                    await _restaurant.ChangeStatusAsync(new ChangeTableStatusDto
+                    {
+                        TableId = table.Id,
+                        Status = 0,
+                        CurrentOrderId = null
+                    });
+                    table.Status = 0;
+                    table.CurrentOrderId = null;
+                }
+
                 string? carNumber = null;
                 if (table.IsCarBay)
                 {
@@ -189,22 +298,33 @@ public partial class WaiterTablesViewModel : BaseViewModel
                     CarNumber = carNumber
                 });
 
-                await _restaurant.AssignWaiterAsync(new AssignWaiterDto
+                try
                 {
-                    TableId = table.Id,
-                    WaiterName = _session.User?.DisplayName
-                });
-            }
-            else
-            {
-                order = await _restaurant.GetByTableAsync(table.Id);
+                    await _restaurant.AssignWaiterAsync(new AssignWaiterDto
+                    {
+                        TableId = table.Id,
+                        WaiterName = _session.User?.DisplayName
+                    });
+                }
+                catch
+                {
+                    // The table session is already open. Waiter name can be set later.
+                }
             }
 
             _cart.LoadFromOrder(order);
             WaiterOrderSession.CurrentOrder = order;
             WaiterOrderSession.CurrentTable = table;
             await Shell.Current.GoToAsync("//waiter/order");
-        });
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlert("Order", ex.Message, "OK");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]

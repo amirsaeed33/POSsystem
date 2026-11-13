@@ -75,6 +75,9 @@ namespace SmartPos.Restaurant.Dto
 
         public string WaiterName { get; set; }
 
+        /// <summary>POS customer attached to this table order.</summary>
+        public int? CustomerId { get; set; }
+
         /// <summary>Required when the table is a car bay.</summary>
         public string CarNumber { get; set; }
 

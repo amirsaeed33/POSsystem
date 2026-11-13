@@ -34,6 +34,13 @@ public partial class WaiterOrderViewModel : BaseViewModel
     [ObservableProperty]
     private string kotMessage = string.Empty;
 
+    [ObservableProperty]
+    private PosCustomerDto? selectedCustomer;
+
+    private int _customerId;
+    private bool _lastSaveOk;
+
+    public ObservableCollection<PosCustomerDto> Customers { get; } = new();
     public ObservableCollection<ProductDto> Products { get; } = new();
     public ObservableCollection<WaiterCategoryChip> Categories { get; } = new();
     public ObservableCollection<CartLine> Lines => _cart.Lines;
@@ -62,13 +69,115 @@ public partial class WaiterOrderViewModel : BaseViewModel
     {
         var order = WaiterOrderSession.CurrentOrder;
         var table = WaiterOrderSession.CurrentTable;
-        OrderTitle = order == null
-            ? "Select a table first"
-            : $"{table?.DisplayTitle ?? order.TableNo} · {order.OrderNo}";
-
-        if (!_allProducts.Any())
+        if (order == null)
         {
-            await LoadProductsAsync();
+            OrderTitle = "Select a table first";
+            LoadingService.Current.HideTabLoader();
+            await Shell.Current.GoToAsync("//waiter/tables");
+            return;
+        }
+
+        OrderTitle = $"{table?.DisplayTitle ?? order.TableNo} · {order.OrderNo}";
+
+        try
+        {
+            if (!Customers.Any())
+            {
+                await LoadCustomersAsync();
+            }
+            else
+            {
+                ApplyCustomerSelection();
+            }
+
+            if (!_allProducts.Any())
+            {
+                await LoadProductsAsync();
+            }
+        }
+        finally
+        {
+            LoadingService.Current.HideTabLoader();
+        }
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        try
+        {
+            var list = await _restaurant.GetPosCustomersAsync();
+            Customers.Clear();
+            foreach (var customer in list.OrderBy(c => c.Name))
+            {
+                Customers.Add(customer);
+            }
+        }
+        catch
+        {
+            // Order can still be taken if the customer list cannot be loaded.
+        }
+
+        ApplyCustomerSelection();
+    }
+
+    private void ApplyCustomerSelection()
+    {
+        var currentId = WaiterOrderSession.CurrentOrder?.CustomerId;
+        var match = currentId is int id && id > 0
+            ? Customers.FirstOrDefault(c => c.Id == id)
+            : null;
+        match ??= Customers.FirstOrDefault(c =>
+            (c.Name ?? string.Empty).Contains("walk", StringComparison.OrdinalIgnoreCase));
+        match ??= Customers.FirstOrDefault();
+        if (match != null)
+        {
+            ChooseCustomer(match);
+        }
+    }
+
+    public void ChooseCustomer(PosCustomerDto? customer)
+    {
+        if (customer == null || customer.Id <= 0)
+        {
+            return;
+        }
+
+        _customerId = customer.Id;
+        if (!ReferenceEquals(SelectedCustomer, customer))
+        {
+            SelectedCustomer = customer;
+        }
+
+        var order = WaiterOrderSession.CurrentOrder;
+        if (order != null)
+        {
+            order.CustomerId = customer.Id;
+            order.CustomerName = customer.Name;
+        }
+
+        _ = PersistCustomerAsync(customer.Id);
+    }
+
+    private async Task PersistCustomerAsync(int customerId)
+    {
+        var order = WaiterOrderSession.CurrentOrder;
+        if (order == null || order.Id <= 0 || customerId <= 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var saved = await _restaurant.SetOrderCustomerAsync(order.Id, customerId);
+            if (saved != null)
+            {
+                saved.CustomerId ??= customerId;
+                WaiterOrderSession.CurrentOrder = saved;
+            }
+        }
+        catch
+        {
+            // The current server stores CustomerId when the order is saved.
         }
     }
 
@@ -98,17 +207,27 @@ public partial class WaiterOrderViewModel : BaseViewModel
     [RelayCommand]
     private void SelectCategory(WaiterCategoryChip? category)
     {
-        var name = string.IsNullOrWhiteSpace(category?.Name) ? "All" : category!.Name;
-        SelectedCategory = name;
-        foreach (var chip in Categories)
+        LoadingService.Current.ShowTabLoader();
+        try
         {
-            chip.IsSelected = string.Equals(chip.Name, name, StringComparison.OrdinalIgnoreCase);
-        }
+            var name = string.IsNullOrWhiteSpace(category?.Name) ? "All" : category!.Name;
+            SelectedCategory = name;
+            foreach (var chip in Categories)
+            {
+                chip.IsSelected = string.Equals(chip.Name, name, StringComparison.OrdinalIgnoreCase);
+            }
 
-        ApplyFilters();
+            ApplyFilters();
+        }
+        finally
+        {
+            LoadingService.Current.HideTabLoader();
+        }
     }
 
     partial void OnSearchTextChanged(string value) => ApplyFilters();
+
+    private static bool EnsureTableOpen() => WaiterOrderSession.CurrentOrder != null;
 
     private void ApplyFilters()
     {
@@ -146,7 +265,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
     [RelayCommand]
     private async Task IncreaseCardAsync(ProductDto? product)
     {
-        if (product == null)
+        if (product == null || !EnsureTableOpen())
         {
             return;
         }
@@ -174,7 +293,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
     [RelayCommand]
     private async Task AddProductAsync(ProductDto? product)
     {
-        if (product == null)
+        if (product == null || !EnsureTableOpen())
         {
             return;
         }
@@ -233,15 +352,56 @@ public partial class WaiterOrderViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private async Task RemoveLineAsync(CartLine? line)
+    {
+        if (line == null)
+        {
+            return;
+        }
+
+        var ok = await Shell.Current.DisplayAlert(
+            "Remove item",
+            $"Remove {line.Name} from this order?",
+            "Remove",
+            "Keep");
+        if (!ok)
+        {
+            return;
+        }
+
+        _cart.Remove(line);
+    }
+
+    [RelayCommand]
     private async Task SaveOrderAsync()
     {
         var current = WaiterOrderSession.CurrentOrder;
         var table = WaiterOrderSession.CurrentTable;
         if (current == null || _session.BranchId is not int branchId)
         {
+            _lastSaveOk = false;
             await Shell.Current.DisplayAlert("Order", "Open a table first.", "OK");
             return;
         }
+
+        if (_customerId <= 0)
+        {
+            await LoadCustomersAsync();
+        }
+
+        var customerId = _customerId > 0
+            ? _customerId
+            : (SelectedCustomer?.Id ?? current.CustomerId ?? 0);
+        if (customerId <= 0)
+        {
+            _lastSaveOk = false;
+            await Shell.Current.DisplayAlert("Customer", "Select a customer before sending this order.", "OK");
+            return;
+        }
+
+        _customerId = customerId;
+        current.CustomerId = customerId;
+        _lastSaveOk = false;
 
         await RunBusyAsync(async () =>
         {
@@ -256,6 +416,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
                 CarNumber = current.CarNumber,
                 CarLocation = current.CarLocation,
                 WaiterName = _session.User?.DisplayName,
+                CustomerId = customerId,
                 Notes = current.Notes,
                 DiscountPercent = current.DiscountPercent,
                 DiscountAmount = current.DiscountAmount,
@@ -276,7 +437,9 @@ public partial class WaiterOrderViewModel : BaseViewModel
             };
 
             var saved = await _restaurant.SaveOrderAsync(dto);
+            saved.CustomerId ??= customerId;
             WaiterOrderSession.CurrentOrder = saved;
+            _lastSaveOk = true;
             _cart.LoadFromOrder(saved);
             OrderTitle = $"{table?.DisplayTitle ?? saved.TableNo} · {saved.OrderNo}";
         });
@@ -287,7 +450,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
     {
         await SaveOrderAsync();
         var current = WaiterOrderSession.CurrentOrder;
-        if (current == null) return;
+        if (!_lastSaveOk || current == null) return;
 
         await RunBusyAsync(async () =>
         {
@@ -326,7 +489,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
     {
         await SaveOrderAsync();
         var current = WaiterOrderSession.CurrentOrder;
-        if (current == null) return;
+        if (!_lastSaveOk || current == null) return;
         await RunBusyAsync(async () =>
         {
             var billed = await _restaurant.PrintBillAsync(current.Id);
