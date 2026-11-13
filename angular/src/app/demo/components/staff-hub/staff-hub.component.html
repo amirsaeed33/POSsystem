@@ -19,6 +19,10 @@
             <app-staff-attendance-list [embedded]="true"></app-staff-attendance-list>
         </p-tabPanel>
 
+        <p-tabPanel *ngIf="canAttendance" header="Monthly Staff Attendance">
+            <app-staff-monthly-attendance-list [embedded]="true"></app-staff-monthly-attendance-list>
+        </p-tabPanel>
+
         <p-tabPanel *ngIf="canPayroll" header="Payroll">
             <app-staff-payroll-list [embedded]="true"></app-staff-payroll-list>
         </p-tabPanel>

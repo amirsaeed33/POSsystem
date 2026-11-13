@@ -14,5 +14,8 @@ namespace SmartPos.StaffAttendances
     {
         Task<ListResultDto<DailyAttendanceSheetItemDto>> GetDailySheetAsync(
             GetDailyAttendanceSheetInput input);
+
+        Task<MonthlyAttendanceSheetDto> GetMonthlySheetAsync(
+            GetMonthlyAttendanceSheetInput input);
     }
 }

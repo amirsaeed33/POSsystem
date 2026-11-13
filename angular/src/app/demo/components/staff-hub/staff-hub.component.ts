@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 
-type StaffTab = 'staff' | 'attendance' | 'payroll';
+type StaffTab = 'staff' | 'attendance' | 'monthlyAttendance' | 'payroll';
 
 @Component({
     selector: 'app-staff-hub',
@@ -47,6 +47,7 @@ export class StaffHubComponent implements OnInit {
         }
         if (this.canAttendance) {
             this.tabOrder.push('attendance');
+            this.tabOrder.push('monthlyAttendance');
         }
         if (this.canPayroll) {
             this.tabOrder.push('payroll');

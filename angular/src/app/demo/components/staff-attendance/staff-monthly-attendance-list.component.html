@@ -1,0 +1,138 @@
+<div [ngClass]="{ card: !embedded }">
+    <p-toast></p-toast>
+
+    <div class="flex flex-wrap gap-2 align-items-end justify-content-between mb-3">
+        <div class="flex flex-wrap gap-2 align-items-end">
+            <div class="flex flex-column gap-1">
+                <label class="text-sm text-600 font-medium">Staff</label>
+                <p-dropdown
+                    [options]="staffOptions"
+                    [(ngModel)]="selectedStaffId"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Search & select staff"
+                    [filter]="true"
+                    filterPlaceholder="Search staff"
+                    [showClear]="true"
+                    [disabled]="loadingStaff"
+                    styleClass="w-18rem"
+                    (onChange)="onStaffChange()"
+                ></p-dropdown>
+            </div>
+            <div class="flex flex-column gap-1">
+                <label class="text-sm text-600 font-medium">Month</label>
+                <input
+                    pInputText
+                    type="month"
+                    class="w-12rem"
+                    [(ngModel)]="selectedMonth"
+                    (change)="onMonthChange()"
+                />
+            </div>
+            <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-search"
+                class="p-button-outlined"
+                label="Search"
+                [disabled]="!selectedStaffId"
+                (click)="onSearch()"
+            ></button>
+        </div>
+        <div *ngIf="sheet" class="text-sm text-600">
+            <span class="font-semibold text-900">{{ sheet.staffName }}</span>
+            <span *ngIf="sheet.designation"> · {{ sheet.designation }}</span>
+            <span *ngIf="sheet.branchName"> · {{ sheet.branchName }}</span>
+        </div>
+    </div>
+
+    <div
+        *ngIf="!selectedStaffId"
+        class="surface-50 border-1 border-dashed surface-border border-round p-5 text-center text-500"
+    >
+        Select a staff member to view monthly attendance.
+    </div>
+
+    <p-table
+        *ngIf="selectedStaffId"
+        [value]="days"
+        [paginator]="true"
+        [rows]="31"
+        [rowsPerPageOptions]="[15, 31]"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} days"
+        responsiveLayout="scroll"
+        [loading]="loading"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <th class="white-space-nowrap">Date</th>
+                <th class="white-space-nowrap">Day</th>
+                <th class="white-space-nowrap">Status</th>
+                <th class="white-space-nowrap">Check In</th>
+                <th class="white-space-nowrap">Check Out</th>
+                <th class="white-space-nowrap">Remarks</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-row>
+            <tr>
+                <td>{{ formatDate(row.attendanceDate) }}</td>
+                <td>{{ formatDayName(row.attendanceDate) }}</td>
+                <td>
+                    <span
+                        class="px-2 py-1 border-round font-bold text-xs"
+                        [ngClass]="{
+                            'bg-green-100 text-green-700': row.hasAttendance && +row.status === 0,
+                            'bg-red-100 text-red-700': row.hasAttendance && +row.status === 1,
+                            'bg-yellow-100 text-yellow-700': row.hasAttendance && +row.status === 2,
+                            'bg-blue-100 text-blue-700': row.hasAttendance && +row.status === 3,
+                            'bg-gray-100 text-gray-600': !row.hasAttendance
+                        }"
+                    >
+                        {{ statusLabel(row.status, row.hasAttendance) }}
+                    </span>
+                </td>
+                <td>{{ formatTime(row.checkInTime) }}</td>
+                <td>{{ formatTime(row.checkOutTime) }}</td>
+                <td>{{ row.remarks || '—' }}</td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="6" class="text-center text-500 p-4">
+                    No attendance days found for this month.
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="footer">
+            <tr *ngIf="sheet" class="font-semibold">
+                <td colspan="6">
+                    <div class="flex flex-wrap gap-3 align-items-center justify-content-between py-1">
+                        <span class="text-900">Monthly total</span>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-1 border-round bg-green-100 text-green-700 text-sm">
+                                Present: {{ sheet.presentDays }}
+                            </span>
+                            <span class="px-2 py-1 border-round bg-red-100 text-red-700 text-sm">
+                                Absent: {{ sheet.absentDays }}
+                            </span>
+                            <span class="px-2 py-1 border-round bg-blue-100 text-blue-700 text-sm">
+                                Half Day: {{ sheet.halfDays }}
+                            </span>
+                            <span class="px-2 py-1 border-round bg-yellow-100 text-yellow-700 text-sm">
+                                Leave: {{ sheet.leaveDays }}
+                            </span>
+                            <span class="px-2 py-1 border-round bg-gray-100 text-gray-700 text-sm">
+                                Not marked: {{ sheet.notMarkedDays }}
+                            </span>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>

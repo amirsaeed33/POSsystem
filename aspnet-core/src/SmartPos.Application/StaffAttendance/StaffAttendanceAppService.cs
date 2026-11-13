@@ -132,6 +132,122 @@ namespace SmartPos.StaffAttendances
             return new ListResultDto<DailyAttendanceSheetItemDto>(items);
         }
 
+        /// <summary>
+        /// Full-month attendance for one staff member, including unmarked days + status totals.
+        /// </summary>
+        public async Task<MonthlyAttendanceSheetDto> GetMonthlySheetAsync(
+            GetMonthlyAttendanceSheetInput input)
+        {
+            CheckGetAllPermission();
+
+            if (input == null || input.StaffId <= 0)
+            {
+                throw new UserFriendlyException("Please select a staff member.");
+            }
+
+            var monthStart = ParseMonthStart(input.Month);
+            var monthEndExclusive = monthStart.AddMonths(1);
+            var daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+
+            var branchId = BranchQueryHelper.ResolveBranchIdForFilter(
+                _branchContext, _userRepository, AbpSession, PermissionChecker);
+
+            var staff = await _staffRepository.GetAll()
+                .AsNoTracking()
+                .Include(x => x.Branch)
+                .FirstOrDefaultAsync(x => x.Id == input.StaffId);
+
+            if (staff == null)
+            {
+                throw new UserFriendlyException("Staff member not found.");
+            }
+
+            if (branchId.HasValue && staff.BranchId != branchId.Value)
+            {
+                throw new UserFriendlyException("You do not have access to this staff member.");
+            }
+
+            var attendanceList = await Repository.GetAll()
+                .AsNoTracking()
+                .Where(x => x.StaffId == staff.Id
+                            && x.AttendanceDate >= monthStart
+                            && x.AttendanceDate < monthEndExclusive)
+                .ToListAsync();
+
+            var attendanceByDay = attendanceList
+                .GroupBy(x => x.AttendanceDate.Date)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.Id).First());
+
+            var days = new List<DailyAttendanceSheetItemDto>();
+            var present = 0;
+            var absent = 0;
+            var leave = 0;
+            var half = 0;
+            var notMarked = 0;
+
+            for (var day = 1; day <= daysInMonth; day++)
+            {
+                var date = new DateTime(monthStart.Year, monthStart.Month, day);
+                attendanceByDay.TryGetValue(date, out var att);
+
+                if (att == null)
+                {
+                    notMarked++;
+                }
+                else
+                {
+                    switch (att.Status)
+                    {
+                        case AttendanceStatus.Present:
+                            present++;
+                            break;
+                        case AttendanceStatus.Absent:
+                            absent++;
+                            break;
+                        case AttendanceStatus.Leave:
+                            leave++;
+                            break;
+                        case AttendanceStatus.HalfDay:
+                            half++;
+                            break;
+                    }
+                }
+
+                days.Add(new DailyAttendanceSheetItemDto
+                {
+                    Id = att?.Id ?? 0,
+                    StaffId = staff.Id,
+                    StaffName = staff.Name,
+                    Designation = staff.Designation,
+                    BranchName = staff.Branch?.Name,
+                    BranchId = att?.BranchId ?? staff.BranchId,
+                    AttendanceDate = date,
+                    HasAttendance = att != null,
+                    AttendanceId = att?.Id,
+                    CheckInTime = att?.CheckInTime,
+                    CheckOutTime = att?.CheckOutTime,
+                    Status = att?.Status,
+                    WorkingHours = att?.WorkingHours,
+                    Remarks = att?.Remarks
+                });
+            }
+
+            return new MonthlyAttendanceSheetDto
+            {
+                StaffId = staff.Id,
+                StaffName = staff.Name,
+                Designation = staff.Designation,
+                BranchName = staff.Branch?.Name,
+                Month = monthStart.ToString("yyyy-MM", CultureInfo.InvariantCulture),
+                PresentDays = present,
+                AbsentDays = absent,
+                LeaveDays = leave,
+                HalfDays = half,
+                NotMarkedDays = notMarked,
+                Days = days
+            };
+        }
+
         public override async Task<StaffAttendanceDto> CreateAsync(CreateStaffAttendanceDto input)
         {
             CheckCreatePermission();
@@ -225,6 +341,47 @@ namespace SmartPos.StaffAttendances
             }
 
             return value.Date;
+        }
+
+        private static DateTime ParseMonthStart(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                var today = DateTime.Today;
+                return new DateTime(today.Year, today.Month, 1);
+            }
+
+            var raw = value.Trim();
+            if (raw.Length >= 7
+                && DateTime.TryParseExact(
+                    raw.Substring(0, 7),
+                    "yyyy-MM",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var monthOnly))
+            {
+                return new DateTime(monthOnly.Year, monthOnly.Month, 1);
+            }
+
+            if (raw.Length >= 10
+                && DateTime.TryParseExact(
+                    raw.Substring(0, 10),
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var dateOnly))
+            {
+                return new DateTime(dateOnly.Year, dateOnly.Month, 1);
+            }
+
+            if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed))
+            {
+                var local = parsed.Kind == DateTimeKind.Utc ? parsed.ToLocalTime() : parsed;
+                return new DateTime(local.Year, local.Month, 1);
+            }
+
+            var fallback = DateTime.Today;
+            return new DateTime(fallback.Year, fallback.Month, 1);
         }
 
         private static DateTime ParseDateOnly(string value)

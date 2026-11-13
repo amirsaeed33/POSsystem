@@ -6,6 +6,8 @@ import {
     CreateStaffAttendanceDto,
     DailyAttendanceSheetItemDto,
     GetDailyAttendanceSheetInput,
+    GetMonthlyAttendanceSheetInput,
+    MonthlyAttendanceSheetDto,
     PagedStaffAttendanceResultRequestDto,
     StaffAttendanceDto,
 } from '../api/staff-attendance';
@@ -39,6 +41,22 @@ export class StaffAttendanceService {
         const items = result.items || result.Items || [];
         return (Array.isArray(items) ? items : []).map((item: any) =>
             this.mapDailySheetItem(item)
+        );
+    }
+
+    async getMonthlySheet(
+        input: GetMonthlyAttendanceSheetInput
+    ): Promise<MonthlyAttendanceSheetDto> {
+        const res: any = await firstValueFrom(
+            this.http.get<any>(`${this.apiUrl}/GetMonthlySheet`, {
+                params: {
+                    StaffId: input.staffId,
+                    Month: input.month,
+                },
+            })
+        );
+        return this.mapMonthlySheet(
+            this.unwrap(res, 'Failed to load monthly attendance')
         );
     }
 
@@ -180,6 +198,25 @@ export class StaffAttendanceService {
             default:
                 return 0;
         }
+    }
+
+    private mapMonthlySheet(item: any): MonthlyAttendanceSheetDto {
+        const daysRaw = item.days || item.Days || [];
+        return {
+            staffId: Number(item.staffId ?? item.StaffId),
+            staffName: item.staffName ?? item.StaffName,
+            designation: item.designation ?? item.Designation,
+            branchName: item.branchName ?? item.BranchName,
+            month: item.month ?? item.Month ?? '',
+            presentDays: Number(item.presentDays ?? item.PresentDays ?? 0),
+            absentDays: Number(item.absentDays ?? item.AbsentDays ?? 0),
+            leaveDays: Number(item.leaveDays ?? item.LeaveDays ?? 0),
+            halfDays: Number(item.halfDays ?? item.HalfDays ?? 0),
+            notMarkedDays: Number(item.notMarkedDays ?? item.NotMarkedDays ?? 0),
+            days: (Array.isArray(daysRaw) ? daysRaw : []).map((d: any) =>
+                this.mapDailySheetItem(d)
+            ),
+        };
     }
 
     private mapDailySheetItem(item: any): DailyAttendanceSheetItemDto {

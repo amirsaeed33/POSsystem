@@ -60,3 +60,23 @@ export interface DailyAttendanceSheetItemDto {
     workingHours?: number | null;
     remarks?: string;
 }
+
+export interface GetMonthlyAttendanceSheetInput {
+    staffId: number;
+    /** yyyy-MM */
+    month: string;
+}
+
+export interface MonthlyAttendanceSheetDto {
+    staffId: number;
+    staffName?: string;
+    designation?: string;
+    branchName?: string;
+    month: string;
+    presentDays: number;
+    absentDays: number;
+    leaveDays: number;
+    halfDays: number;
+    notMarkedDays: number;
+    days: DailyAttendanceSheetItemDto[];
+}

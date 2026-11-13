@@ -16,6 +16,7 @@ import { StyleClassModule } from 'primeng/styleclass';
 import { AppRowActionsComponent } from 'src/app/shared/components/row-actions/row-actions.component';
 import { StaffAttendanceListComponent } from './staff-attendance-list.component';
 import { StaffAttendanceFormDialogComponent } from './staff-attendance-form-dialog.component';
+import { StaffMonthlyAttendanceListComponent } from './staff-monthly-attendance-list.component';
 
 @NgModule({
     imports: [
@@ -38,10 +39,12 @@ import { StaffAttendanceFormDialogComponent } from './staff-attendance-form-dial
     declarations: [
         StaffAttendanceListComponent,
         StaffAttendanceFormDialogComponent,
+        StaffMonthlyAttendanceListComponent,
     ],
     exports: [
         StaffAttendanceListComponent,
         StaffAttendanceFormDialogComponent,
+        StaffMonthlyAttendanceListComponent,
     ],
 })
 export class StaffAttendanceSharedModule {}
