@@ -134,6 +134,148 @@ namespace SmartPos.Orders
         }
 
         [AbpAllowAnonymous]
+        public async Task<PagedResultDto<OnlineProductDto>> GetOnlineCatalogPagedAsync(PagedOnlineCatalogResultRequestDto input)
+        {
+            input ??= new PagedOnlineCatalogResultRequestDto();
+            var skip = Math.Max(0, input.SkipCount);
+            var max = input.MaxResultCount <= 0 ? 30 : Math.Min(input.MaxResultCount, 100);
+            var branchId = input.BranchId;
+            var resolvedBranchId = branchId.GetValueOrDefault();
+
+            var categoryNamesKey = input.CategoryNames != null && input.CategoryNames.Count > 0
+                ? string.Join("|", input.CategoryNames.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()).OrderBy(n => n))
+                : string.Empty;
+            var cacheKey = SmartPosAppCaches.BranchKey(
+                resolvedBranchId > 0 ? resolvedBranchId : 0,
+                $"CatalogPaged_{skip}_{max}_{input.CategoryId}_{input.CategoryName}_{categoryNamesKey}_{input.Keyword}_{input.DealsOnly}");
+            var cache = SmartPosAppCaches.Typed<PagedResultDto<OnlineProductDto>>(
+                _cacheManager,
+                SmartPosAppCaches.OnlineCatalog,
+                TimeSpan.FromMinutes(2));
+
+            return await cache.GetAsync(cacheKey, async _ =>
+            {
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+                {
+                    Branch targetBranch = null;
+                    if (branchId.HasValue && branchId.Value > 0)
+                    {
+                        targetBranch = await _branchRepository.FirstOrDefaultAsync(b => b.Id == branchId.Value);
+                    }
+
+                    if (targetBranch == null)
+                    {
+                        targetBranch = await _branchRepository.GetAll()
+                            .AsNoTracking()
+                            .Where(b => b.IsActive)
+                            .OrderByDescending(b => b.BusinessType == BusinessType.Restaurant)
+                            .ThenBy(b => b.Id)
+                            .FirstOrDefaultAsync();
+                    }
+
+                    if (targetBranch == null)
+                    {
+                        return new PagedResultDto<OnlineProductDto>(0, new List<OnlineProductDto>());
+                    }
+
+                    var targetBranchId = targetBranch.Id;
+                    var isRestaurant = targetBranch.BusinessType == BusinessType.Restaurant;
+                    var branchCurrency = !string.IsNullOrWhiteSpace(targetBranch.CurrencyFormat) ? targetBranch.CurrencyFormat : "PKR";
+
+                    var query = _productRepository.GetAllIncluding(p => p.Category, p => p.Unit, p => p.Brand)
+                        .AsNoTracking()
+                        .Where(p => p.IsVisibleOnline)
+                        .Where(p => (p.BranchId == targetBranchId) || (p.BranchId == 0 && (!p.TenantId.HasValue || p.TenantId == targetBranch.TenantId)))
+                        .WhereVisibleToBranch(_branchStockRepository.GetAll(), targetBranchId)
+                        .Where(p => (p.Barcode == null || !p.Barcode.StartsWith("GROCERY-")) && p.Name != "Grocery")
+                        .Where(p => p.Category == null || p.Category.Name != "Permanent Grocery");
+
+                    if (input.CategoryId.HasValue && input.CategoryId.Value > 0)
+                    {
+                        var categoryId = input.CategoryId.Value;
+                        query = query.Where(p => p.CategoryId == categoryId);
+                    }
+
+                    var multiNames = (input.CategoryNames ?? new List<string>())
+                        .Where(n => !string.IsNullOrWhiteSpace(n))
+                        .Select(n => n.Trim())
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    if (multiNames.Count > 0)
+                    {
+                        query = query.Where(p => p.Category != null && multiNames.Contains(p.Category.Name));
+                    }
+                    else if (!string.IsNullOrWhiteSpace(input.CategoryName))
+                    {
+                        var categoryName = input.CategoryName.Trim();
+                        query = query.Where(p => p.Category != null && p.Category.Name == categoryName);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(input.Keyword))
+                    {
+                        var keyword = input.Keyword.Trim().ToLower();
+                        query = query.Where(p =>
+                            (p.Name != null && p.Name.ToLower().Contains(keyword)) ||
+                            (p.Description != null && p.Description.ToLower().Contains(keyword)) ||
+                            (p.Category != null && p.Category.Name != null && p.Category.Name.ToLower().Contains(keyword)));
+                    }
+
+                    if (input.DealsOnly)
+                    {
+                        query = query.Where(p =>
+                            p.IsDeal ||
+                            (p.Category != null && p.Category.Name != null && p.Category.Name.ToLower().Contains("deal")));
+                    }
+
+                    var totalCount = await query.CountAsync();
+                    var products = await query
+                        .OrderBy(p => p.Id)
+                        .Skip(skip)
+                        .Take(max)
+                        .ToListAsync();
+
+                    var productIds = products.Select(p => p.Id).ToList();
+                    var branchInfo = productIds.Count == 0
+                        ? new Dictionary<int, (decimal Quantity, decimal Price)>()
+                        : await _branchStockRepository.GetAll()
+                            .AsNoTracking()
+                            .Where(s => s.BranchId == targetBranchId && productIds.Contains(s.ProductId))
+                            .ToDictionaryAsync(s => s.ProductId, s => (s.Quantity, s.Price));
+
+                    var items = products
+                        .Select(p =>
+                        {
+                            branchInfo.TryGetValue(p.Id, out var info);
+                            return new OnlineProductDto
+                            {
+                                Id = p.Id,
+                                Name = p.Name,
+                                Description = p.Description,
+                                CategoryName = p.Category?.Name ?? "General",
+                                BrandName = p.Brand?.Name,
+                                Barcode = p.Barcode,
+                                UnitName = p.Unit?.Name ?? "Pcs",
+                                Price = info.Price > 0 ? info.Price : p.Price,
+                                CurrencyFormat = branchCurrency,
+                                ImagePath = p.ImagePath,
+                                InStock = isRestaurant ? true : (branchInfo.ContainsKey(p.Id) ? info.Quantity > 0 : true),
+                                StockQuantity = isRestaurant ? 999 : (branchInfo.ContainsKey(p.Id) ? info.Quantity : 0),
+                                Specifications = p.Specifications,
+                                IsFreeDelivery = p.IsFreeDelivery,
+                                CategoryId = p.CategoryId,
+                                IsDeal = p.IsDeal || (p.Category != null && p.Category.Name.ToLower().Contains("deal")),
+                                CardTag = p.CardTag
+                            };
+                        })
+                        .ToList();
+
+                    return new PagedResultDto<OnlineProductDto>(totalCount, items);
+                }
+            });
+        }
+
+        [AbpAllowAnonymous]
         public async Task<OnlineProductDto> GetOnlineProductAsync(int id, int? branchId)
         {
             using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))

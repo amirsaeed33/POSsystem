@@ -53,6 +53,26 @@ namespace SmartPos.Orders.Dto
         public string Specifications { get; set; }
     }
 
+    /// <summary>
+    /// Paged online catalog request. Legacy GetOnlineCatalog remains unpaged for older clients.
+    /// </summary>
+    public class PagedOnlineCatalogResultRequestDto : PagedResultRequestDto
+    {
+        public int? BranchId { get; set; }
+
+        public int? CategoryId { get; set; }
+
+        /// <summary>Exact category name match (MAUI chips / store header).</summary>
+        public string CategoryName { get; set; }
+
+        /// <summary>OR multi-select category names; ignored when null/empty.</summary>
+        public List<string> CategoryNames { get; set; }
+
+        public string Keyword { get; set; }
+
+        public bool DealsOnly { get; set; }
+    }
+
     public class CreateCustomerOrderLineDto
     {
         [Required]
