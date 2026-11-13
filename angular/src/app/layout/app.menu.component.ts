@@ -280,7 +280,7 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                     { label: 'Company types', icon: 'pi pi-building', routerLink: ['/host-catalog'], permission: PermissionNames.HostCatalog },
                     { label: 'Developers', icon: 'pi pi-code', routerLink: ['/developers'], permission: PermissionNames.Developers },
                     { label: 'Sellers', icon: 'pi pi-briefcase', routerLink: ['/sellers'], permission: PermissionNames.Sellers },
-                    { label: 'Packages', icon: 'pi pi-box', routerLink: ['/packages'], permission: PermissionNames.Packages },
+                    { label: 'Product pricing', icon: 'pi pi-tag', routerLink: ['/packages'], permission: PermissionNames.Packages },
                     { label: 'Templates', icon: 'pi pi-envelope', routerLink: ['/email-templates'], permission: PermissionNames.EmailTemplates },
                     { label: 'Tenants', icon: 'pi pi-globe', routerLink: ['/tenants'], permission: PermissionNames.Tenants },
                 ]
@@ -304,13 +304,18 @@ export class AppMenuComponent implements OnInit, OnDestroy {
             .filter((item) => {
                 if (Array.isArray(item.anyPermission) && item.anyPermission.length) {
                     if (
-                        !item.anyPermission.some((p: string) =>
-                            this.permissionService.isGranted(p)
+                        !item.anyPermission.some(
+                            (p: string) =>
+                                this.permissionService.isGranted(p) ||
+                                this.hostAdminCanSee(p)
                         )
                     ) {
                         return false;
                     }
-                } else if (!this.permissionService.isGranted(item.permission)) {
+                } else if (
+                    !this.permissionService.isGranted(item.permission) &&
+                    !this.hostAdminCanSee(item.permission)
+                ) {
                     return false;
                 }
                 if (item.items) {
@@ -318,5 +323,19 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                 }
                 return true;
             });
+    }
+
+    /** Host admin edits product-page pricing even before the role grant is cached. */
+    private hostAdminCanSee(permission?: string): boolean {
+        if (!permission || !BranchContextService.isHostAdminSession()) {
+            return false;
+        }
+        return (
+            permission.startsWith('Pages.Packages') ||
+            permission.startsWith('Pages.Developers') ||
+            permission.startsWith('Pages.Sellers') ||
+            permission.startsWith('Pages.HostCatalog') ||
+            permission.startsWith('Pages.Tenants')
+        );
     }
 }

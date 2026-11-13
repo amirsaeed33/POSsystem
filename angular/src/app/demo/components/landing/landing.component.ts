@@ -160,7 +160,7 @@ export class LandingComponent implements OnInit, OnDestroy {
             description:
                 'Al Jannat SmartPos — POS, kitchen, online ordering, riders, and custom domains for restaurants and retail. Simple pricing. Local support.',
             path: '/product',
-            index: false,
+            index: true,
             jsonLd: {
                 '@context': 'https://schema.org',
                 '@type': 'SoftwareApplication',

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { PackageDto } from 'src/app/demo/api/package';
 import { PermissionNames } from 'src/app/demo/api/permission-names';
+import { BranchContextService } from 'src/app/demo/service/branch-context.service';
 import { PackageService } from 'src/app/demo/service/package.service';
 import { PermissionService } from 'src/app/demo/service/permission.service';
 import { RowActionItem } from 'src/app/shared/components/row-actions/row-actions.component';
@@ -30,15 +31,24 @@ export class PackageListComponent implements OnInit {
     ) {}
 
     get canCreate(): boolean {
-        return this.permissionService.isGranted(PermissionNames.PackagesCreate);
+        return (
+            BranchContextService.isHostAdminSession() ||
+            this.permissionService.isGranted(PermissionNames.PackagesCreate)
+        );
     }
 
     get canEdit(): boolean {
-        return this.permissionService.isGranted(PermissionNames.PackagesEdit);
+        return (
+            BranchContextService.isHostAdminSession() ||
+            this.permissionService.isGranted(PermissionNames.PackagesEdit)
+        );
     }
 
     get canDelete(): boolean {
-        return this.permissionService.isGranted(PermissionNames.PackagesDelete);
+        return (
+            BranchContextService.isHostAdminSession() ||
+            this.permissionService.isGranted(PermissionNames.PackagesDelete)
+        );
     }
 
     ngOnInit(): void {

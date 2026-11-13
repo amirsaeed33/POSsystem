@@ -8,6 +8,7 @@ import {
     UrlTree,
 } from '@angular/router';
 import { AuthService } from './auth.service';
+import { BranchContextService } from './branch-context.service';
 import { PermissionService } from './permission.service';
 import { SessionService } from './session.service';
 
@@ -105,13 +106,22 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
             if (!anyPermission?.length) {
                 return true;
             }
-            if (anyPermission.some((p) => this.permissionService.isGranted(p))) {
+            if (
+                anyPermission.some(
+                    (p) =>
+                        this.permissionService.isGranted(p) ||
+                        this.hostAdminCanSee(p)
+                )
+            ) {
                 return true;
             }
             return this.router.createUrlTree(['/auth/access']);
         }
 
-        if (this.permissionService.isGranted(permission)) {
+        if (
+            this.permissionService.isGranted(permission) ||
+            this.hostAdminCanSee(permission)
+        ) {
             return true;
         }
 
@@ -121,6 +131,20 @@ export class PermissionGuard implements CanActivate, CanActivateChild {
     private resolvePermission(route: ActivatedRouteSnapshot): string | null {
         const permission = route.data?.['permission'];
         return typeof permission === 'string' && permission ? permission : null;
+    }
+
+    /** Host admin can open host-only screens before the role grant is cached. */
+    private hostAdminCanSee(permission?: string | null): boolean {
+        if (!permission || !BranchContextService.isHostAdminSession()) {
+            return false;
+        }
+        return (
+            permission.startsWith('Pages.Packages') ||
+            permission.startsWith('Pages.Developers') ||
+            permission.startsWith('Pages.Sellers') ||
+            permission.startsWith('Pages.HostCatalog') ||
+            permission.startsWith('Pages.Tenants')
+        );
     }
 
     private resolveAnyPermission(route: ActivatedRouteSnapshot): string[] | null {

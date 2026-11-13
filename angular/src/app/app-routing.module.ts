@@ -7,7 +7,7 @@ import { PermissionNames } from './demo/api/permission-names';
 import { StaffTabRedirectComponent } from './demo/components/staff-hub/staff-tab-redirect.component';
 
 const routes: Routes = [
-    // Public product landing is held back until go-live. Preview only at /product.
+    // Public product landing. No login required.
     {
         path: 'product',
         loadChildren: () =>

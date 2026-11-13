@@ -105,6 +105,10 @@ export class AppComponent implements OnInit, OnDestroy {
         const brand = this.storefrontHost.getStorefrontTitle();
 
         // Product landing — LandingComponent owns SEO on platform host.
+        if (path === '/product' || path.startsWith('/product/')) {
+            return;
+        }
+
         if (path === '/' || path === '/home') {
             if (brand) {
                 // Custom domain mapped to a branch: storefront SEO, not product marketing.

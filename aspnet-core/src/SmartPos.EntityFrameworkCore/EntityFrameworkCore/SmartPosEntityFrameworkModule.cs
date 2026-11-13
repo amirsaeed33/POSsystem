@@ -1,11 +1,10 @@
 using System;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
 using Abp.EntityFrameworkCore.Configuration;
 using Abp.Modules;
 using Abp.Reflection.Extensions;
 using Abp.Zero.EntityFrameworkCore;
 using SmartPos.EntityFrameworkCore.Seed;
+using SmartPos.EntityFrameworkCore.Seed.Host;
 
 namespace SmartPos.EntityFrameworkCore
 {
@@ -61,11 +60,9 @@ namespace SmartPos.EntityFrameworkCore
             {
                 SeedHelper.WithDbContext<SmartPosDbContext>(IocManager, context =>
                 {
-                    var hasAdmin = context.Users.IgnoreQueryFilters().Any(u => u.TenantId == null && u.UserName == "admin");
-                    if (!hasAdmin)
-                    {
-                        SeedHelper.SeedHostDb(context);
-                    }
+                    // Full seed stays off, but host Admin must pick up new host permissions
+                    // (product pricing, sellers, developers) without recreating tenants.
+                    new HostRoleAndUserCreator(context).Create();
                 });
             }
             catch (Exception ex)

@@ -65,18 +65,6 @@
                         (click)="onSearch()"
                     ></button>
                 </div>
-                <button
-                    pButton
-                    pRipple
-                    type="button"
-                    icon="pi pi-plus"
-                    label="Mark Attendance"
-                    class="p-button-primary w-full sm:w-auto flex-order-0 sm:flex-order-1 font-semibold"
-                    (click)="openCreateDialog()"
-                    [disabled]="!canCreate"
-                    [pTooltip]="!canCreate ? 'You do not have permission to Mark Attendance' : ''"
-                    tooltipPosition="top"
-                ></button>
             </div>
         </ng-template>
 
@@ -89,6 +77,7 @@
                 <th class="white-space-nowrap">Status</th>
                 <th class="white-space-nowrap">Check In</th>
                 <th class="white-space-nowrap">Check Out</th>
+                <th class="white-space-nowrap">Duty</th>
                 <th class="text-center" style="width: 4.5rem">Actions</th>
             </tr>
         </ng-template>
@@ -111,8 +100,74 @@
                         {{ row.attendance ? statusLabel(row.attendance.status) : 'Not marked' }}
                     </span>
                 </td>
-                <td>{{ formatTime(row.attendance?.checkInTime) }}</td>
-                <td>{{ formatTime(row.attendance?.checkOutTime) }}</td>
+                <td>
+                    <button
+                        *ngIf="!row.attendance?.checkInTime; else checkInTime"
+                        pButton
+                        pRipple
+                        type="button"
+                        aria-label="Check in"
+                        class="p-button-sm p-button-outlined p-button-rounded attendance-punch attendance-punch--in"
+                        pTooltip="Check in"
+                        tooltipPosition="top"
+                        [disabled]="!canCreate"
+                        (click)="openPunch(row, 'in')"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="10" cy="13" r="6.5"></circle>
+                            <path d="M10 10.2V13l1.8 1.2"></path>
+                            <path d="M15.2 5.2l1.5 1.5 3.1-3.2"></path>
+                        </svg>
+                    </button>
+                    <ng-template #checkInTime>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            class="p-button-sm p-button-text"
+                            [label]="formatTime(row.attendance?.checkInTime)"
+                            [disabled]="!canEdit"
+                            pTooltip="Change check in"
+                            tooltipPosition="top"
+                            (click)="openPunch(row, 'in')"
+                        ></button>
+                    </ng-template>
+                </td>
+                <td>
+                    <button
+                        *ngIf="!row.attendance?.checkOutTime; else checkOutTime"
+                        pButton
+                        pRipple
+                        type="button"
+                        aria-label="Check out"
+                        class="p-button-sm p-button-outlined p-button-rounded attendance-punch attendance-punch--out"
+                        [disabled]="!canPunchOut(row)"
+                        [pTooltip]="!row.attendance?.checkInTime ? 'Check in first' : 'Check out'"
+                        tooltipPosition="top"
+                        (click)="openPunch(row, 'out')"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="10" cy="14" r="6.5"></circle>
+                            <path d="M10 11.2V14l1.8 1.2"></path>
+                            <path d="M15.5 4.5H20V9"></path>
+                            <path d="M20 4.5l-5.2 5.2"></path>
+                        </svg>
+                    </button>
+                    <ng-template #checkOutTime>
+                        <button
+                            pButton
+                            pRipple
+                            type="button"
+                            class="p-button-sm p-button-text"
+                            [label]="formatTime(row.attendance?.checkOutTime)"
+                            [disabled]="!canEdit"
+                            pTooltip="Change check out"
+                            tooltipPosition="top"
+                            (click)="openPunch(row, 'out')"
+                        ></button>
+                    </ng-template>
+                </td>
+                <td class="white-space-nowrap font-medium">{{ formatDuty(row) }}</td>
                 <td class="text-center">
                     <app-row-actions [items]="getRowActions(row)"></app-row-actions>
                 </td>
@@ -121,20 +176,71 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="6" class="text-center p-4">
+                <td colspan="7" class="text-center p-4">
                     <div class="text-500">No employees found</div>
                 </td>
             </tr>
         </ng-template>
+
+        <ng-template pTemplate="footer">
+            <tr>
+                <td colspan="5" class="text-right font-semibold">Total duty</td>
+                <td class="font-semibold white-space-nowrap">{{ totalDutyLabel }}</td>
+                <td></td>
+            </tr>
+        </ng-template>
     </p-table>
 
-    <app-staff-attendance-form-dialog
-        [(visible)]="dialogVisible"
-        [attendanceId]="editingId"
-        [defaultStaffId]="dialogStaffId"
-        [defaultDate]="dialogDate"
-        (saved)="onDialogSaved()"
-    ></app-staff-attendance-form-dialog>
+    <p-dialog
+        [header]="punchKind === 'out' ? 'Check Out' : 'Check In'"
+        [(visible)]="punchVisible"
+        [modal]="true"
+        appendTo="body"
+        [draggable]="false"
+        [resizable]="false"
+        [style]="{ width: '22rem' }"
+    >
+        <div class="flex flex-column gap-3" *ngIf="punchRow">
+            <div>
+                <div class="font-semibold text-900">{{ punchRow.staffName }}</div>
+                <div class="text-500 text-sm">{{ formatDate(punchRow.attendanceDate) }}</div>
+            </div>
+            <div class="flex flex-column gap-2">
+                <label class="font-medium" [for]="punchKind === 'out' ? 'punchOut' : 'punchIn'">
+                    {{ punchKind === 'out' ? 'Check out time' : 'Check in time' }}
+                </label>
+                <input
+                    [id]="punchKind === 'out' ? 'punchOut' : 'punchIn'"
+                    type="time"
+                    pInputText
+                    class="w-full"
+                    [(ngModel)]="punchTime"
+                    [disabled]="punchSaving"
+                />
+            </div>
+        </div>
+        <ng-template pTemplate="footer">
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Cancel"
+                class="p-button-text"
+                (click)="punchVisible = false"
+                [disabled]="punchSaving"
+            ></button>
+            <button
+                pButton
+                pRipple
+                type="button"
+                label="Save"
+                icon="pi pi-check"
+                (click)="savePunch()"
+                [loading]="punchSaving"
+                [disabled]="punchSaving || !punchTime"
+            ></button>
+        </ng-template>
+    </p-dialog>
 
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>

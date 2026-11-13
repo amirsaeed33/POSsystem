@@ -72,6 +72,7 @@
                 <th class="white-space-nowrap">Status</th>
                 <th class="white-space-nowrap">Check In</th>
                 <th class="white-space-nowrap">Check Out</th>
+                <th class="white-space-nowrap">Duty</th>
                 <th class="white-space-nowrap">Remarks</th>
             </tr>
         </ng-template>
@@ -96,13 +97,14 @@
                 </td>
                 <td>{{ formatTime(row.checkInTime) }}</td>
                 <td>{{ formatTime(row.checkOutTime) }}</td>
+                <td class="white-space-nowrap font-medium">{{ formatDuty(row) }}</td>
                 <td>{{ row.remarks || '—' }}</td>
             </tr>
         </ng-template>
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="6" class="text-center text-500 p-4">
+                <td colspan="7" class="text-center text-500 p-4">
                     No attendance days found for this month.
                 </td>
             </tr>
@@ -110,9 +112,9 @@
 
         <ng-template pTemplate="footer">
             <tr *ngIf="sheet" class="font-semibold">
-                <td colspan="6">
+                <td colspan="7">
                     <div class="flex flex-wrap gap-3 align-items-center justify-content-between py-1">
-                        <span class="text-900">Monthly total</span>
+                        <span class="text-900">Monthly total · Duty {{ totalDutyLabel }}</span>
                         <div class="flex flex-wrap gap-2">
                             <span class="px-2 py-1 border-round bg-green-100 text-green-700 text-sm">
                                 Present: {{ sheet.presentDays }}

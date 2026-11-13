@@ -23,6 +23,38 @@ export interface StaffAttendanceRow {
 @Component({
     selector: 'app-staff-attendance-list',
     templateUrl: './staff-attendance-list.component.html',
+    styles: [
+        `
+            :host ::ng-deep .attendance-punch.p-button {
+                width: 2rem;
+                height: 2rem;
+                padding: 0;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            :host ::ng-deep .attendance-punch svg {
+                width: 15px;
+                height: 15px;
+                display: block;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 2;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+            :host ::ng-deep .attendance-punch--in.p-button {
+                color: #15803d;
+                border-color: #86efac;
+                background: #f0fdf4;
+            }
+            :host ::ng-deep .attendance-punch--out.p-button {
+                color: #c2410c;
+                border-color: #fdba74;
+                background: #fff7ed;
+            }
+        `,
+    ],
     providers: [MessageService, ConfirmationService],
 })
 export class StaffAttendanceListComponent implements OnInit {
@@ -38,10 +70,11 @@ export class StaffAttendanceListComponent implements OnInit {
     statusFilter: AttendanceStatus | null = null;
     attendanceDate: string = this.toDateInputValue();
 
-    dialogVisible = false;
-    editingId: number | null = null;
-    dialogStaffId: number | null = null;
-    dialogDate: string | null = null;
+    punchVisible = false;
+    punchSaving = false;
+    punchKind: 'in' | 'out' = 'in';
+    punchTime = '';
+    punchRow: StaffAttendanceRow | null = null;
 
     statusOptions = [
         { label: 'All', value: null },
@@ -78,27 +111,39 @@ export class StaffAttendanceListComponent implements OnInit {
         const actions: RowActionItem[] = [];
         const att = row.attendance;
 
-        if (!att) {
-            if (this.canCreate) {
-                actions.push({
-                    label: 'Mark',
-                    icon: 'pi pi-check',
-                    color: 'blue',
-                    action: () => this.openMarkDialog(row),
-                });
-            }
-            return actions;
-        }
-
-        if (this.canEdit) {
+        if (!att?.checkInTime && this.canCreate) {
             actions.push({
-                label: 'Edit',
-                icon: 'pi pi-pencil',
+                label: 'Check In',
+                icon: 'pi pi-check-circle',
                 color: 'blue',
-                action: () => this.openEditDialog(att),
+                action: () => this.openPunch(row, 'in'),
+            });
+        } else if (att?.checkInTime && this.canEdit) {
+            actions.push({
+                label: 'Check In',
+                icon: 'pi pi-check-circle',
+                color: 'blue',
+                action: () => this.openPunch(row, 'in'),
             });
         }
-        if (this.canDelete) {
+
+        if (att?.checkInTime && !att.checkOutTime && this.canPunchOut(row)) {
+            actions.push({
+                label: 'Check Out',
+                icon: 'pi pi-arrow-up-right',
+                color: 'blue',
+                action: () => this.openPunch(row, 'out'),
+            });
+        } else if (att?.checkOutTime && this.canEdit) {
+            actions.push({
+                label: 'Check Out',
+                icon: 'pi pi-arrow-up-right',
+                color: 'blue',
+                action: () => this.openPunch(row, 'out'),
+            });
+        }
+
+        if (att && this.canDelete) {
             actions.push({
                 label: 'Delete',
                 icon: 'pi pi-trash',
@@ -107,6 +152,13 @@ export class StaffAttendanceListComponent implements OnInit {
             });
         }
         return actions;
+    }
+
+    canPunchOut(row: StaffAttendanceRow): boolean {
+        if (!row.attendance?.checkInTime) {
+            return false;
+        }
+        return row.attendance.checkOutTime ? this.canEdit : this.canEdit || this.canCreate;
     }
 
     loadAllEmployees(): void {
@@ -165,29 +217,78 @@ export class StaffAttendanceListComponent implements OnInit {
         table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
     }
 
-    openCreateDialog(): void {
-        this.editingId = null;
-        this.dialogStaffId = null;
-        this.dialogDate = this.attendanceDate;
-        this.dialogVisible = true;
+    openPunch(row: StaffAttendanceRow, kind: 'in' | 'out'): void {
+        if (kind === 'out' && !row.attendance?.checkInTime) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Check in first',
+                detail: `${row.staffName} has no check-in time yet.`,
+            });
+            return;
+        }
+
+        this.punchRow = row;
+        this.punchKind = kind;
+        const existing =
+            kind === 'in'
+                ? row.attendance?.checkInTime
+                : row.attendance?.checkOutTime;
+        this.punchTime = this.toTimeInputValue(existing) || this.nowTime();
+        this.punchVisible = true;
     }
 
-    openMarkDialog(row: StaffAttendanceRow): void {
-        this.editingId = null;
-        this.dialogStaffId = row.staffId;
-        this.dialogDate = row.attendanceDate;
-        this.dialogVisible = true;
-    }
+    savePunch(): void {
+        const row = this.punchRow;
+        if (!row || !this.punchTime) {
+            return;
+        }
 
-    openEditDialog(record: StaffAttendanceDto): void {
-        this.editingId = record.id;
-        this.dialogStaffId = record.staffId;
-        this.dialogDate = this.toDateInputValue(record.attendanceDate);
-        this.dialogVisible = true;
-    }
+        const date = this.toDateInputValue(row.attendanceDate);
+        const timeIso = this.toDateTimeIso(date, this.punchTime);
+        const existing = row.attendance;
+        this.punchSaving = true;
 
-    onDialogSaved(): void {
-        this.loadAllEmployees();
+        const request = existing
+            ? this.attendanceService.update({
+                  ...existing,
+                  attendanceDate: date,
+                  status: AttendanceStatus.Present,
+                  checkInTime:
+                      this.punchKind === 'in' ? timeIso : existing.checkInTime,
+                  checkOutTime:
+                      this.punchKind === 'out' ? timeIso : existing.checkOutTime,
+              })
+            : this.attendanceService.create({
+                  staffId: row.staffId,
+                  attendanceDate: date,
+                  status: AttendanceStatus.Present,
+                  checkInTime: timeIso,
+                  checkOutTime: null,
+              });
+
+        request
+            .then(() => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Saved',
+                    detail:
+                        this.punchKind === 'out'
+                            ? 'Check out saved'
+                            : 'Check in saved',
+                });
+                this.punchVisible = false;
+                this.loadAllEmployees();
+            })
+            .catch((error) => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.message || 'Failed to save attendance',
+                });
+            })
+            .finally(() => {
+                this.punchSaving = false;
+            });
     }
 
     onDelete(record: StaffAttendanceDto): void {
@@ -240,6 +341,32 @@ export class StaffAttendanceListComponent implements OnInit {
         return this.formatService.formatDate(value);
     }
 
+    dutyHours(row: StaffAttendanceRow): number | null {
+        const att = row.attendance;
+        if (!att?.checkInTime || !att.checkOutTime) {
+            return null;
+        }
+        const start = new Date(att.checkInTime).getTime();
+        const end = new Date(att.checkOutTime).getTime();
+        if (!isFinite(start) || !isFinite(end) || end < start) {
+            const stored = Number(att.workingHours);
+            return Number.isFinite(stored) && stored > 0 ? stored : null;
+        }
+        return (end - start) / 3600000;
+    }
+
+    formatDuty(row: StaffAttendanceRow): string {
+        return this.formatHours(this.dutyHours(row));
+    }
+
+    get totalDutyLabel(): string {
+        const total = this.rows.reduce(
+            (sum, row) => sum + (this.dutyHours(row) || 0),
+            0
+        );
+        return total > 0 ? this.formatHours(total) : '—';
+    }
+
     formatTime(value?: string | Date | null): string {
         if (!value) {
             return '—';
@@ -252,6 +379,22 @@ export class StaffAttendanceListComponent implements OnInit {
             hour: '2-digit',
             minute: '2-digit',
         });
+    }
+
+    private formatHours(hours: number | null): string {
+        if (hours == null || hours <= 0) {
+            return '—';
+        }
+        const totalMinutes = Math.round(hours * 60);
+        const wholeHours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (wholeHours <= 0) {
+            return `${minutes}m`;
+        }
+        if (minutes === 0) {
+            return `${wholeHours}h`;
+        }
+        return `${wholeHours}h ${minutes}m`;
     }
 
     private toRow(
@@ -282,6 +425,26 @@ export class StaffAttendanceListComponent implements OnInit {
             attendanceDate: date,
             attendance,
         };
+    }
+
+    private nowTime(): string {
+        const now = new Date();
+        return `${`${now.getHours()}`.padStart(2, '0')}:${`${now.getMinutes()}`.padStart(2, '0')}`;
+    }
+
+    private toTimeInputValue(value?: string | Date | null): string | null {
+        if (!value) {
+            return null;
+        }
+        const date = new Date(value);
+        if (isNaN(date.getTime())) {
+            return null;
+        }
+        return `${`${date.getHours()}`.padStart(2, '0')}:${`${date.getMinutes()}`.padStart(2, '0')}`;
+    }
+
+    private toDateTimeIso(dateValue: string, timeValue: string): string {
+        return new Date(`${dateValue}T${timeValue}:00`).toISOString();
     }
 
     private toDateInputValue(value?: string | Date | null): string {

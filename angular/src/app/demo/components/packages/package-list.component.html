@@ -2,6 +2,12 @@
 <p-confirmDialog></p-confirmDialog>
 
 <div class="pkg-page">
+    <div class="mb-4">
+        <h2 class="m-0 text-900">Product pricing</h2>
+        <p class="text-color-secondary mt-1 mb-0">
+            Update the rates and descriptions shown on the public product page.
+        </p>
+    </div>
     <div class="flex flex-wrap gap-2 align-items-center justify-content-between mb-4">
         <div class="flex flex-wrap gap-2 align-items-center">
             <span class="p-input-icon-left w-full sm:w-20rem">
@@ -147,7 +153,7 @@
         </div>
 
         <div class="field">
-            <label for="pkgBlurb">Blurb</label>
+            <label for="pkgBlurb">Description</label>
             <input id="pkgBlurb" pInputText [(ngModel)]="form.blurb" maxlength="512" />
         </div>
 

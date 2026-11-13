@@ -142,6 +142,18 @@ export class StaffMonthlyAttendanceListComponent implements OnInit {
         return date.toLocaleDateString(undefined, { weekday: 'short' });
     }
 
+    formatDuty(row: DailyAttendanceSheetItemDto): string {
+        return this.formatHours(this.dutyHours(row));
+    }
+
+    get totalDutyLabel(): string {
+        const total = this.days.reduce(
+            (sum, row) => sum + (this.dutyHours(row) || 0),
+            0
+        );
+        return total > 0 ? this.formatHours(total) : '—';
+    }
+
     formatTime(value?: string | Date | null): string {
         if (!value) {
             return '—';
@@ -154,6 +166,35 @@ export class StaffMonthlyAttendanceListComponent implements OnInit {
             hour: '2-digit',
             minute: '2-digit',
         });
+    }
+
+    private dutyHours(row: DailyAttendanceSheetItemDto): number | null {
+        if (!row.checkInTime || !row.checkOutTime) {
+            return null;
+        }
+        const start = new Date(row.checkInTime).getTime();
+        const end = new Date(row.checkOutTime).getTime();
+        if (!isFinite(start) || !isFinite(end) || end < start) {
+            const stored = Number(row.workingHours);
+            return Number.isFinite(stored) && stored > 0 ? stored : null;
+        }
+        return (end - start) / 3600000;
+    }
+
+    private formatHours(hours: number | null): string {
+        if (hours == null || hours <= 0) {
+            return '—';
+        }
+        const totalMinutes = Math.round(hours * 60);
+        const wholeHours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (wholeHours <= 0) {
+            return `${minutes}m`;
+        }
+        if (minutes === 0) {
+            return `${wholeHours}h`;
+        }
+        return `${wholeHours}h ${minutes}m`;
     }
 
     private toMonthInputValue(value?: string | Date | null): string {
