@@ -883,11 +883,13 @@
                             pButton
                             pRipple
                             type="button"
-                            label="Clear data"
                             icon="pi pi-times"
-                            class="p-button-outlined p-button-secondary white-space-nowrap"
+                            class="p-button-outlined p-button-secondary p-button-icon-only flex-shrink-0"
                             (click)="clearOnlineCustomerData()"
                             [disabled]="!hasOnlineCustomerDraft"
+                            pTooltip="Clear data"
+                            tooltipPosition="top"
+                            aria-label="Clear data"
                         ></button>
                     </div>
                     <small class="text-500 block mt-1" *ngIf="onlineCustomerLookingUp">Looking up customer…</small>
