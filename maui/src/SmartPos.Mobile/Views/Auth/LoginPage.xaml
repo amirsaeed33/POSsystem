@@ -8,8 +8,8 @@
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
              BackgroundColor="#F8FAFC">
-    <Grid>
-        <Grid>
+    <Grid RowDefinitions="*,Auto">
+        <Grid Grid.Row="0">
         <BoxView Color="#1D4ED8" VerticalOptions="Start" HeightRequest="320" />
         <BoxView Color="#2563EB" VerticalOptions="Start" HeightRequest="220" Opacity="0.55" Margin="0,40,0,0" />
         <Ellipse Fill="#33FFFFFF" WidthRequest="180" HeightRequest="180"
@@ -162,11 +162,11 @@
 
         <controls:TransparentBorderLoader IsRunning="{Binding IsBusy}" />
         </Grid>
-        <controls:BubbleTabBar x:Name="BottomNav"
+        <controls:BubbleTabBar Grid.Row="1"
+                               x:Name="BottomNav"
                                Mode="Customer"
                                SelectedIndex="3"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill"
-                               ZIndex="40" />
+                               VerticalOptions="Fill"
+                               HorizontalOptions="Fill" />
     </Grid>
 </ContentPage>

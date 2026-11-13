@@ -146,4 +146,5 @@ public class AdminTimelineItem
     public string Subtitle { get; set; } = string.Empty;
     public string AmountText { get; set; } = string.Empty;
     public Color Accent { get; set; } = Colors.Gray;
+    public Color AccentSoft { get; set; } = Color.FromArgb("#E2E8F0");
 }

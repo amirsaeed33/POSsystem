@@ -39,14 +39,8 @@
               HeightRequest="68"
               InputTransparent="False">
 
-            <!-- Tab 0: Home -->
-            <Grid Grid.Column="0">
-                <Button x:Name="Tab0"
-                        BackgroundColor="Transparent"
-                        BorderWidth="0"
-                        Padding="0"
-                        Margin="0"
-                        Clicked="OnTab0Clicked" />
+            <!-- Tab 0 -->
+            <Grid x:Name="TabHost0" Grid.Column="0" InputTransparent="False">
                 <VerticalStackLayout x:Name="Tab0Visual"
                                      InputTransparent="True"
                                      Spacing="2"
@@ -55,24 +49,24 @@
                     <Image x:Name="Icon0" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
                     <Label x:Name="Label0" Text="Home" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
-            </Grid>
-
-            <!-- Tab 1: Order -->
-            <Grid Grid.Column="1">
-                <Button x:Name="Tab1"
+                <!-- Button on top so taps always register (esp. Windows). -->
+                <Button x:Name="Tab0"
                         BackgroundColor="Transparent"
                         BorderWidth="0"
                         Padding="0"
                         Margin="0"
-                        Clicked="OnTab1Clicked" />
+                        Clicked="OnTab0Clicked" />
+            </Grid>
+
+            <!-- Tab 1 -->
+            <Grid x:Name="TabHost1" Grid.Column="1" InputTransparent="False">
                 <VerticalStackLayout x:Name="Tab1Visual"
                                      InputTransparent="True"
                                      Spacing="2"
                                      VerticalOptions="Center"
                                      HorizontalOptions="Center">
-                    <Grid HorizontalOptions="Center" WidthRequest="32" HeightRequest="24">
+                    <Grid HorizontalOptions="Center" WidthRequest="32" HeightRequest="24" InputTransparent="True">
                         <Image x:Name="Icon1" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" VerticalOptions="Center" />
-                        <!-- Red Badge with Item Count -->
                         <Border x:Name="CartBadge"
                                 HorizontalOptions="End"
                                 VerticalOptions="Start"
@@ -84,6 +78,7 @@
                                 MinimumWidthRequest="16"
                                 HeightRequest="16"
                                 Padding="3,0"
+                                InputTransparent="True"
                                 IsVisible="False">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="8" />
@@ -94,21 +89,22 @@
                                    FontAttributes="Bold"
                                    TextColor="White"
                                    HorizontalTextAlignment="Center"
-                                   VerticalTextAlignment="Center" />
+                                   VerticalTextAlignment="Center"
+                                   InputTransparent="True" />
                         </Border>
                     </Grid>
                     <Label x:Name="Label1" Text="Order" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
-            </Grid>
-
-            <!-- Tab 2: Favorite -->
-            <Grid Grid.Column="2">
-                <Button x:Name="Tab2"
+                <Button x:Name="Tab1"
                         BackgroundColor="Transparent"
                         BorderWidth="0"
                         Padding="0"
                         Margin="0"
-                        Clicked="OnTab2Clicked" />
+                        Clicked="OnTab1Clicked" />
+            </Grid>
+
+            <!-- Tab 2 -->
+            <Grid x:Name="TabHost2" Grid.Column="2" InputTransparent="False">
                 <VerticalStackLayout x:Name="Tab2Visual"
                                      InputTransparent="True"
                                      Spacing="2"
@@ -117,16 +113,16 @@
                     <Image x:Name="Icon2" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
                     <Label x:Name="Label2" Text="Favorite" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
-            </Grid>
-
-            <!-- Tab 3: Profile -->
-            <Grid Grid.Column="3">
-                <Button x:Name="Tab3"
+                <Button x:Name="Tab2"
                         BackgroundColor="Transparent"
                         BorderWidth="0"
                         Padding="0"
                         Margin="0"
-                        Clicked="OnTab3Clicked" />
+                        Clicked="OnTab2Clicked" />
+            </Grid>
+
+            <!-- Tab 3 -->
+            <Grid x:Name="TabHost3" Grid.Column="3" InputTransparent="False">
                 <VerticalStackLayout x:Name="Tab3Visual"
                                      InputTransparent="True"
                                      Spacing="2"
@@ -135,6 +131,12 @@
                     <Image x:Name="Icon3" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" />
                     <Label x:Name="Label3" Text="Profile" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
+                <Button x:Name="Tab3"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        Padding="0"
+                        Margin="0"
+                        Clicked="OnTab3Clicked" />
             </Grid>
 
         </Grid>

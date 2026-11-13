@@ -326,21 +326,9 @@ public partial class BubbleTabBar : ContentView
         if (Label2 != null) Label2.Text = _labels.ElementAtOrDefault(2) ?? string.Empty;
         if (Label3 != null) Label3.Text = _labels.ElementAtOrDefault(3) ?? string.Empty;
 
+        var hosts = new[] { TabHost0, TabHost1, TabHost2, TabHost3 };
         var buttons = new[] { Tab0, Tab1, Tab2, Tab3 };
         var visuals = new[] { Tab0Visual, Tab1Visual, Tab2Visual, Tab3Visual };
-        for (var i = 0; i < 4; i++)
-        {
-            var on = i < _tabCount;
-            if (buttons[i] != null)
-            {
-                buttons[i].IsVisible = on;
-                buttons[i].IsEnabled = on;
-            }
-            if (visuals[i] != null)
-            {
-                visuals[i].IsVisible = on;
-            }
-        }
 
         if (TabsGrid != null)
         {
@@ -348,6 +336,30 @@ public partial class BubbleTabBar : ContentView
             for (var i = 0; i < _tabCount; i++)
             {
                 TabsGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            }
+        }
+
+        for (var i = 0; i < 4; i++)
+        {
+            var on = i < _tabCount;
+            if (hosts[i] != null)
+            {
+                hosts[i].IsVisible = on;
+                if (on)
+                {
+                    Grid.SetColumn(hosts[i], i);
+                }
+            }
+
+            if (buttons[i] != null)
+            {
+                buttons[i].IsVisible = on;
+                buttons[i].IsEnabled = on;
+            }
+
+            if (visuals[i] != null)
+            {
+                visuals[i].IsVisible = on;
             }
         }
 
@@ -420,13 +432,18 @@ public partial class BubbleTabBar : ContentView
         }
 
         _navigating = true;
+        SelectedIndex = index;
         LoadingService.Current.ShowTabLoader();
         try
         {
-            await Shell.Current.GoToAsync(route);
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync(route);
+            }
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[BubbleTabBar] Navigate failed ({route}): {ex.Message}");
             LoadingService.Current.HideTabLoader();
         }
         finally

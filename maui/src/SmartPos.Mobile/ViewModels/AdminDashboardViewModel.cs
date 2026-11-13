@@ -11,12 +11,16 @@ public class AdminDashboardViewModel : BaseViewModel
     private readonly SessionService _session;
 
     private string _greeting = "Admin";
+    private string _headerSubtitle = "Operations overview";
     private string _salesTodayText = "Rs 0";
     private string _purchasesTodayText = "Rs 0";
     private string _profitTodayText = "Rs 0";
-    private string _growthText = "0%";
+    private string _expensesTodayText = "Rs 0";
+    private string _growthText = "+0%";
+    private string _salesCountText = "0 sales today";
     private string _pendingOrdersText = "0";
     private string _todayOrdersText = "0";
+    private string _openOrdersText = "0";
     private string _preparingText = "0";
     private string _deliveredText = "0";
     private string _inStockText = "0";
@@ -25,6 +29,10 @@ public class AdminDashboardViewModel : BaseViewModel
     private string _branchCountText = "0";
     private string _statusSummary = "Loading restaurant status…";
     private string _errorText = string.Empty;
+    private string _chartEmptyText = "No sales or purchases in the last 7 days.";
+    private bool _hasChartData;
+    private bool _hasTimeline;
+    private Color _growthColor = Color.FromArgb("#86EFAC");
 
     public AdminDashboardViewModel(DashboardService dashboard, SessionService session)
     {
@@ -40,6 +48,12 @@ public class AdminDashboardViewModel : BaseViewModel
     {
         get => _greeting;
         set => SetProperty(ref _greeting, value);
+    }
+
+    public string HeaderSubtitle
+    {
+        get => _headerSubtitle;
+        set => SetProperty(ref _headerSubtitle, value);
     }
 
     public string SalesTodayText
@@ -60,10 +74,28 @@ public class AdminDashboardViewModel : BaseViewModel
         set => SetProperty(ref _profitTodayText, value);
     }
 
+    public string ExpensesTodayText
+    {
+        get => _expensesTodayText;
+        set => SetProperty(ref _expensesTodayText, value);
+    }
+
     public string GrowthText
     {
         get => _growthText;
         set => SetProperty(ref _growthText, value);
+    }
+
+    public Color GrowthColor
+    {
+        get => _growthColor;
+        set => SetProperty(ref _growthColor, value);
+    }
+
+    public string SalesCountText
+    {
+        get => _salesCountText;
+        set => SetProperty(ref _salesCountText, value);
     }
 
     public string PendingOrdersText
@@ -76,6 +108,12 @@ public class AdminDashboardViewModel : BaseViewModel
     {
         get => _todayOrdersText;
         set => SetProperty(ref _todayOrdersText, value);
+    }
+
+    public string OpenOrdersText
+    {
+        get => _openOrdersText;
+        set => SetProperty(ref _openOrdersText, value);
     }
 
     public string PreparingText
@@ -120,6 +158,43 @@ public class AdminDashboardViewModel : BaseViewModel
         set => SetProperty(ref _statusSummary, value);
     }
 
+    public string ChartEmptyText
+    {
+        get => _chartEmptyText;
+        set => SetProperty(ref _chartEmptyText, value);
+    }
+
+    public bool HasChartData
+    {
+        get => _hasChartData;
+        set
+        {
+            if (SetProperty(ref _hasChartData, value))
+            {
+                OnPropertyChanged(nameof(IsChartEmpty));
+            }
+        }
+    }
+
+    public bool IsChartEmpty => !HasChartData;
+
+    public bool HasTimeline
+    {
+        get => _hasTimeline;
+        set
+        {
+            if (SetProperty(ref _hasTimeline, value))
+            {
+                OnPropertyChanged(nameof(IsTimelineEmpty));
+                OnPropertyChanged(nameof(TimelineCountText));
+            }
+        }
+    }
+
+    public bool IsTimelineEmpty => !HasTimeline;
+
+    public string TimelineCountText => HasTimeline ? $"{Timeline.Count} events" : "None yet";
+
     public string ErrorText
     {
         get => _errorText;
@@ -151,9 +226,11 @@ public class AdminDashboardViewModel : BaseViewModel
         {
             IsBusy = true;
             ErrorText = string.Empty;
-            Greeting = string.IsNullOrWhiteSpace(_session.User?.DisplayName)
-                ? "Admin dashboard"
-                : $"Hi, {_session.User!.DisplayName}";
+            var name = string.IsNullOrWhiteSpace(_session.User?.DisplayName)
+                ? "Admin"
+                : _session.User!.DisplayName!;
+            Greeting = $"Hi, {name}";
+            HeaderSubtitle = $"{DateTime.Now:dddd, dd MMM} · Super admin control";
 
             var dashTask = _dashboard.GetDashboardAsync();
             var pipeTask = _dashboard.GetOnlineOrderPipelineAsync();
@@ -165,7 +242,12 @@ public class AdminDashboardViewModel : BaseViewModel
             SalesTodayText = FormatMoney(dash.TodaySales);
             PurchasesTodayText = FormatMoney(dash.TodayPurchases);
             ProfitTodayText = FormatMoney(dash.TodayProfit);
+            ExpensesTodayText = FormatMoney(dash.TodayExpenses);
             GrowthText = $"{(dash.IsGrowthPositive ? "+" : "")}{dash.GrowthPercentage:0.#}%";
+            GrowthColor = dash.IsGrowthPositive
+                ? Color.FromArgb("#86EFAC")
+                : Color.FromArgb("#FCA5A5");
+            SalesCountText = $"{dash.QuickActions?.TodaySalesCount ?? 0} sales today";
 
             InStockText = dash.InStockCount.ToString();
             LowStockText = dash.LowStockCount.ToString();
@@ -178,13 +260,15 @@ public class AdminDashboardViewModel : BaseViewModel
             DeliveredText = pipe.DeliveredCount.ToString();
 
             var open = pipe.PendingCount + pipe.ApprovedCount + pipe.InProgressCount;
+            OpenOrdersText = open.ToString();
             StatusSummary = open == 0
                 ? "Restaurant is clear — no open online orders right now."
                 : $"{open} open online order{(open == 1 ? "" : "s")} · {dash.LowStockCount} low-stock item{(dash.LowStockCount == 1 ? "" : "s")}";
 
             DayBars.Clear();
             var days = (dash.Last7Days ?? new List<DailyOverviewDto>()).TakeLast(7).ToList();
-            var max = days.Select(d => Math.Max(d.Sales, d.Purchases)).DefaultIfEmpty(1).Max();
+            var max = days.Select(d => Math.Max(d.Sales, d.Purchases)).DefaultIfEmpty(0).Max();
+            HasChartData = max > 0;
             if (max <= 0)
             {
                 max = 1;
@@ -192,13 +276,15 @@ public class AdminDashboardViewModel : BaseViewModel
 
             foreach (var day in days)
             {
+                var salesH = day.Sales <= 0 ? 3 : Math.Max(8, (double)(day.Sales / max) * 100);
+                var buyH = day.Purchases <= 0 ? 3 : Math.Max(8, (double)(day.Purchases / max) * 100);
                 DayBars.Add(new AdminDayBarItem
                 {
                     DayLabel = string.IsNullOrWhiteSpace(day.DayLabel)
                         ? day.Date.ToString("ddd")
                         : day.DayLabel!,
-                    SalesBarHeight = Math.Max(4, (double)(day.Sales / max) * 72),
-                    PurchasesBarHeight = Math.Max(4, (double)(day.Purchases / max) * 72),
+                    SalesBarHeight = salesH,
+                    PurchasesBarHeight = buyH,
                     SalesText = FormatMoney(day.Sales),
                     PurchasesText = FormatMoney(day.Purchases)
                 });
@@ -213,31 +299,41 @@ public class AdminDashboardViewModel : BaseViewModel
             Timeline.Clear();
             foreach (var item in (dash.Timeline ?? new List<DashboardTimelineEventDto>()).Take(12))
             {
+                var (accent, soft) = ResolveAccent(item.Type);
                 Timeline.Add(new AdminTimelineItem
                 {
                     Title = item.Title ?? item.Type ?? "Activity",
                     Subtitle = item.OccurredAt.ToLocalTime().ToString("dd MMM · HH:mm"),
                     AmountText = FormatMoney(item.Amount),
-                    Accent = item.Type?.ToLowerInvariant() switch
-                    {
-                        "sale" => Color.FromArgb("#0F6B4C"),
-                        "purchase" => Color.FromArgb("#C2410C"),
-                        "expense" => Color.FromArgb("#B91C1C"),
-                        _ => Color.FromArgb("#475569")
-                    }
+                    Accent = accent,
+                    AccentSoft = soft
                 });
             }
+
+            HasTimeline = Timeline.Count > 0;
+            OnPropertyChanged(nameof(TimelineCountText));
         }
         catch (Exception ex)
         {
             ErrorText = ex.Message;
             StatusSummary = "Could not load restaurant status.";
+            HasChartData = false;
+            HasTimeline = false;
         }
         finally
         {
             IsBusy = false;
         }
     }
+
+    private static (Color Accent, Color Soft) ResolveAccent(string? type) =>
+        type?.ToLowerInvariant() switch
+        {
+            "sale" => (Color.FromArgb("#0F6B4C"), Color.FromArgb("#BBF7D0")),
+            "purchase" => (Color.FromArgb("#C2410C"), Color.FromArgb("#FED7AA")),
+            "expense" => (Color.FromArgb("#B91C1C"), Color.FromArgb("#FECACA")),
+            _ => (Color.FromArgb("#475569"), Color.FromArgb("#E2E8F0"))
+        };
 
     private static string FormatMoney(decimal value) => $"Rs {value:0.##}";
 }
