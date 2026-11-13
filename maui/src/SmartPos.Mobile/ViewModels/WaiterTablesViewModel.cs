@@ -30,6 +30,8 @@ public partial class WaiterTablesViewModel : BaseViewModel
 
     public ObservableCollection<RestaurantTableDto> Tables { get; } = new();
 
+    private IDispatcherTimer? _clock;
+
     public WaiterTablesViewModel(RestaurantService restaurant, SessionService session, AuthService auth, CartService cart)
     {
         _restaurant = restaurant;
@@ -41,7 +43,50 @@ public partial class WaiterTablesViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task AppearingAsync() => await RefreshAsync();
+    private async Task AppearingAsync()
+    {
+        StartClock();
+        await RefreshAsync();
+    }
+
+    [RelayCommand]
+    private void Disappearing() => StopClock();
+
+    private void StartClock()
+    {
+        if (Application.Current == null)
+        {
+            return;
+        }
+
+        _clock ??= Application.Current.Dispatcher.CreateTimer();
+        _clock.Interval = TimeSpan.FromSeconds(1);
+        _clock.Tick -= OnClockTick;
+        _clock.Tick += OnClockTick;
+        if (!_clock.IsRunning)
+        {
+            _clock.Start();
+        }
+
+        OnClockTick(this, EventArgs.Empty);
+    }
+
+    private void StopClock()
+    {
+        if (_clock != null)
+        {
+            _clock.Tick -= OnClockTick;
+            _clock.Stop();
+        }
+    }
+
+    private void OnClockTick(object? sender, EventArgs e)
+    {
+        foreach (var table in Tables)
+        {
+            table.RefreshElapsed();
+        }
+    }
 
     [RelayCommand]
     private async Task RefreshAsync()
@@ -73,7 +118,38 @@ public partial class WaiterTablesViewModel : BaseViewModel
             AvailableCount = active.Count(t => t.IsFree).ToString();
             OccupiedCount = active.Count(t => t.IsOccupied).ToString();
             BilledCount = active.Count(t => t.IsBilled).ToString();
+
+            await FillMissingStartTimesAsync(active);
+            OnClockTick(this, EventArgs.Empty);
         });
+    }
+
+    private async Task FillMissingStartTimesAsync(List<RestaurantTableDto> tables)
+    {
+        var pending = tables
+            .Where(t => t.CurrentOrderId is > 0 && t.OrderStartedAt is null)
+            .ToList();
+
+        if (pending.Count == 0)
+        {
+            return;
+        }
+
+        await Task.WhenAll(pending.Select(async table =>
+        {
+            try
+            {
+                var order = await _restaurant.GetOrderAsync(table.CurrentOrderId!.Value);
+                if (order.CreationTime != default)
+                {
+                    table.OrderStartedAt = order.CreationTime;
+                }
+            }
+            catch
+            {
+                // Timer stays hidden if this order cannot be loaded.
+            }
+        }));
     }
 
     partial void OnMyTablesOnlyChanged(bool value) => _ = RefreshAsync();

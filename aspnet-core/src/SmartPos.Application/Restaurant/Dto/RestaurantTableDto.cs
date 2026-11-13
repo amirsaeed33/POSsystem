@@ -21,6 +21,9 @@ namespace SmartPos.Restaurant.Dto
 
         public int? CurrentOrderId { get; set; }
 
+        /// <summary>When the open order on this table was created. Used for the running timer.</summary>
+        public DateTime? OrderStartedAt { get; set; }
+
         /// <summary>Plate / vehicle title from the linked open/billed car order, if any.</summary>
         public string CurrentVehicleNumber { get; set; }
 

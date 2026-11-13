@@ -44,8 +44,27 @@ namespace SmartPos.Restaurant
                 .ToList();
 
             var vehicleByOrderId = new Dictionary<int, string>();
+            var startedByOrderId = new Dictionary<int, DateTime>();
             if (orderIds.Count > 0)
             {
+                try
+                {
+                    var started = await _orderRepository.GetAll()
+                        .AsNoTracking()
+                        .Where(o => orderIds.Contains(o.Id))
+                        .Select(o => new { o.Id, o.CreationTime })
+                        .ToListAsync();
+
+                    foreach (var row in started)
+                    {
+                        startedByOrderId[row.Id] = row.CreationTime;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Still return tables if order lookup fails.
+                }
+
                 try
                 {
                     var carNumbers = await _orderRepository.GetAll()
@@ -77,6 +96,12 @@ namespace SmartPos.Restaurant
                     && vehicleByOrderId.TryGetValue(table.CurrentOrderId.Value, out var plate))
                 {
                     dto.CurrentVehicleNumber = plate;
+                }
+
+                if (table.CurrentOrderId.HasValue
+                    && startedByOrderId.TryGetValue(table.CurrentOrderId.Value, out var startedAt))
+                {
+                    dto.OrderStartedAt = startedAt;
                 }
                 result.Add(dto);
             }

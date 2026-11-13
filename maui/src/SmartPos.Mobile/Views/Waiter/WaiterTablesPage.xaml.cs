@@ -26,4 +26,13 @@ public partial class WaiterTablesPage : ContentPage
             _vm.AppearingCommand.Execute(null);
         }
     }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        if (_vm.DisappearingCommand.CanExecute(null))
+        {
+            _vm.DisappearingCommand.Execute(null);
+        }
+    }
 }

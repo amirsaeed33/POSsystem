@@ -1,8 +1,10 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
 namespace SmartPos.Mobile.Models;
 
-public class RestaurantTableDto : EntityDto
+public class RestaurantTableDto : EntityDto, INotifyPropertyChanged
 {
     [JsonPropertyName("branchId")]
     public int BranchId { get; set; }
@@ -27,6 +29,57 @@ public class RestaurantTableDto : EntityDto
 
     [JsonPropertyName("currentOrderId")]
     public int? CurrentOrderId { get; set; }
+
+    [JsonPropertyName("orderStartedAt")]
+    public DateTime? OrderStartedAt { get; set; }
+
+    public string ElapsedText { get; private set; } = string.Empty;
+
+    public bool HasElapsed => !string.IsNullOrEmpty(ElapsedText);
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public void RefreshElapsed()
+    {
+        if (IsFree || OrderStartedAt is not DateTime started || started == default)
+        {
+            SetElapsed(string.Empty);
+            return;
+        }
+
+        if (started.Kind == DateTimeKind.Utc)
+        {
+            started = started.ToLocalTime();
+        }
+        else if (started.Kind == DateTimeKind.Unspecified)
+        {
+            started = DateTime.SpecifyKind(started, DateTimeKind.Utc).ToLocalTime();
+        }
+
+        var elapsed = DateTime.Now - started;
+        if (elapsed < TimeSpan.Zero)
+        {
+            elapsed = TimeSpan.Zero;
+        }
+
+        var totalSeconds = (int)elapsed.TotalSeconds;
+        SetElapsed($"{totalSeconds / 60:00}:{totalSeconds % 60:00}");
+    }
+
+    private void SetElapsed(string value)
+    {
+        if (ElapsedText == value)
+        {
+            return;
+        }
+
+        ElapsedText = value;
+        OnPropertyChanged(nameof(ElapsedText));
+        OnPropertyChanged(nameof(HasElapsed));
+    }
+
+    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
     [JsonPropertyName("currentVehicleNumber")]
     public string? CurrentVehicleNumber { get; set; }
