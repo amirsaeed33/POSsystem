@@ -137,17 +137,48 @@
                     </Border>
 
                     <!-- ========================================================= -->
-                    <!-- 3. CATEGORY CHIPS SCROLLER (MULTI-SELECT)                 -->
+                    <!-- 3. CATEGORY CHIPS + LEFT/RIGHT ARROWS (no scrollbar)      -->
                     <!-- ========================================================= -->
-                    <ScrollView Orientation="Horizontal"
-                                HorizontalScrollBarVisibility="Never">
-                        <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Categories}"
-                                               Spacing="8"
-                                               Padding="18,0,18,4">
-                            <BindableLayout.ItemTemplate>
+                    <Grid ColumnDefinitions="Auto,*,Auto"
+                          Margin="12,0,12,4"
+                          ColumnSpacing="4"
+                          HeightRequest="44">
+                        <Border Grid.Column="0"
+                                WidthRequest="32"
+                                HeightRequest="32"
+                                StrokeThickness="1"
+                                Stroke="#E5E7EB"
+                                BackgroundColor="White"
+                                VerticalOptions="Center"
+                                HorizontalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCategoryScrollLeft" />
+                            </Border.GestureRecognizers>
+                            <Label Text="‹"
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   TextColor="#111827"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+
+                        <CollectionView x:Name="CategoriesCollectionView"
+                                        Grid.Column="1"
+                                        ItemsSource="{Binding Categories}"
+                                        SelectionMode="None"
+                                        HorizontalScrollBarVisibility="Never"
+                                        VerticalScrollBarVisibility="Never">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
                                 <DataTemplate x:DataType="models:CategoryChipItem">
                                     <Border StrokeThickness="1"
                                             Padding="14,8"
+                                            VerticalOptions="Center"
                                             Stroke="{Binding ChipBorderColor}"
                                             BackgroundColor="{Binding ChipBackgroundColor}">
                                         <Border.StrokeShape>
@@ -176,9 +207,31 @@
                                         </HorizontalStackLayout>
                                     </Border>
                                 </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </HorizontalStackLayout>
-                    </ScrollView>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Border Grid.Column="2"
+                                WidthRequest="32"
+                                HeightRequest="32"
+                                StrokeThickness="1"
+                                Stroke="#E5E7EB"
+                                BackgroundColor="White"
+                                VerticalOptions="Center"
+                                HorizontalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCategoryScrollRight" />
+                            </Border.GestureRecognizers>
+                            <Label Text="›"
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   TextColor="#111827"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </Grid>
 
                     <!-- ========================================================= -->
                     <!-- 4. SECTION HEADER & ACTIVE FILTER STATUS                 -->

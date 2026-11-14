@@ -442,8 +442,15 @@ public partial class CustomerOrderViewModel : BaseViewModel
         {
             var isAll = string.Equals(name, "All", StringComparison.OrdinalIgnoreCase);
             var count = isAll
-                ? _catalogTotalCount
-                : (SelectedCategories.Count == 1 && SelectedCategories.Contains(name) ? _catalogTotalCount : 0);
+                ? (_catalogTotalCount > 0 ? _catalogTotalCount : _allProducts.Count)
+                : _allProducts.Count(p =>
+                    string.Equals(p.CategoryName?.Trim(), name, StringComparison.OrdinalIgnoreCase));
+
+            // Hide store-header categories that have no products in the loaded catalog.
+            if (!isAll && count == 0)
+            {
+                continue;
+            }
 
             var isSel = isAll
                 ? (IsAllSelected || SelectedCategories.Count == 0)
@@ -455,6 +462,27 @@ public partial class CustomerOrderViewModel : BaseViewModel
                 Count = count,
                 IsSelected = isSel
             });
+        }
+
+        // Drop selection for categories that were hidden (0 products).
+        var visible = Categories
+            .Where(c => !c.IsAll)
+            .Select(c => c.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var removed = SelectedCategories.Where(s => !visible.Contains(s)).ToList();
+        foreach (var s in removed)
+        {
+            SelectedCategories.Remove(s);
+        }
+
+        if (SelectedCategories.Count == 0)
+        {
+            IsAllSelected = true;
+            var allChip = Categories.FirstOrDefault(c => c.IsAll);
+            if (allChip != null)
+            {
+                allChip.IsSelected = true;
+            }
         }
 
         UpdateSelectedCategoryTitle();
