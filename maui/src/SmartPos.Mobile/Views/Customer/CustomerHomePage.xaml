@@ -487,23 +487,23 @@
                                     VerticalOptions="Center" />
                         </Grid>
 
-                        <!-- Horizontal CollectionView for Combos / Deals -->
+                        <!-- Horizontal CollectionView for Combos / Deals (~2 cards visible) -->
                         <CollectionView ItemsSource="{Binding DealsList}"
-                                        HeightRequest="220"
+                                        HeightRequest="280"
                                         HorizontalScrollBarVisibility="Never"
                                         SelectionMode="None"
                                         BackgroundColor="Transparent">
                             <CollectionView.ItemsLayout>
-                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="12" />
+                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10" />
                             </CollectionView.ItemsLayout>
                             <CollectionView.ItemTemplate>
                                 <DataTemplate x:DataType="models:OnlineProductDto">
-                                    <Border WidthRequest="250"
+                                    <Border WidthRequest="168"
                                             BackgroundColor="White"
                                             Stroke="#E5E7EB"
                                             StrokeThickness="1"
                                             Padding="0"
-                                            Margin="0,2,0,8">
+                                            Margin="0,2,0,6">
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="16" />
                                         </Border.StrokeShape>
@@ -515,86 +515,84 @@
                                                                   CommandParameter="{Binding .}" />
                                         </Border.GestureRecognizers>
                                         <VerticalStackLayout Spacing="0">
-                                            <Grid HeightRequest="120" WidthRequest="250">
+                                            <Grid HeightRequest="132" WidthRequest="168">
                                                 <Image Source="{Binding ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                                        Aspect="AspectFill"
-                                                       HeightRequest="120"
-                                                       WidthRequest="250"
+                                                       HeightRequest="132"
+                                                       WidthRequest="168"
                                                        BackgroundColor="#F3F4F6" />
                                                 <BoxView Color="#22000000" />
 
                                                 <Border HorizontalOptions="Start"
                                                         VerticalOptions="Start"
-                                                        Margin="8"
+                                                        Margin="6"
                                                         BackgroundColor="#EF4444"
                                                         StrokeThickness="0"
-                                                        Padding="6,3">
+                                                        Padding="5,2">
                                                     <Border.StrokeShape>
                                                         <RoundRectangle CornerRadius="6" />
                                                     </Border.StrokeShape>
                                                     <Label Text="{Binding DealDiscountBadge}"
                                                            TextColor="White"
-                                                           FontSize="10"
+                                                           FontSize="9"
                                                            FontAttributes="Bold" />
                                                 </Border>
 
                                                 <Border HorizontalOptions="End"
                                                         VerticalOptions="Start"
-                                                        Margin="8"
+                                                        Margin="6"
                                                         BackgroundColor="#E6111827"
                                                         StrokeThickness="0"
-                                                        Padding="6,3">
+                                                        Padding="5,2">
                                                     <Border.StrokeShape>
                                                         <RoundRectangle CornerRadius="6" />
                                                     </Border.StrokeShape>
-                                                    <Label Text="CUSTOMIZE ⚙️"
+                                                    <Label Text="CUSTOMIZE"
                                                            TextColor="#A7F3D0"
-                                                           FontSize="9"
+                                                           FontSize="8"
                                                            FontAttributes="Bold" />
                                                 </Border>
                                             </Grid>
 
-                                            <VerticalStackLayout Padding="12,10" Spacing="4">
+                                            <VerticalStackLayout Padding="10,10" Spacing="4">
                                                 <Label Text="{Binding Name}"
-                                                       FontSize="14"
+                                                       FontSize="13"
                                                        FontAttributes="Bold"
                                                        TextColor="#111827"
-                                                       MaxLines="1"
+                                                       MaxLines="2"
                                                        LineBreakMode="TailTruncation" />
 
                                                 <Label Text="{Binding Description}"
-                                                       FontSize="11"
+                                                       FontSize="10"
                                                        TextColor="#6B7280"
                                                        MaxLines="2"
                                                        LineBreakMode="TailTruncation"
-                                                       HeightRequest="32" />
+                                                       HeightRequest="28" />
 
-                                                <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0" VerticalOptions="Center">
-                                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                                <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0" VerticalOptions="Center" ColumnSpacing="4">
+                                                    <VerticalStackLayout Spacing="0" VerticalOptions="Center">
                                                         <Label Text="{Binding PriceDisplay}"
-                                                               FontSize="14"
+                                                               FontSize="13"
                                                                FontAttributes="Bold"
-                                                               TextColor="{StaticResource PrimaryDark}"
-                                                               VerticalOptions="Center" />
+                                                               TextColor="{StaticResource PrimaryDark}" />
                                                         <Label Text="{Binding OriginalPriceDisplay}"
-                                                               FontSize="11"
+                                                               FontSize="10"
                                                                TextColor="#9CA3AF"
                                                                TextDecorations="Strikethrough"
-                                                               IsVisible="{Binding HasOriginalPrice}"
-                                                               VerticalOptions="Center" />
-                                                    </HorizontalStackLayout>
+                                                               IsVisible="{Binding HasOriginalPrice}" />
+                                                    </VerticalStackLayout>
 
                                                     <Border Grid.Column="1"
                                                             BackgroundColor="{StaticResource PrimaryLight}"
                                                             StrokeThickness="0"
-                                                            Padding="10,6"
+                                                            Padding="8,5"
                                                             VerticalOptions="Center">
                                                         <Border.StrokeShape>
                                                             <RoundRectangle CornerRadius="8" />
                                                         </Border.StrokeShape>
-                                                        <Label Text="Select Options"
+                                                        <Label Text="Select"
                                                                TextColor="{StaticResource PrimaryDark}"
-                                                               FontSize="11"
+                                                               FontSize="10"
                                                                FontAttributes="Bold" />
                                                     </Border>
                                                 </Grid>
