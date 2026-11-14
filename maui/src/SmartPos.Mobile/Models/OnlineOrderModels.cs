@@ -93,6 +93,29 @@ public class OnlineStoreHeaderDto
     public List<string> Categories { get; set; } = new();
 }
 
+public class PagedOnlineCatalogRequest
+{
+    public int? BranchId { get; set; }
+    public int SkipCount { get; set; }
+    public int MaxResultCount { get; set; } = 30;
+    public int? CategoryId { get; set; }
+    public string? CategoryName { get; set; }
+    public List<string>? CategoryNames { get; set; }
+    public string? Keyword { get; set; }
+    public bool DealsOnly { get; set; }
+
+    public string CacheKey
+    {
+        get
+        {
+            var names = CategoryNames != null && CategoryNames.Count > 0
+                ? string.Join("|", CategoryNames.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()).OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
+                : string.Empty;
+            return $"{BranchId ?? 0}|{SkipCount}|{MaxResultCount}|{CategoryId}|{CategoryName}|{names}|{Keyword}|{DealsOnly}";
+        }
+    }
+}
+
 public class OnlineProductDto : ObservableObject
 {
     [JsonPropertyName("id")]

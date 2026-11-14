@@ -15,9 +15,13 @@ public partial class CustomerHomeViewModel : BaseViewModel
     private readonly AppSettings _settings;
     private readonly DeliveryLocationService _deliveryLocation;
     private readonly FavoritesService _favorites;
+    private const int CatalogPageSize = 30;
+    private const int SearchDebounceMs = 350;
     private List<OnlineProductDto> _allProducts = new();
     private readonly List<CategoryChipItem> _allCategoryChips = new();
     private IDispatcherTimer? _heroTimer;
+    private int _catalogTotalCount;
+    private CancellationTokenSource? _searchDebounceCts;
 
     [ObservableProperty]
     private OnlineStoreHeaderDto? storeHeader;
@@ -337,21 +341,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
             }
 
             // Soft refresh: reload header/catalog without clearing the cart.
-            var branch = SelectedBranch;
-            StoreHeader = await _orders.GetStoreHeaderAsync(branch.Id, forceRefresh: true);
-            await LoadHeroSlidesAsync(branch.Id, forceRefresh: true);
-            _allProducts = await _orders.GetCatalogAsync(branch.Id, forceRefresh: true);
-            foreach (var p in _allProducts)
-            {
-                p.ImageUrl = _api.ResolveImageUrl(p.ImagePath);
-                p.IsFavorite = _favorites.IsFavorite(p.Id);
-            }
-
-            RebuildCategories();
-            ApplyFilters();
-            await LoadDealsAsync(branch.Id, forceRefresh: true);
-            _ = LoadFeedbacksAsync(branch.Id);
-            _orders.PrefetchModifiersForCatalog(_allProducts);
+            await LoadBranchHomeDataAsync(SelectedBranch, forceRefresh: true);
         }
         catch (Exception ex)
         {
@@ -391,35 +381,152 @@ public partial class CustomerHomeViewModel : BaseViewModel
         await _session.SetBranchAsync(branch.Id);
         _cart.Clear();
 
-        StoreHeader = await _orders.GetStoreHeaderAsync(branch.Id);
-        _favorites.Initialize(branch.Id);
-
-        await LoadHeroSlidesAsync(branch.Id);
-
-        // Cached catalog: first open hits API; later visits / re-appear are instant.
-        _allProducts = await _orders.GetCatalogAsync(branch.Id);
-        foreach (var p in _allProducts)
-        {
-            p.ImageUrl = _api.ResolveImageUrl(p.ImagePath);
-            p.IsFavorite = _favorites.IsFavorite(p.Id);
-        }
-
         SelectedCategory = "All";
         SearchText = string.Empty;
         CategorySearchText = string.Empty;
         IsCategorySearchVisible = false;
         ShowProductGrid = true;
-        RebuildCategories();
-        ApplyFilters();
 
-        await LoadDealsAsync(branch.Id);
-        _ = LoadFeedbacksAsync(branch.Id);
-
-        // Warm size/modifier options so add-to-cart popup feels instant.
-        _orders.PrefetchModifiersForCatalog(_allProducts);
+        await LoadBranchHomeDataAsync(branch, forceRefresh: false);
 
         // Start live delivery pin early (Deliver-to / address flow).
         _ = _deliveryLocation.CaptureAsync();
+    }
+
+    /// <summary>
+    /// Loads store header, hero, first catalog page, and deals in parallel so cold start waits for
+    /// the slowest call instead of the sum of every call.
+    /// </summary>
+    private async Task LoadBranchHomeDataAsync(OnlineBranchDto branch, bool forceRefresh)
+    {
+        _favorites.Initialize(branch.Id);
+        CancelSearchDebounce();
+
+        var branchId = branch.Id;
+        var headerTask = _orders.GetStoreHeaderAsync(branchId, forceRefresh);
+        var heroTask = LoadHeroSlidesAsync(branchId, forceRefresh);
+        var catalogTask = LoadCatalogFirstPageAsync(branchId, forceRefresh);
+        var dealsTask = _orders.GetActiveDealsAsync(branchId, forceRefresh);
+
+        await Task.WhenAll(headerTask, heroTask, catalogTask, dealsTask);
+
+        if (SelectedBranch?.Id != branchId)
+        {
+            return;
+        }
+
+        StoreHeader = await headerTask;
+        RebuildCategories();
+        ApplyFilters();
+
+        await LoadDealsAsync(branchId, forceRefresh, await dealsTask);
+        _ = LoadFeedbacksAsync(branchId);
+        _orders.PrefetchModifiersForCatalog(_allProducts);
+    }
+
+    private async Task LoadCatalogFirstPageAsync(
+        int branchId,
+        bool forceRefresh,
+        string? keyword = null,
+        bool dealsOnly = false,
+        IReadOnlyCollection<string>? categoryNames = null)
+    {
+        var request = new PagedOnlineCatalogRequest
+        {
+            BranchId = branchId,
+            SkipCount = 0,
+            MaxResultCount = CatalogPageSize,
+            Keyword = string.IsNullOrWhiteSpace(keyword) ? null : keyword.Trim(),
+            DealsOnly = dealsOnly,
+            CategoryNames = categoryNames is { Count: > 0 } ? categoryNames.ToList() : null,
+            CategoryName = categoryNames is { Count: 1 } ? categoryNames.First() : null
+        };
+
+        var page = await _orders.GetCatalogPageAsync(request, forceRefresh);
+        _catalogTotalCount = page.TotalCount;
+        _allProducts = (page.Items ?? new List<OnlineProductDto>()).ToList();
+        foreach (var p in _allProducts)
+        {
+            p.ImageUrl = _api.ResolveImageUrl(p.ImagePath);
+            p.IsFavorite = _favorites.IsFavorite(p.Id);
+        }
+    }
+
+    private void CancelSearchDebounce()
+    {
+        try
+        {
+            _searchDebounceCts?.Cancel();
+        }
+        catch
+        {
+            // ignored
+        }
+
+        _searchDebounceCts?.Dispose();
+        _searchDebounceCts = null;
+    }
+
+    private void ScheduleSearchFilterDebounce()
+    {
+        CancelSearchDebounce();
+        var cts = new CancellationTokenSource();
+        _searchDebounceCts = cts;
+        var token = cts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(SearchDebounceMs, token);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    if (!token.IsCancellationRequested)
+                    {
+                        await ReloadCatalogForCurrentFiltersAsync();
+                    }
+                });
+            }
+            catch (TaskCanceledException)
+            {
+                // ignored
+            }
+        }, token);
+    }
+
+    private async Task ReloadCatalogForCurrentFiltersAsync()
+    {
+        if (SelectedBranch == null)
+        {
+            return;
+        }
+
+        var dealsOnly = !string.IsNullOrWhiteSpace(SelectedPill) &&
+                        SelectedPill.Contains("Top Deals", StringComparison.OrdinalIgnoreCase);
+        var categoryNames = !IsFavoritesCategorySelected && !IsAllCategoriesSelected && SelectedCategories.Count > 0
+            ? SelectedCategories.ToList()
+            : null;
+
+        try
+        {
+            await LoadCatalogFirstPageAsync(
+                SelectedBranch.Id,
+                forceRefresh: false,
+                keyword: SearchText,
+                dealsOnly: dealsOnly,
+                categoryNames: categoryNames);
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[CustomerHomeViewModel] Catalog reload failed: {ex.Message}");
+            ErrorMessage = ex.Message;
+        }
     }
 
     private void RebuildCategories()
@@ -842,7 +949,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
     // =========================================================================
     // 🔥 DEALS FETCHING & DATA ENGINE
     // =========================================================================
-    public async Task LoadDealsAsync(int branchId, bool forceRefresh = false)
+    public async Task LoadDealsAsync(int branchId, bool forceRefresh = false, List<DealDto>? prefetchedRemoteDeals = null)
     {
         try
         {
@@ -864,7 +971,9 @@ public partial class CustomerHomeViewModel : BaseViewModel
             }
 
             // 2. Fetch active deals from the dedicated DealAppService backend endpoint
-            var remoteDeals = await _orders.GetActiveDealsAsync(branchId, forceRefresh);
+            //    (or reuse a list already fetched in parallel with catalog)
+            var remoteDeals = prefetchedRemoteDeals
+                ?? await _orders.GetActiveDealsAsync(branchId, forceRefresh);
             foreach (var rd in remoteDeals.Where(x => x.IsActive && !x.IsExpired))
             {
                 if (DealsList.Any(x => x.Id == rd.ProductId || (rd.ProductId.HasValue && x.Id == rd.ProductId.Value) || x.DealId == rd.Id))
@@ -1042,7 +1151,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         UpdateCategorySelectionTitles();
         ApplyCategorySearchFilter();
         ShowProductGrid = true;
-        ApplyFilters();
+        _ = ReloadCatalogForCurrentFiltersAsync();
     }
 
     [RelayCommand]
@@ -1068,7 +1177,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         if (string.Equals(categoryName, "Promo", StringComparison.OrdinalIgnoreCase))
         {
             SelectedPill = "Top Deals";
-            ApplyFilters();
+            _ = ReloadCatalogForCurrentFiltersAsync();
             return;
         }
 
@@ -1101,7 +1210,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
             UpdateCategorySelectionTitles();
             ApplyCategorySearchFilter();
             ShowProductGrid = true;
-            ApplyFilters();
+            _ = ReloadCatalogForCurrentFiltersAsync();
         }
     }
 
@@ -1109,7 +1218,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
     public void ClearSearch()
     {
         SearchText = string.Empty;
-        ApplyFilters();
+        _ = ReloadCatalogForCurrentFiltersAsync();
     }
 
     [RelayCommand]
@@ -1125,7 +1234,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         }
         IsAllCategoriesSelected = true;
         UpdateCategorySelectionTitles();
-        ApplyFilters();
+        _ = ReloadCatalogForCurrentFiltersAsync();
     }
 
     private void UpdateCategorySelectionTitles()
@@ -1483,7 +1592,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
             ShowProductGrid = true;
         }
 
-        ApplyFilters();
+        ScheduleSearchFilterDebounce();
     }
 
     partial void OnCategorySearchTextChanged(string value) => ApplyCategorySearchFilter();
@@ -1495,39 +1604,19 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
     private void ApplyFilters()
     {
+        // Server already applied Keyword / CategoryNames / DealsOnly into _allProducts.
+        // Favorites + non-deal quick pills remain local over the loaded server page.
         Products.Clear();
         IEnumerable<OnlineProductDto> query = _allProducts;
         if (IsFavoritesCategorySelected)
         {
             query = query.Where(p => p.IsFavorite);
         }
-        else if (!IsAllCategoriesSelected && SelectedCategories.Count > 0)
-        {
-            query = query.Where(p =>
-                !string.IsNullOrWhiteSpace(p.CategoryName) &&
-                SelectedCategories.Contains(p.CategoryName));
-        }
 
-        if (!string.IsNullOrWhiteSpace(SearchText))
+        if (!string.IsNullOrWhiteSpace(SelectedPill) &&
+            !SelectedPill.Contains("Top Deals", StringComparison.OrdinalIgnoreCase))
         {
-            var st = SearchText.Trim();
-            query = query.Where(p =>
-                (p.Name?.Contains(st, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (p.Description?.Contains(st, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (p.CategoryName?.Contains(st, StringComparison.OrdinalIgnoreCase) ?? false));
-        }
-
-        // 3. Smart Quick Capsule Filters matching Web logic
-        if (!string.IsNullOrWhiteSpace(SelectedPill))
-        {
-            if (SelectedPill.Contains("Top Deals", StringComparison.OrdinalIgnoreCase))
-            {
-                query = query.Where(p =>
-                    p.IsDeal ||
-                    (p.CategoryName?.Contains("deal", StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (p.Name?.Contains("deal", StringComparison.OrdinalIgnoreCase) ?? false));
-            }
-            else if (SelectedPill.Contains("Highly Rated", StringComparison.OrdinalIgnoreCase))
+            if (SelectedPill.Contains("Highly Rated", StringComparison.OrdinalIgnoreCase))
             {
                 query = query
                     .Where(p => (4.7 + ((Math.Abs(p.Id) % 4) * 0.1)) >= 4.8)
@@ -1591,7 +1680,15 @@ public partial class CustomerHomeViewModel : BaseViewModel
             }
         }
 
-        ApplyFilters();
+        if (string.IsNullOrWhiteSpace(SelectedPill) ||
+            SelectedPill.Contains("Top Deals", StringComparison.OrdinalIgnoreCase))
+        {
+            _ = ReloadCatalogForCurrentFiltersAsync();
+        }
+        else
+        {
+            ApplyFilters();
+        }
     }
 
     [RelayCommand]

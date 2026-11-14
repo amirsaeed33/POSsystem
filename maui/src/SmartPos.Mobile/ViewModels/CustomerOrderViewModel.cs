@@ -16,8 +16,13 @@ public partial class CustomerOrderViewModel : BaseViewModel
     private readonly AbpApiClient _api;
     private readonly FavoritesService _favorites;
 
-    private List<OnlineProductDto> _allProducts = new();
+    private const int PageSize = 30;
+    private readonly List<OnlineProductDto> _allProducts = new();
     private int? _loadedBranchId;
+    private int _catalogTotalCount;
+    private bool _isLoadingMore;
+    private bool _isReloadingCatalog;
+    private CancellationTokenSource? _catalogLoadCts;
 
     public HashSet<string> SelectedCategories { get; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -52,7 +57,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
         }
 
         UpdateSelectedCategoryTitle();
-        ApplyFilters();
+        _ = ReloadFirstPageAsync();
     }
 
     [ObservableProperty]
@@ -70,6 +75,9 @@ public partial class CustomerOrderViewModel : BaseViewModel
     [ObservableProperty]
     private OnlineStoreHeaderDto? storeHeader;
 
+    [ObservableProperty]
+    private bool isLoadingMore;
+
     public ObservableCollection<OnlineProductDto> Products { get; } = new();
     public ObservableCollection<CategoryChipItem> Categories { get; } = new();
 
@@ -77,8 +85,16 @@ public partial class CustomerOrderViewModel : BaseViewModel
     public bool HasCartItems => CartCount > 0;
     public decimal CartSubtotal => _cart.Subtotal;
     public string CartSubtotalDisplay => $"Rs {CartSubtotal:0}";
-    public string DishesCountLabel => $"{Products.Count} {(Products.Count == 1 ? "dish" : "dishes")}";
+    public string DishesCountLabel
+    {
+        get
+        {
+            var total = _catalogTotalCount > 0 ? _catalogTotalCount : Products.Count;
+            return $"{total} {(total == 1 ? "dish" : "dishes")}";
+        }
+    }
     public bool HasProducts => Products.Count > 0;
+    public bool CanLoadMore => Products.Count < _catalogTotalCount;
     public string DeliverToLabel => StoreHeader?.BranchName ?? "Al meezan";
     public bool HasSearchText => !string.IsNullOrWhiteSpace(SearchText);
     public bool HasActiveFilters => !IsAllSelected || HasSearchText;
@@ -242,10 +258,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
             ErrorMessage = null;
             var branchId = await ResolveActiveBranchIdAsync();
 
-            // Load header + catalog together; both are cached so warm visits are near-instant.
             var headerTask = _orders.GetStoreHeaderAsync(branchId, forceRefresh);
-            var catalogTask = _orders.GetCatalogAsync(branchId, forceRefresh);
-
             try
             {
                 StoreHeader = await headerTask;
@@ -256,17 +269,10 @@ public partial class CustomerOrderViewModel : BaseViewModel
                 System.Diagnostics.Debug.WriteLine($"[CustomerOrderViewModel] Store header failed: {ex.Message}");
             }
 
-            _allProducts = await catalogTask;
-            foreach (var p in _allProducts)
-            {
-                p.ImageUrl = ResolveProductImageUrl(_api, p.ImagePath, p.Name, p.CategoryName);
-                p.IsFavorite = _favorites.IsFavorite(p.Id);
-                p.CartQty = _cart.GetQty(p.Id);
-            }
-
             _loadedBranchId = branchId;
             RebuildCategories();
-            ApplyFilters();
+            await ReloadFirstPageAsync(forceRefresh);
+            _orders.PrefetchModifiersForCatalog(_allProducts);
         }
         catch (Exception ex)
         {
@@ -279,24 +285,138 @@ public partial class CustomerOrderViewModel : BaseViewModel
         }
     }
 
+    private PagedOnlineCatalogRequest BuildCatalogRequest(int skipCount) => new()
+    {
+        BranchId = _loadedBranchId ?? _session.BranchId,
+        SkipCount = skipCount,
+        MaxResultCount = PageSize,
+        Keyword = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
+        CategoryNames = !IsAllSelected && SelectedCategories.Count > 0
+            ? SelectedCategories.ToList()
+            : null,
+        CategoryName = !IsAllSelected && SelectedCategories.Count == 1
+            ? SelectedCategories.First()
+            : null
+    };
+
+    private async Task ReloadFirstPageAsync(bool forceRefresh = false)
+    {
+        if (_isReloadingCatalog && !forceRefresh)
+        {
+            return;
+        }
+
+        _catalogLoadCts?.Cancel();
+        _catalogLoadCts = new CancellationTokenSource();
+        var ct = _catalogLoadCts.Token;
+
+        _isReloadingCatalog = true;
+        try
+        {
+            var request = BuildCatalogRequest(0);
+            var page = await _orders.GetCatalogPageAsync(request, forceRefresh, ct);
+            if (ct.IsCancellationRequested)
+            {
+                return;
+            }
+
+            _allProducts.Clear();
+            _catalogTotalCount = page.TotalCount;
+            foreach (var p in page.Items ?? new List<OnlineProductDto>())
+            {
+                EnrichProduct(p);
+                _allProducts.Add(p);
+            }
+
+            BindProductsFromLoaded();
+        }
+        catch (OperationCanceledException)
+        {
+            // ignored
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[CustomerOrderViewModel] ReloadFirstPage failed: {ex.Message}");
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            _isReloadingCatalog = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadMoreAsync()
+    {
+        if (_isLoadingMore || _isReloadingCatalog || !CanLoadMore)
+        {
+            return;
+        }
+
+        _isLoadingMore = true;
+        IsLoadingMore = true;
+        try
+        {
+            var request = BuildCatalogRequest(_allProducts.Count);
+            var page = await _orders.GetCatalogPageAsync(request, forceRefresh: false);
+            _catalogTotalCount = page.TotalCount;
+
+            var existing = _allProducts.Select(p => p.Id).ToHashSet();
+            foreach (var p in page.Items ?? new List<OnlineProductDto>())
+            {
+                if (!existing.Add(p.Id))
+                {
+                    continue;
+                }
+
+                EnrichProduct(p);
+                _allProducts.Add(p);
+                Products.Add(p);
+            }
+
+            OnPropertyChanged(nameof(DishesCountLabel));
+            OnPropertyChanged(nameof(HasProducts));
+            OnPropertyChanged(nameof(CanLoadMore));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[CustomerOrderViewModel] LoadMore failed: {ex.Message}");
+        }
+        finally
+        {
+            _isLoadingMore = false;
+            IsLoadingMore = false;
+        }
+    }
+
+    private void EnrichProduct(OnlineProductDto p)
+    {
+        p.ImageUrl = ResolveProductImageUrl(_api, p.ImagePath, p.Name, p.CategoryName);
+        p.IsFavorite = _favorites.IsFavorite(p.Id);
+        p.CartQty = _cart.GetQty(p.Id);
+    }
+
+    private void BindProductsFromLoaded()
+    {
+        Products.Clear();
+        foreach (var p in _allProducts)
+        {
+            p.CartQty = _cart.GetQty(p.Id);
+            p.IsFavorite = _favorites.IsFavorite(p.Id);
+            Products.Add(p);
+        }
+
+        OnPropertyChanged(nameof(DishesCountLabel));
+        OnPropertyChanged(nameof(HasProducts));
+        OnPropertyChanged(nameof(HasActiveFilters));
+        OnPropertyChanged(nameof(HasSearchText));
+        OnPropertyChanged(nameof(CanLoadMore));
+        RebuildCategories();
+    }
+
     private void RebuildCategories()
     {
         var names = new List<string> { "All" };
-
-        var activeProductCategories = _allProducts
-            .Select(p => p.CategoryName)
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x!.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        foreach (var c in activeProductCategories)
-        {
-            if (!names.Contains(c, StringComparer.OrdinalIgnoreCase))
-            {
-                names.Add(c);
-            }
-        }
 
         foreach (var c in StoreHeader?.Categories ?? new List<string>())
         {
@@ -306,14 +426,26 @@ public partial class CustomerOrderViewModel : BaseViewModel
             }
         }
 
+        foreach (var c in _allProducts
+                     .Select(p => p.CategoryName)
+                     .Where(x => !string.IsNullOrWhiteSpace(x))
+                     .Select(x => x!.Trim()))
+        {
+            if (!names.Contains(c, StringComparer.OrdinalIgnoreCase))
+            {
+                names.Add(c);
+            }
+        }
+
         Categories.Clear();
         foreach (var name in names)
         {
-            var count = string.Equals(name, "All", StringComparison.OrdinalIgnoreCase)
-                ? _allProducts.Count
-                : _allProducts.Count(p => string.Equals(p.CategoryName, name, StringComparison.OrdinalIgnoreCase));
+            var isAll = string.Equals(name, "All", StringComparison.OrdinalIgnoreCase);
+            var count = isAll
+                ? _catalogTotalCount
+                : (SelectedCategories.Count == 1 && SelectedCategories.Contains(name) ? _catalogTotalCount : 0);
 
-            var isSel = string.Equals(name, "All", StringComparison.OrdinalIgnoreCase)
+            var isSel = isAll
                 ? (IsAllSelected || SelectedCategories.Count == 0)
                 : SelectedCategories.Contains(name);
 
@@ -375,7 +507,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
         }
 
         UpdateSelectedCategoryTitle();
-        ApplyFilters();
+        _ = ReloadFirstPageAsync();
         }
         finally
         {
@@ -405,6 +537,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
     public void ClearSearch()
     {
         SearchText = string.Empty;
+        _ = ReloadFirstPageAsync();
     }
 
     [RelayCommand]
@@ -418,7 +551,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
         }
         IsAllSelected = true;
         UpdateSelectedCategoryTitle();
-        ApplyFilters();
+        _ = ReloadFirstPageAsync();
     }
 
     private void UpdateSelectedCategoryTitle()
@@ -447,42 +580,10 @@ public partial class CustomerOrderViewModel : BaseViewModel
     {
         OnPropertyChanged(nameof(HasSearchText));
         OnPropertyChanged(nameof(HasActiveFilters));
-        ApplyFilters();
+        _ = ReloadFirstPageAsync();
     }
 
-    private void ApplyFilters()
-    {
-        IEnumerable<OnlineProductDto> query = _allProducts;
-
-        if (!IsAllSelected && SelectedCategories.Count > 0)
-        {
-            query = query.Where(p =>
-                !string.IsNullOrWhiteSpace(p.CategoryName) &&
-                SelectedCategories.Contains(p.CategoryName.Trim()));
-        }
-
-        if (!string.IsNullOrWhiteSpace(SearchText))
-        {
-            var st = SearchText.Trim();
-            query = query.Where(p =>
-                (p.Name != null && p.Name.Contains(st, StringComparison.OrdinalIgnoreCase)) ||
-                (p.CategoryName != null && p.CategoryName.Contains(st, StringComparison.OrdinalIgnoreCase)) ||
-                (p.Description != null && p.Description.Contains(st, StringComparison.OrdinalIgnoreCase)));
-        }
-
-        Products.Clear();
-        foreach (var item in query)
-        {
-            item.CartQty = _cart.GetQty(item.Id);
-            item.IsFavorite = _favorites.IsFavorite(item.Id);
-            Products.Add(item);
-        }
-
-        OnPropertyChanged(nameof(DishesCountLabel));
-        OnPropertyChanged(nameof(HasProducts));
-        OnPropertyChanged(nameof(HasActiveFilters));
-        OnPropertyChanged(nameof(HasSearchText));
-    }
+    private void ApplyFilters() => BindProductsFromLoaded();
 
     private void SyncCartQtyBadges()
     {

@@ -13,6 +13,7 @@ public sealed class ProductCatalogCache
     private static readonly TimeSpan ModifierTtl = TimeSpan.FromMinutes(30);
 
     private readonly ConcurrentDictionary<int, CacheEntry<List<OnlineProductDto>>> _catalogByBranch = new();
+    private readonly ConcurrentDictionary<string, CacheEntry<AbpPagedResult<OnlineProductDto>>> _catalogPages = new();
     private readonly ConcurrentDictionary<int, CacheEntry<OnlineProductDto>> _productById = new();
     private readonly ConcurrentDictionary<int, CacheEntry<List<ProductModifierGroupDto>>> _modifiersByProduct = new();
     private readonly ConcurrentDictionary<int, CacheEntry<OnlineStoreHeaderDto>> _storeHeaderByBranch = new();
@@ -39,6 +40,42 @@ public sealed class ProductCatalogCache
         _catalogByBranch[branchId] = new CacheEntry<List<OnlineProductDto>>(snapshot, CatalogTtl);
 
         foreach (var p in snapshot)
+        {
+            _productById[p.Id] = new CacheEntry<OnlineProductDto>(CloneProduct(p), CatalogTtl);
+        }
+    }
+
+    public bool TryGetCatalogPage(string pageKey, out AbpPagedResult<OnlineProductDto>? page)
+    {
+        page = null;
+        if (string.IsNullOrWhiteSpace(pageKey) || !_catalogPages.TryGetValue(pageKey, out var entry) || entry.IsExpired)
+        {
+            return false;
+        }
+
+        page = new AbpPagedResult<OnlineProductDto>
+        {
+            TotalCount = entry.Value.TotalCount,
+            Items = entry.Value.Items.Select(CloneProduct).ToList()
+        };
+        return true;
+    }
+
+    public void SetCatalogPage(string pageKey, AbpPagedResult<OnlineProductDto> page)
+    {
+        if (string.IsNullOrWhiteSpace(pageKey) || page == null)
+        {
+            return;
+        }
+
+        var snapshot = new AbpPagedResult<OnlineProductDto>
+        {
+            TotalCount = page.TotalCount,
+            Items = (page.Items ?? new List<OnlineProductDto>()).Select(CloneProduct).ToList()
+        };
+        _catalogPages[pageKey] = new CacheEntry<AbpPagedResult<OnlineProductDto>>(snapshot, CatalogTtl);
+
+        foreach (var p in snapshot.Items)
         {
             _productById[p.Id] = new CacheEntry<OnlineProductDto>(CloneProduct(p), CatalogTtl);
         }
@@ -152,11 +189,18 @@ public sealed class ProductCatalogCache
         _storeHeaderByBranch.TryRemove(branchId, out _);
         _heroByBranch.TryRemove(branchId, out _);
         _dealsByBranch.TryRemove(branchId, out _);
+
+        var prefix = $"{branchId}|";
+        foreach (var key in _catalogPages.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList())
+        {
+            _catalogPages.TryRemove(key, out _);
+        }
     }
 
     public void Clear()
     {
         _catalogByBranch.Clear();
+        _catalogPages.Clear();
         _productById.Clear();
         _modifiersByProduct.Clear();
         _storeHeaderByBranch.Clear();

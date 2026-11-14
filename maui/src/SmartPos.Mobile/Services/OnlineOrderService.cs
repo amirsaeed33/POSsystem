@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json;
 using SmartPos.Mobile.Models;
 
@@ -7,6 +9,8 @@ public class OnlineOrderService
 {
     private readonly AbpApiClient _api;
     private readonly ProductCatalogCache _cache;
+    private readonly ConcurrentDictionary<string, Task<AbpPagedResult<OnlineProductDto>>> _catalogPageInFlight = new();
+    private volatile bool _pagedCatalogUnsupported;
 
     public OnlineOrderService(AbpApiClient api, ProductCatalogCache cache)
     {
@@ -63,6 +67,191 @@ public class OnlineOrderService
         }
 
         return products;
+    }
+
+    public async Task<AbpPagedResult<OnlineProductDto>> GetCatalogPageAsync(
+        PagedOnlineCatalogRequest request,
+        bool forceRefresh = false,
+        CancellationToken ct = default)
+    {
+        request ??= new PagedOnlineCatalogRequest();
+        if (request.MaxResultCount <= 0)
+        {
+            request.MaxResultCount = 30;
+        }
+
+        request.MaxResultCount = Math.Min(request.MaxResultCount, 100);
+        request.SkipCount = Math.Max(0, request.SkipCount);
+
+        var cacheKey = request.CacheKey;
+        if (!forceRefresh && request.SkipCount == 0 && _cache.TryGetCatalogPage(cacheKey, out var cached) && cached != null)
+        {
+            return cached;
+        }
+
+        if (!forceRefresh && _catalogPageInFlight.TryGetValue(cacheKey, out var inFlight))
+        {
+            return await inFlight;
+        }
+
+        var fetchTask = FetchCatalogPageAsync(request, cacheKey, ct);
+        _catalogPageInFlight[cacheKey] = fetchTask;
+        try
+        {
+            return await fetchTask;
+        }
+        finally
+        {
+            _catalogPageInFlight.TryRemove(cacheKey, out _);
+        }
+    }
+
+    private async Task<AbpPagedResult<OnlineProductDto>> FetchCatalogPageAsync(
+        PagedOnlineCatalogRequest request,
+        string cacheKey,
+        CancellationToken ct)
+    {
+        // Production may not have GetOnlineCatalogPaged deployed yet — use legacy catalog.
+        if (_pagedCatalogUnsupported)
+        {
+            return await FetchCatalogPageFromLegacyAsync(request, cacheKey, ct);
+        }
+
+        var query = new List<string>
+        {
+            $"SkipCount={request.SkipCount}",
+            $"MaxResultCount={request.MaxResultCount}"
+        };
+
+        if (request.BranchId is int bid && bid > 0)
+        {
+            query.Add($"BranchId={bid}");
+        }
+
+        if (request.CategoryId is int categoryId && categoryId > 0)
+        {
+            query.Add($"CategoryId={categoryId}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.CategoryName))
+        {
+            query.Add($"CategoryName={Uri.EscapeDataString(request.CategoryName.Trim())}");
+        }
+
+        if (request.CategoryNames != null)
+        {
+            foreach (var name in request.CategoryNames.Where(n => !string.IsNullOrWhiteSpace(n)))
+            {
+                query.Add($"CategoryNames={Uri.EscapeDataString(name.Trim())}");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Keyword))
+        {
+            query.Add($"Keyword={Uri.EscapeDataString(request.Keyword.Trim())}");
+        }
+
+        if (request.DealsOnly)
+        {
+            query.Add("DealsOnly=true");
+        }
+
+        var url = $"api/services/app/CustomerOrder/GetOnlineCatalogPaged?{string.Join("&", query)}";
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            var page = await _api.GetAsync<AbpPagedResult<OnlineProductDto>>(url, ct)
+                       ?? new AbpPagedResult<OnlineProductDto>();
+            sw.Stop();
+            Debug.WriteLine(
+                $"[GetCatalogPageAsync] skip={request.SkipCount} take={request.MaxResultCount} items={page.Items?.Count ?? 0} total={page.TotalCount} in {sw.ElapsedMilliseconds}ms");
+
+            page.Items ??= new List<OnlineProductDto>();
+            if (request.SkipCount == 0)
+            {
+                _cache.SetCatalogPage(cacheKey, page);
+            }
+
+            return page;
+        }
+        catch (ApiException ex) when (IsNotFound(ex))
+        {
+            sw.Stop();
+            _pagedCatalogUnsupported = true;
+            Debug.WriteLine($"[GetCatalogPageAsync] Paged API unavailable ({ex.Message}); falling back to GetOnlineCatalog.");
+            return await FetchCatalogPageFromLegacyAsync(request, cacheKey, ct);
+        }
+    }
+
+    private async Task<AbpPagedResult<OnlineProductDto>> FetchCatalogPageFromLegacyAsync(
+        PagedOnlineCatalogRequest request,
+        string cacheKey,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var all = await GetCatalogAsync(request.BranchId, forceRefresh: false);
+        IEnumerable<OnlineProductDto> query = all;
+
+        if (request.CategoryId is int categoryId && categoryId > 0)
+        {
+            query = query.Where(p => p.CategoryId == categoryId);
+        }
+
+        var multiNames = (request.CategoryNames ?? new List<string>())
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (multiNames.Count > 0)
+        {
+            query = query.Where(p =>
+                !string.IsNullOrWhiteSpace(p.CategoryName) &&
+                multiNames.Contains(p.CategoryName.Trim()));
+        }
+        else if (!string.IsNullOrWhiteSpace(request.CategoryName))
+        {
+            var categoryName = request.CategoryName.Trim();
+            query = query.Where(p =>
+                string.Equals(p.CategoryName?.Trim(), categoryName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Keyword))
+        {
+            var keyword = request.Keyword.Trim();
+            query = query.Where(p =>
+                (p.Name?.Contains(keyword, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Description?.Contains(keyword, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.CategoryName?.Contains(keyword, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        if (request.DealsOnly)
+        {
+            query = query.Where(p =>
+                p.IsDeal ||
+                (p.CategoryName?.Contains("deal", StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        var filtered = query.OrderBy(p => p.Id).ToList();
+        var page = new AbpPagedResult<OnlineProductDto>
+        {
+            TotalCount = filtered.Count,
+            Items = filtered.Skip(request.SkipCount).Take(request.MaxResultCount).ToList()
+        };
+
+        if (request.SkipCount == 0)
+        {
+            _cache.SetCatalogPage(cacheKey, page);
+        }
+
+        return page;
+    }
+
+    private static bool IsNotFound(ApiException ex)
+    {
+        var message = ex.Message ?? string.Empty;
+        return message.Contains("404", StringComparison.OrdinalIgnoreCase) ||
+               message.Contains("Not Found", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<OnlineProductDto> GetProductAsync(int id, int? branchId, bool forceRefresh = false)

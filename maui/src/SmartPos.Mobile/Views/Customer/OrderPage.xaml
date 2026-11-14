@@ -220,7 +220,9 @@
                     <!-- ========================================================= -->
                     <CollectionView ItemsSource="{Binding Products}"
                                     SelectionMode="None"
-                                    Margin="18,0">
+                                    Margin="18,0"
+                                    RemainingItemsThreshold="4"
+                                    RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
                         <CollectionView.ItemsLayout>
                             <GridItemsLayout Orientation="Vertical"
                                              Span="2"
