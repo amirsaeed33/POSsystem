@@ -72,6 +72,9 @@ angular-old/
 secrets.json
 **/appsettings.*.local.json
 *.pfx
+*.keystore
+*.jks
+**/aljannat.keystore
 *.publishsettings
 *.pubxml
 
