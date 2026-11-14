@@ -1,21 +1,12 @@
-using SmartPos.Mobile.Helpers;
-using SmartPos.Mobile.Services;
-
 namespace SmartPos.Mobile.Views.Customer;
 
 public partial class SplashScreenPage : ContentPage
 {
-    private readonly NavigationService _navigation;
     private bool _hasStartedTransition;
 
-    public SplashScreenPage() : this(ServiceHelper.Get<NavigationService>())
-    {
-    }
-
-    public SplashScreenPage(NavigationService navigation)
+    public SplashScreenPage()
     {
         InitializeComponent();
-        _navigation = navigation;
     }
 
     protected override async void OnAppearing()
@@ -50,10 +41,11 @@ public partial class SplashScreenPage : ContentPage
                 BrandContainer.ScaleTo(0.95, 400, Easing.CubicIn)
             );
 
-            // 4. Navigate to destination
+            // Cold start always opens the customer storefront (branch pick → home).
+            // Staff/rider still reach their homes via login → GoToRoleHomeAsync.
             if (Shell.Current != null)
             {
-                await _navigation.GoToRoleHomeAsync();
+                await Shell.Current.GoToAsync("//customer/home");
             }
         }
         catch (Exception ex)
@@ -66,4 +58,3 @@ public partial class SplashScreenPage : ContentPage
         }
     }
 }
-
