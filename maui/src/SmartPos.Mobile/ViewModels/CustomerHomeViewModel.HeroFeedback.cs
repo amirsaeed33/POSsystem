@@ -136,6 +136,19 @@ public partial class CustomerHomeViewModel
     [RelayCommand]
     public void ResumeFeedbackAutoAdvance() => _isFeedbackPaused = false;
 
+    public void OnPageAppearing()
+    {
+        if (HeroSlides.Count > 1)
+        {
+            StartHeroAutoAdvance();
+        }
+
+        if (Feedbacks.Count > 1)
+        {
+            StartFeedbackAutoAdvance();
+        }
+    }
+
     public void OnPageDisappearing()
     {
         StopHeroAutoAdvance();

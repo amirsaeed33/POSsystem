@@ -37,16 +37,47 @@ public partial class CustomerHomePage : ContentPage
 
         _vm.PropertyChanged -= OnVmPropertyChanged;
         _vm.PropertyChanged += OnVmPropertyChanged;
+
+        UnsubscribeWindowLifecycle();
+        SubscribeWindowLifecycle();
+        _vm.OnPageAppearing();
     }
 
     protected override void OnDisappearing()
     {
+        UnsubscribeWindowLifecycle();
         _vm.PropertyChanged -= OnVmPropertyChanged;
         _feedbackResumeTimer?.Stop();
         _feedbackResumeTimer = null;
         _vm.OnPageDisappearing();
         base.OnDisappearing();
     }
+
+    private void SubscribeWindowLifecycle()
+    {
+        if (Window is null)
+        {
+            return;
+        }
+
+        Window.Stopped += OnWindowStopped;
+        Window.Resumed += OnWindowResumed;
+    }
+
+    private void UnsubscribeWindowLifecycle()
+    {
+        if (Window is null)
+        {
+            return;
+        }
+
+        Window.Stopped -= OnWindowStopped;
+        Window.Resumed -= OnWindowResumed;
+    }
+
+    private void OnWindowStopped(object? sender, EventArgs e) => _vm.OnPageDisappearing();
+
+    private void OnWindowResumed(object? sender, EventArgs e) => _vm.OnPageAppearing();
 
     private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
