@@ -444,7 +444,10 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
                 _liveTrackingCts = null;
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TrackOrderViewModel.StopLiveTracking] Cancel/dispose failed: {ex.Message}");
+        }
     }
 
     private async Task RunLiveTrackingLoopAsync(CancellationToken token)

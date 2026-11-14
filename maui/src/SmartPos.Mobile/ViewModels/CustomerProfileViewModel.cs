@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartPos.Mobile.Models;
@@ -132,7 +133,10 @@ public partial class CustomerProfileViewModel : BaseViewModel
                             MainThread.BeginInvokeOnMainThread(() => ActiveBranchName = branch.Name);
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[CustomerProfileViewModel] Load branch name failed: {ex.Message}");
+                    }
                 });
             }
 
@@ -308,7 +312,10 @@ public partial class CustomerProfileViewModel : BaseViewModel
                         var bytes = await File.ReadAllBytesAsync(localAvatarFile);
                         imageBase64 = $"data:image/jpeg;base64,{Convert.ToBase64String(bytes)}";
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[CustomerProfileViewModel] Read avatar for upsert failed: {ex.Message}");
+                    }
                 }
 
                 var input = new UpsertOnlineCustomerProfileInput
@@ -365,7 +372,14 @@ public partial class CustomerProfileViewModel : BaseViewModel
             {
                 if (File.Exists(localAvatarFile))
                 {
-                    try { File.Delete(localAvatarFile); } catch { }
+                    try
+                    {
+                        File.Delete(localAvatarFile);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[CustomerProfileViewModel] Delete avatar file failed: {ex.Message}");
+                    }
                 }
                 ProfilePictureUrl = string.Empty;
                 Preferences.Default.Remove("sp.customerAvatar");
@@ -386,7 +400,10 @@ public partial class CustomerProfileViewModel : BaseViewModel
                                 ImageBase64 = string.Empty
                             });
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"[CustomerProfileViewModel] Sync remove-photo profile failed: {ex.Message}");
+                        }
                     });
                 }
                 return;
@@ -453,7 +470,10 @@ public partial class CustomerProfileViewModel : BaseViewModel
                                 ImageBase64 = dataUri
                             });
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"[CustomerProfileViewModel] Sync avatar profile failed: {ex.Message}");
+                        }
                     });
                 }
             }
@@ -615,10 +635,20 @@ public partial class CustomerProfileViewModel : BaseViewModel
             var localAvatarFile = Path.Combine(FileSystem.AppDataDirectory, "customer_avatar.jpg");
             if (File.Exists(localAvatarFile))
             {
-                try { File.Delete(localAvatarFile); } catch { }
+                try
+                {
+                    File.Delete(localAvatarFile);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[CustomerProfileViewModel.LogoutOrResetAsync] Delete avatar failed: {ex.Message}");
+                }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[CustomerProfileViewModel.LogoutOrResetAsync] Reset cleanup failed: {ex.Message}");
+        }
 
         Preferences.Default.Remove("sp.customerName");
         Preferences.Default.Remove("sp.customerPhone");

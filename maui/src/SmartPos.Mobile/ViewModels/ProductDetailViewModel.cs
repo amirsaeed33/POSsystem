@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartPos.Mobile.Models;
@@ -352,6 +353,9 @@ public partial class ProductDetailViewModel : BaseViewModel
                 Text = $"Check out {ProductName} ({BasePriceDisplay}) on SmartPos! Order delicious food delivered hot."
             });
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ProductDetailViewModel.ShareAsync] Share failed: {ex.Message}");
+        }
     }
 }

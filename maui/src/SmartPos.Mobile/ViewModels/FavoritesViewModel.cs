@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartPos.Mobile.Models;
@@ -204,7 +205,10 @@ public partial class FavoritesViewModel : BaseViewModel
                 return;
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[FavoritesViewModel.AddToCartAsync] Modifiers/nav failed: {ex.Message}");
+        }
 
         _cart.AddOrIncrement(product, 1);
         product.CartQty = _cart.GetQty(product.Id);
