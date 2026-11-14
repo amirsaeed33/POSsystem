@@ -29,7 +29,7 @@
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center" />
                             <!-- Product Photo -->
-                            <Image Source="{Binding ImageUrl}"
+                            <Image Source="{Binding ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                    Aspect="AspectFill"
                                    HeightRequest="280"
                                    HorizontalOptions="Fill" />

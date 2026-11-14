@@ -81,7 +81,7 @@
                                                    TextColor="#10B981"
                                                    HorizontalOptions="Center"
                                                    VerticalOptions="Center" />
-                                            <Image Source="{Binding LogoUrl}"
+                                            <Image Source="{Binding LogoUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                                    Aspect="AspectFill"
                                                    IsVisible="{Binding HasLogo}" />
                                         </Grid>
@@ -410,7 +410,7 @@
                                                        IsVisible="{Binding ShowEmoji}" />
 
                                                 <!-- 2. Remote / Local Image (shown when HasImageUrl is true) -->
-                                                <Image Source="{Binding ImageUrl}"
+                                                <Image Source="{Binding ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                                        WidthRequest="26"
                                                        HeightRequest="26"
                                                        Aspect="AspectFit"
@@ -514,7 +514,7 @@
                                             <VerticalStackLayout Spacing="0">
                                                 <!-- Deal Image Banner -->
                                                 <Grid HeightRequest="120" WidthRequest="250">
-                                                    <Image Source="{Binding ImageUrl}"
+                                                    <Image Source="{Binding ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                                            Aspect="AspectFill"
                                                            HeightRequest="120"
                                                            WidthRequest="250"
@@ -731,7 +731,7 @@
                                                                HorizontalOptions="Center"
                                                                VerticalOptions="Center" />
                                                         <!-- Photo renders on top if present, covering initials -->
-                                                        <Image Source="{Binding CustomerPhotoUrl}"
+                                                        <Image Source="{Binding CustomerPhotoUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                                                Aspect="AspectFill"
                                                                WidthRequest="36"
                                                                HeightRequest="36"
@@ -843,7 +843,7 @@
                 <Grid RowDefinitions="Auto,*,Auto">
                     <!-- Hero -->
                     <Grid HeightRequest="160">
-                        <Image Source="{Binding ModalProduct.ImageUrl}"
+                        <Image Source="{Binding ModalProduct.ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                Aspect="AspectFill"
                                BackgroundColor="#E2E8F0" />
                         <BoxView Color="#55000000" />
@@ -1021,7 +1021,7 @@
                 <Grid RowDefinitions="Auto,*,Auto">
                     <!-- Hero Header -->
                     <Grid HeightRequest="160">
-                        <Image Source="{Binding ComboProduct.ImageUrl}"
+                        <Image Source="{Binding ComboProduct.ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                Aspect="AspectFill"
                                BackgroundColor="#1E293B" />
                         <BoxView Color="#66000000" />

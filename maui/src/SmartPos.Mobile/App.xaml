@@ -11,6 +11,7 @@
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <helpers:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <helpers:CachedUriImageSourceConverter x:Key="CachedUriImageSourceConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -89,7 +89,7 @@
                                                            HorizontalOptions="Center"
                                                            VerticalOptions="Center" />
                                                     <!-- Image -->
-                                                    <Image Source="{Binding ImageUrl}"
+                                                    <Image Source="{Binding ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                                            Aspect="AspectFill"
                                                            WidthRequest="100"
                                                            HeightRequest="100" />
