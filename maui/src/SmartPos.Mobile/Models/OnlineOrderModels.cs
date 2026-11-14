@@ -523,6 +523,7 @@ public class CartLine
     public string LineTotalText => LineTotal.ToString("0.00");
     public string UnitPriceText => UnitPrice.ToString("0.00");
     public bool HasModifiers => !string.IsNullOrWhiteSpace(SelectedModifiers);
+    public bool HasKitchenNotes => !string.IsNullOrWhiteSpace(KitchenNotes);
 }
 
 

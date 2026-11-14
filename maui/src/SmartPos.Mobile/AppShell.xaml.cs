@@ -1,6 +1,7 @@
 using SmartPos.Mobile.Services;
 using SmartPos.Mobile.Views.Auth;
 using SmartPos.Mobile.Views.Customer;
+using SmartPos.Mobile.Views.Waiter;
 
 namespace SmartPos.Mobile;
 
@@ -28,6 +29,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("customer/profile", typeof(CustomerProfilePage));
         Routing.RegisterRoute("customer/account", typeof(CustomerProfilePage));
         Routing.RegisterRoute("login", typeof(LoginPage));
+        Routing.RegisterRoute("waiter/cart", typeof(WaiterCartPage));
 
         Loaded += OnShellLoaded;
         Navigating += OnShellNavigating;

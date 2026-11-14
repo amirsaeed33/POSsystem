@@ -48,6 +48,8 @@ public partial class WaiterOrderViewModel : BaseViewModel
 
     public decimal Subtotal => _cart.Subtotal;
     public string SubtotalText => Subtotal.ToString("0.00");
+    public int CartCount => _cart.ItemCount;
+    public bool HasCartItems => CartCount > 0;
 
     public WaiterOrderViewModel(RestaurantService restaurant, SessionService session, CartService cart, AbpApiClient api)
     {
@@ -58,10 +60,30 @@ public partial class WaiterOrderViewModel : BaseViewModel
         Title = "Order";
         _cart.CartChanged += (_, _) =>
         {
-            OnPropertyChanged(nameof(Subtotal));
-            OnPropertyChanged(nameof(SubtotalText));
+            NotifyCartChanged();
             SyncCartQtyBadges();
         };
+    }
+
+    public void RefreshCartDisplay()
+    {
+        var order = WaiterOrderSession.CurrentOrder;
+        var table = WaiterOrderSession.CurrentTable;
+        if (order != null)
+        {
+            OrderTitle = $"{table?.DisplayTitle ?? order.TableNo} · {order.OrderNo}";
+        }
+
+        NotifyCartChanged();
+    }
+
+    private void NotifyCartChanged()
+    {
+        OnPropertyChanged(nameof(Subtotal));
+        OnPropertyChanged(nameof(SubtotalText));
+        OnPropertyChanged(nameof(CartCount));
+        OnPropertyChanged(nameof(HasCartItems));
+        OnPropertyChanged(nameof(Lines));
     }
 
     [RelayCommand]
@@ -260,6 +282,25 @@ public partial class WaiterOrderViewModel : BaseViewModel
         }
 
         ApplyFilters();
+    }
+
+    [RelayCommand]
+    private async Task OpenCartAsync()
+    {
+        await Shell.Current.GoToAsync("waiter/cart");
+    }
+
+    [RelayCommand]
+    private async Task GoBackAsync()
+    {
+        try
+        {
+            await Shell.Current.GoToAsync("..");
+        }
+        catch
+        {
+            await Shell.Current.GoToAsync("//waiter/order");
+        }
     }
 
     [RelayCommand]

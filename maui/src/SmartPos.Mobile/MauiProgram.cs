@@ -114,6 +114,7 @@ public static class MauiProgram
         builder.Services.AddTransient<RiderHistoryPage>();
         builder.Services.AddTransient<WaiterTablesPage>();
         builder.Services.AddTransient<WaiterOrderPage>();
+        builder.Services.AddTransient<WaiterCartPage>();
         builder.Services.AddTransient<WaiterMyOrdersPage>();
 
         builder.Services.AddSingleton<AppShell>();
