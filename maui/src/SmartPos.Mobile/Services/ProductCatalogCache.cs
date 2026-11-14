@@ -28,7 +28,7 @@ public sealed class ProductCatalogCache
         products = null;
         if (_catalogByBranch.TryGetValue(branchId, out var entry) && !entry.IsExpired)
         {
-            products = entry.Value.Select(CloneProduct).ToList();
+            products = entry.Value.ToList();
             return true;
         }
 
@@ -38,14 +38,15 @@ public sealed class ProductCatalogCache
             return false;
         }
 
-        var snapshot = diskValue.Select(CloneProduct).ToList();
+        // JSON deserialize already created new instances — own them as the cache snapshot.
+        var snapshot = diskValue;
         _catalogByBranch[branchId] = CacheEntry<List<OnlineProductDto>>.FromDisk(snapshot, expiresAt, CatalogTtl);
         foreach (var p in snapshot)
         {
-            _productById[p.Id] = CacheEntry<OnlineProductDto>.FromDisk(CloneProduct(p), expiresAt, CatalogTtl);
+            _productById[p.Id] = CacheEntry<OnlineProductDto>.FromDisk(p, expiresAt, CatalogTtl);
         }
 
-        products = snapshot.Select(CloneProduct).ToList();
+        products = snapshot.ToList();
         return true;
     }
 
@@ -56,10 +57,10 @@ public sealed class ProductCatalogCache
 
         foreach (var p in snapshot)
         {
-            _productById[p.Id] = new CacheEntry<OnlineProductDto>(CloneProduct(p), CatalogTtl);
+            _productById[p.Id] = new CacheEntry<OnlineProductDto>(p, CatalogTtl);
         }
 
-        _disk.WriteAsync(CatalogFile(branchId), snapshot.Select(CloneProduct).ToList(), CatalogDiskStore.DiskTtl);
+        _disk.WriteAsync(CatalogFile(branchId), snapshot, CatalogDiskStore.DiskTtl);
     }
 
     public bool TryGetCatalogPage(string pageKey, out AbpPagedResult<OnlineProductDto>? page)
@@ -72,7 +73,7 @@ public sealed class ProductCatalogCache
 
         if (_catalogPages.TryGetValue(pageKey, out var entry) && !entry.IsExpired)
         {
-            page = ClonePage(entry.Value);
+            page = ShallowPage(entry.Value);
             return true;
         }
 
@@ -82,14 +83,15 @@ public sealed class ProductCatalogCache
             return false;
         }
 
-        var snapshot = ClonePage(diskPage);
+        var snapshot = diskPage;
+        snapshot.Items ??= new List<OnlineProductDto>();
         _catalogPages[pageKey] = CacheEntry<AbpPagedResult<OnlineProductDto>>.FromDisk(snapshot, expiresAt, CatalogTtl);
         foreach (var p in snapshot.Items)
         {
-            _productById[p.Id] = CacheEntry<OnlineProductDto>.FromDisk(CloneProduct(p), expiresAt, CatalogTtl);
+            _productById[p.Id] = CacheEntry<OnlineProductDto>.FromDisk(p, expiresAt, CatalogTtl);
         }
 
-        page = ClonePage(snapshot);
+        page = ShallowPage(snapshot);
         return true;
     }
 
@@ -105,10 +107,10 @@ public sealed class ProductCatalogCache
 
         foreach (var p in snapshot.Items)
         {
-            _productById[p.Id] = new CacheEntry<OnlineProductDto>(CloneProduct(p), CatalogTtl);
+            _productById[p.Id] = new CacheEntry<OnlineProductDto>(p, CatalogTtl);
         }
 
-        _disk.WriteAsync(PageFile(pageKey), ClonePage(snapshot), CatalogDiskStore.DiskTtl);
+        _disk.WriteAsync(PageFile(pageKey), snapshot, CatalogDiskStore.DiskTtl);
     }
 
     public bool TryGetProduct(int productId, out OnlineProductDto? product)
@@ -119,7 +121,7 @@ public sealed class ProductCatalogCache
             return false;
         }
 
-        product = CloneProduct(entry.Value);
+        product = entry.Value;
         return true;
     }
 
@@ -150,7 +152,7 @@ public sealed class ProductCatalogCache
         header = null;
         if (_storeHeaderByBranch.TryGetValue(branchId, out var entry) && !entry.IsExpired)
         {
-            header = CloneStoreHeader(entry.Value);
+            header = entry.Value;
             return true;
         }
 
@@ -160,9 +162,9 @@ public sealed class ProductCatalogCache
             return false;
         }
 
-        var snapshot = CloneStoreHeader(diskHeader);
+        var snapshot = diskHeader;
         _storeHeaderByBranch[branchId] = CacheEntry<OnlineStoreHeaderDto>.FromDisk(snapshot, expiresAt, StoreMetaTtl);
-        header = CloneStoreHeader(snapshot);
+        header = snapshot;
         return true;
     }
 
@@ -170,7 +172,7 @@ public sealed class ProductCatalogCache
     {
         var snapshot = CloneStoreHeader(header);
         _storeHeaderByBranch[branchId] = new CacheEntry<OnlineStoreHeaderDto>(snapshot, StoreMetaTtl);
-        _disk.WriteAsync(HeaderFile(branchId), CloneStoreHeader(snapshot), CatalogDiskStore.DiskTtl);
+        _disk.WriteAsync(HeaderFile(branchId), snapshot, CatalogDiskStore.DiskTtl);
     }
 
     public bool TryGetBranches(out List<OnlineBranchDto>? branches)
@@ -188,7 +190,7 @@ public sealed class ProductCatalogCache
             return false;
         }
 
-        var snapshot = diskBranches.ToList();
+        var snapshot = diskBranches;
         _branches = CacheEntry<List<OnlineBranchDto>>.FromDisk(snapshot, expiresAt, StoreMetaTtl);
         branches = snapshot.ToList();
         return true;
@@ -198,7 +200,7 @@ public sealed class ProductCatalogCache
     {
         var snapshot = branches.ToList();
         _branches = new CacheEntry<List<OnlineBranchDto>>(snapshot, StoreMetaTtl);
-        _disk.WriteAsync(BranchesFile(), snapshot.ToList(), CatalogDiskStore.DiskTtl);
+        _disk.WriteAsync(BranchesFile(), snapshot, CatalogDiskStore.DiskTtl);
     }
 
     public bool TryGetHeroSlides(int branchId, out List<HeroSlideDto>? slides)
@@ -216,7 +218,7 @@ public sealed class ProductCatalogCache
             return false;
         }
 
-        var snapshot = diskSlides.ToList();
+        var snapshot = diskSlides;
         _heroByBranch[branchId] = CacheEntry<List<HeroSlideDto>>.FromDisk(snapshot, expiresAt, StoreMetaTtl);
         slides = snapshot.ToList();
         return true;
@@ -226,7 +228,7 @@ public sealed class ProductCatalogCache
     {
         var snapshot = slides.ToList();
         _heroByBranch[branchId] = new CacheEntry<List<HeroSlideDto>>(snapshot, StoreMetaTtl);
-        _disk.WriteAsync(HeroFile(branchId), snapshot.ToList(), CatalogDiskStore.DiskTtl);
+        _disk.WriteAsync(HeroFile(branchId), snapshot, CatalogDiskStore.DiskTtl);
     }
 
     public bool TryGetDeals(int branchId, out List<DealDto>? deals)
@@ -244,7 +246,7 @@ public sealed class ProductCatalogCache
             return false;
         }
 
-        var snapshot = diskDeals.ToList();
+        var snapshot = diskDeals;
         _dealsByBranch[branchId] = CacheEntry<List<DealDto>>.FromDisk(snapshot, expiresAt, StoreMetaTtl);
         deals = snapshot.ToList();
         return true;
@@ -254,7 +256,7 @@ public sealed class ProductCatalogCache
     {
         var snapshot = deals.ToList();
         _dealsByBranch[branchId] = new CacheEntry<List<DealDto>>(snapshot, StoreMetaTtl);
-        _disk.WriteAsync(DealsFile(branchId), snapshot.ToList(), CatalogDiskStore.DiskTtl);
+        _disk.WriteAsync(DealsFile(branchId), snapshot, CatalogDiskStore.DiskTtl);
     }
 
     public void InvalidateBranch(int branchId)
@@ -297,6 +299,13 @@ public sealed class ProductCatalogCache
     private static string DealsFile(int branchId) => $"deals_{branchId}.json";
     private static string BranchesFile() => "branches.json";
     private static string PageFile(string pageKey) => $"page_{CatalogDiskStore.SanitizeFileName(pageKey)}.json";
+
+    /// <summary>New page shell; same product instances (no per-item clone).</summary>
+    private static AbpPagedResult<OnlineProductDto> ShallowPage(AbpPagedResult<OnlineProductDto> page) => new()
+    {
+        TotalCount = page.TotalCount,
+        Items = (page.Items ?? new List<OnlineProductDto>()).ToList()
+    };
 
     private static AbpPagedResult<OnlineProductDto> ClonePage(AbpPagedResult<OnlineProductDto> page) => new()
     {
