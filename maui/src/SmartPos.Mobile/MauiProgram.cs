@@ -1,3 +1,4 @@
+using System.Net;
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -66,7 +67,13 @@ public static class MauiProgram
         builder.Services.AddSingleton<LoadingService>();
         builder.Services.AddSingleton(_ =>
         {
-            var client = new HttpClient
+            var handler = new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip
+                    | DecompressionMethods.Deflate
+                    | DecompressionMethods.Brotli
+            };
+            var client = new HttpClient(handler)
             {
                 BaseAddress = new Uri(settings.ApiBaseUrl.TrimEnd('/') + "/"),
                 Timeout = TimeSpan.FromSeconds(60)
