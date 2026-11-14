@@ -25,13 +25,21 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
 
-	<!-- Android APK & Signing Configuration -->
-	<PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
+	<!-- Android Debug: fast deploy with embedded assemblies -->
+	<PropertyGroup Condition="$(TargetFramework.Contains('-android')) and '$(Configuration)' == 'Debug'">
 		<AndroidPackageFormat>apk</AndroidPackageFormat>
 		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
 	</PropertyGroup>
 
+	<!-- Android Release: trimmed + AOT APK (sideload), keep existing signing -->
 	<PropertyGroup Condition="$(TargetFramework.Contains('-android')) and '$(Configuration)' == 'Release'">
+		<AndroidPackageFormat>apk</AndroidPackageFormat>
+		<!-- true = no fast-deploy; required with AOT/linker (XA0119) -->
+		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+		<PublishTrimmed>true</PublishTrimmed>
+		<TrimMode>partial</TrimMode>
+		<RunAOTCompilation>true</RunAOTCompilation>
+		<AndroidEnableProfiledAot>true</AndroidEnableProfiledAot>
 		<AndroidKeyStore>true</AndroidKeyStore>
 		<AndroidSigningKeyStore>$(MSBuildProjectDirectory)\aljannat.keystore</AndroidSigningKeyStore>
 		<AndroidSigningKeyAlias>aljannat</AndroidSigningKeyAlias>
