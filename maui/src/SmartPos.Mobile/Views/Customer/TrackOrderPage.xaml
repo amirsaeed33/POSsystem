@@ -182,36 +182,45 @@
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="10" />
                                 </Border.StrokeShape>
-                                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="6"
+                                      VerticalOptions="Center">
                                     <Label Text="⏱️" FontSize="14" VerticalOptions="Center" />
-                                    <VerticalStackLayout Spacing="1">
+                                    <VerticalStackLayout Grid.Column="1" Spacing="1">
                                         <Label Text="Elapsed Time" FontSize="10" TextColor="#9CA3AF" />
                                         <Label Text="{Binding ElapsedTimeText}"
                                                FontSize="12"
                                                FontAttributes="Bold"
-                                               TextColor="#111827" />
+                                               TextColor="#111827"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1" />
                                     </VerticalStackLayout>
-                                </HorizontalStackLayout>
+                                </Grid>
                             </Border>
 
                             <!-- Estimated Delivery Badge -->
-                            <Border BackgroundColor="#F9FAFB"
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#F9FAFB"
                                     Stroke="#E5E7EB"
                                     StrokeThickness="1"
                                     Padding="10,8">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="10" />
                                 </Border.StrokeShape>
-                                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="6"
+                                      VerticalOptions="Center">
                                     <Label Text="🕒" FontSize="14" VerticalOptions="Center" />
-                                    <VerticalStackLayout Spacing="1">
+                                    <VerticalStackLayout Grid.Column="1" Spacing="1">
                                         <Label Text="Estimated Delivery" FontSize="10" TextColor="#9CA3AF" />
                                         <Label Text="{Binding EstimatedDeliveryEta}"
                                                FontSize="12"
                                                FontAttributes="Bold"
-                                               TextColor="#10B981" />
+                                               TextColor="#10B981"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1" />
                                     </VerticalStackLayout>
-                                </HorizontalStackLayout>
+                                </Grid>
                             </Border>
                         </Grid>
                     </VerticalStackLayout>

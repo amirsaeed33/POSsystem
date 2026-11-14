@@ -186,7 +186,7 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
                 return "Delivered";
             }
             var target = Order.OrderDate.ToLocalTime().AddMinutes(40);
-            return $"Expected by {target:hh:mm tt}";
+            return $"{target:h:mm tt}";
         }
     }
 
