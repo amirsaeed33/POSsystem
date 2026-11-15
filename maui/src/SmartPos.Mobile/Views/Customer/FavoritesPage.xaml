@@ -166,7 +166,7 @@
 
             <!-- 2-column luxury saved food cards -->
             <RefreshView IsVisible="{Binding HasFavorites}"
-                         IsRefreshing="{Binding IsRefreshing}"
+                         IsRefreshing="{Binding IsRefreshing, Mode=TwoWay}"
                          Command="{Binding RefreshFavoritesCommand}"
                          BackgroundColor="#FAF7F4">
                 <CollectionView ItemsSource="{Binding FilteredFavoriteProducts}"

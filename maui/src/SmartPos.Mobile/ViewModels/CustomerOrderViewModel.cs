@@ -219,8 +219,14 @@ public partial class CustomerOrderViewModel : BaseViewModel
     [RelayCommand]
     private async Task RefreshMenuAsync()
     {
-        // RefreshView already sets IsPullRefreshing=true via two-way binding.
-        // Do not set it true again here — that can leave the Android spinner stuck.
+        // RefreshView already sets IsPullRefreshing=true via TwoWay binding.
+        // Always clear it on the UI thread when done (or if busy) so Android spinner never sticks.
+        if (IsBusy)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => IsPullRefreshing = false);
+            return;
+        }
+
         try
         {
             await LoadMenuAsync(forceRefresh: true);

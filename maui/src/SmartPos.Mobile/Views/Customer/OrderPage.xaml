@@ -86,7 +86,7 @@
         <!-- 2–5. MENU LIST                                            -->
         <!-- ========================================================= -->
         <RefreshView Grid.Row="1"
-                     IsRefreshing="{Binding IsPullRefreshing}"
+                     IsRefreshing="{Binding IsPullRefreshing, Mode=TwoWay}"
                      Command="{Binding RefreshMenuCommand}"
                      BackgroundColor="{StaticResource PageBackground}">
             <CollectionView ItemsSource="{Binding Products}"

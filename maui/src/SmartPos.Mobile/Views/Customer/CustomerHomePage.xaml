@@ -214,7 +214,7 @@
             <!-- SCROLLABLE FEED                                           -->
             <!-- ========================================================= -->
             <RefreshView Grid.Row="1"
-                         IsRefreshing="{Binding IsPullRefreshing}"
+                         IsRefreshing="{Binding IsPullRefreshing, Mode=TwoWay}"
                          Command="{Binding RefreshHomeCommand}"
                          BackgroundColor="{StaticResource PageBackground}">
                 <ScrollView Orientation="Vertical"

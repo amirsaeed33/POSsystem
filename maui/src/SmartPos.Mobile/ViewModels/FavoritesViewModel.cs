@@ -131,7 +131,7 @@ public partial class FavoritesViewModel : BaseViewModel
     [RelayCommand]
     public async Task RefreshFavoritesAsync()
     {
-        IsRefreshing = true;
+        // RefreshView may already have set IsRefreshing=true; always clear on UI thread when finished.
         try
         {
             await _favorites.SyncWithServerAsync();
@@ -139,7 +139,7 @@ public partial class FavoritesViewModel : BaseViewModel
         }
         finally
         {
-            IsRefreshing = false;
+            await MainThread.InvokeOnMainThreadAsync(() => IsRefreshing = false);
         }
     }
 

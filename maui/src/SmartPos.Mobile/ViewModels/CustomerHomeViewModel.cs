@@ -335,14 +335,16 @@ public partial class CustomerHomeViewModel : BaseViewModel
     [RelayCommand]
     private async Task RefreshHomeAsync()
     {
-        if (IsPullRefreshing || IsBusy)
+        // RefreshView already sets IsPullRefreshing=true via TwoWay binding.
+        // Never early-return on IsPullRefreshing — that left the spinner spinning forever.
+        if (IsBusy)
         {
+            await MainThread.InvokeOnMainThreadAsync(() => IsPullRefreshing = false);
             return;
         }
 
         try
         {
-            IsPullRefreshing = true;
             _session.ClearTenantHeader();
 
             if (SelectedBranch == null)
@@ -360,7 +362,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         }
         finally
         {
-            IsPullRefreshing = false;
+            await MainThread.InvokeOnMainThreadAsync(() => IsPullRefreshing = false);
         }
     }
 
