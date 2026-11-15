@@ -441,21 +441,35 @@ public class OnlineOrderService
     /// <summary>Warm modifier cache in the background so size popups open instantly.</summary>
     public void PrefetchModifiersForCatalog(IEnumerable<OnlineProductDto> products)
     {
-        foreach (var product in products.Take(40))
+        // Warm a few modifiers after the UI settles — 40 parallel calls were starving tab switches.
+        var ids = products.Take(6).Select(p => p.Id).ToList();
+        if (ids.Count == 0)
         {
-            var id = product.Id;
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await GetModifiersForProductAsync(id);
-                }
-                catch
-                {
-                    // best-effort warm-up
-                }
-            });
+            return;
         }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(1200);
+                foreach (var id in ids)
+                {
+                    try
+                    {
+                        await GetModifiersForProductAsync(id);
+                    }
+                    catch
+                    {
+                        // best-effort warm-up
+                    }
+                }
+            }
+            catch
+            {
+                // ignored
+            }
+        });
     }
 
     public void InvalidateCatalog(int branchId) => _cache.InvalidateBranch(branchId);

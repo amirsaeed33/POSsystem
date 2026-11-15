@@ -13,6 +13,8 @@ public partial class CustomerProfileViewModel : BaseViewModel
     private readonly SessionService _session;
     private readonly FavoritesService _favorites;
     private readonly CartService _cart;
+    private DateTimeOffset _lastProfileNetworkLoad = DateTimeOffset.MinValue;
+    private static readonly TimeSpan ProfileNetworkTtl = TimeSpan.FromSeconds(60);
 
     [ObservableProperty]
     private string fullName = string.Empty;
@@ -227,8 +229,13 @@ public partial class CustomerProfileViewModel : BaseViewModel
 
             if (!string.IsNullOrWhiteSpace(PhoneNumber) && NormalizePhoneDigits(PhoneNumber).Length >= 7)
             {
-                await LoadSavedAddressesAsync();
-                await LoadCustomerStatsAndProfileAsync();
+                // Skip network reload on rapid tab switches — was a major Profile hang source.
+                if (DateTimeOffset.UtcNow - _lastProfileNetworkLoad >= ProfileNetworkTtl)
+                {
+                    await LoadSavedAddressesAsync();
+                    await LoadCustomerStatsAndProfileAsync();
+                    _lastProfileNetworkLoad = DateTimeOffset.UtcNow;
+                }
             }
         }
         finally

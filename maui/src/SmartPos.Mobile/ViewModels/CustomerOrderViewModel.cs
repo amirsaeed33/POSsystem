@@ -17,12 +17,15 @@ public partial class CustomerOrderViewModel : BaseViewModel
     private readonly FavoritesService _favorites;
 
     private const int PageSize = 30;
+    private const int SearchDebounceMs = 350;
     private readonly List<OnlineProductDto> _allProducts = new();
     private int? _loadedBranchId;
     private int _catalogTotalCount;
     private bool _isLoadingMore;
     private bool _isReloadingCatalog;
     private CancellationTokenSource? _catalogLoadCts;
+    private CancellationTokenSource? _searchDebounceCts;
+    private string? _appliedCategoryFilter;
 
     public HashSet<string> SelectedCategories { get; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -42,11 +45,22 @@ public partial class CustomerOrderViewModel : BaseViewModel
     {
         if (string.IsNullOrWhiteSpace(categoryName) || string.Equals(categoryName, "All", StringComparison.OrdinalIgnoreCase))
         {
+            _appliedCategoryFilter = null;
             ClearFilters();
             return;
         }
 
         var trimmed = categoryName.Trim();
+        // Skip network reload when the same category is already applied and data is warm.
+        if (string.Equals(_appliedCategoryFilter, trimmed, StringComparison.OrdinalIgnoreCase) &&
+            _allProducts.Count > 0 &&
+            SelectedCategories.Count == 1 &&
+            SelectedCategories.Contains(trimmed))
+        {
+            UpdateSelectedCategoryTitle();
+            return;
+        }
+
         SelectedCategories.Clear();
         SelectedCategories.Add(trimmed);
         IsAllSelected = false;
@@ -56,6 +70,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
             c.IsSelected = string.Equals(c.Name?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase);
         }
 
+        _appliedCategoryFilter = trimmed;
         UpdateSelectedCategoryTitle();
         _ = ReloadFirstPageAsync();
     }
@@ -175,10 +190,16 @@ public partial class CustomerOrderViewModel : BaseViewModel
                 SyncCartQtyBadges();
                 SyncFavorites();
 
+                // Only re-apply category when query asks for a different filter than what's already loaded.
                 if (!string.IsNullOrWhiteSpace(CategoryFilter))
                 {
-                    ApplyCategoryFilterByName(Uri.UnescapeDataString(CategoryFilter));
+                    var decoded = Uri.UnescapeDataString(CategoryFilter);
+                    if (!string.Equals(_appliedCategoryFilter, decoded.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        ApplyCategoryFilterByName(decoded);
+                    }
                 }
+
                 return;
             }
 
@@ -623,7 +644,48 @@ public partial class CustomerOrderViewModel : BaseViewModel
     {
         OnPropertyChanged(nameof(HasSearchText));
         OnPropertyChanged(nameof(HasActiveFilters));
-        _ = ReloadFirstPageAsync();
+        ScheduleSearchDebounce();
+    }
+
+    private void ScheduleSearchDebounce()
+    {
+        try
+        {
+            _searchDebounceCts?.Cancel();
+        }
+        catch
+        {
+            // ignored
+        }
+
+        _searchDebounceCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _searchDebounceCts = cts;
+        var token = cts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(SearchDebounceMs, token);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (!token.IsCancellationRequested)
+                    {
+                        _ = ReloadFirstPageAsync();
+                    }
+                });
+            }
+            catch (TaskCanceledException)
+            {
+                // ignored
+            }
+        }, token);
     }
 
     private void ApplyFilters() => BindProductsFromLoaded();

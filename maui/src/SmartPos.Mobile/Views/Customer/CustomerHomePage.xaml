@@ -479,9 +479,6 @@
                                             <Border.StrokeShape>
                                                 <RoundRectangle CornerRadius="20" />
                                             </Border.StrokeShape>
-                                            <Border.Shadow>
-                                                <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,6" Radius="16" Opacity="0.06" />
-                                            </Border.Shadow>
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer Command="{Binding BindingContext.OpenProductCommand, Source={x:Reference ThisPage}}"
                                                                       CommandParameter="{Binding .}" />
@@ -621,10 +618,11 @@
                             </Grid>
 
                             <CollectionView ItemsSource="{Binding Products}"
-                                            HeightRequest="460"
+                                            HeightRequest="380"
                                             SelectionMode="None"
-                                            BackgroundColor="Transparent"
-                                            VerticalScrollBarVisibility="Never">
+                                            BackgroundColor="{StaticResource PageBackground}"
+                                            VerticalScrollBarVisibility="Never"
+                                            InputTransparent="False">
                                 <CollectionView.ItemsLayout>
                                     <GridItemsLayout Orientation="Vertical"
                                                      Span="2"
@@ -640,9 +638,6 @@
                                             <Border.StrokeShape>
                                                 <RoundRectangle CornerRadius="18" />
                                             </Border.StrokeShape>
-                                            <Border.Shadow>
-                                                <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,4" Radius="12" Opacity="0.05" />
-                                            </Border.Shadow>
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer Command="{Binding BindingContext.OpenProductCommand, Source={x:Reference ThisPage}}"
                                                                       CommandParameter="{Binding .}" />
@@ -760,7 +755,8 @@
                                             SelectionMode="None"
                                             Scrolled="OnFeedbacksScrolled">
                                 <CollectionView.ItemsLayout>
-                                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="12" />
+                                    <!-- Match product grid spacing (10) — avoid extra card Margin which doubled the gap -->
+                                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10" />
                                 </CollectionView.ItemsLayout>
                                 <CollectionView.ItemTemplate>
                                     <DataTemplate x:DataType="models:CustomerFeedbackDto">
@@ -769,14 +765,11 @@
                                                 BackgroundColor="{StaticResource CardBackground}"
                                                 Stroke="{StaticResource BorderSubtle}"
                                                 StrokeThickness="1"
-                                                Margin="0,2,16,6"
+                                                Margin="0,2,0,2"
                                                 Padding="12,10">
                                             <Border.StrokeShape>
                                                 <RoundRectangle CornerRadius="16" />
                                             </Border.StrokeShape>
-                                            <Border.Shadow>
-                                                <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,4" Radius="12" Opacity="0.05" />
-                                            </Border.Shadow>
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer Command="{Binding BindingContext.PauseFeedbackAutoAdvanceCommand, Source={x:Reference ThisPage}}" />
                                             </Border.GestureRecognizers>

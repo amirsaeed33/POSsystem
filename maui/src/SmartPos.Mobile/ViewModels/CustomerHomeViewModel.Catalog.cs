@@ -660,7 +660,8 @@ public partial class CustomerHomeViewModel
             }
 
             Products.Clear();
-            foreach (var p in filtered)
+            // Home nests this CollectionView inside a ScrollView — cap rows so Android does not inflate the full catalog.
+            foreach (var p in filtered.Take(8))
             {
                 Products.Add(p);
             }
@@ -754,12 +755,16 @@ public partial class CustomerHomeViewModel
 
     private void SyncCartQtyBadges()
     {
+        // Update quantities in place — do NOT rebuild Products (that was causing full-list hang on every cart change).
         foreach (var p in _allProducts)
         {
             p.CartQty = _cart.GetQty(p.Id);
         }
 
-        ApplyFilters();
+        foreach (var p in Products)
+        {
+            p.CartQty = _cart.GetQty(p.Id);
+        }
     }
 
     [RelayCommand]

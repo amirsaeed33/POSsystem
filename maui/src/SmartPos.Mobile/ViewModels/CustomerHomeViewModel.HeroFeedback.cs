@@ -64,7 +64,7 @@ public partial class CustomerHomeViewModel
         }
 
         _heroTimer = Application.Current.Dispatcher.CreateTimer();
-        _heroTimer.Interval = TimeSpan.FromMilliseconds(4500);
+        _heroTimer.Interval = TimeSpan.FromMilliseconds(6500);
         _heroTimer.Tick += OnHeroTimerTick;
         _heroTimer.Start();
     }
@@ -103,7 +103,7 @@ public partial class CustomerHomeViewModel
         }
 
         _feedbackTimer = Application.Current.Dispatcher.CreateTimer();
-        _feedbackTimer.Interval = TimeSpan.FromMilliseconds(3800);
+        _feedbackTimer.Interval = TimeSpan.FromMilliseconds(5500);
         _feedbackTimer.Tick += OnFeedbackTimerTick;
         _feedbackTimer.Start();
     }

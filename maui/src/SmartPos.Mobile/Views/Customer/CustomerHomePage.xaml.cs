@@ -89,8 +89,9 @@ public partial class CustomerHomePage : ContentPage
                 {
                     _isProgrammaticFeedbackScroll = true;
                     var targetIndex = Math.Clamp(_vm.FeedbackPosition, 0, _vm.Feedbacks.Count - 1);
-                    FeedbacksCollectionView.ScrollTo(targetIndex, animate: true, position: ScrollToPosition.Center);
-                    _ = Task.Delay(600).ContinueWith(_ => _isProgrammaticFeedbackScroll = false);
+                    // animate:false avoids fighting user scroll / timer-driven jank on Android
+                    FeedbacksCollectionView.ScrollTo(targetIndex, animate: false, position: ScrollToPosition.Center);
+                    _ = Task.Delay(200).ContinueWith(_ => _isProgrammaticFeedbackScroll = false);
                 }
             });
         }

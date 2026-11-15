@@ -33,7 +33,8 @@ public partial class LoadingService : ObservableObject
 
     private int _token;
     private DateTimeOffset _shownAt = DateTimeOffset.MinValue;
-    private static readonly TimeSpan MinimumVisible = TimeSpan.FromMilliseconds(450);
+    // Keep the tab loader brief — long minimum made every tab switch feel hung.
+    private static readonly TimeSpan MinimumVisible = TimeSpan.FromMilliseconds(80);
 
     public void ShowTabLoader(int timeoutMs = 4000)
     {

@@ -170,18 +170,20 @@ public partial class FavoritesViewModel : BaseViewModel
 
             var branchId = _session.BranchId;
             var catalog = await _orders.GetCatalogAsync(branchId);
+            var byId = catalog.GroupBy(p => p.Id).ToDictionary(g => g.Key, g => g.First());
 
-            var favList = new List<OnlineProductDto>();
+            var favList = new List<OnlineProductDto>(favoriteIds.Count);
             foreach (var id in favoriteIds)
             {
-                var prod = catalog.FirstOrDefault(p => p.Id == id);
-                if (prod != null)
+                if (!byId.TryGetValue(id, out var prod))
                 {
-                    prod.IsFavorite = true;
-                    _orders.ResolveProductImageUrl(prod);
-                    prod.CartQty = _cart.GetQty(prod.Id);
-                    favList.Add(prod);
+                    continue;
                 }
+
+                prod.IsFavorite = true;
+                _orders.ResolveProductImageUrl(prod);
+                prod.CartQty = _cart.GetQty(prod.Id);
+                favList.Add(prod);
             }
 
             FavoriteProducts.Clear();
