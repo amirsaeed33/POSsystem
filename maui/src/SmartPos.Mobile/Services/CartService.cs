@@ -34,7 +34,7 @@ public class CartService
         if (existing != null)
         {
             existing.Quantity += qty;
-            Refresh();
+            CartChanged?.Invoke(this, EventArgs.Empty);
             return;
         }
 
@@ -59,7 +59,7 @@ public class CartService
         if (existing != null)
         {
             existing.Quantity += qty;
-            Refresh();
+            CartChanged?.Invoke(this, EventArgs.Empty);
             return;
         }
 
@@ -84,10 +84,11 @@ public class CartService
         }
         else
         {
+            // Notify via CartLine.Quantity setter — do not rebuild the collection (avoids tray flicker).
             line.Quantity = qty;
         }
 
-        Refresh();
+        CartChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void Remove(CartLine line)
@@ -169,18 +170,5 @@ public class CartService
 
         CartChanged?.Invoke(this, EventArgs.Empty);
         return addedCount;
-    }
-
-    private void Refresh()
-    {
-        // Force CollectionView refresh for mutable property changes
-        var snapshot = Lines.ToList();
-        Lines.Clear();
-        foreach (var item in snapshot)
-        {
-            Lines.Add(item);
-        }
-
-        CartChanged?.Invoke(this, EventArgs.Empty);
     }
 }

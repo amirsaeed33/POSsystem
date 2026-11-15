@@ -595,12 +595,28 @@ public class CustomerOrderLineDto : EntityDto
     public decimal LineTotal { get; set; }
 }
 
-public class CartLine
+public partial class CartLine : ObservableObject
 {
     public int ProductId { get; set; }
     public string Name { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
-    public decimal Quantity { get; set; } = 1;
+
+    private decimal quantity = 1;
+    public decimal Quantity
+    {
+        get => quantity;
+        set
+        {
+            if (SetProperty(ref quantity, value))
+            {
+                OnPropertyChanged(nameof(LineTotal));
+                OnPropertyChanged(nameof(LineTotalText));
+                OnPropertyChanged(nameof(LineTotalDisplay));
+                OnPropertyChanged(nameof(QuantityText));
+            }
+        }
+    }
+
     public string? ImagePath { get; set; }
     public string? SelectedModifiers { get; set; }
     public string? KitchenNotes { get; set; }

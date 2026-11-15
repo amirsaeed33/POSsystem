@@ -222,72 +222,76 @@
                             </Grid>
                         </Border>
 
-                        <!-- Clear filters when active -->
-                        <Border Margin="16,8,16,0"
-                                StrokeThickness="1"
-                                Stroke="{StaticResource BorderSubtle}"
-                                BackgroundColor="{StaticResource CardBackground}"
-                                Padding="10,6"
-                                HorizontalOptions="End"
-                                IsVisible="{Binding HasActiveFilters}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="12" />
-                            </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding ClearFiltersCommand}" />
-                            </Border.GestureRecognizers>
-                            <HorizontalStackLayout Spacing="4">
-                                <Label Text="Clear All"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource Primary}"
-                                       VerticalOptions="Center" />
-                                <Label Text="✕"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource Primary}"
-                                       VerticalOptions="Center" />
-                            </HorizontalStackLayout>
-                        </Border>
+                        <!-- Category chips + Clear All on the same row -->
+                        <Grid ColumnDefinitions="*,Auto"
+                              ColumnSpacing="8"
+                              Margin="0,12,0,4"
+                              Padding="16,0,16,0">
+                            <ScrollView Orientation="Horizontal"
+                                        HorizontalScrollBarVisibility="Never"
+                                        VerticalOptions="Center">
+                                <HorizontalStackLayout Spacing="8"
+                                                       BindableLayout.ItemsSource="{Binding Categories}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="models:CategoryChipItem">
+                                            <Border HeightRequest="38"
+                                                    StrokeThickness="1"
+                                                    Stroke="{Binding ChipBorderColor}"
+                                                    BackgroundColor="{Binding ChipBackgroundColor}"
+                                                    Padding="14,0"
+                                                    VerticalOptions="Center">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="14" />
+                                                </Border.StrokeShape>
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding BindingContext.ToggleCategoryCommand, Source={x:Reference ThisPage}}"
+                                                                          CommandParameter="{Binding .}" />
+                                                </Border.GestureRecognizers>
+                                                <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                                    <Label Text="{Binding Name}"
+                                                           FontSize="12"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{Binding ChipTextColor}"
+                                                           VerticalOptions="Center" />
+                                                    <Label Text="{Binding Count, StringFormat='({0})'}"
+                                                           FontSize="10"
+                                                           TextColor="{Binding ChipCountTextColor}"
+                                                           VerticalOptions="Center" />
+                                                </HorizontalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </HorizontalStackLayout>
+                            </ScrollView>
 
-                        <!-- Category chips -->
-                        <ScrollView Orientation="Horizontal"
-                                    HorizontalScrollBarVisibility="Never"
-                                    Margin="0,12,0,4">
-                            <HorizontalStackLayout Spacing="8"
-                                                   Padding="16,0,16,0"
-                                                   BindableLayout.ItemsSource="{Binding Categories}">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="models:CategoryChipItem">
-                                        <Border HeightRequest="38"
-                                                StrokeThickness="1"
-                                                Stroke="{Binding ChipBorderColor}"
-                                                BackgroundColor="{Binding ChipBackgroundColor}"
-                                                Padding="14,0"
-                                                VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="14" />
-                                            </Border.StrokeShape>
-                                            <Border.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding BindingContext.ToggleCategoryCommand, Source={x:Reference ThisPage}}"
-                                                                      CommandParameter="{Binding .}" />
-                                            </Border.GestureRecognizers>
-                                            <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-                                                <Label Text="{Binding Name}"
-                                                       FontSize="12"
-                                                       FontAttributes="Bold"
-                                                       TextColor="{Binding ChipTextColor}"
-                                                       VerticalOptions="Center" />
-                                                <Label Text="{Binding Count, StringFormat='({0})'}"
-                                                       FontSize="10"
-                                                       TextColor="{Binding ChipCountTextColor}"
-                                                       VerticalOptions="Center" />
-                                            </HorizontalStackLayout>
-                                        </Border>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </HorizontalStackLayout>
-                        </ScrollView>
+                            <Border Grid.Column="1"
+                                    StrokeThickness="1"
+                                    Stroke="{StaticResource BorderSubtle}"
+                                    BackgroundColor="{StaticResource CardBackground}"
+                                    Padding="10,6"
+                                    HeightRequest="38"
+                                    VerticalOptions="Center"
+                                    IsVisible="{Binding HasActiveFilters}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ClearFiltersCommand}" />
+                                </Border.GestureRecognizers>
+                                <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                    <Label Text="Clear All"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}"
+                                           VerticalOptions="Center" />
+                                    <Label Text="✕"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </Grid>
                     </VerticalStackLayout>
                 </CollectionView.Header>
 
@@ -721,7 +725,7 @@
                                                    TextColor="{StaticResource TextPrimary}"
                                                    MaxLines="2"
                                                    LineBreakMode="TailTruncation" />
-                                            <Label Text="{Binding UnitPriceDisplay}"
+                                            <Label Text="{Binding LineTotalDisplay}"
                                                    FontSize="13"
                                                    FontAttributes="Bold"
                                                    TextColor="{StaticResource Primary}" />
