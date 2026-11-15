@@ -44,7 +44,6 @@
         <div class="thermal-header text-center">
             <img *ngIf="companyLogoUrl" [src]="companyLogoUrl" alt="" onerror="this.style.display='none'" class="thermal-logo" />
             <div class="thermal-store-name" *ngIf="!companyLogoUrl">{{ company?.name || 'AL MEEZAN FOODS' }}</div>
-            <div class="thermal-store-tagline" *ngIf="!companyLogoUrl">Taste &amp; Quality</div>
             <div class="thermal-store-info" style="margin-top: 3px;">{{ cityOrAddressLine || 'Faisalabad' }}</div>
             <div class="thermal-pay-status">{{ paymentStatusLabel }}</div>
         </div>

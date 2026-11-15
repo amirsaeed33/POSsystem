@@ -844,9 +844,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.applyBranchPricing();
             this.loadTopProducts();
             this.loadPosCustomers();
-            if (this.isRestaurantMode) {
-                this.loadMenuProducts();
-            }
+            this.loadMenuProducts();
         }
     }
 
@@ -856,9 +854,9 @@ export class PosComponent implements OnInit, OnDestroy {
         this.loadTopProducts();
         this.loadPosCustomers();
         void this.loadDeliveryAreasForPos();
+        this.loadMenuProducts();
 
         if (this.isRestaurantMode) {
-            this.loadMenuProducts();
             if (this.isWaiter) {
                 this.waiterName = this.authService.getPrinterIdentity().name;
                 await this.loadWaiters(branchId);
@@ -873,7 +871,6 @@ export class PosComponent implements OnInit, OnDestroy {
             }
             this.loadUnpaidTakeaways();
         } else {
-            this.menuProducts = [];
             this.selectedMenuCategoryIds = [];
             this.activeRestaurantOrders = [];
         }
@@ -3824,13 +3821,9 @@ export class PosComponent implements OnInit, OnDestroy {
             this.suggestionHighlightIndex = -1;
             return;
         }
-        // Restaurant: dropdown from loaded menu + keep grid filter via searchText.
-        if (this.isRestaurantMode) {
-            this.suggestions = this.buildMenuSuggestions(q);
-            this.suggestionHighlightIndex = this.suggestions.length ? 0 : -1;
-            return;
-        }
-        this.searchTimer = setTimeout(() => this.loadSuggestions(q), 250);
+        // Hub layout: dropdown from loaded products + keep grid filter via searchText.
+        this.suggestions = this.buildMenuSuggestions(q);
+        this.suggestionHighlightIndex = this.suggestions.length ? 0 : -1;
     }
 
     onSearchKeydown(event: KeyboardEvent): void {
@@ -3838,7 +3831,7 @@ export class PosComponent implements OnInit, OnDestroy {
         if (key === 'ArrowDown') {
             if (!this.suggestions.length) {
                 const q = (this.searchText || '').trim();
-                if (q && this.isRestaurantMode) {
+                if (q) {
                     this.suggestions = this.buildMenuSuggestions(q);
                 }
             }
@@ -3912,14 +3905,19 @@ export class PosComponent implements OnInit, OnDestroy {
             return;
         }
 
-        // Restaurant: pick first dropdown match → add to cart immediately.
+        // Prefer dropdown / local catalog match (Dine Hub style).
+        const match =
+            this.suggestions[this.suggestionHighlightIndex] ||
+            this.suggestions[0] ||
+            this.buildMenuSuggestions(code)[0] ||
+            null;
+        if (match) {
+            void this.selectSuggestion(match);
+            return;
+        }
+
+        // Retail fallback: exact barcode / SKU lookup when not in the loaded grid.
         if (this.isRestaurantMode) {
-            const match =
-                this.suggestions[0] || this.buildMenuSuggestions(code)[0] || null;
-            if (match) {
-                void this.selectSuggestion(match);
-                return;
-            }
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Not found',

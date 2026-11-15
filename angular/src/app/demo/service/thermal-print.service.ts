@@ -687,7 +687,7 @@ export class ThermalPrintService {
                 <div class="text-center">
                     ${logoHtml}
                     <div class="header-title uppercase">${params.branchName || ''}</div>
-                    <div class="meta-text" style="font-style: italic; margin-top: 1px;">${params.tagline || 'Taste & Quality'}</div>
+                    ${params.tagline ? `<div class="meta-text" style="font-style: italic; margin-top: 1px;">${params.tagline}</div>` : ''}
                     <div class="meta-text" style="margin-top: 2px; font-size: ${is58 ? '10px' : '12px'};">${params.city || 'Faisalabad'}</div>
                     <div class="bold" style="font-size: ${is58 ? '11px' : '13px'}; margin-top: 2px;">${params.statusLabel}</div>
                 </div>
@@ -847,7 +847,7 @@ export class ThermalPrintService {
             size,
             logoUrl: (!shortFormat && config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
             branchName: receipt.branchName || branch.name,
-            tagline: 'Taste & Quality',
+            tagline: undefined,
             city,
             statusLabel,
             tokenNo: receipt.tokenNo,
@@ -1113,7 +1113,7 @@ export class ThermalPrintService {
             size,
             logoUrl: (config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
             branchName: branch.name,
-            tagline: 'Taste & Quality',
+            tagline: undefined,
             city,
             statusLabel: 'Unpaid',
             tokenNo: bill.tokenNo,
@@ -1180,7 +1180,7 @@ export class ThermalPrintService {
             size,
             logoUrl: (config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
             branchName: order.branchName || branch.name,
-            tagline: 'Taste & Quality',
+            tagline: undefined,
             city,
             statusLabel,
             tokenNo: order.tokenNo,
@@ -1420,7 +1420,7 @@ export class ThermalPrintService {
             size,
             logoUrl: (config.showLogo !== false && branch.logoUrl) ? branch.logoUrl : undefined,
             branchName: overrideCompany?.name || branch.name,
-            tagline: 'Taste & Quality',
+            tagline: undefined,
             city,
             statusLabel: payStatus,
             tokenNo: sale.tokenNo,
