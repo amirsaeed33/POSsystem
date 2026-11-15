@@ -257,151 +257,188 @@
                         </Grid>
                     </Border>
 
-                    <!-- SECTION B — ORDER ITEMS -->
-                    <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
-                        <Label Text="Order Items"
-                               FontFamily="Georgia"
-                               FontSize="17"
-                               FontAttributes="Bold"
-                               TextColor="#1E1916"
-                               VerticalOptions="Center" />
-                        <Border Grid.Column="1"
-                                StrokeThickness="0"
-                                BackgroundColor="#FDF1EB"
-                                Padding="10,4"
-                                VerticalOptions="Center">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10" />
-                            </Border.StrokeShape>
-                            <Label Text="{Binding ItemCountLabel}"
-                                   FontSize="11"
-                                   FontAttributes="Bold"
-                                   TextColor="#C84B11" />
-                        </Border>
-                    </Grid>
+                    <!-- SECTION B — SELECTED DISHES (single grouped card) -->
+                    <Border Stroke="#EAE2DA"
+                            StrokeThickness="1"
+                            BackgroundColor="#FFFFFF"
+                            Padding="0"
+                            Margin="0,2,0,0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="0">
 
-                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Lines}" Spacing="0">
-                        <BindableLayout.ItemTemplate>
-                            <DataTemplate x:DataType="models:CartLine">
-                                <Border Stroke="#EAE2DA"
-                                        StrokeThickness="1"
-                                        BackgroundColor="#FFFFFF"
-                                        Padding="10"
-                                        Margin="0,0,0,8">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="18" />
-                                    </Border.StrokeShape>
-                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                                        <!-- Dish image -->
-                                        <Border Grid.Column="0"
-                                                WidthRequest="68"
-                                                HeightRequest="68"
-                                                StrokeThickness="0"
-                                                BackgroundColor="#F4EFEA"
-                                                VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="13" />
-                                            </Border.StrokeShape>
-                                            <Grid>
-                                                <Label Text="🍽"
-                                                       FontSize="22"
-                                                       TextColor="#8C7E74"
-                                                       HorizontalOptions="Center"
-                                                       VerticalOptions="Center"
-                                                       IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}" />
-                                                <Image Source="{Binding ImagePath}"
-                                                       Aspect="AspectFill"
-                                                       IsVisible="{Binding HasImage}" />
-                                            </Grid>
-                                        </Border>
+                            <!-- Header -->
+                            <Grid ColumnDefinitions="*,Auto"
+                                  Padding="16,14,16,12">
+                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                    <Label Text="Selected Dishes"
+                                           FontFamily="Georgia"
+                                           FontSize="17"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E1916"
+                                           VerticalOptions="Center" />
+                                    <Border StrokeThickness="0"
+                                            BackgroundColor="#FDF1EB"
+                                            Padding="10,4"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding ItemCountLabel}"
+                                               FontSize="11"
+                                               FontAttributes="Bold"
+                                               TextColor="#C84B11" />
+                                    </Border>
+                                </HorizontalStackLayout>
+                                <Label Grid.Column="1"
+                                       Text="Freshly Cooked"
+                                       FontSize="12"
+                                       TextColor="#8C7E74"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="End" />
+                            </Grid>
 
-                                        <!-- Name / modifiers / line total -->
-                                        <VerticalStackLayout Grid.Column="1"
-                                                             Spacing="3"
-                                                             VerticalOptions="Center">
-                                            <Label Text="{Binding Name}"
-                                                   FontSize="13.5"
-                                                   FontAttributes="Bold"
-                                                   TextColor="#1E1916"
-                                                   LineBreakMode="TailTruncation"
-                                                   MaxLines="2" />
-                                            <Label Text="{Binding SelectedModifiers}"
-                                                   FontSize="11"
-                                                   TextColor="#5C5048"
-                                                   LineBreakMode="TailTruncation"
-                                                   MaxLines="2"
-                                                   IsVisible="{Binding HasModifiers}" />
-                                            <Label Text="{Binding LineTotalDisplay}"
-                                                   FontSize="13.5"
-                                                   FontAttributes="Bold"
-                                                   TextColor="#C84B11" />
-                                        </VerticalStackLayout>
+                            <BoxView HeightRequest="1" Color="#EAE2DA" Margin="16,0" />
 
-                                        <!-- Stepper pill -->
-                                        <Border Grid.Column="2"
-                                                Stroke="#EAE2DA"
-                                                StrokeThickness="1"
-                                                BackgroundColor="#F4EFEA"
-                                                Padding="4"
-                                                VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="12" />
-                                            </Border.StrokeShape>
-                                            <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-                                                <Border WidthRequest="28"
-                                                        HeightRequest="28"
+                            <!-- Line items (rows, not separate cards) -->
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Lines}" Spacing="0">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:CartLine">
+                                        <VerticalStackLayout Spacing="0">
+                                            <Grid ColumnDefinitions="Auto,*,Auto"
+                                                  ColumnSpacing="10"
+                                                  Padding="16,12">
+                                                <Border Grid.Column="0"
+                                                        WidthRequest="64"
+                                                        HeightRequest="64"
                                                         StrokeThickness="0"
-                                                        BackgroundColor="#FFFFFF">
+                                                        BackgroundColor="#F4EFEA"
+                                                        VerticalOptions="Center">
                                                     <Border.StrokeShape>
-                                                        <RoundRectangle CornerRadius="8" />
+                                                        <RoundRectangle CornerRadius="12" />
                                                     </Border.StrokeShape>
-                                                    <Border.GestureRecognizers>
-                                                        <TapGestureRecognizer
-                                                            Command="{Binding BindingContext.DecreaseCommand, Source={x:Reference CartCheckoutRoot}}"
-                                                            CommandParameter="{Binding .}" />
-                                                    </Border.GestureRecognizers>
-                                                    <Label Text="−"
-                                                           FontSize="16"
+                                                    <Grid>
+                                                        <Label Text="🍽"
+                                                               FontSize="20"
+                                                               TextColor="#8C7E74"
+                                                               HorizontalOptions="Center"
+                                                               VerticalOptions="Center"
+                                                               IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}" />
+                                                        <Image Source="{Binding ImagePath}"
+                                                               Aspect="AspectFill"
+                                                               IsVisible="{Binding HasImage}" />
+                                                    </Grid>
+                                                </Border>
+
+                                                <VerticalStackLayout Grid.Column="1"
+                                                                     Spacing="3"
+                                                                     VerticalOptions="Center">
+                                                    <Label Text="{Binding Name}"
+                                                           FontSize="13.5"
                                                            FontAttributes="Bold"
                                                            TextColor="#1E1916"
-                                                           HorizontalOptions="Center"
-                                                           VerticalOptions="Center"
-                                                           HorizontalTextAlignment="Center" />
-                                                </Border>
-                                                <Label Text="{Binding QuantityText}"
-                                                       FontSize="13"
-                                                       FontAttributes="Bold"
-                                                       TextColor="#1E1916"
-                                                       WidthRequest="22"
-                                                       HorizontalTextAlignment="Center"
-                                                       VerticalOptions="Center" />
-                                                <Border WidthRequest="28"
-                                                        HeightRequest="28"
-                                                        StrokeThickness="0"
-                                                        BackgroundColor="#C84B11">
-                                                    <Border.StrokeShape>
-                                                        <RoundRectangle CornerRadius="8" />
-                                                    </Border.StrokeShape>
-                                                    <Border.GestureRecognizers>
-                                                        <TapGestureRecognizer
-                                                            Command="{Binding BindingContext.IncreaseCommand, Source={x:Reference CartCheckoutRoot}}"
-                                                            CommandParameter="{Binding .}" />
-                                                    </Border.GestureRecognizers>
-                                                    <Label Text="+"
-                                                           FontSize="16"
+                                                           LineBreakMode="TailTruncation"
+                                                           MaxLines="2" />
+                                                    <Label Text="{Binding SelectedModifiers}"
+                                                           FontSize="11"
+                                                           TextColor="#5C5048"
+                                                           LineBreakMode="TailTruncation"
+                                                           MaxLines="2"
+                                                           IsVisible="{Binding HasModifiers}" />
+                                                    <Label Text="{Binding LineTotalDisplay}"
+                                                           FontSize="14"
                                                            FontAttributes="Bold"
-                                                           TextColor="#FFFFFF"
-                                                           HorizontalOptions="Center"
-                                                           VerticalOptions="Center"
-                                                           HorizontalTextAlignment="Center" />
+                                                           TextColor="#C84B11" />
+                                                </VerticalStackLayout>
+
+                                                <Border Grid.Column="2"
+                                                        Stroke="#EAE2DA"
+                                                        StrokeThickness="1"
+                                                        BackgroundColor="#F4EFEA"
+                                                        Padding="4"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="12" />
+                                                    </Border.StrokeShape>
+                                                    <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                                        <Border WidthRequest="28"
+                                                                HeightRequest="28"
+                                                                StrokeThickness="0"
+                                                                BackgroundColor="#FFFFFF">
+                                                            <Border.StrokeShape>
+                                                                <RoundRectangle CornerRadius="8" />
+                                                            </Border.StrokeShape>
+                                                            <Border.GestureRecognizers>
+                                                                <TapGestureRecognizer
+                                                                    Command="{Binding BindingContext.DecreaseCommand, Source={x:Reference CartCheckoutRoot}}"
+                                                                    CommandParameter="{Binding .}" />
+                                                            </Border.GestureRecognizers>
+                                                            <Label Text="−"
+                                                                   FontSize="16"
+                                                                   FontAttributes="Bold"
+                                                                   TextColor="#1E1916"
+                                                                   HorizontalOptions="Center"
+                                                                   VerticalOptions="Center"
+                                                                   HorizontalTextAlignment="Center" />
+                                                        </Border>
+                                                        <Label Text="{Binding QuantityText}"
+                                                               FontSize="13"
+                                                               FontAttributes="Bold"
+                                                               TextColor="#1E1916"
+                                                               WidthRequest="22"
+                                                               HorizontalTextAlignment="Center"
+                                                               VerticalOptions="Center" />
+                                                        <Border WidthRequest="28"
+                                                                HeightRequest="28"
+                                                                StrokeThickness="0"
+                                                                BackgroundColor="#C84B11">
+                                                            <Border.StrokeShape>
+                                                                <RoundRectangle CornerRadius="8" />
+                                                            </Border.StrokeShape>
+                                                            <Border.GestureRecognizers>
+                                                                <TapGestureRecognizer
+                                                                    Command="{Binding BindingContext.IncreaseCommand, Source={x:Reference CartCheckoutRoot}}"
+                                                                    CommandParameter="{Binding .}" />
+                                                            </Border.GestureRecognizers>
+                                                            <Label Text="+"
+                                                                   FontSize="16"
+                                                                   FontAttributes="Bold"
+                                                                   TextColor="#FFFFFF"
+                                                                   HorizontalOptions="Center"
+                                                                   VerticalOptions="Center"
+                                                                   HorizontalTextAlignment="Center" />
+                                                        </Border>
+                                                    </HorizontalStackLayout>
                                                 </Border>
-                                            </HorizontalStackLayout>
-                                        </Border>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </BindableLayout.ItemTemplate>
-                    </VerticalStackLayout>
+                                            </Grid>
+                                            <BoxView HeightRequest="1" Color="#EAE2DA" Margin="16,0" />
+                                        </VerticalStackLayout>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+
+                            <!-- Footer: add more -->
+                            <Grid ColumnDefinitions="*,Auto"
+                                  Padding="16,14">
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ExploreMenuCommand}" />
+                                </Grid.GestureRecognizers>
+                                <Label Text="+ Add more dishes from menu"
+                                       FontSize="13.5"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="→"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="End" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
 
                     <!-- SECTION C — DELIVERY ADDRESS -->
                     <Border Stroke="#EAE2DA"
@@ -443,117 +480,6 @@
                                    TextColor="#8C7E74"
                                    LineBreakMode="WordWrap"
                                    IsVisible="{Binding HasLocationStatus}" />
-
-                            <!-- Address type pills -->
-                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                                <Border Grid.Column="0" Padding="8,10">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="12" />
-                                    </Border.StrokeShape>
-                                    <Border.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Home" />
-                                    </Border.GestureRecognizers>
-                                    <Border.Triggers>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsHomeLabelSelected}" Value="True">
-                                            <Setter Property="BackgroundColor" Value="#FDF1EB" />
-                                            <Setter Property="Stroke" Value="#C84B11" />
-                                            <Setter Property="StrokeThickness" Value="1.5" />
-                                        </DataTrigger>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsHomeLabelSelected}" Value="False">
-                                            <Setter Property="BackgroundColor" Value="#FAF7F4" />
-                                            <Setter Property="Stroke" Value="#EAE2DA" />
-                                            <Setter Property="StrokeThickness" Value="1" />
-                                        </DataTrigger>
-                                    </Border.Triggers>
-                                    <Label Text="Home"
-                                           FontSize="12"
-                                           HorizontalTextAlignment="Center"
-                                           HorizontalOptions="Center">
-                                        <Label.Triggers>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsHomeLabelSelected}" Value="True">
-                                                <Setter Property="TextColor" Value="#C84B11" />
-                                                <Setter Property="FontAttributes" Value="Bold" />
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsHomeLabelSelected}" Value="False">
-                                                <Setter Property="TextColor" Value="#1E1916" />
-                                                <Setter Property="FontAttributes" Value="None" />
-                                            </DataTrigger>
-                                        </Label.Triggers>
-                                    </Label>
-                                </Border>
-
-                                <Border Grid.Column="1" Padding="8,10">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="12" />
-                                    </Border.StrokeShape>
-                                    <Border.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Office" />
-                                    </Border.GestureRecognizers>
-                                    <Border.Triggers>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsOfficeLabelSelected}" Value="True">
-                                            <Setter Property="BackgroundColor" Value="#FDF1EB" />
-                                            <Setter Property="Stroke" Value="#C84B11" />
-                                            <Setter Property="StrokeThickness" Value="1.5" />
-                                        </DataTrigger>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsOfficeLabelSelected}" Value="False">
-                                            <Setter Property="BackgroundColor" Value="#FAF7F4" />
-                                            <Setter Property="Stroke" Value="#EAE2DA" />
-                                            <Setter Property="StrokeThickness" Value="1" />
-                                        </DataTrigger>
-                                    </Border.Triggers>
-                                    <Label Text="Office"
-                                           FontSize="12"
-                                           HorizontalTextAlignment="Center"
-                                           HorizontalOptions="Center">
-                                        <Label.Triggers>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsOfficeLabelSelected}" Value="True">
-                                                <Setter Property="TextColor" Value="#C84B11" />
-                                                <Setter Property="FontAttributes" Value="Bold" />
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsOfficeLabelSelected}" Value="False">
-                                                <Setter Property="TextColor" Value="#1E1916" />
-                                                <Setter Property="FontAttributes" Value="None" />
-                                            </DataTrigger>
-                                        </Label.Triggers>
-                                    </Label>
-                                </Border>
-
-                                <Border Grid.Column="2" Padding="8,10">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="12" />
-                                    </Border.StrokeShape>
-                                    <Border.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Other" />
-                                    </Border.GestureRecognizers>
-                                    <Border.Triggers>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsOtherLabelSelected}" Value="True">
-                                            <Setter Property="BackgroundColor" Value="#FDF1EB" />
-                                            <Setter Property="Stroke" Value="#C84B11" />
-                                            <Setter Property="StrokeThickness" Value="1.5" />
-                                        </DataTrigger>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsOtherLabelSelected}" Value="False">
-                                            <Setter Property="BackgroundColor" Value="#FAF7F4" />
-                                            <Setter Property="Stroke" Value="#EAE2DA" />
-                                            <Setter Property="StrokeThickness" Value="1" />
-                                        </DataTrigger>
-                                    </Border.Triggers>
-                                    <Label Text="Other"
-                                           FontSize="12"
-                                           HorizontalTextAlignment="Center"
-                                           HorizontalOptions="Center">
-                                        <Label.Triggers>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsOtherLabelSelected}" Value="True">
-                                                <Setter Property="TextColor" Value="#C84B11" />
-                                                <Setter Property="FontAttributes" Value="Bold" />
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsOtherLabelSelected}" Value="False">
-                                                <Setter Property="TextColor" Value="#1E1916" />
-                                                <Setter Property="FontAttributes" Value="None" />
-                                            </DataTrigger>
-                                        </Label.Triggers>
-                                    </Label>
-                                </Border>
-                            </Grid>
 
                             <!-- Contact (required for PlaceOrder) -->
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
@@ -604,64 +530,53 @@
                                 </Border>
                             </Grid>
 
-                            <!-- Selected address box -->
-                            <Border Stroke="#EAE2DA"
-                                    StrokeThickness="1"
-                                    BackgroundColor="#FAF7F4"
-                                    Padding="12">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="14" />
-                                </Border.StrokeShape>
-                                <Border.Triggers>
-                                    <DataTrigger TargetType="Border" Binding="{Binding AddressInvalid}" Value="True">
-                                        <Setter Property="Stroke" Value="#B83227" />
-                                    </DataTrigger>
-                                </Border.Triggers>
-                                <VerticalStackLayout Spacing="8">
-                                    <Grid ColumnDefinitions="*,Auto"
-                                          IsVisible="{Binding IsEditingAddress, Converter={StaticResource InvertedBoolConverter}}">
-                                        <Label Text="{Binding AddressDisplayText}"
-                                               FontSize="12.5"
-                                               TextColor="#1E1916"
-                                               LineBreakMode="WordWrap"
-                                               VerticalOptions="Center" />
-                                        <Label Grid.Column="1"
-                                               Text="Edit"
-                                               FontSize="12"
-                                               FontAttributes="Bold"
-                                               TextColor="#C84B11"
-                                               VerticalOptions="Start"
-                                               Margin="8,0,0,0">
-                                            <Label.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding EditAddressCommand}" />
-                                            </Label.GestureRecognizers>
-                                        </Label>
-                                    </Grid>
-                                    <VerticalStackLayout Spacing="6" IsVisible="{Binding IsEditingAddress}">
-                                        <Entry Text="{Binding DeliveryAddress}"
-                                               Placeholder="Street, block, house / flat"
-                                               PlaceholderColor="#8C7E74"
-                                               TextColor="#1E1916"
-                                               BackgroundColor="Transparent"
-                                               FontSize="12.5" />
-                                        <Entry Text="{Binding DeliveryLandmark}"
-                                               Placeholder="Landmark (optional)"
-                                               PlaceholderColor="#8C7E74"
-                                               TextColor="#1E1916"
-                                               BackgroundColor="Transparent"
-                                               FontSize="12.5" />
-                                        <Label Text="Done"
-                                               FontSize="12"
-                                               FontAttributes="Bold"
-                                               TextColor="#C84B11"
-                                               HorizontalOptions="End">
-                                            <Label.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding EditAddressCommand}" />
-                                            </Label.GestureRecognizers>
-                                        </Label>
-                                    </VerticalStackLayout>
-                                </VerticalStackLayout>
-                            </Border>
+                            <!-- Manual delivery location (type address OR use current GPS) -->
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Delivery location"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="#5C5048" />
+
+                                <Border Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        Padding="12,10"
+                                        MinimumHeightRequest="72">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding AddressInvalid}" Value="True">
+                                            <Setter Property="Stroke" Value="#B83227" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Editor Text="{Binding DeliveryAddress}"
+                                            Placeholder="Street, block, house / flat"
+                                            PlaceholderColor="#8C7E74"
+                                            TextColor="#1E1916"
+                                            BackgroundColor="Transparent"
+                                            FontSize="13"
+                                            AutoSize="TextChanges"
+                                            HeightRequest="56" />
+                                </Border>
+
+                                <Border HeightRequest="44"
+                                        Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        Padding="12,0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Entry Text="{Binding DeliveryLandmark}"
+                                           Placeholder="Landmark (optional)"
+                                           PlaceholderColor="#8C7E74"
+                                           TextColor="#1E1916"
+                                           BackgroundColor="Transparent"
+                                           FontSize="13"
+                                           VerticalOptions="Center" />
+                                </Border>
+                            </VerticalStackLayout>
 
                             <!-- Rider notes -->
                             <Border HeightRequest="44"
