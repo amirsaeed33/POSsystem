@@ -170,7 +170,7 @@ public class OnlineProductDto : ObservableObject
 
     public bool HasDealSummary => !string.IsNullOrWhiteSpace(DealItemsSummary);
     public bool HasOriginalPrice => OriginalPrice.HasValue && OriginalPrice.Value > Price;
-    public string OriginalPriceDisplay => OriginalPrice.HasValue ? $"Rs {OriginalPrice.Value:0}" : string.Empty;
+    public string OriginalPriceDisplay => OriginalPrice.HasValue ? $"Rs. {OriginalPrice.Value:N0}" : string.Empty;
     public string DealDiscountBadge
     {
         get
@@ -190,8 +190,54 @@ public class OnlineProductDto : ObservableObject
 
     public string PriceText => Price.ToString("0.00");
 
-    public string PriceDisplay => $"Rs {Price:0}";
+    public string PriceDisplay => $"Rs. {Price:N0}";
     public string PriceLabel => PriceDisplay;
+    public string PriceDisplayRs => PriceDisplay;
+
+    public string CulinarySubtitle
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Description))
+            {
+                var text = Description.Trim();
+                return text.Length <= 42 ? text : text[..39].TrimEnd() + "…";
+            }
+
+            if (!string.IsNullOrWhiteSpace(CategoryName))
+            {
+                return CategoryName.Trim();
+            }
+
+            return "Gulberg Kitchen";
+        }
+    }
+
+    public bool HasSignatureBadge =>
+        HasTag ||
+        (!string.IsNullOrWhiteSpace(CategoryName) &&
+         CategoryName.Contains("signature", StringComparison.OrdinalIgnoreCase));
+
+    public string FavoritesBadgeText
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(DisplayTag))
+            {
+                return DisplayTag.Trim().ToUpperInvariant();
+            }
+
+            if (IsDeal)
+            {
+                return "SIGNATURE";
+            }
+
+            return "★ 4.9";
+        }
+    }
+
+    public bool IsWarmPrimaryBadge =>
+        !string.IsNullOrWhiteSpace(DisplayTag) || IsDeal || HasOriginalPrice;
 
     private int cartQty;
     public int CartQty
