@@ -219,7 +219,7 @@
                 <ScrollView Orientation="Vertical"
                             VerticalScrollBarVisibility="Never"
                             BackgroundColor="{StaticResource PageBackground}">
-                    <VerticalStackLayout Spacing="0" Padding="0,0,0,92">
+                    <VerticalStackLayout Spacing="0" Padding="0,0,0,104">
 
                         <!-- 2. EDITORIAL SEARCH BAR -->
                         <Border Margin="16,4,16,0"

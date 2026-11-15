@@ -45,6 +45,8 @@ public partial class AljannatBottomNavBar : ContentView
     private CartService? _cart;
     private bool _navigating;
     private bool _cartSubscribed;
+    private bool _pageAppearingHooked;
+    private readonly CurvedBottomBarDrawable _barDrawable = new();
 
     public string ActiveTab
     {
@@ -61,21 +63,151 @@ public partial class AljannatBottomNavBar : ContentView
     public AljannatBottomNavBar()
     {
         InitializeComponent();
+        if (BarGraphics != null)
+        {
+            BarGraphics.Drawable = _barDrawable;
+        }
+
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+        SizeChanged += OnSizeChanged;
         RefreshVisuals();
+    }
+
+    private void OnSizeChanged(object? sender, EventArgs e)
+    {
+        BarGraphics?.Invalidate();
     }
 
     private void OnLoaded(object? sender, EventArgs e)
     {
         EnsureCartSubscription();
         SyncCartCountFromService();
+        HookPageAppearing();
+        SyncActiveTabFromShell();
         RefreshVisuals();
     }
 
     private void OnUnloaded(object? sender, EventArgs e)
     {
+        UnhookPageAppearing();
         UnsubscribeCart();
+    }
+
+    private void HookPageAppearing()
+    {
+        if (_pageAppearingHooked)
+        {
+            return;
+        }
+
+        if (FindParentPage() is not ContentPage page)
+        {
+            return;
+        }
+
+        page.Appearing += OnParentPageAppearing;
+        _pageAppearingHooked = true;
+    }
+
+    private void UnhookPageAppearing()
+    {
+        if (!_pageAppearingHooked)
+        {
+            return;
+        }
+
+        if (FindParentPage() is ContentPage page)
+        {
+            page.Appearing -= OnParentPageAppearing;
+        }
+
+        _pageAppearingHooked = false;
+    }
+
+    private void OnParentPageAppearing(object? sender, EventArgs e)
+    {
+        SyncActiveTabFromShell();
+        SyncCartCountFromService();
+    }
+
+    private ContentPage? FindParentPage()
+    {
+        Element? current = this;
+        while (current != null)
+        {
+            if (current is ContentPage page)
+            {
+                return page;
+            }
+
+            current = current.Parent;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Re-highlight the tab that matches the current Shell route.
+    /// Needed because Shell caches pages and NavigateAsync must not leave a stale ActiveTab behind.
+    /// </summary>
+    public void SyncActiveTabFromShell()
+    {
+        var loc = Shell.Current?.CurrentState?.Location?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(loc))
+        {
+            RefreshVisuals();
+            return;
+        }
+
+        // Cart is not a side tab — keep whatever was declared for this page.
+        if (IsCustomerTab(loc, "cart"))
+        {
+            RefreshVisuals();
+            return;
+        }
+
+        if (IsCustomerTab(loc, "favorites"))
+        {
+            ActiveTab = TabFavorites;
+        }
+        else if (IsCustomerTab(loc, "account"))
+        {
+            ActiveTab = TabProfile;
+        }
+        else if (IsCustomerTab(loc, "order"))
+        {
+            ActiveTab = TabOrder;
+        }
+        else if (IsCustomerTab(loc, "home"))
+        {
+            ActiveTab = TabHome;
+        }
+
+        RefreshVisuals();
+    }
+
+    /// <summary>
+    /// True when location is exactly //customer/{segment} (optional query), not a longer route like orderhistory.
+    /// </summary>
+    private static bool IsCustomerTab(string location, string segment)
+    {
+        // Examples: //customer/order  //customer/order?category=X  customer/favorites
+        var marker = $"customer/{segment}";
+        var idx = location.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0)
+        {
+            return false;
+        }
+
+        var after = idx + marker.Length;
+        if (after >= location.Length)
+        {
+            return true;
+        }
+
+        var next = location[after];
+        return next is '/' or '?' or '#' or ';';
     }
 
     private void EnsureCartSubscription()
@@ -242,9 +374,11 @@ public partial class AljannatBottomNavBar : ContentView
         try
         {
             var current = Shell.Current.CurrentState?.Location?.ToString() ?? string.Empty;
-            if (current.Contains(route.TrimStart('/'), StringComparison.OrdinalIgnoreCase) ||
+            var routeKey = route.TrimStart('/');
+            if (current.Contains(routeKey, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(current, route, StringComparison.OrdinalIgnoreCase))
             {
+                // Already on this tab — just refresh highlight on this bar.
                 if (!string.IsNullOrWhiteSpace(tabToActivate))
                 {
                     ActiveTab = tabToActivate;
@@ -254,11 +388,8 @@ public partial class AljannatBottomNavBar : ContentView
             }
 
             _navigating = true;
-            if (!string.IsNullOrWhiteSpace(tabToActivate))
-            {
-                ActiveTab = tabToActivate;
-            }
-
+            // Do NOT mutate ActiveTab before leaving — Shell caches pages and a stale
+            // ActiveTab would show the wrong highlight when the user returns.
             await Shell.Current.GoToAsync(route);
         }
         catch (Exception ex)

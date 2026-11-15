@@ -6,172 +6,167 @@
              BackgroundColor="Transparent"
              VerticalOptions="End"
              HorizontalOptions="Fill"
-             HeightRequest="84"
+             HeightRequest="96"
              InputTransparent="False">
 
     <Grid BackgroundColor="Transparent"
-          HeightRequest="84"
+          HeightRequest="96"
           InputTransparent="False">
 
-        <!-- Floating white pill bar -->
-        <Border x:Name="PillBar"
-                HeightRequest="66"
-                Margin="14,0,14,8"
-                VerticalOptions="End"
-                BackgroundColor="#FFFFFF"
-                Stroke="#EAE2DA"
-                StrokeThickness="1"
-                InputTransparent="False">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="28" />
-            </Border.StrokeShape>
-            <Border.Shadow>
-                <Shadow Brush="#1C1410" Offset="0,6" Radius="16" Opacity="0.10" />
-            </Border.Shadow>
+        <!-- Continuous curved white bar (bump + soft canvas shadow; no Border.Shadow) -->
+        <GraphicsView x:Name="BarGraphics"
+                      HeightRequest="96"
+                      VerticalOptions="Fill"
+                      HorizontalOptions="Fill"
+                      BackgroundColor="Transparent"
+                      InputTransparent="True" />
 
-            <Grid ColumnDefinitions="*,*,76,*,*"
-                  VerticalOptions="Fill"
-                  HorizontalOptions="Fill"
-                  Padding="4,0">
+        <!-- Tab row aligned to the flat bar body -->
+        <Grid ColumnDefinitions="*,*,76,*,*"
+              HeightRequest="66"
+              Margin="14,0,14,8"
+              VerticalOptions="End"
+              HorizontalOptions="Fill"
+              Padding="4,0"
+              InputTransparent="False">
 
-                <!-- Home -->
-                <VerticalStackLayout Grid.Column="0"
-                                     Spacing="2"
-                                     VerticalOptions="Center"
-                                     HorizontalOptions="Center">
-                    <VerticalStackLayout.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnHomeTapped" />
-                    </VerticalStackLayout.GestureRecognizers>
-                    <Path x:Name="HomeIcon"
-                          Aspect="Uniform"
-                          WidthRequest="22"
-                          HeightRequest="22"
-                          Fill="#8C7E74"
-                          HorizontalOptions="Center"
-                          Data="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-                    <Label x:Name="HomeLabel"
-                           Text="Home"
-                           FontSize="10.5"
-                           FontAttributes="Bold"
-                           TextColor="#8C7E74"
-                           HorizontalOptions="Center"
-                           HorizontalTextAlignment="Center" />
-                    <BoxView x:Name="HomePill"
-                             WidthRequest="22"
-                             HeightRequest="3.5"
-                             CornerRadius="2"
-                             Color="Transparent"
-                             HorizontalOptions="Center" />
-                </VerticalStackLayout>
-
-                <!-- Order -->
-                <VerticalStackLayout Grid.Column="1"
-                                     Spacing="2"
-                                     VerticalOptions="Center"
-                                     HorizontalOptions="Center">
-                    <VerticalStackLayout.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnOrderTapped" />
-                    </VerticalStackLayout.GestureRecognizers>
-                    <Path x:Name="OrderIcon"
-                          Aspect="Uniform"
-                          WidthRequest="22"
-                          HeightRequest="22"
-                          Fill="#8C7E74"
-                          HorizontalOptions="Center"
-                          Data="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
-                    <Label x:Name="OrderLabel"
-                           Text="Order"
-                           FontSize="10.5"
-                           FontAttributes="Bold"
-                           TextColor="#8C7E74"
-                           HorizontalOptions="Center"
-                           HorizontalTextAlignment="Center" />
-                    <BoxView x:Name="OrderPill"
-                             WidthRequest="22"
-                             HeightRequest="3.5"
-                             CornerRadius="2"
-                             Color="Transparent"
-                             HorizontalOptions="Center" />
-                </VerticalStackLayout>
-
-                <!-- Center spacer for cart medallion -->
-                <BoxView Grid.Column="2"
+            <!-- Home -->
+            <VerticalStackLayout Grid.Column="0"
+                                 Spacing="2"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center">
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnHomeTapped" />
+                </VerticalStackLayout.GestureRecognizers>
+                <Path x:Name="HomeIcon"
+                      Aspect="Uniform"
+                      WidthRequest="22"
+                      HeightRequest="22"
+                      Fill="#8C7E74"
+                      HorizontalOptions="Center"
+                      Data="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                <Label x:Name="HomeLabel"
+                       Text="Home"
+                       FontSize="10.5"
+                       FontAttributes="Bold"
+                       TextColor="#8C7E74"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
+                <BoxView x:Name="HomePill"
+                         WidthRequest="22"
+                         HeightRequest="3.5"
+                         CornerRadius="2"
                          Color="Transparent"
-                         InputTransparent="True" />
+                         HorizontalOptions="Center" />
+            </VerticalStackLayout>
 
-                <!-- Favorites -->
-                <VerticalStackLayout Grid.Column="3"
-                                     Spacing="2"
-                                     VerticalOptions="Center"
-                                     HorizontalOptions="Center">
-                    <VerticalStackLayout.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnFavoritesTapped" />
-                    </VerticalStackLayout.GestureRecognizers>
-                    <Path x:Name="FavoritesIcon"
-                          Aspect="Uniform"
-                          WidthRequest="22"
-                          HeightRequest="22"
-                          Fill="#8C7E74"
-                          HorizontalOptions="Center"
-                          Data="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    <Label x:Name="FavoritesLabel"
-                           Text="Favorites"
-                           FontSize="10.5"
-                           FontAttributes="Bold"
-                           TextColor="#8C7E74"
-                           HorizontalOptions="Center"
-                           HorizontalTextAlignment="Center" />
-                    <BoxView x:Name="FavoritesPill"
-                             WidthRequest="22"
-                             HeightRequest="3.5"
-                             CornerRadius="2"
-                             Color="Transparent"
-                             HorizontalOptions="Center" />
-                </VerticalStackLayout>
+            <!-- Order -->
+            <VerticalStackLayout Grid.Column="1"
+                                 Spacing="2"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center">
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnOrderTapped" />
+                </VerticalStackLayout.GestureRecognizers>
+                <Path x:Name="OrderIcon"
+                      Aspect="Uniform"
+                      WidthRequest="22"
+                      HeightRequest="22"
+                      Fill="#8C7E74"
+                      HorizontalOptions="Center"
+                      Data="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+                <Label x:Name="OrderLabel"
+                       Text="Order"
+                       FontSize="10.5"
+                       FontAttributes="Bold"
+                       TextColor="#8C7E74"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
+                <BoxView x:Name="OrderPill"
+                         WidthRequest="22"
+                         HeightRequest="3.5"
+                         CornerRadius="2"
+                         Color="Transparent"
+                         HorizontalOptions="Center" />
+            </VerticalStackLayout>
 
-                <!-- Profile -->
-                <VerticalStackLayout Grid.Column="4"
-                                     Spacing="2"
-                                     VerticalOptions="Center"
-                                     HorizontalOptions="Center">
-                    <VerticalStackLayout.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnProfileTapped" />
-                    </VerticalStackLayout.GestureRecognizers>
-                    <Path x:Name="ProfileIcon"
-                          Aspect="Uniform"
-                          WidthRequest="22"
-                          HeightRequest="22"
-                          Fill="#8C7E74"
-                          HorizontalOptions="Center"
-                          Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                    <Label x:Name="ProfileLabel"
-                           Text="Profile"
-                           FontSize="10.5"
-                           FontAttributes="Bold"
-                           TextColor="#8C7E74"
-                           HorizontalOptions="Center"
-                           HorizontalTextAlignment="Center" />
-                    <BoxView x:Name="ProfilePill"
-                             WidthRequest="22"
-                             HeightRequest="3.5"
-                             CornerRadius="2"
-                             Color="Transparent"
-                             HorizontalOptions="Center" />
-                </VerticalStackLayout>
-            </Grid>
-        </Border>
+            <!-- Center spacer for cart medallion -->
+            <BoxView Grid.Column="2"
+                     Color="Transparent"
+                     InputTransparent="True" />
 
-        <!-- Raised center cart medallion + white arch collar -->
+            <!-- Favorites -->
+            <VerticalStackLayout Grid.Column="3"
+                                 Spacing="2"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center">
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnFavoritesTapped" />
+                </VerticalStackLayout.GestureRecognizers>
+                <Path x:Name="FavoritesIcon"
+                      Aspect="Uniform"
+                      WidthRequest="22"
+                      HeightRequest="22"
+                      Fill="#8C7E74"
+                      HorizontalOptions="Center"
+                      Data="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                <Label x:Name="FavoritesLabel"
+                       Text="Favorites"
+                       FontSize="10.5"
+                       FontAttributes="Bold"
+                       TextColor="#8C7E74"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
+                <BoxView x:Name="FavoritesPill"
+                         WidthRequest="22"
+                         HeightRequest="3.5"
+                         CornerRadius="2"
+                         Color="Transparent"
+                         HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <!-- Profile -->
+            <VerticalStackLayout Grid.Column="4"
+                                 Spacing="2"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center">
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnProfileTapped" />
+                </VerticalStackLayout.GestureRecognizers>
+                <Path x:Name="ProfileIcon"
+                      Aspect="Uniform"
+                      WidthRequest="22"
+                      HeightRequest="22"
+                      Fill="#8C7E74"
+                      HorizontalOptions="Center"
+                      Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                <Label x:Name="ProfileLabel"
+                       Text="Profile"
+                       FontSize="10.5"
+                       FontAttributes="Bold"
+                       TextColor="#8C7E74"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
+                <BoxView x:Name="ProfilePill"
+                         WidthRequest="22"
+                         HeightRequest="3.5"
+                         CornerRadius="2"
+                         Color="Transparent"
+                         HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- Raised center cart medallion (sits in the curved bump; no Border.Shadow) -->
         <Grid VerticalOptions="Start"
               HorizontalOptions="Center"
-              Margin="0,2,0,0"
+              Margin="0,0,0,0"
               WidthRequest="68"
               HeightRequest="68"
               InputTransparent="False">
 
-            <!-- White arch collar -->
-            <Border WidthRequest="68"
-                    HeightRequest="68"
+            <!-- White rim that blends into the bump (no shadow) -->
+            <Border WidthRequest="64"
+                    HeightRequest="64"
                     BackgroundColor="#FFFFFF"
                     Stroke="#EAE2DA"
                     StrokeThickness="1"
@@ -179,22 +174,19 @@
                     VerticalOptions="Center"
                     InputTransparent="True">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="34" />
+                    <RoundRectangle CornerRadius="32" />
                 </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="#1C1410" Offset="0,4" Radius="12" Opacity="0.08" />
-                </Border.Shadow>
             </Border>
 
             <!-- Gradient cart medallion -->
             <Border x:Name="CartMedallion"
-                    WidthRequest="56"
-                    HeightRequest="56"
+                    WidthRequest="54"
+                    HeightRequest="54"
                     StrokeThickness="0"
                     HorizontalOptions="Center"
                     VerticalOptions="Center">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="28" />
+                    <RoundRectangle CornerRadius="27" />
                 </Border.StrokeShape>
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -205,9 +197,6 @@
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnCartTapped" />
                 </Border.GestureRecognizers>
-                <Border.Shadow>
-                    <Shadow Brush="#C84B11" Offset="0,4" Radius="10" Opacity="0.28" />
-                </Border.Shadow>
 
                 <Path Aspect="Uniform"
                       WidthRequest="24"

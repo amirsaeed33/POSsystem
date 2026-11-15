@@ -171,7 +171,7 @@
                 <CollectionView ItemsSource="{Binding FilteredFavoriteProducts}"
                                 SelectionMode="None"
                                 BackgroundColor="Transparent"
-                                Margin="16,6,16,92">
+                                Margin="16,6,16,104">
                     <CollectionView.ItemsLayout>
                         <GridItemsLayout Orientation="Vertical"
                                          Span="2"
@@ -179,17 +179,18 @@
                                          VerticalItemSpacing="10" />
                     </CollectionView.ItemsLayout>
 
+                    <!-- Same card size as Home → Chef's Signature Classics -->
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:OnlineProductDto">
-                            <Border Stroke="#EAE2DA"
+                            <Border BackgroundColor="#FFFFFF"
+                                    Stroke="#EAE2DA"
                                     StrokeThickness="1"
-                                    BackgroundColor="#FFFFFF"
-                                    Padding="9">
+                                    Padding="10">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="20" />
+                                    <RoundRectangle CornerRadius="18" />
                                 </Border.StrokeShape>
                                 <Border.Shadow>
-                                    <Shadow Brush="#1E1916" Offset="0,3" Radius="10" Opacity="0.06" />
+                                    <Shadow Brush="#1E1916" Offset="0,4" Radius="12" Opacity="0.05" />
                                 </Border.Shadow>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
@@ -197,36 +198,35 @@
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
 
-                                <VerticalStackLayout Spacing="0">
-                                    <!-- Image container -->
-                                    <Grid HeightRequest="122">
+                                <VerticalStackLayout Spacing="6">
+                                    <Grid HeightRequest="96">
                                         <Border StrokeThickness="0"
                                                 BackgroundColor="#F4EFEA"
-                                                HeightRequest="122">
+                                                HeightRequest="96">
                                             <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="14" />
+                                                <RoundRectangle CornerRadius="12" />
                                             </Border.StrokeShape>
                                             <Grid>
                                                 <Label Text="🍽"
-                                                       FontSize="28"
+                                                       FontSize="24"
                                                        TextColor="#8C7E74"
                                                        HorizontalOptions="Center"
                                                        VerticalOptions="Center"
                                                        IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}" />
                                                 <Image Source="{Binding ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                                        Aspect="AspectFill"
+                                                       HeightRequest="96"
                                                        IsVisible="{Binding HasImage}" />
                                             </Grid>
                                         </Border>
 
-                                        <!-- Top-left badge -->
                                         <Border HorizontalOptions="Start"
                                                 VerticalOptions="Start"
-                                                Margin="8"
-                                                Padding="7,3"
+                                                Margin="6"
+                                                Padding="6,2"
                                                 IsVisible="{Binding IsWarmPrimaryBadge}">
                                             <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="8" />
+                                                <RoundRectangle CornerRadius="6" />
                                             </Border.StrokeShape>
                                             <Border.Triggers>
                                                 <DataTrigger TargetType="Border" Binding="{Binding IsWarmPrimaryBadge}" Value="True">
@@ -235,37 +235,40 @@
                                                 </DataTrigger>
                                             </Border.Triggers>
                                             <Label Text="{Binding FavoritesBadgeText}"
-                                                   FontSize="9.5"
+                                                   FontSize="8"
                                                    FontAttributes="Bold"
-                                                   TextColor="#FFFFFF" />
+                                                   TextColor="#FFFFFF"
+                                                   MaxLines="1"
+                                                   LineBreakMode="TailTruncation" />
                                         </Border>
                                         <Border HorizontalOptions="Start"
                                                 VerticalOptions="Start"
-                                                Margin="8"
-                                                Padding="7,3"
+                                                Margin="6"
+                                                Padding="6,2"
                                                 BackgroundColor="#FEF6EB"
                                                 StrokeThickness="0"
                                                 IsVisible="{Binding IsWarmPrimaryBadge, Converter={StaticResource InvertedBoolConverter}}">
                                             <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="8" />
+                                                <RoundRectangle CornerRadius="6" />
                                             </Border.StrokeShape>
                                             <Label Text="{Binding FavoritesBadgeText}"
-                                                   FontSize="9.5"
+                                                   FontSize="8"
                                                    FontAttributes="Bold"
-                                                   TextColor="#D9822B" />
+                                                   TextColor="#D9822B"
+                                                   MaxLines="1"
+                                                   LineBreakMode="TailTruncation" />
                                         </Border>
 
-                                        <!-- Remove favorite -->
-                                        <Border WidthRequest="32"
-                                                HeightRequest="32"
+                                        <Border WidthRequest="28"
+                                                HeightRequest="28"
                                                 Stroke="#EAE2DA"
                                                 StrokeThickness="1"
                                                 BackgroundColor="#EBFFFFFF"
                                                 HorizontalOptions="End"
                                                 VerticalOptions="Start"
-                                                Margin="8">
+                                                Margin="6">
                                             <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="16" />
+                                                <RoundRectangle CornerRadius="14" />
                                             </Border.StrokeShape>
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer
@@ -273,7 +276,7 @@
                                                     CommandParameter="{Binding .}" />
                                             </Border.GestureRecognizers>
                                             <Label Text="♥"
-                                                   FontSize="15"
+                                                   FontSize="13"
                                                    TextColor="#C84B11"
                                                    HorizontalOptions="Center"
                                                    VerticalOptions="Center"
@@ -281,76 +284,70 @@
                                         </Border>
                                     </Grid>
 
-                                    <!-- Card body -->
-                                    <VerticalStackLayout Margin="2,8,2,0" Spacing="3">
-                                        <Label Text="{Binding Name}"
-                                               FontFamily="Georgia"
-                                               FontSize="14"
-                                               FontAttributes="Bold"
-                                               TextColor="#1E1916"
-                                               MaxLines="1"
-                                               LineBreakMode="TailTruncation" />
-                                        <Label Text="{Binding CulinarySubtitle}"
-                                               FontSize="11"
-                                               TextColor="#5C5048"
-                                               MaxLines="1"
-                                               LineBreakMode="TailTruncation" />
-                                    </VerticalStackLayout>
+                                    <Label Text="{Binding Name}"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E1916"
+                                           MaxLines="2"
+                                           LineBreakMode="TailTruncation"
+                                           HeightRequest="34" />
+                                    <Label Text="{Binding CulinarySubtitle}"
+                                           FontSize="10"
+                                           TextColor="#8C7E74"
+                                           MaxLines="1"
+                                           LineBreakMode="TailTruncation" />
 
-                                    <!-- Price + morphing add/stepper -->
                                     <Grid ColumnDefinitions="*,Auto"
-                                          Margin="2,8,2,0"
+                                          ColumnSpacing="6"
                                           VerticalOptions="Center">
                                         <Label Text="{Binding PriceDisplayRs}"
-                                               FontSize="14"
+                                               FontSize="13"
                                                FontAttributes="Bold"
                                                TextColor="#C84B11"
                                                VerticalOptions="Center" />
 
-                                        <!-- + Add when not in cart -->
                                         <Border Grid.Column="1"
-                                                HeightRequest="32"
+                                                WidthRequest="30"
+                                                HeightRequest="30"
                                                 StrokeThickness="0"
                                                 BackgroundColor="#C84B11"
-                                                Padding="11,0"
                                                 VerticalOptions="Center"
                                                 IsVisible="{Binding InCart, Converter={StaticResource InvertedBoolConverter}}">
                                             <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="10" />
+                                                <RoundRectangle CornerRadius="9" />
                                             </Border.StrokeShape>
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer
                                                     Command="{Binding BindingContext.IncreaseCardCommand, Source={x:Reference FavoritesRoot}}"
                                                     CommandParameter="{Binding .}" />
                                             </Border.GestureRecognizers>
-                                            <Label Text="+ Add"
-                                                   FontSize="11.5"
+                                            <Label Text="+"
+                                                   FontSize="16"
                                                    FontAttributes="Bold"
                                                    TextColor="#FFFFFF"
-                                                   VerticalOptions="Center"
-                                                   HorizontalOptions="Center" />
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center" />
                                         </Border>
 
-                                        <!-- Stepper when in cart -->
                                         <Border Grid.Column="1"
-                                                HeightRequest="32"
+                                                HeightRequest="30"
                                                 Stroke="#F0C4AE"
                                                 StrokeThickness="1"
                                                 BackgroundColor="#FDF1EB"
-                                                Padding="4,0"
+                                                Padding="3,0"
                                                 VerticalOptions="Center"
                                                 IsVisible="{Binding InCart}">
                                             <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="10" />
+                                                <RoundRectangle CornerRadius="9" />
                                             </Border.StrokeShape>
-                                            <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-                                                <Border WidthRequest="24"
-                                                        HeightRequest="24"
+                                            <HorizontalStackLayout Spacing="3" VerticalOptions="Center">
+                                                <Border WidthRequest="22"
+                                                        HeightRequest="22"
                                                         StrokeThickness="0"
                                                         BackgroundColor="#FFFFFF"
                                                         VerticalOptions="Center">
                                                     <Border.StrokeShape>
-                                                        <RoundRectangle CornerRadius="7" />
+                                                        <RoundRectangle CornerRadius="6" />
                                                     </Border.StrokeShape>
                                                     <Border.GestureRecognizers>
                                                         <TapGestureRecognizer
@@ -358,7 +355,7 @@
                                                             CommandParameter="{Binding .}" />
                                                     </Border.GestureRecognizers>
                                                     <Label Text="−"
-                                                           FontSize="14"
+                                                           FontSize="13"
                                                            FontAttributes="Bold"
                                                            TextColor="#1E1916"
                                                            HorizontalOptions="Center"
@@ -366,19 +363,19 @@
                                                            HorizontalTextAlignment="Center" />
                                                 </Border>
                                                 <Label Text="{Binding CartQtyText}"
-                                                       FontSize="12"
+                                                       FontSize="11"
                                                        FontAttributes="Bold"
                                                        TextColor="#1E1916"
-                                                       WidthRequest="18"
+                                                       WidthRequest="16"
                                                        HorizontalTextAlignment="Center"
                                                        VerticalOptions="Center" />
-                                                <Border WidthRequest="24"
-                                                        HeightRequest="24"
+                                                <Border WidthRequest="22"
+                                                        HeightRequest="22"
                                                         StrokeThickness="0"
                                                         BackgroundColor="#C84B11"
                                                         VerticalOptions="Center">
                                                     <Border.StrokeShape>
-                                                        <RoundRectangle CornerRadius="7" />
+                                                        <RoundRectangle CornerRadius="6" />
                                                     </Border.StrokeShape>
                                                     <Border.GestureRecognizers>
                                                         <TapGestureRecognizer
@@ -386,7 +383,7 @@
                                                             CommandParameter="{Binding .}" />
                                                     </Border.GestureRecognizers>
                                                     <Label Text="+"
-                                                           FontSize="14"
+                                                           FontSize="13"
                                                            FontAttributes="Bold"
                                                            TextColor="#FFFFFF"
                                                            HorizontalOptions="Center"

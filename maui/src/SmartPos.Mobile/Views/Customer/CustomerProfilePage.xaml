@@ -55,7 +55,7 @@
 
         <!-- ========== SCROLL CONTENT (sections 1 hero – 6) ========== -->
         <ScrollView Grid.Row="1"
-                    Padding="0,0,0,92"
+                    Padding="0,0,0,104"
                     VerticalOptions="Fill">
             <VerticalStackLayout Spacing="0" Padding="0,0,0,8">
 

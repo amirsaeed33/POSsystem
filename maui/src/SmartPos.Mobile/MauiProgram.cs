@@ -31,16 +31,39 @@ public static class MauiProgram
 #endif
             });
 
-#if WINDOWS
+        // Remove native Entry/Editor underlines — custom Border wrappers provide the visible outline.
         Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
         {
+#if ANDROID
+            handler.PlatformView.Background = null;
+            handler.PlatformView.SetBackgroundColor(Android.Graphics.Color.Transparent);
+            handler.PlatformView.BackgroundTintList =
+                Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+#elif IOS || MACCATALYST
+            handler.PlatformView.BorderStyle = UIKit.UITextBorderStyle.None;
+            handler.PlatformView.BackgroundColor = UIKit.UIColor.Clear;
+#elif WINDOWS
             handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
-            handler.PlatformView.GotFocus += (s, e) =>
+            handler.PlatformView.GotFocus += (_, _) =>
             {
                 handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
             };
-        });
 #endif
+        });
+
+        Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+        {
+#if ANDROID
+            handler.PlatformView.Background = null;
+            handler.PlatformView.SetBackgroundColor(Android.Graphics.Color.Transparent);
+            handler.PlatformView.BackgroundTintList =
+                Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+#elif IOS || MACCATALYST
+            handler.PlatformView.BackgroundColor = UIKit.UIColor.Clear;
+#elif WINDOWS
+            handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
+#endif
+        });
 
         using var settingsStream = Assembly.GetExecutingAssembly()
             .GetManifestResourceStream("SmartPos.Mobile.appsettings.json");
