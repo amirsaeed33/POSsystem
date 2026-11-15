@@ -182,6 +182,18 @@
         <div class="text-500" *ngIf="method.bankName">{{ method.bankName }}</div>
         <p class="mb-2" *ngIf="method.instructions">{{ method.instructions }}</p>
         <img *ngIf="qrSrc(method) as src" [src]="src" alt="Payment QR code" class="billing-qr" />
+        <button
+            *ngIf="isWalletMethod(method)"
+            pButton
+            type="button"
+            class="p-button-sm mt-3"
+            [label]="'Pay ' + money(selectedAmount) + ' with ' + method.kindName"
+            icon="pi pi-external-link"
+            (click)="openWalletPay(method)"
+        ></button>
+        <small class="text-500 block mt-2" *ngIf="isWalletMethod(method)">
+            Opens {{ method.kindName }}. Send {{ money(selectedAmount) }} to {{ method.accountNumber }}, then upload the receipt below.
+        </small>
     </div>
 
     <div class="flex flex-column gap-2 mt-3">

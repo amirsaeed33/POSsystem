@@ -118,6 +118,59 @@ export class BillingComponent implements OnInit {
 
     selectMethod(method: PaymentMethodDto): void {
         this.selectedMethod = method;
+        if (this.isWalletMethod(method)) {
+            this.openWalletPay(method);
+        }
+    }
+
+    isWalletMethod(method: PaymentMethodDto | null): boolean {
+        // Easypaisa, JazzCash, Nayapay
+        return !!method && (method.kind === 0 || method.kind === 1 || method.kind === 2);
+    }
+
+    openWalletPay(method: PaymentMethodDto): void {
+        if (!method) {
+            return;
+        }
+
+        const amountText = (this.selectedAmount || 0).toFixed(2);
+        const details = [
+            `Amount: PKR ${amountText}`,
+            `Account: ${method.accountTitle || ''}`.trim(),
+            `Number: ${method.accountNumber || ''}`.trim(),
+        ]
+            .filter(Boolean)
+            .join('\n');
+
+        void navigator.clipboard?.writeText(details).catch(() => undefined);
+
+        const url = this.resolveWalletUrl(method);
+        window.open(url, '_blank', 'noopener,noreferrer');
+
+        this.messageService.add({
+            severity: 'info',
+            summary: method.kindName,
+            detail: `Amount and account copied. Complete PKR ${amountText} in ${method.kindName}, then upload the receipt here.`,
+            life: 6000,
+        });
+    }
+
+    private resolveWalletUrl(method: PaymentMethodDto): string {
+        const custom = (method.payUrl || '').trim();
+        if (custom) {
+            return /^https?:\/\//i.test(custom) ? custom : `https://${custom}`;
+        }
+
+        switch (method.kind) {
+            case 0:
+                return 'https://easypaisa.com.pk/';
+            case 1:
+                return 'https://www.jazzcash.com.pk/';
+            case 2:
+                return 'https://www.nayapay.com/';
+            default:
+                return 'https://easypaisa.com.pk/';
+        }
     }
 
     async onReceiptSelected(event: Event): Promise<void> {

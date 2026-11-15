@@ -20,6 +20,8 @@ namespace SmartPos.Billing.Dto
 
         public string Instructions { get; set; }
 
+        public string PayUrl { get; set; }
+
         public bool IsActive { get; set; }
 
         public bool HasQr { get; set; }
@@ -48,6 +50,9 @@ namespace SmartPos.Billing.Dto
 
         [StringLength(PaymentMethod.MaxInstructionsLength)]
         public string Instructions { get; set; }
+
+        [StringLength(PaymentMethod.MaxPayUrlLength)]
+        public string PayUrl { get; set; }
 
         public bool IsActive { get; set; } = true;
 
