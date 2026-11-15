@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartPos.Mobile.Helpers;
 using SmartPos.Mobile.Models;
 using SmartPos.Mobile.Services;
 
@@ -194,36 +195,19 @@ public partial class FavoritesViewModel : BaseViewModel
     [RelayCommand]
     public async Task AddToCartAsync(OnlineProductDto? product)
     {
-        if (product == null) return;
-
-        try
-        {
-            var groups = await _orders.GetModifiersForProductAsync(product.Id);
-            if (groups != null && groups.Any(g => g.Options != null && g.Options.Count > 0))
-            {
-                await Shell.Current.GoToAsync($"productdetail?productId={product.Id}");
-                return;
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[FavoritesViewModel.AddToCartAsync] Modifiers/nav failed: {ex.Message}");
-        }
-
-        _cart.AddOrIncrement(product, 1);
-        product.CartQty = _cart.GetQty(product.Id);
-        CartCount = _cart.ItemCount;
-
-        if (Shell.Current != null)
-        {
-            await Shell.Current.DisplayAlert("Added to Cart", $"{product.Name} has been added to your cart.", "OK");
-        }
+        // Favorites "Add" opens Aljannat product detail (portion / spice / add-ons).
+        await OpenProductDetailAsync(product);
     }
 
     [RelayCommand]
     public async Task OpenProductDetailAsync(OnlineProductDto? product)
     {
-        if (product == null) return;
+        if (product == null || Shell.Current == null)
+        {
+            return;
+        }
+
+        ProductDetailLaunch.SetPrefill(product);
         await Shell.Current.GoToAsync($"productdetail?productId={product.Id}");
     }
 

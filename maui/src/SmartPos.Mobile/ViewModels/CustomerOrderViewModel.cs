@@ -671,12 +671,11 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
         if (product.IsDeal || product.DealId.HasValue || (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
         {
-            var homeVm = ServiceHelper.Get<CustomerHomeViewModel>();
             if (Shell.Current != null)
             {
-                await Shell.Current.GoToAsync("//customer/home");
+                ProductDetailLaunch.SetPrefill(product);
+                await Shell.Current.GoToAsync($"productdetail?productId={product.Id}");
             }
-            await homeVm.OpenDealModalAsync(product);
             return;
         }
 
@@ -704,14 +703,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
             return;
         }
 
-        if (product.IsDeal || product.DealId.HasValue || (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
-        {
-            var homeVm = ServiceHelper.Get<CustomerHomeViewModel>();
-            await Shell.Current.GoToAsync("//customer/home");
-            await homeVm.OpenDealModalAsync(product);
-            return;
-        }
-
+        ProductDetailLaunch.SetPrefill(product);
         await Shell.Current.GoToAsync($"productdetail?productId={product.Id}");
     }
 

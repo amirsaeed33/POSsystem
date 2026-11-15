@@ -26,6 +26,7 @@ public partial class CustomerHomeViewModel
 
             foreach (var d in catalogDeals)
             {
+                d.IsDeal = true;
                 if (string.IsNullOrWhiteSpace(d.DealItemsSummary))
                 {
                     d.DealItemsSummary = d.Description ?? "Combo Deal Bundle";

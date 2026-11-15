@@ -117,6 +117,10 @@
                             <Border.Shadow>
                                 <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,2" Radius="6" Opacity="0.04" />
                             </Border.Shadow>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FavoritesViewModel}}, Path=OpenProductDetailCommand}"
+                                                      CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
                             <Grid ColumnDefinitions="100, *" ColumnSpacing="12">
                                 <Grid Grid.Column="0" WidthRequest="100" HeightRequest="100">
                                     <Border WidthRequest="100"

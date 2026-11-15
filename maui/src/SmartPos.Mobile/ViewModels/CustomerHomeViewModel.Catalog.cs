@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartPos.Mobile.Helpers;
 using SmartPos.Mobile.Models;
 using SmartPos.Mobile.Services;
 using SmartPos.Mobile.Services.Home;
@@ -764,20 +765,7 @@ public partial class CustomerHomeViewModel
     [RelayCommand]
     private async Task IncreaseCardAsync(OnlineProductDto? product)
     {
-        if (product == null || !product.InStock)
-        {
-            return;
-        }
-
-        // If product is a deal/combo, open combo customization modal!
-        if (product.IsDeal || (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
-        {
-            await OpenDealModalAsync(product);
-            return;
-        }
-
-        // Open options only when the product has modifiers; otherwise add straight to cart.
-        await OpenProductModalAsync(product);
+        await OpenProductAsync(product);
     }
 
     [RelayCommand]
@@ -794,19 +782,14 @@ public partial class CustomerHomeViewModel
     [RelayCommand]
     private async Task OpenProductAsync(OnlineProductDto? product)
     {
-        if (product == null)
+        if (product == null || Shell.Current == null)
         {
             return;
         }
 
-        // If product is a deal/combo, open combo customization modal!
-        if (product.IsDeal || (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
-        {
-            await OpenDealModalAsync(product);
-            return;
-        }
-
-        await OpenProductModalAsync(product);
+        // Deals + regular products share the same Aljannat Product Detail screen.
+        ProductDetailLaunch.SetPrefill(product);
+        await Shell.Current.GoToAsync($"productdetail?productId={product.Id}");
     }
 }
 

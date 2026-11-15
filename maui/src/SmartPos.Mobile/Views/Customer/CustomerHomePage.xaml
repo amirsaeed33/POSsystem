@@ -527,7 +527,7 @@
                                                 <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,6" Radius="16" Opacity="0.06" />
                                             </Border.Shadow>
                                             <Border.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=OpenDealModalCommand}"
+                                                <TapGestureRecognizer Command="{Binding BindingContext.OpenProductCommand, Source={x:Reference ThisPage}}"
                                                                       CommandParameter="{Binding .}" />
                                             </Border.GestureRecognizers>
                                             <VerticalStackLayout Spacing="8">
@@ -622,7 +622,7 @@
                                                             <RoundRectangle CornerRadius="10" />
                                                         </Border.StrokeShape>
                                                         <Border.GestureRecognizers>
-                                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=OpenDealModalCommand}"
+                                                            <TapGestureRecognizer Command="{Binding BindingContext.OpenProductCommand, Source={x:Reference ThisPage}}"
                                                                                   CommandParameter="{Binding .}" />
                                                         </Border.GestureRecognizers>
                                                         <Label Text="+"
@@ -688,7 +688,7 @@
                                                 <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,4" Radius="12" Opacity="0.05" />
                                             </Border.Shadow>
                                             <Border.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=OpenProductCommand}"
+                                                <TapGestureRecognizer Command="{Binding BindingContext.OpenProductCommand, Source={x:Reference ThisPage}}"
                                                                       CommandParameter="{Binding .}" />
                                             </Border.GestureRecognizers>
                                             <VerticalStackLayout Spacing="6">
@@ -750,7 +750,7 @@
                                                             <RoundRectangle CornerRadius="9" />
                                                         </Border.StrokeShape>
                                                         <Border.GestureRecognizers>
-                                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=IncreaseCardCommand}"
+                                                            <TapGestureRecognizer Command="{Binding BindingContext.IncreaseCardCommand, Source={x:Reference ThisPage}}"
                                                                                   CommandParameter="{Binding .}" />
                                                         </Border.GestureRecognizers>
                                                         <Label Text="+"
