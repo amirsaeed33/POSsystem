@@ -22,7 +22,7 @@
   <polygon points="98,133 222,133 210,146 185,138 160,147 135,137 110,146" fill="#FBBF24"/>
   <rect x="96" y="116" width="128" height="17" rx="8.5" fill="url(#pattyGrad)"/>
   <polygon points="102,118 218,118 206,128 170,121 140,129 112,122" fill="#F59E0B"/>
-  <path d="M88 114 C98 106 108 118 120 110 C132 106 142 118 156 110 C170 106 182 118 196 110 C210 106 222 118 232 114" stroke="#10B981" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <path d="M88 114 C98 106 108 118 120 110 C132 106 142 118 156 110 C170 106 182 118 196 110 C210 106 222 118 232 114" stroke="#C84B11" stroke-width="8" stroke-linecap="round" fill="none"/>
   <ellipse cx="132" cy="104" rx="34" ry="7" fill="#DC2626"/>
   <ellipse cx="132" cy="103" rx="30" ry="5.5" fill="#EF4444"/>
   <ellipse cx="188" cy="104" rx="34" ry="7" fill="#DC2626"/>

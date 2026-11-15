@@ -97,9 +97,9 @@ public class CustomerFeedbackDto
             var colors = new[]
             {
                 ThemeColors.StaffPrimary,
-                ThemeColors.Get("InfoSky", "#0284C7"),
+                ThemeColors.Get("InfoSky", "#D9822B"),
                 ThemeColors.StarGold,
-                ThemeColors.Get("PurpleAccent", "#7C3AED"),
+                ThemeColors.Get("PurpleAccent", "#E89B3C"),
                 ThemeColors.FavoriteAccent,
                 ThemeColors.PrimaryDark
             };

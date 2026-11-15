@@ -483,18 +483,18 @@ public class CustomerOrderDto : EntityDto
         0 => ThemeColors.WarningMuted, // Dark Amber
         1 => ThemeColors.InfoDeep, // Dark Blue
         2 => ThemeColors.DangerText, // Dark Red
-        3 => ThemeColors.Get("PurpleDeep", "#6D28D9"), // Dark Purple
-        4 or 5 => ThemeColors.Tertiary, // Dark Emerald Green
+        3 => ThemeColors.Get("PurpleDeep", "#8F3006"),
+        4 or 5 => ThemeColors.Tertiary,
         _ => ThemeColors.Slate650
     };
 
     public Color StatusBadgeBgColor => Status switch
     {
-        0 => ThemeColors.WarningBackground, // Light Amber
-        1 => ThemeColors.AuthSubtitleOnHero, // Light Blue
-        2 => ThemeColors.DangerBackground, // Light Red
-        3 => ThemeColors.Get("PurpleSoft", "#EDE9FE"), // Light Purple
-        4 or 5 => ThemeColors.PrimaryLight, // Light Emerald
+        0 => ThemeColors.WarningBackground,
+        1 => ThemeColors.AuthSubtitleOnHero,
+        2 => ThemeColors.DangerBackground,
+        3 => ThemeColors.Get("PurpleSoft", "#FDF4E3"),
+        4 or 5 => ThemeColors.PrimaryLight,
         _ => ThemeColors.Gray100
     };
 

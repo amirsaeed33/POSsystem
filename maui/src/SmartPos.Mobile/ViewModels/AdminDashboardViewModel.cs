@@ -35,7 +35,7 @@ public class AdminDashboardViewModel : BaseViewModel
     private bool _hasChartData;
     private bool _hasTimeline;
     private bool _hasAreaStats;
-    private Color _growthColor = ThemeColors.Get("GrowthPositive", "#86EFAC");
+    private Color _growthColor = ThemeColors.Get("GrowthPositive", "#D9822B");
 
     public AdminDashboardViewModel(DashboardService dashboard, SessionService session)
     {
@@ -270,8 +270,8 @@ public class AdminDashboardViewModel : BaseViewModel
             ExpensesTodayText = FormatMoney(dash.TodayExpenses);
             GrowthText = $"{(dash.IsGrowthPositive ? "+" : "")}{dash.GrowthPercentage:0.#}%";
             GrowthColor = dash.IsGrowthPositive
-                ? ThemeColors.Get("GrowthPositive", "#86EFAC")
-                : ThemeColors.Get("GrowthNegative", "#FCA5A5");
+                ? ThemeColors.Get("GrowthPositive", "#D9822B")
+                : ThemeColors.Get("GrowthNegative", "#FDECEB");
             SalesCountText = $"{dash.QuickActions?.TodaySalesCount ?? 0} sales today";
 
             InStockText = dash.InStockCount.ToString();
@@ -388,9 +388,9 @@ public class AdminDashboardViewModel : BaseViewModel
     private static (Color Accent, Color Soft) ResolveAccent(string? type) =>
         type?.ToLowerInvariant() switch
         {
-            "sale" => (ThemeColors.StaffPrimary, ThemeColors.Get("SuccessSoft", "#BBF7D0")),
-            "purchase" => (ThemeColors.WarningStrong, ThemeColors.Get("PurchaseSoft", "#FED7AA")),
-            "expense" => (ThemeColors.DangerText, ThemeColors.Get("DangerBackground", "#FECACA")),
+            "sale" => (ThemeColors.StaffPrimary, ThemeColors.Get("SuccessSoft", "#FEF6EB")),
+            "purchase" => (ThemeColors.WarningStrong, ThemeColors.Get("PurchaseSoft", "#FDF4E3")),
+            "expense" => (ThemeColors.DangerText, ThemeColors.Get("DangerBackground", "#FDECEB")),
             _ => (ThemeColors.Slate600, ThemeColors.AuthInputBorder)
         };
 

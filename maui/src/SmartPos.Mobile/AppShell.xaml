@@ -17,7 +17,7 @@
     Shell.TabBarBackgroundColor="Transparent"
     Shell.TabBarForegroundColor="{StaticResource Primary}"
     Shell.TabBarTitleColor="{StaticResource Primary}"
-    Shell.TabBarUnselectedColor="{StaticResource TextSecondary}">
+    Shell.TabBarUnselectedColor="{StaticResource TextMuted}">
 
     <!-- Splash Screen: First item so Shell boots initially onto SplashScreenPage on cold start -->
     <ShellContent Route="splash"

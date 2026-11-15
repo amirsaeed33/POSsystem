@@ -64,9 +64,9 @@ public partial class BubbleTabBar : ContentView
         return Color.FromArgb(fallbackHex);
     }
 
-    private Color CustomerAccent => GetThemeColor("Primary", "#10B981");
-    private Color StaffAccent => GetThemeColor("StaffPrimary", "#0F6B4C");
-    private Color Inactive => GetThemeColor("TabInactive", "#94A3B8");
+    private Color CustomerAccent => GetThemeColor("Primary", "#C84B11");
+    private Color StaffAccent => GetThemeColor("StaffPrimary", "#C84B11");
+    private Color Inactive => GetThemeColor("TabInactive", "#8C7E74");
 
     private Color Accent => Mode == BubbleTabMode.Customer ? CustomerAccent : StaffAccent;
 
@@ -324,7 +324,7 @@ public partial class BubbleTabBar : ContentView
                 break;
             default: // Customer
                 _tabCount = 4;
-                _labels = ["Home", "Order", "Favorite", "Profile"];
+                _labels = ["Home", "Order", "Favorites", "Profile"];
                 _routes = ["//customer/home", "//customer/order", "//customer/favorites", "//customer/account"];
                 _activeIcons = ["tab_home_active.png", "tab_order_active.png", "tab_favorites_active.png", "tab_account_active.png"];
                 _inactiveIcons = ["tab_home_idle.png", "tab_order_idle.png", "tab_favorites_idle.png", "tab_account_idle.png"];
@@ -387,6 +387,8 @@ public partial class BubbleTabBar : ContentView
         var icons = new[] { Icon0, Icon1, Icon2, Icon3 };
         var labels = new[] { Label0, Label1, Label2, Label3 };
         var buttons = new[] { Tab0, Tab1, Tab2, Tab3 };
+        var pills = new[] { Pill0, Pill1, Pill2, Pill3 };
+        var apricotCream = GetThemeColor("PrimaryLight", "#FDF1EB");
 
         for (var i = 0; i < 4; i++)
         {
@@ -412,6 +414,14 @@ public partial class BubbleTabBar : ContentView
             {
                 labels[i].TextColor = active ? Accent : Inactive;
                 labels[i].FontAttributes = active ? FontAttributes.Bold : FontAttributes.None;
+            }
+
+            if (pills[i] != null)
+            {
+                // Active customer tab sits in an Apricot Cream pill; staff modes keep transparent.
+                pills[i].BackgroundColor = active && Mode == BubbleTabMode.Customer
+                    ? apricotCream
+                    : Colors.Transparent;
             }
         }
     }

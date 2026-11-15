@@ -144,7 +144,7 @@ public partial class CustomerHomePage : ContentPage
             {
                 bdr.BackgroundColor = Application.Current?.Resources.TryGetValue("PrimaryDark", out var pd) == true && pd is Color pdc
                     ? pdc
-                    : Color.FromArgb("#059669");
+                    : Color.FromArgb("#8F3006");
             }
 
             await view.ScaleTo(1.15, 80, Easing.CubicOut);
@@ -225,7 +225,7 @@ public partial class CustomerHomePage : ContentPage
                 Stroke = Colors.White,
                 BackgroundColor = Application.Current?.Resources.TryGetValue("StaffPrimary", out var sp) == true && sp is Color spc
                     ? spc
-                    : Color.FromArgb("#0F6B4C"),
+                    : Color.FromArgb("#C84B11"),
                 InputTransparent = true,
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(12) },
                 Content = new Label
