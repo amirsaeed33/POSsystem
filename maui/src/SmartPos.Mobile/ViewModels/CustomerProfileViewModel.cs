@@ -48,14 +48,45 @@ public partial class CustomerProfileViewModel : BaseViewModel
     private bool isLoadingAddresses;
 
     [ObservableProperty]
-    private string appVersionText = "Version 1.0.0";
+    private string appVersionText = "Aljannat Hospitality App  •  v1.0.0";
+
+    [ObservableProperty]
+    private bool isEditMode;
+
+    [ObservableProperty]
+    private string memberTier = "Dastarkhwan Gold";
+
+    [ObservableProperty]
+    private string loyaltyPointsDisplay = "1,450 Pts";
+
+    [ObservableProperty]
+    private bool isLogoutSheetVisible;
+
+    [ObservableProperty]
+    private bool isBranchSheetVisible;
+
+    [ObservableProperty]
+    private bool isLoadingBranches;
 
     public ObservableCollection<CustomerSavedAddressDto> SavedAddresses { get; } = new();
+    public ObservableCollection<BranchSheetItem> BranchSheetItems { get; } = new();
 
     public bool HasSavedAddresses => SavedAddresses.Count > 0;
     public bool HasPhoneNumber => !string.IsNullOrWhiteSpace(PhoneNumber);
+    /// <summary>True when local customer identity (phone) is present — drives Log Out visibility.</summary>
+    public bool IsCustomerSignedIn => NormalizePhoneDigits(PhoneNumber).Length >= 7;
+    public bool IsViewMode => !IsEditMode;
+    public string EditModeButtonText => IsEditMode ? "Save" : "Edit Details";
+    public string PersonalEditPillText => IsEditMode ? "Save" : "Edit";
     public string DisplayPhone => string.IsNullOrWhiteSpace(PhoneNumber) ? "No mobile number linked" : PhoneNumber;
     public string DisplayName => string.IsNullOrWhiteSpace(FullName) ? "Valued Guest" : FullName;
+    public string DisplayEmail => string.IsNullOrWhiteSpace(EmailAddress) ? "Not provided" : EmailAddress;
+    public string VerifiedPhoneBadgeText => $"Verified  •  {DisplayPhone}";
+    public string MemberStatusSubtitle => $"{MemberTier}  •  {LoyaltyPointsDisplay}";
+    public string OrderCountDisplay => OrderCount.ToString("N0");
+    public string FavoriteCountDisplay => FavoriteCount.ToString("N0");
+    public string FavoriteCountSubtitle => FavoriteCount == 1 ? "1 saved dish" : $"{FavoriteCount} saved dishes";
+    public string OrderCountSubtitle => OrderCount == 1 ? "1 past order" : $"{OrderCount} past orders";
 
     public string Initials
     {
@@ -63,7 +94,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
         {
             if (string.IsNullOrWhiteSpace(FullName))
             {
-                return "👤";
+                return "VG";
             }
 
             var parts = FullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -107,6 +138,42 @@ public partial class CustomerProfileViewModel : BaseViewModel
     {
         OnPropertyChanged(nameof(DisplayPhone));
         OnPropertyChanged(nameof(HasPhoneNumber));
+        OnPropertyChanged(nameof(VerifiedPhoneBadgeText));
+        OnPropertyChanged(nameof(IsCustomerSignedIn));
+    }
+
+    partial void OnEmailAddressChanged(string value)
+    {
+        OnPropertyChanged(nameof(DisplayEmail));
+    }
+
+    partial void OnIsEditModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsViewMode));
+        OnPropertyChanged(nameof(EditModeButtonText));
+        OnPropertyChanged(nameof(PersonalEditPillText));
+    }
+
+    partial void OnOrderCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(OrderCountDisplay));
+        OnPropertyChanged(nameof(OrderCountSubtitle));
+    }
+
+    partial void OnFavoriteCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(FavoriteCountDisplay));
+        OnPropertyChanged(nameof(FavoriteCountSubtitle));
+    }
+
+    partial void OnMemberTierChanged(string value)
+    {
+        OnPropertyChanged(nameof(MemberStatusSubtitle));
+    }
+
+    partial void OnLoyaltyPointsDisplayChanged(string value)
+    {
+        OnPropertyChanged(nameof(MemberStatusSubtitle));
     }
 
     [RelayCommand]
@@ -118,8 +185,13 @@ public partial class CustomerProfileViewModel : BaseViewModel
             PhoneNumber = Preferences.Default.Get("sp.customerPhone", string.Empty);
             EmailAddress = Preferences.Default.Get("sp.customerEmail", string.Empty);
             ProfilePictureUrl = Preferences.Default.Get("sp.customerAvatar", string.Empty);
+            MemberTier = Preferences.Default.Get("sp.memberTier", "Dastarkhwan Gold");
+            LoyaltyPointsDisplay = Preferences.Default.Get("sp.loyaltyPoints", "1,450 Pts");
+            IsEditMode = false;
+            IsLogoutSheetVisible = false;
+            IsBranchSheetVisible = false;
 
-            ActiveBranchName = "Smart POS Storefront";
+            ActiveBranchName = "Gulberg III Flagship, Lahore";
             if (_session.BranchId is int bid && bid > 0)
             {
                 _ = Task.Run(async () =>
@@ -144,11 +216,11 @@ public partial class CustomerProfileViewModel : BaseViewModel
 
             try
             {
-                AppVersionText = $"Version {AppInfo.Current.VersionString} (Build {AppInfo.Current.BuildString})";
+                AppVersionText = $"Aljannat Hospitality App  •  v{AppInfo.Current.VersionString} (Build {AppInfo.Current.BuildString})";
             }
             catch
             {
-                AppVersionText = "Version 1.0.0";
+                AppVersionText = "Aljannat Hospitality App  •  v2.4.0 (Build 108)";
             }
 
             LoadAvatarImage();
@@ -270,21 +342,47 @@ public partial class CustomerProfileViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private async Task ToggleEditModeAsync()
+    {
+        if (!IsEditMode)
+        {
+            IsEditMode = true;
+            return;
+        }
+
+        var saved = await TrySaveProfileAsync();
+        if (saved)
+        {
+            IsEditMode = false;
+        }
+    }
+
+    [RelayCommand]
     private async Task SaveProfileAsync()
+    {
+        var saved = await TrySaveProfileAsync();
+        if (saved)
+        {
+            IsEditMode = false;
+        }
+    }
+
+    private async Task<bool> TrySaveProfileAsync()
     {
         if (string.IsNullOrWhiteSpace(FullName))
         {
             await Shell.Current.DisplayAlert("Name Required", "Please enter your name.", "OK");
-            return;
+            return false;
         }
 
         var digits = NormalizePhoneDigits(PhoneNumber);
         if (string.IsNullOrWhiteSpace(PhoneNumber) || digits.Length < 7)
         {
             await Shell.Current.DisplayAlert("Mobile Number Required", "Please enter a valid mobile number (at least 7 digits).", "OK");
-            return;
+            return false;
         }
 
+        var success = false;
         await RunBusyAsync(async () =>
         {
             IsSavingProfile = true;
@@ -337,16 +435,20 @@ public partial class CustomerProfileViewModel : BaseViewModel
 
                 await Shell.Current.DisplayAlert("Profile Saved", "Your profile details have been saved successfully.", "OK");
                 await LoadCustomerStatsAndProfileAsync();
+                success = true;
             }
             catch (Exception ex)
             {
                 await Shell.Current.DisplayAlert("Saved Locally", $"Saved on device. Cloud sync note: {ex.Message}", "OK");
+                success = true;
             }
             finally
             {
                 IsSavingProfile = false;
             }
         });
+
+        return success;
     }
 
     [RelayCommand]
@@ -487,17 +589,11 @@ public partial class CustomerProfileViewModel : BaseViewModel
     [RelayCommand]
     private async Task AddNewAddressAsync()
     {
-        var action = await Shell.Current.DisplayActionSheet("Select Address Type", "Cancel", null, "🏠 Home", "🏢 Office", "📍 Other");
-        if (string.IsNullOrWhiteSpace(action) || action == "Cancel")
-        {
-            return;
-        }
-
-        var label = action.Replace("🏠", "").Replace("🏢", "").Replace("📍", "").Trim();
+        const string label = "Address";
 
         var addressText = await Shell.Current.DisplayPromptAsync(
             "New Address",
-            $"Enter your delivery address for {label}:",
+            "Enter your delivery address:",
             "Next",
             "Cancel",
             "e.g. House 14, Street 5, G-11/3",
@@ -517,7 +613,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
             maxLength: 100);
 
         var isDefault = SavedAddresses.Count == 0 ||
-            await Shell.Current.DisplayAlert("Default Address", $"Set this '{label}' address as your default delivery location?", "Yes", "No");
+            await Shell.Current.DisplayAlert("Default Address", "Set this address as your default delivery location?", "Yes", "No");
 
         try
         {
@@ -533,7 +629,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
 
             await _orders.SaveSavedAddressAsync(input);
             await LoadSavedAddressesAsync();
-            await Shell.Current.DisplayAlert("Address Saved", $"'{label}' address saved successfully.", "OK");
+            await Shell.Current.DisplayAlert("Address Saved", "Address saved successfully.", "OK");
         }
         catch (Exception ex)
         {
@@ -610,7 +706,93 @@ public partial class CustomerProfileViewModel : BaseViewModel
     [RelayCommand]
     private async Task SwitchBranchAsync()
     {
-        await Shell.Current.GoToAsync("//customer/home");
+        IsLogoutSheetVisible = false;
+        IsBranchSheetVisible = true;
+        await LoadBranchSheetAsync();
+    }
+
+    [RelayCommand]
+    private void CloseBranchSheet()
+    {
+        IsBranchSheetVisible = false;
+    }
+
+    [RelayCommand]
+    private async Task SelectBranchFromSheetAsync(BranchSheetItem? item)
+    {
+        if (item?.Branch == null)
+        {
+            return;
+        }
+
+        var branch = item.Branch;
+        var currentId = _session.BranchId ?? 0;
+        if (branch.Id == currentId)
+        {
+            IsBranchSheetVisible = false;
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            await _session.SetBranchAsync(branch.Id);
+            _cart.Clear();
+            _favorites.Initialize(branch.Id);
+
+            ActiveBranchName = string.IsNullOrWhiteSpace(branch.Name) ? "Selected Branch" : branch.Name!;
+            FavoriteCount = _favorites.Count;
+
+            foreach (var row in BranchSheetItems)
+            {
+                row.IsActive = row.Branch.Id == branch.Id;
+            }
+
+            IsBranchSheetVisible = false;
+
+            if (!string.IsNullOrWhiteSpace(PhoneNumber) && NormalizePhoneDigits(PhoneNumber).Length >= 7)
+            {
+                await LoadSavedAddressesAsync();
+                await LoadCustomerStatsAndProfileAsync();
+            }
+        });
+    }
+
+    private async Task LoadBranchSheetAsync()
+    {
+        IsLoadingBranches = true;
+        try
+        {
+            var branches = await _orders.GetBranchesAsync();
+            var activeId = _session.BranchId ?? 0;
+
+            BranchSheetItems.Clear();
+            foreach (var branch in (branches ?? []).OrderBy(b => b.Name))
+            {
+                BranchSheetItems.Add(new BranchSheetItem(branch, branch.Id == activeId));
+            }
+
+            if (BranchSheetItems.Count == 0)
+            {
+                // Soft fallback so the sheet never looks empty while offline/API fails.
+                BranchSheetItems.Add(new BranchSheetItem(
+                    new OnlineBranchDto { Id = activeId > 0 ? activeId : 1, Name = ActiveBranchName, IsRestaurant = true },
+                    isActive: true));
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[CustomerProfileViewModel] LoadBranchSheetAsync failed: {ex.Message}");
+            if (BranchSheetItems.Count == 0)
+            {
+                BranchSheetItems.Add(new BranchSheetItem(
+                    new OnlineBranchDto { Id = _session.BranchId ?? 1, Name = ActiveBranchName, IsRestaurant = true },
+                    isActive: true));
+            }
+        }
+        finally
+        {
+            IsLoadingBranches = false;
+        }
     }
 
     [RelayCommand]
@@ -620,16 +802,38 @@ public partial class CustomerProfileViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private void ShowLogoutSheet()
+    {
+        if (!IsCustomerSignedIn)
+        {
+            return;
+        }
+
+        IsLogoutSheetVisible = true;
+    }
+
+    [RelayCommand]
+    private void CancelLogout()
+    {
+        IsLogoutSheetVisible = false;
+    }
+
+    [RelayCommand]
+    private async Task ConfirmLogoutAsync()
+    {
+        IsLogoutSheetVisible = false;
+        await PerformLogoutResetAsync();
+    }
+
+    [RelayCommand]
     private async Task LogoutOrResetAsync()
     {
-        var confirm = await Shell.Current.DisplayAlert(
-            "Reset Customer Details",
-            "Are you sure you want to reset your saved customer details on this device? This will clear your name, mobile number, avatar, and active cart.",
-            "Reset",
-            "Cancel");
+        ShowLogoutSheet();
+        await Task.CompletedTask;
+    }
 
-        if (!confirm) return;
-
+    private async Task PerformLogoutResetAsync()
+    {
         try
         {
             var localAvatarFile = Path.Combine(FileSystem.AppDataDirectory, "customer_avatar.jpg");
@@ -641,13 +845,13 @@ public partial class CustomerProfileViewModel : BaseViewModel
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[CustomerProfileViewModel.LogoutOrResetAsync] Delete avatar failed: {ex.Message}");
+                    Debug.WriteLine($"[CustomerProfileViewModel.PerformLogoutResetAsync] Delete avatar failed: {ex.Message}");
                 }
             }
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[CustomerProfileViewModel.LogoutOrResetAsync] Reset cleanup failed: {ex.Message}");
+            Debug.WriteLine($"[CustomerProfileViewModel.PerformLogoutResetAsync] Reset cleanup failed: {ex.Message}");
         }
 
         Preferences.Default.Remove("sp.customerName");
@@ -663,14 +867,56 @@ public partial class CustomerProfileViewModel : BaseViewModel
         ProfilePictureUrl = string.Empty;
         AvatarImageSource = null;
         HasProfilePicture = false;
+        IsEditMode = false;
         SavedAddresses.Clear();
         OrderCount = 0;
+        FavoriteCount = 0;
         OnPropertyChanged(nameof(HasSavedAddresses));
+        OnPropertyChanged(nameof(IsCustomerSignedIn));
 
-        await Shell.Current.DisplayAlert("Reset Complete", "Customer session details have been reset.", "OK");
+        await Shell.Current.DisplayAlert("Logged Out", "You have been signed out of this device session.", "OK");
+        await Shell.Current.GoToAsync("//customer/home");
     }
 
     private static string NormalizePhoneDigits(string? phone) =>
         new(phone?.Where(char.IsDigit).ToArray() ?? Array.Empty<char>());
+}
+
+public partial class BranchSheetItem : ObservableObject
+{
+    public BranchSheetItem(OnlineBranchDto branch, bool isActive)
+    {
+        Branch = branch;
+        IsActive = isActive;
+    }
+
+    public OnlineBranchDto Branch { get; }
+
+    public string Name => string.IsNullOrWhiteSpace(Branch.Name) ? "Branch" : Branch.Name!;
+
+    public string StatusSubtitle
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Branch.Address))
+            {
+                var addr = Branch.Address.Trim();
+                return addr.Length > 42 ? addr[..39] + "…" : addr;
+            }
+
+            return Branch.IsRestaurant
+                ? "Open till 2:00 AM  •  25–35 min"
+                : "Store open  •  Pickup available";
+        }
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotActive))]
+    [NotifyPropertyChangedFor(nameof(ActionLabel))]
+    private bool isActive;
+
+    public bool IsNotActive => !IsActive;
+
+    public string ActionLabel => IsActive ? "✓ Active" : "Select";
 }
 

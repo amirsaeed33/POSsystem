@@ -9,521 +9,702 @@
              Title="My Profile"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="{StaticResource PageBackground}">
+             BackgroundColor="#FAF7F4">
 
-    <Grid RowDefinitions="*, Auto" BackgroundColor="{StaticResource PageBackground}">
+    <Grid RowDefinitions="Auto,*,Auto"
+          BackgroundColor="#FAF7F4">
 
-        <!-- Content Scroll Area -->
-        <ScrollView Grid.Row="0" Padding="16,20,16,24">
-            <VerticalStackLayout Spacing="16">
+        <!-- ========== 1. STICKY EDITORIAL HEADER ========== -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="*,Auto"
+              Padding="16,12,16,8"
+              BackgroundColor="#FAF7F4">
+            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                <Label Text="ACCOUNT &amp; HOSPITALITY"
+                       FontSize="9.5"
+                       FontAttributes="Bold"
+                       TextColor="#C84B11"
+                       CharacterSpacing="1.0" />
+                <Label Text="My Profile"
+                       FontFamily="Georgia"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="#1E1916" />
+            </VerticalStackLayout>
 
-                <!-- Page Header: Title & Reset Shortcut -->
-                <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,4">
-                    <VerticalStackLayout Spacing="2">
-                        <Label Text="My Profile"
-                               FontSize="24"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource TextPrimary}" />
-                        <Label Text="Manage account details &amp; saved addresses"
-                               FontSize="13"
-                               TextColor="{StaticResource TextSecondary}" />
-                    </VerticalStackLayout>
+            <Border Grid.Column="1"
+                    Stroke="#F0C4AE"
+                    StrokeThickness="1"
+                    BackgroundColor="#FDF1EB"
+                    Padding="12,7"
+                    VerticalOptions="Center">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ToggleEditModeCommand}" />
+                </Border.GestureRecognizers>
+                <Label Text="{Binding EditModeButtonText}"
+                       FontSize="11.5"
+                       FontAttributes="Bold"
+                       TextColor="#C84B11"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+            </Border>
+        </Grid>
 
-                    <!-- Reset / Switch Session Chip -->
-                    <Border Grid.Column="1"
-                            StrokeThickness="1"
-                            Stroke="{StaticResource BorderSubtle}"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            Padding="12,6"
-                            VerticalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
-                        </Border.StrokeShape>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding LogoutOrResetCommand}" />
-                        </Border.GestureRecognizers>
-                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                            <Label Text="🔄" FontSize="12" VerticalOptions="Center" />
-                            <Label Text="Reset"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                    </Border>
-                </Grid>
+        <!-- ========== SCROLL CONTENT (sections 1 hero – 6) ========== -->
+        <ScrollView Grid.Row="1"
+                    Padding="0,0,0,8"
+                    VerticalOptions="Fill">
+            <VerticalStackLayout Spacing="0" Padding="0,0,0,8">
 
-                <!-- Profile Hero Card (Avatar, Name, Mobile, Verified Badge, Branch) -->
-                <Border Stroke="{StaticResource BorderSubtle}"
+                <!-- MEMBER IDENTITY HERO CARD -->
+                <Border Margin="16,4,16,0"
+                        Stroke="#EAE2DA"
                         StrokeThickness="1"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        Padding="18,22">
+                        BackgroundColor="#FFFFFF"
+                        Padding="18">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="20" />
+                        <RoundRectangle CornerRadius="24" />
                     </Border.StrokeShape>
-                    <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
+                    <Border.Shadow>
+                        <Shadow Brush="#1E1916"
+                                Offset="0,4"
+                                Radius="14"
+                                Opacity="0.06" />
+                    </Border.Shadow>
 
-                        <!-- Circular Avatar Container with Edit Camera Badge -->
-                        <Grid WidthRequest="94" HeightRequest="94" HorizontalOptions="Center">
-                            <!-- Circular Avatar Border -->
-                            <Border WidthRequest="90"
-                                    HeightRequest="90"
+                    <HorizontalStackLayout Spacing="14" VerticalOptions="Center">
+                        <!-- Avatar + camera -->
+                        <Grid WidthRequest="76" HeightRequest="76" VerticalOptions="Center">
+                            <Border WidthRequest="76"
+                                    HeightRequest="76"
+                                    Stroke="#C84B11"
                                     StrokeThickness="2.5"
-                                    Stroke="{StaticResource Primary}"
-                                    BackgroundColor="{StaticResource PrimaryLight}"
+                                    BackgroundColor="#FDF1EB"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="45" />
+                                    <RoundRectangle CornerRadius="38" />
                                 </Border.StrokeShape>
                                 <Grid>
-                                    <!-- Fallback Initials / Icon -->
                                     <Label Text="{Binding Initials}"
-                                           FontSize="28"
+                                           FontSize="24"
                                            FontAttributes="Bold"
-                                           TextColor="{StaticResource Tertiary}"
+                                           TextColor="#C84B11"
                                            HorizontalOptions="Center"
                                            VerticalOptions="Center"
                                            IsVisible="{Binding HasProfilePicture, Converter={StaticResource InvertedBoolConverter}}" />
-
-                                    <!-- Selected / Uploaded Image -->
                                     <Image Source="{Binding AvatarImageSource}"
                                            Aspect="AspectFill"
-                                           WidthRequest="90"
-                                           HeightRequest="90"
+                                           WidthRequest="76"
+                                           HeightRequest="76"
                                            IsVisible="{Binding HasProfilePicture}" />
                                 </Grid>
                             </Border>
 
-                            <!-- Camera Edit Badge Button at bottom right -->
-                            <Border WidthRequest="32"
-                                    HeightRequest="32"
+                            <Border WidthRequest="26"
+                                    HeightRequest="26"
+                                    Stroke="#FFFFFF"
                                     StrokeThickness="2"
-                                    Stroke="{StaticResource White}"
-                                    BackgroundColor="{StaticResource Primary}"
+                                    BackgroundColor="#C84B11"
                                     HorizontalOptions="End"
                                     VerticalOptions="End">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="16" />
+                                    <RoundRectangle CornerRadius="13" />
                                 </Border.StrokeShape>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding PickProfileImageCommand}" />
                                 </Border.GestureRecognizers>
                                 <Label Text="📷"
-                                       FontSize="13"
+                                       FontSize="11"
                                        HorizontalOptions="Center"
                                        VerticalOptions="Center" />
                             </Border>
                         </Grid>
 
-                        <!-- Customer Name & Phone Number -->
-                        <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                        <!-- Identity info -->
+                        <VerticalStackLayout Spacing="5" VerticalOptions="Center">
                             <Label Text="{Binding DisplayName}"
-                                   FontSize="20"
+                                   FontFamily="Georgia"
+                                   FontSize="19"
                                    FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center" />
+                                   TextColor="#1E1916" />
 
-                            <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
-                                <Border StrokeThickness="0"
-                                        BackgroundColor="{StaticResource PrimaryLight}"
-                                        Padding="8,2"
-                                        VerticalOptions="Center"
-                                        IsVisible="{Binding HasPhoneNumber}">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="10" />
-                                    </Border.StrokeShape>
-                                    <HorizontalStackLayout Spacing="4">
-                                        <Label Text="✓" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" VerticalOptions="Center" />
-                                        <Label Text="Verified" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" VerticalOptions="Center" />
-                                    </HorizontalStackLayout>
-                                </Border>
-                                <Label Text="{Binding DisplayPhone}"
-                                       FontSize="13"
-                                       TextColor="{StaticResource TextSecondary}"
-                                       VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            <Border Stroke="#F3D6B3"
+                                    StrokeThickness="1"
+                                    BackgroundColor="#FEF6EB"
+                                    Padding="9,4"
+                                    HorizontalOptions="Start"
+                                    IsVisible="{Binding HasPhoneNumber}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+                                    <Label Text="🛡"
+                                           FontSize="11"
+                                           TextColor="#D9822B"
+                                           VerticalOptions="Center" />
+                                    <Label Text="{Binding VerifiedPhoneBadgeText}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#D9822B"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                            </Border>
+
+                            <Label Text="{Binding MemberStatusSubtitle}"
+                                   FontSize="11.5"
+                                   FontAttributes="Bold"
+                                   TextColor="#5C5048" />
                         </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </Border>
 
-                        <!-- Active Branch Chip -->
-                        <Border StrokeThickness="1"
-                                Stroke="{StaticResource BorderSubtle}"
-                                BackgroundColor="{StaticResource Gray100}"
-                                Padding="12,6"
-                                HorizontalOptions="Center">
+                <!-- ========== 2. PREFERRED BRANCH SWITCHER ========== -->
+                <Border Margin="16,12,16,0"
+                        Stroke="#EAE2DA"
+                        StrokeThickness="1"
+                        BackgroundColor="#FFFFFF"
+                        Padding="12,12">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="28" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding SwitchBranchCommand}" />
+                    </Border.GestureRecognizers>
+
+                    <Grid ColumnDefinitions="Auto,*,Auto"
+                          ColumnSpacing="12"
+                          VerticalOptions="Center">
+                        <Border Grid.Column="0"
+                                WidthRequest="44"
+                                HeightRequest="44"
+                                StrokeThickness="0"
+                                BackgroundColor="#FDF1EB"
+                                VerticalOptions="Center">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="14" />
                             </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding SwitchBranchCommand}" />
-                            </Border.GestureRecognizers>
-                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                <Label Text="📍" FontSize="12" VerticalOptions="Center" />
-                                <Label Text="{Binding ActiveBranchName, StringFormat='Store: {0}'}"
-                                       FontSize="12"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}"
-                                       VerticalOptions="Center" />
-                                <Label Text="›" FontSize="14" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                            <Label Text="🏪"
+                                   FontSize="18"
+                                   TextColor="#C84B11"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
                         </Border>
-                    </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="1"
+                                             Spacing="2"
+                                             VerticalOptions="Center">
+                            <Label Text="PREFERRED KITCHEN &amp; STORE"
+                                   FontSize="9.5"
+                                   FontAttributes="Bold"
+                                   TextColor="#C84B11"
+                                   CharacterSpacing="0.8" />
+                            <Label Text="{Binding ActiveBranchName}"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916"
+                                   LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+
+                        <Border Grid.Column="2"
+                                StrokeThickness="0"
+                                BackgroundColor="#F4EFEA"
+                                Padding="12,7"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Label Text="Switch ▾"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </Grid>
                 </Border>
 
-                <!-- Quick Shortcuts (My Orders & Favorites) -->
-                <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
-                    <!-- My Orders Shortcut Card -->
+                <!-- ========== 3. QUICK ACTION TILES (Personal Details writing style + counts) ========== -->
+                <Grid Margin="16,12,16,0"
+                      ColumnDefinitions="*,*"
+                      ColumnSpacing="10">
+                    <!-- My Orders -->
                     <Border Grid.Column="0"
-                            Stroke="{StaticResource BorderSubtle}"
+                            Stroke="#EAE2DA"
                             StrokeThickness="1"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            Padding="14,14">
+                            BackgroundColor="#FFFFFF"
+                            Padding="14">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
+                            <RoundRectangle CornerRadius="24" />
                         </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#1E1916" Offset="0,3" Radius="10" Opacity="0.05" />
+                        </Border.Shadow>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding ViewOrderHistoryCommand}" />
                         </Border.GestureRecognizers>
-                        <VerticalStackLayout Spacing="8">
-                            <Grid ColumnDefinitions="Auto, *, Auto">
-                                <Border Grid.Column="0"
-                                        WidthRequest="36"
-                                        HeightRequest="36"
-                                        StrokeThickness="0"
-                                        BackgroundColor="{StaticResource InfoBackground}">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="10" />
-                                    </Border.StrokeShape>
-                                    <Label Text="🛍️" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center" />
-                                </Border>
-                                <Border Grid.Column="2"
-                                        StrokeThickness="0"
-                                        BackgroundColor="{StaticResource AuthSubtitleOnHero}"
-                                        Padding="7,2"
-                                        VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="8" />
-                                    </Border.StrokeShape>
-                                    <Label Text="{Binding OrderCount}"
-                                           FontSize="12"
-                                           FontAttributes="Bold"
-                                           TextColor="{StaticResource AuthSecondaryText}" />
-                                </Border>
-                            </Grid>
-                            <VerticalStackLayout Spacing="2">
-                                <Label Text="My Orders"
-                                       FontSize="15"
+                        <VerticalStackLayout Spacing="10">
+                            <Border WidthRequest="38"
+                                    HeightRequest="38"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#FDF1EB"
+                                    HorizontalOptions="Start">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Label Text="🧾"
+                                       FontSize="16"
+                                       TextColor="#C84B11"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <Label Text="My Orders"
+                                   FontFamily="Georgia"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916" />
+
+                            <BoxView HeightRequest="1" Color="#EAE2DA" />
+
+                            <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                                <Label Text="Orders"
+                                       FontSize="12"
+                                       TextColor="#8C7E74"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding OrderCountDisplay}"
+                                       FontSize="14"
                                        FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}" />
-                                <Label Text="Track &amp; reorder"
-                                       FontSize="11"
-                                       TextColor="{StaticResource TextSecondary}" />
-                            </VerticalStackLayout>
+                                       TextColor="#1E1916"
+                                       VerticalOptions="Center"
+                                       HorizontalTextAlignment="End" />
+                            </Grid>
+
+                            <Label Text="{Binding OrderCountSubtitle}"
+                                   FontSize="11"
+                                   TextColor="#5C5048"
+                                   LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Favorites Shortcut Card -->
+                    <!-- Favorites -->
                     <Border Grid.Column="1"
-                            Stroke="{StaticResource BorderSubtle}"
+                            Stroke="#EAE2DA"
                             StrokeThickness="1"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            Padding="14,14">
+                            BackgroundColor="#FFFFFF"
+                            Padding="14">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
+                            <RoundRectangle CornerRadius="24" />
                         </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#1E1916" Offset="0,3" Radius="10" Opacity="0.05" />
+                        </Border.Shadow>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding ViewFavoritesCommand}" />
                         </Border.GestureRecognizers>
-                        <VerticalStackLayout Spacing="8">
-                            <Grid ColumnDefinitions="Auto, *, Auto">
-                                <Border Grid.Column="0"
-                                        WidthRequest="36"
-                                        HeightRequest="36"
-                                        StrokeThickness="0"
-                                        BackgroundColor="{StaticResource DangerBackgroundSoft}">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="10" />
-                                    </Border.StrokeShape>
-                                    <Label Text="❤️" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center" />
-                                </Border>
-                                <Border Grid.Column="2"
-                                        StrokeThickness="0"
-                                        BackgroundColor="{StaticResource DangerBackground}"
-                                        Padding="7,2"
-                                        VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="8" />
-                                    </Border.StrokeShape>
-                                    <Label Text="{Binding FavoriteCount}"
-                                           FontSize="12"
-                                           FontAttributes="Bold"
-                                           TextColor="{StaticResource DangerText}" />
-                                </Border>
-                            </Grid>
-                            <VerticalStackLayout Spacing="2">
-                                <Label Text="Favorites"
-                                       FontSize="15"
+                        <VerticalStackLayout Spacing="10">
+                            <Border WidthRequest="38"
+                                    HeightRequest="38"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#FEF6EB"
+                                    HorizontalOptions="Start">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Label Text="♡"
+                                       FontSize="18"
                                        FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}" />
-                                <Label Text="Saved cravings"
-                                       FontSize="11"
-                                       TextColor="{StaticResource TextSecondary}" />
-                            </VerticalStackLayout>
+                                       TextColor="#D9822B"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <Label Text="Favorites"
+                                   FontFamily="Georgia"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916" />
+
+                            <BoxView HeightRequest="1" Color="#EAE2DA" />
+
+                            <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                                <Label Text="Items"
+                                       FontSize="12"
+                                       TextColor="#8C7E74"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding FavoriteCountDisplay}"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916"
+                                       VerticalOptions="Center"
+                                       HorizontalTextAlignment="End" />
+                            </Grid>
+
+                            <Label Text="{Binding FavoriteCountSubtitle}"
+                                   FontSize="11"
+                                   TextColor="#5C5048"
+                                   LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
                     </Border>
                 </Grid>
 
-                <!-- Personal Information Section -->
-                <Border Stroke="{StaticResource BorderSubtle}"
+                <!-- ========== 4. PERSONAL DETAILS (2nd image style) ========== -->
+                <Border Margin="16,12,16,0"
+                        Stroke="#EAE2DA"
                         StrokeThickness="1"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        Padding="18,18">
+                        BackgroundColor="#FFFFFF"
+                        Padding="18">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="18" />
+                        <RoundRectangle CornerRadius="24" />
                     </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#1E1916" Offset="0,4" Radius="14" Opacity="0.06" />
+                    </Border.Shadow>
+
                     <VerticalStackLayout Spacing="14">
-                        <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                            <Label Text="👤" FontSize="16" VerticalOptions="Center" />
-                            <Label Text="Personal Information"
-                                   FontSize="16"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3" VerticalOptions="Center">
+                                <Label Text="Personal Details"
+                                       FontFamily="Georgia"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916" />
+                                <Label Text="Used for order receipts &amp; rider coordination"
+                                       FontSize="11.5"
+                                       TextColor="#8C7E74"
+                                       LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
 
-                        <!-- Full Name Entry -->
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="Full Name"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Border Stroke="{StaticResource BorderSubtle}"
-                                    StrokeThickness="1"
-                                    BackgroundColor="{StaticResource PageBackground}"
-                                    Padding="12,0"
-                                    HeightRequest="46">
+                            <Border Grid.Column="1"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#F4EFEA"
+                                    Padding="14,7"
+                                    VerticalOptions="Start">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10" />
+                                    <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>
-                                <Entry Text="{Binding FullName}"
-                                       Placeholder="Enter your full name"
-                                       FontSize="14"
-                                       TextColor="{StaticResource TextPrimary}"
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleEditModeCommand}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="{Binding PersonalEditPillText}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916"
+                                       HorizontalOptions="Center"
                                        VerticalOptions="Center" />
                             </Border>
-                        </VerticalStackLayout>
+                        </Grid>
 
-                        <!-- Mobile Number Entry -->
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="Mobile Number"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Border Stroke="{StaticResource BorderSubtle}"
-                                    StrokeThickness="1"
-                                    BackgroundColor="{StaticResource PageBackground}"
-                                    Padding="12,0"
-                                    HeightRequest="46">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10" />
-                                </Border.StrokeShape>
-                                <Entry Text="{Binding PhoneNumber}"
-                                       Placeholder="e.g. 03001234567"
-                                       Keyboard="Telephone"
-                                       FontSize="14"
-                                       TextColor="{StaticResource TextPrimary}"
+                        <!-- VIEW MODE: label left / value right -->
+                        <VerticalStackLayout Spacing="0"
+                                             IsVisible="{Binding IsViewMode}">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="0,10">
+                                <Label Text="Full Name"
+                                       FontSize="13"
+                                       TextColor="#8C7E74"
                                        VerticalOptions="Center" />
-                            </Border>
-                        </VerticalStackLayout>
+                                <Label Grid.Column="1"
+                                       Text="{Binding DisplayName}"
+                                       FontSize="13.5"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916"
+                                       HorizontalTextAlignment="End"
+                                       HorizontalOptions="Fill"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation" />
+                            </Grid>
+                            <BoxView HeightRequest="1" Color="#EAE2DA" />
 
-                        <!-- Email Address Entry -->
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="Email Address (Optional)"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Border Stroke="{StaticResource BorderSubtle}"
-                                    StrokeThickness="1"
-                                    BackgroundColor="{StaticResource PageBackground}"
-                                    Padding="12,0"
-                                    HeightRequest="46">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10" />
-                                </Border.StrokeShape>
-                                <Entry Text="{Binding EmailAddress}"
-                                       Placeholder="name@example.com"
-                                       Keyboard="Email"
-                                       FontSize="14"
-                                       TextColor="{StaticResource TextPrimary}"
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Padding="0,10">
+                                <Label Text="Mobile Number"
+                                       FontSize="13"
+                                       TextColor="#8C7E74"
                                        VerticalOptions="Center" />
-                            </Border>
+                                <Label Grid.Column="1"
+                                       Text="{Binding DisplayPhone}"
+                                       FontSize="13.5"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916"
+                                       HorizontalTextAlignment="End"
+                                       HorizontalOptions="Fill"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation" />
+                                <Border Grid.Column="2"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#FDF1EB"
+                                        Padding="8,3"
+                                        VerticalOptions="Center"
+                                        IsVisible="{Binding HasPhoneNumber}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="8" />
+                                    </Border.StrokeShape>
+                                    <Label Text="VERIFIED"
+                                           FontSize="9"
+                                           FontAttributes="Bold"
+                                           TextColor="#C84B11" />
+                                </Border>
+                            </Grid>
+                            <BoxView HeightRequest="1" Color="#EAE2DA" />
+
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="0,10">
+                                <Label Text="Email Address"
+                                       FontSize="13"
+                                       TextColor="#8C7E74"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding DisplayEmail}"
+                                       FontSize="13.5"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916"
+                                       HorizontalTextAlignment="End"
+                                       HorizontalOptions="Fill"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation" />
+                            </Grid>
                         </VerticalStackLayout>
 
-                        <!-- Save Profile Button -->
-                        <controls:AppButton Text="Save Profile Changes"
-                                            Command="{Binding SaveProfileCommand}"
-                                            Variant="Primary"
-                                            ButtonHeight="46"
-                                            CornerRadius="12"
-                                            Margin="0,6,0,0"
-                                            IsEnabled="{Binding IsSavingProfile, Converter={StaticResource InvertedBoolConverter}}" />
+                        <!-- EDIT MODE -->
+                        <VerticalStackLayout Spacing="12"
+                                             IsVisible="{Binding IsEditMode}">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Full Name"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#5C5048" />
+                                <Border Stroke="#C84B11"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        HeightRequest="44"
+                                        Padding="12,0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Entry Text="{Binding FullName}"
+                                           Placeholder="Enter your full name"
+                                           FontSize="14"
+                                           TextColor="#1E1916"
+                                           BackgroundColor="Transparent"
+                                           VerticalOptions="Center" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Phone Number"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#5C5048" />
+                                <Border Stroke="#C84B11"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        HeightRequest="44"
+                                        Padding="12,0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Entry Text="{Binding PhoneNumber}"
+                                           Placeholder="e.g. 03008421905"
+                                           Keyboard="Telephone"
+                                           FontSize="14"
+                                           TextColor="#1E1916"
+                                           BackgroundColor="Transparent"
+                                           VerticalOptions="Center" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Email Address"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#5C5048" />
+                                <Border Stroke="#C84B11"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        HeightRequest="44"
+                                        Padding="12,0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Entry Text="{Binding EmailAddress}"
+                                           Placeholder="name@example.com"
+                                           Keyboard="Email"
+                                           FontSize="14"
+                                           TextColor="#1E1916"
+                                           BackgroundColor="Transparent"
+                                           VerticalOptions="Center" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <Button Text="Save Profile Changes"
+                                    Command="{Binding SaveProfileCommand}"
+                                    BackgroundColor="#C84B11"
+                                    TextColor="#FFFFFF"
+                                    FontAttributes="Bold"
+                                    FontSize="14"
+                                    HeightRequest="44"
+                                    CornerRadius="12"
+                                    BorderWidth="0"
+                                    IsEnabled="{Binding IsSavingProfile, Converter={StaticResource InvertedBoolConverter}}" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Saved Delivery Addresses Section -->
-                <Border Stroke="{StaticResource BorderSubtle}"
+                <!-- ========== 5. SAVED ADDRESSES ========== -->
+                <Border Margin="16,12,16,0"
+                        Stroke="#EAE2DA"
                         StrokeThickness="1"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        Padding="18,18">
+                        BackgroundColor="#FFFFFF"
+                        Padding="16">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="18" />
+                        <RoundRectangle CornerRadius="20" />
                     </Border.StrokeShape>
-                    <VerticalStackLayout Spacing="14">
-                        <!-- Header with Add Address button -->
-                        <Grid ColumnDefinitions="*, Auto">
-                            <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                                <Label Text="📍" FontSize="16" VerticalOptions="Center" />
-                                <Label Text="Saved Addresses"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}"
-                                       VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Saved Addresses"
+                                   FontFamily="Georgia"
+                                   FontSize="17"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916"
+                                   VerticalOptions="Center" />
 
                             <Border Grid.Column="1"
+                                    Stroke="#F0C4AE"
                                     StrokeThickness="1"
-                                    Stroke="{StaticResource Primary}"
-                                    BackgroundColor="{StaticResource PrimaryLight}"
-                                    Padding="10,5">
+                                    BackgroundColor="#FDF1EB"
+                                    Padding="10,5"
+                                    VerticalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="14" />
+                                    <RoundRectangle CornerRadius="10" />
                                 </Border.StrokeShape>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding AddNewAddressCommand}" />
                                 </Border.GestureRecognizers>
-                                <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-                                    <Label Text="+" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" VerticalOptions="Center" />
-                                    <Label Text="Add New" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" VerticalOptions="Center" />
-                                </HorizontalStackLayout>
+                                <Label Text="+ Add New"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11"
+                                       VerticalOptions="Center" />
                             </Border>
                         </Grid>
 
-                        <!-- Address Items -->
                         <VerticalStackLayout Spacing="10"
                                              IsVisible="{Binding HasSavedAddresses}"
                                              BindableLayout.ItemsSource="{Binding SavedAddresses}">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="models:CustomerSavedAddressDto">
-                                    <Border Stroke="{StaticResource BorderSubtle}"
+                                    <Border Stroke="#EAE2DA"
                                             StrokeThickness="1"
-                                            BackgroundColor="{StaticResource PageBackground}"
-                                            Padding="12,12">
+                                            BackgroundColor="#FAF7F4"
+                                            Padding="12">
                                         <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="12" />
+                                            <RoundRectangle CornerRadius="14" />
                                         </Border.StrokeShape>
-                                        <Grid RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="Auto, *, Auto" RowSpacing="4" ColumnSpacing="8">
-                                            <!-- Emoji Icon -->
-                                            <Label Grid.Row="0" Grid.Column="0"
-                                                   Text="{Binding LabelEmoji}"
-                                                   FontSize="16"
-                                                   VerticalOptions="Center" />
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border"
+                                                         Binding="{Binding IsDefault}"
+                                                         Value="True">
+                                                <Setter Property="BackgroundColor" Value="#FDF1EB" />
+                                                <Setter Property="Stroke" Value="#C84B11" />
+                                                <Setter Property="StrokeThickness" Value="1.5" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
 
-                                            <!-- Label & Default Badge -->
-                                            <HorizontalStackLayout Grid.Row="0" Grid.Column="1" Spacing="6" VerticalOptions="Center">
-                                                <Label Text="{Binding Label}"
-                                                       FontSize="14"
-                                                       FontAttributes="Bold"
-                                                       TextColor="{StaticResource TextPrimary}"
-                                                       VerticalOptions="Center" />
-                                                <Border StrokeThickness="0"
-                                                        BackgroundColor="{StaticResource PrimaryLight}"
-                                                        Padding="6,1"
-                                                        VerticalOptions="Center"
-                                                        IsVisible="{Binding IsDefault}">
-                                                    <Border.StrokeShape>
-                                                        <RoundRectangle CornerRadius="6" />
-                                                    </Border.StrokeShape>
-                                                    <Label Text="DEFAULT"
-                                                           FontSize="9"
+                                        <VerticalStackLayout Spacing="8">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                                    <Label Text="{Binding DisplayLabel}"
+                                                           FontSize="13"
                                                            FontAttributes="Bold"
-                                                           TextColor="{StaticResource PrimaryDark}" />
-                                                </Border>
-                                            </HorizontalStackLayout>
+                                                           TextColor="#1E1916"
+                                                           VerticalOptions="Center" />
+                                                    <Border StrokeThickness="0"
+                                                            BackgroundColor="#C84B11"
+                                                            Padding="7,2"
+                                                            VerticalOptions="Center"
+                                                            IsVisible="{Binding IsDefault}">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="6" />
+                                                        </Border.StrokeShape>
+                                                        <Label Text="DEFAULT"
+                                                               FontSize="9"
+                                                               FontAttributes="Bold"
+                                                               TextColor="#FFFFFF" />
+                                                    </Border>
+                                                </HorizontalStackLayout>
 
-                                            <!-- Delete Button -->
-                                            <Border Grid.Row="0" Grid.Column="2"
-                                                    WidthRequest="28"
-                                                    HeightRequest="28"
-                                                    StrokeThickness="0"
-                                                    BackgroundColor="{StaticResource DangerBackground}"
-                                                    VerticalOptions="Center">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="14" />
-                                                </Border.StrokeShape>
-                                                <Border.GestureRecognizers>
-                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerProfileViewModel}}, Path=DeleteAddressCommand}"
-                                                                          CommandParameter="{Binding .}" />
-                                                </Border.GestureRecognizers>
-                                                <Label Text="🗑"
-                                                       FontSize="12"
-                                                       HorizontalOptions="Center"
-                                                       VerticalOptions="Center" />
-                                            </Border>
-
-                                            <!-- Address Line -->
-                                            <Label Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
-                                                   Text="{Binding Address}"
-                                                   FontSize="13"
-                                                   TextColor="{StaticResource TextPrimary}" />
-
-                                            <!-- Landmark & Set Default Option -->
-                                            <Grid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" ColumnDefinitions="*, Auto" Margin="0,2,0,0">
-                                                <Label Grid.Column="0"
-                                                       Text="{Binding Landmark, StringFormat='Near: {0}'}"
-                                                       FontSize="11"
-                                                       TextColor="{StaticResource TextSecondary}"
-                                                       VerticalOptions="Center"
-                                                       IsVisible="{Binding HasLandmark}" />
-                                                <Label Grid.Column="1"
-                                                       Text="Set as default"
-                                                       FontSize="11"
-                                                       FontAttributes="Bold"
-                                                       TextColor="{StaticResource PrimaryDark}"
-                                                       VerticalOptions="Center"
-                                                       IsVisible="{Binding IsNotDefault}">
-                                                    <Label.GestureRecognizers>
-                                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerProfileViewModel}}, Path=SetDefaultAddressCommand}"
-                                                                              CommandParameter="{Binding .}" />
-                                                    </Label.GestureRecognizers>
-                                                </Label>
+                                                <HorizontalStackLayout Grid.Column="1"
+                                                                       Spacing="10"
+                                                                       VerticalOptions="Center"
+                                                                       HorizontalOptions="End">
+                                                    <Label Text="Set Default"
+                                                           FontSize="11"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#C84B11"
+                                                           VerticalOptions="Center"
+                                                           IsVisible="{Binding IsNotDefault}">
+                                                        <Label.GestureRecognizers>
+                                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerProfileViewModel}}, Path=SetDefaultAddressCommand}"
+                                                                                  CommandParameter="{Binding .}" />
+                                                        </Label.GestureRecognizers>
+                                                    </Label>
+                                                    <Border WidthRequest="32"
+                                                            HeightRequest="32"
+                                                            Stroke="#EAE2DA"
+                                                            StrokeThickness="1"
+                                                            BackgroundColor="#FFFFFF"
+                                                            VerticalOptions="Center">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="10" />
+                                                        </Border.StrokeShape>
+                                                        <Border.GestureRecognizers>
+                                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerProfileViewModel}}, Path=DeleteAddressCommand}"
+                                                                                  CommandParameter="{Binding .}" />
+                                                        </Border.GestureRecognizers>
+                                                        <Image Source="icon_trash.png"
+                                                               WidthRequest="16"
+                                                               HeightRequest="16"
+                                                               HorizontalOptions="Center"
+                                                               VerticalOptions="Center" />
+                                                    </Border>
+                                                </HorizontalStackLayout>
                                             </Grid>
-                                        </Grid>
+
+                                            <Label Text="{Binding FullAddressDisplay}"
+                                                   FontSize="12"
+                                                   TextColor="#5C5048"
+                                                   LineBreakMode="WordWrap" />
+                                        </VerticalStackLayout>
                                     </Border>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
 
-                        <!-- Empty Addresses Placeholder -->
-                        <Border StrokeThickness="1"
+                        <!-- Empty state -->
+                        <Border Stroke="#EAE2DA"
+                                StrokeThickness="1"
                                 StrokeDashArray="4,4"
-                                Stroke="{StaticResource BorderSubtle}"
-                                BackgroundColor="{StaticResource PageBackground}"
+                                BackgroundColor="#FAF7F4"
                                 Padding="16,20"
                                 IsVisible="{Binding HasSavedAddresses, Converter={StaticResource InvertedBoolConverter}}">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="12" />
+                                <RoundRectangle CornerRadius="14" />
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                                <Label Text="🏠" FontSize="24" HorizontalOptions="Center" />
+                                <Label Text="🏠"
+                                       FontSize="22"
+                                       HorizontalOptions="Center" />
                                 <Label Text="No addresses saved yet"
                                        FontSize="13"
                                        FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}"
+                                       TextColor="#1E1916"
                                        HorizontalOptions="Center" />
-                                <Label Text="Save your Home or Office address for 1-tap fast checkout."
+                                <Label Text="Add a delivery address for faster checkout."
                                        FontSize="11"
-                                       TextColor="{StaticResource TextSecondary}"
+                                       TextColor="#5C5048"
                                        HorizontalOptions="Center"
                                        HorizontalTextAlignment="Center" />
                             </VerticalStackLayout>
@@ -531,54 +712,313 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Discreet Staff & Rider Login Option -->
-                <VerticalStackLayout Spacing="8" Margin="0,10,0,16" HorizontalOptions="Center">
-                    <Label Text="Restaurant employee or delivery rider?"
-                           FontSize="12"
-                           TextColor="{StaticResource TextSecondary}"
-                           HorizontalOptions="Center" />
-
-                    <Border StrokeThickness="1"
-                            Stroke="{StaticResource BorderSubtle}"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            Padding="16,8"
-                            HorizontalOptions="Center">
+                <!-- ========== 6. STAFF / LOGOUT / VERSION ========== -->
+                <VerticalStackLayout Margin="16,12,16,24" Spacing="12">
+                    <!-- Staff & Rider Portal -->
+                    <Border Stroke="#EAE2DA"
+                            StrokeThickness="1"
+                            BackgroundColor="#FFFFFF"
+                            Padding="14">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="20" />
+                            <RoundRectangle CornerRadius="18" />
                         </Border.StrokeShape>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding OpenStaffLoginCommand}" />
                         </Border.GestureRecognizers>
-                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                            <Label Text="🔐" FontSize="13" VerticalOptions="Center" />
-                            <Label Text="Staff &amp; Rider Sign In"
+
+                        <Grid ColumnDefinitions="Auto,*,Auto"
+                              ColumnSpacing="12"
+                              VerticalOptions="Center">
+                            <Border Grid.Column="0"
+                                    WidthRequest="38"
+                                    HeightRequest="38"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#1C1410"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="11" />
+                                </Border.StrokeShape>
+                                <Label Text="🔑"
+                                       FontSize="15"
+                                       TextColor="#E89B3C"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1"
+                                                 Spacing="2"
+                                                 VerticalOptions="Center">
+                                <Label Text="Aljannat Staff &amp; Rider Login"
+                                       FontSize="13.5"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916" />
+                                <Label Text="Waiter POS, Rider Dispatch &amp; Admin Portal"
+                                       FontSize="11"
+                                       TextColor="#5C5048" />
+                            </VerticalStackLayout>
+
+                            <Label Grid.Column="2"
+                                   Text="Portal →"
                                    FontSize="12"
                                    FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}"
+                                   TextColor="#C84B11"
                                    VerticalOptions="Center" />
-                        </HorizontalStackLayout>
+                        </Grid>
                     </Border>
 
-                    <!-- App Version -->
+                    <!-- Calm Logout — only while a customer phone session is active -->
+                    <Button Text="Log Out of Account"
+                            Command="{Binding ShowLogoutSheetCommand}"
+                            BackgroundColor="#FDECEB"
+                            TextColor="#B83227"
+                            BorderColor="#F5C6C2"
+                            BorderWidth="1"
+                            FontAttributes="Bold"
+                            FontSize="14"
+                            HeightRequest="48"
+                            CornerRadius="15"
+                            IsVisible="{Binding IsCustomerSignedIn}" />
+
+                    <!-- Version -->
                     <Label Text="{Binding AppVersionText}"
                            FontSize="11"
-                           TextColor="{StaticResource Gray400}"
+                           TextColor="#8C7E74"
                            HorizontalOptions="Center"
-                           Margin="0,4,0,0" />
+                           HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
 
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Customer Bottom Bubble Tab Bar (Tab 3: Profile) -->
-        <controls:BubbleTabBar Grid.Row="1"
+        <!-- ========== 7. BOTTOM NAV (Profile active) ========== -->
+        <controls:BubbleTabBar Grid.Row="2"
                                Mode="Customer"
                                SelectedIndex="3"
-                               VerticalOptions="End" />
+                               HeightRequest="68"
+                               VerticalOptions="End"
+                               HorizontalOptions="Fill" />
 
-        <!-- Tab-Switching Global Loading Overlay -->
-        <controls:TabLoadingOverlay Grid.RowSpan="2" />
+        <!-- ========== BRANCH SWITCH BOTTOM SHEET ========== -->
+        <Grid Grid.RowSpan="3"
+              ZIndex="100"
+              IsVisible="{Binding IsBranchSheetVisible}">
+            <BoxView Color="#B31E1916">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding CloseBranchSheetCommand}" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <Border VerticalOptions="End"
+                    BackgroundColor="#FFFFFF"
+                    StrokeThickness="0"
+                    Padding="0"
+                    Margin="0"
+                    MaximumHeightRequest="520">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="28,28,0,0" />
+                </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer />
+                </Border.GestureRecognizers>
+
+                <Grid RowDefinitions="Auto,*,Auto" Padding="20,12,20,20">
+                    <VerticalStackLayout Spacing="6">
+                        <BoxView WidthRequest="40"
+                                 HeightRequest="4"
+                                 Color="#EAE2DA"
+                                 CornerRadius="2"
+                                 HorizontalOptions="Center"
+                                 Margin="0,0,0,10" />
+                        <Label Text="SELECT ACTIVE KITCHEN"
+                               FontSize="10"
+                               FontAttributes="Bold"
+                               CharacterSpacing="1.0"
+                               TextColor="#C84B11" />
+                        <Label Text="Switch Aljannat Branch"
+                               FontFamily="Georgia"
+                               FontSize="24"
+                               FontAttributes="Bold"
+                               TextColor="#1E1916"
+                               Margin="0,0,0,8" />
+                    </VerticalStackLayout>
+
+                    <ActivityIndicator Grid.Row="1"
+                                       IsRunning="{Binding IsLoadingBranches}"
+                                       IsVisible="{Binding IsLoadingBranches}"
+                                       Color="#C84B11"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="Center" />
+
+                    <CollectionView Grid.Row="1"
+                                    ItemsSource="{Binding BranchSheetItems}"
+                                    SelectionMode="None"
+                                    BackgroundColor="Transparent"
+                                    IsVisible="{Binding IsLoadingBranches, Converter={StaticResource InvertedBoolConverter}}">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:BranchSheetItem">
+                                <Border Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        Padding="14,12">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border"
+                                                     Binding="{Binding IsActive}"
+                                                     Value="True">
+                                            <Setter Property="Stroke" Value="#C84B11" />
+                                            <Setter Property="StrokeThickness" Value="1.5" />
+                                            <Setter Property="BackgroundColor" Value="#FDF1EB" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerProfileViewModel}}, Path=SelectBranchFromSheetCommand}"
+                                                              CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                        <VerticalStackLayout Spacing="3" VerticalOptions="Center">
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="14"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1E1916"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding StatusSubtitle}"
+                                                   FontSize="11"
+                                                   TextColor="#5C5048"
+                                                   LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+
+                                        <Label Grid.Column="1"
+                                               Text="{Binding ActionLabel}"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               VerticalOptions="Center"
+                                               HorizontalTextAlignment="End">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding IsActive}"
+                                                             Value="True">
+                                                    <Setter Property="TextColor" Value="#C84B11" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding IsActive}"
+                                                             Value="False">
+                                                    <Setter Property="TextColor" Value="#8C7E74" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Border Grid.Row="2"
+                            WidthRequest="40"
+                            HeightRequest="40"
+                            StrokeThickness="0"
+                            BackgroundColor="#1E1916"
+                            HorizontalOptions="Center"
+                            Margin="0,12,0,0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding CloseBranchSheetCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label Text="▾"
+                               FontSize="16"
+                               TextColor="#FFFFFF"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ========== LOGOUT BOTTOM SHEET ========== -->
+        <Grid Grid.RowSpan="3"
+              ZIndex="100"
+              IsVisible="{Binding IsLogoutSheetVisible}">
+            <!-- Dim/blur-like scrim over profile content -->
+            <BoxView Color="#B31E1916">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding CancelLogoutCommand}" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <Border VerticalOptions="End"
+                    BackgroundColor="#FFFFFF"
+                    StrokeThickness="0"
+                    Padding="0"
+                    Margin="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="24,24,0,0" />
+                </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer />
+                </Border.GestureRecognizers>
+
+                <VerticalStackLayout Spacing="0" Padding="20,12,20,28">
+                    <BoxView WidthRequest="40"
+                             HeightRequest="4"
+                             Color="#EAE2DA"
+                             CornerRadius="2"
+                             HorizontalOptions="Center"
+                             Margin="0,0,0,16" />
+
+                    <Label Text="ACCOUNT SESSION"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           CharacterSpacing="1.0"
+                           TextColor="#C84B11"
+                           Margin="0,0,0,6" />
+
+                    <Label Text="Log Out of Aljannat?"
+                           FontFamily="Georgia"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="#1E1916"
+                           Margin="0,0,0,8" />
+
+                    <Label Text="Your saved favorites and addresses will remain safely stored on your account when you sign back in."
+                           FontSize="13"
+                           TextColor="#5C5048"
+                           LineBreakMode="WordWrap"
+                           Margin="0,0,0,22" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Grid.Column="0"
+                                Text="Stay Signed In"
+                                Command="{Binding CancelLogoutCommand}"
+                                BackgroundColor="#F4EFEA"
+                                TextColor="#1E1916"
+                                FontAttributes="Bold"
+                                FontSize="14"
+                                HeightRequest="48"
+                                CornerRadius="14"
+                                BorderWidth="0" />
+                        <Button Grid.Column="1"
+                                Text="Yes, Log Out"
+                                Command="{Binding ConfirmLogoutCommand}"
+                                BackgroundColor="#C84B11"
+                                TextColor="#FFFFFF"
+                                FontAttributes="Bold"
+                                FontSize="14"
+                                HeightRequest="48"
+                                CornerRadius="14"
+                                BorderWidth="0" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <controls:TabLoadingOverlay Grid.RowSpan="3" ZIndex="120" />
     </Grid>
 
 </ContentPage>
-
