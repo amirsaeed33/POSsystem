@@ -44,7 +44,7 @@ public class CartService
             Name = product.Name ?? "Item",
             UnitPrice = product.Price,
             Quantity = qty,
-            ImagePath = product.ImagePath,
+            ImagePath = !string.IsNullOrWhiteSpace(product.ImageUrl) ? product.ImageUrl : product.ImagePath,
             SelectedModifiers = modifiers
         });
         CartChanged?.Invoke(this, EventArgs.Empty);

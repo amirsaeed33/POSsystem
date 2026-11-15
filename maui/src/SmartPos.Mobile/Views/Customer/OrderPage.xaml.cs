@@ -7,7 +7,6 @@ namespace SmartPos.Mobile.Views.Customer;
 public partial class OrderPage : ContentPage
 {
     private readonly CustomerOrderViewModel _vm;
-    private int _categoryScrollIndex;
 
     public string? CategoryFilter
     {
@@ -35,26 +34,4 @@ public partial class OrderPage : ContentPage
             _vm.AppearingCommand.Execute(null);
         }
     }
-
-    private void OnCategoryScrollLeft(object? sender, TappedEventArgs e) =>
-        ScrollCategoriesBy(-2);
-
-    private void OnCategoryScrollRight(object? sender, TappedEventArgs e) =>
-        ScrollCategoriesBy(2);
-
-    private void ScrollCategoriesBy(int delta)
-    {
-        var count = _vm.Categories.Count;
-        if (count == 0 || CategoriesCollectionView == null)
-        {
-            return;
-        }
-
-        _categoryScrollIndex = Math.Clamp(_categoryScrollIndex + delta, 0, count - 1);
-        CategoriesCollectionView.ScrollTo(
-            _categoryScrollIndex,
-            position: ScrollToPosition.MakeVisible,
-            animate: true);
-    }
 }
-

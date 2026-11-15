@@ -100,6 +100,11 @@ public partial class CustomerOrderViewModel : BaseViewModel
     public bool HasActiveFilters => !IsAllSelected || HasSearchText;
     public string ActiveFilterBadgeText => SelectedCategories.Count > 0 ? $"{SelectedCategories.Count} active" : string.Empty;
 
+    public ObservableCollection<CartLine> CartLines => _cart.Lines;
+
+    [ObservableProperty]
+    private bool isTraySheetVisible;
+
     public CustomerOrderViewModel(
         OnlineOrderService orders,
         SessionService session,
@@ -116,11 +121,18 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
         _cart.CartChanged += (_, _) =>
         {
-            OnPropertyChanged(nameof(CartCount));
-            OnPropertyChanged(nameof(HasCartItems));
-            OnPropertyChanged(nameof(CartSubtotal));
-            OnPropertyChanged(nameof(CartSubtotalDisplay));
-            SyncCartQtyBadges();
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                OnPropertyChanged(nameof(CartCount));
+                OnPropertyChanged(nameof(HasCartItems));
+                OnPropertyChanged(nameof(CartSubtotal));
+                OnPropertyChanged(nameof(CartSubtotalDisplay));
+                SyncCartQtyBadges();
+                if (!HasCartItems)
+                {
+                    IsTraySheetVisible = false;
+                }
+            });
         };
 
         _favorites.FavoritesChanged += (_, _) =>
@@ -722,5 +734,48 @@ public partial class CustomerOrderViewModel : BaseViewModel
         {
             await Shell.Current.GoToAsync("cart");
         }
+    }
+
+    [RelayCommand]
+    private void OpenTraySheet()
+    {
+        if (!HasCartItems)
+        {
+            return;
+        }
+
+        IsTraySheetVisible = true;
+    }
+
+    [RelayCommand]
+    private void CloseTraySheet() => IsTraySheetVisible = false;
+
+    [RelayCommand]
+    private async Task ProceedToCheckoutAsync()
+    {
+        IsTraySheetVisible = false;
+        await OpenCartAsync();
+    }
+
+    [RelayCommand]
+    private void IncreaseTrayLine(CartLine? line)
+    {
+        if (line == null)
+        {
+            return;
+        }
+
+        _cart.SetQuantity(line, line.Quantity + 1);
+    }
+
+    [RelayCommand]
+    private void DecreaseTrayLine(CartLine? line)
+    {
+        if (line == null)
+        {
+            return;
+        }
+
+        _cart.SetQuantity(line, line.Quantity - 1);
     }
 }
