@@ -55,7 +55,7 @@
 
         <!-- ========== SCROLL CONTENT (sections 1 hero – 6) ========== -->
         <ScrollView Grid.Row="1"
-                    Padding="0,0,0,8"
+                    Padding="0,0,0,92"
                     VerticalOptions="Fill">
             <VerticalStackLayout Spacing="0" Padding="0,0,0,8">
 
@@ -790,13 +790,12 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- ========== 7. BOTTOM NAV (Profile active) ========== -->
-        <controls:BubbleTabBar Grid.Row="2"
-                               Mode="Customer"
-                               SelectedIndex="3"
-                               HeightRequest="68"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill" />
+        <!-- ========== 7. ALJANNAT FLOATING BOTTOM NAV (Profile active) ========== -->
+        <controls:AljannatBottomNavBar Grid.Row="2"
+                                       ActiveTab="Profile"
+                                       VerticalOptions="End"
+                                       HorizontalOptions="Fill"
+                                       ZIndex="40" />
 
         <!-- ========== BRANCH SWITCH BOTTOM SHEET ========== -->
         <Grid Grid.RowSpan="3"

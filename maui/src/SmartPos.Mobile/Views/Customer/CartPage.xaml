@@ -831,7 +831,7 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- ========== 3. STICKY BOTTOM PLACE ORDER + TAB BAR ========== -->
+        <!-- ========== 3. STICKY BOTTOM PLACE ORDER ========== -->
         <VerticalStackLayout Grid.Row="2"
                              Spacing="0"
                              BackgroundColor="#FFFFFF">
@@ -867,15 +867,6 @@
                 </Border>
             </Grid>
 
-            <BoxView HeightRequest="1" Color="#EAE2DA" />
-
-            <controls:BubbleTabBar Mode="Customer"
-                                   SelectedIndex="1"
-                                   CartCount="{Binding CartCount}"
-                                   VerticalOptions="End"
-                                   HorizontalOptions="Fill"
-                                   HeightRequest="64"
-                                   ZIndex="40" />
         </VerticalStackLayout>
     </Grid>
 </ContentPage>

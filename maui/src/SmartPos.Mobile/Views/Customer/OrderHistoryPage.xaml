@@ -12,7 +12,7 @@
              Shell.TabBarIsVisible="False"
              BackgroundColor="#FAF7F4">
 
-    <Grid RowDefinitions="Auto,*,Auto"
+    <Grid RowDefinitions="Auto,*"
           BackgroundColor="#FAF7F4">
 
         <!-- ========================================================= -->
@@ -95,7 +95,7 @@
                      IsRefreshing="{Binding IsRefreshing}"
                      Command="{Binding RefreshOrdersCommand}">
             <ScrollView VerticalScrollBarVisibility="Never"
-                        Padding="16,4,16,28">
+                        Padding="16,4,16,24">
                 <VerticalStackLayout Spacing="14">
 
                     <!-- SECTION A — PHONE LOOKUP CARD -->
@@ -519,19 +519,10 @@
             </ScrollView>
         </RefreshView>
 
-        <!-- Bubble Tab Bar -->
-        <controls:BubbleTabBar Grid.Row="2"
-                               Mode="Customer"
-                               SelectedIndex="3"
-                               HeightRequest="68"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill"
-                               ZIndex="40" />
-
         <!-- ========================================================= -->
         <!-- 3. DIGITAL RECEIPT / ORDER DETAILS BOTTOM SHEET           -->
         <!-- ========================================================= -->
-        <Grid Grid.RowSpan="3"
+        <Grid Grid.RowSpan="2"
               ZIndex="100"
               IsVisible="{Binding IsReceiptSheetVisible}">
             <BoxView Color="#801E1916">
@@ -769,7 +760,7 @@
         <!-- ========================================================= -->
         <!-- 4. 1-CLICK RE-ORDER CONFIRMATION SHEET                    -->
         <!-- ========================================================= -->
-        <Grid Grid.RowSpan="3"
+        <Grid Grid.RowSpan="2"
               ZIndex="110"
               IsVisible="{Binding IsReorderSheetVisible}">
             <BoxView Color="#801E1916">

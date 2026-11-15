@@ -171,88 +171,43 @@
                     </Grid>
                 </Border>
 
-                <!-- Right shortcuts: Order History + Cart -->
-                <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
-                    <!-- Order History -->
-                    <Border WidthRequest="42"
-                            HeightRequest="42"
-                            Stroke="{StaticResource BorderSubtle}"
-                            StrokeThickness="1"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            VerticalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
-                        </Border.StrokeShape>
-                        <Border.Shadow>
-                            <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,4" Radius="10" Opacity="0.05" />
-                        </Border.Shadow>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding OpenOrderHistoryCommand}" />
-                        </Border.GestureRecognizers>
-                        <Grid WidthRequest="42" HeightRequest="42">
-                            <Image Source="icon_receipt.png"
-                                   WidthRequest="20"
-                                   HeightRequest="20"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center" />
-                            <Border WidthRequest="8"
-                                    HeightRequest="8"
-                                    StrokeThickness="0"
-                                    BackgroundColor="{StaticResource AccentSaffron}"
-                                    HorizontalOptions="End"
-                                    VerticalOptions="Start"
-                                    Margin="0,8,8,0">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="4" />
-                                </Border.StrokeShape>
-                            </Border>
-                        </Grid>
-                    </Border>
-
-                    <!-- Cart -->
-                    <Border WidthRequest="42"
-                            HeightRequest="42"
-                            Stroke="{StaticResource BorderSubtle}"
-                            StrokeThickness="1"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            VerticalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
-                        </Border.StrokeShape>
-                        <Border.Shadow>
-                            <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,4" Radius="10" Opacity="0.05" />
-                        </Border.Shadow>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding OpenCartCommand}" />
-                        </Border.GestureRecognizers>
-                        <Grid WidthRequest="42" HeightRequest="42">
-                            <Image Source="icon_cart.png"
-                                   WidthRequest="20"
-                                   HeightRequest="20"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center" />
-                            <Border MinimumWidthRequest="18"
-                                    HeightRequest="18"
-                                    StrokeThickness="0"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    HorizontalOptions="End"
-                                    VerticalOptions="Start"
-                                    Margin="0,2,2,0"
-                                    Padding="4,0"
-                                    IsVisible="{Binding HasCartItems}">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="9" />
-                                </Border.StrokeShape>
-                                <Label Text="{Binding CartCount}"
-                                       FontSize="9"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource White}"
-                                       HorizontalTextAlignment="Center"
-                                       VerticalTextAlignment="Center" />
-                            </Border>
-                        </Grid>
-                    </Border>
-                </HorizontalStackLayout>
+                <!-- Order History shortcut -->
+                <Border Grid.Column="1"
+                        WidthRequest="42"
+                        HeightRequest="42"
+                        Stroke="{StaticResource BorderSubtle}"
+                        StrokeThickness="1"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        VerticalOptions="Center"
+                        HorizontalOptions="End">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,4" Radius="10" Opacity="0.05" />
+                    </Border.Shadow>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding OpenOrderHistoryCommand}" />
+                    </Border.GestureRecognizers>
+                    <Grid WidthRequest="42" HeightRequest="42">
+                        <Image Source="icon_receipt.png"
+                               WidthRequest="20"
+                               HeightRequest="20"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                        <Border WidthRequest="8"
+                                HeightRequest="8"
+                                StrokeThickness="0"
+                                BackgroundColor="{StaticResource AccentSaffron}"
+                                HorizontalOptions="End"
+                                VerticalOptions="Start"
+                                Margin="0,8,8,0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="4" />
+                            </Border.StrokeShape>
+                        </Border>
+                    </Grid>
+                </Border>
             </Grid>
 
             <!-- ========================================================= -->
@@ -264,7 +219,7 @@
                 <ScrollView Orientation="Vertical"
                             VerticalScrollBarVisibility="Never"
                             BackgroundColor="{StaticResource PageBackground}">
-                    <VerticalStackLayout Spacing="0" Padding="0,0,0,96">
+                    <VerticalStackLayout Spacing="0" Padding="0,0,0,92">
 
                         <!-- 2. EDITORIAL SEARCH BAR -->
                         <Border Margin="16,4,16,0"
@@ -875,15 +830,14 @@
             </RefreshView>
         </Grid>
 
-        <!-- 3. Bottom Navigation Bar -->
-        <controls:BubbleTabBar x:Name="BottomTabBar"
-                               CartCount="{Binding CartCount}"
-                               Mode="Customer"
-                               SelectedIndex="0"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill"
-                               ZIndex="40"
-                               IsVisible="{Binding IsAnyModalVisible, Converter={StaticResource InvertedBoolConverter}}" />
+        <!-- 3. Aljannat sculpted floating bottom nav -->
+        <controls:AljannatBottomNavBar x:Name="BottomTabBar"
+                                       ActiveTab="Home"
+                                       CartCount="{Binding CartCount}"
+                                       VerticalOptions="End"
+                                       HorizontalOptions="Fill"
+                                       ZIndex="40"
+                                       IsVisible="{Binding IsAnyModalVisible, Converter={StaticResource InvertedBoolConverter}}" />
 
         <!-- 4. Single Product Customization Modal -->
         <Grid IsVisible="{Binding IsProductModalVisible}"

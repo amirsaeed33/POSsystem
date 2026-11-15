@@ -212,9 +212,9 @@ public partial class CustomerHomePage : ContentPage
                 return;
             }
 
-            // Target position: exact center of bottom navigation Cart tab icon
-            double endX = (Width > 0 ? Width : 360) * 0.375 - 12;
-            double endY = (Height > 0 ? Height : 640) - 44 - 12;
+            // Target: raised center Cart medallion on AljannatBottomNavBar
+            double endX = (Width > 0 ? Width : 360) / 2.0 - 12;
+            double endY = (Height > 0 ? Height : 640) - 52 - 12;
 
             // Spawn lightweight 24x24 circular element
             var dot = new Border

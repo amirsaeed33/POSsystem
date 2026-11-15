@@ -21,81 +21,35 @@
                              Padding="16,12,16,8"
                              BackgroundColor="#FAF7F4">
 
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                <VerticalStackLayout Spacing="4" VerticalOptions="Center">
-                    <Label Text="CURATED WISHLIST  •  GULBERG III"
-                           FontSize="9.5"
+            <VerticalStackLayout Spacing="4" VerticalOptions="Center">
+                <Label Text="CURATED WISHLIST  •  GULBERG III"
+                       FontSize="9.5"
+                       FontAttributes="Bold"
+                       TextColor="#C84B11"
+                       CharacterSpacing="0.9" />
+                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                    <Label Text="Saved Favorites"
+                           FontFamily="Georgia"
+                           FontSize="23"
                            FontAttributes="Bold"
-                           TextColor="#C84B11"
-                           CharacterSpacing="0.9" />
-                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                        <Label Text="Saved Favorites"
-                               FontFamily="Georgia"
-                               FontSize="23"
-                               FontAttributes="Bold"
-                               TextColor="#1E1916"
-                               VerticalOptions="Center" />
-                        <Border Stroke="#F0C4AE"
-                                StrokeThickness="1"
-                                BackgroundColor="#FDF1EB"
-                                Padding="9,4"
-                                VerticalOptions="Center"
-                                IsVisible="{Binding HasFavorites}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="10" />
-                            </Border.StrokeShape>
-                            <Label Text="{Binding SavedCountLabel}"
-                                   FontSize="11"
-                                   FontAttributes="Bold"
-                                   TextColor="#C84B11" />
-                        </Border>
-                    </HorizontalStackLayout>
-                </VerticalStackLayout>
-
-                <!-- Cart shortcut -->
-                <Grid Grid.Column="1"
-                      WidthRequest="44"
-                      HeightRequest="44"
-                      VerticalOptions="Center"
-                      HorizontalOptions="End">
-                    <Border WidthRequest="44"
-                            HeightRequest="44"
-                            Stroke="#EAE2DA"
+                           TextColor="#1E1916"
+                           VerticalOptions="Center" />
+                    <Border Stroke="#F0C4AE"
                             StrokeThickness="1"
-                            BackgroundColor="#FFFFFF">
+                            BackgroundColor="#FDF1EB"
+                            Padding="9,4"
+                            VerticalOptions="Center"
+                            IsVisible="{Binding HasFavorites}">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
+                            <RoundRectangle CornerRadius="10" />
                         </Border.StrokeShape>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding OpenCartCommand}" />
-                        </Border.GestureRecognizers>
-                        <Image Source="icon_cart.png"
-                               WidthRequest="22"
-                               HeightRequest="22"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center" />
-                    </Border>
-                    <Border WidthRequest="18"
-                            HeightRequest="18"
-                            StrokeThickness="0"
-                            BackgroundColor="#C84B11"
-                            HorizontalOptions="End"
-                            VerticalOptions="Start"
-                            Margin="0,-2,-2,0"
-                            IsVisible="{Binding HasCartItems}">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="9" />
-                        </Border.StrokeShape>
-                        <Label Text="{Binding CartCount}"
-                               FontSize="9"
+                        <Label Text="{Binding SavedCountLabel}"
+                               FontSize="11"
                                FontAttributes="Bold"
-                               TextColor="#FFFFFF"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center"
-                               HorizontalTextAlignment="Center" />
+                               TextColor="#C84B11" />
                     </Border>
-                </Grid>
-            </Grid>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
 
             <!-- Category filter pills -->
             <ScrollView Orientation="Horizontal"
@@ -217,7 +171,7 @@
                 <CollectionView ItemsSource="{Binding FilteredFavoriteProducts}"
                                 SelectionMode="None"
                                 BackgroundColor="Transparent"
-                                Margin="16,6,16,16">
+                                Margin="16,6,16,92">
                     <CollectionView.ItemsLayout>
                         <GridItemsLayout Orientation="Vertical"
                                          Span="2"
@@ -517,12 +471,10 @@
                 </Grid>
             </Border>
 
-            <controls:BubbleTabBar Mode="Customer"
-                                   SelectedIndex="2"
-                                   CartCount="{Binding CartCount}"
-                                   HeightRequest="68"
-                                   VerticalOptions="End"
-                                   HorizontalOptions="Fill" />
+            <controls:AljannatBottomNavBar ActiveTab="Favorites"
+                                           CartCount="{Binding CartCount}"
+                                           VerticalOptions="End"
+                                           HorizontalOptions="Fill" />
         </VerticalStackLayout>
 
         <!-- ========== 5. DASTARKHWAN TRAY BOTTOM SHEET ========== -->

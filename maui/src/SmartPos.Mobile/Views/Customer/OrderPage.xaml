@@ -25,9 +25,7 @@
         <!-- ========================================================= -->
         <!-- 1. STICKY TOP HEADER                                       -->
         <!-- ========================================================= -->
-        <Grid ColumnDefinitions="*,Auto"
-              ColumnSpacing="8"
-              Padding="16,12,16,8"
+        <Grid Padding="16,12,16,8"
               BackgroundColor="{StaticResource PageBackground}">
 
             <!-- Deliver-To / Branch pill (display-only) -->
@@ -80,51 +78,6 @@
                                    VerticalOptions="Center" />
                         </HorizontalStackLayout>
                     </VerticalStackLayout>
-                </Grid>
-            </Border>
-
-            <!-- Cart shortcut -->
-            <Border Grid.Column="1"
-                    WidthRequest="44"
-                    HeightRequest="44"
-                    Stroke="{StaticResource BorderSubtle}"
-                    StrokeThickness="1"
-                    BackgroundColor="{StaticResource CardBackground}"
-                    VerticalOptions="Center">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="14" />
-                </Border.StrokeShape>
-                <Border.Shadow>
-                    <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,4" Radius="10" Opacity="0.05" />
-                </Border.Shadow>
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding OpenCartCommand}" />
-                </Border.GestureRecognizers>
-                <Grid WidthRequest="44" HeightRequest="44">
-                    <Image Source="icon_cart.png"
-                           WidthRequest="20"
-                           HeightRequest="20"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                    <Border MinimumWidthRequest="18"
-                            HeightRequest="18"
-                            StrokeThickness="0"
-                            BackgroundColor="{StaticResource Primary}"
-                            HorizontalOptions="End"
-                            VerticalOptions="Start"
-                            Margin="0,2,2,0"
-                            Padding="4,0"
-                            IsVisible="{Binding HasCartItems}">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="9" />
-                        </Border.StrokeShape>
-                        <Label Text="{Binding CartCount}"
-                               FontSize="9"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource White}"
-                               HorizontalTextAlignment="Center"
-                               VerticalTextAlignment="Center" />
-                    </Border>
                 </Grid>
             </Border>
         </Grid>
@@ -352,7 +305,7 @@
                 </CollectionView.EmptyView>
 
                 <CollectionView.Footer>
-                    <BoxView HeightRequest="110" Color="Transparent" />
+                    <BoxView HeightRequest="130" Color="Transparent" />
                 </CollectionView.Footer>
 
                 <CollectionView.ItemTemplate>
@@ -622,11 +575,10 @@
                 </Grid>
             </Border>
 
-            <controls:BubbleTabBar Mode="Customer"
-                                   SelectedIndex="1"
-                                   CartCount="{Binding CartCount}"
-                                   VerticalOptions="End"
-                                   HorizontalOptions="Fill" />
+            <controls:AljannatBottomNavBar ActiveTab="Order"
+                                           CartCount="{Binding CartCount}"
+                                           VerticalOptions="End"
+                                           HorizontalOptions="Fill" />
         </VerticalStackLayout>
 
         <!-- Dastarkhwan Tray bottom sheet -->

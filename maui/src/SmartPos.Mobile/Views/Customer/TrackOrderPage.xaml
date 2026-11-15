@@ -12,7 +12,7 @@
              Shell.TabBarIsVisible="False"
              BackgroundColor="#FAF7F4">
 
-    <Grid RowDefinitions="Auto,*,Auto" BackgroundColor="#FAF7F4">
+    <Grid RowDefinitions="Auto,*" BackgroundColor="#FAF7F4">
 
         <!-- ========================================================= -->
         <!-- 1. STICKY TOP HEADER                                      -->
@@ -936,15 +936,5 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- ========================================================= -->
-        <!-- BUBBLE TAB BAR                                            -->
-        <!-- ========================================================= -->
-        <controls:BubbleTabBar Grid.Row="2"
-                               Mode="Customer"
-                               SelectedIndex="1"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill"
-                               HeightRequest="64"
-                               ZIndex="40" />
     </Grid>
 </ContentPage>
