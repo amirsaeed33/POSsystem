@@ -10,7 +10,7 @@
         <!-- Subtle top-left ambient geometric ring -->
         <Ellipse WidthRequest="180"
                  HeightRequest="180"
-                 Fill="#0CFFFFFF"
+                 Fill="{StaticResource WhiteOverlayFaint}"
                  HorizontalOptions="Start"
                  VerticalOptions="Start"
                  InputTransparent="True"
@@ -23,15 +23,15 @@
               Margin="0,0,-70,-70">
             <Ellipse WidthRequest="280"
                      HeightRequest="280"
-                     Fill="#14FFFFFF" />
+                     Fill="{StaticResource WhiteOverlayFaint}" />
             <Ellipse WidthRequest="200"
                      HeightRequest="200"
-                     Fill="#10FFFFFF"
+                     Fill="{StaticResource WhiteOverlayFaint}"
                      TranslationX="-24"
                      TranslationY="-24" />
             <Ellipse WidthRequest="130"
                      HeightRequest="130"
-                     Fill="#16FFFFFF"
+                     Fill="{StaticResource WhiteOverlayFaint}"
                      TranslationX="-48"
                      TranslationY="-48" />
         </Grid>
@@ -47,8 +47,8 @@
             <!-- Clean White Brand Vector Icon Emblem -->
             <Border WidthRequest="84"
                     HeightRequest="84"
-                    BackgroundColor="#22FFFFFF"
-                    Stroke="#55FFFFFF"
+                    BackgroundColor="{StaticResource WhiteOverlayFaint}"
+                    Stroke="{StaticResource WhiteOverlaySoft}"
                     StrokeThickness="2"
                     HorizontalOptions="Center">
                 <Border.StrokeShape>
@@ -59,7 +59,7 @@
                       HorizontalOptions="Center"
                       VerticalOptions="Center">
                     <Path Aspect="Uniform"
-                          Fill="White"
+                          Fill="{StaticResource White}"
                           HorizontalOptions="Center"
                           VerticalOptions="Center"
                           Data="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h14v12zm-7-8c-1.66 0-3-1.34-3-3H7c0 2.76 2.24 5 5 5s5-2.24 5-5h-2c0 1.66-1.34 3-3 3z" />
@@ -70,14 +70,14 @@
             <Label Text="Aljannat"
                    FontSize="32"
                    FontAttributes="Bold"
-                   TextColor="White"
+                   TextColor="{StaticResource White}"
                    HorizontalTextAlignment="Center"
                    CharacterSpacing="0.6" />
 
             <!-- Subtitle -->
             <Label Text="Food Delivery &amp; Takeaway"
                    FontSize="13"
-                   TextColor="#E0FFFFFF"
+                   TextColor="{StaticResource WhiteOverlayMedium}"
                    HorizontalTextAlignment="Center"
                    CharacterSpacing="0.2" />
         </VerticalStackLayout>

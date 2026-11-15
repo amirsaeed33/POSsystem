@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Models;
 
 public partial class CategoryChipItem : ObservableObject
@@ -49,16 +51,16 @@ public partial class CategoryChipItem : ObservableObject
     public string CheckmarkGlyph => IsSelected && !IsAll ? "✓ " : string.Empty;
 
     public Color ChipBorderColor =>
-        IsSelected ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
+        IsSelected ? ThemeColors.Primary : ThemeColors.BorderSubtle;
 
     public Color ChipBackgroundColor =>
-        IsSelected ? Color.FromArgb("#10B981") : Color.FromArgb("#FFFFFF");
+        IsSelected ? ThemeColors.Primary : ThemeColors.White;
 
     public Color ChipTextColor =>
-        IsSelected ? Colors.White : Color.FromArgb("#111827");
+        IsSelected ? Colors.White : ThemeColors.TextPrimary;
 
     public Color ChipCountTextColor =>
-        IsSelected ? Color.FromArgb("#D1FAE5") : Color.FromArgb("#6B7280");
+        IsSelected ? ThemeColors.PrimaryLight : ThemeColors.TextSecondary;
 
     public Color BackgroundColor => ChipBackgroundColor;
 

@@ -11,15 +11,15 @@
              HeightRequest="68">
 
     <Grid x:Name="BarHost"
-          BackgroundColor="White"
+          BackgroundColor="{StaticResource CardBackground}"
           InputTransparent="False"
           VerticalOptions="End"
           HeightRequest="68">
 
-        <!-- Top border divider stroke #F3F4F6 with subtle elevation shadow -->
-        <Border Stroke="#F3F4F6"
+        <!-- Top border divider with subtle elevation shadow -->
+        <Border Stroke="{StaticResource Gray100}"
                 StrokeThickness="1"
-                BackgroundColor="White"
+                BackgroundColor="{StaticResource CardBackground}"
                 VerticalOptions="Fill"
                 HorizontalOptions="Fill"
                 InputTransparent="True">
@@ -27,7 +27,7 @@
                 <RoundRectangle CornerRadius="0" />
             </Border.StrokeShape>
             <Border.Shadow>
-                <Shadow Brush="#1A000000" Offset="0,-3" Radius="8" Opacity="0.06" />
+                <Shadow Brush="{StaticResource ShadowMedium}" Offset="0,-3" Radius="8" Opacity="0.06" />
             </Border.Shadow>
         </Border>
 
@@ -72,9 +72,9 @@
                                 VerticalOptions="Start"
                                 TranslationX="6"
                                 TranslationY="-3"
-                                BackgroundColor="#EF4444"
+                                BackgroundColor="{StaticResource BadgeRed}"
                                 StrokeThickness="1"
-                                Stroke="White"
+                                Stroke="{StaticResource White}"
                                 MinimumWidthRequest="16"
                                 HeightRequest="16"
                                 Padding="3,0"
@@ -87,7 +87,7 @@
                                    Text="0"
                                    FontSize="9"
                                    FontAttributes="Bold"
-                                   TextColor="White"
+                                   TextColor="{StaticResource White}"
                                    HorizontalTextAlignment="Center"
                                    VerticalTextAlignment="Center"
                                    InputTransparent="True" />

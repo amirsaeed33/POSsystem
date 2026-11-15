@@ -336,15 +336,3 @@ public partial class WaiterTablesViewModel : BaseViewModel
         await Shell.Current.GoToAsync("//customer/home");
     }
 }
-
-public static class WaiterOrderSession
-{
-    public static RestaurantOrderDto? CurrentOrder { get; set; }
-    public static RestaurantTableDto? CurrentTable { get; set; }
-
-    public static void Clear()
-    {
-        CurrentOrder = null;
-        CurrentTable = null;
-    }
-}

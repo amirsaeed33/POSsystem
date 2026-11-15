@@ -1,5 +1,4 @@
 using SmartPos.Mobile.Services;
-using SmartPos.Mobile.ViewModels;
 
 namespace SmartPos.Mobile.Controls;
 
@@ -55,9 +54,19 @@ public partial class BubbleTabBar : ContentView
                 }
             });
 
-    private static readonly Color CustomerAccent = Color.FromArgb("#10B981");
-    private static readonly Color StaffAccent = Color.FromArgb("#0F6B4C");
-    private static readonly Color Inactive = Color.FromArgb("#94A3B8");
+    private static Color GetThemeColor(string key, string fallbackHex)
+    {
+        if (Application.Current?.Resources.TryGetValue(key, out var value) == true && value is Color color)
+        {
+            return color;
+        }
+
+        return Color.FromArgb(fallbackHex);
+    }
+
+    private Color CustomerAccent => GetThemeColor("Primary", "#10B981");
+    private Color StaffAccent => GetThemeColor("StaffPrimary", "#0F6B4C");
+    private Color Inactive => GetThemeColor("TabInactive", "#94A3B8");
 
     private Color Accent => Mode == BubbleTabMode.Customer ? CustomerAccent : StaffAccent;
 

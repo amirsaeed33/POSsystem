@@ -39,13 +39,13 @@
                     <!-- Top Dark Gradient Overlay for button contrast -->
                     <BoxView HeightRequest="80"
                              VerticalOptions="Start"
-                             Color="#33000000" />
+                             Color="{StaticResource ShadowStrong}" />
 
                     <!-- Floating Back Button (Top-Left) -->
                     <Border WidthRequest="40"
                             HeightRequest="40"
                             StrokeThickness="0"
-                            BackgroundColor="#E6FFFFFF"
+                            BackgroundColor="{StaticResource WhiteOverlayStrong}"
                             HorizontalOptions="Start"
                             VerticalOptions="Start"
                             Margin="18,44,0,0">
@@ -53,7 +53,7 @@
                             <RoundRectangle CornerRadius="20" />
                         </Border.StrokeShape>
                         <Border.Shadow>
-                            <Shadow Brush="#1A000000" Offset="0,2" Radius="6" Opacity="0.12" />
+                            <Shadow Brush="{StaticResource ShadowMedium}" Offset="0,2" Radius="6" Opacity="0.12" />
                         </Border.Shadow>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding GoBackCommand}" />
@@ -76,12 +76,12 @@
                         <Border WidthRequest="40"
                                 HeightRequest="40"
                                 StrokeThickness="0"
-                                BackgroundColor="#E6FFFFFF">
+                                BackgroundColor="{StaticResource WhiteOverlayStrong}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="20" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="#1A000000" Offset="0,2" Radius="6" Opacity="0.12" />
+                                <Shadow Brush="{StaticResource ShadowMedium}" Offset="0,2" Radius="6" Opacity="0.12" />
                             </Border.Shadow>
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding ShareCommand}" />
@@ -96,12 +96,12 @@
                         <Border WidthRequest="40"
                                 HeightRequest="40"
                                 StrokeThickness="0"
-                                BackgroundColor="#E6FFFFFF">
+                                BackgroundColor="{StaticResource WhiteOverlayStrong}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="20" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="#1A000000" Offset="0,2" Radius="6" Opacity="0.12" />
+                                <Shadow Brush="{StaticResource ShadowMedium}" Offset="0,2" Radius="6" Opacity="0.12" />
                             </Border.Shadow>
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding ToggleFavoriteCommand}" />
@@ -188,7 +188,7 @@
                                 <Label Text="{Binding DiscountBadgeText}"
                                        FontSize="10"
                                        FontAttributes="Bold"
-                                       TextColor="White" />
+                                       TextColor="{StaticResource White}" />
                             </Border>
                         </HorizontalStackLayout>
 
@@ -355,7 +355,7 @@
                 StrokeThickness="1"
                 Padding="16,12">
             <Border.Shadow>
-                <Shadow Brush="#10000000" Offset="0,-3" Radius="8" Opacity="0.06" />
+                <Shadow Brush="{StaticResource ShadowFaint}" Offset="0,-3" Radius="8" Opacity="0.06" />
             </Border.Shadow>
             <Grid ColumnDefinitions="Auto, *" ColumnSpacing="12" VerticalOptions="Center">
                 <!-- Quantity Stepper -->
@@ -369,14 +369,9 @@
                     </Border.StrokeShape>
                     <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
                         <Button Text="−"
+                                Style="{StaticResource QtyDecreaseButton}"
                                 WidthRequest="36"
                                 HeightRequest="36"
-                                CornerRadius="10"
-                                Padding="0"
-                                BackgroundColor="{StaticResource BorderSubtle}"
-                                TextColor="{StaticResource TextPrimary}"
-                                FontAttributes="Bold"
-                                FontSize="16"
                                 Command="{Binding DecreaseCommand}" />
                         <Label Text="{Binding Quantity}"
                                FontAttributes="Bold"
@@ -386,27 +381,19 @@
                                WidthRequest="28"
                                HorizontalTextAlignment="Center" />
                         <Button Text="+"
+                                Style="{StaticResource QtyIncreaseButton}"
                                 WidthRequest="36"
                                 HeightRequest="36"
-                                CornerRadius="10"
-                                Padding="0"
-                                BackgroundColor="{StaticResource PrimaryLight}"
-                                TextColor="{StaticResource PrimaryDark}"
-                                FontAttributes="Bold"
-                                FontSize="16"
                                 Command="{Binding IncreaseCommand}" />
                     </HorizontalStackLayout>
                 </Border>
 
-                <!-- Add to Cart Dynamic Button -->
                 <Button Grid.Column="1"
                         Text="{Binding TotalButtonText}"
                         Command="{Binding AddToCartCommand}"
+                        Style="{StaticResource PrimaryButton}"
                         HeightRequest="48"
                         CornerRadius="14"
-                        BackgroundColor="{StaticResource Primary}"
-                        TextColor="White"
-                        FontAttributes="Bold"
                         FontSize="15" />
             </Grid>
         </Border>

@@ -9,16 +9,16 @@
              Title="Cart"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F5F5F5">
-    <Grid BackgroundColor="#F5F5F5">
+             BackgroundColor="{StaticResource SurfaceMuted}">
+    <Grid BackgroundColor="{StaticResource SurfaceMuted}">
         <Grid RowDefinitions="*,Auto"
-              BackgroundColor="#F5F5F5">
+              BackgroundColor="{StaticResource SurfaceMuted}">
             <ScrollView>
                 <VerticalStackLayout Padding="16,16,16,20" Spacing="14">
 
                     <!-- Page title -->
                     <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                        <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="#E7F5EF">
+                        <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="{StaticResource CartAccentBackground}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
@@ -32,18 +32,18 @@
                             <Label Text="Your cart"
                                    FontSize="24"
                                    FontAttributes="Bold"
-                                   TextColor="#1F2A24" />
+                                   TextColor="{StaticResource CartText}" />
                             <Label Text="{Binding ItemCountLabel}"
                                    FontSize="13"
-                                   TextColor="#64748B" />
+                                   TextColor="{StaticResource AuthMutedText}" />
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
 
                     <!-- Empty state -->
                     <Border IsVisible="{Binding IsEmpty}"
-                            Stroke="#E2E8E4"
+                            Stroke="{StaticResource CartBorder}"
                             StrokeThickness="1"
-                            BackgroundColor="#FAFBFA"
+                            BackgroundColor="{StaticResource CartSurface}"
                             Padding="28,32">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="18" />
@@ -52,7 +52,7 @@
                             <Border WidthRequest="72"
                                     HeightRequest="72"
                                     StrokeThickness="0"
-                                    BackgroundColor="#E7F5EF"
+                                    BackgroundColor="{StaticResource CartAccentBackground}"
                                     HorizontalOptions="Center">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="36" />
@@ -66,11 +66,11 @@
                             <Label Text="Your cart is empty"
                                    FontSize="18"
                                    FontAttributes="Bold"
-                                   TextColor="#1F2A24"
+                                   TextColor="{StaticResource CartText}"
                                    HorizontalTextAlignment="Center" />
                             <Label Text="Add items from the menu, then come back to checkout."
                                    FontSize="13"
-                                   TextColor="#64748B"
+                                   TextColor="{StaticResource AuthMutedText}"
                                    HorizontalTextAlignment="Center"
                                    LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
@@ -86,12 +86,12 @@
                         </Border.StrokeShape>
                         <Border.Triggers>
                             <DataTrigger TargetType="Border" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
-                                <Setter Property="Stroke" Value="#10B981" />
-                                <Setter Property="BackgroundColor" Value="#ECFDF5" />
+                                <Setter Property="Stroke" Value="{StaticResource Primary}" />
+                                <Setter Property="BackgroundColor" Value="{StaticResource SuccessBackground}" />
                             </DataTrigger>
                             <DataTrigger TargetType="Border" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
-                                <Setter Property="Stroke" Value="#E2E8F0" />
-                                <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                <Setter Property="Stroke" Value="{StaticResource AuthInputBorder}" />
+                                <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
                             </DataTrigger>
                         </Border.Triggers>
                         <VerticalStackLayout Spacing="8">
@@ -105,25 +105,25 @@
                                            FontAttributes="Bold">
                                         <Label.Triggers>
                                             <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
-                                                <Setter Property="TextColor" Value="#065F46" />
+                                                <Setter Property="TextColor" Value="{StaticResource SuccessText}" />
                                             </DataTrigger>
                                             <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
-                                                <Setter Property="TextColor" Value="#1E293B" />
+                                                <Setter Property="TextColor" Value="{StaticResource Slate800}" />
                                             </DataTrigger>
                                         </Label.Triggers>
                                     </Label>
                                     <Label Text="Free delivery unlocked for your order!"
                                            FontSize="11"
-                                           TextColor="#059669"
+                                           TextColor="{StaticResource PrimaryDark}"
                                            IsVisible="{Binding IsFreeDeliveryUnlocked}" />
                                     <Label Text="{Binding FreeDeliveryThreshold, StringFormat='Orders over PKR {0:N0} qualify'}"
                                            FontSize="11"
-                                           TextColor="#64748B"
+                                           TextColor="{StaticResource AuthMutedText}"
                                            IsVisible="{Binding IsFreeDeliveryLocked}" />
                                 </VerticalStackLayout>
 
                                 <Border Grid.Column="2"
-                                        BackgroundColor="#D1FAE5"
+                                        BackgroundColor="{StaticResource PrimaryLight}"
                                         StrokeThickness="0"
                                         Padding="8,4"
                                         VerticalOptions="Center"
@@ -134,14 +134,14 @@
                                     <Label Text="FREE"
                                            FontSize="11"
                                            FontAttributes="Bold"
-                                           TextColor="#059669" />
+                                           TextColor="{StaticResource PrimaryDark}" />
                                 </Border>
                             </Grid>
 
                             <!-- Progress Bar (shown when not yet unlocked) -->
                             <ProgressBar Progress="{Binding FreeDeliveryProgress}"
-                                         ProgressColor="#0F6B4C"
-                                         BackgroundColor="#E2E8F0"
+                                         ProgressColor="{StaticResource StaffPrimary}"
+                                         BackgroundColor="{StaticResource AuthInputBorder}"
                                          HeightRequest="6"
                                          IsVisible="{Binding IsFreeDeliveryLocked}" />
                         </VerticalStackLayout>
@@ -153,9 +153,9 @@
                                     HeightRequest="220">
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:CartLine">
-                                <Border Stroke="#E8ECEA"
+                                <Border Stroke="{StaticResource CartBorder}"
                                         StrokeThickness="1"
-                                        BackgroundColor="#FAFBFA"
+                                        BackgroundColor="{StaticResource CartSurface}"
                                         Padding="12"
                                         Margin="0,0,0,8">
                                     <Border.StrokeShape>
@@ -163,41 +163,33 @@
                                     </Border.StrokeShape>
                                     <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
                                         <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                                            <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="#1F2A24" />
+                                            <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="{StaticResource CartText}" />
                                             <Label Text="{Binding SelectedModifiers}"
                                                    IsVisible="{Binding HasModifiers}"
-                                                   TextColor="#0F6B4C"
+                                                   TextColor="{StaticResource StaffPrimary}"
                                                    FontSize="11"
                                                    MaxLines="3"
                                                    LineBreakMode="WordWrap" />
-                                            <Label Text="{Binding UnitPriceText, StringFormat='PKR {0}'}" TextColor="#5C6B63" FontSize="12" />
+                                            <Label Text="{Binding UnitPriceText, StringFormat='PKR {0}'}" TextColor="{StaticResource CartMuted}" FontSize="12" />
                                         </VerticalStackLayout>
-                                        <Button Grid.Column="1"
-                                                Text="-"
-                                                WidthRequest="40"
-                                                HeightRequest="40"
-                                                Padding="0"
-                                                CornerRadius="12"
-                                                BackgroundColor="#EEF2F0"
-                                                TextColor="#1F2A24"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=DecreaseCommand}"
-                                                CommandParameter="{Binding .}" />
+                                        <controls:AppButton Grid.Column="1"
+                                                            Text="-"
+                                                            Variant="QtyDecrease"
+                                                            WidthRequest="40"
+                                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=DecreaseCommand}"
+                                                            CommandParameter="{Binding .}" />
                                         <Label Grid.Column="2"
                                                 Text="{Binding Quantity}"
                                                 VerticalOptions="Center"
                                                 FontAttributes="Bold"
                                                 WidthRequest="24"
                                                 HorizontalTextAlignment="Center" />
-                                        <Button Grid.Column="3"
-                                                Text="+"
-                                                WidthRequest="40"
-                                                HeightRequest="40"
-                                                Padding="0"
-                                                CornerRadius="12"
-                                                BackgroundColor="#E7F5EF"
-                                                TextColor="#0F6B4C"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=IncreaseCommand}"
-                                                CommandParameter="{Binding .}" />
+                                        <controls:AppButton Grid.Column="3"
+                                                            Text="+"
+                                                            Variant="QtyIncrease"
+                                                            WidthRequest="40"
+                                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=IncreaseCommand}"
+                                                            CommandParameter="{Binding .}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -210,15 +202,15 @@
                         <Label Text="Delivery area"
                                FontSize="18"
                                FontAttributes="Bold"
-                               TextColor="#1F2A24"
+                               TextColor="{StaticResource CartText}"
                                VerticalOptions="Center" />
                     </HorizontalStackLayout>
                     <Label Text="Choose where this order should be delivered"
                            FontSize="12"
-                           TextColor="#64748B"
+                           TextColor="{StaticResource AuthMutedText}"
                            Margin="28,0,0,0" />
 
-                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="4,2">
+                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1" BackgroundColor="{StaticResource CardBackground}" Padding="4,2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
@@ -231,16 +223,16 @@
                     <!-- Contact -->
                     <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
                         <Image Source="icon_person.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                        <Label Text="Your details" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
+                        <Label Text="Your details" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource CartText}" />
                     </HorizontalStackLayout>
-                    <Border Stroke="#E2E8E4" StrokeThickness="1.5" BackgroundColor="White" Padding="10,2">
+                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1.5" BackgroundColor="{StaticResource CardBackground}" Padding="10,2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
                         <Border.Triggers>
                             <DataTrigger TargetType="Border" Binding="{Binding NameInvalid}" Value="True">
-                                <Setter Property="Stroke" Value="#EF4444" />
-                                <Setter Property="BackgroundColor" Value="#FEF2F2" />
+                                <Setter Property="Stroke" Value="{StaticResource BadgeRed}" />
+                                <Setter Property="BackgroundColor" Value="{StaticResource DangerBackground}" />
                             </DataTrigger>
                         </Border.Triggers>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
@@ -248,14 +240,14 @@
                             <Entry Grid.Column="1" Placeholder="Your name" Text="{Binding CustomerName}" />
                         </Grid>
                     </Border>
-                    <Border Stroke="#E2E8E4" StrokeThickness="1.5" BackgroundColor="White" Padding="10,2">
+                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1.5" BackgroundColor="{StaticResource CardBackground}" Padding="10,2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
                         <Border.Triggers>
                             <DataTrigger TargetType="Border" Binding="{Binding MobileInvalid}" Value="True">
-                                <Setter Property="Stroke" Value="#EF4444" />
-                                <Setter Property="BackgroundColor" Value="#FEF2F2" />
+                                <Setter Property="Stroke" Value="{StaticResource BadgeRed}" />
+                                <Setter Property="BackgroundColor" Value="{StaticResource DangerBackground}" />
                             </DataTrigger>
                         </Border.Triggers>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
@@ -271,27 +263,23 @@
                                 <Label Text="Saved Addresses"
                                        FontSize="14"
                                        FontAttributes="Bold"
-                                       TextColor="#1F2A24"
+                                       TextColor="{StaticResource CartText}"
                                        VerticalOptions="Center" />
-                                <Border BackgroundColor="#E7F5EF" StrokeThickness="0" Padding="8,2" VerticalOptions="Center">
+                                <Border BackgroundColor="{StaticResource CartAccentBackground}" StrokeThickness="0" Padding="8,2" VerticalOptions="Center">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="8" />
                                     </Border.StrokeShape>
                                     <Label Text="{Binding SavedAddresses.Count, StringFormat='{0} saved'}"
                                            FontSize="11"
-                                           TextColor="#0F6B4C"
+                                           TextColor="{StaticResource StaffPrimary}"
                                            FontAttributes="Bold" />
                                 </Border>
                             </HorizontalStackLayout>
-                            <Button Grid.Column="1"
-                                    Text="➕ New Address"
-                                    FontSize="12"
-                                    FontAttributes="Bold"
-                                    TextColor="#0F6B4C"
-                                    BackgroundColor="Transparent"
-                                    Padding="4,0"
-                                    HeightRequest="32"
-                                    Command="{Binding SwitchToNewAddressCommand}" />
+                            <controls:AppButton Grid.Column="1"
+                                                Text="➕ New Address"
+                                                Variant="Outline"
+                                                ButtonHeight="32"
+                                                Command="{Binding SwitchToNewAddressCommand}" />
                         </Grid>
 
                         <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
@@ -299,7 +287,7 @@
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="models:CustomerSavedAddressDto">
                                         <Border StrokeThickness="1.5"
-                                                BackgroundColor="White"
+                                                BackgroundColor="{StaticResource CardBackground}"
                                                 Padding="12,10"
                                                 WidthRequest="210">
                                             <Border.StrokeShape>
@@ -311,12 +299,12 @@
                                             </Border.GestureRecognizers>
                                             <Border.Triggers>
                                                 <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
-                                                    <Setter Property="Stroke" Value="#0F6B4C" />
-                                                    <Setter Property="BackgroundColor" Value="#F0FDF4" />
+                                                    <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
+                                                    <Setter Property="BackgroundColor" Value="{StaticResource SuccessBackground}" />
                                                 </DataTrigger>
                                                 <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
-                                                    <Setter Property="Stroke" Value="#E2E8E4" />
-                                                    <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                                    <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
+                                                    <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
                                                 </DataTrigger>
                                             </Border.Triggers>
                                             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" RowSpacing="4" ColumnSpacing="6">
@@ -325,13 +313,13 @@
                                                        Text="{Binding DisplayLabel}"
                                                        FontAttributes="Bold"
                                                        FontSize="13"
-                                                       TextColor="#1F2A24"
+                                                       TextColor="{StaticResource CartText}"
                                                        LineBreakMode="TailTruncation"
                                                        VerticalOptions="Center" />
                                                 <Button Grid.Row="0" Grid.Column="2"
                                                         Text="🗑"
                                                         FontSize="12"
-                                                        TextColor="#EF4444"
+                                                        TextColor="{StaticResource BadgeRed}"
                                                         BackgroundColor="Transparent"
                                                         Padding="0"
                                                         WidthRequest="28"
@@ -343,7 +331,7 @@
                                                 <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
                                                        Text="{Binding AddressPreview}"
                                                        FontSize="11"
-                                                       TextColor="#64748B"
+                                                       TextColor="{StaticResource AuthMutedText}"
                                                        LineBreakMode="TailTruncation" />
                                             </Grid>
                                         </Border>
@@ -354,9 +342,9 @@
                     </VerticalStackLayout>
 
                     <!-- Active Saved Address Notification / Switch Pill -->
-                    <Border Stroke="#0F6B4C"
+                    <Border Stroke="{StaticResource StaffPrimary}"
                             StrokeThickness="1"
-                            BackgroundColor="#E7F5EF"
+                            BackgroundColor="{StaticResource CartAccentBackground}"
                             Padding="12,10"
                             IsVisible="{Binding HasSelectedSavedAddress}"
                             Margin="0,2,0,0">
@@ -369,39 +357,35 @@
                                 <Label Text="{Binding SelectedSavedAddress.DisplayLabel, StringFormat='Using saved address: {0}'}"
                                        FontAttributes="Bold"
                                        FontSize="12"
-                                       TextColor="#0F6B4C" />
+                                       TextColor="{StaticResource StaffPrimary}" />
                                 <Label Text="{Binding SelectedSavedAddress.FullAddressDisplay}"
                                        FontSize="11"
-                                       TextColor="#2D3748"
+                                       TextColor="{StaticResource Slate700}"
                                        MaxLines="2"
                                        LineBreakMode="TailTruncation" />
                             </VerticalStackLayout>
-                            <Button Grid.Column="2"
-                                    Text="Change"
-                                    FontSize="11"
-                                    FontAttributes="Bold"
-                                    TextColor="#0F6B4C"
-                                    BackgroundColor="#FFFFFF"
-                                    CornerRadius="10"
-                                    Padding="10,0"
-                                    HeightRequest="28"
-                                    Command="{Binding SwitchToNewAddressCommand}" />
+                            <controls:AppButton Grid.Column="2"
+                                                Text="Change"
+                                                Variant="Outline"
+                                                ButtonHeight="28"
+                                                CornerRadius="10"
+                                                Command="{Binding SwitchToNewAddressCommand}" />
                         </Grid>
                     </Border>
 
                     <!-- Address -->
                     <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
                         <Image Source="icon_home_pin.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                        <Label Text="Delivery address" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
+                        <Label Text="Delivery address" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource CartText}" />
                     </HorizontalStackLayout>
-                    <Border Stroke="#E2E8E4" StrokeThickness="1.5" BackgroundColor="White" Padding="10,2">
+                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1.5" BackgroundColor="{StaticResource CardBackground}" Padding="10,2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
                         <Border.Triggers>
                             <DataTrigger TargetType="Border" Binding="{Binding AddressInvalid}" Value="True">
-                                <Setter Property="Stroke" Value="#EF4444" />
-                                <Setter Property="BackgroundColor" Value="#FEF2F2" />
+                                <Setter Property="Stroke" Value="{StaticResource BadgeRed}" />
+                                <Setter Property="BackgroundColor" Value="{StaticResource DangerBackground}" />
                             </DataTrigger>
                         </Border.Triggers>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
@@ -409,7 +393,7 @@
                             <Entry Grid.Column="1" Placeholder="Street, house, block" Text="{Binding DeliveryAddress}" />
                         </Grid>
                     </Border>
-                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="10,2">
+                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1" BackgroundColor="{StaticResource CardBackground}" Padding="10,2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
@@ -420,9 +404,9 @@
                     </Border>
 
                     <!-- Save this address for next time (when in New Address mode) -->
-                    <Border Stroke="#E2E8E4"
+                    <Border Stroke="{StaticResource CartBorder}"
                             StrokeThickness="1"
-                            BackgroundColor="#FAFBFA"
+                            BackgroundColor="{StaticResource CartSurface}"
                             Padding="12,10"
                             IsVisible="{Binding IsNewAddressMode}">
                         <Border.StrokeShape>
@@ -434,21 +418,21 @@
                                     <Label Text="Save this address for future orders"
                                            FontSize="13"
                                            FontAttributes="Bold"
-                                           TextColor="#1F2A24" />
+                                           TextColor="{StaticResource CartText}" />
                                     <Label Text="Instant 1-click address pick on your next order"
                                            FontSize="11"
-                                           TextColor="#64748B" />
+                                           TextColor="{StaticResource AuthMutedText}" />
                                 </VerticalStackLayout>
                                 <Switch Grid.Column="1"
                                         IsToggled="{Binding IsSaveAddressChecked}"
-                                        OnColor="#0F6B4C"
-                                        ThumbColor="White"
+                                        OnColor="{StaticResource StaffPrimary}"
+                                        ThumbColor="{StaticResource White}"
                                         VerticalOptions="Center" />
                             </Grid>
 
                             <!-- Label chips: [ 🏠 Home ], [ 🏢 Office ], [ 📍 Other ] -->
                             <VerticalStackLayout Spacing="6" IsVisible="{Binding IsSaveAddressChecked}">
-                                <Label Text="Save As:" FontSize="11" FontAttributes="Bold" TextColor="#64748B" />
+                                <Label Text="Save As:" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource AuthMutedText}" />
                                 <HorizontalStackLayout Spacing="8">
                                     <!-- Home Chip -->
                                     <Border StrokeThickness="1.5" Padding="12,6">
@@ -460,21 +444,21 @@
                                         </Border.GestureRecognizers>
                                         <Border.Triggers>
                                             <DataTrigger TargetType="Border" Binding="{Binding IsHomeLabelSelected}" Value="True">
-                                                <Setter Property="Stroke" Value="#0F6B4C" />
-                                                <Setter Property="BackgroundColor" Value="#E7F5EF" />
+                                                <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
+                                                <Setter Property="BackgroundColor" Value="{StaticResource CartAccentBackground}" />
                                             </DataTrigger>
                                             <DataTrigger TargetType="Border" Binding="{Binding IsHomeLabelSelected}" Value="False">
-                                                <Setter Property="Stroke" Value="#E2E8E4" />
-                                                <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                                <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
+                                                <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
                                             </DataTrigger>
                                         </Border.Triggers>
                                         <Label Text="🏠 Home" FontSize="12" FontAttributes="Bold">
                                             <Label.Triggers>
                                                 <DataTrigger TargetType="Label" Binding="{Binding IsHomeLabelSelected}" Value="True">
-                                                    <Setter Property="TextColor" Value="#0F6B4C" />
+                                                    <Setter Property="TextColor" Value="{StaticResource StaffPrimary}" />
                                                 </DataTrigger>
                                                 <DataTrigger TargetType="Label" Binding="{Binding IsHomeLabelSelected}" Value="False">
-                                                    <Setter Property="TextColor" Value="#64748B" />
+                                                    <Setter Property="TextColor" Value="{StaticResource AuthMutedText}" />
                                                 </DataTrigger>
                                             </Label.Triggers>
                                         </Label>
@@ -490,21 +474,21 @@
                                         </Border.GestureRecognizers>
                                         <Border.Triggers>
                                             <DataTrigger TargetType="Border" Binding="{Binding IsOfficeLabelSelected}" Value="True">
-                                                <Setter Property="Stroke" Value="#0F6B4C" />
-                                                <Setter Property="BackgroundColor" Value="#E7F5EF" />
+                                                <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
+                                                <Setter Property="BackgroundColor" Value="{StaticResource CartAccentBackground}" />
                                             </DataTrigger>
                                             <DataTrigger TargetType="Border" Binding="{Binding IsOfficeLabelSelected}" Value="False">
-                                                <Setter Property="Stroke" Value="#E2E8E4" />
-                                                <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                                <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
+                                                <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
                                             </DataTrigger>
                                         </Border.Triggers>
                                         <Label Text="🏢 Office" FontSize="12" FontAttributes="Bold">
                                             <Label.Triggers>
                                                 <DataTrigger TargetType="Label" Binding="{Binding IsOfficeLabelSelected}" Value="True">
-                                                    <Setter Property="TextColor" Value="#0F6B4C" />
+                                                    <Setter Property="TextColor" Value="{StaticResource StaffPrimary}" />
                                                 </DataTrigger>
                                                 <DataTrigger TargetType="Label" Binding="{Binding IsOfficeLabelSelected}" Value="False">
-                                                    <Setter Property="TextColor" Value="#64748B" />
+                                                    <Setter Property="TextColor" Value="{StaticResource AuthMutedText}" />
                                                 </DataTrigger>
                                             </Label.Triggers>
                                         </Label>
@@ -520,21 +504,21 @@
                                         </Border.GestureRecognizers>
                                         <Border.Triggers>
                                             <DataTrigger TargetType="Border" Binding="{Binding IsOtherLabelSelected}" Value="True">
-                                                <Setter Property="Stroke" Value="#0F6B4C" />
-                                                <Setter Property="BackgroundColor" Value="#E7F5EF" />
+                                                <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
+                                                <Setter Property="BackgroundColor" Value="{StaticResource CartAccentBackground}" />
                                             </DataTrigger>
                                             <DataTrigger TargetType="Border" Binding="{Binding IsOtherLabelSelected}" Value="False">
-                                                <Setter Property="Stroke" Value="#E2E8E4" />
-                                                <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                                <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
+                                                <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
                                             </DataTrigger>
                                         </Border.Triggers>
                                         <Label Text="📍 Other" FontSize="12" FontAttributes="Bold">
                                             <Label.Triggers>
                                                 <DataTrigger TargetType="Label" Binding="{Binding IsOtherLabelSelected}" Value="True">
-                                                    <Setter Property="TextColor" Value="#0F6B4C" />
+                                                    <Setter Property="TextColor" Value="{StaticResource StaffPrimary}" />
                                                 </DataTrigger>
                                                 <DataTrigger TargetType="Label" Binding="{Binding IsOtherLabelSelected}" Value="False">
-                                                    <Setter Property="TextColor" Value="#64748B" />
+                                                    <Setter Property="TextColor" Value="{StaticResource AuthMutedText}" />
                                                 </DataTrigger>
                                             </Label.Triggers>
                                         </Label>
@@ -546,23 +530,20 @@
 
                     <Label Text="{Binding LocationStatusText}"
                            FontSize="12"
-                           TextColor="#475569"
+                           TextColor="{StaticResource Slate600}"
                            LineBreakMode="WordWrap" />
-                    <Button Text="Use my location"
-                            Command="{Binding CaptureLocationCommand}"
-                            ImageSource="icon_gps.png"
-                            BackgroundColor="#EFF6FF"
-                            TextColor="#1D4ED8"
-                            HeightRequest="44"
-                            CornerRadius="12"
-                            Padding="12,0"
-                            ContentLayout="Left,8" />
+                    <controls:AppButton Text="Use my location"
+                                        Command="{Binding CaptureLocationCommand}"
+                                        ImageSource="icon_gps.png"
+                                        Variant="Secondary"
+                                        ButtonHeight="44"
+                                        CornerRadius="12" />
 
                     <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
                         <Image Source="icon_note.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                        <Label Text="Notes" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
+                        <Label Text="Notes" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource CartText}" />
                     </HorizontalStackLayout>
-                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="White" Padding="10,2">
+                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1" BackgroundColor="{StaticResource CardBackground}" Padding="10,2">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
@@ -575,7 +556,7 @@
                     <!-- Payment Method Section -->
                     <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
                         <Label Text="💳" FontSize="18" VerticalOptions="Center" />
-                        <Label Text="Payment method" FontAttributes="Bold" FontSize="15" TextColor="#1F2A24" />
+                        <Label Text="Payment method" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource CartText}" />
                     </HorizontalStackLayout>
 
                     <VerticalStackLayout Spacing="10">
@@ -590,16 +571,16 @@
                             </Border.GestureRecognizers>
                             <Border.Triggers>
                                 <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="True">
-                                    <Setter Property="Stroke" Value="#0F6B4C" />
-                                    <Setter Property="BackgroundColor" Value="#F0FDF4" />
+                                    <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
+                                    <Setter Property="BackgroundColor" Value="{StaticResource SuccessBackground}" />
                                 </DataTrigger>
                                 <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="False">
-                                    <Setter Property="Stroke" Value="#E2E8E4" />
-                                    <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                    <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
+                                    <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
                                 </DataTrigger>
                             </Border.Triggers>
                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
-                                <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="#E7F5EF" VerticalOptions="Center">
+                                <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="{StaticResource CartAccentBackground}" VerticalOptions="Center">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="20" />
                                     </Border.StrokeShape>
@@ -610,10 +591,10 @@
                                     <Label Text="Cash on Delivery (COD)"
                                            FontAttributes="Bold"
                                            FontSize="14"
-                                           TextColor="#1F2A24" />
+                                           TextColor="{StaticResource CartText}" />
                                     <Label Text="Pay the rider with cash when your food arrives."
                                            FontSize="12"
-                                           TextColor="#64748B"
+                                           TextColor="{StaticResource AuthMutedText}"
                                            LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
 
@@ -627,16 +608,16 @@
                                     </Border.StrokeShape>
                                     <Border.Triggers>
                                         <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="True">
-                                            <Setter Property="Stroke" Value="#0F6B4C" />
-                                            <Setter Property="BackgroundColor" Value="#0F6B4C" />
+                                            <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
+                                            <Setter Property="BackgroundColor" Value="{StaticResource StaffPrimary}" />
                                         </DataTrigger>
                                         <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="False">
-                                            <Setter Property="Stroke" Value="#CBD5E1" />
+                                            <Setter Property="Stroke" Value="{StaticResource DisabledSurface}" />
                                             <Setter Property="BackgroundColor" Value="Transparent" />
                                         </DataTrigger>
                                     </Border.Triggers>
                                     <Label Text="✓"
-                                           TextColor="White"
+                                           TextColor="{StaticResource White}"
                                            FontSize="13"
                                            FontAttributes="Bold"
                                            HorizontalOptions="Center"
@@ -657,16 +638,16 @@
                             </Border.GestureRecognizers>
                             <Border.Triggers>
                                 <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="True">
-                                    <Setter Property="Stroke" Value="#0F6B4C" />
-                                    <Setter Property="BackgroundColor" Value="#F0FDF4" />
+                                    <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
+                                    <Setter Property="BackgroundColor" Value="{StaticResource SuccessBackground}" />
                                 </DataTrigger>
                                 <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="False">
-                                    <Setter Property="Stroke" Value="#E2E8E4" />
-                                    <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                    <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
+                                    <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
                                 </DataTrigger>
                             </Border.Triggers>
                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
-                                <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="#EEF2FF" VerticalOptions="Center">
+                                <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="{StaticResource IndigoSoft}" VerticalOptions="Center">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="20" />
                                     </Border.StrokeShape>
@@ -678,18 +659,18 @@
                                         <Label Text="Online / Digital Payment"
                                                FontAttributes="Bold"
                                                FontSize="14"
-                                               TextColor="#1F2A24"
+                                               TextColor="{StaticResource CartText}"
                                                VerticalOptions="Center" />
-                                        <Border BackgroundColor="#E0E7FF" StrokeThickness="0" Padding="6,2" VerticalOptions="Center">
+                                        <Border BackgroundColor="{StaticResource IndigoSoft}" StrokeThickness="0" Padding="6,2" VerticalOptions="Center">
                                             <Border.StrokeShape>
                                                 <RoundRectangle CornerRadius="6" />
                                             </Border.StrokeShape>
-                                            <Label Text="Card / Wallet" FontSize="10" TextColor="#4338CA" FontAttributes="Bold" />
+                                            <Label Text="Card / Wallet" FontSize="10" TextColor="{StaticResource InfoDeep}" FontAttributes="Bold" />
                                         </Border>
                                     </HorizontalStackLayout>
                                     <Label Text="Credit/Debit Card, JazzCash, EasyPaisa, or Transfer."
                                            FontSize="12"
-                                           TextColor="#64748B"
+                                           TextColor="{StaticResource AuthMutedText}"
                                            LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
 
@@ -703,16 +684,16 @@
                                     </Border.StrokeShape>
                                     <Border.Triggers>
                                         <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="True">
-                                            <Setter Property="Stroke" Value="#0F6B4C" />
-                                            <Setter Property="BackgroundColor" Value="#0F6B4C" />
+                                            <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
+                                            <Setter Property="BackgroundColor" Value="{StaticResource StaffPrimary}" />
                                         </DataTrigger>
                                         <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="False">
-                                            <Setter Property="Stroke" Value="#CBD5E1" />
+                                            <Setter Property="Stroke" Value="{StaticResource DisabledSurface}" />
                                             <Setter Property="BackgroundColor" Value="Transparent" />
                                         </DataTrigger>
                                     </Border.Triggers>
                                     <Label Text="✓"
-                                           TextColor="White"
+                                           TextColor="{StaticResource White}"
                                            FontSize="13"
                                            FontAttributes="Bold"
                                            HorizontalOptions="Center"
@@ -723,20 +704,20 @@
                         </Border>
                     </VerticalStackLayout>
 
-                    <Border Stroke="#E2E8E4" StrokeThickness="1" BackgroundColor="#FAFBFA" Padding="14" IsVisible="{Binding HasItems}">
+                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1" BackgroundColor="{StaticResource CartSurface}" Padding="14" IsVisible="{Binding HasItems}">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
                         <VerticalStackLayout Spacing="8">
                             <Grid ColumnDefinitions="*,Auto">
-                                <Label Text="Subtotal:" TextColor="#475569" FontSize="13" />
-                                <Label Grid.Column="1" Text="{Binding SubtotalText, StringFormat='PKR {0}'}" TextColor="#1E293B" FontAttributes="Bold" FontSize="13" />
+                                <Label Text="Subtotal:" TextColor="{StaticResource Slate600}" FontSize="13" />
+                                <Label Grid.Column="1" Text="{Binding SubtotalText, StringFormat='PKR {0}'}" TextColor="{StaticResource Slate800}" FontAttributes="Bold" FontSize="13" />
                             </Grid>
                             <Grid ColumnDefinitions="*,Auto">
-                                <Label Text="Delivery Charges:" TextColor="#475569" FontSize="13" />
+                                <Label Text="Delivery Charges:" TextColor="{StaticResource Slate600}" FontSize="13" />
                                 <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                                     <Label Text="{Binding StandardDeliveryFeeText, StringFormat='PKR {0}'}"
-                                           TextColor="#94A3B8"
+                                           TextColor="{StaticResource AuthPlaceholder}"
                                            TextDecorations="Strikethrough"
                                            FontSize="12"
                                            VerticalOptions="Center"
@@ -747,37 +728,37 @@
                                            VerticalOptions="Center">
                                         <Label.Triggers>
                                             <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
-                                                <Setter Property="TextColor" Value="#059669" />
+                                                <Setter Property="TextColor" Value="{StaticResource PrimaryDark}" />
                                             </DataTrigger>
                                             <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
-                                                <Setter Property="TextColor" Value="#1E293B" />
+                                                <Setter Property="TextColor" Value="{StaticResource Slate800}" />
                                             </DataTrigger>
                                         </Label.Triggers>
                                     </Label>
                                 </HorizontalStackLayout>
                             </Grid>
 
-                            <BoxView HeightRequest="1" Color="#E2E8F0" Margin="0,2" />
+                            <BoxView HeightRequest="1" Color="{StaticResource AuthInputBorder}" Margin="0,2" />
 
                             <Grid ColumnDefinitions="*,Auto">
                                 <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-                                    <Label Text="Total Payable" FontAttributes="Bold" FontSize="16" TextColor="#1F2A24" VerticalOptions="Center" />
-                                    <Label Text="{Binding PaymentMethodBadgeText, StringFormat='({0}):'}" FontSize="12" FontAttributes="Bold" TextColor="#64748B" VerticalOptions="Center" />
+                                    <Label Text="Total Payable" FontAttributes="Bold" FontSize="16" TextColor="{StaticResource CartText}" VerticalOptions="Center" />
+                                    <Label Text="{Binding PaymentMethodBadgeText, StringFormat='({0}):'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource AuthMutedText}" VerticalOptions="Center" />
                                 </HorizontalStackLayout>
                                 <Label Grid.Column="1"
                                        Text="{Binding GrandTotalText, StringFormat='PKR {0}'}"
                                        FontAttributes="Bold"
                                        FontSize="18"
-                                       TextColor="#0F6B4C"
+                                       TextColor="{StaticResource StaffPrimary}"
                                        VerticalOptions="Center" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
 
                     <!-- Minimum Order Warning Banner -->
-                    <Border Stroke="#F59E0B"
+                    <Border Stroke="{StaticResource StarGold}"
                             StrokeThickness="1.5"
-                            BackgroundColor="#FFFBEB"
+                            BackgroundColor="{StaticResource WarningBackground}"
                             Padding="12,10"
                             IsVisible="{Binding IsBelowMinimumOrder}">
                         <Border.StrokeShape>
@@ -789,10 +770,10 @@
                                 <Label Text="{Binding MinimumOrderAmountText, StringFormat='Minimum Order: PKR {0}'}"
                                        FontAttributes="Bold"
                                        FontSize="13"
-                                       TextColor="#92400E" />
+                                       TextColor="{StaticResource WarningText}" />
                                 <Label Text="{Binding MinimumOrderShortfallText, StringFormat='Please add PKR {0} more to qualify for delivery.'}"
                                        FontSize="12"
-                                       TextColor="#B45309"
+                                       TextColor="{StaticResource WarningMuted}"
                                        LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
                         </Grid>
@@ -801,21 +782,21 @@
             </ScrollView>
             <Button Grid.Row="1"
                     Text="{Binding CheckoutButtonText}"
+                    Style="{StaticResource StaffPrimaryButton}"
                     Margin="16,8,16,64"
                     Command="{Binding PlaceOrderCommand}"
                     IsVisible="{Binding HasItems}"
                     HeightRequest="50"
                     CornerRadius="14"
-                    FontAttributes="Bold"
                     FontSize="16">
                 <Button.Triggers>
                     <DataTrigger TargetType="Button" Binding="{Binding IsBelowMinimumOrder}" Value="True">
-                        <Setter Property="BackgroundColor" Value="#CBD5E1" />
-                        <Setter Property="TextColor" Value="#475569" />
+                        <Setter Property="BackgroundColor" Value="{StaticResource Gray300}" />
+                        <Setter Property="TextColor" Value="{StaticResource Gray600}" />
                     </DataTrigger>
                     <DataTrigger TargetType="Button" Binding="{Binding IsBelowMinimumOrder}" Value="False">
-                        <Setter Property="BackgroundColor" Value="#0F6B4C" />
-                        <Setter Property="TextColor" Value="White" />
+                        <Setter Property="BackgroundColor" Value="{StaticResource StaffPrimary}" />
+                        <Setter Property="TextColor" Value="{StaticResource White}" />
                     </DataTrigger>
                 </Button.Triggers>
             </Button>

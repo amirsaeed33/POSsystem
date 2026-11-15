@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartPos.Mobile.Helpers;
 using SmartPos.Mobile.Models;
 using SmartPos.Mobile.Services;
 
@@ -55,8 +56,8 @@ public partial class ProductDetailViewModel : BaseViewModel
     public string TotalButtonText => $"Add to Cart • Rs. {TotalPrice:0}";
     public bool InStock => Product?.InStock ?? true;
     public string StockBadgeText => InStock ? "In Stock" : "Out of Stock";
-    public Color StockBadgeBg => InStock ? Color.FromArgb("#D1FAE5") : Color.FromArgb("#FEE2E2");
-    public Color StockBadgeTextColor => InStock ? Color.FromArgb("#047857") : Color.FromArgb("#B91C1C");
+    public Color StockBadgeBg => InStock ? ThemeColors.PrimaryLight : ThemeColors.DangerBackground;
+    public Color StockBadgeTextColor => InStock ? ThemeColors.Tertiary : ThemeColors.DangerText;
     public bool HasDiscount => Product != null && Product.HasOriginalPrice;
     public string DiscountBadgeText => Product?.DealDiscountBadge ?? "DEAL";
     public string OriginalPriceDisplay => Product?.OriginalPriceDisplay ?? string.Empty;

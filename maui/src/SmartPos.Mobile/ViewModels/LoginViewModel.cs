@@ -8,9 +8,8 @@ namespace SmartPos.Mobile.ViewModels;
 public partial class LoginViewModel : BaseViewModel
 {
     private readonly AuthService _auth;
-    private readonly SessionService _session;
+    private readonly AppState _appState;
     private readonly NavigationService _navigation;
-    private readonly CartService _cart;
 
     [ObservableProperty]
     private string userName = string.Empty;
@@ -33,15 +32,14 @@ public partial class LoginViewModel : BaseViewModel
     public string PasswordEyeIcon => IsPasswordHidden ? "icon_eye_off.png" : "icon_eye.png";
     public bool ShowLoginForm => !IsLoggedIn;
 
-    public LoginViewModel(AuthService auth, SessionService session, NavigationService navigation, AppSettings settings, CartService cart)
+    public LoginViewModel(AuthService auth, AppState appState, NavigationService navigation, AppSettings settings)
     {
         _auth = auth;
-        _session = session;
+        _appState = appState;
         _navigation = navigation;
-        _cart = cart;
         Title = "Staff Login";
         _ = settings;
-        _session.SessionChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RefreshSessionUi);
+        _appState.SessionChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RefreshSessionUi);
         RefreshSessionUi();
     }
 
@@ -50,9 +48,9 @@ public partial class LoginViewModel : BaseViewModel
 
     public void RefreshSessionUi()
     {
-        IsLoggedIn = _session.IsAuthenticated;
-        WelcomeName = _session.User?.Name
-            ?? _session.User?.UserName
+        IsLoggedIn = _appState.IsAuthenticated;
+        WelcomeName = _appState.User?.Name
+            ?? _appState.User?.UserName
             ?? UserName
             ?? "Staff";
         StatusText = IsLoggedIn ? $"Signed in as {WelcomeName}" : string.Empty;
@@ -74,8 +72,7 @@ public partial class LoginViewModel : BaseViewModel
         {
             var (lat, lng) = await LocationHelper.TryGetAsync();
             var auth = await _auth.LoginAsync(null, UserName, Password, lat, lng);
-            _cart.Clear();
-            WaiterOrderSession.Clear();
+            _appState.ClearStaffWorkingState();
             if (auth.AttendanceAutoCheckedIn)
             {
                 StatusText = "Attendance auto check-in recorded.";
@@ -83,7 +80,7 @@ public partial class LoginViewModel : BaseViewModel
 
             RefreshSessionUi();
 
-            var mode = _session.ResolveRoleMode();
+            var mode = _appState.RoleMode;
             if (mode == AppRoleMode.UnsupportedStaff)
             {
                 await Shell.Current.GoToAsync("//unsupported");
@@ -100,8 +97,7 @@ public partial class LoginViewModel : BaseViewModel
         await RunBusyAsync(async () =>
         {
             await _auth.LogoutAsync();
-            WaiterOrderSession.Clear();
-            _cart.Clear();
+            _appState.ClearStaffWorkingState();
             Password = string.Empty;
             RefreshSessionUi();
             StatusText = "Signed out.";

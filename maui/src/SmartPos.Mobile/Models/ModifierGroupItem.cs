@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Models;
 
 public partial class ModifierGroupItem : ObservableObject
@@ -14,8 +16,8 @@ public partial class ModifierGroupItem : ObservableObject
     public string RequirementLabel => IsRequired ? "(Required)" : "(Optional)";
 
     public string RequirementBadgeText => IsRequired ? "Required" : "Optional";
-    public Color RequirementTextColor => IsRequired ? Color.FromArgb("#B45309") : Color.FromArgb("#6B7280");
-    public Color RequirementBgColor => IsRequired ? Color.FromArgb("#FEF3C7") : Color.FromArgb("#F3F4F6");
+    public Color RequirementTextColor => IsRequired ? ThemeColors.WarningMuted : ThemeColors.TextSecondary;
+    public Color RequirementBgColor => IsRequired ? ThemeColors.WarningBackground : ThemeColors.Gray100;
 
     public string SelectionRuleHint => AllowMultiple
         ? (MaxSelection > 1 ? $"Choose up to {MaxSelection}" : "Multiple choices")

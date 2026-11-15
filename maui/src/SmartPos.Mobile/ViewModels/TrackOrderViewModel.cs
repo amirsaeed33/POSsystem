@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartPos.Mobile.Helpers;
 using SmartPos.Mobile.Models;
 using SmartPos.Mobile.Services;
 
@@ -97,34 +98,34 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
 
     // Stepper Styling Properties (Colors, Thickness, Text Colors)
     public double Step1StrokeThickness => IsStep1Active ? 2.5 : 1.5;
-    public Color Step1StrokeColor => Color.FromArgb("#10B981");
-    public Color Step1BgColor => IsStep1Completed && !IsStep1Active ? Color.FromArgb("#10B981") : (IsStep1Active ? Color.FromArgb("#ECFDF5") : Color.FromArgb("#FFFFFF"));
-    public Color Step1TextColor => IsStep1Completed && !IsStep1Active ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#10B981");
-    public Color Step1LabelColor => IsStep1Completed ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF");
+    public Color Step1StrokeColor => ThemeColors.Primary;
+    public Color Step1BgColor => IsStep1Completed && !IsStep1Active ? ThemeColors.Primary : (IsStep1Active ? ThemeColors.SuccessBackground : ThemeColors.White);
+    public Color Step1TextColor => IsStep1Completed && !IsStep1Active ? ThemeColors.White : ThemeColors.Primary;
+    public Color Step1LabelColor => IsStep1Completed ? ThemeColors.Primary : ThemeColors.Gray400;
 
-    public Color Line1Color => IsLine1Active ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
+    public Color Line1Color => IsLine1Active ? ThemeColors.Primary : ThemeColors.BorderSubtle;
 
     public double Step2StrokeThickness => IsStep2Active ? 2.5 : 1.5;
-    public Color Step2StrokeColor => IsStep2Completed || IsStep2Active ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
-    public Color Step2BgColor => IsStep2Completed && !IsStep2Active ? Color.FromArgb("#10B981") : (IsStep2Active ? Color.FromArgb("#ECFDF5") : Color.FromArgb("#F9FAFB"));
-    public Color Step2TextColor => IsStep2Completed && !IsStep2Active ? Color.FromArgb("#FFFFFF") : (IsStep2Active ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF"));
-    public Color Step2LabelColor => IsStep2Completed || IsStep2Active ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF");
+    public Color Step2StrokeColor => IsStep2Completed || IsStep2Active ? ThemeColors.Primary : ThemeColors.BorderSubtle;
+    public Color Step2BgColor => IsStep2Completed && !IsStep2Active ? ThemeColors.Primary : (IsStep2Active ? ThemeColors.SuccessBackground : ThemeColors.PageBackground);
+    public Color Step2TextColor => IsStep2Completed && !IsStep2Active ? ThemeColors.White : (IsStep2Active ? ThemeColors.Primary : ThemeColors.Gray400);
+    public Color Step2LabelColor => IsStep2Completed || IsStep2Active ? ThemeColors.Primary : ThemeColors.Gray400;
 
-    public Color Line2Color => IsLine2Active ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
+    public Color Line2Color => IsLine2Active ? ThemeColors.Primary : ThemeColors.BorderSubtle;
 
     public double Step3StrokeThickness => IsStep3Active ? 2.5 : 1.5;
-    public Color Step3StrokeColor => IsStep3Completed || IsStep3Active ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
-    public Color Step3BgColor => IsStep3Completed && !IsStep3Active ? Color.FromArgb("#10B981") : (IsStep3Active ? Color.FromArgb("#ECFDF5") : Color.FromArgb("#F9FAFB"));
-    public Color Step3TextColor => IsStep3Completed && !IsStep3Active ? Color.FromArgb("#FFFFFF") : (IsStep3Active ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF"));
-    public Color Step3LabelColor => IsStep3Completed || IsStep3Active ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF");
+    public Color Step3StrokeColor => IsStep3Completed || IsStep3Active ? ThemeColors.Primary : ThemeColors.BorderSubtle;
+    public Color Step3BgColor => IsStep3Completed && !IsStep3Active ? ThemeColors.Primary : (IsStep3Active ? ThemeColors.SuccessBackground : ThemeColors.PageBackground);
+    public Color Step3TextColor => IsStep3Completed && !IsStep3Active ? ThemeColors.White : (IsStep3Active ? ThemeColors.Primary : ThemeColors.Gray400);
+    public Color Step3LabelColor => IsStep3Completed || IsStep3Active ? ThemeColors.Primary : ThemeColors.Gray400;
 
-    public Color Line3Color => IsLine3Active ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
+    public Color Line3Color => IsLine3Active ? ThemeColors.Primary : ThemeColors.BorderSubtle;
 
     public double Step4StrokeThickness => IsStep4Active ? 2.5 : 1.5;
-    public Color Step4StrokeColor => IsStep4Completed ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
-    public Color Step4BgColor => IsStep4Completed ? Color.FromArgb("#10B981") : Color.FromArgb("#F9FAFB");
-    public Color Step4TextColor => IsStep4Completed ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#9CA3AF");
-    public Color Step4LabelColor => IsStep4Completed ? Color.FromArgb("#10B981") : Color.FromArgb("#9CA3AF");
+    public Color Step4StrokeColor => IsStep4Completed ? ThemeColors.Primary : ThemeColors.BorderSubtle;
+    public Color Step4BgColor => IsStep4Completed ? ThemeColors.Primary : ThemeColors.PageBackground;
+    public Color Step4TextColor => IsStep4Completed ? ThemeColors.White : ThemeColors.Gray400;
+    public Color Step4LabelColor => IsStep4Completed ? ThemeColors.Primary : ThemeColors.Gray400;
 
     // Stepper Glyphs
     public string Step1Glyph => IsStep1Completed && !IsStep1Active ? "✓" : "📋";
@@ -154,23 +155,23 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
         });
 
     public Color StatusPillBackgroundColor => IsCancelled
-        ? Color.FromArgb("#FEE2E2")
+        ? ThemeColors.DangerBackground
         : (CurrentStep switch
         {
-            3 => Color.FromArgb("#D1FAE5"),
-            2 => Color.FromArgb("#FEF3C7"),
-            1 => Color.FromArgb("#DBEAFE"),
-            _ => Color.FromArgb("#FEF3C7")
+            3 => ThemeColors.PrimaryLight,
+            2 => ThemeColors.WarningBackground,
+            1 => ThemeColors.AuthSubtitleOnHero,
+            _ => ThemeColors.WarningBackground
         });
 
     public Color StatusPillTextColor => IsCancelled
-        ? Color.FromArgb("#DC2626")
+        ? ThemeColors.BadgeRed
         : (CurrentStep switch
         {
-            3 => Color.FromArgb("#059669"),
-            2 => Color.FromArgb("#D97706"),
-            1 => Color.FromArgb("#2563EB"),
-            _ => Color.FromArgb("#D97706")
+            3 => ThemeColors.PrimaryDark,
+            2 => ThemeColors.StarGold,
+            1 => ThemeColors.InfoDeep,
+            _ => ThemeColors.StarGold
         });
 
     public string EstimatedDeliveryEta
@@ -219,11 +220,11 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
     public string Star4Glyph => CustomerRatingDraft >= 4 ? "★" : "☆";
     public string Star5Glyph => CustomerRatingDraft >= 5 ? "★" : "☆";
 
-    public Color Star1Color => CustomerRatingDraft >= 1 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#CBD5E1");
-    public Color Star2Color => CustomerRatingDraft >= 2 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#CBD5E1");
-    public Color Star3Color => CustomerRatingDraft >= 3 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#CBD5E1");
-    public Color Star4Color => CustomerRatingDraft >= 4 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#CBD5E1");
-    public Color Star5Color => CustomerRatingDraft >= 5 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#CBD5E1");
+    public Color Star1Color => CustomerRatingDraft >= 1 ? ThemeColors.StarGold : ThemeColors.Gray300;
+    public Color Star2Color => CustomerRatingDraft >= 2 ? ThemeColors.StarGold : ThemeColors.Gray300;
+    public Color Star3Color => CustomerRatingDraft >= 3 ? ThemeColors.StarGold : ThemeColors.Gray300;
+    public Color Star4Color => CustomerRatingDraft >= 4 ? ThemeColors.StarGold : ThemeColors.Gray300;
+    public Color Star5Color => CustomerRatingDraft >= 5 ? ThemeColors.StarGold : ThemeColors.Gray300;
 
     public string RatingDescriptionText => CustomerRatingDraft switch
     {

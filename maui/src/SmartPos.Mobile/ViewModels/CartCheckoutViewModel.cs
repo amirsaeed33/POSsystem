@@ -8,6 +8,7 @@ namespace SmartPos.Mobile.ViewModels;
 
 public partial class CartCheckoutViewModel : BaseViewModel
 {
+    private readonly AppState _appState;
     private readonly CartService _cart;
     private readonly OnlineOrderService _orders;
     private readonly SessionService _session;
@@ -103,7 +104,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
     [ObservableProperty]
     private string selectedPaymentMethod = "CashOnDelivery";
 
-    public ObservableCollection<CartLine> Lines => _cart.Lines;
+    public ObservableCollection<CartLine> Lines => _appState.CartLines;
     public ObservableCollection<DeliveryAreaDto> Areas { get; } = new();
     public ObservableCollection<CustomerSavedAddressDto> SavedAddresses { get; } = new();
 
@@ -127,7 +128,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
         ? "Awesome! You unlocked FREE Delivery! 🎉"
         : $"Add PKR {AmountNeededForFreeDeliveryText} more to enjoy FREE delivery!";
 
-    public decimal Subtotal => _cart.Subtotal;
+    public decimal Subtotal => _appState.CartSubtotal;
     public decimal GrandTotal => Subtotal + EffectiveDeliveryFee;
     public string SubtotalText => Subtotal.ToString("0.00");
     public string DeliveryFeeText => EffectiveDeliveryFee == 0 ? "FREE" : EffectiveDeliveryFee.ToString("0.00");
@@ -139,17 +140,17 @@ public partial class CartCheckoutViewModel : BaseViewModel
         : "No items yet";
 
     public CartCheckoutViewModel(
-        CartService cart,
+        AppState appState,
         OnlineOrderService orders,
-        SessionService session,
         DeliveryLocationService deliveryLocation)
     {
-        _cart = cart;
+        _appState = appState;
+        _cart = appState.Cart;
+        _session = appState.Session;
         _orders = orders;
-        _session = session;
         _deliveryLocation = deliveryLocation;
         Title = "Cart";
-        _cart.CartChanged += (_, _) => NotifyTotals();
+        _appState.CartChanged += (_, _) => NotifyTotals();
         _deliveryLocation.Changed += (_, _) =>
         {
             MainThread.BeginInvokeOnMainThread(RefreshLocationStatus);

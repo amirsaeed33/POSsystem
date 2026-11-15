@@ -11,7 +11,7 @@
              Title="{Binding Title}"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F9FAFB">
+             BackgroundColor="{StaticResource PageBackground}">
 
     <ContentPage.Resources>
         <ResourceDictionary>
@@ -19,25 +19,25 @@
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <Grid BackgroundColor="#F9FAFB">
+    <Grid BackgroundColor="{StaticResource PageBackground}">
         <!-- 1. Branch picker (shown when no branch selected) -->
         <ScrollView IsVisible="{Binding NeedsBranchSelection}">
             <VerticalStackLayout Padding="20,40,20,24" Spacing="16">
-                <Border WidthRequest="64" HeightRequest="64" StrokeThickness="0" BackgroundColor="#D1FAE5" HorizontalOptions="Center">
+                <Border WidthRequest="64" HeightRequest="64" StrokeThickness="0" BackgroundColor="{StaticResource PrimaryLight}" HorizontalOptions="Center">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="20" />
                     </Border.StrokeShape>
                     <Label Text="🏪" FontSize="32" HorizontalOptions="Center" VerticalOptions="Center" />
                 </Border>
-                <Label Text="Choose a branch"
+                <Label Text="{Binding BranchPickerTitle}"
                        FontSize="24"
                        FontAttributes="Bold"
                        HorizontalTextAlignment="Center"
-                       TextColor="#111827" />
-                <Label Text="Select a store to start ordering"
+                       TextColor="{StaticResource TextPrimary}" />
+                <Label Text="{Binding BranchPickerSubtitle}"
                        FontSize="13"
                        HorizontalTextAlignment="Center"
-                       TextColor="#6B7280" />
+                       TextColor="{StaticResource TextSecondary}" />
 
                 <CollectionView ItemsSource="{Binding Branches}" SelectionMode="None" BackgroundColor="Transparent">
                     <CollectionView.ItemsLayout>
@@ -45,21 +45,21 @@
                     </CollectionView.ItemsLayout>
                     <CollectionView.EmptyView>
                         <Label Text="No active branches found."
-                               TextColor="#6B7280"
+                               TextColor="{StaticResource TextSecondary}"
                                Margin="12"
                                HorizontalTextAlignment="Center" />
                     </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:OnlineBranchDto">
-                            <Border Stroke="#E5E7EB"
+                            <Border Stroke="{StaticResource BorderSubtle}"
                                     StrokeThickness="1"
-                                    BackgroundColor="White"
+                                    BackgroundColor="{StaticResource CardBackground}"
                                     Padding="14">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="16" />
                                 </Border.StrokeShape>
                                 <Border.Shadow>
-                                    <Shadow Brush="#0A000000" Offset="0,2" Radius="6" Opacity="0.04" />
+                                    <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,2" Radius="6" Opacity="0.04" />
                                 </Border.Shadow>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=SelectBranchCommand}"
@@ -69,7 +69,7 @@
                                     <Border WidthRequest="48"
                                             HeightRequest="48"
                                             StrokeThickness="0"
-                                            BackgroundColor="#D1FAE5"
+                                            BackgroundColor="{StaticResource PrimaryLight}"
                                             VerticalOptions="Center">
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="12" />
@@ -78,7 +78,7 @@
                                             <Label Text="{Binding Initials}"
                                                    FontAttributes="Bold"
                                                    FontSize="20"
-                                                   TextColor="#10B981"
+                                                   TextColor="{StaticResource Primary}"
                                                    HorizontalOptions="Center"
                                                    VerticalOptions="Center" />
                                             <Image Source="{Binding LogoUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
@@ -87,12 +87,12 @@
                                         </Grid>
                                     </Border>
                                     <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" TextColor="#111827" />
-                                        <Label Text="{Binding BusinessTypeLabel}" FontSize="11" TextColor="#10B981" FontAttributes="Bold" />
-                                        <Label Text="{Binding Address}" IsVisible="{Binding HasAddress}" FontSize="11" TextColor="#6B7280" MaxLines="2" LineBreakMode="TailTruncation" />
-                                        <Label Text="{Binding Phone, StringFormat='📞 {0}'}" IsVisible="{Binding HasPhone}" FontSize="11" TextColor="#4B5563" MaxLines="1" />
+                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource TextPrimary}" />
+                                        <Label Text="{Binding BusinessTypeLabel}" FontSize="11" TextColor="{StaticResource Primary}" FontAttributes="Bold" />
+                                        <Label Text="{Binding Address}" IsVisible="{Binding HasAddress}" FontSize="11" TextColor="{StaticResource TextSecondary}" MaxLines="2" LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding Phone, StringFormat='📞 {0}'}" IsVisible="{Binding HasPhone}" FontSize="11" TextColor="{StaticResource Gray600}" MaxLines="1" />
                                     </VerticalStackLayout>
-                                    <Label Grid.Column="2" Text="›" FontSize="24" TextColor="#10B981" VerticalOptions="Center" />
+                                    <Label Grid.Column="2" Text="›" FontSize="24" TextColor="{StaticResource Primary}" VerticalOptions="Center" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -107,7 +107,7 @@
                      IsVisible="{Binding NeedsBranchSelection, Converter={StaticResource InvertedBoolConverter}}">
             <ScrollView Orientation="Vertical"
                         VerticalScrollBarVisibility="Default"
-                        BackgroundColor="#F9FAFB">
+                        BackgroundColor="{StaticResource PageBackground}">
                 <VerticalStackLayout Spacing="18" Padding="18,12,18,96">
 
                     <!-- ========================================================= -->
@@ -124,8 +124,8 @@
                                 WidthRequest="36"
                                 HeightRequest="36"
                                 StrokeThickness="1.5"
-                                Stroke="#E5E7EB"
-                                BackgroundColor="#ECFDF5"
+                                Stroke="{StaticResource BorderSubtle}"
+                                BackgroundColor="{StaticResource SuccessBackground}"
                                 VerticalOptions="Center">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="18" />
@@ -154,9 +154,9 @@
                                 <TapGestureRecognizer Command="{Binding ChangeBranchCommand}" />
                             </VerticalStackLayout.GestureRecognizers>
 
-                            <Label Text="Deliver To"
+                            <Label Text="{Binding DeliverToHeaderLabel}"
                                    FontSize="10"
-                                   TextColor="#9CA3AF"
+                                   TextColor="{StaticResource Gray400}"
                                    HorizontalTextAlignment="Center" />
 
                             <HorizontalStackLayout Spacing="4" VerticalOptions="Center" HorizontalOptions="Center">
@@ -170,7 +170,7 @@
                                 <Label Text="{Binding SelectedBranch.Name, TargetNullValue='My Home', FallbackValue='My Home'}"
                                        FontSize="13"
                                        FontAttributes="Bold"
-                                       TextColor="#111827"
+                                       TextColor="{StaticResource TextPrimary}"
                                        VerticalOptions="Center"
                                        MaxLines="1"
                                        LineBreakMode="TailTruncation" />
@@ -188,9 +188,9 @@
                             <!-- Cart Button (First, 42x42) -->
                             <Border WidthRequest="42"
                                     HeightRequest="42"
-                                    Stroke="#E5E7EB"
+                                    Stroke="{StaticResource BorderSubtle}"
                                     StrokeThickness="1"
-                                    BackgroundColor="White"
+                                    BackgroundColor="{StaticResource CardBackground}"
                                     VerticalOptions="Center">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="14" />
@@ -208,8 +208,8 @@
                                     <Border WidthRequest="16"
                                             HeightRequest="16"
                                             StrokeThickness="1"
-                                            Stroke="White"
-                                            BackgroundColor="#EF4444"
+                                            Stroke="{StaticResource White}"
+                                            BackgroundColor="{StaticResource BadgeRed}"
                                             HorizontalOptions="End"
                                             VerticalOptions="Start"
                                             Margin="0,2,2,0"
@@ -220,7 +220,7 @@
                                         <Label Text="{Binding CartCount}"
                                                FontSize="9"
                                                FontAttributes="Bold"
-                                               TextColor="White"
+                                               TextColor="{StaticResource White}"
                                                HorizontalTextAlignment="Center"
                                                VerticalTextAlignment="Center" />
                                     </Border>
@@ -230,9 +230,9 @@
                             <!-- Order History Button (Second, 42x42) -->
                             <Border WidthRequest="42"
                                     HeightRequest="42"
-                                    Stroke="#E5E7EB"
+                                    Stroke="{StaticResource BorderSubtle}"
                                     StrokeThickness="1"
-                                    BackgroundColor="White"
+                                    BackgroundColor="{StaticResource CardBackground}"
                                     VerticalOptions="Center">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="14" />
@@ -261,8 +261,8 @@
                         <!-- Search box: Rounded Border (Radius 12), HeightRequest 46, Entry FontSize 12 -->
                         <Border Grid.Column="0"
                                 HeightRequest="46"
-                                BackgroundColor="White"
-                                Stroke="#E5E7EB"
+                                BackgroundColor="{StaticResource CardBackground}"
+                                Stroke="{StaticResource BorderSubtle}"
                                 StrokeThickness="1"
                                 Padding="12,0">
                             <Border.StrokeShape>
@@ -275,17 +275,17 @@
                                        HeightRequest="16"
                                        VerticalOptions="Center" />
                                 <Entry Grid.Column="1"
-                                       Placeholder="Search food, drink, etc"
+                                       Placeholder="{Binding SearchPlaceholder}"
                                        Text="{Binding SearchText, Mode=TwoWay}"
-                                       PlaceholderColor="#9CA3AF"
-                                       TextColor="#111827"
+                                       PlaceholderColor="{StaticResource Gray400}"
+                                       TextColor="{StaticResource TextPrimary}"
                                        FontSize="12"
                                        VerticalOptions="Center"
                                        BackgroundColor="Transparent" />
                                 <Border Grid.Column="2"
                                         WidthRequest="22"
                                         HeightRequest="22"
-                                        BackgroundColor="#F3F4F6"
+                                        BackgroundColor="{StaticResource Gray100}"
                                         StrokeThickness="0"
                                         IsVisible="{Binding HasSearchText}"
                                         VerticalOptions="Center">
@@ -296,7 +296,7 @@
                                         <TapGestureRecognizer Command="{Binding ClearSearchCommand}" />
                                     </Border.GestureRecognizers>
                                     <Label Text="✕"
-                                           TextColor="#6B7280"
+                                           TextColor="{StaticResource TextSecondary}"
                                            FontSize="11"
                                            FontAttributes="Bold"
                                            HorizontalOptions="Center"
@@ -309,8 +309,8 @@
                         <Border Grid.Column="1"
                                 WidthRequest="44"
                                 HeightRequest="44"
-                                BackgroundColor="White"
-                                Stroke="#E5E7EB"
+                                BackgroundColor="{StaticResource CardBackground}"
+                                Stroke="{StaticResource BorderSubtle}"
                                 StrokeThickness="1"
                                 VerticalOptions="Center">
                             <Border.StrokeShape>
@@ -331,34 +331,28 @@
                     <!-- ========================================================= -->
                     <!-- 3. PROMO BANNER (DARK CARD)                               -->
                     <!-- ========================================================= -->
-                    <Border BackgroundColor="#111827"
+                    <Border BackgroundColor="{StaticResource DarkBanner}"
                             StrokeThickness="0"
                             Padding="20,18">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="16" />
                         </Border.StrokeShape>
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalOptions="Center">
-                            <!-- Left: Multi-line bold white text: "You have 2x free\ndelivery coupon!" (FontSize 14) -->
                             <Label Grid.Column="0"
-                                   Text="You have 2x free&#10;delivery coupon!"
+                                   Text="{Binding PromoTitle}"
                                    FontSize="14"
                                    FontAttributes="Bold"
-                                   TextColor="White"
+                                   TextColor="{StaticResource White}"
                                    LineHeight="1.25"
                                    VerticalOptions="Center" />
 
-                            <!-- Right: Green Button "Order Now" (HeightRequest 40, FontSize 12, Padding 16,0) -->
-                            <Button Grid.Column="1"
-                                    Text="Order Now"
-                                    Command="{Binding OrderNowCommand}"
-                                    BackgroundColor="#10B981"
-                                    TextColor="White"
-                                    FontAttributes="Bold"
-                                    FontSize="12"
-                                    CornerRadius="12"
-                                    HeightRequest="40"
-                                    Padding="16,0"
-                                    VerticalOptions="Center" />
+                            <controls:AppButton Grid.Column="1"
+                                                Text="{Binding PromoCtaText}"
+                                                Command="{Binding OrderNowCommand}"
+                                                Variant="Primary"
+                                                ButtonHeight="40"
+                                                CornerRadius="12"
+                                                VerticalOptions="Center" />
                         </Grid>
                     </Border>
 
@@ -386,7 +380,7 @@
                                                 HeightRequest="58"
                                                 Stroke="{Binding CardBorderColor}"
                                                 StrokeThickness="{Binding CardBorderWidth}"
-                                                BackgroundColor="#FFFFFF"
+                                                BackgroundColor="{StaticResource CardBackground}"
                                                 HorizontalOptions="Center">
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer Command="{Binding BindingContext.SelectHomeCategoryCommand, Source={x:Reference ThisPage}}"
@@ -396,7 +390,7 @@
                                                 <RoundRectangle CornerRadius="18" />
                                             </Border.StrokeShape>
                                             <Border.Shadow>
-                                                <Shadow Brush="#10000000"
+                                                <Shadow Brush="{StaticResource ShadowFaint}"
                                                         Offset="0,3"
                                                         Radius="6"
                                                         Opacity="0.8" />
@@ -431,7 +425,7 @@
                                                            VerticalOptions="Center" />
                                                     <Label Text="⠿"
                                                            FontSize="18"
-                                                           TextColor="#10B981"
+                                                           TextColor="{StaticResource Primary}"
                                                            FontAttributes="Bold"
                                                            HorizontalOptions="Center"
                                                            VerticalOptions="Center" />
@@ -468,23 +462,19 @@
                                     <Label Text="Exclusive Deals &amp; Combos"
                                            FontSize="15"
                                            FontAttributes="Bold"
-                                           TextColor="#111827"
+                                           TextColor="{StaticResource TextPrimary}"
                                            VerticalOptions="Center" />
                                 </HorizontalStackLayout>
                                 <Label Text="Save more with customizable multi-item value meals"
                                        FontSize="11"
-                                       TextColor="#6B7280" />
+                                       TextColor="{StaticResource TextSecondary}" />
                             </VerticalStackLayout>
-                            <Button Grid.Column="1"
-                                    Text="View all"
-                                    Command="{Binding ViewAllMenuCommand}"
-                                    BackgroundColor="Transparent"
-                                    TextColor="#10B981"
-                                    FontAttributes="Bold"
-                                    FontSize="11"
-                                    Padding="0"
-                                    HeightRequest="24"
-                                    VerticalOptions="Center" />
+                            <controls:AppButton Grid.Column="1"
+                                                Text="View all"
+                                                Command="{Binding ViewAllMenuCommand}"
+                                                Variant="Outline"
+                                                ButtonHeight="24"
+                                                VerticalOptions="Center" />
                         </Grid>
 
                         <!-- Horizontal CollectionView for Combos / Deals (~2 cards visible) -->
@@ -499,8 +489,8 @@
                             <CollectionView.ItemTemplate>
                                 <DataTemplate x:DataType="models:OnlineProductDto">
                                     <Border WidthRequest="168"
-                                            BackgroundColor="White"
-                                            Stroke="#E5E7EB"
+                                            BackgroundColor="{StaticResource CardBackground}"
+                                            Stroke="{StaticResource BorderSubtle}"
                                             StrokeThickness="1"
                                             Padding="0"
                                             Margin="0,2,0,6">
@@ -508,7 +498,7 @@
                                             <RoundRectangle CornerRadius="16" />
                                         </Border.StrokeShape>
                                         <Border.Shadow>
-                                            <Shadow Brush="#0A000000" Offset="0,3" Radius="8" Opacity="0.08" />
+                                            <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,3" Radius="8" Opacity="0.08" />
                                         </Border.Shadow>
                                         <Border.GestureRecognizers>
                                             <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerHomeViewModel}}, Path=OpenDealModalCommand}"
@@ -520,20 +510,20 @@
                                                        Aspect="AspectFill"
                                                        HeightRequest="132"
                                                        WidthRequest="168"
-                                                       BackgroundColor="#F3F4F6" />
-                                                <BoxView Color="#22000000" />
+                                                       BackgroundColor="{StaticResource Gray100}" />
+                                                <BoxView Color="{StaticResource ShadowMedium}" />
 
                                                 <Border HorizontalOptions="Start"
                                                         VerticalOptions="Start"
                                                         Margin="6"
-                                                        BackgroundColor="#EF4444"
+                                                        BackgroundColor="{StaticResource BadgeRed}"
                                                         StrokeThickness="0"
                                                         Padding="5,2">
                                                     <Border.StrokeShape>
                                                         <RoundRectangle CornerRadius="6" />
                                                     </Border.StrokeShape>
                                                     <Label Text="{Binding DealDiscountBadge}"
-                                                           TextColor="White"
+                                                           TextColor="{StaticResource White}"
                                                            FontSize="9"
                                                            FontAttributes="Bold" />
                                                 </Border>
@@ -541,14 +531,14 @@
                                                 <Border HorizontalOptions="End"
                                                         VerticalOptions="Start"
                                                         Margin="6"
-                                                        BackgroundColor="#E6111827"
+                                                        BackgroundColor="{StaticResource OverlayScrim}"
                                                         StrokeThickness="0"
                                                         Padding="5,2">
                                                     <Border.StrokeShape>
                                                         <RoundRectangle CornerRadius="6" />
                                                     </Border.StrokeShape>
                                                     <Label Text="CUSTOMIZE"
-                                                           TextColor="#A7F3D0"
+                                                           TextColor="{StaticResource StaffHeroLabel}"
                                                            FontSize="8"
                                                            FontAttributes="Bold" />
                                                 </Border>
@@ -558,13 +548,13 @@
                                                 <Label Text="{Binding Name}"
                                                        FontSize="13"
                                                        FontAttributes="Bold"
-                                                       TextColor="#111827"
+                                                       TextColor="{StaticResource TextPrimary}"
                                                        MaxLines="2"
                                                        LineBreakMode="TailTruncation" />
 
                                                 <Label Text="{Binding Description}"
                                                        FontSize="10"
-                                                       TextColor="#6B7280"
+                                                       TextColor="{StaticResource TextSecondary}"
                                                        MaxLines="2"
                                                        LineBreakMode="TailTruncation"
                                                        HeightRequest="28" />
@@ -577,7 +567,7 @@
                                                                TextColor="{StaticResource PrimaryDark}" />
                                                         <Label Text="{Binding OriginalPriceDisplay}"
                                                                FontSize="10"
-                                                               TextColor="#9CA3AF"
+                                                               TextColor="{StaticResource Gray400}"
                                                                TextDecorations="Strikethrough"
                                                                IsVisible="{Binding HasOriginalPrice}" />
                                                     </VerticalStackLayout>
@@ -615,7 +605,7 @@
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="0">
                             <!-- Left Headings -->
                             <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                <Border BackgroundColor="#ECFDF5"
+                                <Border BackgroundColor="{StaticResource SuccessBackground}"
                                         StrokeThickness="0"
                                         Padding="8,2"
                                         HorizontalOptions="Start">
@@ -625,25 +615,25 @@
                                     <Label Text="WHAT CUSTOMERS SAY"
                                            FontSize="9"
                                            FontAttributes="Bold"
-                                           TextColor="#059669"
+                                           TextColor="{StaticResource PrimaryDark}"
                                            CharacterSpacing="0.8" />
                                 </Border>
 
                                 <Label Text="Customer Feedbacks"
                                        FontSize="16"
                                        FontAttributes="Bold"
-                                       TextColor="#111827"
+                                       TextColor="{StaticResource TextPrimary}"
                                        Margin="0,2,0,0" />
 
                                 <Label Text="Recent delivery ratings at this branch"
                                        FontSize="11"
-                                       TextColor="#6B7280" />
+                                       TextColor="{StaticResource TextSecondary}" />
                             </VerticalStackLayout>
 
                             <!-- Right Side: Rating Summary Card -->
                             <Border Grid.Column="1"
-                                    BackgroundColor="#FFFBEB"
-                                    Stroke="#FDE68A"
+                                    BackgroundColor="{StaticResource WarningBackground}"
+                                    Stroke="{StaticResource WarningBackground}"
                                     StrokeThickness="1"
                                     Padding="10,6"
                                     VerticalOptions="Center">
@@ -655,16 +645,16 @@
                                         <Label Text="{Binding RatingScoreDisplay}"
                                                FontSize="16"
                                                FontAttributes="Bold"
-                                               TextColor="#B45309"
+                                               TextColor="{StaticResource WarningMuted}"
                                                VerticalOptions="Center" />
                                         <Label Text="★"
                                                FontSize="15"
-                                               TextColor="#F59E0B"
+                                               TextColor="{StaticResource StarGold}"
                                                VerticalOptions="Center" />
                                     </HorizontalStackLayout>
                                     <Label Text="{Binding TotalReviewsSubtitle}"
                                            FontSize="9"
-                                           TextColor="#92400E"
+                                           TextColor="{StaticResource WarningText}"
                                            FontAttributes="Bold"
                                            HorizontalTextAlignment="Center" />
                                 </VerticalStackLayout>
@@ -685,8 +675,8 @@
                                 <DataTemplate x:DataType="models:CustomerFeedbackDto">
                                     <Border WidthRequest="270"
                                             HeightRequest="148"
-                                            BackgroundColor="#FFFFFF"
-                                            Stroke="#E2E8F0"
+                                            BackgroundColor="{StaticResource CardBackground}"
+                                            Stroke="{StaticResource AuthInputBorder}"
                                             StrokeThickness="1"
                                             Margin="0,2,0,6"
                                             Padding="12,10">
@@ -694,7 +684,7 @@
                                             <RoundRectangle CornerRadius="14" />
                                         </Border.StrokeShape>
                                         <Border.Shadow>
-                                            <Shadow Brush="#000000"
+                                            <Shadow Brush="{StaticResource Black}"
                                                     Offset="0,2"
                                                     Radius="6"
                                                     Opacity="0.06" />
@@ -719,7 +709,7 @@
                                                     <Grid WidthRequest="36" HeightRequest="36">
                                                         <!-- Initials are always rendered cleanly at center -->
                                                         <Label Text="{Binding Initials}"
-                                                               TextColor="White"
+                                                               TextColor="{StaticResource White}"
                                                                FontAttributes="Bold"
                                                                FontSize="12"
                                                                HorizontalOptions="Center"
@@ -738,12 +728,12 @@
                                                     <Label Text="{Binding CustomerName}"
                                                            FontSize="13"
                                                            FontAttributes="Bold"
-                                                           TextColor="#111827"
+                                                           TextColor="{StaticResource TextPrimary}"
                                                            LineBreakMode="TailTruncation"
                                                            MaxLines="1" />
                                                     <Label Text="{Binding FormattedDate}"
                                                            FontSize="10"
-                                                           TextColor="#718096" />
+                                                           TextColor="{StaticResource AuthMutedText}" />
                                                 </VerticalStackLayout>
 
                                                 <!-- 5 Golden Stars -->
@@ -758,8 +748,8 @@
 
                                             <!-- Middle Row: Food Pill -->
                                             <Border Grid.Row="1"
-                                                    BackgroundColor="#F8FAFC"
-                                                    Stroke="#E2E8F0"
+                                                    BackgroundColor="{StaticResource AuthPageBackground}"
+                                                    Stroke="{StaticResource AuthInputBorder}"
                                                     StrokeThickness="0.5"
                                                     Padding="6,2"
                                                     HorizontalOptions="Start">
@@ -768,7 +758,7 @@
                                                 </Border.StrokeShape>
                                                 <Label Text="{Binding DisplayFoodPill}"
                                                        FontSize="10"
-                                                       TextColor="#475569"
+                                                       TextColor="{StaticResource Slate600}"
                                                        FontAttributes="Bold"
                                                        LineBreakMode="TailTruncation"
                                                        MaxLines="1" />
@@ -780,13 +770,13 @@
                                                        Text="“"
                                                        FontSize="15"
                                                        FontAttributes="Bold"
-                                                       TextColor="#10B981"
+                                                       TextColor="{StaticResource Primary}"
                                                        VerticalOptions="Start"
                                                        Margin="0,-3,0,0" />
                                                 <Label Grid.Column="1"
                                                        Text="{Binding DisplayComment}"
                                                        FontSize="11"
-                                                       TextColor="#4B5563"
+                                                       TextColor="{StaticResource Gray600}"
                                                        FontAttributes="Italic"
                                                        LineBreakMode="TailTruncation"
                                                        MaxLines="2"
@@ -816,14 +806,14 @@
         <!-- 4. Single Product Customization Modal -->
         <Grid IsVisible="{Binding IsProductModalVisible}"
               ZIndex="100"
-              BackgroundColor="#99000000">
+              BackgroundColor="{StaticResource OverlayScrim}">
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Command="{Binding CloseProductModalCommand}" />
             </Grid.GestureRecognizers>
 
             <Border VerticalOptions="Center"
                     HorizontalOptions="Fill"
-                    BackgroundColor="White"
+                    BackgroundColor="{StaticResource CardBackground}"
                     StrokeThickness="0"
                     Padding="0"
                     Margin="16,24"
@@ -839,24 +829,24 @@
                     <Grid HeightRequest="160">
                         <Image Source="{Binding ModalProduct.ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                Aspect="AspectFill"
-                               BackgroundColor="#E2E8F0" />
-                        <BoxView Color="#55000000" />
+                               BackgroundColor="{StaticResource AuthInputBorder}" />
+                        <BoxView Color="{StaticResource OverlayDarkSoft}" />
                         <VerticalStackLayout VerticalOptions="End" Padding="16,12" Spacing="4">
                             <Label Text="{Binding ModalProduct.Name}"
                                    FontSize="20"
                                    FontAttributes="Bold"
-                                   TextColor="White"
+                                   TextColor="{StaticResource White}"
                                    LineBreakMode="TailTruncation"
                                    MaxLines="2" />
                             <Label Text="{Binding ModalProduct.PriceLabel}"
                                    FontSize="14"
                                    FontAttributes="Bold"
-                                   TextColor="#A7F3D0" />
+                                   TextColor="{StaticResource StaffHeroLabel}" />
                         </VerticalStackLayout>
                         <Border WidthRequest="32"
                                 HeightRequest="32"
                                 StrokeThickness="0"
-                                BackgroundColor="#CCFFFFFF"
+                                BackgroundColor="{StaticResource WhiteOverlayMedium}"
                                 HorizontalOptions="End"
                                 VerticalOptions="Start"
                                 Margin="12">
@@ -867,7 +857,7 @@
                                 <TapGestureRecognizer Command="{Binding CloseProductModalCommand}" />
                             </Border.GestureRecognizers>
                             <Label Text="✕"
-                                   TextColor="#111827"
+                                   TextColor="{StaticResource TextPrimary}"
                                    FontSize="13"
                                    FontAttributes="Bold"
                                    HorizontalOptions="Center"
@@ -885,13 +875,13 @@
                                             <Label Text="{Binding Name}"
                                                    FontAttributes="Bold"
                                                    FontSize="14"
-                                                   TextColor="#111827" />
+                                                   TextColor="{StaticResource TextPrimary}" />
                                             <CollectionView ItemsSource="{Binding Options}" SelectionMode="None">
                                                 <CollectionView.ItemTemplate>
                                                     <DataTemplate x:DataType="models:ModifierOptionItem">
-                                                        <Border Stroke="#E5E7EB"
+                                                        <Border Stroke="{StaticResource BorderSubtle}"
                                                                 StrokeThickness="1"
-                                                                BackgroundColor="White"
+                                                                BackgroundColor="{StaticResource CardBackground}"
                                                                 Padding="10,8"
                                                                 Margin="0,0,0,6">
                                                             <Border.StrokeShape>
@@ -905,16 +895,16 @@
                                                                 <Border WidthRequest="18"
                                                                         HeightRequest="18"
                                                                         StrokeThickness="1.5"
-                                                                        Stroke="#10B981"
-                                                                        BackgroundColor="White"
+                                                                        Stroke="{StaticResource Primary}"
+                                                                        BackgroundColor="{StaticResource CardBackground}"
                                                                         VerticalOptions="Center">
                                                                     <Border.StrokeShape>
                                                                         <RoundRectangle CornerRadius="4" />
                                                                     </Border.StrokeShape>
-                                                                    <Label Text="✓" FontSize="11" TextColor="#10B981" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" IsVisible="{Binding IsSelected}" />
+                                                                    <Label Text="✓" FontSize="11" TextColor="{StaticResource Primary}" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" IsVisible="{Binding IsSelected}" />
                                                                 </Border>
-                                                                <Label Grid.Column="1" Text="{Binding Name}" FontSize="13" TextColor="#111827" VerticalOptions="Center" />
-                                                                <Label Grid.Column="2" Text="{Binding PriceLabel}" FontSize="12" FontAttributes="Bold" TextColor="#10B981" VerticalOptions="Center" />
+                                                                <Label Grid.Column="1" Text="{Binding Name}" FontSize="13" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+                                                                <Label Grid.Column="2" Text="{Binding PriceLabel}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Primary}" VerticalOptions="Center" />
                                                             </Grid>
                                                         </Border>
                                                     </DataTemplate>
@@ -929,58 +919,49 @@
 
                     <!-- Bottom Bar -->
                     <Border Grid.Row="2"
-                            BackgroundColor="White"
-                            Stroke="#E5E7EB"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            Stroke="{StaticResource BorderSubtle}"
                             StrokeThickness="1"
                             Padding="16,12">
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalOptions="Center">
-                            <Border Stroke="#E5E7EB"
+                            <Border Stroke="{StaticResource BorderSubtle}"
                                     StrokeThickness="1"
-                                    BackgroundColor="#F9FAFB"
+                                    BackgroundColor="{StaticResource PageBackground}"
                                     Padding="4"
                                     VerticalOptions="Center">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>
                                 <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                                    <Button Text="−"
-                                            WidthRequest="34"
-                                            HeightRequest="34"
-                                            CornerRadius="10"
-                                            Padding="0"
-                                            BackgroundColor="#E5E7EB"
-                                            TextColor="#111827"
-                                            FontAttributes="Bold"
-                                            Command="{Binding DecreaseDetailQtyCommand}" />
+                                    <controls:AppButton Text="−"
+                                                        Variant="QtyDecrease"
+                                                        ButtonHeight="34"
+                                                        CornerRadius="10"
+                                                        Command="{Binding DecreaseDetailQtyCommand}"
+                                                        WidthRequest="34" />
                                     <Label Text="{Binding DetailQuantity}"
                                            FontAttributes="Bold"
                                            FontSize="15"
-                                           TextColor="#111827"
+                                           TextColor="{StaticResource TextPrimary}"
                                            VerticalOptions="Center"
                                            WidthRequest="24"
                                            HorizontalTextAlignment="Center" />
-                                    <Button Text="+"
-                                            WidthRequest="34"
-                                            HeightRequest="34"
-                                            CornerRadius="10"
-                                            Padding="0"
-                                            BackgroundColor="#D1FAE5"
-                                            TextColor="#10B981"
-                                            FontAttributes="Bold"
-                                            Command="{Binding IncreaseDetailQtyCommand}" />
+                                    <controls:AppButton Text="+"
+                                                        Variant="QtyIncrease"
+                                                        ButtonHeight="34"
+                                                        CornerRadius="10"
+                                                        Command="{Binding IncreaseDetailQtyCommand}"
+                                                        WidthRequest="34" />
                                 </HorizontalStackLayout>
                             </Border>
 
-                            <Button Grid.Column="1"
-                                    Text="{Binding ModalTotalLabel, StringFormat='Add to Cart • {0}'}"
-                                    HeightRequest="46"
-                                    CornerRadius="12"
-                                    BackgroundColor="#10B981"
-                                    TextColor="White"
-                                    FontAttributes="Bold"
-                                    FontSize="14"
-                                    Clicked="OnModalAddToCartClicked"
-                                    Command="{Binding AddModalToCartCommand}" />
+                            <controls:AppButton Grid.Column="1"
+                                                Text="{Binding ModalTotalLabel, StringFormat='Add to Cart • {0}'}"
+                                                Variant="Primary"
+                                                ButtonHeight="46"
+                                                CornerRadius="12"
+                                                Clicked="OnModalAddToCartClicked"
+                                                Command="{Binding AddModalToCartCommand}" />
                         </Grid>
                     </Border>
                 </Grid>
@@ -990,14 +971,14 @@
         <!-- 5. Combo Deal Multi-Item Customization Modal Sheet -->
         <Grid IsVisible="{Binding IsComboModalVisible}"
               ZIndex="120"
-              BackgroundColor="#99000000">
+              BackgroundColor="{StaticResource OverlayScrim}">
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Command="{Binding CloseComboModalCommand}" />
             </Grid.GestureRecognizers>
 
             <Border VerticalOptions="Center"
                     HorizontalOptions="Fill"
-                    BackgroundColor="White"
+                    BackgroundColor="{StaticResource CardBackground}"
                     StrokeThickness="0"
                     Padding="0"
                     Margin="14,20"
@@ -1006,7 +987,7 @@
                     <RoundRectangle CornerRadius="24" />
                 </Border.StrokeShape>
                 <Border.Shadow>
-                    <Shadow Brush="#33000000" Offset="0,8" Radius="16" Opacity="0.25" />
+                    <Shadow Brush="{StaticResource ShadowStrong}" Offset="0,8" Radius="16" Opacity="0.25" />
                 </Border.Shadow>
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer />
@@ -1017,14 +998,14 @@
                     <Grid HeightRequest="160">
                         <Image Source="{Binding ComboProduct.ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                Aspect="AspectFill"
-                               BackgroundColor="#1E293B" />
-                        <BoxView Color="#66000000" />
+                               BackgroundColor="{StaticResource Slate800}" />
+                        <BoxView Color="{StaticResource OverlayDarkMedium}" />
 
                         <!-- Close Button -->
                         <Border WidthRequest="34"
                                 HeightRequest="34"
                                 StrokeThickness="0"
-                                BackgroundColor="#CCFFFFFF"
+                                BackgroundColor="{StaticResource WhiteOverlayMedium}"
                                 HorizontalOptions="End"
                                 VerticalOptions="Start"
                                 Margin="12">
@@ -1035,7 +1016,7 @@
                                 <TapGestureRecognizer Command="{Binding CloseComboModalCommand}" />
                             </Border.GestureRecognizers>
                             <Label Text="✕"
-                                   TextColor="#111827"
+                                   TextColor="{StaticResource TextPrimary}"
                                    FontSize="14"
                                    FontAttributes="Bold"
                                    HorizontalOptions="Center"
@@ -1044,7 +1025,7 @@
 
                         <!-- Bottom-left title and meta -->
                         <VerticalStackLayout VerticalOptions="End" Padding="16,12" Spacing="4">
-                            <Border BackgroundColor="#EF4444"
+                            <Border BackgroundColor="{StaticResource BadgeRed}"
                                     StrokeThickness="0"
                                     Padding="6,2"
                                     HorizontalOptions="Start">
@@ -1052,7 +1033,7 @@
                                     <RoundRectangle CornerRadius="6" />
                                 </Border.StrokeShape>
                                 <Label Text="COMBO CUSTOMIZATION"
-                                       TextColor="White"
+                                       TextColor="{StaticResource White}"
                                        FontSize="9"
                                        FontAttributes="Bold" />
                             </Border>
@@ -1060,14 +1041,14 @@
                             <Label Text="{Binding ComboProduct.Name}"
                                    FontSize="20"
                                    FontAttributes="Bold"
-                                   TextColor="White"
+                                   TextColor="{StaticResource White}"
                                    LineBreakMode="TailTruncation"
                                    MaxLines="2" />
 
                             <Label Text="{Binding ComboProduct.PriceDisplay, StringFormat='Base Deal Price: {0}'}"
                                    FontSize="13"
                                    FontAttributes="Bold"
-                                   TextColor="#A7F3D0" />
+                                   TextColor="{StaticResource StaffHeroLabel}" />
                         </VerticalStackLayout>
                     </Grid>
 
@@ -1086,7 +1067,7 @@
                             <Label Text="Loading combo items &amp; choices…"
                                    FontSize="13"
                                    FontAttributes="Bold"
-                                   TextColor="#374151"
+                                   TextColor="{StaticResource Slate650}"
                                    HorizontalTextAlignment="Center" />
                         </VerticalStackLayout>
 
@@ -1097,14 +1078,14 @@
                                 <Label Text="Customize included items in this combo:"
                                        FontSize="12"
                                        FontAttributes="Bold"
-                                       TextColor="#4B5563" />
+                                       TextColor="{StaticResource Gray600}" />
 
                                 <CollectionView ItemsSource="{Binding DealCustomiseItems}"
                                                 SelectionMode="None">
                                     <CollectionView.ItemTemplate>
                                         <DataTemplate x:DataType="models:DealCustomiseItem">
-                                            <Border BackgroundColor="#FFFFFF"
-                                                    Stroke="#E5E7EB"
+                                            <Border BackgroundColor="{StaticResource CardBackground}"
+                                                    Stroke="{StaticResource BorderSubtle}"
                                                     StrokeThickness="1"
                                                     Padding="14"
                                                     Margin="0,0,0,14">
@@ -1112,7 +1093,7 @@
                                                     <RoundRectangle CornerRadius="16" />
                                                 </Border.StrokeShape>
                                                 <Border.Shadow>
-                                                    <Shadow Brush="#0A000000" Offset="0,2" Radius="6" Opacity="0.05" />
+                                                    <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,2" Radius="6" Opacity="0.05" />
                                                 </Border.Shadow>
 
                                                 <VerticalStackLayout Spacing="10">
@@ -1121,7 +1102,7 @@
                                                         <Border WidthRequest="36"
                                                                 HeightRequest="36"
                                                                 StrokeThickness="0"
-                                                                BackgroundColor="#F3F4F6"
+                                                                BackgroundColor="{StaticResource Gray100}"
                                                                 VerticalOptions="Center">
                                                             <Border.StrokeShape>
                                                                 <RoundRectangle CornerRadius="18" />
@@ -1135,11 +1116,11 @@
                                                         <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
                                                             <Label Text="{Binding StepLabel}"
                                                                    FontSize="10"
-                                                                   TextColor="#6B7280" />
+                                                                   TextColor="{StaticResource TextSecondary}" />
                                                             <Label Text="{Binding HeaderTitle}"
                                                                    FontSize="14"
                                                                    FontAttributes="Bold"
-                                                                   TextColor="#111827"
+                                                                   TextColor="{StaticResource TextPrimary}"
                                                                    MaxLines="1"
                                                                    LineBreakMode="TailTruncation" />
                                                         </VerticalStackLayout>
@@ -1161,7 +1142,7 @@
                                                         </Border>
                                                     </Grid>
 
-                                                    <BoxView HeightRequest="1" Color="#F3F4F6" />
+                                                    <BoxView HeightRequest="1" Color="{StaticResource Gray100}" />
 
                                                     <!-- Modifier Groups for this Item -->
                                                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding ModifierGroups}"
@@ -1174,13 +1155,13 @@
                                                                         <Label Text="{Binding Name}"
                                                                                FontSize="13"
                                                                                FontAttributes="Bold"
-                                                                               TextColor="#374151"
+                                                                               TextColor="{StaticResource Slate650}"
                                                                                VerticalOptions="Center" />
 
                                                                         <Label Grid.Column="1"
                                                                                Text="{Binding SelectionRuleHint}"
                                                                                FontSize="11"
-                                                                               TextColor="#9CA3AF"
+                                                                               TextColor="{StaticResource Gray400}"
                                                                                VerticalOptions="Center" />
 
                                                                         <Border Grid.Column="2"
@@ -1268,8 +1249,8 @@
 
                     <!-- Sticky Bottom Bar -->
                     <Border Grid.Row="2"
-                            BackgroundColor="White"
-                            Stroke="#E5E7EB"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            Stroke="{StaticResource BorderSubtle}"
                             StrokeThickness="1"
                             Padding="16,12">
                         <Border.StrokeShape>
@@ -1278,8 +1259,8 @@
                         <VerticalStackLayout Spacing="8">
                             <!-- Validation warning alert (if options missing) -->
                             <Border IsVisible="{Binding HasComboValidationMessage}"
-                                    BackgroundColor="#FEF2F2"
-                                    Stroke="#FECACA"
+                                    BackgroundColor="{StaticResource DangerBackgroundSoft}"
+                                    Stroke="{StaticResource DangerBackground}"
                                     StrokeThickness="1"
                                     Padding="10,6">
                                 <Border.StrokeShape>
@@ -1289,7 +1270,7 @@
                                     <Label Text="⚠️" FontSize="11" VerticalOptions="Center" />
                                     <Label Text="{Binding ComboValidationMessage}"
                                            FontSize="11"
-                                           TextColor="#DC2626"
+                                           TextColor="{StaticResource BadgeRed}"
                                            FontAttributes="Bold"
                                            VerticalOptions="Center" />
                                 </HorizontalStackLayout>
@@ -1297,54 +1278,44 @@
 
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalOptions="Center">
                                 <!-- Quantity Stepper -->
-                                <Border Stroke="#E5E7EB"
+                                <Border Stroke="{StaticResource BorderSubtle}"
                                         StrokeThickness="1"
-                                        BackgroundColor="#F9FAFB"
+                                        BackgroundColor="{StaticResource PageBackground}"
                                         Padding="4"
                                         VerticalOptions="Center">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="12" />
                                     </Border.StrokeShape>
                                     <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                                        <Button Text="−"
-                                                WidthRequest="34"
-                                                HeightRequest="34"
-                                                CornerRadius="10"
-                                                Padding="0"
-                                                BackgroundColor="White"
-                                                TextColor="#374151"
-                                                FontAttributes="Bold"
-                                                Command="{Binding DecreaseComboQtyCommand}" />
+                                        <controls:AppButton Text="−"
+                                                            Variant="QtyDecrease"
+                                                            ButtonHeight="34"
+                                                            CornerRadius="10"
+                                                            Command="{Binding DecreaseComboQtyCommand}"
+                                                            WidthRequest="34" />
                                         <Label Text="{Binding ComboQuantity}"
                                                FontSize="15"
                                                FontAttributes="Bold"
-                                               TextColor="#111827"
+                                               TextColor="{StaticResource TextPrimary}"
                                                VerticalOptions="Center"
                                                WidthRequest="24"
                                                HorizontalTextAlignment="Center" />
-                                        <Button Text="+"
-                                                WidthRequest="34"
-                                                HeightRequest="34"
-                                                CornerRadius="10"
-                                                Padding="0"
-                                                BackgroundColor="{StaticResource PrimaryLight}"
-                                                TextColor="{StaticResource PrimaryDark}"
-                                                FontAttributes="Bold"
-                                                Command="{Binding IncreaseComboQtyCommand}" />
+                                        <controls:AppButton Text="+"
+                                                            Variant="QtyIncrease"
+                                                            ButtonHeight="34"
+                                                            CornerRadius="10"
+                                                            Command="{Binding IncreaseComboQtyCommand}"
+                                                            WidthRequest="34" />
                                     </HorizontalStackLayout>
                                 </Border>
 
-                                <!-- Add to Cart Button -->
-                                <Button Grid.Column="1"
-                                        Text="{Binding ComboTotalLabel, StringFormat='Add Deal to Cart • {0}'}"
-                                        HeightRequest="46"
-                                        CornerRadius="12"
-                                        BackgroundColor="{StaticResource PrimaryDark}"
-                                        TextColor="White"
-                                        FontAttributes="Bold"
-                                        FontSize="14"
-                                        Clicked="OnModalAddToCartClicked"
-                                        Command="{Binding AddComboToCartCommand}" />
+                                <controls:AppButton Grid.Column="1"
+                                                    Text="{Binding ComboTotalLabel, StringFormat='Add Deal to Cart • {0}'}"
+                                                    Variant="StaffPrimary"
+                                                    ButtonHeight="46"
+                                                    CornerRadius="12"
+                                                    Clicked="OnModalAddToCartClicked"
+                                                    Command="{Binding AddComboToCartCommand}" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>

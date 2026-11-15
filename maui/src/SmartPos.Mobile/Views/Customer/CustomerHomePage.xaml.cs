@@ -142,7 +142,9 @@ public partial class CustomerHomePage : ContentPage
             }
             if (bdr != null)
             {
-                bdr.BackgroundColor = Color.FromArgb("#059669");
+                bdr.BackgroundColor = Application.Current?.Resources.TryGetValue("PrimaryDark", out var pd) == true && pd is Color pdc
+                    ? pdc
+                    : Color.FromArgb("#059669");
             }
 
             await view.ScaleTo(1.15, 80, Easing.CubicOut);
@@ -221,7 +223,9 @@ public partial class CustomerHomePage : ContentPage
                 HeightRequest = 24,
                 StrokeThickness = 1.5,
                 Stroke = Colors.White,
-                BackgroundColor = Color.FromArgb("#0F6B4C"),
+                BackgroundColor = Application.Current?.Resources.TryGetValue("StaffPrimary", out var sp) == true && sp is Color spc
+                    ? spc
+                    : Color.FromArgb("#0F6B4C"),
                 InputTransparent = true,
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(12) },
                 Content = new Label

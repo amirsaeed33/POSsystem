@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Models;
 
 public partial class QuickFilterPillItem : ObservableObject
@@ -12,13 +14,13 @@ public partial class QuickFilterPillItem : ObservableObject
     private bool isSelected;
 
     public Color BackgroundColor =>
-        IsSelected ? Color.FromArgb("#0F172A") : Color.FromArgb("#F1F5F9");
+        IsSelected ? ThemeColors.AuthTitleText : ThemeColors.Gray100;
 
     public Color StrokeColor =>
-        IsSelected ? Color.FromArgb("#0F172A") : Color.FromArgb("#E2E8F0");
+        IsSelected ? ThemeColors.AuthTitleText : ThemeColors.AuthInputBorder;
 
     public Color TextColor =>
-        IsSelected ? Colors.White : Color.FromArgb("#475569");
+        IsSelected ? Colors.White : ThemeColors.Slate600;
 
     partial void OnIsSelectedChanged(bool value)
     {

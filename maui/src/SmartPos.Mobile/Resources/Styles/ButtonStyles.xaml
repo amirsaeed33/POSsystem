@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <Style x:Key="PrimaryButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+        <Setter Property="TextColor" Value="{StaticResource White}" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="HeightRequest" Value="48" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="BorderWidth" Value="0" />
+    </Style>
+
+    <Style x:Key="SecondaryButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource AuthSecondaryBackground}" />
+        <Setter Property="TextColor" Value="{StaticResource AuthSecondaryText}" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="CornerRadius" Value="24" />
+        <Setter Property="HeightRequest" Value="46" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="BorderWidth" Value="0" />
+    </Style>
+
+    <Style x:Key="DangerButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource DangerBackground}" />
+        <Setter Property="TextColor" Value="{StaticResource DangerText}" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="CornerRadius" Value="24" />
+        <Setter Property="HeightRequest" Value="50" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="BorderWidth" Value="0" />
+    </Style>
+
+    <Style x:Key="OutlineButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{StaticResource StaffPrimary}" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="HeightRequest" Value="40" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="BorderWidth" Value="0" />
+    </Style>
+
+    <Style x:Key="StaffPrimaryButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource StaffPrimary}" />
+        <Setter Property="TextColor" Value="{StaticResource White}" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="HeightRequest" Value="48" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="BorderWidth" Value="0" />
+    </Style>
+
+    <Style x:Key="AuthPrimaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+        <Setter Property="BackgroundColor" Value="{StaticResource AuthHeroAccent}" />
+        <Setter Property="CornerRadius" Value="24" />
+        <Setter Property="HeightRequest" Value="50" />
+    </Style>
+
+    <Style x:Key="QtyButton" TargetType="Button">
+        <Setter Property="WidthRequest" Value="40" />
+        <Setter Property="HeightRequest" Value="40" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="BorderWidth" Value="0" />
+    </Style>
+
+    <Style x:Key="QtyDecreaseButton" TargetType="Button" BasedOn="{StaticResource QtyButton}">
+        <Setter Property="BackgroundColor" Value="{StaticResource Gray100}" />
+        <Setter Property="TextColor" Value="{StaticResource CartText}" />
+    </Style>
+
+    <Style x:Key="QtyIncreaseButton" TargetType="Button" BasedOn="{StaticResource QtyButton}">
+        <Setter Property="BackgroundColor" Value="{StaticResource CartAccentBackground}" />
+        <Setter Property="TextColor" Value="{StaticResource StaffPrimary}" />
+    </Style>
+
+</ResourceDictionary>

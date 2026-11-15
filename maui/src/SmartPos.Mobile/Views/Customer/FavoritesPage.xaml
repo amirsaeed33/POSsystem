@@ -44,7 +44,7 @@
 
                         <Border Grid.Column="1"
                                 StrokeThickness="0"
-                                BackgroundColor="#FEE2E2"
+                                BackgroundColor="{StaticResource DangerBackground}"
                                 Padding="12,6"
                                 VerticalOptions="Center"
                                 IsVisible="{Binding IsEmptyState, Converter={StaticResource InvertedBoolConverter}}">
@@ -54,7 +54,7 @@
                             <Label Text="{Binding FavoriteCount, StringFormat='{0} Saved'}"
                                    FontSize="12"
                                    FontAttributes="Bold"
-                                   TextColor="#B91C1C" />
+                                   TextColor="{StaticResource DangerText}" />
                         </Border>
                     </Grid>
                 </CollectionView.Header>
@@ -95,15 +95,12 @@
                                    HorizontalTextAlignment="Center"
                                    LineBreakMode="WordWrap" />
 
-                            <Button Text="Explore Menu"
-                                    Command="{Binding BrowseMenuCommand}"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    TextColor="White"
-                                    FontAttributes="Bold"
-                                    CornerRadius="12"
-                                    Margin="0,8,0,0"
-                                    HorizontalOptions="Center"
-                                    Padding="28,12" />
+                            <controls:AppButton Text="Explore Menu"
+                                                Command="{Binding BrowseMenuCommand}"
+                                                Variant="Primary"
+                                                CornerRadius="12"
+                                                Margin="0,8,0,0"
+                                                HorizontalOptions="Center" />
                         </VerticalStackLayout>
                     </Border>
                 </CollectionView.EmptyView>
@@ -118,7 +115,7 @@
                                 <RoundRectangle CornerRadius="16" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="#0A000000" Offset="0,2" Radius="6" Opacity="0.04" />
+                                <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,2" Radius="6" Opacity="0.04" />
                             </Border.Shadow>
                             <Grid ColumnDefinitions="100, *" ColumnSpacing="12">
                                 <Grid Grid.Column="0" WidthRequest="100" HeightRequest="100">
@@ -154,7 +151,7 @@
                                         <Label Text="{Binding DealDiscountBadge}"
                                                FontSize="9"
                                                FontAttributes="Bold"
-                                               TextColor="White" />
+                                               TextColor="{StaticResource White}" />
                                     </Border>
                                 </Grid>
 
@@ -176,7 +173,7 @@
                                                 WidthRequest="32"
                                                 HeightRequest="32"
                                                 StrokeThickness="0"
-                                                BackgroundColor="#FEE2E2"
+                                                BackgroundColor="{StaticResource DangerBackground}"
                                                 VerticalOptions="Start">
                                             <Border.StrokeShape>
                                                 <RoundRectangle CornerRadius="16" />
@@ -229,12 +226,12 @@
                                             </Border.GestureRecognizers>
                                             <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
                                                 <Label Text="+"
-                                                       TextColor="White"
+                                                       TextColor="{StaticResource White}"
                                                        FontSize="13"
                                                        FontAttributes="Bold"
                                                        VerticalOptions="Center" />
                                                 <Label Text="Add"
-                                                       TextColor="White"
+                                                       TextColor="{StaticResource White}"
                                                        FontSize="12"
                                                        FontAttributes="Bold"
                                                        VerticalOptions="Center" />

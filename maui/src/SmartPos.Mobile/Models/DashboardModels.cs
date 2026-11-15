@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Models;
 
 public class DashboardDto
@@ -171,8 +173,8 @@ public class AdminAreaRankItem
     public string ShareText { get; set; } = string.Empty;
     public double BarWidth { get; set; }
     public bool IsTopArea { get; set; }
-    public Color Accent { get; set; } = Color.FromArgb("#0F6B4C");
-    public Color SoftAccent { get; set; } = Color.FromArgb("#DCFCE7");
+    public Color Accent { get; set; } = ThemeColors.StaffPrimary;
+    public Color SoftAccent { get; set; } = ThemeColors.SuccessBackgroundSoft;
 }
 
 public class AdminDayBarItem
@@ -190,5 +192,5 @@ public class AdminTimelineItem
     public string Subtitle { get; set; } = string.Empty;
     public string AmountText { get; set; } = string.Empty;
     public Color Accent { get; set; } = Colors.Gray;
-    public Color AccentSoft { get; set; } = Color.FromArgb("#E2E8F0");
+    public Color AccentSoft { get; set; } = ThemeColors.AuthInputBorder;
 }

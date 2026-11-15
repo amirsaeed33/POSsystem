@@ -1,6 +1,8 @@
 using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Models;
 
 public class OnlineBranchDto
@@ -223,8 +225,8 @@ public class OnlineProductDto : ObservableObject
         }
     }
 
-    public Color FavoriteFillColor => IsFavorite ? Color.FromArgb("#E11D48") : Colors.Transparent;
-    public Color FavoriteStrokeColor => IsFavorite ? Color.FromArgb("#E11D48") : Color.FromArgb("#64748B");
+    public Color FavoriteFillColor => IsFavorite ? ThemeColors.FavoriteAccent : Colors.Transparent;
+    public Color FavoriteStrokeColor => IsFavorite ? ThemeColors.FavoriteAccent : ThemeColors.AuthMutedText;
 
     public string DisplayTag
     {
@@ -478,22 +480,22 @@ public class CustomerOrderDto : EntityDto
 
     public Color StatusTextColor => Status switch
     {
-        0 => Color.FromArgb("#B45309"), // Dark Amber
-        1 => Color.FromArgb("#1D4ED8"), // Dark Blue
-        2 => Color.FromArgb("#B91C1C"), // Dark Red
-        3 => Color.FromArgb("#6D28D9"), // Dark Purple
-        4 or 5 => Color.FromArgb("#047857"), // Dark Emerald Green
-        _ => Color.FromArgb("#374151")
+        0 => ThemeColors.WarningMuted, // Dark Amber
+        1 => ThemeColors.InfoDeep, // Dark Blue
+        2 => ThemeColors.DangerText, // Dark Red
+        3 => ThemeColors.Get("PurpleDeep", "#6D28D9"), // Dark Purple
+        4 or 5 => ThemeColors.Tertiary, // Dark Emerald Green
+        _ => ThemeColors.Slate650
     };
 
     public Color StatusBadgeBgColor => Status switch
     {
-        0 => Color.FromArgb("#FEF3C7"), // Light Amber
-        1 => Color.FromArgb("#DBEAFE"), // Light Blue
-        2 => Color.FromArgb("#FEE2E2"), // Light Red
-        3 => Color.FromArgb("#EDE9FE"), // Light Purple
-        4 or 5 => Color.FromArgb("#D1FAE5"), // Light Emerald
-        _ => Color.FromArgb("#F3F4F6")
+        0 => ThemeColors.WarningBackground, // Light Amber
+        1 => ThemeColors.AuthSubtitleOnHero, // Light Blue
+        2 => ThemeColors.DangerBackground, // Light Red
+        3 => ThemeColors.Get("PurpleSoft", "#EDE9FE"), // Light Purple
+        4 or 5 => ThemeColors.PrimaryLight, // Light Emerald
+        _ => ThemeColors.Gray100
     };
 
     public bool CanReorder => Lines != null && Lines.Any(l => l.ProductId > 0 && l.Quantity > 0);

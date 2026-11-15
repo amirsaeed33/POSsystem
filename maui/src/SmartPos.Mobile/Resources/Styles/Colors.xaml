@@ -17,7 +17,94 @@
     <Color x:Key="TextSecondary">#6B7280</Color>
     <Color x:Key="BorderSubtle">#E5E7EB</Color>
     <Color x:Key="BadgeRed">#EF4444</Color>
+    <Color x:Key="FavoriteAccent">#E11D48</Color>
     <Color x:Key="StarGold">#F59E0B</Color>
+    <Color x:Key="GrowthPositive">#86EFAC</Color>
+    <Color x:Key="GrowthNegative">#FCA5A5</Color>
+    <Color x:Key="PurchaseSoft">#FED7AA</Color>
+    <Color x:Key="SuccessSoft">#BBF7D0</Color>
+    <Color x:Key="InfoSky">#0284C7</Color>
+    <Color x:Key="PurpleAccent">#7C3AED</Color>
+    <Color x:Key="PurpleSoft">#EDE9FE</Color>
+    <Color x:Key="PurpleDeep">#6D28D9</Color>
+    <Color x:Key="OccupiedSoft">#FEECEC</Color>
+    <Color x:Key="BilledSoft">#E8EEF9</Color>
+
+    <!-- Staff / Waiter / Rider / Admin -->
+    <Color x:Key="StaffHero">#0B3D2E</Color>
+    <Color x:Key="StaffHeroAccent">#147A55</Color>
+    <Color x:Key="StaffPrimary">#0F6B4C</Color>
+    <Color x:Key="StaffPageBackground">#EDF3EF</Color>
+    <Color x:Key="StaffPageBackgroundAlt">#F4F7F5</Color>
+    <Color x:Key="StaffHeroMuted">#9CB9AE</Color>
+    <Color x:Key="StaffHeroLabel">#A7F3D0</Color>
+    <Color x:Key="StaffTextOnHero">#C6E6D8</Color>
+    <Color x:Key="StaffInk">#12261D</Color>
+    <Color x:Key="StaffMuted">#8A9690</Color>
+    <Color x:Key="StaffSurfaceCool">#EEF2F0</Color>
+    <Color x:Key="StaffBorderCool">#E8ECEA</Color>
+    <Color x:Key="StaffSuccess">#16A34A</Color>
+
+    <!-- Auth / Login -->
+    <Color x:Key="AuthHero">#1D4ED8</Color>
+    <Color x:Key="AuthHeroAccent">#2563EB</Color>
+    <Color x:Key="AuthPageBackground">#F8FAFC</Color>
+    <Color x:Key="AuthSecondaryBackground">#EFF6FF</Color>
+    <Color x:Key="AuthSecondaryText">#1D4ED8</Color>
+    <Color x:Key="AuthMutedText">#64748B</Color>
+    <Color x:Key="AuthTitleText">#0F172A</Color>
+    <Color x:Key="AuthSubtitleOnHero">#DBEAFE</Color>
+    <Color x:Key="AuthInputBorder">#E2E8F0</Color>
+    <Color x:Key="AuthInputBackground">#F8FAFC</Color>
+    <Color x:Key="AuthPlaceholder">#94A3B8</Color>
+
+    <!-- Surfaces / semantic -->
+    <Color x:Key="SurfaceMuted">#F5F5F5</Color>
+    <Color x:Key="DangerBackground">#FEE2E2</Color>
+    <Color x:Key="DangerBackgroundSoft">#FEF2F2</Color>
+    <Color x:Key="DangerText">#B91C1C</Color>
+    <Color x:Key="InfoBackground">#EFF6FF</Color>
+    <Color x:Key="InfoText">#1E40AF</Color>
+    <Color x:Key="InfoDeep">#1D4ED8</Color>
+    <Color x:Key="IndigoSoft">#E0E7FF</Color>
+    <Color x:Key="SuccessBackground">#ECFDF5</Color>
+    <Color x:Key="SuccessBackgroundSoft">#DCFCE7</Color>
+    <Color x:Key="SuccessText">#065F46</Color>
+    <Color x:Key="WarningBackground">#FEF3C7</Color>
+    <Color x:Key="WarningBackgroundSoft">#FFF7ED</Color>
+    <Color x:Key="WarningText">#92400E</Color>
+    <Color x:Key="WarningStrong">#C2410C</Color>
+    <Color x:Key="WarningMuted">#B45309</Color>
+    <Color x:Key="WarningDeep">#9A3412</Color>
+    <Color x:Key="DangerDeep">#7F1D1D</Color>
+    <Color x:Key="DangerAccent">#B42318</Color>
+    <Color x:Key="WarningOlive">#3F3A12</Color>
+    <Color x:Key="CartAccentBackground">#E7F5EF</Color>
+    <Color x:Key="CartText">#1F2A24</Color>
+    <Color x:Key="CartMuted">#5C6B63</Color>
+    <Color x:Key="CartBorder">#E2E8E4</Color>
+    <Color x:Key="CartSurface">#FAFBFA</Color>
+    <Color x:Key="Slate800">#1E293B</Color>
+    <Color x:Key="Slate700">#334155</Color>
+    <Color x:Key="Slate600">#475569</Color>
+    <Color x:Key="Slate650">#374151</Color>
+    <Color x:Key="TabInactive">#94A3B8</Color>
+    <Color x:Key="DisabledSurface">#CBD5E1</Color>
+
+    <!-- Overlays / shadows (ARGB) -->
+    <Color x:Key="OverlayScrim">#99000000</Color>
+    <Color x:Key="OverlayScrimLight">#40000000</Color>
+    <Color x:Key="OverlayDarkSoft">#55000000</Color>
+    <Color x:Key="OverlayDarkMedium">#66000000</Color>
+    <Color x:Key="WhiteOverlaySoft">#33FFFFFF</Color>
+    <Color x:Key="WhiteOverlayFaint">#22FFFFFF</Color>
+    <Color x:Key="WhiteOverlayMedium">#CCFFFFFF</Color>
+    <Color x:Key="WhiteOverlayStrong">#E6FFFFFF</Color>
+    <Color x:Key="ShadowSoft">#0A000000</Color>
+    <Color x:Key="ShadowMedium">#1A000000</Color>
+    <Color x:Key="ShadowStrong">#33000000</Color>
+    <Color x:Key="ShadowBlack">#000000</Color>
+    <Color x:Key="ShadowFaint">#10000000</Color>
 
     <!-- Additional / Compatibility Colors -->
     <Color x:Key="PrimaryDarkText">#FFFFFF</Color>
@@ -68,4 +155,16 @@
     <SolidColorBrush x:Key="Gray600Brush" Color="{StaticResource Gray600}"/>
     <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}"/>
     <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}"/>
+
+    <SolidColorBrush x:Key="StaffHeroBrush" Color="{StaticResource StaffHero}"/>
+    <SolidColorBrush x:Key="StaffHeroAccentBrush" Color="{StaticResource StaffHeroAccent}"/>
+    <SolidColorBrush x:Key="StaffPrimaryBrush" Color="{StaticResource StaffPrimary}"/>
+    <SolidColorBrush x:Key="StaffPageBackgroundBrush" Color="{StaticResource StaffPageBackground}"/>
+    <SolidColorBrush x:Key="AuthHeroBrush" Color="{StaticResource AuthHero}"/>
+    <SolidColorBrush x:Key="AuthHeroAccentBrush" Color="{StaticResource AuthHeroAccent}"/>
+    <SolidColorBrush x:Key="AuthPageBackgroundBrush" Color="{StaticResource AuthPageBackground}"/>
+    <SolidColorBrush x:Key="SurfaceMutedBrush" Color="{StaticResource SurfaceMuted}"/>
+    <SolidColorBrush x:Key="DangerBackgroundBrush" Color="{StaticResource DangerBackground}"/>
+    <SolidColorBrush x:Key="InfoBackgroundBrush" Color="{StaticResource InfoBackground}"/>
+    <SolidColorBrush x:Key="SuccessBackgroundBrush" Color="{StaticResource SuccessBackground}"/>
 </ResourceDictionary>

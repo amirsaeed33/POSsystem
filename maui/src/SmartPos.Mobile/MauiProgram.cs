@@ -61,6 +61,7 @@ public static class MauiProgram
         builder.Services.AddSingleton(settings);
         builder.Services.AddSingleton<SessionService>();
         builder.Services.AddSingleton<CartService>();
+        builder.Services.AddSingleton<AppState>();
         builder.Services.AddSingleton<ProductCatalogCache>();
         builder.Services.AddSingleton<DeliveryLocationService>();
         builder.Services.AddSingleton<NavigationService>();
