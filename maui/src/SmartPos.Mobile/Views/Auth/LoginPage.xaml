@@ -8,139 +8,480 @@
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
              BackgroundColor="{StaticResource AuthPageBackground}">
-    <Grid RowDefinitions="*,Auto">
+
+    <Grid RowDefinitions="*,Auto" BackgroundColor="{StaticResource AuthPageBackground}">
         <Grid Grid.Row="0">
-        <BoxView Color="{StaticResource AuthHero}" VerticalOptions="Start" HeightRequest="320" />
-        <BoxView Color="{StaticResource AuthHeroAccent}" VerticalOptions="Start" HeightRequest="220" Opacity="0.55" Margin="0,40,0,0" />
-        <Ellipse Fill="{StaticResource WhiteOverlaySoft}" WidthRequest="180" HeightRequest="180"
-                 HorizontalOptions="End" VerticalOptions="Start" Margin="0,-40,-50,0" />
-        <Ellipse Fill="{StaticResource WhiteOverlayFaint}" WidthRequest="120" HeightRequest="120"
-                 HorizontalOptions="Start" VerticalOptions="Start" Margin="-40,90,0,0" />
+            <ScrollView Padding="0" VerticalScrollBarVisibility="Never">
+                <VerticalStackLayout Padding="20,28,20,24" Spacing="16">
 
-        <ScrollView Padding="0">
-            <VerticalStackLayout Padding="20,36,20,24" Spacing="18">
-                <VerticalStackLayout x:Name="BrandHeader"
-                                     Spacing="10"
-                                     Margin="4,8,4,8"
-                                     Opacity="0"
-                                     TranslationY="-16">
-                    <Border WidthRequest="52" HeightRequest="52" StrokeThickness="0" BackgroundColor="{StaticResource White}"
-                            HorizontalOptions="Start">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
-                        </Border.StrokeShape>
-                        <Image Source="logo_aljannat.jpg"
-                               WidthRequest="36"
-                               HeightRequest="36"
-                               Aspect="AspectFill"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center" />
-                    </Border>
-                    <Label Text="Aljannat" FontSize="32" FontAttributes="Bold" TextColor="{StaticResource White}" />
-                    <Label Text="Food ordering  /  Waiter  /  Rider  /  Customer" FontSize="14" TextColor="{StaticResource AuthSubtitleOnHero}" />
-                </VerticalStackLayout>
+                    <!-- ========================================================= -->
+                    <!-- SHARED BRAND HEADER                                       -->
+                    <!-- ========================================================= -->
+                    <VerticalStackLayout x:Name="BrandHeader"
+                                         Spacing="8"
+                                         HorizontalOptions="Center"
+                                         Opacity="0"
+                                         TranslationY="-16">
 
-                <Border x:Name="LoginCard"
-                        BackgroundColor="{StaticResource White}"
-                        StrokeThickness="0"
-                        Padding="20,22"
-                        Margin="0,4,0,0"
-                        Opacity="0"
-                        TranslationY="28">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="24" />
-                    </Border.StrokeShape>
-                    <Border.Shadow>
-                        <Shadow Brush="{StaticResource ShadowStrong}" Offset="0,8" Radius="20" Opacity="0.18" />
-                    </Border.Shadow>
-                    <VerticalStackLayout Spacing="14">
-                        <!-- Logged-in account / logout (same Profile tab for all roles) -->
-                        <VerticalStackLayout Spacing="12" IsVisible="{Binding IsLoggedIn}">
-                            <Label Text="Your account" FontSize="24" FontAttributes="Bold" TextColor="{StaticResource AuthTitleText}" />
-                            <Label Text="{Binding WelcomeName, StringFormat='Signed in as {0}'}"
-                                   FontSize="14"
-                                   TextColor="{StaticResource AuthMutedText}" />
-                            <controls:AppButton Text="Continue to Home"
-                                                Command="{Binding ContinueToRoleHomeCommand}"
-                                                Variant="AuthPrimary" />
-                            <controls:AppButton Text="Continue as customer"
-                                                Command="{Binding ContinueAsCustomerCommand}"
-                                                Variant="Secondary" />
-                            <controls:AppButton Text="Log out"
-                                                Command="{Binding LogoutCommand}"
-                                                Variant="Danger" />
+                        <!-- Gradient emblem -->
+                        <Border WidthRequest="68"
+                                HeightRequest="68"
+                                StrokeThickness="0"
+                                HorizontalOptions="Center"
+                                Padding="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="22" />
+                            </Border.StrokeShape>
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#C84B11" Offset="0.0" />
+                                    <GradientStop Color="#8F3006" Offset="1.0" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Grid>
+                                <Image Source="logo_aljannat.jpg"
+                                       WidthRequest="40"
+                                       HeightRequest="40"
+                                       Aspect="AspectFill"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                                <Border WidthRequest="14"
+                                        HeightRequest="14"
+                                        StrokeThickness="0"
+                                        BackgroundColor="{StaticResource AccentGold}"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="End"
+                                        Margin="0,0,10,10">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="7" />
+                                    </Border.StrokeShape>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Label Text="ALJANNAT"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               CharacterSpacing="3.5"
+                               TextColor="{StaticResource Primary}"
+                               HorizontalTextAlignment="Center" />
+
+                        <!-- Logged-out welcome -->
+                        <VerticalStackLayout Spacing="6"
+                                             IsVisible="{Binding ShowLoginForm}"
+                                             HorizontalOptions="Center">
+                            <Label Text="Welcome to Aljannat"
+                                   FontSize="25"
+                                   FontAttributes="Bold"
+                                   FontFamily="Georgia"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="Sign in to enjoy personalized hospitality &amp; swift orders."
+                                   FontSize="13"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   HorizontalTextAlignment="Center"
+                                   Margin="8,0" />
                         </VerticalStackLayout>
 
-                        <!-- Login form -->
-                        <VerticalStackLayout Spacing="14" IsVisible="{Binding ShowLoginForm}">
-                            <VerticalStackLayout Spacing="4">
-                                <Label Text="Welcome back" FontSize="24" FontAttributes="Bold" TextColor="{StaticResource AuthTitleText}" />
-                                <Label Text="Sign in to your Aljannat account." FontSize="13" TextColor="{StaticResource AuthMutedText}" />
-                            </VerticalStackLayout>
-
-                            <Label Text="Email" FontSize="12" TextColor="{StaticResource AuthMutedText}" />
-                            <Border Stroke="{StaticResource AuthInputBorder}" StrokeThickness="1" BackgroundColor="{StaticResource AuthInputBackground}" Padding="12,2">
+                        <!-- Logged-in greeting -->
+                        <VerticalStackLayout Spacing="8"
+                                             IsVisible="{Binding IsLoggedIn}"
+                                             HorizontalOptions="Center">
+                            <Border BackgroundColor="{StaticResource AccentSaffronSoft}"
+                                    Stroke="{StaticResource AccentGold}"
+                                    StrokeThickness="1"
+                                    Padding="12,5"
+                                    HorizontalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12" />
+                                    <RoundRectangle CornerRadius="14" />
                                 </Border.StrokeShape>
-                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" HeightRequest="46">
-                                    <Image Source="icon_email.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
-                                    <Entry Grid.Column="1"
-                                           Placeholder="name@email.com"
-                                           Text="{Binding UserName}"
-                                           TextColor="{StaticResource AuthTitleText}"
-                                           PlaceholderColor="{StaticResource AuthPlaceholder}"
-                                           BackgroundColor="Transparent"
+                                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                    <Border WidthRequest="6"
+                                            HeightRequest="6"
+                                            StrokeThickness="0"
+                                            BackgroundColor="{StaticResource AccentSaffron}"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="3" />
+                                        </Border.StrokeShape>
+                                    </Border>
+                                    <Label Text="ACTIVE MEMBER SESSION"
+                                           FontSize="10"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource AccentSaffron}"
+                                           CharacterSpacing="1.0"
                                            VerticalOptions="Center" />
-                                </Grid>
+                                </HorizontalStackLayout>
                             </Border>
 
-                            <Label Text="Password" FontSize="12" TextColor="{StaticResource AuthMutedText}" />
-                            <Border Stroke="{StaticResource AuthInputBorder}" StrokeThickness="1" BackgroundColor="{StaticResource AuthInputBackground}" Padding="12,2">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12" />
-                                </Border.StrokeShape>
-                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" HeightRequest="46">
-                                    <Image Source="icon_lock.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
-                                    <Entry Grid.Column="1"
-                                           Placeholder="Enter your password"
-                                           Text="{Binding Password}"
-                                           IsPassword="{Binding IsPasswordHidden}"
-                                           TextColor="{StaticResource AuthTitleText}"
-                                           PlaceholderColor="{StaticResource AuthPlaceholder}"
-                                           BackgroundColor="Transparent"
-                                           VerticalOptions="Center" />
-                                    <Image Grid.Column="2"
-                                           Source="{Binding PasswordEyeIcon}"
-                                           WidthRequest="22"
-                                           HeightRequest="22"
-                                           VerticalOptions="Center">
-                                        <Image.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding TogglePasswordVisibilityCommand}" />
-                                        </Image.GestureRecognizers>
-                                    </Image>
-                                </Grid>
-                            </Border>
-
-                            <controls:AppButton Text="Sign in"
-                                                ImageSource="icon_login.png"
-                                                Command="{Binding LoginCommand}"
-                                                Variant="AuthPrimary"
-                                                Margin="0,6,0,0" />
-
-                            <controls:AppButton Text="Continue as customer"
-                                                Command="{Binding ContinueAsCustomerCommand}"
-                                                Variant="Secondary" />
+                            <Label Text="{Binding WelcomeName, StringFormat='Assalam-o-Alaikum, {0}'}"
+                                   FontSize="24"
+                                   FontAttributes="Bold"
+                                   FontFamily="Georgia"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="Your table &amp; favorite dishes are ready."
+                                   FontSize="13"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   HorizontalTextAlignment="Center" />
                         </VerticalStackLayout>
-
-                        <Label Text="{Binding StatusText}" TextColor="{StaticResource AuthHeroAccent}" FontSize="12" />
                     </VerticalStackLayout>
-                </Border>
-            </VerticalStackLayout>
-        </ScrollView>
 
-        <controls:TransparentBorderLoader IsRunning="{Binding IsBusy}" />
+                    <!-- ========================================================= -->
+                    <!-- LOGIN CARD (animated container)                           -->
+                    <!-- ========================================================= -->
+                    <VerticalStackLayout x:Name="LoginCard"
+                                         Spacing="14"
+                                         Opacity="0"
+                                         TranslationY="28">
+
+                        <!-- STATE A: Sign-in form -->
+                        <Border IsVisible="{Binding ShowLoginForm}"
+                                BackgroundColor="{StaticResource CardBackground}"
+                                Stroke="{StaticResource BorderSubtle}"
+                                StrokeThickness="1"
+                                Padding="20">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="26" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,8" Radius="20" Opacity="0.08" />
+                            </Border.Shadow>
+
+                            <VerticalStackLayout Spacing="14">
+                                <!-- Email -->
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="Email Address"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Border Stroke="{StaticResource BorderSubtle}"
+                                            StrokeThickness="1"
+                                            BackgroundColor="{StaticResource AuthPageBackground}"
+                                            Padding="12,0"
+                                            HeightRequest="50">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="14" />
+                                        </Border.StrokeShape>
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
+                                            <Image Source="icon_email.png"
+                                                   WidthRequest="18"
+                                                   HeightRequest="18"
+                                                   VerticalOptions="Center" />
+                                            <Entry Grid.Column="1"
+                                                   Placeholder="name@email.com"
+                                                   Text="{Binding UserName}"
+                                                   TextColor="{StaticResource TextPrimary}"
+                                                   PlaceholderColor="{StaticResource AuthPlaceholder}"
+                                                   BackgroundColor="Transparent"
+                                                   FontSize="14"
+                                                   VerticalOptions="Center" />
+                                        </Grid>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <!-- Password -->
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="Password"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                    <Border Stroke="{StaticResource BorderSubtle}"
+                                            StrokeThickness="1"
+                                            BackgroundColor="{StaticResource AuthPageBackground}"
+                                            Padding="12,0"
+                                            HeightRequest="50">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="14" />
+                                        </Border.StrokeShape>
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                            <Image Source="icon_lock.png"
+                                                   WidthRequest="18"
+                                                   HeightRequest="18"
+                                                   VerticalOptions="Center" />
+                                            <Entry Grid.Column="1"
+                                                   Placeholder="Enter your password"
+                                                   Text="{Binding Password}"
+                                                   IsPassword="{Binding IsPasswordHidden}"
+                                                   TextColor="{StaticResource TextPrimary}"
+                                                   PlaceholderColor="{StaticResource AuthPlaceholder}"
+                                                   BackgroundColor="Transparent"
+                                                   FontSize="14"
+                                                   VerticalOptions="Center" />
+                                            <Border Grid.Column="2"
+                                                    WidthRequest="36"
+                                                    HeightRequest="36"
+                                                    StrokeThickness="0"
+                                                    BackgroundColor="Transparent"
+                                                    VerticalOptions="Center">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding TogglePasswordVisibilityCommand}" />
+                                                </Border.GestureRecognizers>
+                                                <Image Source="{Binding PasswordEyeIcon}"
+                                                       WidthRequest="20"
+                                                       HeightRequest="20"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <controls:AppButton Text="Sign In"
+                                                    Command="{Binding LoginCommand}"
+                                                    Variant="AuthPrimary"
+                                                    ButtonHeight="52"
+                                                    CornerRadius="14"
+                                                    Margin="0,4,0,0" />
+
+                                <Label Text="{Binding StatusText}"
+                                       TextColor="{StaticResource Primary}"
+                                       FontSize="12"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Guest continuation (logged out only) -->
+                        <VerticalStackLayout Spacing="12" IsVisible="{Binding ShowLoginForm}">
+                            <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="10" VerticalOptions="Center">
+                                <BoxView HeightRequest="1" Color="{StaticResource BorderSubtle}" VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="OR CONTINUE WITHOUT ACCOUNT"
+                                       FontSize="10"
+                                       FontAttributes="Bold"
+                                       CharacterSpacing="1.2"
+                                       TextColor="{StaticResource TextMuted}"
+                                       VerticalOptions="Center"
+                                       HorizontalTextAlignment="Center" />
+                                <BoxView Grid.Column="2" HeightRequest="1" Color="{StaticResource BorderSubtle}" VerticalOptions="Center" />
+                            </Grid>
+
+                            <Border BackgroundColor="{StaticResource CardBackground}"
+                                    Stroke="{StaticResource BorderSubtle}"
+                                    StrokeThickness="1"
+                                    HeightRequest="50"
+                                    Padding="14,0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ContinueAsCustomerCommand}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Continue as Customer"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- STATE B: Active session -->
+                        <VerticalStackLayout Spacing="14" IsVisible="{Binding IsLoggedIn}">
+                            <!-- Profile card -->
+                            <Border BackgroundColor="{StaticResource CardBackground}"
+                                    Stroke="{StaticResource BorderSubtle}"
+                                    StrokeThickness="1"
+                                    Padding="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="26" />
+                                </Border.StrokeShape>
+                                <Border.Shadow>
+                                    <Shadow Brush="{StaticResource ShadowSoft}" Offset="0,8" Radius="20" Opacity="0.08" />
+                                </Border.Shadow>
+
+                                <VerticalStackLayout Spacing="0">
+                                    <!-- Avatar strip -->
+                                    <Border StrokeThickness="0"
+                                            Padding="20,18"
+                                            BackgroundColor="{StaticResource PrimaryLight}">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="26,26,0,0" />
+                                        </Border.StrokeShape>
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" VerticalOptions="Center">
+                                            <Grid WidthRequest="62" HeightRequest="62">
+                                                <Border WidthRequest="62"
+                                                        HeightRequest="62"
+                                                        Stroke="{StaticResource Primary}"
+                                                        StrokeThickness="2.5"
+                                                        BackgroundColor="{StaticResource PrimaryLight}">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="31" />
+                                                    </Border.StrokeShape>
+                                                    <Label Text="{Binding Initials}"
+                                                           FontSize="20"
+                                                           FontAttributes="Bold"
+                                                           FontFamily="Georgia"
+                                                           TextColor="{StaticResource Primary}"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center" />
+                                                </Border>
+                                                <Border WidthRequest="20"
+                                                        HeightRequest="20"
+                                                        StrokeThickness="2"
+                                                        Stroke="{StaticResource White}"
+                                                        BackgroundColor="{StaticResource AccentSaffron}"
+                                                        HorizontalOptions="End"
+                                                        VerticalOptions="End">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="10" />
+                                                    </Border.StrokeShape>
+                                                    <Label Text="✓"
+                                                           FontSize="10"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{StaticResource White}"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center" />
+                                                </Border>
+                                            </Grid>
+
+                                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                                <Label Text="{Binding FullNameDisplay}"
+                                                       FontSize="16"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{StaticResource TextPrimary}"
+                                                       MaxLines="1"
+                                                       LineBreakMode="TailTruncation" />
+                                                <Label Text="{Binding EmailDisplay}"
+                                                       FontSize="12.5"
+                                                       TextColor="{StaticResource TextSecondary}"
+                                                       MaxLines="1"
+                                                       LineBreakMode="TailTruncation" />
+                                                <Border BackgroundColor="{StaticResource CardBackground}"
+                                                        Stroke="{StaticResource PrimaryBorder}"
+                                                        StrokeThickness="1"
+                                                        Padding="8,2"
+                                                        HorizontalOptions="Start"
+                                                        Margin="0,4,0,0">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="6" />
+                                                    </Border.StrokeShape>
+                                                    <Label Text="Verified Member"
+                                                           FontSize="10"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{StaticResource Primary}" />
+                                                </Border>
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Info tiles -->
+                                    <Grid ColumnDefinitions="*,*"
+                                          ColumnSpacing="10"
+                                          Padding="16"
+                                          BackgroundColor="{StaticResource CardBackground}">
+                                        <Border BackgroundColor="{StaticResource AuthPageBackground}"
+                                                Stroke="{StaticResource BorderSubtle}"
+                                                StrokeThickness="1"
+                                                Padding="12">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="14" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="4">
+                                                <Label Text="MEMBER TIER"
+                                                       FontSize="9.5"
+                                                       FontAttributes="Bold"
+                                                       CharacterSpacing="0.8"
+                                                       TextColor="{StaticResource TextMuted}" />
+                                                <Label Text="{Binding MemberTierDisplay}"
+                                                       FontSize="14"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{StaticResource Primary}"
+                                                       MaxLines="2"
+                                                       LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+                                        </Border>
+
+                                        <Border Grid.Column="1"
+                                                BackgroundColor="{StaticResource AuthPageBackground}"
+                                                Stroke="{StaticResource BorderSubtle}"
+                                                StrokeThickness="1"
+                                                Padding="12">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="14" />
+                                            </Border.StrokeShape>
+                                            <VerticalStackLayout Spacing="4">
+                                                <Label Text="ACTIVE BRANCH"
+                                                       FontSize="9.5"
+                                                       FontAttributes="Bold"
+                                                       CharacterSpacing="0.8"
+                                                       TextColor="{StaticResource TextMuted}" />
+                                                <Label Text="{Binding BranchDisplay}"
+                                                       FontSize="14"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{StaticResource TextPrimary}"
+                                                       MaxLines="2"
+                                                       LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Session actions -->
+                            <controls:AppButton Text="Continue to Home →"
+                                                Command="{Binding ContinueToRoleHomeCommand}"
+                                                Variant="AuthPrimary"
+                                                ButtonHeight="52"
+                                                CornerRadius="14" />
+
+                            <Border BackgroundColor="{StaticResource SurfaceSecondary}"
+                                    Stroke="{StaticResource BorderSubtle}"
+                                    StrokeThickness="1"
+                                    HeightRequest="48"
+                                    Padding="14,0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ContinueAsCustomerCommand}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Continue as Guest"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <Border BackgroundColor="{StaticResource DangerBackgroundSoft}"
+                                    Stroke="{StaticResource DangerBackground}"
+                                    StrokeThickness="1"
+                                    HeightRequest="46"
+                                    Padding="14,0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding LogoutCommand}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Log Out"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource BadgeRed}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <Label Text="{Binding StatusText}"
+                                   TextColor="{StaticResource Primary}"
+                                   FontSize="12"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+
+                    <!-- Footer -->
+                    <Label Text="Encrypted Session • Aljannat Hospitality Group"
+                           FontSize="11"
+                           TextColor="{StaticResource TextMuted}"
+                           HorizontalTextAlignment="Center"
+                           Margin="0,8,0,12" />
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <controls:TransparentBorderLoader IsRunning="{Binding IsBusy}" />
         </Grid>
+
         <controls:BubbleTabBar Grid.Row="1"
                                x:Name="BottomNav"
                                Mode="Customer"

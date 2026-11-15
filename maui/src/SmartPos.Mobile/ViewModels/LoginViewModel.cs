@@ -29,6 +29,21 @@ public partial class LoginViewModel : BaseViewModel
     [ObservableProperty]
     private string welcomeName = string.Empty;
 
+    [ObservableProperty]
+    private string initials = string.Empty;
+
+    [ObservableProperty]
+    private string fullNameDisplay = string.Empty;
+
+    [ObservableProperty]
+    private string emailDisplay = string.Empty;
+
+    [ObservableProperty]
+    private string memberTierDisplay = string.Empty;
+
+    [ObservableProperty]
+    private string branchDisplay = string.Empty;
+
     public string PasswordEyeIcon => IsPasswordHidden ? "icon_eye_off.png" : "icon_eye.png";
     public bool ShowLoginForm => !IsLoggedIn;
 
@@ -49,11 +64,60 @@ public partial class LoginViewModel : BaseViewModel
     public void RefreshSessionUi()
     {
         IsLoggedIn = _appState.IsAuthenticated;
-        WelcomeName = _appState.User?.Name
-            ?? _appState.User?.UserName
+        var user = _appState.User;
+
+        WelcomeName = user?.Name
+            ?? user?.UserName
             ?? UserName
             ?? "Staff";
-        StatusText = IsLoggedIn ? $"Signed in as {WelcomeName}" : string.Empty;
+
+        FullNameDisplay = !string.IsNullOrWhiteSpace(user?.DisplayName)
+            ? user!.DisplayName
+            : WelcomeName;
+
+        EmailDisplay = !string.IsNullOrWhiteSpace(user?.EmailAddress)
+            ? user!.EmailAddress!
+            : (!string.IsNullOrWhiteSpace(user?.UserName) ? user!.UserName! : WelcomeName);
+
+        Initials = BuildInitials(FullNameDisplay);
+
+        MemberTierDisplay = !string.IsNullOrWhiteSpace(user?.Designation)
+            ? user!.Designation!
+            : (user?.Roles is { Count: > 0 } && !string.IsNullOrWhiteSpace(user.Roles[0])
+                ? user.Roles[0]
+                : "Staff Member");
+
+        BranchDisplay = !string.IsNullOrWhiteSpace(user?.BranchName)
+            ? user!.BranchName!
+            : "Preferred Branch";
+
+        if (IsLoggedIn && string.IsNullOrWhiteSpace(StatusText))
+        {
+            StatusText = $"Signed in as {WelcomeName}";
+        }
+        else if (!IsLoggedIn && StatusText.StartsWith("Signed in as", StringComparison.OrdinalIgnoreCase))
+        {
+            StatusText = string.Empty;
+        }
+    }
+
+    private static string BuildInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "AJ";
+        }
+
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            return $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}";
+        }
+
+        var single = parts[0];
+        return single.Length >= 2
+            ? $"{char.ToUpperInvariant(single[0])}{char.ToUpperInvariant(single[1])}"
+            : char.ToUpperInvariant(single[0]).ToString();
     }
 
     [RelayCommand]
