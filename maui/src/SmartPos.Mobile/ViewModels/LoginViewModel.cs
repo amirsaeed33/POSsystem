@@ -128,7 +128,7 @@ public partial class LoginViewModel : BaseViewModel
     {
         if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(Password))
         {
-            await Shell.Current.DisplayAlert("Login", "Enter username and password.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Login", "Enter username and password.", "OK");
             return;
         }
 

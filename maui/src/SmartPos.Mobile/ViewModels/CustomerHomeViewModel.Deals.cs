@@ -564,7 +564,7 @@ public partial class CustomerHomeViewModel
         {
             if (Shell.Current != null && !string.IsNullOrWhiteSpace(ComboValidationMessage))
             {
-                _ = Shell.Current.DisplayAlert("Choice Required", ComboValidationMessage, "OK");
+                _ = AljannatDialogService.Current.ShowAlertAsync("Choice Required", ComboValidationMessage, "OK");
             }
             return;
         }
@@ -613,7 +613,7 @@ public partial class CustomerHomeViewModel
         {
             if (Shell.Current != null)
             {
-                await Shell.Current.DisplayAlert("Deal Added", $"{dealName} added to your cart!", "OK");
+                await AljannatDialogService.Current.ShowAlertAsync("Deal Added", $"{dealName} added to your cart!", "OK");
             }
         });
     }

@@ -449,10 +449,7 @@ public partial class BubbleTabBar : ContentView
             && string.Equals(route, "//waiter/order", StringComparison.OrdinalIgnoreCase)
             && WaiterOrderSession.CurrentOrder == null)
         {
-            await Shell.Current.DisplayAlert(
-                "Select a table",
-                "Choose a table first, then start the order.",
-                "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Select a table", "Choose a table first, then start the order.", "OK");
             return;
         }
 

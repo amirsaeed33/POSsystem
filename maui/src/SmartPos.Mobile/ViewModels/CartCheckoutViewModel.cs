@@ -457,11 +457,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
             return;
         }
 
-        var confirm = await Shell.Current.DisplayAlert(
-            "Clear Tray",
-            "Remove all items from your tray?",
-            "Clear",
-            "Cancel");
+        var confirm = await AljannatDialogService.Current.ShowConfirmAsync("Clear Tray", "Remove all items from your tray?", "Clear", "Cancel", isDestructive: true);
         if (!confirm)
         {
             return;
@@ -606,15 +602,14 @@ public partial class CartCheckoutViewModel : BaseViewModel
     {
         if (!_cart.Lines.Any())
         {
-            await Shell.Current.DisplayAlert("Cart", "Cart is empty.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Cart", "Cart is empty.", "OK");
             return;
         }
 
         if (IsBelowMinimumOrder)
         {
-            await Shell.Current.DisplayAlert(
-                "Minimum Order Required",
-                $"Minimum order amount for {SelectedArea?.Name ?? "delivery"} is Rs. {MinimumOrderAmount:N0}.\n\nPlease add Rs. {MinimumOrderShortfall:N0} more to place your order.",
+            await AljannatDialogService.Current.ShowAlertAsync(
+                "Minimum Order Required", $"Minimum order amount for {SelectedArea?.Name ?? "delivery"} is Rs. {MinimumOrderAmount:N0}.\n\nPlease add Rs. {MinimumOrderShortfall:N0} more to place your order.",
                 "OK");
             return;
         }
@@ -703,7 +698,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
             var paymentNotice = IsOnlinePaymentSelected
                 ? "\nPayment: Online / Digital Payment (Pending)"
                 : "\nPayment: Cash on Delivery (COD)";
-            await Shell.Current.DisplayAlert("Order placed", $"Order {created.OrderNo} submitted.{paymentNotice}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Order placed", $"Order {created.OrderNo} submitted.{paymentNotice}", "OK");
             await Shell.Current.GoToAsync($"//customer/track?orderNo={Uri.EscapeDataString(created.OrderNo ?? string.Empty)}");
         });
     }
@@ -826,11 +821,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
     {
         if (address == null) return;
 
-        var confirm = await Shell.Current.DisplayAlert(
-            "Delete Address",
-            $"Are you sure you want to delete saved address '{address.DisplayLabel}'?",
-            "Delete",
-            "Cancel");
+        var confirm = await AljannatDialogService.Current.ShowConfirmAsync("Delete Address", $"Are you sure you want to delete saved address '{address.DisplayLabel}'?", "Delete", "Cancel", isDestructive: true);
 
         if (!confirm) return;
 

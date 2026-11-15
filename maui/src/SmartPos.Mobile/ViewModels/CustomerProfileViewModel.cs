@@ -371,14 +371,14 @@ public partial class CustomerProfileViewModel : BaseViewModel
     {
         if (string.IsNullOrWhiteSpace(FullName))
         {
-            await Shell.Current.DisplayAlert("Name Required", "Please enter your name.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Name Required", "Please enter your name.", "OK");
             return false;
         }
 
         var digits = NormalizePhoneDigits(PhoneNumber);
         if (string.IsNullOrWhiteSpace(PhoneNumber) || digits.Length < 7)
         {
-            await Shell.Current.DisplayAlert("Mobile Number Required", "Please enter a valid mobile number (at least 7 digits).", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Mobile Number Required", "Please enter a valid mobile number (at least 7 digits).", "OK");
             return false;
         }
 
@@ -433,13 +433,13 @@ public partial class CustomerProfileViewModel : BaseViewModel
                     Preferences.Default.Set("sp.customerAvatar", ProfilePictureUrl);
                 }
 
-                await Shell.Current.DisplayAlert("Profile Saved", "Your profile details have been saved successfully.", "OK");
+                await AljannatDialogService.Current.ShowAlertAsync("Profile Saved", "Your profile details have been saved successfully.", "OK");
                 await LoadCustomerStatsAndProfileAsync();
                 success = true;
             }
             catch (Exception ex)
             {
-                await Shell.Current.DisplayAlert("Saved Locally", $"Saved on device. Cloud sync note: {ex.Message}", "OK");
+                await AljannatDialogService.Current.ShowAlertAsync("Saved Locally", $"Saved on device. Cloud sync note: {ex.Message}", "OK");
                 success = true;
             }
             finally
@@ -456,7 +456,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
     {
         try
         {
-            var action = await Shell.Current.DisplayActionSheet(
+            var action = await AljannatDialogService.Current.ShowActionSheetAsync(
                 "Profile Picture",
                 "Cancel",
                 HasProfilePicture ? "Remove Photo" : null,
@@ -520,7 +520,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
                 }
                 else
                 {
-                    await Shell.Current.DisplayAlert("Not Supported", "Camera capture is not supported on this device.", "OK");
+                    await AljannatDialogService.Current.ShowAlertAsync("Not Supported", "Camera capture is not supported on this device.", "OK");
                     return;
                 }
             }
@@ -545,7 +545,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
 
                 var bytes = await File.ReadAllBytesAsync(localAvatarFile);
                 var base64 = Convert.ToBase64String(bytes);
-                var dataUri = $"data:image/jpeg;base64,{base64}";
+                var dataUri = $"data:image/jpeg;base64, {base64}";
 
                 ProfilePictureUrl = dataUri;
                 Preferences.Default.Set("sp.customerAvatar", dataUri);
@@ -582,7 +582,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Photo Error", ex.Message, "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Photo Error", ex.Message, "OK");
         }
     }
 
@@ -591,29 +591,26 @@ public partial class CustomerProfileViewModel : BaseViewModel
     {
         const string label = "Address";
 
-        var addressText = await Shell.Current.DisplayPromptAsync(
-            "New Address",
-            "Enter your delivery address:",
+        var addressText = await AljannatDialogService.Current.ShowPromptAsync(
+            "New Address", "Enter your delivery address:",
             "Next",
             "Cancel",
-            "e.g. House 14, Street 5, G-11/3",
-            maxLength: 250);
+            "e.g. House 14, Street 5, G-11/3", initialValue: "");
 
         if (string.IsNullOrWhiteSpace(addressText))
         {
             return;
         }
 
-        var landmarkText = await Shell.Current.DisplayPromptAsync(
+        var landmarkText = await AljannatDialogService.Current.ShowPromptAsync(
             "Landmark (Optional)",
             "Nearby popular spot or delivery instruction:",
             "Save",
             "Skip",
-            "e.g. Near Shell pump / Green gate",
-            maxLength: 100);
+            "e.g. Near Shell pump / Green gate");
 
         var isDefault = SavedAddresses.Count == 0 ||
-            await Shell.Current.DisplayAlert("Default Address", "Set this address as your default delivery location?", "Yes", "No");
+            await AljannatDialogService.Current.ShowConfirmAsync("Default Address", "Set this address as your default delivery location?", "Yes", "No");
 
         try
         {
@@ -629,11 +626,11 @@ public partial class CustomerProfileViewModel : BaseViewModel
 
             await _orders.SaveSavedAddressAsync(input);
             await LoadSavedAddressesAsync();
-            await Shell.Current.DisplayAlert("Address Saved", "Address saved successfully.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Address Saved", "Address saved successfully.", "OK");
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Error", $"Could not save address: {ex.Message}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Error", $"Could not save address: {ex.Message}", "OK");
         }
     }
 
@@ -642,11 +639,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
     {
         if (address == null) return;
 
-        var confirm = await Shell.Current.DisplayAlert(
-            "Delete Address",
-            $"Are you sure you want to delete your '{address.Label}' address?\n\n{address.Address}",
-            "Delete",
-            "Cancel");
+        var confirm = await AljannatDialogService.Current.ShowConfirmAsync("Delete Address", $"Are you sure you want to delete your '{address.Label}' address?\n\n{address.Address}", "Delete", "Cancel", isDestructive: true);
 
         if (!confirm) return;
 
@@ -658,7 +651,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Error", $"Could not delete address: {ex.Message}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Error", $"Could not delete address: {ex.Message}", "OK");
         }
     }
 
@@ -671,8 +664,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
         {
             var input = new SaveCustomerAddressInput
             {
-                Id = address.Id,
-                Label = address.Label,
+                Id = address.Id, Label = address.Label,
                 Address = address.Address,
                 Landmark = address.Landmark,
                 DeliveryAreaId = address.DeliveryAreaId,
@@ -687,7 +679,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Error", $"Could not set default address: {ex.Message}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Error", $"Could not set default address: {ex.Message}", "OK");
         }
     }
 
@@ -874,7 +866,7 @@ public partial class CustomerProfileViewModel : BaseViewModel
         OnPropertyChanged(nameof(HasSavedAddresses));
         OnPropertyChanged(nameof(IsCustomerSignedIn));
 
-        await Shell.Current.DisplayAlert("Logged Out", "You have been signed out of this device session.", "OK");
+        await AljannatDialogService.Current.ShowAlertAsync("Logged Out", "You have been signed out of this device session.", "OK");
         await Shell.Current.GoToAsync("//customer/home");
     }
 

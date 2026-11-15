@@ -112,7 +112,7 @@ public partial class WaiterTablesViewModel : BaseViewModel
     {
         if (_session.BranchId is not int branchId)
         {
-            await Shell.Current.DisplayAlert("Tables", "No branch assigned to this waiter.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Tables", "No branch assigned to this waiter.", "OK");
             return;
         }
 
@@ -251,13 +251,13 @@ public partial class WaiterTablesViewModel : BaseViewModel
         var table = SelectedTable;
         if (table == null)
         {
-            await Shell.Current.DisplayAlert("Select a table", "Choose a table first.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Select a table", "Choose a table first.", "OK");
             return;
         }
 
         if (_session.BranchId is not int branchId)
         {
-            await Shell.Current.DisplayAlert("Order", "No branch assigned to this waiter.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Order", "No branch assigned to this waiter.", "OK");
             return;
         }
 
@@ -283,7 +283,7 @@ public partial class WaiterTablesViewModel : BaseViewModel
                 string? carNumber = null;
                 if (table.IsCarBay)
                 {
-                    carNumber = await Shell.Current.DisplayPromptAsync("Car bay", "Vehicle / plate number", "Open", "Cancel");
+                    carNumber = await AljannatDialogService.Current.ShowPromptAsync("Car bay", "Vehicle / plate number", "Open", "Cancel");
                     if (string.IsNullOrWhiteSpace(carNumber))
                     {
                         return;
@@ -319,7 +319,7 @@ public partial class WaiterTablesViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Order", ex.Message, "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Order", ex.Message, "OK");
         }
         finally
         {

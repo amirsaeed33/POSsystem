@@ -355,7 +355,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
             {
                     var options = group.Options.Select(o => $"{o.Name} (+{o.Price:0.00})").ToArray();
                 if (options.Length == 0) continue;
-                var choice = await Shell.Current.DisplayActionSheet(group.Name ?? "Options", "Skip", null, options);
+                var choice = await AljannatDialogService.Current.ShowActionSheetAsync(group.Name ?? "Options", "Skip", null, options);
                 if (choice == null || choice == "Skip") continue;
                 var opt = group.Options.FirstOrDefault(o => choice.StartsWith(o.Name ?? string.Empty, StringComparison.Ordinal));
                 if (opt != null)
@@ -380,7 +380,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
             }
         }
 
-        var notes = await Shell.Current.DisplayPromptAsync("Kitchen notes", "Optional note for kitchen", "Add", "Skip", placeholder: "No onion, spicy...");
+        var notes = await AljannatDialogService.Current.ShowPromptAsync("Kitchen notes", "Optional note for kitchen", "Add", "Skip", placeholder: "No onion, spicy...");
         _cart.AddOrIncrement(product, 1, modifiers, string.IsNullOrWhiteSpace(notes) ? null : notes);
     }
 
@@ -406,11 +406,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
             return;
         }
 
-        var ok = await Shell.Current.DisplayAlert(
-            "Remove item",
-            $"Remove {line.Name} from this order?",
-            "Remove",
-            "Keep");
+        var ok = await AljannatDialogService.Current.ShowConfirmAsync("Remove item", $"Remove {line.Name} from this order?", "Remove", "Keep", isDestructive: true);
         if (!ok)
         {
             return;
@@ -427,7 +423,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
         if (current == null || _session.BranchId is not int branchId)
         {
             _lastSaveOk = false;
-            await Shell.Current.DisplayAlert("Order", "Open a table first.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Order", "Open a table first.", "OK");
             return;
         }
 
@@ -442,7 +438,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
         if (customerId <= 0)
         {
             _lastSaveOk = false;
-            await Shell.Current.DisplayAlert("Customer", "Select a customer before sending this order.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Customer", "Select a customer before sending this order.", "OK");
             return;
         }
 
@@ -511,11 +507,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
             KotMessage = result.Message ?? (result.HasNewItems ? "KOT ready" : "No new items");
             if (result.HasNewItems && result.NewItems.Any())
             {
-                var confirm = await Shell.Current.DisplayAlert(
-                    "KOT",
-                    $"{result.NewItems.Count} item(s) for kitchen. Confirm printed?",
-                    "Confirm",
-                    "Later");
+                var confirm = await AljannatDialogService.Current.ShowConfirmAsync("KOT", $"{result.NewItems.Count} item(s) for kitchen. Confirm printed?", "Confirm", "Later");
                 if (confirm)
                 {
                     await _restaurant.ConfirmKotPrintAsync(new ConfirmKotPrintDto
@@ -541,7 +533,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
         {
             var billed = await _restaurant.PrintBillAsync(current.Id);
             WaiterOrderSession.CurrentOrder = billed;
-            await Shell.Current.DisplayAlert("Bill", $"Bill printed. Total {billed.GrandTotal:0.00}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Bill", $"Bill printed. Total {billed.GrandTotal:0.00}", "OK");
         });
     }
 
@@ -551,11 +543,11 @@ public partial class WaiterOrderViewModel : BaseViewModel
         var current = WaiterOrderSession.CurrentOrder;
         if (current == null) return;
 
-        var cashText = await Shell.Current.DisplayPromptAsync(
-            "Settle",
-            $"Grand total {current.GrandTotal:0.00}. Cash amount?",
+        var cashText = await AljannatDialogService.Current.ShowPromptAsync(
+            "Settle", $"Grand total {current.GrandTotal:0.00}. Cash amount?",
             "Settle",
             "Cancel",
+            placeholder: null,
             initialValue: current.GrandTotal.ToString("0.00"));
         if (string.IsNullOrWhiteSpace(cashText) || !decimal.TryParse(cashText, out var cash))
         {
@@ -577,7 +569,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
             });
             _cart.Clear();
             WaiterOrderSession.Clear();
-            await Shell.Current.DisplayAlert("Settled", "Order settled.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Settled", "Order settled.", "OK");
             await Shell.Current.GoToAsync("//waiter/tables");
         });
     }
@@ -587,7 +579,11 @@ public partial class WaiterOrderViewModel : BaseViewModel
     {
         var current = WaiterOrderSession.CurrentOrder;
         if (current == null) return;
-        var ok = await Shell.Current.DisplayAlert("Cancel", $"Cancel order {current.OrderNo}?", "Yes", "No");
+        var ok = await AljannatDialogService.Current.ShowConfirmAsync(
+            "Cancel Order", $"Cancel order {current.OrderNo}?",
+            "Yes",
+            "No",
+            isDestructive: true);
         if (!ok) return;
         await RunBusyAsync(async () =>
         {
@@ -603,7 +599,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
     {
         var current = WaiterOrderSession.CurrentOrder;
         if (current == null) return;
-        var ok = await Shell.Current.DisplayAlert("Split bill", "Split this bill equally into 2?", "Split", "Cancel");
+        var ok = await AljannatDialogService.Current.ShowConfirmAsync("Split bill", "Split this bill equally into 2?", "Split", "Cancel");
         if (!ok) return;
         await RunBusyAsync(async () =>
         {
@@ -615,7 +611,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
             });
             WaiterOrderSession.CurrentOrder = split;
             _cart.LoadFromOrder(split);
-            await Shell.Current.DisplayAlert("Split", $"New split order {split.OrderNo}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Split", $"New split order {split.OrderNo}", "OK");
         });
     }
 }

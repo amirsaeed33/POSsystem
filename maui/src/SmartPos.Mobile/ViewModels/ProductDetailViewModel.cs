@@ -493,20 +493,20 @@ public partial class ProductDetailViewModel : BaseViewModel
         {
             if (group.IsRequired && !group.Options.Any(o => o.IsSelected))
             {
-                await Shell.Current.DisplayAlert("Selection Required", $"Please select an option for '{group.Name}'.", "OK");
+                await AljannatDialogService.Current.ShowAlertAsync("Selection Required", $"Please select an option for '{group.Name}'.", "OK");
                 return;
             }
         }
 
         if (!PortionOptions.Any(o => o.IsSelected))
         {
-            await Shell.Current.DisplayAlert("Selection Required", "Please choose a Portion / Meal Option.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Selection Required", "Please choose a Portion / Meal Option.", "OK");
             return;
         }
 
         if (!SpiceOptions.Any(o => o.IsSelected))
         {
-            await Shell.Current.DisplayAlert("Selection Required", "Please choose a Spice & Char Profile.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Selection Required", "Please choose a Spice & Char Profile.", "OK");
             return;
         }
 
@@ -553,7 +553,7 @@ public partial class ProductDetailViewModel : BaseViewModel
 
         if (Shell.Current != null)
         {
-            await Shell.Current.DisplayAlert("Added to Cart", $"{Quantity}x {Product.Name} added to your cart.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Added to Cart", $"{Quantity}x {Product.Name} added to your cart.", "OK");
             await Shell.Current.GoToAsync("..");
         }
     }

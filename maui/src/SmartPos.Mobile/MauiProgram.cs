@@ -66,6 +66,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<DeliveryLocationService>();
         builder.Services.AddSingleton<NavigationService>();
         builder.Services.AddSingleton<LoadingService>();
+        builder.Services.AddSingleton<IAljannatDialogService, AljannatDialogService>();
         builder.Services.AddSingleton(_ =>
         {
             var handler = new HttpClientHandler

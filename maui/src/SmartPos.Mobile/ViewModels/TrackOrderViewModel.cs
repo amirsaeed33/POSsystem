@@ -707,10 +707,7 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
                 {
                     _ = MainThread.InvokeOnMainThreadAsync(() =>
                     {
-                        Shell.Current?.DisplayAlert(
-                            "Delivered!",
-                            "Your order has been delivered! Please rate your experience below.",
-                            "OK");
+                        _ = AljannatDialogService.Current.ShowAlertAsync("Delivered!", "Your order has been delivered! Please rate your experience below.", "OK");
                     });
                 }
             }
@@ -749,7 +746,7 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Call", $"Could not start the call. {ex.Message}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Call", $"Could not start the call. {ex.Message}", "OK");
         }
     }
 
@@ -775,7 +772,7 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("WhatsApp", $"Could not open WhatsApp. {ex.Message}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("WhatsApp", $"Could not open WhatsApp. {ex.Message}", "OK");
         }
     }
 
@@ -803,7 +800,7 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
     {
         if (string.IsNullOrWhiteSpace(OrderNo))
         {
-            await Shell.Current.DisplayAlert("Track", "Enter an order number (for example ORD-00012).", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Track", "Enter an order number (for example ORD-00012).", "OK");
             return;
         }
 
@@ -848,11 +845,12 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
             return;
         }
 
-        var confirm = await Shell.Current.DisplayAlert(
+        var confirm = await AljannatDialogService.Current.ShowConfirmAsync(
             "Cancel Order",
             $"Cancel order {Order.FormattedOrderNo}? This cannot be undone once the kitchen starts preparing.",
             "Yes, Cancel",
-            "Keep Order");
+            "Keep Order",
+            isDestructive: true);
 
         if (!confirm)
         {
@@ -869,20 +867,19 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
             if (updated != null)
             {
                 Order = updated;
-                await Shell.Current.DisplayAlert("Cancelled", "Your order has been cancelled.", "OK");
+                await AljannatDialogService.Current.ShowAlertAsync("Cancelled", "Your order has been cancelled.", "OK");
             }
             else
             {
-                await Shell.Current.DisplayAlert(
-                    "Cancel",
-                    "Could not cancel this order. It may already be in the kitchen.",
+                await AljannatDialogService.Current.ShowAlertAsync(
+                    "Cancel", "Could not cancel this order. It may already be in the kitchen.",
                     "OK");
                 await TrackAsync();
             }
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Cancel", $"Error: {ex.Message}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Cancel", $"Error: {ex.Message}", "OK");
         }
         finally
         {
@@ -897,9 +894,8 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
     {
         if (Order == null || !Order.CanReorder)
         {
-            await Shell.Current.DisplayAlert(
-                "Re-order",
-                "This order does not have any items available to re-order.",
+            await AljannatDialogService.Current.ShowAlertAsync(
+                "Re-order", "This order does not have any items available to re-order.",
                 "OK");
             return;
         }
@@ -907,7 +903,7 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
         var clearCart = true;
         if (_cart.Lines.Count > 0)
         {
-            var action = await Shell.Current.DisplayActionSheet(
+            var action = await AljannatDialogService.Current.ShowActionSheetAsync(
                 "You have items in your cart. How would you like to proceed?",
                 "Cancel",
                 null,
@@ -925,10 +921,7 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
         var count = _cart.ReorderFromCustomerOrder(Order, clearCart);
         if (count > 0)
         {
-            await Shell.Current.DisplayAlert(
-                "Added to Cart",
-                $"{count} item(s) from order #{Order.FormattedOrderNo} added to your cart.",
-                "Checkout Now");
+            await AljannatDialogService.Current.ShowAlertAsync("Added to Cart", $"{count} item(s) from order #{Order.FormattedOrderNo} added to your cart.", "Checkout Now");
             await Shell.Current.GoToAsync("//customer/cart");
         }
     }
@@ -1177,22 +1170,18 @@ public partial class TrackOrderViewModel : BaseViewModel, IDisposable
                 IsReviewSubmitted = true;
                 NotifyRatingProperties();
 
-                await Shell.Current.DisplayAlert(
-                    "Thank you",
-                    "Your hospitality review was saved.",
-                    "OK");
+                await AljannatDialogService.Current.ShowAlertAsync("Thank you", "Your hospitality review was saved.", "OK");
             }
             else
             {
-                await Shell.Current.DisplayAlert(
-                    "Rating",
-                    "Could not save your review. Please check your connection and try again.",
+                await AljannatDialogService.Current.ShowAlertAsync(
+                    "Rating", "Could not save your review. Please check your connection and try again.",
                     "OK");
             }
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Rating", $"Error: {ex.Message}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Rating", $"Error: {ex.Message}", "OK");
         }
         finally
         {

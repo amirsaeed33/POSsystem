@@ -326,10 +326,7 @@ public partial class OrderHistoryViewModel : BaseViewModel
         {
             if (Shell.Current != null)
             {
-                await Shell.Current.DisplayAlert(
-                    "Re-order",
-                    "This order does not have any items available to re-order.",
-                    "OK");
+                await AljannatDialogService.Current.ShowAlertAsync("Re-order", "This order does not have any items available to re-order.", "OK");
             }
 
             return;
@@ -341,10 +338,7 @@ public partial class OrderHistoryViewModel : BaseViewModel
         {
             if (Shell.Current != null)
             {
-                await Shell.Current.DisplayAlert(
-                    "Re-order",
-                    "No items could be added to your cart from this order.",
-                    "OK");
+                await AljannatDialogService.Current.ShowAlertAsync("Re-order", "No items could be added to your cart from this order.", "OK");
             }
 
             return;
@@ -403,7 +397,7 @@ public partial class OrderHistoryViewModel : BaseViewModel
             await Clipboard.Default.SetTextAsync(orderNo.Trim());
             if (Shell.Current != null)
             {
-                await Shell.Current.DisplayAlert("Copied", $"Order #{orderNo} copied to clipboard.", "OK");
+                await AljannatDialogService.Current.ShowAlertAsync("Copied", $"Order #{orderNo} copied to clipboard.", "OK");
             }
         }
         catch (Exception ex)
