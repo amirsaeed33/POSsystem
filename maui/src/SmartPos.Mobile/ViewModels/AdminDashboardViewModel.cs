@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using SmartPos.Mobile.Helpers;
 using SmartPos.Mobile.Models;
 using SmartPos.Mobile.Services;
 
@@ -34,7 +35,7 @@ public class AdminDashboardViewModel : BaseViewModel
     private bool _hasChartData;
     private bool _hasTimeline;
     private bool _hasAreaStats;
-    private Color _growthColor = Color.FromArgb("#86EFAC");
+    private Color _growthColor = ThemeColors.Get("GrowthPositive", "#D9822B");
 
     public AdminDashboardViewModel(DashboardService dashboard, SessionService session)
     {
@@ -269,8 +270,8 @@ public class AdminDashboardViewModel : BaseViewModel
             ExpensesTodayText = FormatMoney(dash.TodayExpenses);
             GrowthText = $"{(dash.IsGrowthPositive ? "+" : "")}{dash.GrowthPercentage:0.#}%";
             GrowthColor = dash.IsGrowthPositive
-                ? Color.FromArgb("#86EFAC")
-                : Color.FromArgb("#FCA5A5");
+                ? ThemeColors.Get("GrowthPositive", "#D9822B")
+                : ThemeColors.Get("GrowthNegative", "#FDECEB");
             SalesCountText = $"{dash.QuickActions?.TodaySalesCount ?? 0} sales today";
 
             InStockText = dash.InStockCount.ToString();
@@ -342,8 +343,8 @@ public class AdminDashboardViewModel : BaseViewModel
                     ShareText = $"{area.SharePercent:0.#}%",
                     BarWidth = Math.Max(12, (double)area.OrderCount / maxAreaOrders * 220),
                     IsTopArea = isTop,
-                    Accent = isTop ? Color.FromArgb("#0F6B4C") : Color.FromArgb("#64748B"),
-                    SoftAccent = isTop ? Color.FromArgb("#DCFCE7") : Color.FromArgb("#F1F5F9")
+                    Accent = isTop ? ThemeColors.StaffPrimary : ThemeColors.AuthMutedText,
+                    SoftAccent = isTop ? ThemeColors.SuccessBackgroundSoft : ThemeColors.Gray100
                 });
             }
 
@@ -387,10 +388,10 @@ public class AdminDashboardViewModel : BaseViewModel
     private static (Color Accent, Color Soft) ResolveAccent(string? type) =>
         type?.ToLowerInvariant() switch
         {
-            "sale" => (Color.FromArgb("#0F6B4C"), Color.FromArgb("#BBF7D0")),
-            "purchase" => (Color.FromArgb("#C2410C"), Color.FromArgb("#FED7AA")),
-            "expense" => (Color.FromArgb("#B91C1C"), Color.FromArgb("#FECACA")),
-            _ => (Color.FromArgb("#475569"), Color.FromArgb("#E2E8F0"))
+            "sale" => (ThemeColors.StaffPrimary, ThemeColors.Get("SuccessSoft", "#FEF6EB")),
+            "purchase" => (ThemeColors.WarningStrong, ThemeColors.Get("PurchaseSoft", "#FDF4E3")),
+            "expense" => (ThemeColors.DangerText, ThemeColors.Get("DangerBackground", "#FDECEB")),
+            _ => (ThemeColors.Slate600, ThemeColors.AuthInputBorder)
         };
 
     private static string FormatMoney(decimal value) => $"Rs {value:0.##}";

@@ -21,6 +21,7 @@ public partial class TrackOrderPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        Shell.SetNavBarIsVisible(this, false);
         Shell.SetTabBarIsVisible(this, false);
         await _vm.AppearingAsync();
     }

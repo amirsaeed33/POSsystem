@@ -31,14 +31,46 @@ public static class MauiProgram
 #endif
             });
 
-#if WINDOWS
+        // Remove native Entry/Editor underlines — custom Border wrappers provide the visible outline.
         Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
         {
+#if ANDROID
+            handler.PlatformView.Background = null;
+            handler.PlatformView.SetBackgroundColor(Android.Graphics.Color.Transparent);
+            handler.PlatformView.BackgroundTintList =
+                Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+#elif IOS || MACCATALYST
+            handler.PlatformView.BorderStyle = UIKit.UITextBorderStyle.None;
+            handler.PlatformView.BackgroundColor = UIKit.UIColor.Clear;
+#elif WINDOWS
             handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
-            handler.PlatformView.GotFocus += (s, e) =>
+            handler.PlatformView.GotFocus += (_, _) =>
             {
                 handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
             };
+#endif
+        });
+
+        Microsoft.Maui.Handlers.EditorHandler.Mapper.AppendToMapping("NoUnderline", (handler, view) =>
+        {
+#if ANDROID
+            handler.PlatformView.Background = null;
+            handler.PlatformView.SetBackgroundColor(Android.Graphics.Color.Transparent);
+            handler.PlatformView.BackgroundTintList =
+                Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
+#elif IOS || MACCATALYST
+            handler.PlatformView.BackgroundColor = UIKit.UIColor.Clear;
+#elif WINDOWS
+            handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
+#endif
+        });
+
+#if ANDROID
+        // GraphicsView native surface defaults to black — keep it clear for curved nav overlays.
+        Microsoft.Maui.Handlers.GraphicsViewHandler.Mapper.AppendToMapping("TransparentSurface", (handler, view) =>
+        {
+            handler.PlatformView.SetBackgroundColor(Android.Graphics.Color.Transparent);
+            handler.PlatformView.SetBackgroundResource(0);
         });
 #endif
 
@@ -61,10 +93,12 @@ public static class MauiProgram
         builder.Services.AddSingleton(settings);
         builder.Services.AddSingleton<SessionService>();
         builder.Services.AddSingleton<CartService>();
+        builder.Services.AddSingleton<AppState>();
         builder.Services.AddSingleton<ProductCatalogCache>();
         builder.Services.AddSingleton<DeliveryLocationService>();
         builder.Services.AddSingleton<NavigationService>();
         builder.Services.AddSingleton<LoadingService>();
+        builder.Services.AddSingleton<IAljannatDialogService, AljannatDialogService>();
         builder.Services.AddSingleton(_ =>
         {
             var handler = new HttpClientHandler

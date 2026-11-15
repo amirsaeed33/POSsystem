@@ -89,8 +89,9 @@ public partial class CustomerHomePage : ContentPage
                 {
                     _isProgrammaticFeedbackScroll = true;
                     var targetIndex = Math.Clamp(_vm.FeedbackPosition, 0, _vm.Feedbacks.Count - 1);
-                    FeedbacksCollectionView.ScrollTo(targetIndex, animate: true, position: ScrollToPosition.Center);
-                    _ = Task.Delay(600).ContinueWith(_ => _isProgrammaticFeedbackScroll = false);
+                    // animate:false avoids fighting user scroll / timer-driven jank on Android
+                    FeedbacksCollectionView.ScrollTo(targetIndex, animate: false, position: ScrollToPosition.Center);
+                    _ = Task.Delay(200).ContinueWith(_ => _isProgrammaticFeedbackScroll = false);
                 }
             });
         }
@@ -142,7 +143,9 @@ public partial class CustomerHomePage : ContentPage
             }
             if (bdr != null)
             {
-                bdr.BackgroundColor = Color.FromArgb("#059669");
+                bdr.BackgroundColor = Application.Current?.Resources.TryGetValue("PrimaryDark", out var pd) == true && pd is Color pdc
+                    ? pdc
+                    : Color.FromArgb("#8F3006");
             }
 
             await view.ScaleTo(1.15, 80, Easing.CubicOut);
@@ -210,9 +213,9 @@ public partial class CustomerHomePage : ContentPage
                 return;
             }
 
-            // Target position: exact center of bottom navigation Cart tab icon
-            double endX = (Width > 0 ? Width : 360) * 0.375 - 12;
-            double endY = (Height > 0 ? Height : 640) - 44 - 12;
+            // Target: raised center Cart medallion on AljannatBottomNavBar
+            double endX = (Width > 0 ? Width : 360) / 2.0 - 12;
+            double endY = (Height > 0 ? Height : 640) - 52 - 12;
 
             // Spawn lightweight 24x24 circular element
             var dot = new Border
@@ -221,7 +224,9 @@ public partial class CustomerHomePage : ContentPage
                 HeightRequest = 24,
                 StrokeThickness = 1.5,
                 Stroke = Colors.White,
-                BackgroundColor = Color.FromArgb("#0F6B4C"),
+                BackgroundColor = Application.Current?.Resources.TryGetValue("StaffPrimary", out var sp) == true && sp is Color spc
+                    ? spc
+                    : Color.FromArgb("#C84B11"),
                 InputTransparent = true,
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(12) },
                 Content = new Label

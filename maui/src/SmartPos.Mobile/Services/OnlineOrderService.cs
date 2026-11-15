@@ -52,6 +52,7 @@ public class OnlineOrderService
     {
         if (branchId is int bid && !forceRefresh && _cache.TryGetCatalog(bid, out var cached) && cached != null)
         {
+            EnrichProductImages(cached);
             return cached;
         }
 
@@ -60,6 +61,8 @@ public class OnlineOrderService
                 ? $"api/services/app/CustomerOrder/GetOnlineCatalog?branchId={branchId}"
                 : "api/services/app/CustomerOrder/GetOnlineCatalog")
             ?? new List<OnlineProductDto>();
+
+        EnrichProductImages(products);
 
         if (branchId is int branchKey)
         {
@@ -86,6 +89,7 @@ public class OnlineOrderService
         var cacheKey = request.CacheKey;
         if (!forceRefresh && request.SkipCount == 0 && _cache.TryGetCatalogPage(cacheKey, out var cached) && cached != null)
         {
+            EnrichProductImages(cached.Items);
             return cached;
         }
 
@@ -167,6 +171,7 @@ public class OnlineOrderService
                 $"[GetCatalogPageAsync] skip={request.SkipCount} take={request.MaxResultCount} items={page.Items?.Count ?? 0} total={page.TotalCount} in {sw.ElapsedMilliseconds}ms");
 
             page.Items ??= new List<OnlineProductDto>();
+            EnrichProductImages(page.Items);
             if (request.SkipCount == 0)
             {
                 _cache.SetCatalogPage(cacheKey, page);
@@ -436,21 +441,35 @@ public class OnlineOrderService
     /// <summary>Warm modifier cache in the background so size popups open instantly.</summary>
     public void PrefetchModifiersForCatalog(IEnumerable<OnlineProductDto> products)
     {
-        foreach (var product in products.Take(40))
+        // Warm a few modifiers after the UI settles — 40 parallel calls were starving tab switches.
+        var ids = products.Take(6).Select(p => p.Id).ToList();
+        if (ids.Count == 0)
         {
-            var id = product.Id;
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await GetModifiersForProductAsync(id);
-                }
-                catch
-                {
-                    // best-effort warm-up
-                }
-            });
+            return;
         }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(1200);
+                foreach (var id in ids)
+                {
+                    try
+                    {
+                        await GetModifiersForProductAsync(id);
+                    }
+                    catch
+                    {
+                        // best-effort warm-up
+                    }
+                }
+            }
+            catch
+            {
+                // ignored
+            }
+        });
     }
 
     public void InvalidateCatalog(int branchId) => _cache.InvalidateBranch(branchId);
@@ -528,6 +547,28 @@ public class OnlineOrderService
                 Comment = comment
             };
             return await _api.PostAsync<CustomerOrderDto>("api/services/app/CustomerOrder/RateOrder", input);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Anonymous customer cancel for Pending orders (maps to Rejected on the server).
+    /// </summary>
+    public async Task<CustomerOrderDto?> CancelOrderAsync(string orderNo)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(orderNo))
+            {
+                return null;
+            }
+
+            return await _api.PostAsync<CustomerOrderDto>(
+                $"api/services/app/CustomerOrder/CancelOrderByOrderNo?orderNo={Uri.EscapeDataString(orderNo.Trim())}",
+                null);
         }
         catch
         {
@@ -703,4 +744,20 @@ public class OnlineOrderService
     }
 
     public string ResolveImageUrl(string? path) => _api.ResolveImageUrl(path);
+
+    public void EnrichProductImages(IEnumerable<OnlineProductDto>? products)
+    {
+        ProductImageResolver.EnrichAll(products, _api.ResolveImageUrl);
+    }
+
+    public string ResolveProductImageUrl(OnlineProductDto? product)
+    {
+        if (product == null)
+        {
+            return string.Empty;
+        }
+
+        ProductImageResolver.Enrich(product, _api.ResolveImageUrl);
+        return product.ImageUrl ?? string.Empty;
+    }
 }

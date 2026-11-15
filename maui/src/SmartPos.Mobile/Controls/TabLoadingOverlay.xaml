@@ -9,12 +9,12 @@
              IsVisible="{Binding IsTabLoading}"
              ZIndex="9999">
 
-    <Grid BackgroundColor="#40000000"
+    <Grid BackgroundColor="{StaticResource OverlayScrimLight}"
           HorizontalOptions="Fill"
           VerticalOptions="Fill"
           InputTransparent="False">
 
-        <Border BackgroundColor="White"
+        <Border BackgroundColor="{StaticResource CardBackground}"
                 HeightRequest="100"
                 WidthRequest="100"
                 HorizontalOptions="Center"
@@ -23,7 +23,7 @@
                 StrokeShape="RoundRectangle 16"
                 StrokeThickness="0">
             <Border.Shadow>
-                <Shadow Brush="#000000"
+                <Shadow Brush="{StaticResource Black}"
                         Offset="0,4"
                         Radius="10"
                         Opacity="0.15" />

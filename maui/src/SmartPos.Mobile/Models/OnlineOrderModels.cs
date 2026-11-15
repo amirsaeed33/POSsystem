@@ -1,6 +1,8 @@
 using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Models;
 
 public class OnlineBranchDto
@@ -168,7 +170,7 @@ public class OnlineProductDto : ObservableObject
 
     public bool HasDealSummary => !string.IsNullOrWhiteSpace(DealItemsSummary);
     public bool HasOriginalPrice => OriginalPrice.HasValue && OriginalPrice.Value > Price;
-    public string OriginalPriceDisplay => OriginalPrice.HasValue ? $"Rs {OriginalPrice.Value:0}" : string.Empty;
+    public string OriginalPriceDisplay => OriginalPrice.HasValue ? $"Rs. {OriginalPrice.Value:N0}" : string.Empty;
     public string DealDiscountBadge
     {
         get
@@ -188,8 +190,54 @@ public class OnlineProductDto : ObservableObject
 
     public string PriceText => Price.ToString("0.00");
 
-    public string PriceDisplay => $"Rs {Price:0}";
+    public string PriceDisplay => $"Rs. {Price:N0}";
     public string PriceLabel => PriceDisplay;
+    public string PriceDisplayRs => PriceDisplay;
+
+    public string CulinarySubtitle
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(Description))
+            {
+                var text = Description.Trim();
+                return text.Length <= 42 ? text : text[..39].TrimEnd() + "…";
+            }
+
+            if (!string.IsNullOrWhiteSpace(CategoryName))
+            {
+                return CategoryName.Trim();
+            }
+
+            return "Gulberg Kitchen";
+        }
+    }
+
+    public bool HasSignatureBadge =>
+        HasTag ||
+        (!string.IsNullOrWhiteSpace(CategoryName) &&
+         CategoryName.Contains("signature", StringComparison.OrdinalIgnoreCase));
+
+    public string FavoritesBadgeText
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(DisplayTag))
+            {
+                return DisplayTag.Trim().ToUpperInvariant();
+            }
+
+            if (IsDeal)
+            {
+                return "SIGNATURE";
+            }
+
+            return "★ 4.9";
+        }
+    }
+
+    public bool IsWarmPrimaryBadge =>
+        !string.IsNullOrWhiteSpace(DisplayTag) || IsDeal || HasOriginalPrice;
 
     private int cartQty;
     public int CartQty
@@ -223,8 +271,8 @@ public class OnlineProductDto : ObservableObject
         }
     }
 
-    public Color FavoriteFillColor => IsFavorite ? Color.FromArgb("#E11D48") : Colors.Transparent;
-    public Color FavoriteStrokeColor => IsFavorite ? Color.FromArgb("#E11D48") : Color.FromArgb("#64748B");
+    public Color FavoriteFillColor => IsFavorite ? ThemeColors.FavoriteAccent : Colors.Transparent;
+    public Color FavoriteStrokeColor => IsFavorite ? ThemeColors.FavoriteAccent : ThemeColors.AuthMutedText;
 
     public string DisplayTag
     {
@@ -250,6 +298,24 @@ public class OnlineProductDto : ObservableObject
     }
 
     public bool HasTag => !string.IsNullOrWhiteSpace(DisplayTag);
+
+    /// <summary>Outline pill on menu cards: CardTag/Deal/Free Delivery, else category.</summary>
+    public string MenuBadgeText
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(DisplayTag))
+            {
+                return DisplayTag.Trim().ToUpperInvariant();
+            }
+
+            return string.IsNullOrWhiteSpace(CategoryName)
+                ? string.Empty
+                : CategoryName.Trim().ToUpperInvariant();
+        }
+    }
+
+    public bool HasMenuBadge => !string.IsNullOrWhiteSpace(MenuBadgeText);
 
     public string Initials
     {
@@ -423,11 +489,76 @@ public class CustomerOrderDto : EntityDto
 
     public string FormattedOrderNo => string.IsNullOrWhiteSpace(OrderNo) ? $"Order #{Id}" : OrderNo!;
 
-    public string FormattedDate => OrderDate != default 
-        ? OrderDate.ToString("dd MMM yyyy, hh:mm tt") 
+    public string FormattedDate => OrderDate != default
+        ? OrderDate.ToString("dd MMM yyyy, hh:mm tt")
         : string.Empty;
 
-    public string FormattedTotal => $"Rs {TotalAmount:0.##}";
+    public string FormattedTotal => $"Rs. {TotalAmount:N0}";
+
+    public string SubTotalDisplay => $"Rs. {SubTotal:N0}";
+
+    public string DeliveryFeeDisplay => DeliveryFee <= 0 ? "FREE" : $"Rs. {DeliveryFee:N0}";
+
+    public string GrandTotalDisplay => $"Rs. {TotalAmount:N0}";
+
+    public Color DeliveryFeeTextColor => DeliveryFee <= 0
+        ? Color.FromArgb("#D9822B")
+        : Color.FromArgb("#1E1916");
+
+    public string PaymentMethodDisplay
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(PaymentMethod))
+            {
+                return "Cash on Delivery";
+            }
+
+            if (PaymentMethod.Contains("Online", StringComparison.OrdinalIgnoreCase) ||
+                PaymentMethod.Contains("Card", StringComparison.OrdinalIgnoreCase) ||
+                PaymentMethod.Contains("Paid", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Online Paid";
+            }
+
+            if (PaymentMethod.Contains("Cash", StringComparison.OrdinalIgnoreCase) ||
+                PaymentMethod.Contains("COD", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Cash on Delivery";
+            }
+
+            return PaymentMethod.Trim();
+        }
+    }
+
+    public string ReceiptTitle
+    {
+        get
+        {
+            var branch = string.IsNullOrWhiteSpace(BranchName) ? "Aljannat" : BranchName.Trim();
+            return $"{FormattedOrderNo} • {branch}";
+        }
+    }
+
+    public string DeliveryAddressDisplay =>
+        string.IsNullOrWhiteSpace(CustomerAddress) ? "Address not provided" : CustomerAddress.Trim();
+
+    public bool HasDeliveryAddress => !string.IsNullOrWhiteSpace(CustomerAddress);
+
+    public string NotesDisplay => string.IsNullOrWhiteSpace(Notes) ? string.Empty : Notes.Trim();
+
+    public bool HasNotes => !string.IsNullOrWhiteSpace(Notes);
+
+    public string StatusBadgeLabel => Status switch
+    {
+        0 => "Pending",
+        1 or 3 => "On the Way",
+        2 => "Cancelled",
+        4 or 5 => "Delivered",
+        _ => StatusDisplayName
+    };
+
+    public string StatusBadgeLabelUpper => StatusBadgeLabel.ToUpperInvariant();
 
     public int TotalItemsCount => (int)Lines.Sum(l => l.Quantity);
 
@@ -444,7 +575,7 @@ public class CustomerOrderDto : EntityDto
 
             var parts = Lines
                 .Where(l => !string.IsNullOrWhiteSpace(l.ProductName))
-                .Select(l => $"{(int)l.Quantity}x {l.ProductName}")
+                .Select(l => $"{(int)l.Quantity}× {l.ProductName}")
                 .ToList();
 
             return parts.Count > 0 ? string.Join(", ", parts) : $"{Lines.Count} items";
@@ -459,9 +590,15 @@ public class CustomerOrderDto : EntityDto
             var branch = BranchName?.Trim();
             if (!string.IsNullOrWhiteSpace(branch) && !string.IsNullOrWhiteSpace(area))
             {
-                return $"{branch} • {area}";
+                return $"{branch}  •  {area}";
             }
-            return branch ?? area ?? "Direct Order";
+
+            if (!string.IsNullOrWhiteSpace(branch))
+            {
+                return $"{branch}  •  Delivery";
+            }
+
+            return area ?? "Direct Order";
         }
     }
 
@@ -476,24 +613,33 @@ public class CustomerOrderDto : EntityDto
         _ => !string.IsNullOrWhiteSpace(StatusName) ? StatusName : $"Status {Status}"
     };
 
+    /// <summary>Active / pending orders that should offer Track Status.</summary>
+    public bool IsActiveOrder => Status is 0 or 1 or 3;
+
+    public string PrimaryActionText => IsActiveOrder ? "Track Status" : "View Receipt";
+
     public Color StatusTextColor => Status switch
     {
-        0 => Color.FromArgb("#B45309"), // Dark Amber
-        1 => Color.FromArgb("#1D4ED8"), // Dark Blue
-        2 => Color.FromArgb("#B91C1C"), // Dark Red
-        3 => Color.FromArgb("#6D28D9"), // Dark Purple
-        4 or 5 => Color.FromArgb("#047857"), // Dark Emerald Green
-        _ => Color.FromArgb("#374151")
+        0 or 1 or 3 => Color.FromArgb("#D9822B"),
+        2 => Color.FromArgb("#B83227"),
+        4 or 5 => Color.FromArgb("#C84B11"),
+        _ => Color.FromArgb("#5C5048")
     };
 
     public Color StatusBadgeBgColor => Status switch
     {
-        0 => Color.FromArgb("#FEF3C7"), // Light Amber
-        1 => Color.FromArgb("#DBEAFE"), // Light Blue
-        2 => Color.FromArgb("#FEE2E2"), // Light Red
-        3 => Color.FromArgb("#EDE9FE"), // Light Purple
-        4 or 5 => Color.FromArgb("#D1FAE5"), // Light Emerald
-        _ => Color.FromArgb("#F3F4F6")
+        0 or 1 or 3 => Color.FromArgb("#FEF6EB"),
+        2 => Color.FromArgb("#FDECEB"),
+        4 or 5 => Color.FromArgb("#FDF1EB"),
+        _ => Color.FromArgb("#F4EFEA")
+    };
+
+    public Color StatusBadgeStrokeColor => Status switch
+    {
+        0 or 1 or 3 => Color.FromArgb("#F3D6B3"),
+        2 => Color.FromArgb("#F5C6C2"),
+        4 or 5 => Color.FromArgb("#F0C4AE"),
+        _ => Color.FromArgb("#EAE2DA")
     };
 
     public bool CanReorder => Lines != null && Lines.Any(l => l.ProductId > 0 && l.Quantity > 0);
@@ -527,14 +673,38 @@ public class CustomerOrderLineDto : EntityDto
 
     [JsonPropertyName("lineTotal")]
     public decimal LineTotal { get; set; }
+
+    public string QuantityLabel => $"{(int)Quantity}×";
+
+    public string DisplayName => string.IsNullOrWhiteSpace(ProductName) ? "Item" : ProductName!;
+
+    public string LineTotalDisplay => $"Rs. {LineTotal:N0}";
+
+    public string TrackLineLabel => $"{QuantityLabel} {DisplayName}";
 }
 
-public class CartLine
+public partial class CartLine : ObservableObject
 {
     public int ProductId { get; set; }
     public string Name { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
-    public decimal Quantity { get; set; } = 1;
+
+    private decimal quantity = 1;
+    public decimal Quantity
+    {
+        get => quantity;
+        set
+        {
+            if (SetProperty(ref quantity, value))
+            {
+                OnPropertyChanged(nameof(LineTotal));
+                OnPropertyChanged(nameof(LineTotalText));
+                OnPropertyChanged(nameof(LineTotalDisplay));
+                OnPropertyChanged(nameof(QuantityText));
+            }
+        }
+    }
+
     public string? ImagePath { get; set; }
     public string? SelectedModifiers { get; set; }
     public string? KitchenNotes { get; set; }
@@ -545,6 +715,10 @@ public class CartLine
     public decimal LineTotal => UnitPrice * Quantity;
     public string LineTotalText => LineTotal.ToString("0.00");
     public string UnitPriceText => UnitPrice.ToString("0.00");
+    public string UnitPriceDisplay => $"Rs. {UnitPrice:0}";
+    public string LineTotalDisplay => $"Rs. {LineTotal:0}";
+    public string QuantityText => Quantity.ToString("0");
+    public bool HasImage => !string.IsNullOrWhiteSpace(ImagePath);
     public bool HasModifiers => !string.IsNullOrWhiteSpace(SelectedModifiers);
     public bool HasKitchenNotes => !string.IsNullOrWhiteSpace(KitchenNotes);
 }

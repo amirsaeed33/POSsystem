@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Models;
 
 public partial class ModifierOptionItem : ObservableObject
@@ -25,17 +27,29 @@ public partial class ModifierOptionItem : ObservableObject
         OnPropertyChanged(nameof(CheckmarkColor));
         OnPropertyChanged(nameof(RadioBorderColor));
         OnPropertyChanged(nameof(TextColor));
+        OnPropertyChanged(nameof(PriceTextColor));
+        OnPropertyChanged(nameof(PillBgColor));
+        OnPropertyChanged(nameof(PillTextColor));
+        OnPropertyChanged(nameof(PillBorderColor));
     }
 
-    public string PriceLabel => Price > 0 ? $"+Rs {Price:0}" : "Included";
+    public string PriceLabel => Price > 0 ? $"+Rs. {Price:0}" : "Included";
     public bool HasPrice => Price > 0;
 
-    public Color CardBorderColor => IsSelected ? Color.FromArgb("#10B981") : Color.FromArgb("#E5E7EB");
-    public Color CardBgColor => IsSelected ? Color.FromArgb("#ECFDF5") : Colors.White;
+    /// <summary>Zero-price multi-select options render as warm pills.</summary>
+    public bool IsPillStyle => AllowMultiple && Price <= 0;
+
+    public Color CardBorderColor => IsSelected ? ThemeColors.Primary : ThemeColors.BorderSubtle;
+    public Color CardBgColor => IsSelected ? ThemeColors.PrimaryLight : ThemeColors.PageBackground;
     public double CardStrokeThickness => IsSelected ? 1.5 : 1.0;
-    public string CheckmarkGlyph => IsSelected ? "✓" : string.Empty;
-    public Color CheckmarkBg => IsSelected ? Color.FromArgb("#10B981") : Colors.Transparent;
+    public string CheckmarkGlyph => IsSelected ? (AllowMultiple ? "✓" : string.Empty) : string.Empty;
+    public Color CheckmarkBg => IsSelected ? ThemeColors.Primary : Colors.Transparent;
     public Color CheckmarkColor => IsSelected ? Colors.White : Colors.Transparent;
-    public Color RadioBorderColor => IsSelected ? Color.FromArgb("#10B981") : Color.FromArgb("#D1D5DB");
-    public Color TextColor => IsSelected ? Color.FromArgb("#065F46") : Color.FromArgb("#111827");
+    public Color RadioBorderColor => IsSelected ? ThemeColors.Primary : ThemeColors.BorderSubtle;
+    public Color TextColor => IsSelected ? ThemeColors.Primary : ThemeColors.TextPrimary;
+    public Color PriceTextColor => IsSelected ? ThemeColors.Primary : ThemeColors.TextSecondary;
+
+    public Color PillBgColor => IsSelected ? ThemeColors.Primary : ThemeColors.PageBackground;
+    public Color PillTextColor => IsSelected ? Colors.White : ThemeColors.TextSecondary;
+    public Color PillBorderColor => IsSelected ? ThemeColors.Primary : ThemeColors.BorderSubtle;
 }

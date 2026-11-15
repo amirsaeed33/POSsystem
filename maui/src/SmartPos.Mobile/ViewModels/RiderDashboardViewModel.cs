@@ -143,7 +143,7 @@ public partial class RiderDashboardViewModel : BaseViewModel
     private async Task RejectAsync(RiderOrderDto? order)
     {
         if (order == null) return;
-        var reason = await Shell.Current.DisplayPromptAsync("Reject order", "Reason", "Reject", "Cancel", "Busy / unavailable");
+        var reason = await AljannatDialogService.Current.ShowPromptAsync("Reject order", "Reason", "Reject", "Cancel", "Busy / unavailable", isDestructive: true);
         if (string.IsNullOrWhiteSpace(reason))
         {
             return;
@@ -160,7 +160,7 @@ public partial class RiderDashboardViewModel : BaseViewModel
     private async Task CompleteAsync(RiderOrderDto? order)
     {
         if (order == null) return;
-        var ok = await Shell.Current.DisplayAlert("Complete", $"Mark {order.OrderNo} as delivered?", "Yes", "No");
+        var ok = await AljannatDialogService.Current.ShowConfirmAsync("Complete", $"Mark {order.OrderNo} as delivered?", "Yes", "No");
         if (!ok) return;
         await RunBusyAsync(async () =>
         {
@@ -175,7 +175,7 @@ public partial class RiderDashboardViewModel : BaseViewModel
         var phone = order?.CustomerPhone?.Trim();
         if (string.IsNullOrWhiteSpace(phone))
         {
-            await Shell.Current.DisplayAlert("Call", "This order has no customer phone.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Call", "This order has no customer phone.", "OK");
             return;
         }
 
@@ -185,7 +185,7 @@ public partial class RiderDashboardViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Call", ex.Message, "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Call", ex.Message, "OK");
         }
     }
 
@@ -200,7 +200,7 @@ public partial class RiderDashboardViewModel : BaseViewModel
         var number = order.WhatsAppNumber;
         if (string.IsNullOrWhiteSpace(number))
         {
-            await Shell.Current.DisplayAlert("WhatsApp", "This order has no customer phone.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("WhatsApp", "This order has no customer phone.", "OK");
             return;
         }
 
@@ -214,7 +214,7 @@ public partial class RiderDashboardViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("WhatsApp", ex.Message, "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("WhatsApp", ex.Message, "OK");
         }
     }
 
@@ -223,7 +223,7 @@ public partial class RiderDashboardViewModel : BaseViewModel
     {
         if (order?.Latitude == null || order.Longitude == null)
         {
-            await Shell.Current.DisplayAlert("Maps", "No location on this order.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Maps", "No location on this order.", "OK");
             return;
         }
 

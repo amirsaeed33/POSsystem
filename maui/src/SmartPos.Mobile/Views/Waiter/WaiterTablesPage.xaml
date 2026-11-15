@@ -10,16 +10,16 @@
              Title="Tables"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#EDF3EF">
+             BackgroundColor="{StaticResource StaffPageBackground}">
 
     <ContentPage.Resources>
         <helpers:StatusToColorConverter x:Key="StatusBg" />
         <helpers:StatusToAccentConverter x:Key="StatusAccent" />
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="*,Auto" BackgroundColor="#EDF3EF">
-        <Grid Grid.Row="0" RowDefinitions="Auto,*,Auto" BackgroundColor="#EDF3EF">
-            <Border BackgroundColor="#0B3D2E"
+    <Grid RowDefinitions="*,Auto" BackgroundColor="{StaticResource StaffPageBackground}">
+        <Grid Grid.Row="0" RowDefinitions="Auto,*,Auto" BackgroundColor="{StaticResource StaffPageBackground}">
+            <Border BackgroundColor="{StaticResource StaffHero}"
                     Padding="18,18,18,16"
                     StrokeThickness="0">
                 <Border.StrokeShape>
@@ -30,49 +30,49 @@
                         <Label Text="WAITER"
                                FontSize="10"
                                FontAttributes="Bold"
-                               TextColor="#A7F3D0"
+                               TextColor="{StaticResource StaffHeroLabel}"
                                CharacterSpacing="1.2" />
                         <Label Text="{Binding BranchName}"
                                FontSize="24"
                                FontAttributes="Bold"
-                               TextColor="White"
+                               TextColor="{StaticResource White}"
                                LineBreakMode="TailTruncation" />
                         <Label Text="Select a table, then start the order"
                                FontSize="13"
-                               TextColor="#9CB9AE" />
+                               TextColor="{StaticResource StaffHeroMuted}" />
                     </VerticalStackLayout>
 
                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                        <Border StrokeThickness="0" BackgroundColor="#147A55" Padding="10,10">
+                        <Border StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="10,10">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="14" />
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="1">
-                                <Label Text="FREE" FontSize="10" TextColor="#A7F3D0" />
-                                <Label Text="{Binding AvailableCount}" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                                <Label Text="FREE" FontSize="10" TextColor="{StaticResource StaffHeroLabel}" />
+                                <Label Text="{Binding AvailableCount}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource White}" />
                             </VerticalStackLayout>
                         </Border>
-                        <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="#147A55" Padding="10,10">
+                        <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="10,10">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="14" />
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="1">
-                                <Label Text="BUSY" FontSize="10" TextColor="#A7F3D0" />
-                                <Label Text="{Binding OccupiedCount}" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                                <Label Text="BUSY" FontSize="10" TextColor="{StaticResource StaffHeroLabel}" />
+                                <Label Text="{Binding OccupiedCount}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource White}" />
                             </VerticalStackLayout>
                         </Border>
-                        <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="#147A55" Padding="10,10">
+                        <Border Grid.Column="2" StrokeThickness="0" BackgroundColor="{StaticResource StaffHeroAccent}" Padding="10,10">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="14" />
                             </Border.StrokeShape>
                             <VerticalStackLayout Spacing="1">
-                                <Label Text="BILLED" FontSize="10" TextColor="#A7F3D0" />
-                                <Label Text="{Binding BilledCount}" FontSize="20" FontAttributes="Bold" TextColor="White" />
+                                <Label Text="BILLED" FontSize="10" TextColor="{StaticResource StaffHeroLabel}" />
+                                <Label Text="{Binding BilledCount}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource White}" />
                             </VerticalStackLayout>
                         </Border>
                     </Grid>
 
-                    <Border BackgroundColor="#F4FBF7"
+                    <Border BackgroundColor="{StaticResource SuccessBackground}"
                             StrokeThickness="0"
                             Padding="12,8">
                         <Border.StrokeShape>
@@ -80,18 +80,18 @@
                         </Border.StrokeShape>
                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                             <Label Text="My tables only"
-                                   TextColor="#0F2A1F"
+                                   TextColor="{StaticResource StaffInk}"
                                    FontAttributes="Bold"
                                    VerticalOptions="Center"
                                    FontSize="14" />
                             <Switch Grid.Column="1"
                                     IsToggled="{Binding MyTablesOnly}"
-                                    OnColor="#0F6B4C"
-                                    ThumbColor="White"
+                                    OnColor="{StaticResource StaffPrimary}"
+                                    ThumbColor="{StaticResource White}"
                                     VerticalOptions="Center" />
                             <Border Grid.Column="2"
                                     StrokeThickness="0"
-                                    BackgroundColor="#0F6B4C"
+                                    BackgroundColor="{StaticResource StaffPrimary}"
                                     Padding="14,8"
                                     VerticalOptions="Center">
                                 <Border.StrokeShape>
@@ -101,7 +101,7 @@
                                     <TapGestureRecognizer Command="{Binding RefreshCommand}" />
                                 </Border.GestureRecognizers>
                                 <Label Text="Refresh"
-                                       TextColor="White"
+                                       TextColor="{StaticResource White}"
                                        FontAttributes="Bold"
                                        FontSize="12"
                                        VerticalOptions="Center" />
@@ -123,34 +123,34 @@
                         <Label Text="No tables yet"
                                FontAttributes="Bold"
                                FontSize="18"
-                               TextColor="#1F2A24"
+                               TextColor="{StaticResource CartText}"
                                HorizontalTextAlignment="Center" />
                         <Label Text="Ask admin to set up dining tables, then refresh."
-                               TextColor="#5C6B63"
+                               TextColor="{StaticResource CartMuted}"
                                HorizontalTextAlignment="Center"
                                FontSize="13" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:RestaurantTableDto">
-                        <Border Stroke="#0F6B4C"
-                                BackgroundColor="White"
+                        <Border Stroke="{StaticResource StaffPrimary}"
+                                BackgroundColor="{StaticResource CardBackground}"
                                 Padding="0">
                             <Border.Triggers>
                                 <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
                                     <Setter Property="StrokeThickness" Value="2" />
-                                    <Setter Property="BackgroundColor" Value="#F4FBF7" />
+                                    <Setter Property="BackgroundColor" Value="{StaticResource SuccessBackground}" />
                                 </DataTrigger>
                                 <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
                                     <Setter Property="StrokeThickness" Value="0" />
-                                    <Setter Property="BackgroundColor" Value="White" />
+                                    <Setter Property="BackgroundColor" Value="{StaticResource White}" />
                                 </DataTrigger>
                             </Border.Triggers>
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="18" />
                             </Border.StrokeShape>
                             <Border.Shadow>
-                                <Shadow Brush="#0B3D2E" Opacity="0.08" Radius="14" Offset="0,6" />
+                                <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="14" Offset="0,6" />
                             </Border.Shadow>
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer
@@ -192,7 +192,7 @@
                                            Text="{Binding DisplayTitle}"
                                            FontAttributes="Bold"
                                            FontSize="17"
-                                           TextColor="#1F2A24"
+                                           TextColor="{StaticResource CartText}"
                                            LineBreakMode="TailTruncation" />
 
                                     <VerticalStackLayout Grid.Column="2"
@@ -214,7 +214,7 @@
                                                IsVisible="{Binding HasElapsed}"
                                                FontSize="14"
                                                FontAttributes="Bold"
-                                               TextColor="#B45309"
+                                               TextColor="{StaticResource WarningMuted}"
                                                HorizontalTextAlignment="End" />
                                     </VerticalStackLayout>
 
@@ -223,7 +223,7 @@
                                            Grid.ColumnSpan="2"
                                            Text="{Binding WaiterDisplay, StringFormat='Waiter  ·  {0}'}"
                                            FontSize="13"
-                                           TextColor="#5C6B63"
+                                           TextColor="{StaticResource CartMuted}"
                                            LineBreakMode="TailTruncation" />
 
                                     <Label Grid.Row="2"
@@ -231,7 +231,7 @@
                                            Grid.ColumnSpan="2"
                                            Text="{Binding MetaLine}"
                                            FontSize="12"
-                                           TextColor="#8A9690"
+                                           TextColor="{StaticResource StaffMuted}"
                                            LineBreakMode="TailTruncation" />
                                 </Grid>
                             </Grid>
@@ -242,29 +242,26 @@
 
             <Border Grid.Row="2"
                     IsVisible="{Binding HasSelectedTable}"
-                    BackgroundColor="White"
+                    BackgroundColor="{StaticResource CardBackground}"
                     StrokeThickness="0"
                     Padding="14,10">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <VerticalStackLayout VerticalOptions="Center" Spacing="1">
                         <Label Text="Selected table"
                                FontSize="11"
-                               TextColor="#8A9690" />
+                               TextColor="{StaticResource StaffMuted}" />
                         <Label Text="{Binding SelectedTableTitle}"
                                FontAttributes="Bold"
                                FontSize="16"
-                               TextColor="#1F2A24"
+                               TextColor="{StaticResource CartText}"
                                LineBreakMode="TailTruncation" />
                     </VerticalStackLayout>
                     <Button Grid.Column="1"
                             Text="{Binding StartOrderText}"
                             Command="{Binding OpenTableCommand}"
-                            BackgroundColor="#0F6B4C"
-                            TextColor="White"
-                            CornerRadius="12"
+                            Style="{StaticResource StaffPrimaryButton}"
                             HeightRequest="44"
-                            Padding="18,0"
-                            FontAttributes="Bold" />
+                            Padding="18,0" />
                 </Grid>
             </Border>
         </Grid>

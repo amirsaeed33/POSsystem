@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Helpers;
 
 public class StatusToColorConverter : IValueConverter
@@ -13,13 +15,12 @@ public class StatusToColorConverter : IValueConverter
             _ => -1
         };
 
-        // Soft brand greens / cool slate — no yellow or peach.
         return status switch
         {
-            0 => Color.FromArgb("#E8F5EF"), // Available
-            1 => Color.FromArgb("#FEECEC"), // Occupied
-            2 => Color.FromArgb("#E8EEF9"), // Billed
-            _ => Color.FromArgb("#F1F3F2")
+            0 => ThemeColors.Get("CartAccentBackground", "#FDF1EB"), // Available
+            1 => ThemeColors.Get("OccupiedSoft", "#FDECEB"), // Occupied
+            2 => ThemeColors.Get("BilledSoft", "#F9E0D2"), // Billed
+            _ => ThemeColors.Gray100
         };
     }
 
@@ -40,10 +41,10 @@ public class StatusToAccentConverter : IValueConverter
 
         return status switch
         {
-            0 => Color.FromArgb("#0F6B4C"),
-            1 => Color.FromArgb("#B42318"),
-            2 => Color.FromArgb("#3558C7"),
-            _ => Color.FromArgb("#5C6B63")
+            0 => ThemeColors.StaffPrimary,
+            1 => ThemeColors.Get("DangerAccent", "#B83227"),
+            2 => ThemeColors.InfoDeep,
+            _ => ThemeColors.Get("CartMuted", "#5C5048")
         };
     }
 

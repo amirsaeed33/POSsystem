@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Models;
 
 public class CustomerFeedbackDto
@@ -94,12 +96,12 @@ public class CustomerFeedbackDto
         {
             var colors = new[]
             {
-                Color.FromArgb("#0F6B4C"),
-                Color.FromArgb("#0284C7"),
-                Color.FromArgb("#D97706"),
-                Color.FromArgb("#7C3AED"),
-                Color.FromArgb("#E11D48"),
-                Color.FromArgb("#059669")
+                ThemeColors.StaffPrimary,
+                ThemeColors.Get("InfoSky", "#D9822B"),
+                ThemeColors.StarGold,
+                ThemeColors.Get("PurpleAccent", "#E89B3C"),
+                ThemeColors.FavoriteAccent,
+                ThemeColors.PrimaryDark
             };
             var index = (int)(Math.Abs(OrderId) % colors.Length);
             return colors[index];
@@ -114,11 +116,11 @@ public class CustomerFeedbackDto
             ? $"🍔 {ItemsSummary}"
             : "🍔 Delicious Customer Favorite";
 
-    public Color Star1Color => Rating >= 1 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#E5E7EB");
-    public Color Star2Color => Rating >= 2 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#E5E7EB");
-    public Color Star3Color => Rating >= 3 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#E5E7EB");
-    public Color Star4Color => Rating >= 4 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#E5E7EB");
-    public Color Star5Color => Rating >= 5 ? Color.FromArgb("#F59E0B") : Color.FromArgb("#E5E7EB");
+    public Color Star1Color => Rating >= 1 ? ThemeColors.StarGold : ThemeColors.BorderSubtle;
+    public Color Star2Color => Rating >= 2 ? ThemeColors.StarGold : ThemeColors.BorderSubtle;
+    public Color Star3Color => Rating >= 3 ? ThemeColors.StarGold : ThemeColors.BorderSubtle;
+    public Color Star4Color => Rating >= 4 ? ThemeColors.StarGold : ThemeColors.BorderSubtle;
+    public Color Star5Color => Rating >= 5 ? ThemeColors.StarGold : ThemeColors.BorderSubtle;
 
     public string StarGlyphs => new string('★', Math.Clamp(Rating, 1, 5));
     public string RatingText => $"{Math.Clamp(Rating, 1, 5)}.0";

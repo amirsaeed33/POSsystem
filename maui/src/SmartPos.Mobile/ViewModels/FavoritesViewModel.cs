@@ -1,11 +1,19 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartPos.Mobile.Helpers;
 using SmartPos.Mobile.Models;
 using SmartPos.Mobile.Services;
 
 namespace SmartPos.Mobile.ViewModels;
+
+public partial class FavoriteCategoryFilter : ObservableObject
+{
+    public string Name { get; set; } = "All";
+
+    [ObservableProperty]
+    private bool isSelected;
+}
 
 public partial class FavoritesViewModel : BaseViewModel
 {
@@ -15,9 +23,11 @@ public partial class FavoritesViewModel : BaseViewModel
     private readonly CartService _cart;
     private int? _loadedBranchId;
     private string _loadedFavoriteKey = string.Empty;
+    private string _selectedCategory = "All";
 
     [ObservableProperty]
     private int favoriteCount;
+
     [ObservableProperty]
     private bool isRefreshing;
 
@@ -28,6 +38,19 @@ public partial class FavoritesViewModel : BaseViewModel
     private int cartCount;
 
     public ObservableCollection<OnlineProductDto> FavoriteProducts { get; } = new();
+    public ObservableCollection<OnlineProductDto> FilteredFavoriteProducts { get; } = new();
+    public ObservableCollection<FavoriteCategoryFilter> CategoryFilters { get; } = new();
+    public ObservableCollection<CartLine> CartLines => _cart.Lines;
+
+    public int SavedCount => FavoriteCount;
+    public string SavedCountLabel => $"{FavoriteCount} Saved";
+    public decimal CartSubtotal => _cart.Subtotal;
+    public string CartSubtotalDisplay => $"Rs. {CartSubtotal:N0}";
+    public bool HasCartItems => CartCount > 0;
+    public bool HasFavorites => !IsEmptyState;
+
+    [ObservableProperty]
+    private bool isTraySheetVisible;
 
     public FavoritesViewModel(
         FavoritesService favorites,
@@ -41,12 +64,15 @@ public partial class FavoritesViewModel : BaseViewModel
         _cart = cart;
         Title = "My Favorites";
         CartCount = _cart.ItemCount;
+        EnsureDefaultFilters();
 
         _favorites.FavoritesChanged += (_, _) =>
         {
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 FavoriteCount = _favorites.Count;
+                OnPropertyChanged(nameof(SavedCount));
+                OnPropertyChanged(nameof(SavedCountLabel));
                 if (!IsBusy)
                 {
                     await LoadFavoritesAsync();
@@ -59,7 +85,14 @@ public partial class FavoritesViewModel : BaseViewModel
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 CartCount = _cart.ItemCount;
+                OnPropertyChanged(nameof(CartSubtotal));
+                OnPropertyChanged(nameof(CartSubtotalDisplay));
+                OnPropertyChanged(nameof(HasCartItems));
                 SyncCartQuantities();
+                if (!HasCartItems)
+                {
+                    IsTraySheetVisible = false;
+                }
             });
         };
     }
@@ -71,6 +104,11 @@ public partial class FavoritesViewModel : BaseViewModel
         {
             FavoriteCount = _favorites.Count;
             CartCount = _cart.ItemCount;
+            OnPropertyChanged(nameof(SavedCount));
+            OnPropertyChanged(nameof(SavedCountLabel));
+            OnPropertyChanged(nameof(CartSubtotal));
+            OnPropertyChanged(nameof(CartSubtotalDisplay));
+            OnPropertyChanged(nameof(HasCartItems));
 
             var favoriteKey = BuildFavoriteKey(_favorites.GetFavoriteIds());
             if (_loadedBranchId.HasValue &&
@@ -93,7 +131,7 @@ public partial class FavoritesViewModel : BaseViewModel
     [RelayCommand]
     public async Task RefreshFavoritesAsync()
     {
-        IsRefreshing = true;
+        // RefreshView may already have set IsRefreshing=true; always clear on UI thread when finished.
         try
         {
             await _favorites.SyncWithServerAsync();
@@ -101,7 +139,7 @@ public partial class FavoritesViewModel : BaseViewModel
         }
         finally
         {
-            IsRefreshing = false;
+            await MainThread.InvokeOnMainThreadAsync(() => IsRefreshing = false);
         }
     }
 
@@ -119,8 +157,12 @@ public partial class FavoritesViewModel : BaseViewModel
             if (favoriteIds.Count == 0)
             {
                 FavoriteProducts.Clear();
+                FilteredFavoriteProducts.Clear();
                 FavoriteCount = 0;
                 IsEmptyState = true;
+                RebuildCategoryFilters();
+                ApplyCategoryFilter();
+                NotifySavedState();
                 _loadedBranchId = _session.BranchId;
                 _loadedFavoriteKey = string.Empty;
                 return;
@@ -128,21 +170,20 @@ public partial class FavoritesViewModel : BaseViewModel
 
             var branchId = _session.BranchId;
             var catalog = await _orders.GetCatalogAsync(branchId);
+            var byId = catalog.GroupBy(p => p.Id).ToDictionary(g => g.Key, g => g.First());
 
-            var favList = new List<OnlineProductDto>();
+            var favList = new List<OnlineProductDto>(favoriteIds.Count);
             foreach (var id in favoriteIds)
             {
-                var prod = catalog.FirstOrDefault(p => p.Id == id);
-                if (prod != null)
+                if (!byId.TryGetValue(id, out var prod))
                 {
-                    prod.IsFavorite = true;
-                    if (string.IsNullOrWhiteSpace(prod.ImageUrl) && !string.IsNullOrWhiteSpace(prod.ImagePath))
-                    {
-                        prod.ImageUrl = _orders.ResolveImageUrl(prod.ImagePath);
-                    }
-                    prod.CartQty = _cart.GetQty(prod.Id);
-                    favList.Add(prod);
+                    continue;
                 }
+
+                prod.IsFavorite = true;
+                _orders.ResolveProductImageUrl(prod);
+                prod.CartQty = _cart.GetQty(prod.Id);
+                favList.Add(prod);
             }
 
             FavoriteProducts.Clear();
@@ -156,11 +197,15 @@ public partial class FavoritesViewModel : BaseViewModel
 
             FavoriteCount = FavoriteProducts.Count;
             IsEmptyState = FavoriteProducts.Count == 0;
+            RebuildCategoryFilters();
+            ApplyCategoryFilter();
+            NotifySavedState();
         }
         catch (Exception ex)
         {
             ErrorMessage = ex.Message;
             IsEmptyState = FavoriteProducts.Count == 0;
+            NotifySavedState();
         }
         finally
         {
@@ -175,10 +220,113 @@ public partial class FavoritesViewModel : BaseViewModel
         {
             p.CartQty = _cart.GetQty(p.Id);
         }
+
+        foreach (var p in FilteredFavoriteProducts)
+        {
+            p.CartQty = _cart.GetQty(p.Id);
+        }
     }
 
     private static string BuildFavoriteKey(IEnumerable<int> ids) =>
         string.Join(",", ids.OrderBy(x => x));
+
+    private void EnsureDefaultFilters()
+    {
+        if (CategoryFilters.Count > 0)
+        {
+            return;
+        }
+
+        CategoryFilters.Add(new FavoriteCategoryFilter { Name = "All", IsSelected = true });
+    }
+
+    private void RebuildCategoryFilters()
+    {
+        var previous = _selectedCategory;
+        var categories = FavoriteProducts
+            .Select(p => p.CategoryName?.Trim())
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Cast<string>()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        CategoryFilters.Clear();
+        CategoryFilters.Add(new FavoriteCategoryFilter
+        {
+            Name = "All",
+            IsSelected = string.Equals(previous, "All", StringComparison.OrdinalIgnoreCase) ||
+                         categories.All(c => !string.Equals(c, previous, StringComparison.OrdinalIgnoreCase))
+        });
+
+        foreach (var name in categories)
+        {
+            CategoryFilters.Add(new FavoriteCategoryFilter
+            {
+                Name = name,
+                IsSelected = string.Equals(previous, name, StringComparison.OrdinalIgnoreCase)
+            });
+        }
+
+        var selected = CategoryFilters.FirstOrDefault(c => c.IsSelected)?.Name ?? "All";
+        _selectedCategory = selected;
+        foreach (var filter in CategoryFilters)
+        {
+            filter.IsSelected = string.Equals(filter.Name, selected, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private void ApplyCategoryFilter()
+    {
+        FilteredFavoriteProducts.Clear();
+        IEnumerable<OnlineProductDto> source = FavoriteProducts;
+        if (!string.Equals(_selectedCategory, "All", StringComparison.OrdinalIgnoreCase))
+        {
+            source = FavoriteProducts.Where(p =>
+                string.Equals(p.CategoryName?.Trim(), _selectedCategory, StringComparison.OrdinalIgnoreCase));
+        }
+
+        foreach (var item in source)
+        {
+            FilteredFavoriteProducts.Add(item);
+        }
+    }
+
+    private void NotifySavedState()
+    {
+        OnPropertyChanged(nameof(SavedCount));
+        OnPropertyChanged(nameof(SavedCountLabel));
+        OnPropertyChanged(nameof(HasFavorites));
+        OnPropertyChanged(nameof(HasCartItems));
+        OnPropertyChanged(nameof(CartSubtotal));
+        OnPropertyChanged(nameof(CartSubtotalDisplay));
+    }
+
+    [RelayCommand]
+    public void SelectCategoryFilter(string? category)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+        {
+            category = "All";
+        }
+
+        _selectedCategory = category.Trim();
+        foreach (var filter in CategoryFilters)
+        {
+            filter.IsSelected = string.Equals(filter.Name, _selectedCategory, StringComparison.OrdinalIgnoreCase);
+        }
+
+        ApplyCategoryFilter();
+    }
+
+    [RelayCommand]
+    public async Task OpenCartAsync()
+    {
+        if (Shell.Current != null)
+        {
+            await Shell.Current.GoToAsync("//customer/cart");
+        }
+    }
 
     [RelayCommand]
     public async Task RemoveFavoriteAsync(OnlineProductDto? product)
@@ -189,41 +337,64 @@ public partial class FavoritesViewModel : BaseViewModel
         FavoriteProducts.Remove(product);
         FavoriteCount = FavoriteProducts.Count;
         IsEmptyState = FavoriteProducts.Count == 0;
+        RebuildCategoryFilters();
+        ApplyCategoryFilter();
+        NotifySavedState();
     }
 
     [RelayCommand]
-    public async Task AddToCartAsync(OnlineProductDto? product)
-    {
-        if (product == null) return;
+    public Task AddToCartAsync(OnlineProductDto? product) => IncreaseCardAsync(product);
 
-        try
+    [RelayCommand]
+    public async Task IncreaseCardAsync(OnlineProductDto? product)
+    {
+        if (product == null)
         {
-            var groups = await _orders.GetModifiersForProductAsync(product.Id);
-            if (groups != null && groups.Any(g => g.Options != null && g.Options.Count > 0))
-            {
-                await Shell.Current.GoToAsync($"productdetail?productId={product.Id}");
-                return;
-            }
+            return;
         }
-        catch (Exception ex)
+
+        // Match Order page: deals need detail; otherwise add straight to tray.
+        if (product.IsDeal || product.DealId.HasValue ||
+            (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
         {
-            Debug.WriteLine($"[FavoritesViewModel.AddToCartAsync] Modifiers/nav failed: {ex.Message}");
+            await OpenProductDetailAsync(product);
+            return;
+        }
+
+        if (!product.InStock && product.CartQty <= 0 && product.StockQuantity <= 0)
+        {
+            return;
         }
 
         _cart.AddOrIncrement(product, 1);
         product.CartQty = _cart.GetQty(product.Id);
         CartCount = _cart.ItemCount;
+        NotifySavedState();
+    }
 
-        if (Shell.Current != null)
+    [RelayCommand]
+    public void DecreaseCard(OnlineProductDto? product)
+    {
+        if (product == null || product.CartQty <= 0)
         {
-            await Shell.Current.DisplayAlert("Added to Cart", $"{product.Name} has been added to your cart.", "OK");
+            return;
         }
+
+        _cart.DecrementProduct(product.Id);
+        product.CartQty = _cart.GetQty(product.Id);
+        CartCount = _cart.ItemCount;
+        NotifySavedState();
     }
 
     [RelayCommand]
     public async Task OpenProductDetailAsync(OnlineProductDto? product)
     {
-        if (product == null) return;
+        if (product == null || Shell.Current == null)
+        {
+            return;
+        }
+
+        ProductDetailLaunch.SetPrefill(product);
         await Shell.Current.GoToAsync($"productdetail?productId={product.Id}");
     }
 
@@ -234,5 +405,51 @@ public partial class FavoritesViewModel : BaseViewModel
         {
             await Shell.Current.GoToAsync("//customer/order");
         }
+    }
+
+    [RelayCommand]
+    public Task NavigateToMenuAsync() => BrowseMenuAsync();
+
+    [RelayCommand]
+    private void OpenTraySheet()
+    {
+        if (!HasCartItems)
+        {
+            return;
+        }
+
+        IsTraySheetVisible = true;
+    }
+
+    [RelayCommand]
+    private void CloseTraySheet() => IsTraySheetVisible = false;
+
+    [RelayCommand]
+    private async Task ProceedToCheckoutAsync()
+    {
+        IsTraySheetVisible = false;
+        await OpenCartAsync();
+    }
+
+    [RelayCommand]
+    private void IncreaseTrayLine(CartLine? line)
+    {
+        if (line == null)
+        {
+            return;
+        }
+
+        _cart.SetQuantity(line, line.Quantity + 1);
+    }
+
+    [RelayCommand]
+    private void DecreaseTrayLine(CartLine? line)
+    {
+        if (line == null)
+        {
+            return;
+        }
+
+        _cart.SetQuantity(line, line.Quantity - 1);
     }
 }

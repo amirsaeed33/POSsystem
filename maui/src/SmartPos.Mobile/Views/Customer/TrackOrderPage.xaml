@@ -10,82 +10,99 @@
              Title="Track Order"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#F9FAFB">
+             BackgroundColor="#FAF7F4">
 
-    <Grid BackgroundColor="#F9FAFB">
-        <ScrollView BackgroundColor="#F9FAFB">
-            <VerticalStackLayout Padding="16,12,16,84" Spacing="14">
+    <Grid RowDefinitions="Auto,*" BackgroundColor="#FAF7F4">
 
-                <!-- ========================================================= -->
-                <!-- 1. TOP APP BAR                                            -->
-                <!-- ========================================================= -->
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
-                    <!-- Back Button -->
-                    <Border WidthRequest="40"
-                            HeightRequest="40"
-                            Stroke="#E5E7EB"
-                            StrokeThickness="1"
-                            BackgroundColor="White"
-                            VerticalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="20" />
-                        </Border.StrokeShape>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding GoBackCommand}" />
-                        </Border.GestureRecognizers>
-                        <Label Text="←"
-                               FontSize="20"
-                               FontAttributes="Bold"
-                               TextColor="#111827"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center" />
-                    </Border>
+        <!-- ========================================================= -->
+        <!-- 1. STICKY TOP HEADER                                      -->
+        <!-- ========================================================= -->
+        <Border Grid.Row="0"
+                StrokeThickness="0"
+                BackgroundColor="#FAF7F4"
+                Padding="16,12,16,10">
+            <Grid ColumnDefinitions="Auto,*,Auto"
+                  ColumnSpacing="10"
+                  VerticalOptions="Center">
 
-                    <!-- Title & Order No Badge -->
-                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
-                        <Label Text="Track Order"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               TextColor="#111827" />
-                        <Label Text="{Binding OrderTitle}"
-                               FontSize="12"
-                               TextColor="#10B981"
-                               FontAttributes="Bold"
-                               IsVisible="{Binding HasOrder}" />
-                    </VerticalStackLayout>
-
-                    <!-- Live Pulse Badge (Top-Right) -->
-                    <Border Grid.Column="2"
-                            IsVisible="{Binding HasOrder}"
-                            BackgroundColor="#ECFDF5"
-                            Stroke="#A7F3D0"
-                            StrokeThickness="1"
-                            Padding="8,4"
-                            VerticalOptions="Center">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
-                            <Label Text="●"
-                                   FontSize="10"
-                                   TextColor="#10B981"
-                                   VerticalOptions="Center" />
-                            <Label Text="{Binding LiveCountdownText}"
-                                   FontSize="11"
-                                   FontAttributes="Bold"
-                                   TextColor="#065F46"
-                                   VerticalOptions="Center" />
-                        </HorizontalStackLayout>
-                    </Border>
-                </Grid>
-
-                <!-- ========================================================= -->
-                <!-- 2. TRACK ORDER SEARCH BAR                                 -->
-                <!-- ========================================================= -->
-                <Border Stroke="#E5E7EB"
+                <Border WidthRequest="40"
+                        HeightRequest="40"
+                        Stroke="#EAE2DA"
                         StrokeThickness="1"
-                        BackgroundColor="White"
-                        Padding="12,4">
+                        BackgroundColor="#FFFFFF"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Start">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding GoBackCommand}" />
+                    </Border.GestureRecognizers>
+                    <Label Text="←"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#1E1916"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
+
+                <VerticalStackLayout Grid.Column="1"
+                                     Spacing="1"
+                                     HorizontalOptions="Center"
+                                     VerticalOptions="Center">
+                    <Label Text="{Binding OrderNumber}"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           TextColor="#C84B11"
+                           CharacterSpacing="1.2"
+                           HorizontalTextAlignment="Center"
+                           LineBreakMode="TailTruncation"
+                           MaxLines="1" />
+                    <Label Text="Track Order"
+                           FontFamily="Georgia"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="#1E1916"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <Border Grid.Column="2"
+                        Stroke="#F0C4AE"
+                        StrokeThickness="1"
+                        BackgroundColor="#FDF1EB"
+                        Padding="11,6"
+                        VerticalOptions="Center"
+                        HorizontalOptions="End">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding NavigateToOrderHistoryCommand}" />
+                    </Border.GestureRecognizers>
+                    <Label Text="History →"
+                           FontSize="11"
+                           FontAttributes="Bold"
+                           TextColor="#C84B11"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ========================================================= -->
+        <!-- 2. SCROLLABLE TRACKING BODY                               -->
+        <!-- ========================================================= -->
+        <ScrollView Grid.Row="1"
+                    VerticalScrollBarVisibility="Never"
+                    BackgroundColor="#FAF7F4">
+            <VerticalStackLayout Padding="16,4,16,28" Spacing="14">
+
+                <!-- Manual track (when no order loaded yet) -->
+                <Border IsVisible="{Binding HasOrder, Converter={StaticResource InvertedBoolConverter}}"
+                        Stroke="#EAE2DA"
+                        StrokeThickness="1"
+                        BackgroundColor="#FFFFFF"
+                        Padding="12,8">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="14" />
                     </Border.StrokeShape>
@@ -93,16 +110,16 @@
                         <Entry Placeholder="Enter Order # (e.g. ORD-00012)"
                                Text="{Binding OrderNo}"
                                FontSize="14"
-                               TextColor="#111827"
-                               PlaceholderColor="#9CA3AF"
+                               TextColor="#1E1916"
+                               PlaceholderColor="#8C7E74"
                                ReturnType="Search"
                                ReturnCommand="{Binding TrackCommand}"
                                VerticalOptions="Center" />
                         <Button Grid.Column="1"
                                 Text="Track"
                                 Command="{Binding TrackCommand}"
-                                BackgroundColor="#10B981"
-                                TextColor="White"
+                                BackgroundColor="#C84B11"
+                                TextColor="#FFFFFF"
                                 FontAttributes="Bold"
                                 FontSize="12"
                                 HeightRequest="36"
@@ -112,740 +129,812 @@
                     </Grid>
                 </Border>
 
-                <!-- Loading Spinner -->
                 <ActivityIndicator IsRunning="{Binding IsBusy}"
                                    IsVisible="{Binding IsBusy}"
-                                   Color="#10B981" />
+                                   Color="#C84B11" />
 
-                <!-- ========================================================= -->
-                <!-- 3. TOP STATUS HERO CARD                                   -->
-                <!-- ========================================================= -->
+                <!-- ================================================= -->
+                <!-- SECTION A — LIVE STATUS / COUNTDOWN HERO          -->
+                <!-- ================================================= -->
                 <Border IsVisible="{Binding HasOrder}"
-                        Stroke="#E5E7EB"
-                        StrokeThickness="1"
-                        BackgroundColor="White"
-                        Padding="16">
+                        StrokeThickness="0"
+                        Padding="18">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="20" />
+                        <RoundRectangle CornerRadius="24" />
                     </Border.StrokeShape>
-                    <Border.Shadow>
-                        <Shadow Brush="#0A000000" Offset="0,3" Radius="8" Opacity="0.06" />
-                    </Border.Shadow>
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#1C1410" Offset="0.0" />
+                            <GradientStop Color="#8F3006" Offset="0.55" />
+                            <GradientStop Color="#C84B11" Offset="1.0" />
+                        </LinearGradientBrush>
+                    </Border.Background>
 
-                    <VerticalStackLayout Spacing="12">
-                        <!-- Status Banner Row -->
+                    <VerticalStackLayout Spacing="0">
                         <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
                             <Border BackgroundColor="{Binding StatusPillBackgroundColor}"
-                                    StrokeThickness="0"
+                                    Stroke="{Binding StatusPillStrokeColor}"
+                                    StrokeThickness="1"
                                     Padding="10,4"
                                     HorizontalOptions="Start"
                                     VerticalOptions="Center">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="10" />
                                 </Border.StrokeShape>
-                                <Label Text="{Binding StatusHeadline}"
-                                       TextColor="{Binding StatusPillTextColor}"
-                                       FontAttributes="Bold"
-                                       FontSize="12" />
+                                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                    <Label Text="●"
+                                           FontSize="10"
+                                           TextColor="{Binding StatusPillTextColor}"
+                                           VerticalOptions="Center" />
+                                    <Label Text="{Binding LiveStatusLabel}"
+                                           FontSize="10"
+                                           FontAttributes="Bold"
+                                           TextColor="{Binding StatusPillTextColor}"
+                                           CharacterSpacing="1.0"
+                                           VerticalOptions="Center" />
+                                </HorizontalStackLayout>
                             </Border>
 
-                            <Label Grid.Column="1"
-                                   Text="{Binding TotalText}"
-                                   FontSize="17"
-                                   FontAttributes="Bold"
-                                   TextColor="#10B981"
-                                   VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1"
+                                                 Spacing="1"
+                                                 HorizontalOptions="End"
+                                                 VerticalOptions="Center">
+                                <Label Text="EST. ARRIVAL"
+                                       FontSize="9"
+                                       TextColor="#D9C5B8"
+                                       HorizontalTextAlignment="End" />
+                                <Label Text="{Binding CountdownText}"
+                                       FontSize="22"
+                                       FontAttributes="Bold"
+                                       TextColor="#FFFFFF"
+                                       HorizontalTextAlignment="End" />
+                            </VerticalStackLayout>
                         </Grid>
 
-                        <!-- Main Headline & Subtitle -->
-                        <VerticalStackLayout Spacing="3">
+                        <VerticalStackLayout Margin="0,12,0,0" Spacing="4">
                             <Label Text="{Binding StatusHeadline}"
+                                   FontFamily="Georgia"
                                    FontSize="20"
                                    FontAttributes="Bold"
-                                   TextColor="#111827" />
-                            <Label Text="{Binding StatusSubHeadline}"
-                                   FontSize="13"
-                                   TextColor="#6B7280"
+                                   TextColor="#FFFFFF"
+                                   LineBreakMode="WordWrap" />
+                            <Label Text="{Binding KitchenRouteText}"
+                                   FontSize="11.5"
+                                   TextColor="#F9E0D2"
                                    LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
 
-                        <!-- Divider -->
-                        <BoxView HeightRequest="1" Color="#F3F4F6" />
-
-                        <!-- Live Elapsed Time & Estimated Delivery Row -->
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                            <!-- Elapsed Time Badge -->
-                            <Border BackgroundColor="#F9FAFB"
-                                    Stroke="#E5E7EB"
-                                    StrokeThickness="1"
-                                    Padding="10,8">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10" />
-                                </Border.StrokeShape>
-                                <Grid ColumnDefinitions="Auto,*"
-                                      ColumnSpacing="6"
-                                      VerticalOptions="Center">
-                                    <Label Text="⏱️" FontSize="14" VerticalOptions="Center" />
-                                    <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                        <Label Text="Elapsed Time" FontSize="10" TextColor="#9CA3AF" />
-                                        <Label Text="{Binding ElapsedTimeText}"
-                                               FontSize="12"
-                                               FontAttributes="Bold"
-                                               TextColor="#111827"
-                                               LineBreakMode="TailTruncation"
-                                               MaxLines="1" />
-                                    </VerticalStackLayout>
-                                </Grid>
-                            </Border>
-
-                            <!-- Estimated Delivery Badge -->
-                            <Border Grid.Column="1"
-                                    BackgroundColor="#F9FAFB"
-                                    Stroke="#E5E7EB"
-                                    StrokeThickness="1"
-                                    Padding="10,8">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="10" />
-                                </Border.StrokeShape>
-                                <Grid ColumnDefinitions="Auto,*"
-                                      ColumnSpacing="6"
-                                      VerticalOptions="Center">
-                                    <Label Text="🕒" FontSize="14" VerticalOptions="Center" />
-                                    <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                        <Label Text="Estimated Delivery" FontSize="10" TextColor="#9CA3AF" />
-                                        <Label Text="{Binding EstimatedDeliveryEta}"
-                                               FontSize="12"
-                                               FontAttributes="Bold"
-                                               TextColor="#10B981"
-                                               LineBreakMode="TailTruncation"
-                                               MaxLines="1" />
-                                    </VerticalStackLayout>
-                                </Grid>
-                            </Border>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- ========================================================= -->
-                <!-- 4. VISUAL 4-STAGE STATUS STEPPER                          -->
-                <!-- ========================================================= -->
-                <Border IsVisible="{Binding HasOrder}"
-                        Stroke="#E5E7EB"
-                        StrokeThickness="1"
-                        BackgroundColor="White"
-                        Padding="16,14">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="20" />
-                    </Border.StrokeShape>
-                    <Border.Shadow>
-                        <Shadow Brush="#0A000000" Offset="0,2" Radius="6" Opacity="0.04" />
-                    </Border.Shadow>
-
-                    <VerticalStackLayout Spacing="14">
-                        <Label Text="Delivery Progress"
-                               FontSize="15"
-                               FontAttributes="Bold"
-                               TextColor="#111827" />
-
-                        <!-- Normal Stepper (When NOT Cancelled) -->
-                        <VerticalStackLayout IsVisible="{Binding ShowNormalStepper}"
-                                             Spacing="14">
-
-                            <!-- Stepper Graphic: 4 Dots with connecting lines -->
-                            <Grid ColumnDefinitions="*,Auto,*,Auto,*,Auto,*"
-                                  RowDefinitions="Auto"
-                                  VerticalOptions="Center"
-                                  Margin="12,0">
-
-                                <!-- Step 1 Dot (Order Received) -->
-                                <Border Grid.Column="0"
-                                        WidthRequest="38"
-                                        HeightRequest="38"
-                                        StrokeThickness="{Binding Step1StrokeThickness}"
-                                        Stroke="{Binding Step1StrokeColor}"
-                                        BackgroundColor="{Binding Step1BgColor}"
-                                        HorizontalOptions="Center"
-                                        VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="19" />
-                                    </Border.StrokeShape>
-                                    <Label Text="{Binding Step1Glyph}"
-                                           TextColor="{Binding Step1TextColor}"
-                                           FontSize="15"
-                                           FontAttributes="Bold"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-
-                                <!-- Connector Line 1 (Step 1 -> Step 2) -->
-                                <BoxView Grid.Column="1"
-                                         HeightRequest="3"
-                                         WidthRequest="36"
-                                         Color="{Binding Line1Color}"
-                                         VerticalOptions="Center" />
-
-                                <!-- Step 2 Dot (In Kitchen) -->
-                                <Border Grid.Column="2"
-                                        WidthRequest="38"
-                                        HeightRequest="38"
-                                        StrokeThickness="{Binding Step2StrokeThickness}"
-                                        Stroke="{Binding Step2StrokeColor}"
-                                        BackgroundColor="{Binding Step2BgColor}"
-                                        HorizontalOptions="Center"
-                                        VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="19" />
-                                    </Border.StrokeShape>
-                                    <Label Text="{Binding Step2Glyph}"
-                                           TextColor="{Binding Step2TextColor}"
-                                           FontSize="15"
-                                           FontAttributes="Bold"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-
-                                <!-- Connector Line 2 (Step 2 -> Step 3) -->
-                                <BoxView Grid.Column="3"
-                                         HeightRequest="3"
-                                         WidthRequest="36"
-                                         Color="{Binding Line2Color}"
-                                         VerticalOptions="Center" />
-
-                                <!-- Step 3 Dot (Out for Delivery) -->
-                                <Border Grid.Column="4"
-                                        WidthRequest="38"
-                                        HeightRequest="38"
-                                        StrokeThickness="{Binding Step3StrokeThickness}"
-                                        Stroke="{Binding Step3StrokeColor}"
-                                        BackgroundColor="{Binding Step3BgColor}"
-                                        HorizontalOptions="Center"
-                                        VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="19" />
-                                    </Border.StrokeShape>
-                                    <Label Text="{Binding Step3Glyph}"
-                                           TextColor="{Binding Step3TextColor}"
-                                           FontSize="15"
-                                           FontAttributes="Bold"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-
-                                <!-- Connector Line 3 (Step 3 -> Step 4) -->
-                                <BoxView Grid.Column="5"
-                                         HeightRequest="3"
-                                         WidthRequest="36"
-                                         Color="{Binding Line3Color}"
-                                         VerticalOptions="Center" />
-
-                                <!-- Step 4 Dot (Delivered) -->
-                                <Border Grid.Column="6"
-                                        WidthRequest="38"
-                                        HeightRequest="38"
-                                        StrokeThickness="{Binding Step4StrokeThickness}"
-                                        Stroke="{Binding Step4StrokeColor}"
-                                        BackgroundColor="{Binding Step4BgColor}"
-                                        HorizontalOptions="Center"
-                                        VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="19" />
-                                    </Border.StrokeShape>
-                                    <Label Text="{Binding Step4Glyph}"
-                                           TextColor="{Binding Step4TextColor}"
-                                           FontSize="15"
-                                           FontAttributes="Bold"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-                            </Grid>
-
-                            <!-- Labels Row: 4 Column Grid matching the 4 steps -->
-                            <Grid ColumnDefinitions="*,*,*,*" Margin="0,0">
-                                <Label Grid.Column="0"
-                                       Text="Received"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="{Binding Step1LabelColor}"
-                                       HorizontalTextAlignment="Center" />
-
-                                <Label Grid.Column="1"
-                                       Text="In Kitchen"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="{Binding Step2LabelColor}"
-                                       HorizontalTextAlignment="Center" />
-
-                                <Label Grid.Column="2"
-                                       Text="On the Way"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="{Binding Step3LabelColor}"
-                                       HorizontalTextAlignment="Center" />
-
-                                <Label Grid.Column="3"
-                                       Text="Delivered"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="{Binding Step4LabelColor}"
-                                       HorizontalTextAlignment="Center" />
-                            </Grid>
-                        </VerticalStackLayout>
-
-                        <!-- Cancelled Warning Card (If Cancelled) -->
-                        <Border IsVisible="{Binding IsCancelled}"
-                                BackgroundColor="#FEF2F2"
-                                Stroke="#FCA5A5"
+                        <!-- Cancel (Pending) -->
+                        <Border IsVisible="{Binding ShowCancelAction}"
+                                Margin="0,14,0,0"
+                                BackgroundColor="#33B83227"
+                                Stroke="#F5C6C2"
                                 StrokeThickness="1"
-                                Padding="14,12">
+                                Padding="14,7"
+                                HorizontalOptions="Start">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="11" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CancelOrderCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="Cancel Order"
+                                   FontSize="11.5"
+                                   FontAttributes="Bold"
+                                   TextColor="#FDECEB"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+
+                        <!-- Reorder (Cancelled) -->
+                        <Border IsVisible="{Binding ShowReorderButton}"
+                                Margin="0,14,0,0"
+                                BackgroundColor="#FFFFFF"
+                                StrokeThickness="0"
+                                HeightRequest="40"
+                                HorizontalOptions="Fill">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="12" />
                             </Border.StrokeShape>
-                            <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                                <Label Text="❌" FontSize="20" VerticalOptions="Center" />
-                                <VerticalStackLayout Spacing="2">
-                                    <Label Text="Order Cancelled"
-                                           FontAttributes="Bold"
-                                           TextColor="#B91C1C"
-                                           FontSize="14" />
-                                    <Label Text="The store was unable to accept this order. Any digital payment will be refunded."
-                                           FontSize="12"
-                                           TextColor="#7F1D1D"
-                                           LineBreakMode="WordWrap" />
-                                </VerticalStackLayout>
-                            </HorizontalStackLayout>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ReorderCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="Reorder Feast →"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="#8F3006"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
                         </Border>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- ========================================================= -->
-                <!-- 5. DELIVERY RIDER CARD                                    -->
-                <!-- ========================================================= -->
-                <Border IsVisible="{Binding ShowRiderCard}"
-                        Stroke="#D1FAE5"
+                <!-- ================================================= -->
+                <!-- SECTION B — 4-STEP VERTICAL TIMELINE              -->
+                <!-- ================================================= -->
+                <Border IsVisible="{Binding HasOrder}"
+                        Stroke="#EAE2DA"
                         StrokeThickness="1"
-                        BackgroundColor="White"
+                        BackgroundColor="#FFFFFF"
                         Padding="16">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="20" />
+                        <RoundRectangle CornerRadius="22" />
                     </Border.StrokeShape>
                     <Border.Shadow>
-                        <Shadow Brush="#0A000000" Offset="0,2" Radius="6" Opacity="0.04" />
+                        <Shadow Brush="#1C1410" Offset="0,3" Radius="10" Opacity="0.05" />
                     </Border.Shadow>
 
-                    <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
-                        <!-- Rider Info Row -->
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
-                            <!-- Rider Avatar Icon -->
-                            <Border WidthRequest="44"
-                                    HeightRequest="44"
-                                    BackgroundColor="#D1FAE5"
-                                    StrokeThickness="0"
+                    <VerticalStackLayout Spacing="0">
+                        <Label Text="Live Kitchen &amp; Rider Progress"
+                               FontFamily="Georgia"
+                               FontSize="16.5"
+                               FontAttributes="Bold"
+                               TextColor="#1E1916"
+                               Margin="0,0,0,14" />
+
+                        <!-- Cancelled notice -->
+                        <Border IsVisible="{Binding IsCancelled}"
+                                BackgroundColor="#FDECEB"
+                                Stroke="#F5C6C2"
+                                StrokeThickness="1"
+                                Padding="12"
+                                Margin="0,0,0,8">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Label Text="This order was cancelled before kitchen preparation."
+                                   FontSize="12.5"
+                                   TextColor="#B83227"
+                                   LineBreakMode="WordWrap" />
+                        </Border>
+
+                        <VerticalStackLayout IsVisible="{Binding ShowNormalStepper}" Spacing="0">
+
+                            <!-- Step 1 -->
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <VerticalStackLayout WidthRequest="28" HorizontalOptions="Center">
+                                    <Border WidthRequest="28"
+                                            HeightRequest="28"
+                                            StrokeThickness="{Binding Step1StrokeThickness}"
+                                            Stroke="{Binding Step1StrokeColor}"
+                                            BackgroundColor="{Binding Step1BgColor}"
+                                            HorizontalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="14" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding Step1Glyph}"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="{Binding Step1TextColor}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
+                                    <BoxView WidthRequest="2"
+                                             HeightRequest="28"
+                                             Color="{Binding Line1Color}"
+                                             HorizontalOptions="Center"
+                                             Margin="0,4,0,0" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="3" Margin="0,2,0,10">
+                                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                        <Label Text="{Binding Step1Title}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{Binding Step1LabelColor}"
+                                               VerticalOptions="Center" />
+                                        <Border IsVisible="{Binding ShowStep1ProgressPill}"
+                                                BackgroundColor="#FDF1EB"
+                                                StrokeThickness="0"
+                                                Padding="8,3"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="8" />
+                                            </Border.StrokeShape>
+                                            <Label Text="IN PROGRESS"
+                                                   FontSize="9"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#C84B11" />
+                                        </Border>
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding Step1Detail}"
+                                           FontSize="11.5"
+                                           TextColor="#5C5048"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <!-- Step 2 -->
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <VerticalStackLayout WidthRequest="28" HorizontalOptions="Center">
+                                    <Border WidthRequest="28"
+                                            HeightRequest="28"
+                                            StrokeThickness="{Binding Step2StrokeThickness}"
+                                            Stroke="{Binding Step2StrokeColor}"
+                                            BackgroundColor="{Binding Step2BgColor}"
+                                            HorizontalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="14" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding Step2Glyph}"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="{Binding Step2TextColor}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
+                                    <BoxView WidthRequest="2"
+                                             HeightRequest="28"
+                                             Color="{Binding Line2Color}"
+                                             HorizontalOptions="Center"
+                                             Margin="0,4,0,0" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="3" Margin="0,2,0,10">
+                                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                        <Label Text="{Binding Step2Title}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{Binding Step2LabelColor}"
+                                               VerticalOptions="Center" />
+                                        <Border IsVisible="{Binding ShowStep2ProgressPill}"
+                                                BackgroundColor="#FDF1EB"
+                                                StrokeThickness="0"
+                                                Padding="8,3"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="8" />
+                                            </Border.StrokeShape>
+                                            <Label Text="IN PROGRESS"
+                                                   FontSize="9"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#C84B11" />
+                                        </Border>
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding Step2Detail}"
+                                           FontSize="11.5"
+                                           TextColor="#5C5048"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <!-- Step 3 -->
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <VerticalStackLayout WidthRequest="28" HorizontalOptions="Center">
+                                    <Border WidthRequest="28"
+                                            HeightRequest="28"
+                                            StrokeThickness="{Binding Step3StrokeThickness}"
+                                            Stroke="{Binding Step3StrokeColor}"
+                                            BackgroundColor="{Binding Step3BgColor}"
+                                            HorizontalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="14" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding Step3Glyph}"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="{Binding Step3TextColor}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
+                                    <BoxView WidthRequest="2"
+                                             HeightRequest="28"
+                                             Color="{Binding Line3Color}"
+                                             HorizontalOptions="Center"
+                                             Margin="0,4,0,0" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="3" Margin="0,2,0,10">
+                                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                        <Label Text="{Binding Step3Title}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{Binding Step3LabelColor}"
+                                               VerticalOptions="Center" />
+                                        <Border IsVisible="{Binding ShowStep3ProgressPill}"
+                                                BackgroundColor="#FDF1EB"
+                                                StrokeThickness="0"
+                                                Padding="8,3"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="8" />
+                                            </Border.StrokeShape>
+                                            <Label Text="IN PROGRESS"
+                                                   FontSize="9"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#C84B11" />
+                                        </Border>
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding Step3Detail}"
+                                           FontSize="11.5"
+                                           TextColor="#5C5048"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <!-- Step 4 -->
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <Border WidthRequest="28"
+                                        HeightRequest="28"
+                                        StrokeThickness="{Binding Step4StrokeThickness}"
+                                        Stroke="{Binding Step4StrokeColor}"
+                                        BackgroundColor="{Binding Step4BgColor}"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Start">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <Label Text="{Binding Step4Glyph}"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           TextColor="{Binding Step4TextColor}"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="3" Margin="0,2,0,0">
+                                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                        <Label Text="{Binding Step4Title}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{Binding Step4LabelColor}"
+                                               VerticalOptions="Center" />
+                                        <Border IsVisible="{Binding ShowStep4ProgressPill}"
+                                                BackgroundColor="#FDF1EB"
+                                                StrokeThickness="0"
+                                                Padding="8,3"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="8" />
+                                            </Border.StrokeShape>
+                                            <Label Text="IN PROGRESS"
+                                                   FontSize="9"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#C84B11" />
+                                        </Border>
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding Step4Detail}"
+                                           FontSize="11.5"
+                                           TextColor="#5C5048"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ================================================= -->
+                <!-- SECTION C — ASSIGNED RIDER CARD                   -->
+                <!-- ================================================= -->
+                <Border IsVisible="{Binding ShowRiderCard}"
+                        Stroke="#EAE2DA"
+                        StrokeThickness="1"
+                        BackgroundColor="#FFFFFF"
+                        Padding="16">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="22" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#1C1410" Offset="0,3" Radius="10" Opacity="0.05" />
+                    </Border.Shadow>
+
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="Auto,*,Auto"
+                              ColumnSpacing="12"
+                              VerticalOptions="Center">
+                            <Border WidthRequest="48"
+                                    HeightRequest="48"
+                                    Stroke="#C84B11"
+                                    StrokeThickness="1.5"
+                                    BackgroundColor="#FDF1EB"
                                     VerticalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="22" />
+                                    <RoundRectangle CornerRadius="24" />
                                 </Border.StrokeShape>
-                                <Label Text="🛵" FontSize="22" HorizontalOptions="Center" VerticalOptions="Center" />
+                                <Label Text="{Binding RiderInitials}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
                             </Border>
 
-                            <!-- Name & Vehicle -->
-                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                            <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                <Label Text="{Binding RiderBadgeText}"
+                                       FontSize="9.5"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11"
+                                       CharacterSpacing="0.8" />
                                 <Label Text="{Binding RiderName}"
                                        FontSize="15"
                                        FontAttributes="Bold"
-                                       TextColor="#111827" />
-                                <Label Text="{Binding RiderBadgeText}"
-                                       FontSize="11"
-                                       TextColor="#059669" />
+                                       TextColor="#1E1916"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1" />
+                                <Label Text="{Binding RiderVehicleText}"
+                                       FontSize="11.5"
+                                       TextColor="#5C5048"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1" />
                             </VerticalStackLayout>
 
-                            <!-- Live Tag -->
                             <Border Grid.Column="2"
-                                    BackgroundColor="#FEF3C7"
-                                    StrokeThickness="0"
-                                    Padding="8,3"
+                                    BackgroundColor="#FEF6EB"
+                                    Stroke="#F3D6B3"
+                                    StrokeThickness="1"
+                                    Padding="9,5"
                                     VerticalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="8" />
+                                    <RoundRectangle CornerRadius="10" />
                                 </Border.StrokeShape>
-                                <Label Text="En Route"
-                                       TextColor="#D97706"
-                                       FontSize="10"
-                                       FontAttributes="Bold" />
+                                <Label Text="{Binding RiderRatingText}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="#D9822B" />
                             </Border>
                         </Grid>
 
-                        <!-- Quick Action Buttons: Call & WhatsApp -->
-                        <Grid Grid.Row="1"
-                              ColumnDefinitions="*,*"
-                              ColumnSpacing="10"
-                              IsVisible="{Binding HasRiderPhone}">
-                            <!-- Call Rider Button -->
-                            <Border Grid.Column="0"
-                                    BackgroundColor="White"
-                                    Stroke="#10B981"
-                                    StrokeThickness="1.5"
-                                    HeightRequest="40">
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Border HeightRequest="44"
+                                    BackgroundColor="#C84B11"
+                                    StrokeThickness="0"
+                                    IsEnabled="{Binding HasRiderPhone}">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12" />
+                                    <RoundRectangle CornerRadius="13" />
                                 </Border.StrokeShape>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding CallRiderCommand}" />
                                 </Border.GestureRecognizers>
-                                <HorizontalStackLayout Spacing="6" HorizontalOptions="Center" VerticalOptions="Center">
-                                    <Label Text="📞" FontSize="13" VerticalOptions="Center" />
-                                    <Label Text="Call Rider"
-                                           TextColor="#059669"
-                                           FontAttributes="Bold"
-                                           FontSize="13"
-                                           VerticalOptions="Center" />
-                                </HorizontalStackLayout>
+                                <Label Text="Call Rider"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="#FFFFFF"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
                             </Border>
 
-                            <!-- WhatsApp Rider Button -->
                             <Border Grid.Column="1"
-                                    BackgroundColor="#25D366"
+                                    HeightRequest="44"
+                                    BackgroundColor="#1C1410"
                                     StrokeThickness="0"
-                                    HeightRequest="40">
+                                    IsEnabled="{Binding HasRiderPhone}">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12" />
+                                    <RoundRectangle CornerRadius="13" />
                                 </Border.StrokeShape>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding WhatsAppRiderCommand}" />
                                 </Border.GestureRecognizers>
-                                <HorizontalStackLayout Spacing="6" HorizontalOptions="Center" VerticalOptions="Center">
-                                    <Label Text="💬" FontSize="13" TextColor="White" VerticalOptions="Center" />
-                                    <Label Text="WhatsApp"
-                                           TextColor="White"
-                                           FontAttributes="Bold"
-                                           FontSize="13"
-                                           VerticalOptions="Center" />
-                                </HorizontalStackLayout>
+                                <Label Text="WhatsApp"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="#E89B3C"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
                             </Border>
                         </Grid>
-                    </Grid>
+                    </VerticalStackLayout>
                 </Border>
 
-                <!-- ========================================================= -->
-                <!-- 6. ORDER ITEMS ACCORDION DRAWER                           -->
-                <!-- ========================================================= -->
+                <!-- ================================================= -->
+                <!-- SECTION D — COLLAPSIBLE ORDER SUMMARY             -->
+                <!-- ================================================= -->
                 <Border IsVisible="{Binding HasOrder}"
-                        Stroke="#E5E7EB"
+                        Stroke="#EAE2DA"
                         StrokeThickness="1"
-                        BackgroundColor="White"
+                        BackgroundColor="#FFFFFF"
                         Padding="16">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="20" />
+                        <RoundRectangle CornerRadius="22" />
                     </Border.StrokeShape>
                     <Border.Shadow>
-                        <Shadow Brush="#0A000000" Offset="0,2" Radius="6" Opacity="0.04" />
+                        <Shadow Brush="#1C1410" Offset="0,3" Radius="10" Opacity="0.05" />
                     </Border.Shadow>
 
-                    <VerticalStackLayout Spacing="12">
-                        <!-- Accordion Header (Tappable) -->
-                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="0">
+                        <Grid ColumnDefinitions="*,Auto"
+                              ColumnSpacing="10"
+                              VerticalOptions="Center">
                             <Grid.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding ToggleItemsExpandedCommand}" />
+                                <TapGestureRecognizer Command="{Binding ToggleSummaryCommand}" />
                             </Grid.GestureRecognizers>
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                <Label Text="Order Summary &amp; Address"
+                                       FontFamily="Georgia"
+                                       FontSize="16.5"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916" />
+                                <Label Text="{Binding SummarySubtitle}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1" />
+                            </VerticalStackLayout>
 
-                            <Label Text="📦" FontSize="16" VerticalOptions="Center" />
-                            <Label Grid.Column="1"
-                                   Text="Order Summary"
-                                   FontSize="15"
-                                   FontAttributes="Bold"
-                                   TextColor="#111827"
-                                   VerticalOptions="Center" />
-
-                            <!-- Items count badge -->
-                            <Border Grid.Column="2"
-                                    BackgroundColor="#F3F4F6"
+                            <Border Grid.Column="1"
+                                    WidthRequest="32"
+                                    HeightRequest="32"
+                                    BackgroundColor="#F4EFEA"
                                     StrokeThickness="0"
-                                    Padding="8,3"
                                     VerticalOptions="Center">
                                 <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="8" />
+                                    <RoundRectangle CornerRadius="16" />
                                 </Border.StrokeShape>
-                                <Label Text="{Binding ItemsCountBadge}"
-                                       FontSize="11"
-                                       TextColor="#6B7280"
-                                       FontAttributes="Bold" />
+                                <Label Text="{Binding ItemsAccordionToggleGlyph}"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
                             </Border>
-
-                            <!-- Chevron Toggle -->
-                            <Label Grid.Column="3"
-                                   Text="{Binding ItemsAccordionToggleGlyph}"
-                                   FontSize="13"
-                                   TextColor="#6B7280"
-                                   FontAttributes="Bold"
-                                   VerticalOptions="Center" />
                         </Grid>
 
-                        <!-- Accordion Body (Collapsible) -->
-                        <VerticalStackLayout IsVisible="{Binding IsItemsExpanded}" Spacing="10">
-                            <BoxView HeightRequest="1" Color="#F3F4F6" />
+                        <VerticalStackLayout IsVisible="{Binding IsSummaryExpanded}"
+                                             Margin="0,12,0,0"
+                                             Spacing="10">
+                            <BoxView HeightRequest="1" Color="#EAE2DA" />
 
-                            <!-- List of Items -->
-                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Lines}" Spacing="8">
+                            <VerticalStackLayout Spacing="2" BindableLayout.ItemsSource="{Binding Lines}">
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="models:CustomerOrderLineDto">
-                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
-                                            <!-- Quantity pill -->
-                                            <Border BackgroundColor="#F3F4F6"
-                                                    StrokeThickness="0"
-                                                    Padding="6,2"
-                                                    VerticalOptions="Center">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="6" />
-                                                </Border.StrokeShape>
-                                                <Label Text="{Binding Quantity, StringFormat='{0:0}x'}"
-                                                       FontSize="11"
-                                                       FontAttributes="Bold"
-                                                       TextColor="#374151" />
-                                            </Border>
-
-                                            <!-- Product Name -->
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              Padding="0,4"
+                                              ColumnSpacing="8">
+                                            <Label Text="{Binding TrackLineLabel}"
+                                                   FontSize="12.5"
+                                                   TextColor="#1E1916"
+                                                   LineBreakMode="WordWrap"
+                                                   VerticalOptions="Center" />
                                             <Label Grid.Column="1"
-                                                   Text="{Binding ProductName}"
-                                                   FontSize="13"
-                                                   TextColor="#111827"
-                                                   VerticalOptions="Center" />
-
-                                            <!-- Line Total -->
-                                            <Label Grid.Column="2"
-                                                   Text="{Binding LineTotal, StringFormat='Rs {0:0.##}'}"
-                                                   FontSize="13"
+                                                   Text="{Binding LineTotalDisplay}"
+                                                   FontSize="12.5"
                                                    FontAttributes="Bold"
-                                                   TextColor="#111827"
-                                                   VerticalOptions="Center" />
+                                                   TextColor="#5C5048"
+                                                   VerticalOptions="Center"
+                                                   HorizontalTextAlignment="End" />
                                         </Grid>
                                     </DataTemplate>
                                 </BindableLayout.ItemTemplate>
                             </VerticalStackLayout>
 
-                            <BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,4,0,0" />
+                            <Border BackgroundColor="#FAF7F4"
+                                    Stroke="#EAE2DA"
+                                    StrokeThickness="1"
+                                    Padding="11">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="13" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="DELIVERY ADDRESS"
+                                           FontSize="9.5"
+                                           FontAttributes="Bold"
+                                           TextColor="#C84B11" />
+                                    <Label Text="{Binding CustomerAddressText}"
+                                           FontSize="12"
+                                           TextColor="#1E1916"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Border>
 
-                            <!-- Financial Summary -->
-                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-                                <!-- Subtotal -->
-                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                                    <Label Text="Subtotal" FontSize="13" TextColor="#6B7280" />
-                                    <Label Grid.Column="1" Text="{Binding SubTotalText}" FontSize="13" TextColor="#374151" />
-                                </Grid>
+                            <Border BackgroundColor="#FAF7F4"
+                                    Stroke="#EAE2DA"
+                                    StrokeThickness="1"
+                                    Padding="11">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="13" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="DELIVERY &amp; KITCHEN NOTES"
+                                           FontSize="9.5"
+                                           FontAttributes="Bold"
+                                           TextColor="#8C7E74" />
+                                    <Label Text="{Binding CustomerNotesText}"
+                                           FontSize="12"
+                                           TextColor="#5C5048"
+                                           LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Border>
 
-                                <!-- Delivery Fee -->
-                                <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
-                                    <Label Text="Delivery Fee" FontSize="13" TextColor="#6B7280" />
-                                    <Label Grid.Column="1" Text="{Binding DeliveryFeeText}" FontSize="13" FontAttributes="Bold" TextColor="#059669" />
-                                </Grid>
-
-                                <!-- Total Amount -->
-                                <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,4,0,0">
-                                    <Label Text="Total Paid" FontSize="15" FontAttributes="Bold" TextColor="#111827" />
-                                    <Label Grid.Column="1" Text="{Binding TotalText}" FontSize="16" FontAttributes="Bold" TextColor="#10B981" />
-                                </Grid>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,2,0,0">
+                                <Label Text="{Binding PaymentFooterLabel}"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding TotalText}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11"
+                                       VerticalOptions="Center"
+                                       HorizontalTextAlignment="End" />
                             </Grid>
-
-                            <!-- Delivery Address & Notes -->
-                            <BoxView HeightRequest="1" Color="#F3F4F6" Margin="0,4,0,0" />
-                            <VerticalStackLayout Spacing="4">
-                                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                    <Label Text="📍" FontSize="12" VerticalOptions="Center" />
-                                    <Label Text="Delivery Address" FontSize="11" TextColor="#9CA3AF" FontAttributes="Bold" />
-                                </HorizontalStackLayout>
-                                <Label Text="{Binding CustomerAddressText}"
-                                       FontSize="12"
-                                       TextColor="#4B5563"
-                                       Margin="18,0,0,0" />
-                            </VerticalStackLayout>
-
-                            <!-- Customer Notes (if any) -->
-                            <VerticalStackLayout IsVisible="{Binding HasCustomerNotes}" Spacing="4">
-                                <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                    <Label Text="📝" FontSize="12" VerticalOptions="Center" />
-                                    <Label Text="Special Instructions" FontSize="11" TextColor="#9CA3AF" FontAttributes="Bold" />
-                                </HorizontalStackLayout>
-                                <Label Text="{Binding CustomerNotesText}"
-                                       FontSize="12"
-                                       TextColor="#4B5563"
-                                       Margin="18,0,0,0" />
-                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- ========================================================= -->
-                <!-- 7. DELIVERED RATING & VERIFIED FEEDBACK CARD               -->
-                <!-- ========================================================= -->
+                <!-- ================================================= -->
+                <!-- SECTION E — STAR RATING & COMMENT                 -->
+                <!-- ================================================= -->
                 <Border IsVisible="{Binding ShowRatingSection}"
-                        Stroke="#A7F3D0"
-                        StrokeThickness="1.5"
-                        BackgroundColor="White"
+                        Stroke="#EAE2DA"
+                        StrokeThickness="1"
+                        BackgroundColor="#FFFFFF"
                         Padding="16">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="20" />
+                        <RoundRectangle CornerRadius="22" />
                     </Border.StrokeShape>
                     <Border.Shadow>
-                        <Shadow Brush="#10000000" Offset="0,4" Radius="8" Opacity="0.08" />
+                        <Shadow Brush="#1C1410" Offset="0,3" Radius="10" Opacity="0.05" />
                     </Border.Shadow>
 
                     <VerticalStackLayout Spacing="12">
-                        <!-- Panel Header -->
-                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                <Label Text="⭐" FontSize="18" VerticalOptions="Center" />
-                                <Label Text="{Binding RatingSectionTitle}"
-                                       FontAttributes="Bold"
-                                       FontSize="16"
-                                       TextColor="#111827"
-                                       VerticalOptions="Center" />
-                            </HorizontalStackLayout>
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="{Binding RatingSectionTitle}"
+                                   FontFamily="Georgia"
+                                   FontSize="16.5"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916" />
+                            <Label Text="{Binding RatingHintText}"
+                                   FontSize="11.5"
+                                   TextColor="#5C5048" />
+                        </VerticalStackLayout>
 
-                            <!-- Score Badge if already rated (e.g. 5/5 ★) -->
-                            <Border Grid.Column="1"
-                                    IsVisible="{Binding HasExistingRating}"
-                                    BackgroundColor="#ECFDF5"
-                                    StrokeThickness="0"
-                                    Padding="10,4"
-                                    VerticalOptions="Center">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12" />
-                                </Border.StrokeShape>
-                                <Label Text="{Binding RatingBadgeText}"
-                                       TextColor="#059669"
-                                       FontAttributes="Bold"
-                                       FontSize="12" />
-                            </Border>
-                        </Grid>
+                        <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                            <Label Text="{Binding Star1Glyph}"
+                                   FontSize="30"
+                                   TextColor="{Binding Star1Color}">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="1" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                            <Label Text="{Binding Star2Glyph}"
+                                   FontSize="30"
+                                   TextColor="{Binding Star2Color}">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="2" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                            <Label Text="{Binding Star3Glyph}"
+                                   FontSize="30"
+                                   TextColor="{Binding Star3Color}">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="3" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                            <Label Text="{Binding Star4Glyph}"
+                                   FontSize="30"
+                                   TextColor="{Binding Star4Color}">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="4" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                            <Label Text="{Binding Star5Glyph}"
+                                   FontSize="30"
+                                   TextColor="{Binding Star5Color}">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="5" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                        </HorizontalStackLayout>
 
-                        <Label Text="{Binding RatingHintText}"
+                        <Label Text="{Binding RatingDescriptionText}"
                                FontSize="12"
-                               TextColor="#6B7280"
-                               LineBreakMode="WordWrap" />
+                               TextColor="#5C5048"
+                               HorizontalTextAlignment="Center"
+                               HorizontalOptions="Center" />
 
-                        <!-- 5 Interactive Stars Row -->
-                        <Border BackgroundColor="#F9FAFB"
+                        <FlexLayout Wrap="Wrap"
+                                    JustifyContent="Center"
+                                    AlignItems="Center"
+                                    AlignContent="Center">
+                            <Border BackgroundColor="{Binding ComplimentPipingHotBg}"
+                                    Stroke="{Binding ComplimentPipingHotStroke}"
+                                    StrokeThickness="1"
+                                    Padding="10,6"
+                                    Margin="0,0,6,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleComplimentCommand}" CommandParameter="Piping Hot" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Piping Hot"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11" />
+                            </Border>
+                            <Border BackgroundColor="{Binding ComplimentPoliteRiderBg}"
+                                    Stroke="{Binding ComplimentPoliteRiderStroke}"
+                                    StrokeThickness="1"
+                                    Padding="10,6"
+                                    Margin="0,0,6,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleComplimentCommand}" CommandParameter="Polite Rider" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Polite Rider"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11" />
+                            </Border>
+                            <Border BackgroundColor="{Binding ComplimentRichFlavorBg}"
+                                    Stroke="{Binding ComplimentRichFlavorStroke}"
+                                    StrokeThickness="1"
+                                    Padding="10,6"
+                                    Margin="0,0,6,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleComplimentCommand}" CommandParameter="Rich Flavor" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Rich Flavor"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11" />
+                            </Border>
+                            <Border BackgroundColor="{Binding ComplimentFastArrivalBg}"
+                                    Stroke="{Binding ComplimentFastArrivalStroke}"
+                                    StrokeThickness="1"
+                                    Padding="10,6"
+                                    Margin="0,0,6,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleComplimentCommand}" CommandParameter="Fast Arrival" />
+                                </Border.GestureRecognizers>
+                                <Label Text="Fast Arrival"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11" />
+                            </Border>
+                        </FlexLayout>
+
+                        <Border HeightRequest="68"
+                                BackgroundColor="#FAF7F4"
+                                Stroke="#EAE2DA"
                                 StrokeThickness="1"
-                                Stroke="#E5E7EB"
-                                Padding="12,10">
+                                Padding="12,8">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="14" />
                             </Border.StrokeShape>
-                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                                    <!-- Star 1 -->
-                                    <Border StrokeThickness="0" BackgroundColor="Transparent" Padding="4">
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="1" />
-                                        </Border.GestureRecognizers>
-                                        <Label Text="{Binding Star1Glyph}"
-                                               TextColor="{Binding Star1Color}"
-                                               FontSize="32"
-                                               HorizontalOptions="Center" />
-                                    </Border>
-                                    <!-- Star 2 -->
-                                    <Border StrokeThickness="0" BackgroundColor="Transparent" Padding="4">
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="2" />
-                                        </Border.GestureRecognizers>
-                                        <Label Text="{Binding Star2Glyph}"
-                                               TextColor="{Binding Star2Color}"
-                                               FontSize="32"
-                                               HorizontalOptions="Center" />
-                                    </Border>
-                                    <!-- Star 3 -->
-                                    <Border StrokeThickness="0" BackgroundColor="Transparent" Padding="4">
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="3" />
-                                        </Border.GestureRecognizers>
-                                        <Label Text="{Binding Star3Glyph}"
-                                               TextColor="{Binding Star3Color}"
-                                               FontSize="32"
-                                               HorizontalOptions="Center" />
-                                    </Border>
-                                    <!-- Star 4 -->
-                                    <Border StrokeThickness="0" BackgroundColor="Transparent" Padding="4">
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="4" />
-                                        </Border.GestureRecognizers>
-                                        <Label Text="{Binding Star4Glyph}"
-                                               TextColor="{Binding Star4Color}"
-                                               FontSize="32"
-                                               HorizontalOptions="Center" />
-                                    </Border>
-                                    <!-- Star 5 -->
-                                    <Border StrokeThickness="0" BackgroundColor="Transparent" Padding="4">
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SelectStarCommand}" CommandParameter="5" />
-                                        </Border.GestureRecognizers>
-                                        <Label Text="{Binding Star5Glyph}"
-                                               TextColor="{Binding Star5Color}"
-                                               FontSize="32"
-                                               HorizontalOptions="Center" />
-                                    </Border>
-                                </HorizontalStackLayout>
-
-                                <!-- Rating Description -->
-                                <Label Text="{Binding RatingDescriptionText}"
-                                       FontSize="12"
-                                       FontAttributes="Bold"
-                                       TextColor="#059669"
-                                       HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
+                            <Editor Text="{Binding ReviewComment, Mode=TwoWay}"
+                                    Placeholder="Share a note about food quality or rider service..."
+                                    TextColor="#1E1916"
+                                    PlaceholderColor="#8C7E74"
+                                    FontSize="12.5"
+                                    AutoSize="TextChanges"
+                                    BackgroundColor="Transparent" />
                         </Border>
 
-                        <!-- Feedback Comment Editor -->
-                        <Border Stroke="#E5E7EB"
-                                StrokeThickness="1"
-                                BackgroundColor="White"
-                                Padding="10,6">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="12" />
-                            </Border.StrokeShape>
-                            <Editor Text="{Binding CustomerCommentDraft}"
-                                    Placeholder="Tell us about the taste and service (optional)"
-                                    PlaceholderColor="#9CA3AF"
-                                    TextColor="#111827"
-                                    FontSize="13"
-                                    HeightRequest="75"
-                                    MaxLength="500"
-                                    AutoSize="Disabled" />
-                        </Border>
-
-                        <!-- Submit Button -->
                         <Button Text="{Binding SubmitButtonLabel}"
-                                Command="{Binding SubmitRatingCommand}"
-                                IsEnabled="{Binding CanSubmitRating}"
-                                BackgroundColor="#10B981"
-                                TextColor="White"
-                                HeightRequest="44"
-                                CornerRadius="12"
+                                Command="{Binding SubmitReviewCommand}"
+                                HeightRequest="46"
+                                CornerRadius="14"
+                                BackgroundColor="{Binding SubmitButtonBackground}"
+                                TextColor="#FFFFFF"
                                 FontAttributes="Bold"
-                                FontSize="14" />
+                                FontSize="13.5"
+                                IsEnabled="{Binding CanSubmitRating}" />
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- ========================================================= -->
-                <!-- 8. BOTTOM HISTORY NAVIGATION BUTTON                       -->
-                <!-- ========================================================= -->
-                <Button Text="View Order History"
-                        Command="{Binding ViewOrderHistoryCommand}"
-                        BackgroundColor="Transparent"
-                        TextColor="#059669"
-                        BorderColor="#10B981"
-                        BorderWidth="1.5"
-                        HeightRequest="44"
-                        CornerRadius="12"
+                <!-- ================================================= -->
+                <!-- SECTION F — BOTTOM LINK TO ORDER HISTORY          -->
+                <!-- ================================================= -->
+                <Button IsVisible="{Binding HasOrder}"
+                        Text="View All Past Orders in History →"
+                        Command="{Binding NavigateToOrderHistoryCommand}"
+                        HeightRequest="48"
+                        CornerRadius="15"
+                        BackgroundColor="#FFFFFF"
+                        BorderColor="#EAE2DA"
+                        BorderWidth="1"
+                        TextColor="#1E1916"
                         FontAttributes="Bold"
-                        FontSize="13"
-                        Margin="0,4,0,10" />
-
+                        FontSize="13" />
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Customer Bottom Navigation Bar (Tab 1: Order) -->
-        <controls:BubbleTabBar Mode="Customer"
-                               SelectedIndex="1"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill"
-                               ZIndex="40" />
     </Grid>
 </ContentPage>

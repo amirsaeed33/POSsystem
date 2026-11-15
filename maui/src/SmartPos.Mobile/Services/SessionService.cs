@@ -21,10 +21,18 @@ public class SessionService
     public UserLoginInfoDto? User { get; private set; }
     public bool IsAuthenticated => !string.IsNullOrWhiteSpace(AccessToken);
 
+    private bool _hydrated;
+
     public event EventHandler? SessionChanged;
 
     public async Task LoadAsync()
     {
+        // Avoid repeated SecureStorage hits on every tab appear — that was a major switch lag source.
+        if (_hydrated)
+        {
+            return;
+        }
+
         AccessToken = await SecureStorage.Default.GetAsync(TokenKey);
         var tenant = await SecureStorage.Default.GetAsync(TenantIdKey);
         TenantId = int.TryParse(tenant, out var tid) ? tid : null;
@@ -49,6 +57,8 @@ public class SessionService
             var guestBranch = await SecureStorage.Default.GetAsync(GuestBranchIdKey);
             BranchId = int.TryParse(guestBranch, out var gbid) ? gbid : null;
         }
+
+        _hydrated = true;
     }
 
     /// <summary>

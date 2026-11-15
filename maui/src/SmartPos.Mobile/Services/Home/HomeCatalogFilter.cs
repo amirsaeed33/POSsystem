@@ -61,7 +61,7 @@ public static class HomeCatalogFilter
     {
         foreach (var p in products)
         {
-            p.ImageUrl = resolveImageUrl(p.ImagePath);
+            SmartPos.Mobile.Services.ProductImageResolver.Enrich(p, resolveImageUrl);
             p.IsFavorite = isFavorite(p.Id);
         }
     }

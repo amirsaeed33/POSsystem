@@ -32,16 +32,16 @@ public class MainActivity : MauiAppCompatActivity
         // matching apps like WhatsApp. Content starts below the status bar.
         WindowCompat.SetDecorFitsSystemWindows(Window, true);
 
-        var brandGreen = Android.Graphics.Color.ParseColor("#0F6B4C");
-        Window.SetStatusBarColor(brandGreen);
+        var brandPrimary = Android.Graphics.Color.ParseColor("#C84B11");
+        Window.SetStatusBarColor(brandPrimary);
         Window.SetNavigationBarColor(Android.Graphics.Color.White);
 
         if (OperatingSystem.IsAndroidVersionAtLeast(29))
         {
-            Window.NavigationBarDividerColor = Android.Graphics.Color.ParseColor("#E4EBE6");
+            Window.NavigationBarDividerColor = Android.Graphics.Color.ParseColor("#EAE2DA");
         }
 
-        // Light icons on the green status bar.
+        // Light icons on the brand status bar.
         var controller = WindowCompat.GetInsetsController(Window, Window.DecorView);
         if (controller != null)
         {

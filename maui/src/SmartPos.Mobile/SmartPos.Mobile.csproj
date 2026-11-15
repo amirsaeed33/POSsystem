@@ -48,8 +48,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#10B981" />
-		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#10B981" BaseSize="128,128" />
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#C84B11" />
+		<!-- Native Android/iOS must show a brief splash — solid #1A0C06 only (no logo) so it blends into SplashScreenPage -->
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#1A0C06" BaseSize="1,1" />
 		<MauiImage Include="Resources\Images\*" />
 		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
 		<MauiFont Include="Resources\Fonts\*" />

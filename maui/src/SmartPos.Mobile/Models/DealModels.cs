@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Models;
 
 public class DealDto : EntityDto
@@ -136,8 +138,8 @@ public partial class DealCustomiseItem : ObservableObject
     public bool IsAllRequiredSatisfied => ModifierGroups.All(g => !g.IsRequired || g.Options.Any(o => o.IsSelected));
 
     public string StatusBadgeText => IsAllRequiredSatisfied ? "Ready ✓" : "Choice Required";
-    public Color StatusBadgeTextColor => IsAllRequiredSatisfied ? Color.FromArgb("#047857") : Color.FromArgb("#B45309");
-    public Color StatusBadgeBgColor => IsAllRequiredSatisfied ? Color.FromArgb("#D1FAE5") : Color.FromArgb("#FEF3C7");
+    public Color StatusBadgeTextColor => IsAllRequiredSatisfied ? ThemeColors.Tertiary : ThemeColors.WarningMuted;
+    public Color StatusBadgeBgColor => IsAllRequiredSatisfied ? ThemeColors.PrimaryLight : ThemeColors.WarningBackground;
 
     public void NotifyStateChanged()
     {

@@ -31,6 +31,12 @@ namespace SmartPos.Orders
 
         Task RejectAsync(EntityDto<int> input);
 
+        /// <summary>
+        /// Anonymous customer self-cancel: only Pending orders can be cancelled (mapped to Rejected).
+        /// </summary>
+        [AbpAllowAnonymous]
+        Task<CustomerOrderDto> CancelOrderByOrderNoAsync(string orderNo);
+
         [AbpAllowAnonymous]
         Task<CustomerOrderDto> CreateOnlineOrderAsync(CreateCustomerOrderDto input);
 

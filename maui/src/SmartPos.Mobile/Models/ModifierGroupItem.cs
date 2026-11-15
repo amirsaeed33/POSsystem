@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using SmartPos.Mobile.Helpers;
+
 namespace SmartPos.Mobile.Models;
 
 public partial class ModifierGroupItem : ObservableObject
@@ -13,15 +15,21 @@ public partial class ModifierGroupItem : ObservableObject
 
     public string RequirementLabel => IsRequired ? "(Required)" : "(Optional)";
 
-    public string RequirementBadgeText => IsRequired ? "Required" : "Optional";
-    public Color RequirementTextColor => IsRequired ? Color.FromArgb("#B45309") : Color.FromArgb("#6B7280");
-    public Color RequirementBgColor => IsRequired ? Color.FromArgb("#FEF3C7") : Color.FromArgb("#F3F4F6");
+    public string RequirementBadgeText => IsRequired ? "REQUIRED" : "OPTIONAL";
+    public Color RequirementTextColor => IsRequired ? ThemeColors.Primary : ThemeColors.TextSecondary;
+    public Color RequirementBgColor => IsRequired ? ThemeColors.PrimaryLight : ThemeColors.Gray100;
+    public Color RequirementBorderColor => IsRequired ? Color.FromArgb("#F0C4AE") : ThemeColors.BorderSubtle;
 
     public string SelectionRuleHint => AllowMultiple
         ? (MaxSelection > 1 ? $"Choose up to {MaxSelection}" : "Multiple choices")
         : "Choose 1";
 
     public bool IsSatisfied => !IsRequired || Options.Any(o => o.IsSelected);
+
+    /// <summary>Zero-price option groups (spice levels, etc.) render as warm pills.</summary>
+    public bool UsePillLayout => Options.Count > 0 && Options.All(o => o.Price <= 0);
+
+    public bool UseCardLayout => !UsePillLayout;
 
     public ObservableCollection<ModifierOptionItem> Options { get; } = new();
 }

@@ -8,9 +8,8 @@ namespace SmartPos.Mobile.ViewModels;
 public partial class LoginViewModel : BaseViewModel
 {
     private readonly AuthService _auth;
-    private readonly SessionService _session;
+    private readonly AppState _appState;
     private readonly NavigationService _navigation;
-    private readonly CartService _cart;
 
     [ObservableProperty]
     private string userName = string.Empty;
@@ -30,18 +29,32 @@ public partial class LoginViewModel : BaseViewModel
     [ObservableProperty]
     private string welcomeName = string.Empty;
 
+    [ObservableProperty]
+    private string initials = string.Empty;
+
+    [ObservableProperty]
+    private string fullNameDisplay = string.Empty;
+
+    [ObservableProperty]
+    private string emailDisplay = string.Empty;
+
+    [ObservableProperty]
+    private string memberTierDisplay = string.Empty;
+
+    [ObservableProperty]
+    private string branchDisplay = string.Empty;
+
     public string PasswordEyeIcon => IsPasswordHidden ? "icon_eye_off.png" : "icon_eye.png";
     public bool ShowLoginForm => !IsLoggedIn;
 
-    public LoginViewModel(AuthService auth, SessionService session, NavigationService navigation, AppSettings settings, CartService cart)
+    public LoginViewModel(AuthService auth, AppState appState, NavigationService navigation, AppSettings settings)
     {
         _auth = auth;
-        _session = session;
+        _appState = appState;
         _navigation = navigation;
-        _cart = cart;
         Title = "Staff Login";
         _ = settings;
-        _session.SessionChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RefreshSessionUi);
+        _appState.SessionChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RefreshSessionUi);
         RefreshSessionUi();
     }
 
@@ -50,12 +63,61 @@ public partial class LoginViewModel : BaseViewModel
 
     public void RefreshSessionUi()
     {
-        IsLoggedIn = _session.IsAuthenticated;
-        WelcomeName = _session.User?.Name
-            ?? _session.User?.UserName
+        IsLoggedIn = _appState.IsAuthenticated;
+        var user = _appState.User;
+
+        WelcomeName = user?.Name
+            ?? user?.UserName
             ?? UserName
             ?? "Staff";
-        StatusText = IsLoggedIn ? $"Signed in as {WelcomeName}" : string.Empty;
+
+        FullNameDisplay = !string.IsNullOrWhiteSpace(user?.DisplayName)
+            ? user!.DisplayName
+            : WelcomeName;
+
+        EmailDisplay = !string.IsNullOrWhiteSpace(user?.EmailAddress)
+            ? user!.EmailAddress!
+            : (!string.IsNullOrWhiteSpace(user?.UserName) ? user!.UserName! : WelcomeName);
+
+        Initials = BuildInitials(FullNameDisplay);
+
+        MemberTierDisplay = !string.IsNullOrWhiteSpace(user?.Designation)
+            ? user!.Designation!
+            : (user?.Roles is { Count: > 0 } && !string.IsNullOrWhiteSpace(user.Roles[0])
+                ? user.Roles[0]
+                : "Staff Member");
+
+        BranchDisplay = !string.IsNullOrWhiteSpace(user?.BranchName)
+            ? user!.BranchName!
+            : "Preferred Branch";
+
+        if (IsLoggedIn && string.IsNullOrWhiteSpace(StatusText))
+        {
+            StatusText = $"Signed in as {WelcomeName}";
+        }
+        else if (!IsLoggedIn && StatusText.StartsWith("Signed in as", StringComparison.OrdinalIgnoreCase))
+        {
+            StatusText = string.Empty;
+        }
+    }
+
+    private static string BuildInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "AJ";
+        }
+
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            return $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}";
+        }
+
+        var single = parts[0];
+        return single.Length >= 2
+            ? $"{char.ToUpperInvariant(single[0])}{char.ToUpperInvariant(single[1])}"
+            : char.ToUpperInvariant(single[0]).ToString();
     }
 
     [RelayCommand]
@@ -66,7 +128,7 @@ public partial class LoginViewModel : BaseViewModel
     {
         if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(Password))
         {
-            await Shell.Current.DisplayAlert("Login", "Enter username and password.", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Login", "Enter username and password.", "OK");
             return;
         }
 
@@ -74,8 +136,7 @@ public partial class LoginViewModel : BaseViewModel
         {
             var (lat, lng) = await LocationHelper.TryGetAsync();
             var auth = await _auth.LoginAsync(null, UserName, Password, lat, lng);
-            _cart.Clear();
-            WaiterOrderSession.Clear();
+            _appState.ClearStaffWorkingState();
             if (auth.AttendanceAutoCheckedIn)
             {
                 StatusText = "Attendance auto check-in recorded.";
@@ -83,7 +144,7 @@ public partial class LoginViewModel : BaseViewModel
 
             RefreshSessionUi();
 
-            var mode = _session.ResolveRoleMode();
+            var mode = _appState.RoleMode;
             if (mode == AppRoleMode.UnsupportedStaff)
             {
                 await Shell.Current.GoToAsync("//unsupported");
@@ -100,8 +161,7 @@ public partial class LoginViewModel : BaseViewModel
         await RunBusyAsync(async () =>
         {
             await _auth.LogoutAsync();
-            WaiterOrderSession.Clear();
-            _cart.Clear();
+            _appState.ClearStaffWorkingState();
             Password = string.Empty;
             RefreshSessionUi();
             StatusText = "Signed out.";

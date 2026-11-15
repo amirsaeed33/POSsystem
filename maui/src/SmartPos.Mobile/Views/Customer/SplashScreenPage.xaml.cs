@@ -7,6 +7,9 @@ public partial class SplashScreenPage : ContentPage
     public SplashScreenPage()
     {
         InitializeComponent();
+#if IOS
+        Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific.Page.SetUseSafeArea(this, false);
+#endif
     }
 
     protected override async void OnAppearing()
@@ -22,24 +25,46 @@ public partial class SplashScreenPage : ContentPage
 
         try
         {
-            // Initial animation state
-            BrandContainer.Opacity = 0;
-            BrandContainer.Scale = 0.90;
+            // Show Aljannat brand immediately (native splash is only a matching solid color).
+            EmblemBadge.Opacity = 1;
+            EmblemBadge.Scale = 1.0;
+            WordmarkLabel.Opacity = 1;
+            WordmarkLabel.TranslationY = 0;
+            GoldDivider.Opacity = 1;
+            GoldDivider.TranslationY = 0;
+            TaglineLabel.Opacity = 1;
+            TaglineLabel.TranslationY = 0;
+            BrandCenterStack.Opacity = 1;
+            FooterStack.Opacity = 1;
+            ProgressFill.WidthRequest = 36;
 
-            // 1. Smooth Fade-in & subtle scale-up
-            await Task.WhenAll(
-                BrandContainer.FadeTo(1, 600, Easing.CubicOut),
-                BrandContainer.ScaleTo(1.0, 600, Easing.CubicOut)
-            );
+            // Light polish after first paint
+            await EmblemBadge.ScaleTo(1.04, 220, Easing.CubicOut);
+            await EmblemBadge.ScaleTo(1.0, 180, Easing.CubicIn);
 
-            // 2. Async delay (total brand screen duration ~2.5s)
+            var wordmarkTask = Task.CompletedTask;
+            var dividerTask = Task.CompletedTask;
+            var taglineTask = Task.CompletedTask;
+
+            // Progress bar fills while brand holds on screen
+            var progressTcs = new TaskCompletionSource<bool>();
+            var progressAnim = new Animation(v => ProgressFill.WidthRequest = v, 36, 120);
+            progressAnim.Commit(
+                ProgressFill,
+                "SplashProgressFill",
+                length: 1600,
+                easing: Easing.SinInOut,
+                finished: (_, _) => progressTcs.TrySetResult(true));
+
+            // Hold so total on-brand time stays ~2.5s (entrance ~850ms + dwell)
             await Task.Delay(1500);
+            await Task.WhenAll(wordmarkTask, dividerTask, taglineTask, progressTcs.Task);
 
-            // 3. Smooth Fade-out before transition
+            // 3. Smooth fade-out before transition
             await Task.WhenAll(
-                BrandContainer.FadeTo(0, 400, Easing.CubicIn),
-                BrandContainer.ScaleTo(0.95, 400, Easing.CubicIn)
-            );
+                BrandCenterStack.FadeTo(0, 400, Easing.CubicIn),
+                FooterStack.FadeTo(0, 400, Easing.CubicIn),
+                BrandCenterStack.ScaleTo(0.95, 400, Easing.CubicIn));
 
             // Cold start always opens the customer storefront (branch pick → home).
             // Staff/rider still reach their homes via login → GoToRoleHomeAsync.

@@ -6,6 +6,35 @@ using SmartPos.Mobile.Services;
 
 namespace SmartPos.Mobile.ViewModels;
 
+public partial class OrderHistoryFilterChip : ObservableObject
+{
+    public string Label { get; init; } = string.Empty;
+
+    [ObservableProperty]
+    private bool isSelected;
+
+    public Color ChipBackground => IsSelected
+        ? Color.FromArgb("#C84B11")
+        : Color.FromArgb("#FFFFFF");
+
+    public Color ChipStroke => IsSelected
+        ? Color.FromArgb("#C84B11")
+        : Color.FromArgb("#EAE2DA");
+
+    public Color ChipTextColor => IsSelected
+        ? Colors.White
+        : Color.FromArgb("#1E1916");
+
+    public FontAttributes ChipFontAttributes => FontAttributes.Bold;
+
+    partial void OnIsSelectedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ChipBackground));
+        OnPropertyChanged(nameof(ChipStroke));
+        OnPropertyChanged(nameof(ChipTextColor));
+    }
+}
+
 public partial class OrderHistoryViewModel : BaseViewModel
 {
     private readonly OnlineOrderService _orders;
@@ -31,14 +60,53 @@ public partial class OrderHistoryViewModel : BaseViewModel
     private CustomerOrderDto? selectedOrder;
 
     [ObservableProperty]
+    private CustomerOrderDto? selectedReceiptOrder;
+
+    [ObservableProperty]
     private string searchErrorMessage = string.Empty;
+
+    [ObservableProperty]
+    private string selectedFilter = "All";
+
+    [ObservableProperty]
+    private bool isReceiptSheetVisible;
+
+    [ObservableProperty]
+    private bool isReorderSheetVisible;
+
+    [ObservableProperty]
+    private string reorderTotalText = "Rs. 0";
 
     public ObservableCollection<CustomerOrderDto> Orders { get; } = new();
 
+    public ObservableCollection<CustomerOrderDto> FilteredOrders { get; } = new();
+
+    public ObservableCollection<OrderHistoryFilterChip> FilterOptions { get; } = new();
+
+    public ObservableCollection<CustomerOrderLineDto> ReorderPreviewLines { get; } = new();
+
+    public int OrdersCount => FilteredOrders.Count;
+
+    public string OrdersCountText =>
+        OrdersCount == 1 ? "1 Order" : $"{OrdersCount} Orders";
+
     public bool HasOrders => Orders.Count > 0;
+
+    public bool HasFilteredOrders => FilteredOrders.Count > 0;
+
     public bool IsEmptyState => !IsBusy && !IsSearching && HasSearched && !HasOrders;
+
+    public bool IsFilteredEmpty =>
+        !IsBusy && !IsSearching && HasSearched && FilteredOrders.Count == 0;
+
     public bool HasSavedPhone => !string.IsNullOrWhiteSpace(SavedPhoneNumber) &&
                                  !string.Equals(PhoneNumber.Trim(), SavedPhoneNumber.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    public bool HasSearchError => !string.IsNullOrWhiteSpace(SearchErrorMessage);
+
+    public bool ShowOrderList => HasFilteredOrders && !IsSearching;
+
+    public bool HasSelectedReceiptOrder => SelectedReceiptOrder != null;
 
     public OrderHistoryViewModel(OnlineOrderService orders, SessionService session, CartService cart)
     {
@@ -46,6 +114,20 @@ public partial class OrderHistoryViewModel : BaseViewModel
         _session = session;
         _cart = cart;
         Title = "Order History";
+        InitializeFilters();
+    }
+
+    private void InitializeFilters()
+    {
+        FilterOptions.Clear();
+        foreach (var label in new[] { "All", "Active", "Delivered", "Cancelled" })
+        {
+            FilterOptions.Add(new OrderHistoryFilterChip
+            {
+                Label = label,
+                IsSelected = label == SelectedFilter
+            });
+        }
     }
 
     [RelayCommand]
@@ -53,13 +135,11 @@ public partial class OrderHistoryViewModel : BaseViewModel
     {
         SavedPhoneNumber = Preferences.Default.Get("sp.customerPhone", string.Empty).Trim();
 
-        // If phone is empty, auto-populate from saved
         if (string.IsNullOrWhiteSpace(PhoneNumber) && !string.IsNullOrWhiteSpace(SavedPhoneNumber))
         {
             PhoneNumber = SavedPhoneNumber;
         }
 
-        // If we have a valid phone and haven't loaded orders yet, trigger auto-search
         if (!HasSearched && NormalizePhoneDigits(PhoneNumber).Length >= 7)
         {
             await SearchOrdersAsync();
@@ -76,6 +156,9 @@ public partial class OrderHistoryViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private Task FindOrdersAsync() => SearchOrdersAsync();
+
+    [RelayCommand]
     private async Task SearchOrdersAsync()
     {
         var digits = NormalizePhoneDigits(PhoneNumber);
@@ -84,13 +167,13 @@ public partial class OrderHistoryViewModel : BaseViewModel
             SearchErrorMessage = "Please enter a valid phone number (at least 7 digits).";
             Orders.Clear();
             HasSearched = true;
+            RebuildFilteredOrders();
             NotifyOrderState();
             return;
         }
 
         SearchErrorMessage = string.Empty;
 
-        // Remember phone number for future sessions
         Preferences.Default.Set("sp.customerPhone", PhoneNumber.Trim());
         SavedPhoneNumber = PhoneNumber.Trim();
 
@@ -113,6 +196,7 @@ public partial class OrderHistoryViewModel : BaseViewModel
             }
 
             HasSearched = true;
+            RebuildFilteredOrders();
         }
         catch (Exception ex)
         {
@@ -120,6 +204,7 @@ public partial class OrderHistoryViewModel : BaseViewModel
             SearchErrorMessage = ex.Message ?? "Failed to fetch orders. Please check your connection.";
             Orders.Clear();
             HasSearched = true;
+            RebuildFilteredOrders();
         }
         finally
         {
@@ -144,6 +229,24 @@ public partial class OrderHistoryViewModel : BaseViewModel
         {
             IsRefreshing = false;
         }
+    }
+
+    [RelayCommand]
+    private void SelectFilter(string? filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            return;
+        }
+
+        SelectedFilter = filter.Trim();
+        foreach (var chip in FilterOptions)
+        {
+            chip.IsSelected = string.Equals(chip.Label, SelectedFilter, StringComparison.OrdinalIgnoreCase);
+        }
+
+        RebuildFilteredOrders();
+        NotifyOrderState();
     }
 
     [RelayCommand]
@@ -175,50 +278,109 @@ public partial class OrderHistoryViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task ReorderAsync(CustomerOrderDto? order)
+    private async Task PrimaryOrderActionAsync(CustomerOrderDto? order)
     {
-        if (order == null || !order.CanReorder)
+        if (order == null)
         {
-            if (Shell.Current != null)
-            {
-                await Shell.Current.DisplayAlert("Re-order", "This order does not have any items available to re-order.", "OK");
-            }
             return;
         }
 
-        var clearCart = true;
-        if (_cart.Lines.Count > 0)
+        if (order.IsActiveOrder)
         {
-            if (Shell.Current != null)
-            {
-                var action = await Shell.Current.DisplayActionSheet(
-                    "You have items in your cart. How would you like to proceed?",
-                    "Cancel",
-                    null,
-                    "Replace Cart with this Order",
-                    "Add to Existing Cart Items");
-
-                if (action == "Cancel" || string.IsNullOrWhiteSpace(action))
-                {
-                    return;
-                }
-
-                clearCart = action.StartsWith("Replace", StringComparison.OrdinalIgnoreCase);
-            }
+            await TrackOrderAsync(order);
+            return;
         }
 
-        var count = _cart.ReorderFromCustomerOrder(order, clearCart);
-        if (count > 0)
+        OpenReceipt(order);
+    }
+
+    [RelayCommand]
+    private void OpenReceipt(CustomerOrderDto? order)
+    {
+        if (order == null)
+        {
+            return;
+        }
+
+        SelectedOrder = order;
+        SelectedReceiptOrder = order;
+        IsReorderSheetVisible = false;
+        IsReceiptSheetVisible = true;
+    }
+
+    [RelayCommand]
+    private void CloseReceipt()
+    {
+        IsReceiptSheetVisible = false;
+    }
+
+    [RelayCommand]
+    private async Task OpenReorderSheetAsync(CustomerOrderDto? order)
+    {
+        if (order == null)
+        {
+            return;
+        }
+
+        if (!order.CanReorder)
         {
             if (Shell.Current != null)
             {
-                await Shell.Current.DisplayAlert(
-                    "Added to Cart",
-                    $"{count} item(s) from order #{order.FormattedOrderNo} added to your cart.",
-                    "Checkout Now");
-
-                await Shell.Current.GoToAsync("//customer/cart");
+                await AljannatDialogService.Current.ShowAlertAsync("Re-order", "This order does not have any items available to re-order.", "OK");
             }
+
+            return;
+        }
+
+        // 1-click: replace tray contents with this past order.
+        var count = _cart.ReorderFromCustomerOrder(order, clearCart: true);
+        if (count <= 0)
+        {
+            if (Shell.Current != null)
+            {
+                await AljannatDialogService.Current.ShowAlertAsync("Re-order", "No items could be added to your cart from this order.", "OK");
+            }
+
+            return;
+        }
+
+        SelectedOrder = order;
+        SelectedReceiptOrder = order;
+        IsReceiptSheetVisible = false;
+
+        ReorderPreviewLines.Clear();
+        foreach (var line in order.Lines)
+        {
+            ReorderPreviewLines.Add(line);
+        }
+
+        ReorderTotalText = order.GrandTotalDisplay;
+        IsReorderSheetVisible = true;
+    }
+
+    /// <summary>Kept for any remaining bindings; opens the 1-click reorder sheet.</summary>
+    [RelayCommand]
+    private Task ReorderAsync(CustomerOrderDto? order) => OpenReorderSheetAsync(order);
+
+    [RelayCommand]
+    private void CloseReorderSheet()
+    {
+        IsReorderSheetVisible = false;
+    }
+
+    [RelayCommand]
+    private void KeepBrowsing()
+    {
+        IsReorderSheetVisible = false;
+    }
+
+    [RelayCommand]
+    private async Task ProceedToCheckoutAsync()
+    {
+        IsReorderSheetVisible = false;
+        if (Shell.Current != null)
+        {
+            await Shell.Current.GoToAsync("//customer/cart");
         }
     }
 
@@ -235,7 +397,7 @@ public partial class OrderHistoryViewModel : BaseViewModel
             await Clipboard.Default.SetTextAsync(orderNo.Trim());
             if (Shell.Current != null)
             {
-                await Shell.Current.DisplayAlert("Copied", $"Order #{orderNo} copied to clipboard.", "OK");
+                await AljannatDialogService.Current.ShowAlertAsync("Copied", $"Order #{orderNo} copied to clipboard.", "OK");
             }
         }
         catch (Exception ex)
@@ -271,11 +433,58 @@ public partial class OrderHistoryViewModel : BaseViewModel
         }
     }
 
+    partial void OnSearchErrorMessageChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasSearchError));
+    }
+
+    partial void OnIsSearchingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsFilteredEmpty));
+        OnPropertyChanged(nameof(ShowOrderList));
+        OnPropertyChanged(nameof(IsEmptyState));
+    }
+
+    partial void OnSelectedReceiptOrderChanged(CustomerOrderDto? value)
+    {
+        OnPropertyChanged(nameof(HasSelectedReceiptOrder));
+    }
+
+    private void RebuildFilteredOrders()
+    {
+        FilteredOrders.Clear();
+
+        IEnumerable<CustomerOrderDto> query = Orders;
+        switch (SelectedFilter)
+        {
+            case "Active":
+                query = Orders.Where(o => o.Status is 0 or 1 or 3);
+                break;
+            case "Delivered":
+                query = Orders.Where(o => o.Status is 4 or 5);
+                break;
+            case "Cancelled":
+                query = Orders.Where(o => o.Status == 2);
+                break;
+        }
+
+        foreach (var order in query)
+        {
+            FilteredOrders.Add(order);
+        }
+    }
+
     private void NotifyOrderState()
     {
         OnPropertyChanged(nameof(HasOrders));
+        OnPropertyChanged(nameof(HasFilteredOrders));
         OnPropertyChanged(nameof(IsEmptyState));
+        OnPropertyChanged(nameof(IsFilteredEmpty));
+        OnPropertyChanged(nameof(ShowOrderList));
         OnPropertyChanged(nameof(HasSavedPhone));
+        OnPropertyChanged(nameof(OrdersCount));
+        OnPropertyChanged(nameof(OrdersCountText));
+        OnPropertyChanged(nameof(HasSearchError));
     }
 
     private static string NormalizePhoneDigits(string phone)
@@ -284,7 +493,7 @@ public partial class OrderHistoryViewModel : BaseViewModel
         {
             return string.Empty;
         }
+
         return new string(phone.Where(char.IsDigit).ToArray());
     }
 }
-

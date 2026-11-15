@@ -9,14 +9,14 @@
              Title="Current order"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="#EDF3EF">
+             BackgroundColor="{StaticResource StaffPageBackground}">
 
     <ContentPage.Resources>
         <helpers:InvertedBoolConverter x:Key="InvertedBoolConverter" />
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,*,Auto" BackgroundColor="#EDF3EF">
-        <Border BackgroundColor="#0B3D2E"
+    <Grid RowDefinitions="Auto,*,Auto" BackgroundColor="{StaticResource StaffPageBackground}">
+        <Border BackgroundColor="{StaticResource StaffHero}"
                 Padding="16,16,16,14"
                 StrokeThickness="0">
             <Border.StrokeShape>
@@ -26,7 +26,7 @@
                 <Border WidthRequest="40"
                         HeightRequest="40"
                         StrokeThickness="0"
-                        BackgroundColor="#147A55"
+                        BackgroundColor="{StaticResource StaffHeroAccent}"
                         VerticalOptions="Center">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="12" />
@@ -37,7 +37,7 @@
                     <Label Text="←"
                            FontSize="20"
                            FontAttributes="Bold"
-                           TextColor="White"
+                           TextColor="{StaticResource White}"
                            HorizontalOptions="Center"
                            VerticalOptions="Center" />
                 </Border>
@@ -46,12 +46,12 @@
                     <Label Text="CURRENT ORDER"
                            FontSize="10"
                            FontAttributes="Bold"
-                           TextColor="#A7F3D0"
+                           TextColor="{StaticResource StaffHeroLabel}"
                            CharacterSpacing="1.1" />
                     <Label Text="{Binding OrderTitle}"
                            FontAttributes="Bold"
                            FontSize="18"
-                           TextColor="White"
+                           TextColor="{StaticResource White}"
                            LineBreakMode="TailTruncation" />
                 </VerticalStackLayout>
 
@@ -59,16 +59,16 @@
                        Text="{Binding SubtotalText, StringFormat='Rs {0}'}"
                        FontAttributes="Bold"
                        FontSize="16"
-                       TextColor="#A7F3D0"
+                       TextColor="{StaticResource StaffHeroLabel}"
                        VerticalOptions="Center" />
             </Grid>
         </Border>
 
         <Grid Grid.Row="1" Padding="12,12,12,8">
             <Border IsVisible="{Binding HasCartItems, Converter={StaticResource InvertedBoolConverter}}"
-                    Stroke="#E2E8E4"
+                    Stroke="{StaticResource CartBorder}"
                     StrokeThickness="1"
-                    BackgroundColor="White"
+                    BackgroundColor="{StaticResource CardBackground}"
                     Padding="28,36"
                     VerticalOptions="Center">
                 <Border.StrokeShape>
@@ -78,7 +78,7 @@
                     <Border WidthRequest="72"
                             HeightRequest="72"
                             StrokeThickness="0"
-                            BackgroundColor="#E7F5EF"
+                            BackgroundColor="{StaticResource CartAccentBackground}"
                             HorizontalOptions="Center">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="36" />
@@ -92,11 +92,11 @@
                     <Label Text="No items yet"
                            FontSize="18"
                            FontAttributes="Bold"
-                           TextColor="#1F2A24"
+                           TextColor="{StaticResource CartText}"
                            HorizontalTextAlignment="Center" />
                     <Label Text="Add items from the menu, then send them to the kitchen."
                            FontSize="13"
-                           TextColor="#64748B"
+                           TextColor="{StaticResource AuthMutedText}"
                            HorizontalTextAlignment="Center"
                            LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
@@ -106,9 +106,9 @@
                             IsVisible="{Binding HasCartItems}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:CartLine">
-                        <Border Stroke="#E8ECEA"
+                        <Border Stroke="{StaticResource StaffBorderCool}"
                                 StrokeThickness="1"
-                                BackgroundColor="White"
+                                BackgroundColor="{StaticResource CardBackground}"
                                 Padding="12"
                                 Margin="0,0,0,8">
                             <Border.StrokeShape>
@@ -119,34 +119,31 @@
                                     <Label Text="{Binding Name}"
                                            FontAttributes="Bold"
                                            FontSize="14"
-                                           TextColor="#1F2A24"
+                                           TextColor="{StaticResource CartText}"
                                            LineBreakMode="TailTruncation" />
                                     <Label Text="{Binding SelectedModifiers}"
                                            IsVisible="{Binding HasModifiers}"
-                                           TextColor="#0F6B4C"
+                                           TextColor="{StaticResource StaffPrimary}"
                                            FontSize="11"
                                            MaxLines="2"
                                            LineBreakMode="WordWrap" />
                                     <Label Text="{Binding KitchenNotes}"
                                            IsVisible="{Binding HasKitchenNotes}"
-                                           TextColor="#8A9690"
+                                           TextColor="{StaticResource StaffMuted}"
                                            FontSize="11"
                                            MaxLines="2"
                                            LineBreakMode="WordWrap" />
                                     <Label Text="{Binding UnitPriceText, StringFormat='Rs {0}'}"
-                                           TextColor="#5C6B63"
+                                           TextColor="{StaticResource CartMuted}"
                                            FontSize="12" />
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
                                     <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="6">
                                         <Button Text="−"
+                                                Style="{StaticResource QtyDecreaseButton}"
                                                 WidthRequest="36"
                                                 HeightRequest="36"
-                                                Padding="0"
-                                                CornerRadius="10"
-                                                BackgroundColor="#EEF2F0"
-                                                TextColor="#1F2A24"
                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=DecreaseCommand}"
                                                 CommandParameter="{Binding .}" />
                                         <Label Grid.Column="1"
@@ -155,22 +152,19 @@
                                                HorizontalTextAlignment="Center"
                                                VerticalOptions="Center"
                                                FontAttributes="Bold"
-                                               TextColor="#1F2A24" />
+                                               TextColor="{StaticResource CartText}" />
                                         <Button Grid.Column="2"
                                                 Text="+"
+                                                Style="{StaticResource QtyIncreaseButton}"
                                                 WidthRequest="36"
                                                 HeightRequest="36"
-                                                Padding="0"
-                                                CornerRadius="10"
-                                                BackgroundColor="#E7F5EF"
-                                                TextColor="#0F6B4C"
                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=IncreaseCommand}"
                                                 CommandParameter="{Binding .}" />
                                     </Grid>
                                     <Border WidthRequest="28"
                                             HeightRequest="28"
                                             StrokeThickness="0"
-                                            BackgroundColor="#FEE2E2"
+                                            BackgroundColor="{StaticResource DangerBackground}"
                                             HorizontalOptions="End">
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="14" />
@@ -183,7 +177,7 @@
                                         <Label Text="✕"
                                                FontSize="13"
                                                FontAttributes="Bold"
-                                               TextColor="#B42318"
+                                               TextColor="{StaticResource DangerAccent}"
                                                HorizontalOptions="Center"
                                                VerticalOptions="Center" />
                                     </Border>
@@ -196,17 +190,15 @@
         </Grid>
 
         <Border Grid.Row="2"
-                BackgroundColor="White"
+                BackgroundColor="{StaticResource CardBackground}"
                 StrokeThickness="0"
                 Padding="12,10">
             <Button Text="Send KOT"
                     Command="{Binding SendToKitchenCommand}"
                     IsEnabled="{Binding HasCartItems}"
-                    BackgroundColor="#0F6B4C"
-                    TextColor="White"
+                    Style="{StaticResource StaffPrimaryButton}"
                     CornerRadius="14"
                     HeightRequest="48"
-                    FontAttributes="Bold"
                     FontSize="16" />
         </Border>
     </Grid>

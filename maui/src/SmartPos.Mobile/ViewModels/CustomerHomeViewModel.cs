@@ -10,6 +10,7 @@ namespace SmartPos.Mobile.ViewModels;
 public partial class CustomerHomeViewModel : BaseViewModel
 {
     private readonly OnlineOrderService _orders;
+    private readonly AppState _appState;
     private readonly SessionService _session;
     private readonly CartService _cart;
     private readonly AbpApiClient _api;
@@ -143,9 +144,9 @@ public partial class CustomerHomeViewModel : BaseViewModel
     public string TotalReviewsSubtitle => $"{Feedbacks.Count} {(Feedbacks.Count == 1 ? "review" : "reviews")}";
     public bool HasFeedbacks => Feedbacks.Count > 0;
 
-    public int CartCount => _cart.ItemCount;
+    public int CartCount => _appState.CartItemCount;
     public bool HasCartItems => CartCount > 0;
-    public decimal CartSubtotal => _cart.Subtotal;
+    public decimal CartSubtotal => _appState.CartSubtotal;
     public string CartSubtotalDisplay => $"Rs {CartSubtotal:0}";
     public string CartCountBadge => $"{CartCount} {(CartCount == 1 ? "item" : "items")}";
     public bool IsFloatingCartBarVisible => HasCartItems && !IsAnyModalVisible && !NeedsBranchSelection;
@@ -155,6 +156,14 @@ public partial class CustomerHomeViewModel : BaseViewModel
     public bool HasComboItems => DealCustomiseItems.Count > 0;
     public bool IsAnyModalVisible => IsProductModalVisible || IsComboModalVisible;
     public bool IsPickupMode => !IsDeliveryMode;
+
+    public string PromoTitle => HomeUiDefaults.PromoTitle;
+    public string PromoCtaText => HomeUiDefaults.PromoCtaText;
+    public string SearchPlaceholder => HomeUiDefaults.SearchPlaceholder;
+    public string BranchPickerTitle => HomeUiDefaults.BranchPickerTitle;
+    public string BranchPickerSubtitle => HomeUiDefaults.BranchPickerSubtitle;
+    public string DeliverToHeaderLabel => HomeUiDefaults.DeliverToLabel;
+
     public string DeliverToLabel =>
         SelectedBranch?.Name
         ?? StoreHeader?.BranchName
@@ -197,22 +206,22 @@ public partial class CustomerHomeViewModel : BaseViewModel
 
     public CustomerHomeViewModel(
         OnlineOrderService orders,
-        SessionService session,
-        CartService cart,
+        AppState appState,
         AbpApiClient api,
         AppSettings settings,
         DeliveryLocationService deliveryLocation,
         FavoritesService favorites)
     {
         _orders = orders;
-        _session = session;
-        _cart = cart;
+        _appState = appState;
+        _session = appState.Session;
+        _cart = appState.Cart;
         _api = api;
         _settings = settings;
         _deliveryLocation = deliveryLocation;
         _favorites = favorites;
         Title = "Online Order";
-        _cart.CartChanged += (_, _) =>
+        _appState.CartChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(CartCount));
             OnPropertyChanged(nameof(HasCartItems));
@@ -326,14 +335,16 @@ public partial class CustomerHomeViewModel : BaseViewModel
     [RelayCommand]
     private async Task RefreshHomeAsync()
     {
-        if (IsPullRefreshing || IsBusy)
+        // RefreshView already sets IsPullRefreshing=true via TwoWay binding.
+        // Never early-return on IsPullRefreshing — that left the spinner spinning forever.
+        if (IsBusy)
         {
+            await MainThread.InvokeOnMainThreadAsync(() => IsPullRefreshing = false);
             return;
         }
 
         try
         {
-            IsPullRefreshing = true;
             _session.ClearTenantHeader();
 
             if (SelectedBranch == null)
@@ -351,7 +362,7 @@ public partial class CustomerHomeViewModel : BaseViewModel
         }
         finally
         {
-            IsPullRefreshing = false;
+            await MainThread.InvokeOnMainThreadAsync(() => IsPullRefreshing = false);
         }
     }
 

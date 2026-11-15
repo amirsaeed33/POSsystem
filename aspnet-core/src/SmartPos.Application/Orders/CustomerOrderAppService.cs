@@ -1288,6 +1288,58 @@ namespace SmartPos.Orders
         }
 
         /// <summary>
+        /// Anonymous customer self-cancel by order number. Only Pending orders may be cancelled.
+        /// </summary>
+        [AbpAllowAnonymous]
+        public async Task<CustomerOrderDto> CancelOrderByOrderNoAsync(string orderNo)
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant, AbpDataFilters.MustHaveTenant))
+            {
+                if (string.IsNullOrWhiteSpace(orderNo))
+                {
+                    throw new UserFriendlyException("Please provide a valid Order Number.");
+                }
+
+                var clean = orderNo.Trim();
+                var query = Repository.GetAll()
+                    .Include(x => x.Customer)
+                    .Include(x => x.Sale)
+                    .Include(x => x.Lines)
+                        .ThenInclude(l => l.Product)
+                    .Include(x => x.Branch);
+
+                var order = await query.FirstOrDefaultAsync(x => x.OrderNo == clean);
+                if (order == null)
+                {
+                    order = await query.FirstOrDefaultAsync(x => x.OrderNo.ToLower() == clean.ToLower());
+                }
+
+                if (order == null)
+                {
+                    throw new UserFriendlyException($"No order found matching '{clean}'.");
+                }
+
+                if (order.Status != CustomerOrderStatus.Pending)
+                {
+                    throw new UserFriendlyException("Only pending orders can be cancelled.");
+                }
+
+                order.Status = CustomerOrderStatus.Rejected;
+                await CurrentUnitOfWork.SaveChangesAsync();
+
+                await EventBus.TriggerAsync(new CustomerOrderStatusChangedEventData(
+                    order.Id,
+                    order.OrderNo,
+                    order.BranchId,
+                    CustomerOrderStatus.Rejected));
+
+                var dto = MapToEntityDto(order);
+                await EnrichRiderContactAsync(new List<CustomerOrderDto> { dto });
+                return dto;
+            }
+        }
+
+        /// <summary>
         /// Admin/staff: mark food as delivered (no sale). Payment is posted via CompleteAsync.
         /// </summary>
         public async Task DeliverAsync(EntityDto<int> input)

@@ -17,12 +17,15 @@ public partial class CustomerOrderViewModel : BaseViewModel
     private readonly FavoritesService _favorites;
 
     private const int PageSize = 30;
+    private const int SearchDebounceMs = 350;
     private readonly List<OnlineProductDto> _allProducts = new();
     private int? _loadedBranchId;
     private int _catalogTotalCount;
     private bool _isLoadingMore;
     private bool _isReloadingCatalog;
     private CancellationTokenSource? _catalogLoadCts;
+    private CancellationTokenSource? _searchDebounceCts;
+    private string? _appliedCategoryFilter;
 
     public HashSet<string> SelectedCategories { get; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -42,11 +45,22 @@ public partial class CustomerOrderViewModel : BaseViewModel
     {
         if (string.IsNullOrWhiteSpace(categoryName) || string.Equals(categoryName, "All", StringComparison.OrdinalIgnoreCase))
         {
+            _appliedCategoryFilter = null;
             ClearFilters();
             return;
         }
 
         var trimmed = categoryName.Trim();
+        // Skip network reload when the same category is already applied and data is warm.
+        if (string.Equals(_appliedCategoryFilter, trimmed, StringComparison.OrdinalIgnoreCase) &&
+            _allProducts.Count > 0 &&
+            SelectedCategories.Count == 1 &&
+            SelectedCategories.Contains(trimmed))
+        {
+            UpdateSelectedCategoryTitle();
+            return;
+        }
+
         SelectedCategories.Clear();
         SelectedCategories.Add(trimmed);
         IsAllSelected = false;
@@ -56,6 +70,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
             c.IsSelected = string.Equals(c.Name?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase);
         }
 
+        _appliedCategoryFilter = trimmed;
         UpdateSelectedCategoryTitle();
         _ = ReloadFirstPageAsync();
     }
@@ -100,6 +115,11 @@ public partial class CustomerOrderViewModel : BaseViewModel
     public bool HasActiveFilters => !IsAllSelected || HasSearchText;
     public string ActiveFilterBadgeText => SelectedCategories.Count > 0 ? $"{SelectedCategories.Count} active" : string.Empty;
 
+    public ObservableCollection<CartLine> CartLines => _cart.Lines;
+
+    [ObservableProperty]
+    private bool isTraySheetVisible;
+
     public CustomerOrderViewModel(
         OnlineOrderService orders,
         SessionService session,
@@ -116,11 +136,18 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
         _cart.CartChanged += (_, _) =>
         {
-            OnPropertyChanged(nameof(CartCount));
-            OnPropertyChanged(nameof(HasCartItems));
-            OnPropertyChanged(nameof(CartSubtotal));
-            OnPropertyChanged(nameof(CartSubtotalDisplay));
-            SyncCartQtyBadges();
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                OnPropertyChanged(nameof(CartCount));
+                OnPropertyChanged(nameof(HasCartItems));
+                OnPropertyChanged(nameof(CartSubtotal));
+                OnPropertyChanged(nameof(CartSubtotalDisplay));
+                SyncCartQtyBadges();
+                if (!HasCartItems)
+                {
+                    IsTraySheetVisible = false;
+                }
+            });
         };
 
         _favorites.FavoritesChanged += (_, _) =>
@@ -163,10 +190,16 @@ public partial class CustomerOrderViewModel : BaseViewModel
                 SyncCartQtyBadges();
                 SyncFavorites();
 
+                // Only re-apply category when query asks for a different filter than what's already loaded.
                 if (!string.IsNullOrWhiteSpace(CategoryFilter))
                 {
-                    ApplyCategoryFilterByName(Uri.UnescapeDataString(CategoryFilter));
+                    var decoded = Uri.UnescapeDataString(CategoryFilter);
+                    if (!string.Equals(_appliedCategoryFilter, decoded.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        ApplyCategoryFilterByName(decoded);
+                    }
                 }
+
                 return;
             }
 
@@ -186,8 +219,14 @@ public partial class CustomerOrderViewModel : BaseViewModel
     [RelayCommand]
     private async Task RefreshMenuAsync()
     {
-        // RefreshView already sets IsPullRefreshing=true via two-way binding.
-        // Do not set it true again here — that can leave the Android spinner stuck.
+        // RefreshView already sets IsPullRefreshing=true via TwoWay binding.
+        // Always clear it on the UI thread when done (or if busy) so Android spinner never sticks.
+        if (IsBusy)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => IsPullRefreshing = false);
+            return;
+        }
+
         try
         {
             await LoadMenuAsync(forceRefresh: true);
@@ -230,24 +269,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
     private static string ResolveProductImageUrl(AbpApiClient api, string? imagePath, string? name, string? categoryName)
     {
-        if (!string.IsNullOrWhiteSpace(imagePath))
-        {
-            var resolved = api.ResolveImageUrl(imagePath);
-            if (!string.IsNullOrWhiteSpace(resolved))
-            {
-                return resolved;
-            }
-        }
-
-        var n = (name ?? string.Empty).ToLowerInvariant();
-        var c = (categoryName ?? string.Empty).ToLowerInvariant();
-
-        if (n.Contains("burger") || c.Contains("burger"))
-            return "burger_photo.png";
-        if (n.Contains("pizza") || c.Contains("pizza"))
-            return "pizza_photo.png";
-
-        return "burger_photo.png";
+        return ProductImageResolver.Resolve(api.ResolveImageUrl, imagePath, name, categoryName);
     }
 
     public async Task LoadMenuAsync(bool forceRefresh = false)
@@ -411,7 +433,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
     private void EnrichProduct(OnlineProductDto p)
     {
-        p.ImageUrl = ResolveProductImageUrl(_api, p.ImagePath, p.Name, p.CategoryName);
+        ProductImageResolver.Enrich(p, _api.ResolveImageUrl);
         p.IsFavorite = _favorites.IsFavorite(p.Id);
         p.CartQty = _cart.GetQty(p.Id);
     }
@@ -628,7 +650,48 @@ public partial class CustomerOrderViewModel : BaseViewModel
     {
         OnPropertyChanged(nameof(HasSearchText));
         OnPropertyChanged(nameof(HasActiveFilters));
-        _ = ReloadFirstPageAsync();
+        ScheduleSearchDebounce();
+    }
+
+    private void ScheduleSearchDebounce()
+    {
+        try
+        {
+            _searchDebounceCts?.Cancel();
+        }
+        catch
+        {
+            // ignored
+        }
+
+        _searchDebounceCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _searchDebounceCts = cts;
+        var token = cts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(SearchDebounceMs, token);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (!token.IsCancellationRequested)
+                    {
+                        _ = ReloadFirstPageAsync();
+                    }
+                });
+            }
+            catch (TaskCanceledException)
+            {
+                // ignored
+            }
+        }, token);
     }
 
     private void ApplyFilters() => BindProductsFromLoaded();
@@ -659,12 +722,11 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
         if (product.IsDeal || product.DealId.HasValue || (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
         {
-            var homeVm = ServiceHelper.Get<CustomerHomeViewModel>();
             if (Shell.Current != null)
             {
-                await Shell.Current.GoToAsync("//customer/home");
+                ProductDetailLaunch.SetPrefill(product);
+                await Shell.Current.GoToAsync($"productdetail?productId={product.Id}");
             }
-            await homeVm.OpenDealModalAsync(product);
             return;
         }
 
@@ -692,14 +754,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
             return;
         }
 
-        if (product.IsDeal || product.DealId.HasValue || (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
-        {
-            var homeVm = ServiceHelper.Get<CustomerHomeViewModel>();
-            await Shell.Current.GoToAsync("//customer/home");
-            await homeVm.OpenDealModalAsync(product);
-            return;
-        }
-
+        ProductDetailLaunch.SetPrefill(product);
         await Shell.Current.GoToAsync($"productdetail?productId={product.Id}");
     }
 
@@ -722,5 +777,48 @@ public partial class CustomerOrderViewModel : BaseViewModel
         {
             await Shell.Current.GoToAsync("cart");
         }
+    }
+
+    [RelayCommand]
+    private void OpenTraySheet()
+    {
+        if (!HasCartItems)
+        {
+            return;
+        }
+
+        IsTraySheetVisible = true;
+    }
+
+    [RelayCommand]
+    private void CloseTraySheet() => IsTraySheetVisible = false;
+
+    [RelayCommand]
+    private async Task ProceedToCheckoutAsync()
+    {
+        IsTraySheetVisible = false;
+        await OpenCartAsync();
+    }
+
+    [RelayCommand]
+    private void IncreaseTrayLine(CartLine? line)
+    {
+        if (line == null)
+        {
+            return;
+        }
+
+        _cart.SetQuantity(line, line.Quantity + 1);
+    }
+
+    [RelayCommand]
+    private void DecreaseTrayLine(CartLine? line)
+    {
+        if (line == null)
+        {
+            return;
+        }
+
+        _cart.SetQuantity(line, line.Quantity - 1);
     }
 }

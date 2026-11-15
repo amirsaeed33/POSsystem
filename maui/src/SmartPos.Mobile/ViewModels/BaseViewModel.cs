@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartPos.Mobile.Services;
 
 namespace SmartPos.Mobile.ViewModels;
 
@@ -30,7 +31,7 @@ public partial class BaseViewModel : ObservableObject
         catch (Exception ex)
         {
             ErrorMessage = ex.Message;
-            await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Error", ex.Message, "OK");
         }
         finally
         {

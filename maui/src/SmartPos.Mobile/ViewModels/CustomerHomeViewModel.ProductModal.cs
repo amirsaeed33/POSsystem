@@ -104,7 +104,7 @@ public partial class CustomerHomeViewModel
         {
             if (!group.Options.Any(o => o.IsSelected))
             {
-                _ = Shell.Current.DisplayAlert("Required", $"Please select {group.Name}.", "OK");
+                _ = AljannatDialogService.Current.ShowAlertAsync("Required", $"Please select {group.Name}.", "OK");
                 return;
             }
         }
