@@ -25,36 +25,26 @@ public partial class SplashScreenPage : ContentPage
 
         try
         {
-            // Reset staggered entrance state
-            EmblemBadge.Opacity = 0;
-            EmblemBadge.Scale = 0.88;
-            WordmarkLabel.Opacity = 0;
-            WordmarkLabel.TranslationY = 12;
-            GoldDivider.Opacity = 0;
-            GoldDivider.TranslationY = 12;
-            TaglineLabel.Opacity = 0;
-            TaglineLabel.TranslationY = 12;
+            // Show Aljannat brand immediately (native splash is only a matching solid color).
+            EmblemBadge.Opacity = 1;
+            EmblemBadge.Scale = 1.0;
+            WordmarkLabel.Opacity = 1;
+            WordmarkLabel.TranslationY = 0;
+            GoldDivider.Opacity = 1;
+            GoldDivider.TranslationY = 0;
+            TaglineLabel.Opacity = 1;
+            TaglineLabel.TranslationY = 0;
             BrandCenterStack.Opacity = 1;
             FooterStack.Opacity = 1;
             ProgressFill.WidthRequest = 36;
 
-            // 1. Emblem fades in + scales up (~350ms)
-            await Task.WhenAll(
-                EmblemBadge.FadeTo(1, 350, Easing.CubicOut),
-                EmblemBadge.ScaleTo(1.0, 350, Easing.CubicOut));
+            // Light polish after first paint
+            await EmblemBadge.ScaleTo(1.04, 220, Easing.CubicOut);
+            await EmblemBadge.ScaleTo(1.0, 180, Easing.CubicIn);
 
-            // 2. Staggered wordmark / divider / tagline (~120ms apart, ~280ms each)
-            var wordmarkTask = Task.WhenAll(
-                WordmarkLabel.FadeTo(1, 280, Easing.CubicOut),
-                WordmarkLabel.TranslateTo(0, 0, 280, Easing.CubicOut));
-            await Task.Delay(120);
-            var dividerTask = Task.WhenAll(
-                GoldDivider.FadeTo(1, 280, Easing.CubicOut),
-                GoldDivider.TranslateTo(0, 0, 280, Easing.CubicOut));
-            await Task.Delay(120);
-            var taglineTask = Task.WhenAll(
-                TaglineLabel.FadeTo(1, 280, Easing.CubicOut),
-                TaglineLabel.TranslateTo(0, 0, 280, Easing.CubicOut));
+            var wordmarkTask = Task.CompletedTask;
+            var dividerTask = Task.CompletedTask;
+            var taglineTask = Task.CompletedTask;
 
             // Progress bar fills while brand holds on screen
             var progressTcs = new TaskCompletionSource<bool>();

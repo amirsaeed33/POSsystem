@@ -72,8 +72,8 @@
                     Stroke="#4DE89B3C"
                     StrokeThickness="1.2"
                     HorizontalOptions="Center"
-                    Opacity="0"
-                    Scale="0.88">
+                    Opacity="1"
+                    Scale="1">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="28" />
                 </Border.StrokeShape>
@@ -114,8 +114,8 @@
                    TextColor="#FAF5F0"
                    HorizontalTextAlignment="Center"
                    Margin="0,22,0,0"
-                   Opacity="0"
-                   TranslationY="12" />
+                   Opacity="1"
+                   TranslationY="0" />
 
             <BoxView x:Name="GoldDivider"
                      WidthRequest="56"
@@ -124,8 +124,8 @@
                      CornerRadius="1"
                      HorizontalOptions="Center"
                      Margin="0,14,0,14"
-                     Opacity="0"
-                     TranslationY="12" />
+                     Opacity="1"
+                     TranslationY="0" />
 
             <Label x:Name="TaglineLabel"
                    Text="CRAFTED FLAVORS, ROYAL HOSPITALITY"
@@ -134,8 +134,8 @@
                    CharacterSpacing="2.4"
                    TextColor="#F9E0D2"
                    HorizontalTextAlignment="Center"
-                   Opacity="0"
-                   TranslationY="12" />
+                   Opacity="1"
+                   TranslationY="0" />
         </VerticalStackLayout>
 
         <!-- Minimalist bottom footer -->
