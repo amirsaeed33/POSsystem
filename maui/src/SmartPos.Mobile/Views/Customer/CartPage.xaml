@@ -5,807 +5,962 @@
              xmlns:models="clr-namespace:SmartPos.Mobile.Models"
              xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
              x:Class="SmartPos.Mobile.Views.Customer.CartPage"
+             x:Name="CartCheckoutRoot"
              x:DataType="vm:CartCheckoutViewModel"
              Title="Cart"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="{StaticResource SurfaceMuted}">
-    <Grid BackgroundColor="{StaticResource SurfaceMuted}">
-        <Grid RowDefinitions="*,Auto"
-              BackgroundColor="{StaticResource SurfaceMuted}">
-            <ScrollView>
-                <VerticalStackLayout Padding="16,16,16,20" Spacing="14">
+             BackgroundColor="#FAF7F4">
 
-                    <!-- Page title -->
-                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                        <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="{StaticResource CartAccentBackground}">
+    <Grid RowDefinitions="Auto,*,Auto"
+          BackgroundColor="#FAF7F4">
+
+        <!-- ========== 1. STICKY EDITORIAL HEADER ========== -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*,Auto"
+              Padding="16,12,16,10"
+              BackgroundColor="#FAF7F4"
+              ColumnSpacing="10">
+
+            <Border Grid.Column="0"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Stroke="#EAE2DA"
+                    StrokeThickness="1"
+                    BackgroundColor="#FFFFFF"
+                    VerticalOptions="Center"
+                    HorizontalOptions="Start">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14" />
+                </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding GoBackCommand}" />
+                </Border.GestureRecognizers>
+                <Label Text="←"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1E1916"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"
+                       HorizontalTextAlignment="Center"
+                       VerticalTextAlignment="Center" />
+            </Border>
+
+            <VerticalStackLayout Grid.Column="1"
+                                 Spacing="2"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center">
+                <Label Text="GULBERG III FLAGSHIP  •  25–35 MIN"
+                       FontSize="9.5"
+                       FontAttributes="Bold"
+                       TextColor="#C84B11"
+                       CharacterSpacing="0.8"
+                       HorizontalTextAlignment="Center"
+                       LineBreakMode="TailTruncation" />
+                <Label Text="Your Tray &amp; Checkout"
+                       FontFamily="Georgia"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="#1E1916"
+                       HorizontalTextAlignment="Center"
+                       LineBreakMode="TailTruncation" />
+            </VerticalStackLayout>
+
+            <Border Grid.Column="2"
+                    Stroke="#F5C6C2"
+                    StrokeThickness="1"
+                    BackgroundColor="#FDECEB"
+                    Padding="10,6"
+                    VerticalOptions="Center"
+                    HorizontalOptions="End">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12" />
+                </Border.StrokeShape>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ClearCartCommand}" />
+                </Border.GestureRecognizers>
+                <Label Text="Clear"
+                       FontSize="11"
+                       FontAttributes="Bold"
+                       TextColor="#B83227"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+            </Border>
+        </Grid>
+
+        <!-- ========== 2. SCROLLABLE CHECKOUT BODY ========== -->
+        <ScrollView Grid.Row="1"
+                    VerticalScrollBarVisibility="Never"
+                    Padding="16,4,16,24">
+            <VerticalStackLayout Spacing="14">
+
+                <!-- EMPTY CART STATE -->
+                <Border IsVisible="{Binding IsEmpty}"
+                        Stroke="#EAE2DA"
+                        StrokeThickness="1"
+                        BackgroundColor="#FFFFFF"
+                        Padding="28,36"
+                        Margin="0,24,0,0"
+                        HorizontalOptions="Fill">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
+                        <Border WidthRequest="84"
+                                HeightRequest="84"
+                                StrokeThickness="0"
+                                BackgroundColor="#FDF1EB"
+                                HorizontalOptions="Center">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="12" />
+                                <RoundRectangle CornerRadius="42" />
                             </Border.StrokeShape>
-                            <Image Source="icon_cart_bag.png"
-                                   WidthRequest="22"
-                                   HeightRequest="22"
+                            <Label Text="🍽"
+                                   FontSize="34"
                                    HorizontalOptions="Center"
-                                   VerticalOptions="Center" />
+                                   VerticalOptions="Center"
+                                   HorizontalTextAlignment="Center" />
                         </Border>
-                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                            <Label Text="Your cart"
-                                   FontSize="24"
+                        <Label Text="Your Dastarkhwan Tray is Empty"
+                               FontFamily="Georgia"
+                               FontSize="20"
+                               FontAttributes="Bold"
+                               TextColor="#1E1916"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="Explore the curated menu and fill your tray with Aljannat favorites."
+                               FontSize="13"
+                               TextColor="#5C5048"
+                               HorizontalTextAlignment="Center"
+                               LineBreakMode="WordWrap" />
+                        <Border StrokeThickness="0"
+                                BackgroundColor="#C84B11"
+                                Padding="18,12"
+                                HorizontalOptions="Center"
+                                Margin="0,4,0,0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ExploreMenuCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="Explore Curated Menu →"
+                                   FontSize="14"
                                    FontAttributes="Bold"
-                                   TextColor="{StaticResource CartText}" />
-                            <Label Text="{Binding ItemCountLabel}"
-                                   FontSize="13"
-                                   TextColor="{StaticResource AuthMutedText}" />
-                        </VerticalStackLayout>
-                    </HorizontalStackLayout>
+                                   TextColor="#FFFFFF"
+                                   HorizontalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
 
-                    <!-- Empty state -->
-                    <Border IsVisible="{Binding IsEmpty}"
-                            Stroke="{StaticResource CartBorder}"
+                <!-- HAS ITEMS CONTENT -->
+                <VerticalStackLayout Spacing="14" IsVisible="{Binding HasItems}">
+
+                    <!-- SECTION A — FREE-DELIVERY MOTIVATOR -->
+                    <Border Stroke="#EAE2DA"
                             StrokeThickness="1"
-                            BackgroundColor="{StaticResource CartSurface}"
-                            Padding="28,32">
+                            BackgroundColor="#FFFFFF"
+                            Padding="14">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="18" />
                         </Border.StrokeShape>
-                        <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
-                            <Border WidthRequest="72"
-                                    HeightRequest="72"
-                                    StrokeThickness="0"
-                                    BackgroundColor="{StaticResource CartAccentBackground}"
-                                    HorizontalOptions="Center">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="36" />
-                                </Border.StrokeShape>
-                                <Image Source="icon_cart_bag.png"
-                                       WidthRequest="34"
-                                       HeightRequest="34"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center" />
-                            </Border>
-                            <Label Text="Your cart is empty"
-                                   FontSize="18"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource CartText}"
-                                   HorizontalTextAlignment="Center" />
-                            <Label Text="Add items from the menu, then come back to checkout."
-                                   FontSize="13"
-                                   TextColor="{StaticResource AuthMutedText}"
-                                   HorizontalTextAlignment="Center"
-                                   LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <!-- Free Delivery Progress Card -->
-                    <Border IsVisible="{Binding HasItems}"
-                            StrokeThickness="1.5"
-                            Padding="14,12"
-                            Margin="0,0,0,2">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
-                        </Border.StrokeShape>
-                        <Border.Triggers>
-                            <DataTrigger TargetType="Border" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
-                                <Setter Property="Stroke" Value="{StaticResource Primary}" />
-                                <Setter Property="BackgroundColor" Value="{StaticResource SuccessBackground}" />
-                            </DataTrigger>
-                            <DataTrigger TargetType="Border" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
-                                <Setter Property="Stroke" Value="{StaticResource AuthInputBorder}" />
-                                <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
-                            </DataTrigger>
-                        </Border.Triggers>
-                        <VerticalStackLayout Spacing="8">
-                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
-                                <Label Text="🎉" FontSize="22" VerticalOptions="Center" IsVisible="{Binding IsFreeDeliveryUnlocked}" />
-                                <Label Text="🚚" FontSize="22" VerticalOptions="Center" IsVisible="{Binding IsFreeDeliveryLocked}" />
-
-                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                    <Label Text="{Binding FreeDeliveryMotivationText}"
-                                           FontSize="13"
-                                           FontAttributes="Bold">
-                                        <Label.Triggers>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
-                                                <Setter Property="TextColor" Value="{StaticResource SuccessText}" />
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
-                                                <Setter Property="TextColor" Value="{StaticResource Slate800}" />
-                                            </DataTrigger>
-                                        </Label.Triggers>
-                                    </Label>
-                                    <Label Text="Free delivery unlocked for your order!"
-                                           FontSize="11"
-                                           TextColor="{StaticResource PrimaryDark}"
-                                           IsVisible="{Binding IsFreeDeliveryUnlocked}" />
-                                    <Label Text="{Binding FreeDeliveryThreshold, StringFormat='Orders over PKR {0:N0} qualify'}"
-                                           FontSize="11"
-                                           TextColor="{StaticResource AuthMutedText}"
-                                           IsVisible="{Binding IsFreeDeliveryLocked}" />
-                                </VerticalStackLayout>
-
-                                <Border Grid.Column="2"
-                                        BackgroundColor="{StaticResource PrimaryLight}"
+                        <VerticalStackLayout Spacing="10">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <Label Text="{Binding FreeDeliveryMotivationText}"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="WordWrap">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
+                                            <Setter Property="TextColor" Value="#D9822B" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
+                                            <Setter Property="TextColor" Value="#1E1916" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                                <Border Grid.Column="1"
                                         StrokeThickness="0"
-                                        Padding="8,4"
-                                        VerticalOptions="Center"
-                                        IsVisible="{Binding IsFreeDeliveryUnlocked}">
+                                        BackgroundColor="#FEF6EB"
+                                        Padding="10,5"
+                                        VerticalOptions="Center">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="10" />
                                     </Border.StrokeShape>
-                                    <Label Text="FREE"
+                                    <Label Text="{Binding DeliveryFeeSavedText}"
                                            FontSize="11"
                                            FontAttributes="Bold"
-                                           TextColor="{StaticResource PrimaryDark}" />
+                                           TextColor="#D9822B" />
                                 </Border>
                             </Grid>
 
-                            <!-- Progress Bar (shown when not yet unlocked) -->
-                            <ProgressBar Progress="{Binding FreeDeliveryProgress}"
-                                         ProgressColor="{StaticResource StaffPrimary}"
-                                         BackgroundColor="{StaticResource AuthInputBorder}"
-                                         HeightRequest="6"
-                                         IsVisible="{Binding IsFreeDeliveryLocked}" />
+                            <!-- Rounded progress track -->
+                            <Grid HeightRequest="7">
+                                <Border StrokeThickness="0" BackgroundColor="#F4EFEA" HeightRequest="7">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="4" />
+                                    </Border.StrokeShape>
+                                </Border>
+                                <Border StrokeThickness="0"
+                                        HeightRequest="7"
+                                        BackgroundColor="#C84B11"
+                                        HorizontalOptions="Fill"
+                                        AnchorX="0"
+                                        ScaleX="{Binding FreeDeliveryProgress}">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="4" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#D9822B" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="#C84B11" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                </Border>
+                            </Grid>
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Cart lines -->
-                    <CollectionView ItemsSource="{Binding Lines}"
-                                    IsVisible="{Binding HasItems}"
-                                    HeightRequest="220">
-                        <CollectionView.ItemTemplate>
+                    <!-- SECTION A — MINIMUM ORDER WARNING -->
+                    <Border IsVisible="{Binding IsBelowMinimumOrder}"
+                            Stroke="#F5C6C2"
+                            StrokeThickness="1"
+                            BackgroundColor="#FDECEB"
+                            Padding="12">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="{Binding MinimumOrderWarningText}"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#B83227"
+                                   VerticalOptions="Center"
+                                   LineBreakMode="WordWrap" />
+                            <Border Grid.Column="1"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#C84B11"
+                                    Padding="10,6"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="10" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding AddQuickNaanCommand}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="+ Add Naan (Rs. 180)"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#FFFFFF" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- SECTION B — ORDER ITEMS -->
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+                        <Label Text="Order Items"
+                               FontFamily="Georgia"
+                               FontSize="17"
+                               FontAttributes="Bold"
+                               TextColor="#1E1916"
+                               VerticalOptions="Center" />
+                        <Border Grid.Column="1"
+                                StrokeThickness="0"
+                                BackgroundColor="#FDF1EB"
+                                Padding="10,4"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Label Text="{Binding ItemCountLabel}"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="#C84B11" />
+                        </Border>
+                    </Grid>
+
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Lines}" Spacing="0">
+                        <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="models:CartLine">
-                                <Border Stroke="{StaticResource CartBorder}"
+                                <Border Stroke="#EAE2DA"
                                         StrokeThickness="1"
-                                        BackgroundColor="{StaticResource CartSurface}"
-                                        Padding="12"
+                                        BackgroundColor="#FFFFFF"
+                                        Padding="10"
                                         Margin="0,0,0,8">
                                     <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="14" />
+                                        <RoundRectangle CornerRadius="18" />
                                     </Border.StrokeShape>
-                                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
-                                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                                            <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="{StaticResource CartText}" />
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                        <!-- Dish image -->
+                                        <Border Grid.Column="0"
+                                                WidthRequest="68"
+                                                HeightRequest="68"
+                                                StrokeThickness="0"
+                                                BackgroundColor="#F4EFEA"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="13" />
+                                            </Border.StrokeShape>
+                                            <Grid>
+                                                <Label Text="🍽"
+                                                       FontSize="22"
+                                                       TextColor="#8C7E74"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center"
+                                                       IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}" />
+                                                <Image Source="{Binding ImagePath}"
+                                                       Aspect="AspectFill"
+                                                       IsVisible="{Binding HasImage}" />
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Name / modifiers / line total -->
+                                        <VerticalStackLayout Grid.Column="1"
+                                                             Spacing="3"
+                                                             VerticalOptions="Center">
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="13.5"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1E1916"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="2" />
                                             <Label Text="{Binding SelectedModifiers}"
-                                                   IsVisible="{Binding HasModifiers}"
-                                                   TextColor="{StaticResource StaffPrimary}"
                                                    FontSize="11"
-                                                   MaxLines="3"
-                                                   LineBreakMode="WordWrap" />
-                                            <Label Text="{Binding UnitPriceText, StringFormat='PKR {0}'}" TextColor="{StaticResource CartMuted}" FontSize="12" />
+                                                   TextColor="#5C5048"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="2"
+                                                   IsVisible="{Binding HasModifiers}" />
+                                            <Label Text="{Binding LineTotalDisplay}"
+                                                   FontSize="13.5"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#C84B11" />
                                         </VerticalStackLayout>
-                                        <controls:AppButton Grid.Column="1"
-                                                            Text="-"
-                                                            Variant="QtyDecrease"
-                                                            WidthRequest="40"
-                                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=DecreaseCommand}"
+
+                                        <!-- Stepper pill -->
+                                        <Border Grid.Column="2"
+                                                Stroke="#EAE2DA"
+                                                StrokeThickness="1"
+                                                BackgroundColor="#F4EFEA"
+                                                Padding="4"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                                <Border WidthRequest="28"
+                                                        HeightRequest="28"
+                                                        StrokeThickness="0"
+                                                        BackgroundColor="#FFFFFF">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="8" />
+                                                    </Border.StrokeShape>
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer
+                                                            Command="{Binding BindingContext.DecreaseCommand, Source={x:Reference CartCheckoutRoot}}"
                                                             CommandParameter="{Binding .}" />
-                                        <Label Grid.Column="2"
-                                                Text="{Binding Quantity}"
-                                                VerticalOptions="Center"
-                                                FontAttributes="Bold"
-                                                WidthRequest="24"
-                                                HorizontalTextAlignment="Center" />
-                                        <controls:AppButton Grid.Column="3"
-                                                            Text="+"
-                                                            Variant="QtyIncrease"
-                                                            WidthRequest="40"
-                                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=IncreaseCommand}"
+                                                    </Border.GestureRecognizers>
+                                                    <Label Text="−"
+                                                           FontSize="16"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1E1916"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center"
+                                                           HorizontalTextAlignment="Center" />
+                                                </Border>
+                                                <Label Text="{Binding QuantityText}"
+                                                       FontSize="13"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#1E1916"
+                                                       WidthRequest="22"
+                                                       HorizontalTextAlignment="Center"
+                                                       VerticalOptions="Center" />
+                                                <Border WidthRequest="28"
+                                                        HeightRequest="28"
+                                                        StrokeThickness="0"
+                                                        BackgroundColor="#C84B11">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="8" />
+                                                    </Border.StrokeShape>
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer
+                                                            Command="{Binding BindingContext.IncreaseCommand, Source={x:Reference CartCheckoutRoot}}"
                                                             CommandParameter="{Binding .}" />
+                                                    </Border.GestureRecognizers>
+                                                    <Label Text="+"
+                                                           FontSize="16"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#FFFFFF"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center"
+                                                           HorizontalTextAlignment="Center" />
+                                                </Border>
+                                            </HorizontalStackLayout>
+                                        </Border>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
 
-                    <!-- Delivery section title -->
-                    <HorizontalStackLayout Spacing="8" Margin="0,6,0,0">
-                        <Image Source="icon_pin.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
-                        <Label Text="Delivery area"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource CartText}"
-                               VerticalOptions="Center" />
-                    </HorizontalStackLayout>
-                    <Label Text="Choose where this order should be delivered"
-                           FontSize="12"
-                           TextColor="{StaticResource AuthMutedText}"
-                           Margin="28,0,0,0" />
-
-                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1" BackgroundColor="{StaticResource CardBackground}" Padding="4,2">
+                    <!-- SECTION C — DELIVERY ADDRESS -->
+                    <Border Stroke="#EAE2DA"
+                            StrokeThickness="1"
+                            BackgroundColor="#FFFFFF"
+                            Padding="16">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
+                            <RoundRectangle CornerRadius="20" />
                         </Border.StrokeShape>
-                        <Picker Title="Select delivery area"
-                                ItemsSource="{Binding Areas}"
-                                ItemDisplayBinding="{Binding Name}"
-                                SelectedItem="{Binding SelectedArea}" />
-                    </Border>
-
-                    <!-- Contact -->
-                    <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
-                        <Image Source="icon_person.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                        <Label Text="Your details" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource CartText}" />
-                    </HorizontalStackLayout>
-                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1.5" BackgroundColor="{StaticResource CardBackground}" Padding="10,2">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Border.Triggers>
-                            <DataTrigger TargetType="Border" Binding="{Binding NameInvalid}" Value="True">
-                                <Setter Property="Stroke" Value="{StaticResource BadgeRed}" />
-                                <Setter Property="BackgroundColor" Value="{StaticResource DangerBackground}" />
-                            </DataTrigger>
-                        </Border.Triggers>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <Image Source="icon_person.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                            <Entry Grid.Column="1" Placeholder="Your name" Text="{Binding CustomerName}" />
-                        </Grid>
-                    </Border>
-                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1.5" BackgroundColor="{StaticResource CardBackground}" Padding="10,2">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Border.Triggers>
-                            <DataTrigger TargetType="Border" Binding="{Binding MobileInvalid}" Value="True">
-                                <Setter Property="Stroke" Value="{StaticResource BadgeRed}" />
-                                <Setter Property="BackgroundColor" Value="{StaticResource DangerBackground}" />
-                            </DataTrigger>
-                        </Border.Triggers>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <Image Source="icon_phone.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                            <Entry Grid.Column="1" Placeholder="Mobile (e.g. 03001234567)" Text="{Binding CustomerMobile}" Keyboard="Telephone" />
-                        </Grid>
-                    </Border>
-
-                    <!-- Saved Addresses Quick-Pick Section -->
-                    <VerticalStackLayout Spacing="8" Margin="0,6,0,0" IsVisible="{Binding HasSavedAddresses}">
-                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                            <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                                <Label Text="Saved Addresses"
-                                       FontSize="14"
+                        <VerticalStackLayout Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="Delivery Address"
+                                       FontFamily="Georgia"
+                                       FontSize="17"
                                        FontAttributes="Bold"
-                                       TextColor="{StaticResource CartText}"
+                                       TextColor="#1E1916"
                                        VerticalOptions="Center" />
-                                <Border BackgroundColor="{StaticResource CartAccentBackground}" StrokeThickness="0" Padding="8,2" VerticalOptions="Center">
+                                <Border Grid.Column="1"
+                                        Stroke="#F0C4AE"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FDF1EB"
+                                        Padding="10,5"
+                                        VerticalOptions="Center">
                                     <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="8" />
+                                        <RoundRectangle CornerRadius="10" />
                                     </Border.StrokeShape>
-                                    <Label Text="{Binding SavedAddresses.Count, StringFormat='{0} saved'}"
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding CaptureLocationCommand}" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="Use My Location"
                                            FontSize="11"
-                                           TextColor="{StaticResource StaffPrimary}"
-                                           FontAttributes="Bold" />
-                                </Border>
-                            </HorizontalStackLayout>
-                            <controls:AppButton Grid.Column="1"
-                                                Text="➕ New Address"
-                                                Variant="Outline"
-                                                ButtonHeight="32"
-                                                Command="{Binding SwitchToNewAddressCommand}" />
-                        </Grid>
-
-                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                            <HorizontalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding SavedAddresses}">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="models:CustomerSavedAddressDto">
-                                        <Border StrokeThickness="1.5"
-                                                BackgroundColor="{StaticResource CardBackground}"
-                                                Padding="12,10"
-                                                WidthRequest="210">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="14" />
-                                            </Border.StrokeShape>
-                                            <Border.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=SelectSavedAddressCommand}"
-                                                                      CommandParameter="{Binding .}" />
-                                            </Border.GestureRecognizers>
-                                            <Border.Triggers>
-                                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
-                                                    <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
-                                                    <Setter Property="BackgroundColor" Value="{StaticResource SuccessBackground}" />
-                                                </DataTrigger>
-                                                <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
-                                                    <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
-                                                    <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
-                                                </DataTrigger>
-                                            </Border.Triggers>
-                                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" RowSpacing="4" ColumnSpacing="6">
-                                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding DisplayIcon}" FontSize="16" VerticalOptions="Center" />
-                                                <Label Grid.Row="0" Grid.Column="1"
-                                                       Text="{Binding DisplayLabel}"
-                                                       FontAttributes="Bold"
-                                                       FontSize="13"
-                                                       TextColor="{StaticResource CartText}"
-                                                       LineBreakMode="TailTruncation"
-                                                       VerticalOptions="Center" />
-                                                <Button Grid.Row="0" Grid.Column="2"
-                                                        Text="🗑"
-                                                        FontSize="12"
-                                                        TextColor="{StaticResource BadgeRed}"
-                                                        BackgroundColor="Transparent"
-                                                        Padding="0"
-                                                        WidthRequest="28"
-                                                        HeightRequest="28"
-                                                        CornerRadius="14"
-                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CartCheckoutViewModel}}, Path=DeleteSavedAddressCommand}"
-                                                        CommandParameter="{Binding .}" />
-
-                                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
-                                                       Text="{Binding AddressPreview}"
-                                                       FontSize="11"
-                                                       TextColor="{StaticResource AuthMutedText}"
-                                                       LineBreakMode="TailTruncation" />
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </HorizontalStackLayout>
-                        </ScrollView>
-                    </VerticalStackLayout>
-
-                    <!-- Active Saved Address Notification / Switch Pill -->
-                    <Border Stroke="{StaticResource StaffPrimary}"
-                            StrokeThickness="1"
-                            BackgroundColor="{StaticResource CartAccentBackground}"
-                            Padding="12,10"
-                            IsVisible="{Binding HasSelectedSavedAddress}"
-                            Margin="0,2,0,0">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
-                            <Label Text="{Binding SelectedSavedAddress.DisplayIcon}" FontSize="20" VerticalOptions="Center" />
-                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                <Label Text="{Binding SelectedSavedAddress.DisplayLabel, StringFormat='Using saved address: {0}'}"
-                                       FontAttributes="Bold"
-                                       FontSize="12"
-                                       TextColor="{StaticResource StaffPrimary}" />
-                                <Label Text="{Binding SelectedSavedAddress.FullAddressDisplay}"
-                                       FontSize="11"
-                                       TextColor="{StaticResource Slate700}"
-                                       MaxLines="2"
-                                       LineBreakMode="TailTruncation" />
-                            </VerticalStackLayout>
-                            <controls:AppButton Grid.Column="2"
-                                                Text="Change"
-                                                Variant="Outline"
-                                                ButtonHeight="28"
-                                                CornerRadius="10"
-                                                Command="{Binding SwitchToNewAddressCommand}" />
-                        </Grid>
-                    </Border>
-
-                    <!-- Address -->
-                    <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
-                        <Image Source="icon_home_pin.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                        <Label Text="Delivery address" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource CartText}" />
-                    </HorizontalStackLayout>
-                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1.5" BackgroundColor="{StaticResource CardBackground}" Padding="10,2">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Border.Triggers>
-                            <DataTrigger TargetType="Border" Binding="{Binding AddressInvalid}" Value="True">
-                                <Setter Property="Stroke" Value="{StaticResource BadgeRed}" />
-                                <Setter Property="BackgroundColor" Value="{StaticResource DangerBackground}" />
-                            </DataTrigger>
-                        </Border.Triggers>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <Image Source="icon_home_pin.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                            <Entry Grid.Column="1" Placeholder="Street, house, block" Text="{Binding DeliveryAddress}" />
-                        </Grid>
-                    </Border>
-                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1" BackgroundColor="{StaticResource CardBackground}" Padding="10,2">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <Image Source="icon_pin.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                            <Entry Grid.Column="1" Placeholder="Landmark (e.g. Near Main Mosque / Mall)" Text="{Binding DeliveryLandmark}" />
-                        </Grid>
-                    </Border>
-
-                    <!-- Save this address for next time (when in New Address mode) -->
-                    <Border Stroke="{StaticResource CartBorder}"
-                            StrokeThickness="1"
-                            BackgroundColor="{StaticResource CartSurface}"
-                            Padding="12,10"
-                            IsVisible="{Binding IsNewAddressMode}">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <VerticalStackLayout Spacing="8">
-                            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                                <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                                    <Label Text="Save this address for future orders"
-                                           FontSize="13"
                                            FontAttributes="Bold"
-                                           TextColor="{StaticResource CartText}" />
-                                    <Label Text="Instant 1-click address pick on your next order"
-                                           FontSize="11"
-                                           TextColor="{StaticResource AuthMutedText}" />
-                                </VerticalStackLayout>
-                                <Switch Grid.Column="1"
-                                        IsToggled="{Binding IsSaveAddressChecked}"
-                                        OnColor="{StaticResource StaffPrimary}"
-                                        ThumbColor="{StaticResource White}"
-                                        VerticalOptions="Center" />
+                                           TextColor="#C84B11" />
+                                </Border>
                             </Grid>
 
-                            <!-- Label chips: [ 🏠 Home ], [ 🏢 Office ], [ 📍 Other ] -->
-                            <VerticalStackLayout Spacing="6" IsVisible="{Binding IsSaveAddressChecked}">
-                                <Label Text="Save As:" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource AuthMutedText}" />
-                                <HorizontalStackLayout Spacing="8">
-                                    <!-- Home Chip -->
-                                    <Border StrokeThickness="1.5" Padding="12,6">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="16" />
-                                        </Border.StrokeShape>
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Home" />
-                                        </Border.GestureRecognizers>
-                                        <Border.Triggers>
-                                            <DataTrigger TargetType="Border" Binding="{Binding IsHomeLabelSelected}" Value="True">
-                                                <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
-                                                <Setter Property="BackgroundColor" Value="{StaticResource CartAccentBackground}" />
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="Border" Binding="{Binding IsHomeLabelSelected}" Value="False">
-                                                <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
-                                                <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
-                                            </DataTrigger>
-                                        </Border.Triggers>
-                                        <Label Text="🏠 Home" FontSize="12" FontAttributes="Bold">
-                                            <Label.Triggers>
-                                                <DataTrigger TargetType="Label" Binding="{Binding IsHomeLabelSelected}" Value="True">
-                                                    <Setter Property="TextColor" Value="{StaticResource StaffPrimary}" />
-                                                </DataTrigger>
-                                                <DataTrigger TargetType="Label" Binding="{Binding IsHomeLabelSelected}" Value="False">
-                                                    <Setter Property="TextColor" Value="{StaticResource AuthMutedText}" />
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                        </Label>
-                                    </Border>
+                            <Label Text="{Binding LocationStatusText}"
+                                   FontSize="11"
+                                   TextColor="#8C7E74"
+                                   LineBreakMode="WordWrap"
+                                   IsVisible="{Binding HasLocationStatus}" />
 
-                                    <!-- Office Chip -->
-                                    <Border StrokeThickness="1.5" Padding="12,6">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="16" />
-                                        </Border.StrokeShape>
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Office" />
-                                        </Border.GestureRecognizers>
-                                        <Border.Triggers>
-                                            <DataTrigger TargetType="Border" Binding="{Binding IsOfficeLabelSelected}" Value="True">
-                                                <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
-                                                <Setter Property="BackgroundColor" Value="{StaticResource CartAccentBackground}" />
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="Border" Binding="{Binding IsOfficeLabelSelected}" Value="False">
-                                                <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
-                                                <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
-                                            </DataTrigger>
-                                        </Border.Triggers>
-                                        <Label Text="🏢 Office" FontSize="12" FontAttributes="Bold">
-                                            <Label.Triggers>
-                                                <DataTrigger TargetType="Label" Binding="{Binding IsOfficeLabelSelected}" Value="True">
-                                                    <Setter Property="TextColor" Value="{StaticResource StaffPrimary}" />
-                                                </DataTrigger>
-                                                <DataTrigger TargetType="Label" Binding="{Binding IsOfficeLabelSelected}" Value="False">
-                                                    <Setter Property="TextColor" Value="{StaticResource AuthMutedText}" />
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                        </Label>
-                                    </Border>
-
-                                    <!-- Other Chip -->
-                                    <Border StrokeThickness="1.5" Padding="12,6">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="16" />
-                                        </Border.StrokeShape>
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Other" />
-                                        </Border.GestureRecognizers>
-                                        <Border.Triggers>
-                                            <DataTrigger TargetType="Border" Binding="{Binding IsOtherLabelSelected}" Value="True">
-                                                <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
-                                                <Setter Property="BackgroundColor" Value="{StaticResource CartAccentBackground}" />
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="Border" Binding="{Binding IsOtherLabelSelected}" Value="False">
-                                                <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
-                                                <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
-                                            </DataTrigger>
-                                        </Border.Triggers>
-                                        <Label Text="📍 Other" FontSize="12" FontAttributes="Bold">
-                                            <Label.Triggers>
-                                                <DataTrigger TargetType="Label" Binding="{Binding IsOtherLabelSelected}" Value="True">
-                                                    <Setter Property="TextColor" Value="{StaticResource StaffPrimary}" />
-                                                </DataTrigger>
-                                                <DataTrigger TargetType="Label" Binding="{Binding IsOtherLabelSelected}" Value="False">
-                                                    <Setter Property="TextColor" Value="{StaticResource AuthMutedText}" />
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                        </Label>
-                                    </Border>
-                                </HorizontalStackLayout>
-                            </VerticalStackLayout>
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <Label Text="{Binding LocationStatusText}"
-                           FontSize="12"
-                           TextColor="{StaticResource Slate600}"
-                           LineBreakMode="WordWrap" />
-                    <controls:AppButton Text="Use my location"
-                                        Command="{Binding CaptureLocationCommand}"
-                                        ImageSource="icon_gps.png"
-                                        Variant="Secondary"
-                                        ButtonHeight="44"
-                                        CornerRadius="12" />
-
-                    <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
-                        <Image Source="icon_note.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                        <Label Text="Notes" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource CartText}" />
-                    </HorizontalStackLayout>
-                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1" BackgroundColor="{StaticResource CardBackground}" Padding="10,2">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <Image Source="icon_note.png" WidthRequest="18" HeightRequest="18" VerticalOptions="Center" />
-                            <Entry Grid.Column="1" Placeholder="Anything we should know?" Text="{Binding Notes}" />
-                        </Grid>
-                    </Border>
-
-                    <!-- Payment Method Section -->
-                    <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
-                        <Label Text="💳" FontSize="18" VerticalOptions="Center" />
-                        <Label Text="Payment method" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource CartText}" />
-                    </HorizontalStackLayout>
-
-                    <VerticalStackLayout Spacing="10">
-                        <!-- Card 1: Cash on Delivery -->
-                        <Border StrokeThickness="1.5"
-                                Padding="14,12">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="14" />
-                            </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding SelectPaymentMethodCommand}" CommandParameter="CashOnDelivery" />
-                            </Border.GestureRecognizers>
-                            <Border.Triggers>
-                                <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="True">
-                                    <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
-                                    <Setter Property="BackgroundColor" Value="{StaticResource SuccessBackground}" />
-                                </DataTrigger>
-                                <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="False">
-                                    <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
-                                    <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
-                                </DataTrigger>
-                            </Border.Triggers>
-                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
-                                <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="{StaticResource CartAccentBackground}" VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="20" />
-                                    </Border.StrokeShape>
-                                    <Label Text="💵" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
-                                </Border>
-
-                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                    <Label Text="Cash on Delivery (COD)"
-                                           FontAttributes="Bold"
-                                           FontSize="14"
-                                           TextColor="{StaticResource CartText}" />
-                                    <Label Text="Pay the rider with cash when your food arrives."
-                                           FontSize="12"
-                                           TextColor="{StaticResource AuthMutedText}"
-                                           LineBreakMode="WordWrap" />
-                                </VerticalStackLayout>
-
-                                <Border Grid.Column="2"
-                                        WidthRequest="24"
-                                        HeightRequest="24"
-                                        StrokeThickness="2"
-                                        VerticalOptions="Center">
+                            <!-- Address type pills -->
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                <Border Grid.Column="0" Padding="8,10">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="12" />
                                     </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Home" />
+                                    </Border.GestureRecognizers>
                                     <Border.Triggers>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="True">
-                                            <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
-                                            <Setter Property="BackgroundColor" Value="{StaticResource StaffPrimary}" />
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsHomeLabelSelected}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#FDF1EB" />
+                                            <Setter Property="Stroke" Value="#C84B11" />
+                                            <Setter Property="StrokeThickness" Value="1.5" />
                                         </DataTrigger>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="False">
-                                            <Setter Property="Stroke" Value="{StaticResource DisabledSurface}" />
-                                            <Setter Property="BackgroundColor" Value="Transparent" />
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsHomeLabelSelected}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="#FAF7F4" />
+                                            <Setter Property="Stroke" Value="#EAE2DA" />
+                                            <Setter Property="StrokeThickness" Value="1" />
                                         </DataTrigger>
                                     </Border.Triggers>
-                                    <Label Text="✓"
-                                           TextColor="{StaticResource White}"
-                                           FontSize="13"
-                                           FontAttributes="Bold"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center"
-                                           IsVisible="{Binding IsCodSelected}" />
-                                </Border>
-                            </Grid>
-                        </Border>
-
-                        <!-- Card 2: Online / Digital Payment -->
-                        <Border StrokeThickness="1.5"
-                                Padding="14,12">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="14" />
-                            </Border.StrokeShape>
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding SelectPaymentMethodCommand}" CommandParameter="OnlinePayment" />
-                            </Border.GestureRecognizers>
-                            <Border.Triggers>
-                                <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="True">
-                                    <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
-                                    <Setter Property="BackgroundColor" Value="{StaticResource SuccessBackground}" />
-                                </DataTrigger>
-                                <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="False">
-                                    <Setter Property="Stroke" Value="{StaticResource CartBorder}" />
-                                    <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
-                                </DataTrigger>
-                            </Border.Triggers>
-                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalOptions="Center">
-                                <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" BackgroundColor="{StaticResource IndigoSoft}" VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="20" />
-                                    </Border.StrokeShape>
-                                    <Label Text="💳" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
-                                </Border>
-
-                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                        <Label Text="Online / Digital Payment"
-                                               FontAttributes="Bold"
-                                               FontSize="14"
-                                               TextColor="{StaticResource CartText}"
-                                               VerticalOptions="Center" />
-                                        <Border BackgroundColor="{StaticResource IndigoSoft}" StrokeThickness="0" Padding="6,2" VerticalOptions="Center">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="6" />
-                                            </Border.StrokeShape>
-                                            <Label Text="Card / Wallet" FontSize="10" TextColor="{StaticResource InfoDeep}" FontAttributes="Bold" />
-                                        </Border>
-                                    </HorizontalStackLayout>
-                                    <Label Text="Credit/Debit Card, JazzCash, EasyPaisa, or Transfer."
+                                    <Label Text="Home"
                                            FontSize="12"
-                                           TextColor="{StaticResource AuthMutedText}"
-                                           LineBreakMode="WordWrap" />
-                                </VerticalStackLayout>
-
-                                <Border Grid.Column="2"
-                                        WidthRequest="24"
-                                        HeightRequest="24"
-                                        StrokeThickness="2"
-                                        VerticalOptions="Center">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="12" />
-                                    </Border.StrokeShape>
-                                    <Border.Triggers>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="True">
-                                            <Setter Property="Stroke" Value="{StaticResource StaffPrimary}" />
-                                            <Setter Property="BackgroundColor" Value="{StaticResource StaffPrimary}" />
-                                        </DataTrigger>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="False">
-                                            <Setter Property="Stroke" Value="{StaticResource DisabledSurface}" />
-                                            <Setter Property="BackgroundColor" Value="Transparent" />
-                                        </DataTrigger>
-                                    </Border.Triggers>
-                                    <Label Text="✓"
-                                           TextColor="{StaticResource White}"
-                                           FontSize="13"
-                                           FontAttributes="Bold"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center"
-                                           IsVisible="{Binding IsOnlinePaymentSelected}" />
-                                </Border>
-                            </Grid>
-                        </Border>
-                    </VerticalStackLayout>
-
-                    <Border Stroke="{StaticResource CartBorder}" StrokeThickness="1" BackgroundColor="{StaticResource CartSurface}" Padding="14" IsVisible="{Binding HasItems}">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
-                        </Border.StrokeShape>
-                        <VerticalStackLayout Spacing="8">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <Label Text="Subtotal:" TextColor="{StaticResource Slate600}" FontSize="13" />
-                                <Label Grid.Column="1" Text="{Binding SubtotalText, StringFormat='PKR {0}'}" TextColor="{StaticResource Slate800}" FontAttributes="Bold" FontSize="13" />
-                            </Grid>
-                            <Grid ColumnDefinitions="*,Auto">
-                                <Label Text="Delivery Charges:" TextColor="{StaticResource Slate600}" FontSize="13" />
-                                <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-                                    <Label Text="{Binding StandardDeliveryFeeText, StringFormat='PKR {0}'}"
-                                           TextColor="{StaticResource AuthPlaceholder}"
-                                           TextDecorations="Strikethrough"
-                                           FontSize="12"
-                                           VerticalOptions="Center"
-                                           IsVisible="{Binding IsFreeDeliveryUnlocked}" />
-                                    <Label Text="{Binding EffectiveDeliveryFeeText}"
-                                           FontAttributes="Bold"
-                                           FontSize="13"
-                                           VerticalOptions="Center">
+                                           HorizontalTextAlignment="Center"
+                                           HorizontalOptions="Center">
                                         <Label.Triggers>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
-                                                <Setter Property="TextColor" Value="{StaticResource PrimaryDark}" />
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsHomeLabelSelected}" Value="True">
+                                                <Setter Property="TextColor" Value="#C84B11" />
+                                                <Setter Property="FontAttributes" Value="Bold" />
                                             </DataTrigger>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
-                                                <Setter Property="TextColor" Value="{StaticResource Slate800}" />
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsHomeLabelSelected}" Value="False">
+                                                <Setter Property="TextColor" Value="#1E1916" />
+                                                <Setter Property="FontAttributes" Value="None" />
                                             </DataTrigger>
                                         </Label.Triggers>
                                     </Label>
-                                </HorizontalStackLayout>
+                                </Border>
+
+                                <Border Grid.Column="1" Padding="8,10">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Office" />
+                                    </Border.GestureRecognizers>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsOfficeLabelSelected}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#FDF1EB" />
+                                            <Setter Property="Stroke" Value="#C84B11" />
+                                            <Setter Property="StrokeThickness" Value="1.5" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsOfficeLabelSelected}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="#FAF7F4" />
+                                            <Setter Property="Stroke" Value="#EAE2DA" />
+                                            <Setter Property="StrokeThickness" Value="1" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Label Text="Office"
+                                           FontSize="12"
+                                           HorizontalTextAlignment="Center"
+                                           HorizontalOptions="Center">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsOfficeLabelSelected}" Value="True">
+                                                <Setter Property="TextColor" Value="#C84B11" />
+                                                <Setter Property="FontAttributes" Value="Bold" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsOfficeLabelSelected}" Value="False">
+                                                <Setter Property="TextColor" Value="#1E1916" />
+                                                <Setter Property="FontAttributes" Value="None" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Border>
+
+                                <Border Grid.Column="2" Padding="8,10">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SetAddressLabelCommand}" CommandParameter="Other" />
+                                    </Border.GestureRecognizers>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsOtherLabelSelected}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#FDF1EB" />
+                                            <Setter Property="Stroke" Value="#C84B11" />
+                                            <Setter Property="StrokeThickness" Value="1.5" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsOtherLabelSelected}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="#FAF7F4" />
+                                            <Setter Property="Stroke" Value="#EAE2DA" />
+                                            <Setter Property="StrokeThickness" Value="1" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Label Text="Other"
+                                           FontSize="12"
+                                           HorizontalTextAlignment="Center"
+                                           HorizontalOptions="Center">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsOtherLabelSelected}" Value="True">
+                                                <Setter Property="TextColor" Value="#C84B11" />
+                                                <Setter Property="FontAttributes" Value="Bold" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsOtherLabelSelected}" Value="False">
+                                                <Setter Property="TextColor" Value="#1E1916" />
+                                                <Setter Property="FontAttributes" Value="None" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Border>
                             </Grid>
 
-                            <BoxView HeightRequest="1" Color="{StaticResource AuthInputBorder}" Margin="0,2" />
+                            <!-- Contact (required for PlaceOrder) -->
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Border Grid.Column="0"
+                                        HeightRequest="44"
+                                        Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        Padding="12,0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding NameInvalid}" Value="True">
+                                            <Setter Property="Stroke" Value="#B83227" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Entry Text="{Binding CustomerName}"
+                                           Placeholder="Your name"
+                                           PlaceholderColor="#8C7E74"
+                                           TextColor="#1E1916"
+                                           BackgroundColor="Transparent"
+                                           FontSize="13"
+                                           VerticalOptions="Center" />
+                                </Border>
+                                <Border Grid.Column="1"
+                                        HeightRequest="44"
+                                        Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        Padding="12,0">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12" />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding MobileInvalid}" Value="True">
+                                            <Setter Property="Stroke" Value="#B83227" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Entry Text="{Binding CustomerMobile}"
+                                           Placeholder="Mobile"
+                                           PlaceholderColor="#8C7E74"
+                                           TextColor="#1E1916"
+                                           Keyboard="Telephone"
+                                           BackgroundColor="Transparent"
+                                           FontSize="13"
+                                           VerticalOptions="Center" />
+                                </Border>
+                            </Grid>
 
+                            <!-- Selected address box -->
+                            <Border Stroke="#EAE2DA"
+                                    StrokeThickness="1"
+                                    BackgroundColor="#FAF7F4"
+                                    Padding="12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding AddressInvalid}" Value="True">
+                                        <Setter Property="Stroke" Value="#B83227" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <VerticalStackLayout Spacing="8">
+                                    <Grid ColumnDefinitions="*,Auto"
+                                          IsVisible="{Binding IsEditingAddress, Converter={StaticResource InvertedBoolConverter}}">
+                                        <Label Text="{Binding AddressDisplayText}"
+                                               FontSize="12.5"
+                                               TextColor="#1E1916"
+                                               LineBreakMode="WordWrap"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="Edit"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="#C84B11"
+                                               VerticalOptions="Start"
+                                               Margin="8,0,0,0">
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding EditAddressCommand}" />
+                                            </Label.GestureRecognizers>
+                                        </Label>
+                                    </Grid>
+                                    <VerticalStackLayout Spacing="6" IsVisible="{Binding IsEditingAddress}">
+                                        <Entry Text="{Binding DeliveryAddress}"
+                                               Placeholder="Street, block, house / flat"
+                                               PlaceholderColor="#8C7E74"
+                                               TextColor="#1E1916"
+                                               BackgroundColor="Transparent"
+                                               FontSize="12.5" />
+                                        <Entry Text="{Binding DeliveryLandmark}"
+                                               Placeholder="Landmark (optional)"
+                                               PlaceholderColor="#8C7E74"
+                                               TextColor="#1E1916"
+                                               BackgroundColor="Transparent"
+                                               FontSize="12.5" />
+                                        <Label Text="Done"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="#C84B11"
+                                               HorizontalOptions="End">
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding EditAddressCommand}" />
+                                            </Label.GestureRecognizers>
+                                        </Label>
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Rider notes -->
+                            <Border HeightRequest="44"
+                                    Stroke="#EAE2DA"
+                                    StrokeThickness="1"
+                                    BackgroundColor="#FAF7F4"
+                                    Padding="12,0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Entry Text="{Binding Notes}"
+                                       Placeholder="Gate code, floor, or rider instructions..."
+                                       PlaceholderColor="#8C7E74"
+                                       TextColor="#1E1916"
+                                       BackgroundColor="Transparent"
+                                       FontSize="13"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <FlexLayout Wrap="Wrap"
+                                        JustifyContent="Start"
+                                        AlignItems="Start">
+                                <Border Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        Padding="10,6"
+                                        Margin="0,0,8,8">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding AppendNoteCommand}" CommandParameter="Ring Bell" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="Ring Bell"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E1916" />
+                                </Border>
+                                <Border Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        Padding="10,6"
+                                        Margin="0,0,8,8">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding AppendNoteCommand}" CommandParameter="Leave at Gate" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="Leave at Gate"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E1916" />
+                                </Border>
+                                <Border Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#FAF7F4"
+                                        Padding="10,6"
+                                        Margin="0,0,8,8">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="10" />
+                                    </Border.StrokeShape>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding AppendNoteCommand}" CommandParameter="Call on Arrival" />
+                                    </Border.GestureRecognizers>
+                                    <Label Text="Call on Arrival"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E1916" />
+                                </Border>
+                            </FlexLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- SECTION D — PAYMENT METHOD -->
+                    <Border Stroke="#EAE2DA"
+                            StrokeThickness="1"
+                            BackgroundColor="#FFFFFF"
+                            Padding="16">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Payment Method"
+                                   FontFamily="Georgia"
+                                   FontSize="17"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916" />
+
+                            <!-- COD -->
+                            <Border Padding="14">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SelectPaymentMethodCommand}" CommandParameter="CashOnDelivery" />
+                                </Border.GestureRecognizers>
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="#FDF1EB" />
+                                        <Setter Property="Stroke" Value="#C84B11" />
+                                        <Setter Property="StrokeThickness" Value="1.5" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="False">
+                                        <Setter Property="BackgroundColor" Value="#FAF7F4" />
+                                        <Setter Property="Stroke" Value="#EAE2DA" />
+                                        <Setter Property="StrokeThickness" Value="1" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <Border WidthRequest="22"
+                                            HeightRequest="22"
+                                            StrokeThickness="2"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="11" />
+                                        </Border.StrokeShape>
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="True">
+                                                <Setter Property="Stroke" Value="#C84B11" />
+                                                <Setter Property="BackgroundColor" Value="#C84B11" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsCodSelected}" Value="False">
+                                                <Setter Property="Stroke" Value="#EAE2DA" />
+                                                <Setter Property="BackgroundColor" Value="Transparent" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="Cash on Delivery (COD)"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="#1E1916" />
+                                        <Label Text="Pay cash when your feast arrives"
+                                               FontSize="11"
+                                               TextColor="#5C5048" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+
+                            <!-- Online -->
+                            <Border Padding="14">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14" />
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SelectPaymentMethodCommand}" CommandParameter="OnlinePayment" />
+                                </Border.GestureRecognizers>
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="#FDF1EB" />
+                                        <Setter Property="Stroke" Value="#C84B11" />
+                                        <Setter Property="StrokeThickness" Value="1.5" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="False">
+                                        <Setter Property="BackgroundColor" Value="#FAF7F4" />
+                                        <Setter Property="Stroke" Value="#EAE2DA" />
+                                        <Setter Property="StrokeThickness" Value="1" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <Border WidthRequest="22"
+                                            HeightRequest="22"
+                                            StrokeThickness="2"
+                                            VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="11" />
+                                        </Border.StrokeShape>
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="True">
+                                                <Setter Property="Stroke" Value="#C84B11" />
+                                                <Setter Property="BackgroundColor" Value="#C84B11" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsOnlinePaymentSelected}" Value="False">
+                                                <Setter Property="Stroke" Value="#EAE2DA" />
+                                                <Setter Property="BackgroundColor" Value="Transparent" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="Online Instant Payment"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="#1E1916" />
+                                        <Label Text="Raast • JazzCash • EasyPaisa • Card"
+                                               FontSize="11"
+                                               TextColor="#5C5048" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- SECTION E — BILL BREAKDOWN -->
+                    <Border Stroke="#EAE2DA"
+                            StrokeThickness="1"
+                            BackgroundColor="#FFFFFF"
+                            Padding="16">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="8">
                             <Grid ColumnDefinitions="*,Auto">
-                                <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
-                                    <Label Text="Total Payable" FontAttributes="Bold" FontSize="16" TextColor="{StaticResource CartText}" VerticalOptions="Center" />
-                                    <Label Text="{Binding PaymentMethodBadgeText, StringFormat='({0}):'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource AuthMutedText}" VerticalOptions="Center" />
-                                </HorizontalStackLayout>
+                                <Label Text="Subtotal" FontSize="13" TextColor="#5C5048" />
                                 <Label Grid.Column="1"
-                                       Text="{Binding GrandTotalText, StringFormat='PKR {0}'}"
+                                       Text="{Binding SubtotalText}"
+                                       FontSize="13"
                                        FontAttributes="Bold"
-                                       FontSize="18"
-                                       TextColor="{StaticResource StaffPrimary}"
+                                       TextColor="#1E1916" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="Delivery Fee" FontSize="13" TextColor="#5C5048" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding DeliveryFeeText}"
+                                       FontSize="13"
+                                       FontAttributes="Bold">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="True">
+                                            <Setter Property="TextColor" Value="#D9822B" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsFreeDeliveryUnlocked}" Value="False">
+                                            <Setter Property="TextColor" Value="#1E1916" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="Packaging &amp; Service" FontSize="13" TextColor="#5C5048" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding PackagingFeeText}"
+                                       FontSize="13"
+                                       TextColor="#1E1916" />
+                            </Grid>
+                            <BoxView HeightRequest="1" Color="#EAE2DA" Margin="0,4" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="Grand Total"
+                                       FontFamily="Georgia"
+                                       FontSize="17"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E1916"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding GrandTotalText}"
+                                       FontSize="20"
+                                       FontAttributes="Bold"
+                                       TextColor="#C84B11"
                                        VerticalOptions="Center" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
-
-                    <!-- Minimum Order Warning Banner -->
-                    <Border Stroke="{StaticResource StarGold}"
-                            StrokeThickness="1.5"
-                            BackgroundColor="{StaticResource WarningBackground}"
-                            Padding="12,10"
-                            IsVisible="{Binding IsBelowMinimumOrder}">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
-                        </Border.StrokeShape>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
-                            <Label Text="⚠️" FontSize="20" VerticalOptions="Center" />
-                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                <Label Text="{Binding MinimumOrderAmountText, StringFormat='Minimum Order: PKR {0}'}"
-                                       FontAttributes="Bold"
-                                       FontSize="13"
-                                       TextColor="{StaticResource WarningText}" />
-                                <Label Text="{Binding MinimumOrderShortfallText, StringFormat='Please add PKR {0} more to qualify for delivery.'}"
-                                       FontSize="12"
-                                       TextColor="{StaticResource WarningMuted}"
-                                       LineBreakMode="WordWrap" />
-                            </VerticalStackLayout>
-                        </Grid>
-                    </Border>
                 </VerticalStackLayout>
-            </ScrollView>
-            <Button Grid.Row="1"
-                    Text="{Binding CheckoutButtonText}"
-                    Style="{StaticResource StaffPrimaryButton}"
-                    Margin="16,8,16,64"
-                    Command="{Binding PlaceOrderCommand}"
-                    IsVisible="{Binding HasItems}"
-                    HeightRequest="50"
-                    CornerRadius="14"
-                    FontSize="16">
-                <Button.Triggers>
-                    <DataTrigger TargetType="Button" Binding="{Binding IsBelowMinimumOrder}" Value="True">
-                        <Setter Property="BackgroundColor" Value="{StaticResource Gray300}" />
-                        <Setter Property="TextColor" Value="{StaticResource Gray600}" />
-                    </DataTrigger>
-                    <DataTrigger TargetType="Button" Binding="{Binding IsBelowMinimumOrder}" Value="False">
-                        <Setter Property="BackgroundColor" Value="{StaticResource StaffPrimary}" />
-                        <Setter Property="TextColor" Value="{StaticResource White}" />
-                    </DataTrigger>
-                </Button.Triggers>
-            </Button>
-        </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
 
-        <controls:BubbleTabBar Mode="Customer"
-                               SelectedIndex="1"
-                               VerticalOptions="End"
-                               HorizontalOptions="Fill"
-                               ZIndex="40" />
+        <!-- ========== 3. STICKY BOTTOM PLACE ORDER + TAB BAR ========== -->
+        <VerticalStackLayout Grid.Row="2"
+                             Spacing="0"
+                             BackgroundColor="#FFFFFF">
+            <BoxView HeightRequest="1" Color="#EAE2DA" />
+
+            <Grid Padding="16,12,16,10"
+                  IsVisible="{Binding HasItems}">
+                <Border HeightRequest="52"
+                        StrokeThickness="0"
+                        BackgroundColor="#C84B11"
+                        HorizontalOptions="Fill">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding PlaceOrderCommand}" />
+                    </Border.GestureRecognizers>
+                    <Border.Triggers>
+                        <DataTrigger TargetType="Border" Binding="{Binding IsBelowMinimumOrder}" Value="True">
+                            <Setter Property="BackgroundColor" Value="#8C7E74" />
+                        </DataTrigger>
+                        <DataTrigger TargetType="Border" Binding="{Binding IsBelowMinimumOrder}" Value="False">
+                            <Setter Property="BackgroundColor" Value="#C84B11" />
+                        </DataTrigger>
+                    </Border.Triggers>
+                    <Label Text="{Binding PlaceOrderButtonText}"
+                           FontSize="15"
+                           FontAttributes="Bold"
+                           TextColor="#FFFFFF"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           HorizontalTextAlignment="Center" />
+                </Border>
+            </Grid>
+
+            <BoxView HeightRequest="1" Color="#EAE2DA" />
+
+            <controls:BubbleTabBar Mode="Customer"
+                                   SelectedIndex="1"
+                                   CartCount="{Binding CartCount}"
+                                   VerticalOptions="End"
+                                   HorizontalOptions="Fill"
+                                   HeightRequest="64"
+                                   ZIndex="40" />
+        </VerticalStackLayout>
     </Grid>
 </ContentPage>

@@ -8,6 +8,11 @@ namespace SmartPos.Mobile.ViewModels;
 
 public partial class CartCheckoutViewModel : BaseViewModel
 {
+    private const decimal DefaultFreeDeliveryThreshold = 2500m;
+    private const decimal DefaultStandardDeliveryFee = 180m;
+    private const decimal DefaultMinimumOrderAmount = 800m;
+    private const decimal QuickNaanPrice = 180m;
+
     private readonly AppState _appState;
     private readonly CartService _cart;
     private readonly OnlineOrderService _orders;
@@ -69,16 +74,19 @@ public partial class CartCheckoutViewModel : BaseViewModel
     private bool isLoadingAddresses;
 
     [ObservableProperty]
-    private decimal freeDeliveryThreshold = 1500m;
+    private bool isEditingAddress;
 
     [ObservableProperty]
-    private decimal standardDeliveryFee = 100m;
+    private decimal freeDeliveryThreshold = DefaultFreeDeliveryThreshold;
+
+    [ObservableProperty]
+    private decimal standardDeliveryFee = DefaultStandardDeliveryFee;
 
     [ObservableProperty]
     private decimal effectiveDeliveryFee;
 
     [ObservableProperty]
-    private decimal minimumOrderAmount;
+    private decimal minimumOrderAmount = DefaultMinimumOrderAmount;
 
     [ObservableProperty]
     private double freeDeliveryProgress;
@@ -96,7 +104,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
     private decimal minimumOrderShortfall;
 
     [ObservableProperty]
-    private string checkoutButtonText = "Place order";
+    private string checkoutButtonText = "Place Order";
 
     [ObservableProperty]
     private bool canPlaceOrder;
@@ -119,25 +127,37 @@ public partial class CartCheckoutViewModel : BaseViewModel
 
     public bool HasFreeDeliveryThreshold => FreeDeliveryThreshold > 0;
     public bool IsFreeDeliveryLocked => !IsFreeDeliveryUnlocked;
-    public string StandardDeliveryFeeText => StandardDeliveryFee.ToString("0.00");
-    public string EffectiveDeliveryFeeText => EffectiveDeliveryFee == 0 ? "FREE" : EffectiveDeliveryFee.ToString("0.00");
+    public string StandardDeliveryFeeText => StandardDeliveryFee.ToString("0");
+    public string EffectiveDeliveryFeeText => EffectiveDeliveryFee == 0 ? "FREE" : $"Rs. {EffectiveDeliveryFee:0}";
+    public string DeliveryFeeSavedText => $"SAVED Rs. {StandardDeliveryFee:0}";
     public string AmountNeededForFreeDeliveryText => AmountNeededForFreeDelivery.ToString("N0");
     public string MinimumOrderAmountText => MinimumOrderAmount.ToString("N0");
     public string MinimumOrderShortfallText => MinimumOrderShortfall.ToString("N0");
     public string FreeDeliveryMotivationText => IsFreeDeliveryUnlocked
-        ? "Awesome! You unlocked FREE Delivery! 🎉"
-        : $"Add PKR {AmountNeededForFreeDeliveryText} more to enjoy FREE delivery!";
+        ? "You unlocked FREE Delivery!"
+        : $"Add Rs. {AmountNeededForFreeDeliveryText} more for FREE Delivery";
+    public string PackagingFeeText => "Rs. 0";
+    public string MinimumOrderWarningText => $"Minimum order for delivery is Rs. {MinimumOrderAmount:0}";
 
     public decimal Subtotal => _appState.CartSubtotal;
     public decimal GrandTotal => Subtotal + EffectiveDeliveryFee;
-    public string SubtotalText => Subtotal.ToString("0.00");
-    public string DeliveryFeeText => EffectiveDeliveryFee == 0 ? "FREE" : EffectiveDeliveryFee.ToString("0.00");
-    public string GrandTotalText => GrandTotal.ToString("0.00");
+    public string SubtotalText => $"Rs. {Subtotal:0}";
+    public string DeliveryFeeText => EffectiveDeliveryFee == 0 ? "FREE" : $"Rs. {EffectiveDeliveryFee:0}";
+    public string GrandTotalText => $"Rs. {GrandTotal:0}";
+    public string PlaceOrderButtonText => IsBelowMinimumOrder
+        ? $"Min Order  •  Rs. {MinimumOrderAmount:0}"
+        : $"Place Order  •  Rs. {GrandTotal:0}";
     public bool HasItems => Lines.Count > 0;
     public bool IsEmpty => !HasItems;
     public string ItemCountLabel => HasItems
         ? $"{Lines.Count} item{(Lines.Count == 1 ? string.Empty : "s")}"
         : "No items yet";
+    public int CartCount => _cart.ItemCount;
+    public string AddressDisplayText => string.IsNullOrWhiteSpace(DeliveryAddress)
+        ? "Add your street, block, or landmark for delivery"
+        : DeliveryAddress.Trim();
+    public bool HasAddressText => !string.IsNullOrWhiteSpace(DeliveryAddress);
+    public bool HasLocationStatus => !string.IsNullOrWhiteSpace(LocationStatusText);
 
     public CartCheckoutViewModel(
         AppState appState,
@@ -158,7 +178,11 @@ public partial class CartCheckoutViewModel : BaseViewModel
         RefreshLocationStatus();
     }
 
-    private void RefreshLocationStatus() => LocationStatusText = _deliveryLocation.StatusText;
+    private void RefreshLocationStatus()
+    {
+        LocationStatusText = _deliveryLocation.StatusText;
+        OnPropertyChanged(nameof(HasLocationStatus));
+    }
 
     private void NotifyTotals()
     {
@@ -170,22 +194,37 @@ public partial class CartCheckoutViewModel : BaseViewModel
         OnPropertyChanged(nameof(DeliveryFeeText));
         OnPropertyChanged(nameof(StandardDeliveryFeeText));
         OnPropertyChanged(nameof(EffectiveDeliveryFeeText));
+        OnPropertyChanged(nameof(DeliveryFeeSavedText));
+        OnPropertyChanged(nameof(PackagingFeeText));
+        OnPropertyChanged(nameof(PlaceOrderButtonText));
         OnPropertyChanged(nameof(HasItems));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(ItemCountLabel));
+        OnPropertyChanged(nameof(CartCount));
         OnPropertyChanged(nameof(HasFreeDeliveryThreshold));
         OnPropertyChanged(nameof(IsFreeDeliveryLocked));
         OnPropertyChanged(nameof(FreeDeliveryMotivationText));
         OnPropertyChanged(nameof(AmountNeededForFreeDeliveryText));
         OnPropertyChanged(nameof(MinimumOrderAmountText));
         OnPropertyChanged(nameof(MinimumOrderShortfallText));
+        OnPropertyChanged(nameof(MinimumOrderWarningText));
         OnPropertyChanged(nameof(PaymentMethodBadgeText));
+        OnPropertyChanged(nameof(AddressDisplayText));
+        OnPropertyChanged(nameof(HasAddressText));
     }
 
     private void RecalculateThresholds()
     {
-        StandardDeliveryFee = SelectedArea?.DeliveryFee ?? 0;
-        MinimumOrderAmount = SelectedArea?.MinimumOrderAmount ?? 0;
+        var areaFee = SelectedArea?.DeliveryFee ?? 0;
+        StandardDeliveryFee = areaFee > 0 ? areaFee : DefaultStandardDeliveryFee;
+
+        var areaMin = SelectedArea?.MinimumOrderAmount ?? 0;
+        MinimumOrderAmount = areaMin > 0 ? areaMin : DefaultMinimumOrderAmount;
+
+        if (FreeDeliveryThreshold <= 0)
+        {
+            FreeDeliveryThreshold = DefaultFreeDeliveryThreshold;
+        }
 
         if (FreeDeliveryThreshold > 0 && Subtotal >= FreeDeliveryThreshold)
         {
@@ -215,14 +254,14 @@ public partial class CartCheckoutViewModel : BaseViewModel
         {
             IsBelowMinimumOrder = true;
             MinimumOrderShortfall = MinimumOrderAmount - Subtotal;
-            CheckoutButtonText = $"Min Order PKR {MinimumOrderAmount:N0}";
+            CheckoutButtonText = PlaceOrderButtonText;
             CanPlaceOrder = false;
         }
         else
         {
             IsBelowMinimumOrder = false;
             MinimumOrderShortfall = 0;
-            CheckoutButtonText = "Place order";
+            CheckoutButtonText = PlaceOrderButtonText;
             CanPlaceOrder = HasItems && !IsBusy;
         }
     }
@@ -241,6 +280,11 @@ public partial class CartCheckoutViewModel : BaseViewModel
             CustomerMobile = Preferences.Default.Get("sp.customerPhone", string.Empty);
         }
 
+        if (string.IsNullOrWhiteSpace(DeliveryAddress))
+        {
+            IsEditingAddress = true;
+        }
+
         if (!string.IsNullOrWhiteSpace(CustomerMobile))
         {
             var digits = new string(CustomerMobile.Where(char.IsDigit).ToArray());
@@ -252,6 +296,8 @@ public partial class CartCheckoutViewModel : BaseViewModel
 
         if (_session.BranchId is not int branchId)
         {
+            FreeDeliveryThreshold = DefaultFreeDeliveryThreshold;
+            NotifyTotals();
             return;
         }
 
@@ -264,14 +310,22 @@ public partial class CartCheckoutViewModel : BaseViewModel
                 {
                     FreeDeliveryThreshold = header.FreeDeliveryThreshold;
                 }
+                else if (header != null && header.BaseDeliveryFee > 0)
+                {
+                    FreeDeliveryThreshold = DefaultFreeDeliveryThreshold;
+                    if (SelectedArea == null)
+                    {
+                        StandardDeliveryFee = header.BaseDeliveryFee;
+                    }
+                }
                 else
                 {
-                    FreeDeliveryThreshold = 1500m;
+                    FreeDeliveryThreshold = DefaultFreeDeliveryThreshold;
                 }
             }
             catch
             {
-                FreeDeliveryThreshold = 1500m;
+                FreeDeliveryThreshold = DefaultFreeDeliveryThreshold;
             }
 
             Areas.Clear();
@@ -283,7 +337,6 @@ public partial class CartCheckoutViewModel : BaseViewModel
             SelectedArea = Areas.FirstOrDefault();
             NotifyTotals();
 
-            // Pin live location as soon as checkout opens.
             if (!_deliveryLocation.HasFix)
             {
                 await CaptureLocationAsync();
@@ -333,6 +386,13 @@ public partial class CartCheckoutViewModel : BaseViewModel
         OnPropertyChanged(nameof(IsHomeLabelSelected));
         OnPropertyChanged(nameof(IsOfficeLabelSelected));
         OnPropertyChanged(nameof(IsOtherLabelSelected));
+
+        var match = SavedAddresses.FirstOrDefault(a =>
+            string.Equals(a.Label, value, StringComparison.OrdinalIgnoreCase));
+        if (match != null)
+        {
+            SelectSavedAddress(match);
+        }
     }
 
     partial void OnSelectedPaymentMethodChanged(string value)
@@ -354,7 +414,9 @@ public partial class CartCheckoutViewModel : BaseViewModel
             AddressInvalid = false;
         }
 
-        // As the customer types/selects an address, refresh GPS for the delivery pin.
+        OnPropertyChanged(nameof(AddressDisplayText));
+        OnPropertyChanged(nameof(HasAddressText));
+
         if (!string.IsNullOrWhiteSpace(value) && value.Trim().Length >= 3)
         {
             _deliveryLocation.CaptureDebounced();
@@ -370,6 +432,120 @@ public partial class CartCheckoutViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private async Task GoBackAsync()
+    {
+        if (Shell.Current == null)
+        {
+            return;
+        }
+
+        try
+        {
+            await Shell.Current.GoToAsync("..");
+        }
+        catch
+        {
+            await Shell.Current.GoToAsync("//customer/home");
+        }
+    }
+
+    [RelayCommand]
+    private async Task ClearCartAsync()
+    {
+        if (!HasItems)
+        {
+            return;
+        }
+
+        var confirm = await Shell.Current.DisplayAlert(
+            "Clear Tray",
+            "Remove all items from your tray?",
+            "Clear",
+            "Cancel");
+        if (!confirm)
+        {
+            return;
+        }
+
+        _cart.Clear();
+        NotifyTotals();
+    }
+
+    [RelayCommand]
+    private async Task ExploreMenuAsync()
+    {
+        if (Shell.Current != null)
+        {
+            await Shell.Current.GoToAsync("//customer/order");
+        }
+    }
+
+    [RelayCommand]
+    private void EditAddress()
+    {
+        IsEditingAddress = !IsEditingAddress;
+    }
+
+    [RelayCommand]
+    private void AppendNote(string? note)
+    {
+        if (string.IsNullOrWhiteSpace(note))
+        {
+            return;
+        }
+
+        var clean = note.Trim();
+        if (string.IsNullOrWhiteSpace(Notes))
+        {
+            Notes = clean;
+            return;
+        }
+
+        if (Notes.Contains(clean, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        Notes = $"{Notes.Trim().TrimEnd(',')}, {clean}";
+    }
+
+    [RelayCommand]
+    private async Task AddQuickNaanAsync()
+    {
+        OnlineProductDto? naan = null;
+        try
+        {
+            if (_session.BranchId is int branchId)
+            {
+                var catalog = await _orders.GetCatalogAsync(branchId);
+                naan = catalog.FirstOrDefault(p =>
+                    !string.IsNullOrWhiteSpace(p.Name) &&
+                    p.Name.Contains("Naan", StringComparison.OrdinalIgnoreCase));
+            }
+        }
+        catch
+        {
+            // fall through to synthetic line
+        }
+
+        if (naan != null)
+        {
+            _cart.AddOrIncrement(naan);
+        }
+        else
+        {
+            _cart.AddOrIncrement(new OnlineProductDto
+            {
+                Id = -180,
+                Name = "Naan",
+                Price = QuickNaanPrice
+            });
+        }
+
+        NotifyTotals();
+    }
+
+    [RelayCommand]
     private async Task CaptureLocationAsync()
     {
         if (IsCapturingLocation)
@@ -380,15 +556,19 @@ public partial class CartCheckoutViewModel : BaseViewModel
         try
         {
             IsCapturingLocation = true;
-            LocationStatusText = "📍 Getting your location…";
+            LocationStatusText = "Getting your location…";
             var ok = await _deliveryLocation.CaptureAsync();
             if (!ok)
             {
-                LocationStatusText = "📍 Couldn’t get location — check permission and GPS, then try again.";
+                LocationStatusText = "Couldn't get location — check permission and GPS, then try again.";
             }
             else
             {
                 RefreshLocationStatus();
+                if (string.IsNullOrWhiteSpace(DeliveryAddress) && !string.IsNullOrWhiteSpace(LocationStatusText))
+                {
+                    // Keep typed address primary; status still shown under location pill.
+                }
             }
         }
         finally
@@ -430,19 +610,18 @@ public partial class CartCheckoutViewModel : BaseViewModel
             return;
         }
 
-        // Strict guard clause for Minimum Order Amount
         if (IsBelowMinimumOrder)
         {
             await Shell.Current.DisplayAlert(
                 "Minimum Order Required",
-                $"Minimum order amount for {SelectedArea?.Name ?? "delivery"} is PKR {MinimumOrderAmount:N0}.\n\nPlease add PKR {MinimumOrderShortfall:N0} more to place your order.",
+                $"Minimum order amount for {SelectedArea?.Name ?? "delivery"} is Rs. {MinimumOrderAmount:N0}.\n\nPlease add Rs. {MinimumOrderShortfall:N0} more to place your order.",
                 "OK");
             return;
         }
 
-        // Field errors: red borders only — no alert popups.
         if (!ValidateCheckoutFields())
         {
+            IsEditingAddress = true;
             return;
         }
 
@@ -554,12 +733,19 @@ public partial class CartCheckoutViewModel : BaseViewModel
             }
             HasSavedAddresses = SavedAddresses.Count > 0;
 
-            // If user hasn't typed an address yet, auto-select default address
             if (HasSavedAddresses && string.IsNullOrWhiteSpace(DeliveryAddress))
             {
-                var defaultAddr = SavedAddresses.FirstOrDefault(a => a.IsDefault) ?? SavedAddresses.FirstOrDefault();
+                var labeled = SavedAddresses.FirstOrDefault(a =>
+                    string.Equals(a.Label, AddressLabel, StringComparison.OrdinalIgnoreCase));
+                var defaultAddr = labeled
+                    ?? SavedAddresses.FirstOrDefault(a => a.IsDefault)
+                    ?? SavedAddresses.FirstOrDefault();
                 if (defaultAddr != null)
                 {
+                    if (!string.IsNullOrWhiteSpace(defaultAddr.Label))
+                    {
+                        AddressLabel = defaultAddr.Label!;
+                    }
                     SelectSavedAddress(defaultAddr);
                 }
             }
@@ -589,6 +775,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
 
         DeliveryAddress = address.Address ?? string.Empty;
         DeliveryLandmark = address.Landmark ?? string.Empty;
+        IsEditingAddress = false;
 
         if (address.DeliveryAreaId.HasValue && address.DeliveryAreaId.Value > 0)
         {
@@ -625,6 +812,7 @@ public partial class CartCheckoutViewModel : BaseViewModel
         }
         DeliveryAddress = string.Empty;
         DeliveryLandmark = string.Empty;
+        IsEditingAddress = true;
     }
 
     [RelayCommand]

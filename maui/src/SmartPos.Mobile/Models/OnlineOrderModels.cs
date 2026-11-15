@@ -565,8 +565,8 @@ public class CartLine
     public decimal LineTotal => UnitPrice * Quantity;
     public string LineTotalText => LineTotal.ToString("0.00");
     public string UnitPriceText => UnitPrice.ToString("0.00");
-    public string UnitPriceDisplay => $"Rs {UnitPrice:0}";
-    public string LineTotalDisplay => $"Rs {LineTotal:0}";
+    public string UnitPriceDisplay => $"Rs. {UnitPrice:0}";
+    public string LineTotalDisplay => $"Rs. {LineTotal:0}";
     public string QuantityText => Quantity.ToString("0");
     public bool HasImage => !string.IsNullOrWhiteSpace(ImagePath);
     public bool HasModifiers => !string.IsNullOrWhiteSpace(SelectedModifiers);
