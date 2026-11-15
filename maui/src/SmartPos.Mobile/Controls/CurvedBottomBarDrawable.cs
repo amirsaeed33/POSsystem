@@ -30,12 +30,19 @@ public sealed class CurvedBottomBarDrawable : IDrawable
     /// <summary>How far the bump rises above the flat top edge of the bar.</summary>
     public float BumpRise { get; set; } = 24f;
 
+    // Matches PageBackground so Android GraphicsView never leaves a black void outside the bar path.
+    private static readonly Color CanvasClearColor = Color.FromArgb("#FAF7F4");
+
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
         if (dirtyRect.Width <= 0 || dirtyRect.Height <= 0)
         {
             return;
         }
+
+        // Clear the full surface first — Android GraphicsView defaults to opaque black.
+        canvas.FillColor = CanvasClearColor;
+        canvas.FillRectangle(dirtyRect);
 
         var path = BuildBarPath(dirtyRect);
         if (path is null)

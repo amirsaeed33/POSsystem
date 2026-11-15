@@ -215,7 +215,8 @@
             <!-- ========================================================= -->
             <RefreshView Grid.Row="1"
                          IsRefreshing="{Binding IsPullRefreshing}"
-                         Command="{Binding RefreshHomeCommand}">
+                         Command="{Binding RefreshHomeCommand}"
+                         BackgroundColor="{StaticResource PageBackground}">
                 <ScrollView Orientation="Vertical"
                             VerticalScrollBarVisibility="Never"
                             BackgroundColor="{StaticResource PageBackground}">

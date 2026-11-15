@@ -167,10 +167,11 @@
             <!-- 2-column luxury saved food cards -->
             <RefreshView IsVisible="{Binding HasFavorites}"
                          IsRefreshing="{Binding IsRefreshing}"
-                         Command="{Binding RefreshFavoritesCommand}">
+                         Command="{Binding RefreshFavoritesCommand}"
+                         BackgroundColor="#FAF7F4">
                 <CollectionView ItemsSource="{Binding FilteredFavoriteProducts}"
                                 SelectionMode="None"
-                                BackgroundColor="Transparent"
+                                BackgroundColor="#FAF7F4"
                                 Margin="16,6,16,104">
                     <CollectionView.ItemsLayout>
                         <GridItemsLayout Orientation="Vertical"

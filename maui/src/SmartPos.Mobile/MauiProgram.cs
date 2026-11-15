@@ -65,6 +65,15 @@ public static class MauiProgram
 #endif
         });
 
+#if ANDROID
+        // GraphicsView native surface defaults to black — keep it clear for curved nav overlays.
+        Microsoft.Maui.Handlers.GraphicsViewHandler.Mapper.AppendToMapping("TransparentSurface", (handler, view) =>
+        {
+            handler.PlatformView.SetBackgroundColor(Android.Graphics.Color.Transparent);
+            handler.PlatformView.SetBackgroundResource(0);
+        });
+#endif
+
         using var settingsStream = Assembly.GetExecutingAssembly()
             .GetManifestResourceStream("SmartPos.Mobile.appsettings.json");
         var configBuilder = new ConfigurationBuilder();
