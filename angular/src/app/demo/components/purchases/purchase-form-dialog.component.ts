@@ -126,8 +126,14 @@ export class PurchaseFormDialogComponent implements OnChanges {
         this.supplierService
             .getAssignedProductIds(supplierId)
             .then((assignedIds) => {
-                const allowed = new Set(assignedIds || []);
-                this.products = this.allProducts.filter((p) => allowed.has(p.id));
+                const allowed = new Set((assignedIds || []).filter((id) => id != null));
+                // Retail: if the supplier has no assignments, show all branch products
+                // (matches PurchaseAppService — assignments are only required for restaurants).
+                if (!this.isRestaurant && allowed.size === 0) {
+                    this.products = [...this.allProducts];
+                } else {
+                    this.products = this.allProducts.filter((p) => allowed.has(p.id));
+                }
                 this.clearUnavailableProductSelections();
             })
             .catch((error) => {
