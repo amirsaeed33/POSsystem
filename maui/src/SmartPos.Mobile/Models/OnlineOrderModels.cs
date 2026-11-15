@@ -489,11 +489,76 @@ public class CustomerOrderDto : EntityDto
 
     public string FormattedOrderNo => string.IsNullOrWhiteSpace(OrderNo) ? $"Order #{Id}" : OrderNo!;
 
-    public string FormattedDate => OrderDate != default 
-        ? OrderDate.ToString("dd MMM yyyy, hh:mm tt") 
+    public string FormattedDate => OrderDate != default
+        ? OrderDate.ToString("dd MMM yyyy, hh:mm tt")
         : string.Empty;
 
-    public string FormattedTotal => $"Rs {TotalAmount:0.##}";
+    public string FormattedTotal => $"Rs. {TotalAmount:N0}";
+
+    public string SubTotalDisplay => $"Rs. {SubTotal:N0}";
+
+    public string DeliveryFeeDisplay => DeliveryFee <= 0 ? "FREE" : $"Rs. {DeliveryFee:N0}";
+
+    public string GrandTotalDisplay => $"Rs. {TotalAmount:N0}";
+
+    public Color DeliveryFeeTextColor => DeliveryFee <= 0
+        ? Color.FromArgb("#D9822B")
+        : Color.FromArgb("#1E1916");
+
+    public string PaymentMethodDisplay
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(PaymentMethod))
+            {
+                return "Cash on Delivery";
+            }
+
+            if (PaymentMethod.Contains("Online", StringComparison.OrdinalIgnoreCase) ||
+                PaymentMethod.Contains("Card", StringComparison.OrdinalIgnoreCase) ||
+                PaymentMethod.Contains("Paid", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Online Paid";
+            }
+
+            if (PaymentMethod.Contains("Cash", StringComparison.OrdinalIgnoreCase) ||
+                PaymentMethod.Contains("COD", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Cash on Delivery";
+            }
+
+            return PaymentMethod.Trim();
+        }
+    }
+
+    public string ReceiptTitle
+    {
+        get
+        {
+            var branch = string.IsNullOrWhiteSpace(BranchName) ? "Aljannat" : BranchName.Trim();
+            return $"{FormattedOrderNo} • {branch}";
+        }
+    }
+
+    public string DeliveryAddressDisplay =>
+        string.IsNullOrWhiteSpace(CustomerAddress) ? "Address not provided" : CustomerAddress.Trim();
+
+    public bool HasDeliveryAddress => !string.IsNullOrWhiteSpace(CustomerAddress);
+
+    public string NotesDisplay => string.IsNullOrWhiteSpace(Notes) ? string.Empty : Notes.Trim();
+
+    public bool HasNotes => !string.IsNullOrWhiteSpace(Notes);
+
+    public string StatusBadgeLabel => Status switch
+    {
+        0 => "Pending",
+        1 or 3 => "On the Way",
+        2 => "Cancelled",
+        4 or 5 => "Delivered",
+        _ => StatusDisplayName
+    };
+
+    public string StatusBadgeLabelUpper => StatusBadgeLabel.ToUpperInvariant();
 
     public int TotalItemsCount => (int)Lines.Sum(l => l.Quantity);
 
@@ -510,7 +575,7 @@ public class CustomerOrderDto : EntityDto
 
             var parts = Lines
                 .Where(l => !string.IsNullOrWhiteSpace(l.ProductName))
-                .Select(l => $"{(int)l.Quantity}x {l.ProductName}")
+                .Select(l => $"{(int)l.Quantity}× {l.ProductName}")
                 .ToList();
 
             return parts.Count > 0 ? string.Join(", ", parts) : $"{Lines.Count} items";
@@ -525,9 +590,15 @@ public class CustomerOrderDto : EntityDto
             var branch = BranchName?.Trim();
             if (!string.IsNullOrWhiteSpace(branch) && !string.IsNullOrWhiteSpace(area))
             {
-                return $"{branch} • {area}";
+                return $"{branch}  •  {area}";
             }
-            return branch ?? area ?? "Direct Order";
+
+            if (!string.IsNullOrWhiteSpace(branch))
+            {
+                return $"{branch}  •  Delivery";
+            }
+
+            return area ?? "Direct Order";
         }
     }
 
@@ -542,24 +613,33 @@ public class CustomerOrderDto : EntityDto
         _ => !string.IsNullOrWhiteSpace(StatusName) ? StatusName : $"Status {Status}"
     };
 
+    /// <summary>Active / pending orders that should offer Track Status.</summary>
+    public bool IsActiveOrder => Status is 0 or 1 or 3;
+
+    public string PrimaryActionText => IsActiveOrder ? "Track Status" : "View Receipt";
+
     public Color StatusTextColor => Status switch
     {
-        0 => ThemeColors.WarningMuted, // Dark Amber
-        1 => ThemeColors.InfoDeep, // Dark Blue
-        2 => ThemeColors.DangerText, // Dark Red
-        3 => ThemeColors.Get("PurpleDeep", "#8F3006"),
-        4 or 5 => ThemeColors.Tertiary,
-        _ => ThemeColors.Slate650
+        0 or 1 or 3 => Color.FromArgb("#D9822B"),
+        2 => Color.FromArgb("#B83227"),
+        4 or 5 => Color.FromArgb("#C84B11"),
+        _ => Color.FromArgb("#5C5048")
     };
 
     public Color StatusBadgeBgColor => Status switch
     {
-        0 => ThemeColors.WarningBackground,
-        1 => ThemeColors.AuthSubtitleOnHero,
-        2 => ThemeColors.DangerBackground,
-        3 => ThemeColors.Get("PurpleSoft", "#FDF4E3"),
-        4 or 5 => ThemeColors.PrimaryLight,
-        _ => ThemeColors.Gray100
+        0 or 1 or 3 => Color.FromArgb("#FEF6EB"),
+        2 => Color.FromArgb("#FDECEB"),
+        4 or 5 => Color.FromArgb("#FDF1EB"),
+        _ => Color.FromArgb("#F4EFEA")
+    };
+
+    public Color StatusBadgeStrokeColor => Status switch
+    {
+        0 or 1 or 3 => Color.FromArgb("#F3D6B3"),
+        2 => Color.FromArgb("#F5C6C2"),
+        4 or 5 => Color.FromArgb("#F0C4AE"),
+        _ => Color.FromArgb("#EAE2DA")
     };
 
     public bool CanReorder => Lines != null && Lines.Any(l => l.ProductId > 0 && l.Quantity > 0);
