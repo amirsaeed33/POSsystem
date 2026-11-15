@@ -593,6 +593,14 @@ public class CustomerOrderLineDto : EntityDto
 
     [JsonPropertyName("lineTotal")]
     public decimal LineTotal { get; set; }
+
+    public string QuantityLabel => $"{(int)Quantity}×";
+
+    public string DisplayName => string.IsNullOrWhiteSpace(ProductName) ? "Item" : ProductName!;
+
+    public string LineTotalDisplay => $"Rs. {LineTotal:N0}";
+
+    public string TrackLineLabel => $"{QuantityLabel} {DisplayName}";
 }
 
 public partial class CartLine : ObservableObject

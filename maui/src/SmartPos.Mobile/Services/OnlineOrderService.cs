@@ -535,6 +535,28 @@ public class OnlineOrderService
         }
     }
 
+    /// <summary>
+    /// Anonymous customer cancel for Pending orders (maps to Rejected on the server).
+    /// </summary>
+    public async Task<CustomerOrderDto?> CancelOrderAsync(string orderNo)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(orderNo))
+            {
+                return null;
+            }
+
+            return await _api.PostAsync<CustomerOrderDto>(
+                $"api/services/app/CustomerOrder/CancelOrderByOrderNo?orderNo={Uri.EscapeDataString(orderNo.Trim())}",
+                null);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static string GetSavedAddressCacheKey(string phone) => $"sp_saved_addresses_{phone.Trim()}";
 
     public List<CustomerSavedAddressDto> GetCachedSavedAddresses(string phone)
