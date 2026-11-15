@@ -40,6 +40,7 @@ public partial class FavoritesViewModel : BaseViewModel
     public ObservableCollection<OnlineProductDto> FavoriteProducts { get; } = new();
     public ObservableCollection<OnlineProductDto> FilteredFavoriteProducts { get; } = new();
     public ObservableCollection<FavoriteCategoryFilter> CategoryFilters { get; } = new();
+    public ObservableCollection<CartLine> CartLines => _cart.Lines;
 
     public int SavedCount => FavoriteCount;
     public string SavedCountLabel => $"{FavoriteCount} Saved";
@@ -47,6 +48,9 @@ public partial class FavoritesViewModel : BaseViewModel
     public string CartSubtotalDisplay => $"Rs. {CartSubtotal:N0}";
     public bool HasCartItems => CartCount > 0;
     public bool HasFavorites => !IsEmptyState;
+
+    [ObservableProperty]
+    private bool isTraySheetVisible;
 
     public FavoritesViewModel(
         FavoritesService favorites,
@@ -85,6 +89,10 @@ public partial class FavoritesViewModel : BaseViewModel
                 OnPropertyChanged(nameof(CartSubtotalDisplay));
                 OnPropertyChanged(nameof(HasCartItems));
                 SyncCartQuantities();
+                if (!HasCartItems)
+                {
+                    IsTraySheetVisible = false;
+                }
             });
         };
     }
@@ -336,11 +344,7 @@ public partial class FavoritesViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    public async Task AddToCartAsync(OnlineProductDto? product)
-    {
-        // Favorites "+ Add" opens product detail for portion / spice / add-ons.
-        await OpenProductDetailAsync(product);
-    }
+    public Task AddToCartAsync(OnlineProductDto? product) => IncreaseCardAsync(product);
 
     [RelayCommand]
     public async Task IncreaseCardAsync(OnlineProductDto? product)
@@ -350,17 +354,16 @@ public partial class FavoritesViewModel : BaseViewModel
             return;
         }
 
-        // Allow qty bumps even when InStock flag is missing from catalog payload.
-        if (!product.InStock && product.CartQty <= 0 && product.StockQuantity <= 0)
+        // Match Order page: deals need detail; otherwise add straight to tray.
+        if (product.IsDeal || product.DealId.HasValue ||
+            (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
         {
             await OpenProductDetailAsync(product);
             return;
         }
 
-        if (product.IsDeal || product.DealId.HasValue ||
-            (product.CategoryName != null && product.CategoryName.Contains("deal", StringComparison.OrdinalIgnoreCase)))
+        if (!product.InStock && product.CartQty <= 0 && product.StockQuantity <= 0)
         {
-            await OpenProductDetailAsync(product);
             return;
         }
 
@@ -407,4 +410,47 @@ public partial class FavoritesViewModel : BaseViewModel
 
     [RelayCommand]
     public Task NavigateToMenuAsync() => BrowseMenuAsync();
+
+    [RelayCommand]
+    private void OpenTraySheet()
+    {
+        if (!HasCartItems)
+        {
+            return;
+        }
+
+        IsTraySheetVisible = true;
+    }
+
+    [RelayCommand]
+    private void CloseTraySheet() => IsTraySheetVisible = false;
+
+    [RelayCommand]
+    private async Task ProceedToCheckoutAsync()
+    {
+        IsTraySheetVisible = false;
+        await OpenCartAsync();
+    }
+
+    [RelayCommand]
+    private void IncreaseTrayLine(CartLine? line)
+    {
+        if (line == null)
+        {
+            return;
+        }
+
+        _cart.SetQuantity(line, line.Quantity + 1);
+    }
+
+    [RelayCommand]
+    private void DecreaseTrayLine(CartLine? line)
+    {
+        if (line == null)
+        {
+            return;
+        }
+
+        _cart.SetQuantity(line, line.Quantity - 1);
+    }
 }
