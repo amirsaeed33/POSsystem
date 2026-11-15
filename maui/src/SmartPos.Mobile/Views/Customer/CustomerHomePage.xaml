@@ -341,89 +341,86 @@
 
                         <!-- 3. LUXURY HERO PROMO BANNER -->
                         <Border Margin="16,14,16,0"
-                                HeightRequest="176"
                                 StrokeThickness="0"
-                                Padding="0">
+                                Padding="14"
+                                MinimumHeightRequest="168">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="24" />
                             </Border.StrokeShape>
                             <Border.Shadow>
                                 <Shadow Brush="{StaticResource Primary}" Offset="0,10" Radius="22" Opacity="0.22" />
                             </Border.Shadow>
-                            <Grid>
-                                <Grid.Background>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Color="#2A1208" Offset="0.0" />
-                                        <GradientStop Color="#8F3006" Offset="0.45" />
-                                        <GradientStop Color="#C84B11" Offset="1.0" />
-                                    </LinearGradientBrush>
-                                </Grid.Background>
-                                <Grid ColumnDefinitions="*,Auto" Padding="18" ColumnSpacing="8">
-                                    <VerticalStackLayout Spacing="6" VerticalOptions="Center">
-                                        <Border BackgroundColor="#33F9E0D2"
-                                                StrokeThickness="0"
-                                                Padding="8,3"
-                                                HorizontalOptions="Start">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="10" />
-                                            </Border.StrokeShape>
-                                            <Label Text="ROYAL DASTARKHWAN"
-                                                   FontSize="9.5"
-                                                   FontAttributes="Bold"
-                                                   TextColor="{StaticResource PrimaryTint}"
-                                                   CharacterSpacing="1.2" />
-                                        </Border>
-                                        <Label Text="{Binding PromoTitle}"
-                                               FontSize="20"
-                                               FontAttributes="Bold"
-                                               FontFamily="Georgia"
-                                               TextColor="{StaticResource White}"
-                                               LineBreakMode="WordWrap"
-                                               MaxLines="2" />
-                                        <Label Text="20% off family platters • Fresh from the tandoor"
-                                               FontSize="11.5"
-                                               TextColor="{StaticResource PrimaryTint}"
-                                               LineBreakMode="TailTruncation"
-                                               MaxLines="2" />
-                                        <Border BackgroundColor="{StaticResource PageBackground}"
-                                                StrokeThickness="0"
-                                                HeightRequest="36"
-                                                Padding="14,0"
-                                                HorizontalOptions="Start"
-                                                Margin="0,4,0,0">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="12" />
-                                            </Border.StrokeShape>
-                                            <Border.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding OrderNowCommand}" />
-                                            </Border.GestureRecognizers>
-                                            <Label Text="{Binding PromoCtaText}"
-                                                   FontSize="12"
-                                                   FontAttributes="Bold"
-                                                   TextColor="{StaticResource PrimaryDark}"
-                                                   VerticalOptions="Center"
-                                                   HorizontalOptions="Center" />
-                                        </Border>
-                                    </VerticalStackLayout>
-
-                                    <!-- Circular hero image -->
-                                    <Border Grid.Column="1"
-                                            WidthRequest="108"
-                                            HeightRequest="108"
-                                            Stroke="{StaticResource AccentGold}"
-                                            StrokeThickness="2.5"
-                                            BackgroundColor="{StaticResource PrimaryDark}"
-                                            VerticalOptions="Center"
-                                            Margin="0,0,-6,0">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2A1208" Offset="0.0" />
+                                    <GradientStop Color="#8F3006" Offset="0.45" />
+                                    <GradientStop Color="#C84B11" Offset="1.0" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <VerticalStackLayout Spacing="5" VerticalOptions="Center">
+                                    <Border BackgroundColor="#33F9E0D2"
+                                            StrokeThickness="0"
+                                            Padding="8,3"
+                                            HorizontalOptions="Start">
                                         <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="54" />
+                                            <RoundRectangle CornerRadius="10" />
                                         </Border.StrokeShape>
-                                        <Image Source="burger_photo.png"
-                                               Aspect="AspectFill"
-                                               WidthRequest="108"
-                                               HeightRequest="108" />
+                                        <Label Text="ROYAL DASTARKHWAN"
+                                               FontSize="9.5"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource PrimaryTint}"
+                                               CharacterSpacing="1.2" />
                                     </Border>
-                                </Grid>
+                                    <Label Text="{Binding PromoTitle}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           FontFamily="Georgia"
+                                           TextColor="{StaticResource White}"
+                                           LineBreakMode="WordWrap"
+                                           MaxLines="2" />
+                                    <Label Text="20% off family platters • Fresh from the tandoor"
+                                           FontSize="11"
+                                           TextColor="{StaticResource PrimaryTint}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="2" />
+                                    <Border BackgroundColor="{StaticResource PageBackground}"
+                                            StrokeThickness="0"
+                                            HeightRequest="34"
+                                            Padding="12,0"
+                                            HorizontalOptions="Start"
+                                            Margin="0,2,0,0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="12" />
+                                        </Border.StrokeShape>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding OrderNowCommand}" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="{Binding PromoCtaText}"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource PrimaryDark}"
+                                               VerticalOptions="Center"
+                                               HorizontalOptions="Center" />
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <!-- Circular hero image -->
+                                <Border Grid.Column="1"
+                                        WidthRequest="96"
+                                        HeightRequest="96"
+                                        Stroke="{StaticResource AccentGold}"
+                                        StrokeThickness="2.5"
+                                        BackgroundColor="{StaticResource PrimaryDark}"
+                                        VerticalOptions="Center">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="48" />
+                                    </Border.StrokeShape>
+                                    <Image Source="burger_photo.png"
+                                           Aspect="AspectFill"
+                                           WidthRequest="96"
+                                           HeightRequest="96" />
+                                </Border>
                             </Grid>
                         </Border>
 
@@ -643,30 +640,47 @@
                             </CollectionView>
                         </VerticalStackLayout>
 
-                        <!-- 6. CHEF'S SIGNATURE CLASSICS (2-col) -->
+                        <!-- 6. CHEF'S SIGNATURE CLASSICS (2-col preview; fixed height so ScrollView nest doesn't collapse) -->
                         <VerticalStackLayout Spacing="10"
                                              Margin="0,18,0,0"
                                              Padding="16,0"
                                              IsVisible="{Binding HasProducts}">
-                            <Label Text="Chef's Signature Classics"
-                                   FontSize="18"
-                                   FontAttributes="Bold"
-                                   FontFamily="Georgia"
-                                   TextColor="{StaticResource TextPrimary}" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <Label Text="Chef's Signature Classics"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       FontFamily="Georgia"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="See All"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}"
+                                       VerticalOptions="Center">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding ViewAllMenuCommand}" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Grid>
 
-                            <FlexLayout BindableLayout.ItemsSource="{Binding Products}"
-                                        Direction="Row"
-                                        Wrap="Wrap"
-                                        JustifyContent="SpaceBetween"
-                                        AlignItems="Start">
-                                <BindableLayout.ItemTemplate>
+                            <CollectionView ItemsSource="{Binding Products}"
+                                            HeightRequest="460"
+                                            SelectionMode="None"
+                                            BackgroundColor="Transparent"
+                                            VerticalScrollBarVisibility="Never">
+                                <CollectionView.ItemsLayout>
+                                    <GridItemsLayout Orientation="Vertical"
+                                                     Span="2"
+                                                     HorizontalItemSpacing="10"
+                                                     VerticalItemSpacing="10" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
                                     <DataTemplate x:DataType="models:OnlineProductDto">
                                         <Border BackgroundColor="{StaticResource CardBackground}"
                                                 Stroke="{StaticResource BorderSubtle}"
                                                 StrokeThickness="1"
-                                                Padding="10"
-                                                WidthRequest="168"
-                                                Margin="0,0,0,10">
+                                                Padding="10">
                                             <Border.StrokeShape>
                                                 <RoundRectangle CornerRadius="18" />
                                             </Border.StrokeShape>
@@ -678,14 +692,14 @@
                                                                       CommandParameter="{Binding .}" />
                                             </Border.GestureRecognizers>
                                             <VerticalStackLayout Spacing="6">
-                                                <Grid HeightRequest="100">
-                                                    <Border StrokeThickness="0" HeightRequest="100">
+                                                <Grid HeightRequest="96">
+                                                    <Border StrokeThickness="0" HeightRequest="96">
                                                         <Border.StrokeShape>
                                                             <RoundRectangle CornerRadius="12" />
                                                         </Border.StrokeShape>
                                                         <Image Source="{Binding ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
                                                                Aspect="AspectFill"
-                                                               HeightRequest="100"
+                                                               HeightRequest="96"
                                                                BackgroundColor="{StaticResource SurfaceSecondary}" />
                                                     </Border>
                                                     <Border HorizontalOptions="Start"
@@ -750,8 +764,8 @@
                                             </VerticalStackLayout>
                                         </Border>
                                     </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </FlexLayout>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
                         </VerticalStackLayout>
 
                         <!-- 7. GUEST HOSPITALITY REVIEWS -->
