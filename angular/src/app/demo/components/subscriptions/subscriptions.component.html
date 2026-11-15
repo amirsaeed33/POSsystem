@@ -117,6 +117,18 @@
             <label>Instructions</label>
             <textarea pInputTextarea [(ngModel)]="instructions" rows="3" class="w-full"></textarea>
         </div>
+        <div class="flex flex-column gap-2">
+            <label>Pay page URL (optional)</label>
+            <input
+                pInputText
+                class="w-full"
+                [(ngModel)]="payUrl"
+                placeholder="https://… — opened when the client taps Pay with Easypaisa"
+            />
+            <small class="text-500">
+                For Easypaisa / JazzCash, paste your wallet or merchant pay link. If empty, the client is sent to the public wallet site.
+            </small>
+        </div>
         <div class="flex align-items-center gap-2">
             <p-checkbox [(ngModel)]="isActive" [binary]="true" inputId="methodActive"></p-checkbox>
             <label for="methodActive">Show this method to businesses</label>

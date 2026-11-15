@@ -25,6 +25,7 @@ export class SubscriptionsComponent implements OnInit {
     accountNumber = '';
     bankName = '';
     instructions = '';
+    payUrl = '';
     isActive = true;
     qrBase64: string | null = null;
     qrContentType: string | null = null;
@@ -87,6 +88,7 @@ export class SubscriptionsComponent implements OnInit {
         this.accountNumber = '';
         this.bankName = '';
         this.instructions = '';
+        this.payUrl = '';
         this.isActive = true;
         this.qrBase64 = null;
         this.qrContentType = null;
@@ -102,6 +104,7 @@ export class SubscriptionsComponent implements OnInit {
         this.accountNumber = row.accountNumber;
         this.bankName = row.bankName || '';
         this.instructions = row.instructions || '';
+        this.payUrl = row.payUrl || '';
         this.isActive = row.isActive;
         this.qrBase64 = null;
         this.qrContentType = null;
@@ -147,6 +150,7 @@ export class SubscriptionsComponent implements OnInit {
                 accountNumber: this.accountNumber.trim(),
                 bankName: this.bankName.trim(),
                 instructions: this.instructions.trim(),
+                payUrl: this.payUrl.trim(),
                 isActive: this.isActive,
                 qrBase64: this.qrBase64,
                 qrContentType: this.qrContentType,

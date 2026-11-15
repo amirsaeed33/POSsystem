@@ -106,6 +106,7 @@ namespace SmartPos.Billing
             entity.AccountNumber = number;
             entity.BankName = string.IsNullOrWhiteSpace(input.BankName) ? null : input.BankName.Trim();
             entity.Instructions = string.IsNullOrWhiteSpace(input.Instructions) ? null : input.Instructions.Trim();
+            entity.PayUrl = NormalizePayUrl(input.PayUrl);
             entity.IsActive = input.IsActive;
 
             if (input.ClearQr)
@@ -726,9 +727,30 @@ namespace SmartPos.Billing
                 var planName = payment.PlanName ?? "Plan";
                 var business = WebUtility.HtmlEncode(businessName);
                 var plan = WebUtility.HtmlEncode(planName);
-                var cycle = payment.Cycle == BillingCycle.Yearly ? "per year" : "per month";
+                var isYearly = payment.Cycle == BillingCycle.Yearly;
+                var cycleLabel = isYearly ? "Yearly" : "Monthly";
                 var amount = payment.Amount.ToString("N2");
                 var methodName = WebUtility.HtmlEncode(KindName(payment.Method));
+                var account = string.IsNullOrWhiteSpace(method?.AccountNumber)
+                    ? ""
+                    : WebUtility.HtmlEncode(method.AccountNumber);
+
+                var subscription = await _subscriptions.GetAll()
+                    .FirstOrDefaultAsync(x => x.TenantId == payment.TenantId);
+                var today = Clock.Now.Date;
+                var stillActive = subscription?.PaidUntil != null &&
+                                  !IsPaymentDatePassed(subscription.PaidUntil, today);
+                var start = stillActive ? subscription.PaidUntil.Value.Date : today;
+                var newUntil = isYearly ? start.AddYears(1) : start.AddMonths(1);
+                var daysCovered = (newUntil - start).Days;
+                var periodLabel = isYearly
+                    ? "1 year (" + daysCovered + " days)"
+                    : "1 month (" + daysCovered + " days)";
+                var currentUntilText = stillActive
+                    ? subscription.PaidUntil.Value.ToString("dd.MM.yyyy")
+                    : "Expired / none";
+                var newUntilText = newUntil.ToString("dd.MM.yyyy");
+
                 var root = (_configuration["App:ServerRootAddress"] ?? string.Empty).Trim().TrimEnd('/');
                 var link = string.IsNullOrWhiteSpace(root)
                     ? null
@@ -737,20 +759,32 @@ namespace SmartPos.Billing
                     ? "<p>Open Subscriptions → Waiting list in the host account to approve it.</p>"
                     : "<p style=\"margin:24px 0;\"><a href=\"" + link + "\" style=\"display:inline-block;background:#15803d;color:#ffffff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;\">Approve payment</a></p>";
 
+                var row = "border-bottom:1px solid #e2e8f0;padding:10px 0;";
+                var label = "color:#64748b;font-size:13px;display:block;";
+                var value = "font-size:16px;font-weight:600;color:#0f172a;";
+
                 var body =
-                    "<div style=\"font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.5;\">" +
-                    "<h2 style=\"margin:0 0 12px;\">Subscription payment waiting</h2>" +
-                    "<p><strong>" + business + "</strong> submitted a receipt for <strong>" + plan + "</strong>.</p>" +
-                    "<p>Amount: <strong>PKR " + amount + "</strong> " + cycle + "<br/>Method: " + methodName +
-                    (string.IsNullOrWhiteSpace(method?.AccountNumber) ? "" : " · " + WebUtility.HtmlEncode(method.AccountNumber)) +
-                    "</p>" +
+                    "<div style=\"font-family:Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.5;max-width:32rem;\">" +
+                    "<h2 style=\"margin:0 0 8px;\">Payment receipt submitted</h2>" +
+                    "<p style=\"margin:0 0 16px;color:#475569;\"><strong>" + business + "</strong> sent a payment for approval.</p>" +
+                    "<div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;margin:0 0 16px;\">" +
+                    "<div style=\"" + row + "\"><span style=\"" + label + "\">Amount paid</span><span style=\"" + value + "\">PKR " + amount + "</span></div>" +
+                    "<div style=\"" + row + "\"><span style=\"" + label + "\">Plan</span><span style=\"" + value + "\">" + plan + "</span></div>" +
+                    "<div style=\"" + row + "\"><span style=\"" + label + "\">Billing</span><span style=\"" + value + "\">" + cycleLabel + "</span></div>" +
+                    "<div style=\"" + row + "\"><span style=\"" + label + "\">Days covered by this payment</span><span style=\"" + value + "\">" + periodLabel + "</span></div>" +
+                    "<div style=\"" + row + "\"><span style=\"" + label + "\">Current paid until</span><span style=\"" + value + "\">" + currentUntilText + "</span></div>" +
+                    "<div style=\"" + row + "\"><span style=\"" + label + "\">Paid until after approve</span><span style=\"" + value + "\">" + newUntilText + "</span></div>" +
+                    "<div style=\"padding:10px 0 0;\"><span style=\"" + label + "\">Payment method</span><span style=\"" + value + "\">" + methodName +
+                    (string.IsNullOrWhiteSpace(account) ? "" : " · " + account) +
+                    "</span></div>" +
+                    "</div>" +
                     button +
-                    "<p style=\"color:#64748b;font-size:13px;\">Approving adds one month or one year onto the current paid-until date (or from today if it has already passed).</p>" +
+                    "<p style=\"color:#64748b;font-size:13px;margin:0;\">Approving extends the plan from the current paid-until date when it is still active, otherwise from today.</p>" +
                     "</div>";
 
                 await _mailSender.SendAsync(
                     ApprovalEmail,
-                    businessName + " paid " + planName,
+                    businessName + " paid PKR " + amount + " · " + cycleLabel + " · " + planName,
                     body,
                     isBodyHtml: true);
             }
@@ -893,11 +927,31 @@ namespace SmartPos.Billing
                 AccountNumber = row.AccountNumber,
                 BankName = row.BankName,
                 Instructions = row.Instructions,
+                PayUrl = row.PayUrl,
                 IsActive = row.IsActive,
                 HasQr = hasQr,
                 QrBase64 = includeQr && hasQr ? Convert.ToBase64String(row.QrImage) : null,
                 QrContentType = includeQr && hasQr ? row.QrContentType : null
             };
+        }
+
+        private static string NormalizePayUrl(string payUrl)
+        {
+            var url = (payUrl ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return null;
+            }
+
+            if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                url = "https://" + url;
+            }
+
+            return url.Length > PaymentMethod.MaxPayUrlLength
+                ? url.Substring(0, PaymentMethod.MaxPayUrlLength)
+                : url;
         }
 
         private static SubscriptionPaymentDto MapPayment(SubscriptionPayment row, List<Tenant> tenants)

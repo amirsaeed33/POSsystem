@@ -166,6 +166,7 @@ BEGIN
         [AccountNumber] nvarchar(64) NOT NULL,
         [BankName] nvarchar(128) NULL,
         [Instructions] nvarchar(1000) NULL,
+        [PayUrl] nvarchar(512) NULL,
         [IsActive] bit NOT NULL,
         [QrImage] varbinary(max) NULL,
         [QrContentType] nvarchar(64) NULL,
@@ -180,6 +181,8 @@ BEGIN
     );
     CREATE UNIQUE INDEX [IX_AppPaymentMethods_Kind] ON [dbo].[AppPaymentMethods] ([Kind]) WHERE [IsDeleted] = 0;
 END
+IF COL_LENGTH(N'dbo.AppPaymentMethods', N'PayUrl') IS NULL
+    ALTER TABLE [dbo].[AppPaymentMethods] ADD [PayUrl] nvarchar(512) NULL;
 IF OBJECT_ID(N'[dbo].[AppTenantSubscriptions]', N'U') IS NULL
 BEGIN
     CREATE TABLE [dbo].[AppTenantSubscriptions] (

@@ -1902,6 +1902,10 @@ namespace SmartPos.Migrations
                     b.Property<long?>("LastModifierUserId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("PayUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
                     b.Property<string>("QrContentType")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");

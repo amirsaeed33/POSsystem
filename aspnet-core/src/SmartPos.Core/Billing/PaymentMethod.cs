@@ -15,6 +15,7 @@ namespace SmartPos.Billing
         public const int MaxBankNameLength = 128;
         public const int MaxInstructionsLength = 1000;
         public const int MaxContentTypeLength = 64;
+        public const int MaxPayUrlLength = 512;
 
         public virtual PaymentMethodKind Kind { get; set; }
 
@@ -31,6 +32,10 @@ namespace SmartPos.Billing
 
         [StringLength(MaxInstructionsLength)]
         public virtual string Instructions { get; set; }
+
+        /// <summary>Optional wallet / merchant page opened when the client taps Pay.</summary>
+        [StringLength(MaxPayUrlLength)]
+        public virtual string PayUrl { get; set; }
 
         public virtual bool IsActive { get; set; } = true;
 

@@ -914,6 +914,7 @@ namespace SmartPos.EntityFrameworkCore
             {
                 b.Property(x => x.AccountTitle).HasMaxLength(PaymentMethod.MaxAccountTitleLength).IsRequired();
                 b.Property(x => x.AccountNumber).HasMaxLength(PaymentMethod.MaxAccountNumberLength).IsRequired();
+                b.Property(x => x.PayUrl).HasMaxLength(PaymentMethod.MaxPayUrlLength);
                 b.HasIndex(x => x.Kind).IsUnique().HasFilter("[IsDeleted] = 0");
             });
 

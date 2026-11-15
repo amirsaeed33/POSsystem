@@ -11,6 +11,7 @@ export interface PaymentMethodDto {
     accountNumber: string;
     bankName?: string;
     instructions?: string;
+    payUrl?: string;
     isActive: boolean;
     hasQr: boolean;
     qrBase64?: string;
@@ -85,6 +86,7 @@ export class SubscriptionService {
         accountNumber: string;
         bankName?: string;
         instructions?: string;
+        payUrl?: string;
         isActive: boolean;
         qrBase64?: string | null;
         qrContentType?: string | null;
@@ -97,6 +99,7 @@ export class SubscriptionService {
             accountNumber: input.accountNumber,
             bankName: input.bankName || null,
             instructions: input.instructions || null,
+            payUrl: input.payUrl || null,
             isActive: input.isActive,
             qrBase64: input.qrBase64 || null,
             qrContentType: input.qrContentType || null,
@@ -261,6 +264,7 @@ export class SubscriptionService {
             accountNumber: raw.accountNumber ?? raw.AccountNumber,
             bankName: raw.bankName ?? raw.BankName,
             instructions: raw.instructions ?? raw.Instructions,
+            payUrl: raw.payUrl ?? raw.PayUrl,
             isActive: raw.isActive ?? raw.IsActive,
             hasQr: raw.hasQr ?? raw.HasQr,
             qrBase64: raw.qrBase64 ?? raw.QrBase64,
