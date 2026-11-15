@@ -242,24 +242,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
     private static string ResolveProductImageUrl(AbpApiClient api, string? imagePath, string? name, string? categoryName)
     {
-        if (!string.IsNullOrWhiteSpace(imagePath))
-        {
-            var resolved = api.ResolveImageUrl(imagePath);
-            if (!string.IsNullOrWhiteSpace(resolved))
-            {
-                return resolved;
-            }
-        }
-
-        var n = (name ?? string.Empty).ToLowerInvariant();
-        var c = (categoryName ?? string.Empty).ToLowerInvariant();
-
-        if (n.Contains("burger") || c.Contains("burger"))
-            return "burger_photo.png";
-        if (n.Contains("pizza") || c.Contains("pizza"))
-            return "pizza_photo.png";
-
-        return "burger_photo.png";
+        return ProductImageResolver.Resolve(api.ResolveImageUrl, imagePath, name, categoryName);
     }
 
     public async Task LoadMenuAsync(bool forceRefresh = false)
@@ -423,7 +406,7 @@ public partial class CustomerOrderViewModel : BaseViewModel
 
     private void EnrichProduct(OnlineProductDto p)
     {
-        p.ImageUrl = ResolveProductImageUrl(_api, p.ImagePath, p.Name, p.CategoryName);
+        ProductImageResolver.Enrich(p, _api.ResolveImageUrl);
         p.IsFavorite = _favorites.IsFavorite(p.Id);
         p.CartQty = _cart.GetQty(p.Id);
     }

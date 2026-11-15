@@ -211,7 +211,13 @@ public partial class WaiterOrderViewModel : BaseViewModel
             _allProducts = await _restaurant.GetPosProductsAsync();
             foreach (var p in _allProducts)
             {
-                p.ImageUrl = _api.ResolveImageUrl(p.ImagePath);
+                var url = ProductImageResolver.Resolve(
+                    _api.ResolveImageUrl, p.ImagePath, p.Name, p.CategoryName, p.Id);
+                p.ImageUrl = url;
+                if (string.IsNullOrWhiteSpace(p.ImagePath))
+                {
+                    p.ImagePath = url;
+                }
             }
 
             Categories.Clear();

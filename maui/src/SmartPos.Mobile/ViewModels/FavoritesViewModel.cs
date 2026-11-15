@@ -178,10 +178,7 @@ public partial class FavoritesViewModel : BaseViewModel
                 if (prod != null)
                 {
                     prod.IsFavorite = true;
-                    if (string.IsNullOrWhiteSpace(prod.ImageUrl) && !string.IsNullOrWhiteSpace(prod.ImagePath))
-                    {
-                        prod.ImageUrl = _orders.ResolveImageUrl(prod.ImagePath);
-                    }
+                    _orders.ResolveProductImageUrl(prod);
                     prod.CartQty = _cart.GetQty(prod.Id);
                     favList.Add(prod);
                 }

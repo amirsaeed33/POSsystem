@@ -52,6 +52,7 @@ public class OnlineOrderService
     {
         if (branchId is int bid && !forceRefresh && _cache.TryGetCatalog(bid, out var cached) && cached != null)
         {
+            EnrichProductImages(cached);
             return cached;
         }
 
@@ -60,6 +61,8 @@ public class OnlineOrderService
                 ? $"api/services/app/CustomerOrder/GetOnlineCatalog?branchId={branchId}"
                 : "api/services/app/CustomerOrder/GetOnlineCatalog")
             ?? new List<OnlineProductDto>();
+
+        EnrichProductImages(products);
 
         if (branchId is int branchKey)
         {
@@ -86,6 +89,7 @@ public class OnlineOrderService
         var cacheKey = request.CacheKey;
         if (!forceRefresh && request.SkipCount == 0 && _cache.TryGetCatalogPage(cacheKey, out var cached) && cached != null)
         {
+            EnrichProductImages(cached.Items);
             return cached;
         }
 
@@ -167,6 +171,7 @@ public class OnlineOrderService
                 $"[GetCatalogPageAsync] skip={request.SkipCount} take={request.MaxResultCount} items={page.Items?.Count ?? 0} total={page.TotalCount} in {sw.ElapsedMilliseconds}ms");
 
             page.Items ??= new List<OnlineProductDto>();
+            EnrichProductImages(page.Items);
             if (request.SkipCount == 0)
             {
                 _cache.SetCatalogPage(cacheKey, page);
@@ -725,4 +730,20 @@ public class OnlineOrderService
     }
 
     public string ResolveImageUrl(string? path) => _api.ResolveImageUrl(path);
+
+    public void EnrichProductImages(IEnumerable<OnlineProductDto>? products)
+    {
+        ProductImageResolver.EnrichAll(products, _api.ResolveImageUrl);
+    }
+
+    public string ResolveProductImageUrl(OnlineProductDto? product)
+    {
+        if (product == null)
+        {
+            return string.Empty;
+        }
+
+        ProductImageResolver.Enrich(product, _api.ResolveImageUrl);
+        return product.ImageUrl ?? string.Empty;
+    }
 }

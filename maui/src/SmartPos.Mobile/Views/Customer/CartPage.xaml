@@ -325,7 +325,7 @@
                                                                HorizontalOptions="Center"
                                                                VerticalOptions="Center"
                                                                IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}" />
-                                                        <Image Source="{Binding ImagePath}"
+                                                        <Image Source="{Binding ImagePath, Converter={StaticResource CachedUriImageSourceConverter}}"
                                                                Aspect="AspectFill"
                                                                IsVisible="{Binding HasImage}" />
                                                     </Grid>

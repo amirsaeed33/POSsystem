@@ -273,38 +273,11 @@ public partial class ProductDetailViewModel : BaseViewModel
 
     private string ResolveHeroImageUrl(OnlineProductDto product)
     {
+        _orders.ResolveProductImageUrl(product);
         if (!string.IsNullOrWhiteSpace(product.ImageUrl) &&
             Uri.TryCreate(product.ImageUrl, UriKind.Absolute, out _))
         {
             return product.ImageUrl!;
-        }
-
-        if (!string.IsNullOrWhiteSpace(product.ImagePath))
-        {
-            var resolved = _orders.ResolveImageUrl(product.ImagePath);
-            if (!string.IsNullOrWhiteSpace(resolved) &&
-                Uri.TryCreate(resolved, UriKind.Absolute, out _))
-            {
-                return resolved;
-            }
-        }
-
-        var n = (product.Name ?? string.Empty).ToLowerInvariant();
-        var c = (product.CategoryName ?? string.Empty).ToLowerInvariant();
-
-        if (n.Contains("burger") || c.Contains("burger") || n.Contains("burgur") || c.Contains("burgur"))
-        {
-            return "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1200&h=900&q=85";
-        }
-
-        if (n.Contains("pizza") || c.Contains("pizza"))
-        {
-            return "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1200&h=900&q=85";
-        }
-
-        if (n.Contains("biryani") || n.Contains("karahi") || n.Contains("bbq") || c.Contains("grill"))
-        {
-            return "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=1200&h=900&q=85";
         }
 
         return FallbackHeroImageUrl;
