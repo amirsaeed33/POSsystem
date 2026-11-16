@@ -7,260 +7,945 @@
              xmlns:controls="clr-namespace:SmartPos.Mobile.Controls"
              x:Class="SmartPos.Mobile.Views.Waiter.WaiterOrderPage"
              x:DataType="vm:WaiterOrderViewModel"
+             x:Name="WaiterOrderRoot"
              Title="Order"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False"
-             BackgroundColor="{StaticResource StaffPageBackground}">
+             BackgroundColor="#FAF7F4">
 
     <ContentPage.Resources>
         <helpers:InvertedBoolConverter x:Key="InvertedBoolConverter" />
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="*,Auto" BackgroundColor="{StaticResource StaffPageBackground}">
-        <Grid Grid.Row="0" RowDefinitions="Auto,*" BackgroundColor="{StaticResource StaffPageBackground}">
-            <Border BackgroundColor="{StaticResource StaffHero}"
-                    Padding="16,16,16,14"
-                    StrokeThickness="0">
+    <Grid>
+        <Grid RowDefinitions="Auto,Auto,*,Auto,Auto"
+              RowSpacing="0"
+              BackgroundColor="#FAF7F4">
+
+            <!-- 1. SLEEK CHARCOAL-ESPRESSO OPS HEADER + LIVE KOT CART BADGE -->
+            <Border Grid.Row="0"
+                    StrokeThickness="0"
+                    Padding="16,12,16,12">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="0,0,24,24" />
                 </Border.StrokeShape>
-                <VerticalStackLayout Spacing="12">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                            <Label Text="TABLE ORDER"
-                                   FontSize="10"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource StaffHeroLabel}"
-                                   CharacterSpacing="1.1" />
-                            <Label Text="{Binding OrderTitle}"
-                                   FontAttributes="Bold"
-                                   FontSize="20"
-                                   TextColor="{StaticResource White}"
-                                   LineBreakMode="TailTruncation" />
-                        </VerticalStackLayout>
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#1C1410" Offset="0.0" />
+                        <GradientStop Color="#2B1F19" Offset="1.0" />
+                    </LinearGradientBrush>
+                </Border.Background>
 
-                        <!-- Cart icon (same pattern as Customer screen) -->
-                        <Border Grid.Column="1"
-                                WidthRequest="42"
-                                HeightRequest="42"
-                                Stroke="{StaticResource BorderSubtle}"
-                                StrokeThickness="1"
-                                BackgroundColor="{StaticResource CardBackground}"
-                                VerticalOptions="Center">
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="10"
+                      VerticalOptions="Center">
+                    <Border Grid.Column="0"
+                            WidthRequest="38"
+                            HeightRequest="38"
+                            BackgroundColor="#2E231D"
+                            Stroke="#4A382E"
+                            StrokeThickness="1"
+                            VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding GoBackCommand}" />
+                        </Border.GestureRecognizers>
+                        <Label Text="←"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#FFFFFF"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               HorizontalTextAlignment="Center" />
+                    </Border>
+
+                    <VerticalStackLayout Grid.Column="1"
+                                         Spacing="2"
+                                         VerticalOptions="Center">
+                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                            <BoxView WidthRequest="6"
+                                     HeightRequest="6"
+                                     Color="#E05A1B"
+                                     CornerRadius="3"
+                                     VerticalOptions="Center" />
+                            <Label Text="{Binding SelectedTableEyebrow}"
+                                   FontSize="9.5"
+                                   FontAttributes="Bold"
+                                   TextColor="#E89B3C"
+                                   CharacterSpacing="0.9"
+                                   LineBreakMode="TailTruncation"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Label Text="Table Order Menu"
+                               FontSize="20"
+                               FontAttributes="Bold"
+                               TextColor="#FFFFFF"
+                               LineBreakMode="TailTruncation" />
+                    </VerticalStackLayout>
+
+                    <Grid Grid.Column="2"
+                          WidthRequest="44"
+                          HeightRequest="44"
+                          VerticalOptions="Center">
+                        <Border BackgroundColor="#2E231D"
+                                Stroke="#4A382E"
+                                StrokeThickness="1">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="14" />
                             </Border.StrokeShape>
                             <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding OpenCartCommand}" />
+                                <TapGestureRecognizer Command="{Binding OpenKotReviewCommand}" />
                             </Border.GestureRecognizers>
-                            <Grid WidthRequest="42" HeightRequest="42">
-                                <Image Source="icon_cart.png"
-                                       WidthRequest="20"
-                                       HeightRequest="20"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center" />
-                                <Border WidthRequest="16"
-                                        HeightRequest="16"
-                                        StrokeThickness="1"
-                                        Stroke="{StaticResource White}"
-                                        BackgroundColor="{StaticResource BadgeRed}"
-                                        HorizontalOptions="End"
-                                        VerticalOptions="Start"
-                                        Margin="0,2,2,0"
-                                        IsVisible="{Binding HasCartItems}">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="8" />
-                                    </Border.StrokeShape>
-                                    <Label Text="{Binding CartCount}"
-                                           FontSize="9"
-                                           FontAttributes="Bold"
-                                           TextColor="{StaticResource White}"
-                                           HorizontalTextAlignment="Center"
-                                           VerticalTextAlignment="Center" />
-                                </Border>
-                            </Grid>
+                            <Label Text="⊞"
+                                   FontSize="17"
+                                   TextColor="#FFFFFF"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+                        <Border WidthRequest="20"
+                                HeightRequest="20"
+                                BackgroundColor="#C84B11"
+                                Stroke="#1C1410"
+                                StrokeThickness="1.5"
+                                HorizontalOptions="End"
+                                VerticalOptions="Start"
+                                Margin="0,-4,-4,0"
+                                IsVisible="{Binding HasCartItems}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10" />
+                            </Border.StrokeShape>
+                            <Label Text="{Binding KotCartCount}"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="#FFFFFF"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   HorizontalTextAlignment="Center" />
                         </Border>
                     </Grid>
-                    <Border StrokeThickness="0"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            Padding="12,2">
+                </Grid>
+            </Border>
+
+            <!-- 2. CUSTOMER / GUEST PICKER + SEARCH + CATEGORY PILLS -->
+            <VerticalStackLayout Grid.Row="1"
+                                 BackgroundColor="#FAF7F4"
+                                 Padding="16,10,16,6"
+                                 Spacing="8">
+                <Border BackgroundColor="#FFFFFF"
+                        Stroke="#EAE2DA"
+                        StrokeThickness="1"
+                        Padding="12,9">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14" />
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding OpenCustomerPickerCommand}" />
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto,*,Auto"
+                          ColumnSpacing="10"
+                          VerticalOptions="Center">
+                        <Border Grid.Column="0"
+                                WidthRequest="30"
+                                HeightRequest="30"
+                                BackgroundColor="#FDF1EB"
+                                Stroke="#F0C4AE"
+                                StrokeThickness="1"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="9" />
+                            </Border.StrokeShape>
+                            <Label Text="◉"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="#C84B11"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+
+                        <VerticalStackLayout Grid.Column="1"
+                                             Spacing="1"
+                                             VerticalOptions="Center">
+                            <Label Text="GUEST / CUSTOMER"
+                                   FontSize="9"
+                                   FontAttributes="Bold"
+                                   TextColor="#8C7E74" />
+                            <Label Text="{Binding CustomerLabel}"
+                                   FontSize="12.5"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
+                        </VerticalStackLayout>
+
+                        <Border Grid.Column="2"
+                                BackgroundColor="#FDF1EB"
+                                Stroke="#F0C4AE"
+                                StrokeThickness="1"
+                                Padding="9,4"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Label Text="Change ▾"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="#C84B11"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border BackgroundColor="#FFFFFF"
+                        Stroke="#EAE2DA"
+                        StrokeThickness="1"
+                        HeightRequest="42"
+                        Padding="12,0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="13" />
+                    </Border.StrokeShape>
+                    <Entry Text="{Binding SearchQuery, Mode=TwoWay}"
+                           Placeholder="Search dish name or item code (e.g. Karahi, KRN-01)..."
+                           FontSize="12.5"
+                           TextColor="#1E1916"
+                           PlaceholderColor="#8C7E74"
+                           BackgroundColor="Transparent"
+                           VerticalOptions="Center" />
+                </Border>
+
+                <CollectionView ItemsSource="{Binding Categories}"
+                                HeightRequest="34">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="6" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:WaiterCategoryChip">
+                            <Border HeightRequest="32"
+                                    Padding="12,0"
+                                    StrokeThickness="1"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="11" />
+                                </Border.StrokeShape>
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="#C84B11" />
+                                        <Setter Property="Stroke" Value="#C84B11" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
+                                        <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                        <Setter Property="Stroke" Value="#EAE2DA" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=SelectCategoryCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Label Text="{Binding Name}"
+                                       FontSize="11.5"
+                                       VerticalOptions="Center"
+                                       HorizontalTextAlignment="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="TextColor" Value="#FFFFFF" />
+                                            <Setter Property="FontAttributes" Value="Bold" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="False">
+                                            <Setter Property="TextColor" Value="#1E1916" />
+                                            <Setter Property="FontAttributes" Value="None" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <!-- 3. FAST POS PRODUCT CARDS LIST WITH QTY −/+ STEPPERS -->
+            <Grid Grid.Row="2" BackgroundColor="#FAF7F4">
+                <CollectionView ItemsSource="{Binding FilteredMenuItems}"
+                                Margin="16,4,16,10"
+                                IsVisible="{Binding HasNoMenuResults, Converter={StaticResource InvertedBoolConverter}}">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="0" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:ProductDto">
+                            <Border BackgroundColor="#FFFFFF"
+                                    Stroke="#EAE2DA"
+                                    StrokeThickness="1"
+                                    Padding="11"
+                                    Margin="0,0,0,9">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="18" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="64,*,Auto"
+                                      ColumnSpacing="11"
+                                      VerticalOptions="Center">
+                                    <Border Grid.Column="0"
+                                            WidthRequest="64"
+                                            HeightRequest="64"
+                                            BackgroundColor="#F4EFEA"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="13" />
+                                        </Border.StrokeShape>
+                                        <Grid>
+                                            <Label Text="{Binding Initials}"
+                                                   IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}"
+                                                   TextColor="#C84B11"
+                                                   FontAttributes="Bold"
+                                                   FontSize="16"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center" />
+                                            <Image Source="{Binding ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
+                                                   IsVisible="{Binding HasImage}"
+                                                   Aspect="AspectFill"
+                                                   HorizontalOptions="Fill"
+                                                   VerticalOptions="Fill" />
+                                            <Border BackgroundColor="#1C1410"
+                                                    StrokeThickness="0"
+                                                    Padding="4,2"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="End"
+                                                    Margin="0,0,0,4">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="5" />
+                                                </Border.StrokeShape>
+                                                <Label Text="{Binding ItemCodeText}"
+                                                       FontSize="8.5"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#E89B3C"
+                                                       HorizontalTextAlignment="Center" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <VerticalStackLayout Grid.Column="1"
+                                                         Spacing="2"
+                                                         VerticalOptions="Center">
+                                        <Label Text="{Binding Name}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="#1E1916"
+                                               MaxLines="1"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding PortionMetaText}"
+                                               FontSize="11"
+                                               TextColor="#5C5048"
+                                               MaxLines="1"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding PriceDisplayRs}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="#C84B11"
+                                               Margin="0,2,0,0" />
+                                    </VerticalStackLayout>
+
+                                    <Grid Grid.Column="2" VerticalOptions="Center">
+                                        <!-- Qty == 0: + Add -->
+                                        <Border HeightRequest="34"
+                                                Padding="13,0"
+                                                BackgroundColor="#C84B11"
+                                                StrokeThickness="0"
+                                                IsVisible="{Binding InCart, Converter={StaticResource InvertedBoolConverter}}"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="11" />
+                                            </Border.StrokeShape>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={x:Reference WaiterOrderRoot}, Path=BindingContext.IncrementItemCommand}"
+                                                    CommandParameter="{Binding .}" />
+                                            </Border.GestureRecognizers>
+                                            <Label Text="+ Add"
+                                                   FontSize="12"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#FFFFFF"
+                                                   VerticalOptions="Center"
+                                                   HorizontalTextAlignment="Center" />
+                                        </Border>
+
+                                        <!-- Qty > 0: stepper -->
+                                        <Border HeightRequest="34"
+                                                Padding="4,0"
+                                                BackgroundColor="#FDF1EB"
+                                                Stroke="#F0C4AE"
+                                                StrokeThickness="1"
+                                                IsVisible="{Binding InCart}"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="11" />
+                                            </Border.StrokeShape>
+                                            <HorizontalStackLayout Spacing="4" VerticalOptions="Center">
+                                                <Border WidthRequest="26"
+                                                        HeightRequest="26"
+                                                        BackgroundColor="#FFFFFF"
+                                                        StrokeThickness="0"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="8" />
+                                                    </Border.StrokeShape>
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer
+                                                            Command="{Binding Source={x:Reference WaiterOrderRoot}, Path=BindingContext.DecrementItemCommand}"
+                                                            CommandParameter="{Binding .}" />
+                                                    </Border.GestureRecognizers>
+                                                    <Label Text="−"
+                                                           FontSize="14"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1E1916"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center"
+                                                           HorizontalTextAlignment="Center" />
+                                                </Border>
+                                                <Label Text="{Binding CartQtyText}"
+                                                       FontSize="13"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#1E1916"
+                                                       WidthRequest="22"
+                                                       HorizontalTextAlignment="Center"
+                                                       VerticalOptions="Center" />
+                                                <Border WidthRequest="26"
+                                                        HeightRequest="26"
+                                                        BackgroundColor="#C84B11"
+                                                        StrokeThickness="0"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="8" />
+                                                    </Border.StrokeShape>
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer
+                                                            Command="{Binding Source={x:Reference WaiterOrderRoot}, Path=BindingContext.IncrementItemCommand}"
+                                                            CommandParameter="{Binding .}" />
+                                                    </Border.GestureRecognizers>
+                                                    <Label Text="+"
+                                                           FontSize="14"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#FFFFFF"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center"
+                                                           HorizontalTextAlignment="Center" />
+                                                </Border>
+                                            </HorizontalStackLayout>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Empty search / filter state -->
+                <Border Margin="16,20,16,10"
+                        Padding="20"
+                        BackgroundColor="#FFFFFF"
+                        Stroke="#EAE2DA"
+                        StrokeThickness="1"
+                        IsVisible="{Binding HasNoMenuResults}"
+                        VerticalOptions="Start">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="24" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Border WidthRequest="56"
+                                HeightRequest="56"
+                                BackgroundColor="#FDF1EB"
+                                Stroke="#F0C4AE"
+                                StrokeThickness="1"
+                                HorizontalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Label Text="⌕"
+                                   FontSize="22"
+                                   TextColor="#C84B11"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+                        <Label Text="No Matching Dishes"
+                               FontSize="17"
+                               FontAttributes="Bold"
+                               TextColor="#1E1916"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="Try another dish name, code, or reset category filters."
+                               FontSize="12"
+                               TextColor="#5C5048"
+                               HorizontalTextAlignment="Center" />
+                        <Button Text="Show Full Menu"
+                                Command="{Binding ResetMenuFiltersCommand}"
+                                HeightRequest="40"
+                                CornerRadius="12"
+                                Padding="16,0"
+                                BackgroundColor="#C84B11"
+                                TextColor="#FFFFFF"
+                                FontAttributes="Bold"
+                                FontSize="12"
+                                HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <!-- 4. STICKY REVIEW &amp; FIRE KOT DOCK -->
+            <Border Grid.Row="3"
+                    Margin="14,0,14,8"
+                    Padding="14,10"
+                    StrokeThickness="0"
+                    IsVisible="{Binding HasCartItems}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
+                <Border.Background>
+                    <SolidColorBrush Color="#1C1410" />
+                </Border.Background>
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12"
+                      VerticalOptions="Center">
+                    <VerticalStackLayout Grid.Column="0" Spacing="1">
+                        <Label Text="{Binding KotTrayEyebrow}"
+                               FontSize="9"
+                               FontAttributes="Bold"
+                               TextColor="#E89B3C"
+                               CharacterSpacing="0.8" />
+                        <Label Text="{Binding KotBarSummaryText}"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#FFFFFF"
+                               LineBreakMode="TailTruncation" />
+                    </VerticalStackLayout>
+                    <Button Grid.Column="1"
+                            Text="Review &amp; Fire KOT →"
+                            Command="{Binding OpenKotReviewCommand}"
+                            HeightRequest="42"
+                            CornerRadius="12"
+                            Padding="14,0"
+                            BackgroundColor="#C84B11"
+                            TextColor="#FFFFFF"
+                            FontAttributes="Bold"
+                            FontSize="12.5" />
+                </Grid>
+            </Border>
+
+            <!-- 5. PERSISTENT 4-TAB STAFF BOTTOM NAVIGATION BAR -->
+            <Grid Grid.Row="4"
+                  HeightRequest="66"
+                  BackgroundColor="#FFFFFF"
+                  Padding="8,6,8,10"
+                  ColumnDefinitions="*,*,*,*">
+                <BoxView Grid.ColumnSpan="4"
+                         HeightRequest="1"
+                         Color="#EAE2DA"
+                         VerticalOptions="Start" />
+
+                <!-- Tab 1: Tables -->
+                <VerticalStackLayout Grid.Column="0"
+                                     Spacing="3"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding NavigateTablesTabCommand}" />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Label Text="⊞"
+                           FontSize="15"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="Tables"
+                           FontSize="10"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <!-- Tab 2: Order (ACTIVE) -->
+                <VerticalStackLayout Grid.Column="1"
+                                     Spacing="3"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <Border Padding="12,4"
+                            BackgroundColor="#FDF1EB"
+                            Stroke="#F0C4AE"
+                            StrokeThickness="1"
+                            HorizontalOptions="Center">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
+                            <RoundRectangle CornerRadius="10" />
                         </Border.StrokeShape>
-                        <Picker Title="Select customer"
-                                ItemsSource="{Binding Customers}"
-                                ItemDisplayBinding="{Binding Display}"
-                                SelectedItem="{Binding SelectedCustomer}"
-                                SelectedIndexChanged="OnCustomerChanged"
-                                TextColor="{StaticResource CartText}"
-                                TitleColor="{StaticResource StaffMuted}"
-                                BackgroundColor="Transparent"
-                                FontSize="14" />
+                        <Label Text="＋"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#C84B11"
+                               HorizontalTextAlignment="Center" />
                     </Border>
-                    <Border StrokeThickness="0"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            Padding="14,4">
+                    <Label Text="Order"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           TextColor="#C84B11"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <!-- Tab 3: Orders -->
+                <VerticalStackLayout Grid.Column="2"
+                                     Spacing="3"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding NavigateOrdersTabCommand}" />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Label Text="☰"
+                           FontSize="15"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="Orders"
+                           FontSize="10"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <!-- Tab 4: Profile -->
+                <VerticalStackLayout Grid.Column="3"
+                                     Spacing="3"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding NavigateProfileTabCommand}" />
+                    </VerticalStackLayout.GestureRecognizers>
+                    <Label Text="◉"
+                           FontSize="15"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="Profile"
+                           FontSize="10"
+                           TextColor="#8C7E74"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Grid>
+        </Grid>
+
+        <controls:TabLoadingOverlay />
+
+        <!-- 6a. CUSTOMER PICKER BOTTOM SHEET -->
+        <Grid IsVisible="{Binding IsCustomerPickerOpen}"
+              ZIndex="40">
+            <BoxView Color="#801E1916">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding CloseCustomerPickerCommand}" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <Border BackgroundColor="#FFFFFF"
+                    StrokeThickness="0"
+                    Padding="20,14,20,28"
+                    VerticalOptions="End">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="28,28,0,0" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="#1E1916" Opacity="0.12" Radius="24" Offset="0,-8" />
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="12">
+                    <BoxView WidthRequest="40"
+                             HeightRequest="4"
+                             Color="#EAE2DA"
+                             CornerRadius="2"
+                             HorizontalOptions="Center" />
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="POS GUEST ASSIGNMENT"
+                                   FontSize="9.5"
+                                   FontAttributes="Bold"
+                                   TextColor="#C84B11"
+                                   CharacterSpacing="1.0" />
+                            <Label Text="Select Customer or Guest"
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1"
+                                WidthRequest="34"
+                                HeightRequest="34"
+                                BackgroundColor="#F4EFEA"
+                                StrokeThickness="0"
+                                VerticalOptions="Start">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CloseCustomerPickerCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="✕"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+
+                    <Border BackgroundColor="#FAF7F4"
+                            Stroke="#EAE2DA"
+                            StrokeThickness="1"
+                            HeightRequest="42"
+                            Padding="12,0">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14" />
+                            <RoundRectangle CornerRadius="12" />
                         </Border.StrokeShape>
-                        <Entry Placeholder="Search menu"
-                               Text="{Binding SearchText}"
+                        <Entry Text="{Binding CustomerSearchQuery, Mode=TwoWay}"
+                               Placeholder="Search member name or 03XX phone..."
+                               FontSize="12"
+                               TextColor="#1E1916"
+                               PlaceholderColor="#8C7E74"
                                BackgroundColor="Transparent"
-                               TextColor="{StaticResource CartText}"
-                               PlaceholderColor="{StaticResource StaffMuted}" />
+                               VerticalOptions="Center" />
                     </Border>
-                    <CollectionView ItemsSource="{Binding Categories}" HeightRequest="40">
-                        <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
-                        </CollectionView.ItemsLayout>
+
+                    <CollectionView ItemsSource="{Binding FilteredCustomers}"
+                                    HeightRequest="220">
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="vm:WaiterCategoryChip">
-                                <Border Padding="14,8"
-                                        StrokeThickness="0">
-                                    <Border.Triggers>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
-                                            <Setter Property="BackgroundColor" Value="{StaticResource WarningBackground}" />
-                                        </DataTrigger>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="False">
-                                            <Setter Property="BackgroundColor" Value="{StaticResource StaffHeroAccent}" />
-                                        </DataTrigger>
-                                    </Border.Triggers>
+                            <DataTemplate x:DataType="models:PosCustomerDto">
+                                <Border BackgroundColor="#FAF7F4"
+                                        Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        Padding="12"
+                                        Margin="0,0,0,8">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="16" />
                                     </Border.StrokeShape>
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=SelectCategoryCommand}"
+                                            Command="{Binding Source={x:Reference WaiterOrderRoot}, Path=BindingContext.SelectCustomerCommand}"
                                             CommandParameter="{Binding .}" />
                                     </Border.GestureRecognizers>
-                                    <Label Text="{Binding Name}"
-                                           FontSize="12"
-                                           FontAttributes="Bold">
-                                        <Label.Triggers>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="True">
-                                                <Setter Property="TextColor" Value="{StaticResource WarningOlive}" />
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="False">
-                                                <Setter Property="TextColor" Value="{StaticResource White}" />
-                                            </DataTrigger>
-                                        </Label.Triggers>
-                                    </Label>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1E1916"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding Display}"
+                                                   FontSize="11"
+                                                   TextColor="#5C5048"
+                                                   LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+                                        <Border Grid.Column="1"
+                                                BackgroundColor="#FEF6EB"
+                                                Stroke="#F3D6B3"
+                                                StrokeThickness="1"
+                                                Padding="8,4"
+                                                VerticalOptions="Center">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="6" />
+                                            </Border.StrokeShape>
+                                            <Label Text="SELECT"
+                                                   FontSize="9.5"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#D9822B" />
+                                        </Border>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
                 </VerticalStackLayout>
             </Border>
-
-            <CollectionView Grid.Row="1"
-                            ItemsSource="{Binding Products}"
-                            Margin="10,10,10,10">
-                <CollectionView.ItemsLayout>
-                    <GridItemsLayout Orientation="Vertical"
-                                     Span="2"
-                                     HorizontalItemSpacing="8"
-                                     VerticalItemSpacing="8" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:ProductDto">
-                        <Border StrokeThickness="0"
-                                BackgroundColor="{StaticResource CardBackground}"
-                                Padding="0">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="16" />
-                            </Border.StrokeShape>
-                            <Border.Shadow>
-                                <Shadow Brush="{StaticResource StaffHero}" Opacity="0.08" Radius="12" Offset="0,4" />
-                            </Border.Shadow>
-                            <VerticalStackLayout Spacing="0">
-                                <Grid HeightRequest="112" BackgroundColor="{StaticResource CartAccentBackground}">
-                                    <Label Text="{Binding Initials}"
-                                           IsVisible="{Binding HasImage, Converter={StaticResource InvertedBoolConverter}}"
-                                           TextColor="{StaticResource StaffPrimary}"
-                                           FontAttributes="Bold"
-                                           FontSize="22"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                    <Image Source="{Binding ImageUrl, Converter={StaticResource CachedUriImageSourceConverter}}"
-                                           IsVisible="{Binding HasImage}"
-                                           Aspect="AspectFill"
-                                           HorizontalOptions="Fill"
-                                           VerticalOptions="Fill" />
-                                    <Border IsVisible="{Binding InCart}"
-                                            BackgroundColor="{StaticResource StaffPrimary}"
-                                            Padding="8,2"
-                                            StrokeThickness="0"
-                                            HorizontalOptions="End"
-                                            VerticalOptions="Start"
-                                            Margin="8">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="10" />
-                                        </Border.StrokeShape>
-                                        <Label Text="{Binding CartQtyText}"
-                                               TextColor="{StaticResource White}"
-                                               FontAttributes="Bold"
-                                               FontSize="12" />
-                                    </Border>
-                                    <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=IncreaseCardCommand}"
-                                            CommandParameter="{Binding .}" />
-                                    </Grid.GestureRecognizers>
-                                </Grid>
-
-                                <VerticalStackLayout Padding="10,8,10,6" Spacing="2">
-                                    <Label Text="{Binding Name}"
-                                           FontAttributes="Bold"
-                                           FontSize="13"
-                                           TextColor="{StaticResource CartText}"
-                                           LineBreakMode="TailTruncation"
-                                           MaxLines="2" />
-                                    <Label Text="{Binding CategoryName}"
-                                           FontSize="11"
-                                           TextColor="{StaticResource StaffMuted}"
-                                           LineBreakMode="TailTruncation" />
-                                    <Label Text="{Binding PriceText, StringFormat='Rs {0}'}"
-                                           FontAttributes="Bold"
-                                           FontSize="14"
-                                           TextColor="{StaticResource StaffPrimary}" />
-                                </VerticalStackLayout>
-
-                                <Grid ColumnDefinitions="*,*,*"
-                                      Padding="8,0,8,10"
-                                      ColumnSpacing="6">
-                                    <Button Text="−"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=DecreaseCardCommand}"
-                                            CommandParameter="{Binding .}"
-                                            Style="{StaticResource QtyDecreaseButton}"
-                                            HeightRequest="34"
-                                            WidthRequest="34" />
-                                    <Label Grid.Column="1"
-                                           Text="{Binding CartQtyText}"
-                                           HorizontalTextAlignment="Center"
-                                           VerticalOptions="Center"
-                                           FontAttributes="Bold"
-                                           TextColor="{StaticResource CartText}" />
-                                    <Button Grid.Column="2"
-                                            Text="+"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:WaiterOrderViewModel}}, Path=IncreaseCardCommand}"
-                                            CommandParameter="{Binding .}"
-                                            Style="{StaticResource QtyIncreaseButton}"
-                                            HeightRequest="34"
-                                            WidthRequest="34" />
-                                </Grid>
-                            </VerticalStackLayout>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
         </Grid>
 
-        <controls:TabLoadingOverlay Grid.Row="0" />
+        <!-- 6b. REVIEW &amp; FIRE KOT BOTTOM SHEET -->
+        <Grid IsVisible="{Binding IsKotReviewSheetOpen}"
+              ZIndex="50">
+            <BoxView Color="#801E1916">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding CloseKotReviewCommand}" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
 
-        <controls:BubbleTabBar Grid.Row="1"
-                               Mode="Waiter"
-                               SelectedIndex="1"
-                               VerticalOptions="Fill"
-                               HorizontalOptions="Fill" />
+            <Border BackgroundColor="#FFFFFF"
+                    StrokeThickness="0"
+                    Padding="20,14,20,28"
+                    VerticalOptions="End">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="28,28,0,0" />
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="#1E1916" Opacity="0.12" Radius="24" Offset="0,-8" />
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="12">
+                    <BoxView WidthRequest="40"
+                             HeightRequest="4"
+                             Color="#EAE2DA"
+                             CornerRadius="2"
+                             HorizontalOptions="Center" />
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="KITCHEN ORDER TICKET (KOT)"
+                                   FontSize="9.5"
+                                   FontAttributes="Bold"
+                                   TextColor="#C84B11"
+                                   CharacterSpacing="1.0" />
+                            <Label Text="{Binding KotReviewTableTitle}"
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding KotReviewGuestLabel}"
+                                   FontSize="12"
+                                   TextColor="#5C5048"
+                                   LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1"
+                                WidthRequest="34"
+                                HeightRequest="34"
+                                BackgroundColor="#F4EFEA"
+                                StrokeThickness="0"
+                                VerticalOptions="Start">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CloseKotReviewCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="✕"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E1916"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+
+                    <CollectionView ItemsSource="{Binding Lines}"
+                                    HeightRequest="180">
+                        <CollectionView.EmptyView>
+                            <Border BackgroundColor="#FAF7F4"
+                                    Stroke="#EAE2DA"
+                                    StrokeThickness="1"
+                                    Padding="16">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16" />
+                                </Border.StrokeShape>
+                                <Label Text="No items in this KOT batch yet. Tap &quot;+ Add&quot; on any dish."
+                                       FontSize="12"
+                                       TextColor="#5C5048"
+                                       HorizontalTextAlignment="Center" />
+                            </Border>
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:CartLine">
+                                <Border BackgroundColor="#FAF7F4"
+                                        Stroke="#EAE2DA"
+                                        StrokeThickness="1"
+                                        Padding="12"
+                                        Margin="0,0,0,8">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <VerticalStackLayout Spacing="3">
+                                            <Label Text="{Binding QtyNameLabel}"
+                                                   FontSize="12.5"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1E1916"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Border BackgroundColor="#FEF6EB"
+                                                    Stroke="#F3D6B3"
+                                                    StrokeThickness="1"
+                                                    Padding="8,3"
+                                                    HorizontalOptions="Start">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="6" />
+                                                </Border.StrokeShape>
+                                                <Label Text="{Binding UnitEachMeta}"
+                                                       FontSize="10.5"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#D9822B"
+                                                       LineBreakMode="TailTruncation" />
+                                            </Border>
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="1"
+                                               Text="{Binding LineTotalDisplay}"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="#1E1916"
+                                               VerticalOptions="Center"
+                                               HorizontalTextAlignment="End" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="KITCHEN CHEF NOTE (OPTIONAL)"
+                               FontSize="10"
+                               FontAttributes="Bold"
+                               TextColor="#8C7E74" />
+                        <Border BackgroundColor="#FAF7F4"
+                                Stroke="#EAE2DA"
+                                StrokeThickness="1"
+                                HeightRequest="42"
+                                Padding="12,0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Entry Text="{Binding KotChefNote, Mode=TwoWay}"
+                                   Placeholder="e.g. Serve naan piping hot with main karahi..."
+                                   FontSize="12"
+                                   TextColor="#1E1916"
+                                   PlaceholderColor="#8C7E74"
+                                   BackgroundColor="Transparent"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <Grid ColumnDefinitions="*,Auto"
+                          Padding="0,4,0,0">
+                        <Label Text="KOT Batch Total"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="#5C5048"
+                               VerticalOptions="Center" />
+                        <Label Grid.Column="1"
+                               Text="{Binding KotCartTotalText}"
+                               FontSize="17"
+                               FontAttributes="Bold"
+                               TextColor="#C84B11"
+                               VerticalOptions="Center"
+                               HorizontalTextAlignment="End" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,*"
+                          ColumnSpacing="10">
+                        <Button Grid.Column="0"
+                                Text="Clear Batch"
+                                Command="{Binding ClearKotTrayCommand}"
+                                HeightRequest="46"
+                                CornerRadius="14"
+                                BackgroundColor="#F4EFEA"
+                                TextColor="#1E1916"
+                                FontAttributes="Bold"
+                                FontSize="13" />
+                        <Button Grid.Column="1"
+                                Text="Fire KOT to Kitchen →"
+                                Command="{Binding FireKotCommand}"
+                                HeightRequest="46"
+                                CornerRadius="14"
+                                BackgroundColor="#C84B11"
+                                TextColor="#FFFFFF"
+                                FontAttributes="Bold"
+                                FontSize="13" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

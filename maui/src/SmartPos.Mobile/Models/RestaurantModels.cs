@@ -684,6 +684,18 @@ public class ProductDto : EntityDto
 
     public string PriceText => Price.ToString("0.00");
 
+    public string PriceDisplayRs => $"Rs. {Price:N0}";
+
+    public string ItemCodeText =>
+        !string.IsNullOrWhiteSpace(Barcode)
+            ? Barcode.Trim().ToUpperInvariant()
+            : $"ITM-{Id:D2}";
+
+    public string PortionMetaText =>
+        !string.IsNullOrWhiteSpace(Description)
+            ? Description.Trim()
+            : (!string.IsNullOrWhiteSpace(CategoryName) ? CategoryName!.Trim() : "Chef's special");
+
     /// <summary>Qty currently in the waiter/customer cart (UI badge).</summary>
     public int CartQty { get; set; }
 

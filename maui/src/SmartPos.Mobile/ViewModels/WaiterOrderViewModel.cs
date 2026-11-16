@@ -26,7 +26,13 @@ public partial class WaiterOrderViewModel : BaseViewModel
     private string orderTitle = "No table selected";
 
     [ObservableProperty]
-    private string searchText = string.Empty;
+    private string selectedTableEyebrow = "SELECT TABLE • KOT POS";
+
+    [ObservableProperty]
+    private string customerLabel = "Walk-in Guest";
+
+    [ObservableProperty]
+    private string searchQuery = string.Empty;
 
     [ObservableProperty]
     private string selectedCategory = "All";
@@ -37,19 +43,61 @@ public partial class WaiterOrderViewModel : BaseViewModel
     [ObservableProperty]
     private PosCustomerDto? selectedCustomer;
 
+    [ObservableProperty]
+    private bool isKotReviewSheetOpen;
+
+    [ObservableProperty]
+    private bool isCustomerPickerOpen;
+
+    [ObservableProperty]
+    private string customerSearchQuery = string.Empty;
+
+    [ObservableProperty]
+    private string kotChefNote = string.Empty;
+
+    [ObservableProperty]
+    private string kotReviewTableTitle = "Current Tray";
+
+    [ObservableProperty]
+    private string kotReviewGuestLabel = "Walk-in Guest";
+
     private int _customerId;
     private bool _lastSaveOk;
 
     public ObservableCollection<PosCustomerDto> Customers { get; } = new();
+    public ObservableCollection<PosCustomerDto> FilteredCustomers { get; } = new();
     public ObservableCollection<ProductDto> Products { get; } = new();
+    public ObservableCollection<ProductDto> FilteredMenuItems => Products;
     public ObservableCollection<WaiterCategoryChip> Categories { get; } = new();
     public ObservableCollection<CartLine> Lines => _cart.Lines;
     public ObservableCollection<KitchenSlipItemDto> PendingKotItems { get; } = new();
 
+    /// <summary>Legacy alias used by older bindings / cart page refresh.</summary>
+    public string SearchText
+    {
+        get => SearchQuery;
+        set => SearchQuery = value;
+    }
+
     public decimal Subtotal => _cart.Subtotal;
     public string SubtotalText => Subtotal.ToString("0.00");
     public int CartCount => _cart.ItemCount;
+    public int KotCartCount => CartCount;
     public bool HasCartItems => CartCount > 0;
+    public bool HasNoMenuResults => Products.Count == 0;
+    public string KotCartTotalText => $"Rs. {Subtotal:N0}";
+    public string KotTrayEyebrow =>
+        CartCount <= 0
+            ? "ACTIVE KOT TRAY"
+            : $"READY FOR KITCHEN KOT  •  {CartCount} {(CartCount == 1 ? "ITEM" : "ITEMS")}";
+    public string KotBarSummaryText =>
+        CartCount <= 0
+            ? "No items yet"
+            : $"{CartCount} {(CartCount == 1 ? "Item" : "Items")} • {KotCartTotalText}";
+    public string StickyDockEyebrow =>
+        CartCount <= 0
+            ? "ACTIVE KOT TRAY"
+            : $"ACTIVE KOT TRAY  •  {CartCount} {(CartCount == 1 ? "ITEM" : "ITEMS")}";
 
     public WaiterOrderViewModel(RestaurantService restaurant, SessionService session, CartService cart, AbpApiClient api)
     {
@@ -67,13 +115,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
 
     public void RefreshCartDisplay()
     {
-        var order = WaiterOrderSession.CurrentOrder;
-        var table = WaiterOrderSession.CurrentTable;
-        if (order != null)
-        {
-            OrderTitle = $"{table?.DisplayTitle ?? order.TableNo} · {order.OrderNo}";
-        }
-
+        RefreshTableContextLabels();
         NotifyCartChanged();
     }
 
@@ -82,24 +124,75 @@ public partial class WaiterOrderViewModel : BaseViewModel
         OnPropertyChanged(nameof(Subtotal));
         OnPropertyChanged(nameof(SubtotalText));
         OnPropertyChanged(nameof(CartCount));
+        OnPropertyChanged(nameof(KotCartCount));
         OnPropertyChanged(nameof(HasCartItems));
+        OnPropertyChanged(nameof(KotCartTotalText));
+        OnPropertyChanged(nameof(KotTrayEyebrow));
+        OnPropertyChanged(nameof(KotBarSummaryText));
+        OnPropertyChanged(nameof(StickyDockEyebrow));
         OnPropertyChanged(nameof(Lines));
+        RefreshKotReviewLabels();
     }
 
-    [RelayCommand]
-    private async Task AppearingAsync()
+    private void RefreshTableContextLabels()
     {
         var order = WaiterOrderSession.CurrentOrder;
         var table = WaiterOrderSession.CurrentTable;
         if (order == null)
         {
             OrderTitle = "Select a table first";
+            SelectedTableEyebrow = "SELECT TABLE • KOT POS";
+            CustomerLabel = "Walk-in Guest";
+            KotReviewTableTitle = "No table selected";
+            return;
+        }
+
+        var tableTitle = table?.DisplayTitle ?? order.TableNo ?? "Table";
+        var area = table?.AreaDisplay ?? "Dining";
+        OrderTitle = $"{tableTitle} · {order.OrderNo}";
+        SelectedTableEyebrow = $"{tableTitle.ToUpperInvariant()} • {area.ToUpperInvariant()} • KOT POS";
+        RefreshCustomerLabel();
+        RefreshKotReviewLabels();
+    }
+
+    private void RefreshCustomerLabel()
+    {
+        var table = WaiterOrderSession.CurrentTable;
+        var tableTitle = table?.DisplayTitle ?? WaiterOrderSession.CurrentOrder?.TableNo ?? "Table";
+        var guests = table?.Capacity > 0 ? $"{table.Capacity} Guests" : "Open seating";
+        var name = !string.IsNullOrWhiteSpace(SelectedCustomer?.Name)
+            ? SelectedCustomer!.Name!
+            : (!string.IsNullOrWhiteSpace(WaiterOrderSession.CurrentOrder?.CustomerName)
+                ? WaiterOrderSession.CurrentOrder!.CustomerName!
+                : "Walk-in Guest");
+        CustomerLabel = $"{name} • {tableTitle} ({guests})";
+        KotReviewGuestLabel = CustomerLabel;
+    }
+
+    private void RefreshKotReviewLabels()
+    {
+        var table = WaiterOrderSession.CurrentTable;
+        var order = WaiterOrderSession.CurrentOrder;
+        var tableTitle = table?.DisplayTitle ?? order?.TableNo ?? "Table";
+        var area = table?.AreaDisplay ?? "Dining";
+        KotReviewTableTitle = $"{tableTitle} • {area}";
+        RefreshCustomerLabel();
+    }
+
+    [RelayCommand]
+    private async Task AppearingAsync()
+    {
+        var order = WaiterOrderSession.CurrentOrder;
+        if (order == null)
+        {
+            OrderTitle = "Select a table first";
+            SelectedTableEyebrow = "SELECT TABLE • KOT POS";
             LoadingService.Current.HideTabLoader();
             await Shell.Current.GoToAsync("//waiter/tables");
             return;
         }
 
-        OrderTitle = $"{table?.DisplayTitle ?? order.TableNo} · {order.OrderNo}";
+        RefreshTableContextLabels();
 
         try
         {
@@ -110,12 +203,19 @@ public partial class WaiterOrderViewModel : BaseViewModel
             else
             {
                 ApplyCustomerSelection();
+                RebuildFilteredCustomers();
             }
 
             if (!_allProducts.Any())
             {
                 await LoadProductsAsync();
             }
+            else
+            {
+                SyncCartQtyBadges();
+            }
+
+            NotifyCartChanged();
         }
         finally
         {
@@ -140,6 +240,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
         }
 
         ApplyCustomerSelection();
+        RebuildFilteredCustomers();
     }
 
     private void ApplyCustomerSelection()
@@ -154,6 +255,10 @@ public partial class WaiterOrderViewModel : BaseViewModel
         if (match != null)
         {
             ChooseCustomer(match);
+        }
+        else
+        {
+            RefreshCustomerLabel();
         }
     }
 
@@ -177,6 +282,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
             order.CustomerName = customer.Name;
         }
 
+        RefreshCustomerLabel();
         _ = PersistCustomerAsync(customer.Id);
     }
 
@@ -195,6 +301,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
             {
                 saved.CustomerId ??= customerId;
                 WaiterOrderSession.CurrentOrder = saved;
+                RefreshTableContextLabels();
             }
         }
         catch
@@ -253,7 +360,9 @@ public partial class WaiterOrderViewModel : BaseViewModel
         }
     }
 
-    partial void OnSearchTextChanged(string value) => ApplyFilters();
+    partial void OnSearchQueryChanged(string value) => ApplyFilters();
+
+    partial void OnCustomerSearchQueryChanged(string value) => RebuildFilteredCustomers();
 
     private static bool EnsureTableOpen() => WaiterOrderSession.CurrentOrder != null;
 
@@ -266,11 +375,13 @@ public partial class WaiterOrderViewModel : BaseViewModel
             query = query.Where(p => string.Equals(p.CategoryName, SelectedCategory, StringComparison.OrdinalIgnoreCase));
         }
 
-        if (!string.IsNullOrWhiteSpace(SearchText))
+        if (!string.IsNullOrWhiteSpace(SearchQuery))
         {
             query = query.Where(p =>
-                (p.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (p.Barcode?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false));
+                (p.Name?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Barcode?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.ItemCodeText?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Description?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false));
         }
 
         foreach (var p in query)
@@ -278,6 +389,9 @@ public partial class WaiterOrderViewModel : BaseViewModel
             p.CartQty = _cart.GetQty(p.Id);
             Products.Add(p);
         }
+
+        OnPropertyChanged(nameof(HasNoMenuResults));
+        OnPropertyChanged(nameof(FilteredMenuItems));
     }
 
     private void SyncCartQtyBadges()
@@ -290,6 +404,25 @@ public partial class WaiterOrderViewModel : BaseViewModel
         ApplyFilters();
     }
 
+    private void RebuildFilteredCustomers()
+    {
+        FilteredCustomers.Clear();
+        IEnumerable<PosCustomerDto> query = Customers;
+        if (!string.IsNullOrWhiteSpace(CustomerSearchQuery))
+        {
+            var q = CustomerSearchQuery.Trim();
+            query = query.Where(c =>
+                (c.Name?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (c.Phone?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (c.Display?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        foreach (var customer in query)
+        {
+            FilteredCustomers.Add(customer);
+        }
+    }
+
     [RelayCommand]
     private async Task OpenCartAsync()
     {
@@ -297,17 +430,111 @@ public partial class WaiterOrderViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private void OpenKotReview()
+    {
+        RefreshKotReviewLabels();
+        NotifyCartChanged();
+        IsCustomerPickerOpen = false;
+        IsKotReviewSheetOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseKotReview() => IsKotReviewSheetOpen = false;
+
+    [RelayCommand]
+    private void OpenCustomerPicker()
+    {
+        CustomerSearchQuery = string.Empty;
+        RebuildFilteredCustomers();
+        IsKotReviewSheetOpen = false;
+        IsCustomerPickerOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseCustomerPicker() => IsCustomerPickerOpen = false;
+
+    [RelayCommand]
+    private void SelectCustomer(PosCustomerDto? customer)
+    {
+        if (customer == null)
+        {
+            return;
+        }
+
+        ChooseCustomer(customer);
+        IsCustomerPickerOpen = false;
+    }
+
+    [RelayCommand]
+    private void ClearKotTray()
+    {
+        _cart.Clear();
+        KotChefNote = string.Empty;
+        IsKotReviewSheetOpen = false;
+        SyncCartQtyBadges();
+        NotifyCartChanged();
+    }
+
+    [RelayCommand]
+    private async Task FireKotAsync()
+    {
+        if (CartCount <= 0)
+        {
+            await AljannatDialogService.Current.ShowAlertAsync("KOT", "Add at least 1 dish first.", "OK");
+            return;
+        }
+
+        var order = WaiterOrderSession.CurrentOrder;
+        if (order != null && !string.IsNullOrWhiteSpace(KotChefNote))
+        {
+            var note = KotChefNote.Trim();
+            order.Notes = string.IsNullOrWhiteSpace(order.Notes)
+                ? note
+                : $"{order.Notes} | {note}";
+        }
+
+        await SendToKitchenAsync();
+        if (_lastSaveOk)
+        {
+            KotChefNote = string.Empty;
+            IsKotReviewSheetOpen = false;
+            RefreshTableContextLabels();
+            NotifyCartChanged();
+        }
+    }
+
+    [RelayCommand]
+    private void ResetMenuFilters()
+    {
+        SearchQuery = string.Empty;
+        SelectCategory(Categories.FirstOrDefault(c =>
+            string.Equals(c.Name, "All", StringComparison.OrdinalIgnoreCase)) ?? Categories.FirstOrDefault());
+    }
+
+    [RelayCommand]
     private async Task GoBackAsync()
     {
         try
         {
-            await Shell.Current.GoToAsync("..");
+            await Shell.Current.GoToAsync("//waiter/tables");
         }
         catch
         {
-            await Shell.Current.GoToAsync("//waiter/order");
+            await Shell.Current.GoToAsync("..");
         }
     }
+
+    [RelayCommand]
+    private async Task NavigateTablesTabAsync() =>
+        await Shell.Current.GoToAsync("//waiter/tables");
+
+    [RelayCommand]
+    private async Task NavigateOrdersTabAsync() =>
+        await Shell.Current.GoToAsync("//waiter/myorders");
+
+    [RelayCommand]
+    private async Task NavigateProfileTabAsync() =>
+        await Shell.Current.GoToAsync("//waiter/account");
 
     [RelayCommand]
     private async Task IncreaseCardAsync(ProductDto? product)
@@ -327,6 +554,9 @@ public partial class WaiterOrderViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private async Task IncrementItemAsync(ProductDto? product) => await IncreaseCardAsync(product);
+
+    [RelayCommand]
     private void DecreaseCard(ProductDto? product)
     {
         if (product == null || product.CartQty <= 0)
@@ -336,6 +566,9 @@ public partial class WaiterOrderViewModel : BaseViewModel
 
         _cart.DecrementProduct(product.Id);
     }
+
+    [RelayCommand]
+    private void DecrementItem(ProductDto? product) => DecreaseCard(product);
 
     [RelayCommand]
     private async Task AddProductAsync(ProductDto? product)
@@ -353,7 +586,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
             decimal extra = 0;
             foreach (var group in groups)
             {
-                    var options = group.Options.Select(o => $"{o.Name} (+{o.Price:0.00})").ToArray();
+                var options = group.Options.Select(o => $"{o.Name} (+{o.Price:0.00})").ToArray();
                 if (options.Length == 0) continue;
                 var choice = await AljannatDialogService.Current.ShowActionSheetAsync(group.Name ?? "Options", "Skip", null, options);
                 if (choice == null || choice == "Skip") continue;
@@ -484,7 +717,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
             WaiterOrderSession.CurrentOrder = saved;
             _lastSaveOk = true;
             _cart.LoadFromOrder(saved);
-            OrderTitle = $"{table?.DisplayTitle ?? saved.TableNo} · {saved.OrderNo}";
+            RefreshTableContextLabels();
         });
     }
 
@@ -520,6 +753,10 @@ public partial class WaiterOrderViewModel : BaseViewModel
                     _cart.LoadFromOrder(refreshed);
                 }
             }
+            else if (!string.IsNullOrWhiteSpace(KotMessage))
+            {
+                await AljannatDialogService.Current.ShowAlertAsync("KOT", KotMessage, "OK");
+            }
         });
     }
 
@@ -533,7 +770,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
         {
             var billed = await _restaurant.PrintBillAsync(current.Id);
             WaiterOrderSession.CurrentOrder = billed;
-            await AljannatDialogService.Current.ShowAlertAsync("Bill", $"Bill printed. Total {billed.GrandTotal:0.00}", "OK");
+            await AljannatDialogService.Current.ShowAlertAsync("Bill", $"Bill printed. Total Rs. {billed.GrandTotal:N0}", "OK");
         });
     }
 
@@ -544,7 +781,7 @@ public partial class WaiterOrderViewModel : BaseViewModel
         if (current == null) return;
 
         var cashText = await AljannatDialogService.Current.ShowPromptAsync(
-            "Settle", $"Grand total {current.GrandTotal:0.00}. Cash amount?",
+            "Settle", $"Grand total Rs. {current.GrandTotal:N0}. Cash amount?",
             "Settle",
             "Cancel",
             placeholder: null,

@@ -701,6 +701,8 @@ public partial class CartLine : ObservableObject
                 OnPropertyChanged(nameof(LineTotalText));
                 OnPropertyChanged(nameof(LineTotalDisplay));
                 OnPropertyChanged(nameof(QuantityText));
+                OnPropertyChanged(nameof(QtyNameLabel));
+                OnPropertyChanged(nameof(UnitEachMeta));
             }
         }
     }
@@ -716,8 +718,15 @@ public partial class CartLine : ObservableObject
     public string LineTotalText => LineTotal.ToString("0.00");
     public string UnitPriceText => UnitPrice.ToString("0.00");
     public string UnitPriceDisplay => $"Rs. {UnitPrice:0}";
-    public string LineTotalDisplay => $"Rs. {LineTotal:0}";
+    public string LineTotalDisplay => $"Rs. {LineTotal:N0}";
     public string QuantityText => Quantity.ToString("0");
+    public string QtyNameLabel => $"{QuantityText}× {Name}";
+    public string NoteChipText =>
+        !string.IsNullOrWhiteSpace(KitchenNotes)
+            ? KitchenNotes!.Trim()
+            : (!string.IsNullOrWhiteSpace(SelectedModifiers) ? SelectedModifiers!.Trim() : "Standard");
+    public bool HasNoteChip => true;
+    public string UnitEachMeta => $"{NoteChipText} • Rs. {UnitPrice:N0} each";
     public bool HasImage => !string.IsNullOrWhiteSpace(ImagePath);
     public bool HasModifiers => !string.IsNullOrWhiteSpace(SelectedModifiers);
     public bool HasKitchenNotes => !string.IsNullOrWhiteSpace(KitchenNotes);
