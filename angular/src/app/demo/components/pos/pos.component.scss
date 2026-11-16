@@ -1036,7 +1036,7 @@
 .pos-menu-categories {
     display: grid;
     grid-template-rows: auto auto;
-    grid-auto-flow: column;
+    grid-auto-flow: row;
     grid-auto-columns: max-content;
     align-items: center;
     gap: 0.45rem 0.5rem;
@@ -1133,6 +1133,15 @@
         border-color: var(--primary-color);
         box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color) 35%, transparent);
     }
+
+    &.out-of-stock {
+        opacity: 0.82;
+
+        .pos-menu-tile-media img,
+        .pos-menu-tile-initials {
+            filter: grayscale(0.35);
+        }
+    }
 }
 
 .pos-menu-tile-main {
@@ -1183,6 +1192,7 @@
     position: absolute;
     top: 0.4rem;
     left: 0.4rem;
+    z-index: 1;
     background: #f59e0b;
     color: #111827;
     font-size: 0.65rem;
@@ -1190,6 +1200,34 @@
     text-transform: uppercase;
     padding: 0.15rem 0.4rem;
     border-radius: 999px;
+}
+
+.pos-menu-tile-stock-badge {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    left: auto;
+    z-index: 2;
+    min-width: 1.55rem;
+    height: 1.35rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary-color) 88%, #0f172a);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+    pointer-events: none;
+
+    &.is-oos {
+        background: #b91c1c;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        font-size: 0.62rem;
+    }
 }
 
 .pos-menu-tile-body {
@@ -1232,7 +1270,8 @@
 .pos-menu-tile-qty-badge {
     position: absolute;
     top: 0.4rem;
-    right: 0.4rem;
+    left: 0.4rem;
+    right: auto;
     min-width: 1.4rem;
     height: 1.4rem;
     padding: 0 0.35rem;
@@ -1244,6 +1283,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    z-index: 2;
 }
 
 .pos-menu-tile-qty {
@@ -1329,7 +1369,7 @@
     .pos-menu-categories {
         display: grid !important;
         grid-template-rows: auto auto !important;
-        grid-auto-flow: column !important;
+        grid-auto-flow: row !important;
         grid-auto-columns: max-content !important;
         overflow-x: auto !important;
         padding-bottom: 0.2rem !important;

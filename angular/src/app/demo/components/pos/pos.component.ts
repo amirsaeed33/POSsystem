@@ -781,6 +781,12 @@ export class PosComponent implements OnInit, OnDestroy {
         });
     }
 
+    /** Columns for 2-row category strip: fill row 1 left→right, then row 2. */
+    get menuCategoryColumnCount(): number {
+        const total = 1 + (this.menuCategories?.length || 0); // + All
+        return Math.max(1, Math.ceil(total / 2));
+    }
+
     get filteredMenuProducts(): ProductDto[] {
         let list = this.menuProducts;
         if (this.selectedMenuCategoryIds.length > 0) {

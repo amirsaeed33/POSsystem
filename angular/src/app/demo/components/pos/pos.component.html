@@ -380,7 +380,11 @@
                     >
                         <i class="pi pi-chevron-left"></i>
                     </button>
-                    <div class="pos-menu-categories" #menuCategoriesTrack>
+                    <div
+                        class="pos-menu-categories"
+                        #menuCategoriesTrack
+                        [style.grid-template-columns]="'repeat(' + menuCategoryColumnCount + ', max-content)'"
+                    >
                         <button
                             type="button"
                             class="pos-menu-cat"
@@ -419,13 +423,14 @@
                             class="pos-menu-tile"
                             *ngFor="let product of filteredMenuProducts"
                             [class.in-cart]="getMenuCartQty(product.id) > 0"
+                            [class.out-of-stock]="!isRestaurantMode && (product.stockQuantity || 0) <= 0"
                             [title]="product.name + ' — ' + (getUnitPrice(product) | number: '1.2-2')"
                         >
                             <button
                                 type="button"
                                 class="pos-menu-tile-main"
                                 (click)="bumpMenuProduct(product, 1, $event)"
-                                [disabled]="scanning || saving"
+                                [disabled]="scanning || saving || (!isRestaurantMode && (product.stockQuantity || 0) <= 0)"
                             >
                                 <div class="pos-menu-tile-media">
                                     <img
@@ -436,6 +441,13 @@
                                     />
                                     <span *ngIf="!product.imagePath" class="pos-menu-tile-initials">
                                         {{ getMenuProductInitials(product) }}
+                                    </span>
+                                    <span
+                                        class="pos-menu-tile-stock-badge"
+                                        *ngIf="!isRestaurantMode"
+                                        [class.is-oos]="(product.stockQuantity || 0) <= 0"
+                                    >
+                                        {{ (product.stockQuantity || 0) <= 0 ? 'OOS' : (product.stockQuantity || 0) }}
                                     </span>
                                     <span class="pos-menu-tile-deal" *ngIf="isDealProduct(product)">Deal</span>
                                     <span class="pos-menu-tile-qty-badge" *ngIf="getMenuCartQty(product.id) > 0">
@@ -464,7 +476,7 @@
                                     type="button"
                                     class="pos-menu-qty-btn add"
                                     (click)="bumpMenuProduct(product, 1, $event)"
-                                    [disabled]="scanning || saving"
+                                    [disabled]="scanning || saving || (!isRestaurantMode && (product.stockQuantity || 0) <= getMenuCartQty(product.id))"
                                     title="Increase quantity"
                                     aria-label="Increase quantity"
                                 >
