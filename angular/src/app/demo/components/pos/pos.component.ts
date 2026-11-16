@@ -781,6 +781,12 @@ export class PosComponent implements OnInit, OnDestroy {
         });
     }
 
+    /** Columns for 2-row category strip: fill row 1 left→right, then row 2. */
+    get menuCategoryColumnCount(): number {
+        const total = 1 + (this.menuCategories?.length || 0); // + All
+        return Math.max(1, Math.ceil(total / 2));
+    }
+
     get filteredMenuProducts(): ProductDto[] {
         let list = this.menuProducts;
         if (this.selectedMenuCategoryIds.length > 0) {
@@ -844,9 +850,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.applyBranchPricing();
             this.loadTopProducts();
             this.loadPosCustomers();
-            if (this.isRestaurantMode) {
-                this.loadMenuProducts();
-            }
+            this.loadMenuProducts();
         }
     }
 
@@ -856,9 +860,9 @@ export class PosComponent implements OnInit, OnDestroy {
         this.loadTopProducts();
         this.loadPosCustomers();
         void this.loadDeliveryAreasForPos();
+        this.loadMenuProducts();
 
         if (this.isRestaurantMode) {
-            this.loadMenuProducts();
             if (this.isWaiter) {
                 this.waiterName = this.authService.getPrinterIdentity().name;
                 await this.loadWaiters(branchId);
@@ -873,7 +877,6 @@ export class PosComponent implements OnInit, OnDestroy {
             }
             this.loadUnpaidTakeaways();
         } else {
-            this.menuProducts = [];
             this.selectedMenuCategoryIds = [];
             this.activeRestaurantOrders = [];
         }
@@ -3034,7 +3037,22 @@ export class PosComponent implements OnInit, OnDestroy {
             }
 
             const kotResult = await this.restaurantOrderService.sendToKitchen(savedOrder.id);
-            this.kotResult = kotResult;
+            const voidItems = kotResult.voidItems || (kotResult as any).VoidItems || [];
+            const newItems = kotResult.newItems || (kotResult as any).NewItems || [];
+            const fullOrderItems =
+                kotResult.fullOrderItems || (kotResult as any).FullOrderItems || [];
+            this.kotResult = {
+                ...kotResult,
+                voidItems,
+                newItems,
+                fullOrderItems,
+                hasVoidItems:
+                    !!(kotResult.hasVoidItems ?? (kotResult as any).HasVoidItems) ||
+                    !!voidItems.length,
+                hasNewItems:
+                    !!(kotResult.hasNewItems ?? (kotResult as any).HasNewItems) ||
+                    !!newItems.length,
+            };
             if (kotResult?.tokenNo != null) {
                 this.activeTokenNo = kotResult.tokenNo;
             }
@@ -3054,7 +3072,10 @@ export class PosComponent implements OnInit, OnDestroy {
                 }
             }
 
-            if (!kotResult.hasNewItems || !kotResult.newItems?.length) {
+            const hasVoid = !!(this.kotResult.hasVoidItems && this.kotResult.voidItems?.length);
+            const hasAdd = !!(this.kotResult.hasNewItems && this.kotResult.newItems?.length);
+
+            if (!hasVoid && !hasAdd) {
                 this.messageService.add({
                     severity: 'info',
                     summary: 'Kitchen Up to Date',
@@ -3062,19 +3083,20 @@ export class PosComponent implements OnInit, OnDestroy {
                     life: 3500,
                 });
             } else {
-                // Print KOT immediately — no preview popup.
+                // Deduct → full order KOT (same token). Add-only → new items only.
                 this.printCurrentModal('kotThermalPrint', 'all');
                 this.messageService.add({
                     severity: 'success',
                     summary: isCar ? 'Sent to Car (KOT)' : 'Sent to KOT',
-                    detail: isCar
-                        ? `Order sent to Car ${this.selectedCarName} (${this.selectedCarNumber}) — kitchen KOT #${kotResult.orderNo}`
-                        : (isTakeaway
+                    detail: hasVoid
+                        ? `Token #${kotResult.tokenNo ?? '—'} — full updated KOT printed (discard old slip)`
+                        : isCar
+                          ? `Order sent to Car ${this.selectedCarName} (${this.selectedCarNumber}) — kitchen KOT #${kotResult.orderNo}`
+                          : isTakeaway
                             ? `Takeaway order #${kotResult.orderNo} sent to kitchen KOT (Unpaid)`
-                            : `Table ${kotResult.tableNo || this.selectedTable?.tableNo || ''} order #${kotResult.orderNo} sent to kitchen KOT`),
+                            : `Table ${kotResult.tableNo || this.selectedTable?.tableNo || ''} order #${kotResult.orderNo} sent to kitchen KOT`,
                     life: 2500,
                 });
-                // Dine-in / Takeaway / Car: park order and clear POS for the next order.
                 this.resetPosAfterKotOrGuestBill();
             }
         } catch (err: any) {
@@ -3578,18 +3600,50 @@ export class PosComponent implements OnInit, OnDestroy {
                     .confirmKotPrint({ orderId: this.activeOrderId })
                     .then(() => {
                         this.cart.forEach((l) => {
-                            if ((l.quantity || 0) > (l.printedQuantity || 0)) {
-                                l.printedQuantity = l.quantity;
+                            l.printedQuantity = l.quantity;
+                            if ((l.quantity || 0) > 0) {
                                 l.isSentToKitchen = true;
                             }
                         });
+                        this.cart = this.cart.filter((l) => (l.quantity || 0) > 0);
                     })
                     .catch((err: any) => console.error('Failed to confirm KOT print', err));
             }
         }
 
         if (elementId === 'kotThermalPrint' && this.kotResult) {
-            this.thermalPrintService.printKotTicket(this.kotResult, filterType);
+            const hasVoid = !!(this.kotResult.hasVoidItems && this.kotResult.voidItems?.length);
+            const newItems = this.kotResult.newItems || [];
+            const fullFromApi = this.kotResult.fullOrderItems || [];
+            // Deduct → full current order (same token). Add-only → delta items.
+            if (hasVoid) {
+                const fullItems =
+                    fullFromApi.length > 0
+                        ? fullFromApi
+                        : this.cart
+                              .filter((l) => (l.quantity || 0) > 0)
+                              .map((l) => ({
+                                  lineId: l.id,
+                                  productName: l.productName,
+                                  quantity: l.quantity,
+                                  kitchenNotes: l.kitchenNotes,
+                                  selectedModifiers: l.selectedModifiers,
+                              }));
+                this.thermalPrintService.printKotTicket(
+                    {
+                        ...this.kotResult,
+                        newItems: fullItems,
+                        isVoidSlip: false,
+                        isUpdatedFullOrder: true,
+                    },
+                    filterType
+                );
+            } else if (newItems.length) {
+                this.thermalPrintService.printKotTicket(
+                    { ...this.kotResult, newItems, isVoidSlip: false },
+                    filterType
+                );
+            }
             return;
         }
 
@@ -3824,13 +3878,9 @@ export class PosComponent implements OnInit, OnDestroy {
             this.suggestionHighlightIndex = -1;
             return;
         }
-        // Restaurant: dropdown from loaded menu + keep grid filter via searchText.
-        if (this.isRestaurantMode) {
-            this.suggestions = this.buildMenuSuggestions(q);
-            this.suggestionHighlightIndex = this.suggestions.length ? 0 : -1;
-            return;
-        }
-        this.searchTimer = setTimeout(() => this.loadSuggestions(q), 250);
+        // Hub layout: dropdown from loaded products + keep grid filter via searchText.
+        this.suggestions = this.buildMenuSuggestions(q);
+        this.suggestionHighlightIndex = this.suggestions.length ? 0 : -1;
     }
 
     onSearchKeydown(event: KeyboardEvent): void {
@@ -3838,7 +3888,7 @@ export class PosComponent implements OnInit, OnDestroy {
         if (key === 'ArrowDown') {
             if (!this.suggestions.length) {
                 const q = (this.searchText || '').trim();
-                if (q && this.isRestaurantMode) {
+                if (q) {
                     this.suggestions = this.buildMenuSuggestions(q);
                 }
             }
@@ -3912,14 +3962,19 @@ export class PosComponent implements OnInit, OnDestroy {
             return;
         }
 
-        // Restaurant: pick first dropdown match → add to cart immediately.
+        // Prefer dropdown / local catalog match (Dine Hub style).
+        const match =
+            this.suggestions[this.suggestionHighlightIndex] ||
+            this.suggestions[0] ||
+            this.buildMenuSuggestions(code)[0] ||
+            null;
+        if (match) {
+            void this.selectSuggestion(match);
+            return;
+        }
+
+        // Retail fallback: exact barcode / SKU lookup when not in the loaded grid.
         if (this.isRestaurantMode) {
-            const match =
-                this.suggestions[0] || this.buildMenuSuggestions(code)[0] || null;
-            if (match) {
-                void this.selectSuggestion(match);
-                return;
-            }
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Not found',
@@ -4670,6 +4725,10 @@ export class PosComponent implements OnInit, OnDestroy {
         if (!this.isRestaurantMode) {
             return true;
         }
+        // Admin/cashier may void after KOT; waiters cannot remove sent items.
+        if (!this.isWaiter) {
+            return true;
+        }
         return !line.isSentToKitchen && !(line.printedQuantity && line.printedQuantity > 0);
     }
 
@@ -4677,7 +4736,11 @@ export class PosComponent implements OnInit, OnDestroy {
         if (!this.isRestaurantMode) {
             return 0.01;
         }
-        if (line.isSentToKitchen || (line.printedQuantity && line.printedQuantity > 0)) {
+        // Waiters cannot go below already-printed KOT qty; admin can deduct to zero.
+        if (
+            this.isWaiter &&
+            (line.isSentToKitchen || (line.printedQuantity && line.printedQuantity > 0))
+        ) {
             return line.printedQuantity || line.quantity || 1;
         }
         return 0.01;
@@ -4686,11 +4749,11 @@ export class PosComponent implements OnInit, OnDestroy {
     bumpQty(line: PosCartLine, delta: number): void {
         const min = this.getMinQty(line);
         const next = Number(((line.quantity || 0) + delta).toFixed(2));
-        if (this.isRestaurantMode && delta < 0 && next < min) {
+        if (this.isRestaurantMode && this.isWaiter && delta < 0 && next < min) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Permission Denied',
-                detail: `Cannot reduce quantity below previously sent amount (${min}).`,
+                detail: `Waiters cannot reduce quantity below previously sent amount (${min}).`,
             });
             return;
         }
@@ -4699,7 +4762,7 @@ export class PosComponent implements OnInit, OnDestroy {
                 this.messageService.add({
                     severity: 'warn',
                     summary: 'Permission Denied',
-                    detail: 'Items already sent to KOT cannot be removed. To cancel, please use Cancel KOT / Cancel Order.',
+                    detail: 'Items already sent to KOT cannot be removed. Ask an admin, or use Cancel Order.',
                 });
                 return;
             }
@@ -4716,17 +4779,21 @@ export class PosComponent implements OnInit, OnDestroy {
 
         const value = Number(qty);
         const min = this.getMinQty(line);
-        if (this.isRestaurantMode && value < min) {
+        if (this.isRestaurantMode && this.isWaiter && value < min) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Permission Denied',
-                detail: `Cannot reduce quantity below previously sent amount (${min}).`,
+                detail: `Waiters cannot reduce quantity below previously sent amount (${min}).`,
             });
             line.quantity = min;
             return;
         }
 
         if (value <= 0) {
+            if (!this.isWaiter && this.isRestaurantMode && this.canRemoveLine(line)) {
+                this.removeLine(line);
+                return;
+            }
             line.quantity = 1;
             return;
         }
@@ -4752,7 +4819,7 @@ export class PosComponent implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Permission Denied',
-                detail: 'Previously sent items cannot be removed. To cancel, please use Cancel KOT / Cancel Order.',
+                detail: 'Waiters cannot remove previously sent KOT items. Ask an admin, or use Cancel Order.',
             });
             return;
         }
@@ -4793,7 +4860,12 @@ export class PosComponent implements OnInit, OnDestroy {
     }
 
     get hasUnsentItems(): boolean {
-        return this.cart.some((line) => !line.isSentToKitchen);
+        // Includes admin voids/adds after KOT (printed qty != current qty).
+        return this.cart.some(
+            (line) =>
+                !line.isSentToKitchen ||
+                Number(line.printedQuantity || 0) !== Number(line.quantity || 0)
+        );
     }
 
     get settleButtonTooltip(): string {

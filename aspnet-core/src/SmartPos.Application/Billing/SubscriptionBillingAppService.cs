@@ -161,8 +161,8 @@ namespace SmartPos.Billing
                 {
                     Id = x.Id,
                     Name = x.Name,
-                    MonthlyAmount = x.MonthlyAmount,
-                    YearlyAmount = x.YearlyAmount
+                    //MonthlyAmount = x.MonthlyAmount,
+                    //YearlyAmount = x.YearlyAmount
                 })
                 .ToListAsync();
         }
@@ -470,14 +470,14 @@ namespace SmartPos.Billing
         private async Task<List<AssignablePlanDto>> LoadAvailablePlans()
         {
             var rows = await _packages.GetAll()
-                .Where(x => x.IsActive && !x.ContactViaWhatsApp && (x.MonthlyAmount > 0 || x.YearlyAmount > 0))
+                //.Where(x => x.IsActive && !x.ContactViaWhatsApp && (x.MonthlyAmount > 0 || x.YearlyAmount > 0))
                 .OrderBy(x => x.SortOrder)
                 .Select(x => new AssignablePlanDto
                 {
                     Id = x.Id,
                     Name = x.Name,
-                    MonthlyAmount = x.MonthlyAmount,
-                    YearlyAmount = x.YearlyAmount
+                    //MonthlyAmount = x.MonthlyAmount,
+                    //YearlyAmount = x.YearlyAmount
                 })
                 .ToListAsync();
 
@@ -654,25 +654,25 @@ namespace SmartPos.Billing
                 throw new UserFriendlyException("That plan is not available.");
             }
 
-            var amount = AmountForCycle(package.MonthlyAmount, package.YearlyAmount, input.Cycle);
+            //var amount = AmountForCycle(package.MonthlyAmount, package.YearlyAmount, input.Cycle);
 
-            if (amount <= 0 &&
-                subscription != null &&
-                subscription.PackageId == package.Id &&
-                subscription.Amount > 0)
-            {
-                amount = AmountFromSubscription(subscription, input.Cycle);
-            }
+            //if (amount <= 0 &&
+            //    subscription != null &&
+            //    subscription.PackageId == package.Id &&
+            //    subscription.Amount > 0)
+            //{
+            //    amount = AmountFromSubscription(subscription, input.Cycle);
+            //}
 
-            if (amount <= 0)
-            {
-                throw new UserFriendlyException(
-                    input.Cycle == BillingCycle.Yearly
-                        ? "Yearly billing is not available for that plan."
-                        : "Monthly billing is not available for that plan.");
-            }
+            //if (amount <= 0)
+            //{
+            //    throw new UserFriendlyException(
+            //        input.Cycle == BillingCycle.Yearly
+            //            ? "Yearly billing is not available for that plan."
+            //            : "Monthly billing is not available for that plan.");
+            //}
 
-            return (package.Id, package.Name, input.Cycle, amount);
+            return (package.Id, package.Name, input.Cycle, 0);
         }
 
         private async Task<TenantSubscriptionDto> ApplyApproval(SubscriptionPayment payment, string note)

@@ -1,4 +1,4 @@
-﻿<div class="pos-page" [class.pos-page--restaurant]="isRestaurantMode">
+﻿<div class="pos-page pos-page--restaurant">
     <!-- Waiter: currently assigned open/billed tables & car orders -->
     <div *ngIf="isWaiter" class="pos-waiter-assigned card mb-3">
         <div class="pos-waiter-assigned-head">
@@ -276,83 +276,8 @@
 
     <div class="grid pos-main-grid">
         <div class="col-12 lg:col-8 pos-main-left">
-            <!-- Retail barcode / search card -->
-            <div class="card pos-scan-card mb-3" *ngIf="!isRestaurantMode">
-                <label class="font-bold block mb-2">Scan barcode or search by name</label>
-                <div class="p-inputgroup">
-                    <input
-                        #barcodeInput
-                        pInputText
-                        type="text"
-                        class="pos-barcode-input w-full"
-                        [(ngModel)]="searchText"
-                        (input)="onSearchInput()"
-                        (keyup.enter)="onSearchEnter()"
-                        placeholder="Barcode or product name, then Enter"
-                        [disabled]="scanning || saving"
-                        autocomplete="off"
-                        autocorrect="off"
-                        autocapitalize="off"
-                        spellcheck="false"
-                        inputmode="search"
-                        enterkeyhint="go"
-                    />
-                    <button
-                        pButton
-                        pRipple
-                        type="button"
-                        icon="pi pi-plus"
-                        label="Add"
-                        [disabled]="scanning || saving || !(searchText || '').trim()"
-                        [loading]="scanning"
-                        (click)="onSearchEnter()"
-                    ></button>
-                </div>
-
-                <div class="pos-suggestions" *ngIf="suggestions.length">
-                    <button
-                        type="button"
-                        class="pos-suggestion-item"
-                        *ngFor="let product of suggestions"
-                        (click)="selectSuggestion(product)"
-                        [disabled]="scanning || saving"
-                    >
-                        <span class="pos-suggestion-name">{{ product.name }}</span>
-                        <span class="pos-suggestion-meta text-500">
-                            <span *ngIf="product.barcode">{{ product.barcode }} · </span>
-                            <span>Stock: {{ product.stockQuantity || 0 }} · </span>
-                            {{ product.price | number: '1.2-2' }}
-                        </span>
-                    </button>
-                </div>
-
-                <div class="mt-3" *ngIf="!suggestions.length && topProducts.length">
-                    <div class="flex align-items-center justify-content-between mb-2">
-                        <span class="text-xs font-bold text-700 uppercase tracking-wider">
-                            Top Sale Products
-                        </span>
-                        <span class="text-xs text-500 font-medium">Click badge to quick-add</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <div
-                            *ngFor="let product of topProducts"
-                            class="surface-card border-1 surface-border border-round-pill px-3 py-1.5 flex align-items-center gap-2 cursor-pointer hover:border-primary hover:surface-hover transition-colors transition-duration-150 shadow-1"
-                            (click)="selectSuggestion(product)"
-                            [title]="'Quick add ' + product.name + ' (' + (getUnitPrice(product) | number: '1.2-2') + ')'"
-                        >
-                            <span class="font-semibold text-sm text-900 line-clamp-1" style="max-width: 150px;">
-                                {{ product.name }}
-                            </span>
-                            <span class="text-xs font-bold text-primary bg-primary-50 px-2 py-0.5 border-round-pill">
-                                {{ getUnitPrice(product) | number: '1.2-2' }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Restaurant left tabs: Menu | Order Details -->
-            <div class="pos-left-tabs mb-2" *ngIf="isRestaurantMode" role="tablist" aria-label="POS left panel">
+            <!-- Hub left tabs: Products/Menu | Cart/Order Details -->
+            <div class="pos-left-tabs mb-2" role="tablist" aria-label="POS left panel">
                 <button
                     type="button"
                     class="pos-left-tab"
@@ -362,7 +287,7 @@
                     (click)="posLeftTab = 'menu'"
                 >
                     <i class="pi pi-th-large"></i>
-                    <span>Menu</span>
+                    <span>{{ isRestaurantMode ? 'Menu' : 'Products' }}</span>
                 </button>
                 <button
                     type="button"
@@ -374,15 +299,15 @@
                     (click)="posLeftTab = 'order'"
                 >
                     <i class="pi pi-list"></i>
-                    <span>Order Details</span>
+                    <span>{{ isRestaurantMode ? 'Order Details' : 'Cart' }}</span>
                     <span class="pos-left-tab-count" *ngIf="cart.length">{{ cart.length }}</span>
                 </button>
             </div>
 
-            <!-- Restaurant: search + categories + product grid in one Menu card -->
-            <div class="card mb-3 pos-menu-card" *ngIf="isRestaurantMode && posLeftTab === 'menu'">
+            <!-- Search + categories + product grid (Dine Hub layout for all branches) -->
+            <div class="card mb-3 pos-menu-card" *ngIf="posLeftTab === 'menu'">
                 <div class="flex align-items-center justify-content-between mb-2">
-                    <h5 class="m-0">Menu</h5>
+                    <h5 class="m-0">{{ isRestaurantMode ? 'Menu' : 'Products' }}</h5>
                     <span class="text-xs text-500 font-medium">
                         {{ filteredMenuProducts.length }} item(s)
                         <button
@@ -390,7 +315,7 @@
                             class="p-link text-primary text-xs ml-2"
                             (click)="loadMenuProducts()"
                             [disabled]="loadingMenu"
-                            title="Refresh menu"
+                            title="Refresh products"
                         >
                             {{ loadingMenu ? 'Loading…' : 'Refresh' }}
                         </button>
@@ -406,7 +331,7 @@
                         [(ngModel)]="searchText"
                         (input)="onSearchInput()"
                         (keydown)="onSearchKeydown($event)"
-                        placeholder="Search food by name…"
+                        [placeholder]="isRestaurantMode ? 'Search food by name…' : 'Scan barcode or search by name…'"
                         [disabled]="scanning || saving"
                         autocomplete="off"
                         autocorrect="off"
@@ -455,7 +380,11 @@
                     >
                         <i class="pi pi-chevron-left"></i>
                     </button>
-                    <div class="pos-menu-categories" #menuCategoriesTrack>
+                    <div
+                        class="pos-menu-categories"
+                        #menuCategoriesTrack
+                        [style.grid-template-columns]="'repeat(' + menuCategoryColumnCount + ', max-content)'"
+                    >
                         <button
                             type="button"
                             class="pos-menu-cat"
@@ -494,13 +423,14 @@
                             class="pos-menu-tile"
                             *ngFor="let product of filteredMenuProducts"
                             [class.in-cart]="getMenuCartQty(product.id) > 0"
+                            [class.out-of-stock]="!isRestaurantMode && (product.stockQuantity || 0) <= 0"
                             [title]="product.name + ' — ' + (getUnitPrice(product) | number: '1.2-2')"
                         >
                             <button
                                 type="button"
                                 class="pos-menu-tile-main"
                                 (click)="bumpMenuProduct(product, 1, $event)"
-                                [disabled]="scanning || saving"
+                                [disabled]="scanning || saving || (!isRestaurantMode && (product.stockQuantity || 0) <= 0)"
                             >
                                 <div class="pos-menu-tile-media">
                                     <img
@@ -511,6 +441,13 @@
                                     />
                                     <span *ngIf="!product.imagePath" class="pos-menu-tile-initials">
                                         {{ getMenuProductInitials(product) }}
+                                    </span>
+                                    <span
+                                        class="pos-menu-tile-stock-badge"
+                                        *ngIf="!isRestaurantMode"
+                                        [class.is-oos]="(product.stockQuantity || 0) <= 0"
+                                    >
+                                        {{ (product.stockQuantity || 0) <= 0 ? 'OOS' : (product.stockQuantity || 0) }}
                                     </span>
                                     <span class="pos-menu-tile-deal" *ngIf="isDealProduct(product)">Deal</span>
                                     <span class="pos-menu-tile-qty-badge" *ngIf="getMenuCartQty(product.id) > 0">
@@ -539,7 +476,7 @@
                                     type="button"
                                     class="pos-menu-qty-btn add"
                                     (click)="bumpMenuProduct(product, 1, $event)"
-                                    [disabled]="scanning || saving"
+                                    [disabled]="scanning || saving || (!isRestaurantMode && (product.stockQuantity || 0) <= getMenuCartQty(product.id))"
                                     title="Increase quantity"
                                     aria-label="Increase quantity"
                                 >
@@ -561,7 +498,7 @@
                 </div>
             </div>
 
-            <div class="card pos-order-card" *ngIf="!isRestaurantMode || posLeftTab === 'order'">
+            <div class="card pos-order-card" *ngIf="posLeftTab === 'order'">
                 <div class="flex align-items-center justify-content-between mb-3">
                     <h5 class="m-0">{{ isRestaurantMode ? 'Order Details' : 'Cart' }}</h5>
                     <span class="text-500">{{ cart.length }} item(s)</span>
@@ -640,28 +577,30 @@
                                     <div class="mt-1 flex align-items-center gap-2">
                                         <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
                                         <span
-                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && (!line.printedQuantity || line.quantity <= line.printedQuantity)"
-                                            class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                            *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity < line.printedQuantity"
+                                            class="text-xs text-red-700 bg-red-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
                                         >
-                                            <i class="pi pi-check-circle"></i> {{ isCarService ? 'Sent to Car' : 'Sent to Table' }}
+                                            <i class="pi pi-minus-circle"></i> Sent: {{ line.printedQuantity }} &bull; Void: −{{ line.printedQuantity - line.quantity }}
                                         </span>
                                         <span
-                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
+                                            *ngIf="isRestaurantMode && line.isSentToKitchen && (!line.printedQuantity || line.quantity === line.printedQuantity)"
+                                            class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                        >
+                                            <i class="pi pi-check-circle"></i>
+                                            {{ orderType === 'takeaway' ? 'Sent to KOT' : (isCarService ? 'Sent to Car' : 'Sent to Table') }}
+                                        </span>
+                                        <span
+                                            *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
                                             class="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
                                         >
                                             <i class="pi pi-plus-circle"></i> Sent: {{ line.printedQuantity }} &bull; New: +{{ line.quantity - line.printedQuantity }}
                                         </span>
                                         <span
-                                            *ngIf="isRestaurantMode && orderType === 'dineIn' && !line.isSentToKitchen"
+                                            *ngIf="isRestaurantMode && !line.isSentToKitchen"
                                             class="text-xs text-amber-600 font-semibold flex align-items-center gap-1"
                                         >
-                                            <i class="pi pi-clock"></i> {{ isCarService ? 'Not Sent to Car' : 'Not Sent to Table' }}
-                                        </span>
-                                        <span
-                                            *ngIf="isRestaurantMode && orderType === 'takeaway'"
-                                            class="text-xs text-blue-600 font-semibold flex align-items-center gap-1"
-                                        >
-                                            <i class="pi pi-shopping-bag"></i> Takeaway
+                                            <i class="pi pi-clock"></i>
+                                            {{ orderType === 'takeaway' ? 'Not Sent to KOT' : (isCarService ? 'Not Sent to Car' : 'Not Sent to Table') }}
                                         </span>
                                     </div>
                                 </td>
@@ -714,7 +653,7 @@
                                     <i
                                         *ngIf="!canRemoveLine(line)"
                                         class="pi pi-lock text-400 text-sm"
-                                        title="Previously sent KOT item cannot be removed. Use Cancel KOT to cancel order."
+                                        title="Waiters cannot remove previously sent KOT items."
                                     ></i>
                                 </td>
                             </tr>
@@ -793,28 +732,30 @@
                                 <div class="mt-1 flex align-items-center gap-2">
                                     <small class="text-500" *ngIf="!isRestaurantMode">Stock: {{ line.stockQuantity }}</small>
                                     <span
-                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && (!line.printedQuantity || line.quantity <= line.printedQuantity)"
-                                        class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                        *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity < line.printedQuantity"
+                                        class="text-xs text-red-700 bg-red-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
                                     >
-                                        <i class="pi pi-check-circle"></i> {{ isCarService ? 'Sent to Car' : 'Sent to Table' }}
+                                        <i class="pi pi-minus-circle"></i> Sent: {{ line.printedQuantity }} &bull; Void: −{{ line.printedQuantity - line.quantity }}
                                     </span>
                                     <span
-                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
+                                        *ngIf="isRestaurantMode && line.isSentToKitchen && (!line.printedQuantity || line.quantity === line.printedQuantity)"
+                                        class="text-xs text-green-600 font-semibold flex align-items-center gap-1"
+                                    >
+                                        <i class="pi pi-check-circle"></i>
+                                        {{ orderType === 'takeaway' ? 'Sent to KOT' : (isCarService ? 'Sent to Car' : 'Sent to Table') }}
+                                    </span>
+                                    <span
+                                        *ngIf="isRestaurantMode && line.isSentToKitchen && line.printedQuantity && line.quantity > line.printedQuantity"
                                         class="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 border-round font-semibold flex align-items-center gap-1"
                                     >
                                         <i class="pi pi-plus-circle"></i> Sent: {{ line.printedQuantity }} &bull; New: +{{ line.quantity - line.printedQuantity }}
                                     </span>
                                     <span
-                                        *ngIf="isRestaurantMode && orderType === 'dineIn' && !line.isSentToKitchen"
+                                        *ngIf="isRestaurantMode && !line.isSentToKitchen"
                                         class="text-xs text-amber-600 font-semibold flex align-items-center gap-1"
                                     >
-                                        <i class="pi pi-clock"></i> {{ isCarService ? 'Not Sent to Car' : 'Not Sent to Table' }}
-                                    </span>
-                                    <span
-                                        *ngIf="isRestaurantMode && orderType === 'takeaway'"
-                                        class="text-xs text-blue-600 font-semibold flex align-items-center gap-1"
-                                    >
-                                        <i class="pi pi-shopping-bag"></i> Takeaway
+                                        <i class="pi pi-clock"></i>
+                                        {{ orderType === 'takeaway' ? 'Not Sent to KOT' : (isCarService ? 'Not Sent to Car' : 'Not Sent to Table') }}
                                     </span>
                                 </div>
                             </div>
@@ -831,7 +772,7 @@
                             <i
                                 *ngIf="!canRemoveLine(line)"
                                 class="pi pi-lock text-400 text-sm p-2"
-                                title="Previously sent KOT item cannot be removed. Use Cancel KOT to cancel order."
+                                title="Waiters cannot remove previously sent KOT items."
                             ></i>
                         </div>
                         <div class="pos-cart-item-controls mt-2">
@@ -878,7 +819,7 @@
 
         <div
             class="col-12 lg:col-4 pos-main-right lg:block"
-            [class.hidden]="isRestaurantMode && posLeftTab !== 'order'"
+            [class.hidden]="posLeftTab !== 'order'"
         >
             <div class="card pos-checkout-card">
                 <div class="field" *ngIf="isOnlineOrder">
@@ -1379,7 +1320,6 @@
                         class="pos-customer-receipt-logo"
                     />
                     <div class="pos-customer-receipt-title">{{ completedReceipt.branchName }}</div>
-                    <div class="pos-customer-receipt-tagline">Taste &amp; Quality</div>
                     <div class="pos-customer-receipt-meta">{{ completedReceiptCity }}</div>
                     <div class="pos-customer-receipt-status">Paid</div>
                 </div>

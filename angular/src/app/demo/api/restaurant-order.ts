@@ -147,8 +147,12 @@ export interface SendToKitchenResultDto {
     printedByName?: string;
     printedByRole?: string;
     hasNewItems?: boolean;
+    hasVoidItems?: boolean;
     message?: string;
     newItems: KitchenSlipItemDto[];
+    voidItems?: KitchenSlipItemDto[];
+    /** Current order lines after deduct — full KOT reprint (same token). */
+    fullOrderItems?: KitchenSlipItemDto[];
 }
 
 export interface KitchenSlipItemDto {

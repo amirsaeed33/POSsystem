@@ -37,9 +37,17 @@ namespace SmartPos.Restaurant.Dto
 
         public bool HasNewItems { get; set; } = true;
 
+        public bool HasVoidItems { get; set; }
+
         public string Message { get; set; }
 
         public List<KitchenSlipItemDto> NewItems { get; set; } = new List<KitchenSlipItemDto>();
+
+        /// <summary>Admin deductions after KOT — used to detect reprint; full order prints instead of void slip.</summary>
+        public List<KitchenSlipItemDto> VoidItems { get; set; } = new List<KitchenSlipItemDto>();
+
+        /// <summary>Current order lines (qty &gt; 0) for full KOT reprint after deduct (same token).</summary>
+        public List<KitchenSlipItemDto> FullOrderItems { get; set; } = new List<KitchenSlipItemDto>();
     }
 
     public class ReserveCarServiceDto

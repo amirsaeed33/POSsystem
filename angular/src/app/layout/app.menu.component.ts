@@ -96,7 +96,7 @@ export class AppMenuComponent implements OnInit, OnDestroy {
                 items: [
                     { label: 'Dashboard', icon: 'pi pi-home', routerLink: ['/dashboard'] },
                     {
-                        label: isRestaurant ? 'Dine Hub' : 'POS Screen',
+                        label: isRestaurant ? 'Dine Hub' : 'POS',
                         icon: 'pi pi-desktop',
                         routerLink: ['/pos'],
                         anyPermission: [
