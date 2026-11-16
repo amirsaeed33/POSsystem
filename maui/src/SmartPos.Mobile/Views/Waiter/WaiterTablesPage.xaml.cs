@@ -16,11 +16,15 @@ public partial class WaiterTablesPage : ContentPage
         InitializeComponent();
         _vm = vm;
         BindingContext = vm;
+        Shell.SetNavBarIsVisible(this, false);
+        Shell.SetTabBarIsVisible(this, false);
     }
 
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        Shell.SetNavBarIsVisible(this, false);
+        Shell.SetTabBarIsVisible(this, false);
         if (_vm.AppearingCommand.CanExecute(null))
         {
             _vm.AppearingCommand.Execute(null);

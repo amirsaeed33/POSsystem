@@ -64,6 +64,9 @@ public class RestaurantTableDto : EntityDto, INotifyPropertyChanged
 
         var totalSeconds = (int)elapsed.TotalSeconds;
         SetElapsed($"{totalSeconds / 60:00}:{totalSeconds % 60:00}");
+        OnPropertyChanged(nameof(ElapsedFloorText));
+        OnPropertyChanged(nameof(ElapsedFloorColor));
+        OnPropertyChanged(nameof(CardElapsedDisplay));
     }
 
     private void SetElapsed(string value)
@@ -76,6 +79,9 @@ public class RestaurantTableDto : EntityDto, INotifyPropertyChanged
         ElapsedText = value;
         OnPropertyChanged(nameof(ElapsedText));
         OnPropertyChanged(nameof(HasElapsed));
+        OnPropertyChanged(nameof(ElapsedFloorText));
+        OnPropertyChanged(nameof(ElapsedFloorColor));
+        OnPropertyChanged(nameof(CardElapsedDisplay));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>
@@ -126,6 +132,149 @@ public class RestaurantTableDto : EntityDto, INotifyPropertyChanged
 
     public string MetaLine => $"{AreaDisplay}  ·  {CapacityLine}";
 
+    public string FloorStatusLabel => Status switch
+    {
+        0 => "FREE",
+        1 => "BUSY",
+        2 => "BILLED",
+        3 => "RESERVED",
+        _ => "FREE"
+    };
+
+    public string TypeEyebrow
+    {
+        get
+        {
+            if (IsCarBay)
+            {
+                return "CAR BAY";
+            }
+
+            var area = AreaDisplay.Trim();
+            if (area.Contains("Lounge", StringComparison.OrdinalIgnoreCase))
+            {
+                return "MUGHAL LOUNGE";
+            }
+
+            if (area.Contains("Family", StringComparison.OrdinalIgnoreCase))
+            {
+                return "FAMILY BOOTH";
+            }
+
+            if (area.Contains("Majlis", StringComparison.OrdinalIgnoreCase))
+            {
+                return "VIP MAJLIS";
+            }
+
+            if (area.Contains("Court", StringComparison.OrdinalIgnoreCase))
+            {
+                return "COURTYARD";
+            }
+
+            return string.IsNullOrWhiteSpace(area) ? "DINING TABLE" : area.ToUpperInvariant();
+        }
+    }
+
+    public string CapacityMeta
+    {
+        get
+        {
+            var seats = Capacity > 0 ? $"{Capacity} Guests" : "Open seating";
+            var zone = AreaDisplay;
+            if (zone.Contains("Lounge", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"{seats}  •  Window";
+            }
+
+            return $"{seats}  •  {zone}";
+        }
+    }
+
+    public string CapacityShort => Capacity > 0 ? $"{Capacity}p" : "—";
+
+    public string CardTrailingValue => HasRunningBill ? RunningBillText : CapacityShort;
+
+    public string CardTrailingColor => HasRunningBill ? "#C84B11" : "#8C7E74";
+
+    public string CardElapsedDisplay =>
+        IsFree ? "Ready to seat" : (string.IsNullOrWhiteSpace(ElapsedFloorText) || ElapsedFloorText == "Available now"
+            ? "Just seated"
+            : $"{ElapsedFloorText} seated");
+
+    public string ElapsedFloorText
+    {
+        get
+        {
+            if (IsFree || string.IsNullOrWhiteSpace(ElapsedText))
+            {
+                return "Available now";
+            }
+
+            if (ElapsedText.Contains(':'))
+            {
+                var parts = ElapsedText.Split(':');
+                if (parts.Length >= 2 && int.TryParse(parts[0], out var mins))
+                {
+                    return $"{mins} min";
+                }
+            }
+
+            return ElapsedText;
+        }
+    }
+
+    public string ElapsedFloorColor => IsFree ? "#8C7E74" : "#C84B11";
+
+    private string? _assignedWaiterLabel;
+
+    public string AssignedWaiterLabel
+    {
+        get => _assignedWaiterLabel ?? WaiterFloorDisplayDefault;
+        set
+        {
+            if (_assignedWaiterLabel == value)
+            {
+                return;
+            }
+
+            _assignedWaiterLabel = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(WaiterFloorDisplay));
+        }
+    }
+
+    private string WaiterFloorDisplayDefault =>
+        string.IsNullOrWhiteSpace(WaiterName) ? "Unassigned" : WaiterName!;
+
+    public string WaiterFloorDisplay => AssignedWaiterLabel;
+
+    private decimal _runningBillAmount;
+
+    public decimal RunningBillAmount
+    {
+        get => _runningBillAmount;
+        set
+        {
+            if (_runningBillAmount == value)
+            {
+                return;
+            }
+
+            _runningBillAmount = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(RunningBillText));
+            OnPropertyChanged(nameof(HasRunningBill));
+            OnPropertyChanged(nameof(CardTrailingValue));
+            OnPropertyChanged(nameof(CardTrailingColor));
+        }
+    }
+
+    public bool HasRunningBill => !IsFree && RunningBillAmount > 0;
+
+    public string RunningBillText => HasRunningBill
+        ? $"Rs. {RunningBillAmount:N0}"
+        : string.Empty;
+
     private bool _isSelected;
 
     public bool IsSelected
@@ -142,6 +291,14 @@ public class RestaurantTableDto : EntityDto, INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+}
+
+public class WaiterKotLineItem
+{
+    public string QuantityLabel { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string LineTotalText { get; set; } = string.Empty;
+    public string DisplayLine => $"{QuantityLabel} {ProductName} — {LineTotalText}";
 }
 
 public class RestaurantOrderDto : EntityDto
