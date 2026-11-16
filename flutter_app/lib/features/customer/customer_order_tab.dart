@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/branch_models.dart';
@@ -24,8 +26,17 @@ class CustomerOrderTab extends StatefulWidget {
 }
 
 class _CustomerOrderTabState extends State<CustomerOrderTab> {
+  static const int _pageSize = 30;
+
+  final ScrollController _scrollController = ScrollController();
+  Timer? _searchDebounce;
+
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  int _totalCount = 0;
+
   List<OnlineProductDto> _products = [];
+  Set<int> _favoriteIds = {};
   List<String> _categories = ['All'];
   String _selectedCategory = 'All';
   String _searchQuery = '';
@@ -33,36 +44,128 @@ class _CustomerOrderTabState extends State<CustomerOrderTab> {
   @override
   void initState() {
     super.initState();
-    _loadMenu();
+    _scrollController.addListener(_onScroll);
+    _reloadCatalog();
   }
 
-  Future<void> _loadMenu() async {
-    setState(() => _isLoading = true);
-    final products = await widget.catalogService.getCatalog(widget.currentBranch?.id);
+  @override
+  void didUpdateWidget(covariant CustomerOrderTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentBranch?.id != widget.currentBranch?.id) {
+      _reloadCatalog();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      _loadNextPage();
+    }
+  }
+
+  void _rebuildCategories() {
     final catSet = <String>{'All'};
-    for (final p in products) {
+    for (final p in _products) {
       if (p.categoryName != null && p.categoryName!.trim().isNotEmpty) {
         catSet.add(p.categoryName!.trim());
       }
     }
+    _categories = catSet.toList();
+  }
 
-    if (mounted) {
-      setState(() {
-        _products = products;
-        _categories = catSet.toList();
-        _isLoading = false;
-      });
+  Future<void> _reloadCatalog() async {
+    setState(() {
+      _isLoading = true;
+      _products = [];
+      _totalCount = 0;
+    });
+
+    final branchId = widget.currentBranch?.id;
+
+    try {
+      final results = await Future.wait([
+        widget.catalogService.getCatalogPage(
+          branchId: branchId,
+          skip: 0,
+          take: _pageSize,
+          categoryName: _selectedCategory == 'All' ? null : _selectedCategory,
+          keyword: _searchQuery.isEmpty ? null : _searchQuery,
+        ),
+        widget.catalogService.getFavoriteProductIds(branchId: branchId),
+      ]);
+
+      final page = results[0] as ({List<OnlineProductDto> items, int totalCount});
+      final favIds = results[1] as Set<int>;
+
+      if (mounted) {
+        setState(() {
+          _products = page.items;
+          _totalCount = page.totalCount;
+          _favoriteIds = favIds;
+          _rebuildCategories();
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  List<OnlineProductDto> get _filteredProducts {
-    return _products.where((p) {
-      final matchesCat = _selectedCategory == 'All' || p.categoryName == _selectedCategory;
-      final matchesSearch = _searchQuery.isEmpty ||
-          p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (p.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
-      return matchesCat && matchesSearch;
-    }).toList();
+  Future<void> _loadNextPage() async {
+    if (_isLoading || _isLoadingMore || _products.length >= _totalCount) return;
+
+    setState(() => _isLoadingMore = true);
+    final branchId = widget.currentBranch?.id;
+
+    try {
+      final page = await widget.catalogService.getCatalogPage(
+        branchId: branchId,
+        skip: _products.length,
+        take: _pageSize,
+        categoryName: _selectedCategory == 'All' ? null : _selectedCategory,
+        keyword: _searchQuery.isEmpty ? null : _searchQuery,
+      );
+
+      if (mounted) {
+        setState(() {
+          _products = [..._products, ...page.items];
+          _totalCount = page.totalCount;
+          _rebuildCategories();
+          _isLoadingMore = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    _searchQuery = value;
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) _reloadCatalog();
+    });
+    setState(() {});
+  }
+
+  void _onCategorySelected(String cat) {
+    if (_selectedCategory == cat) return;
+    setState(() => _selectedCategory = cat);
+    _reloadCatalog();
+  }
+
+  Future<void> _toggleFavorite(int productId) async {
+    await widget.catalogService.toggleFavorite(productId, branchId: widget.currentBranch?.id);
+    final ids = await widget.catalogService.getFavoriteProductIds(branchId: widget.currentBranch?.id);
+    if (mounted) setState(() => _favoriteIds = ids);
   }
 
   @override
@@ -76,11 +179,10 @@ class _CustomerOrderTabState extends State<CustomerOrderTab> {
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : Column(
               children: [
-                // Search bar
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
-                    onChanged: (val) => setState(() => _searchQuery = val),
+                    onChanged: _onSearchChanged,
                     decoration: InputDecoration(
                       hintText: 'Search menu items...',
                       prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
@@ -90,7 +192,6 @@ class _CustomerOrderTabState extends State<CustomerOrderTab> {
                   ),
                 ),
 
-                // Category chips
                 SizedBox(
                   height: 42,
                   child: ListView.separated(
@@ -104,7 +205,7 @@ class _CustomerOrderTabState extends State<CustomerOrderTab> {
                       return ChoiceChip(
                         label: Text(cat),
                         selected: isSelected,
-                        onSelected: (_) => setState(() => _selectedCategory = cat),
+                        onSelected: (_) => _onCategorySelected(cat),
                         selectedColor: AppColors.primary,
                         backgroundColor: AppColors.cardBackground,
                         labelStyle: TextStyle(
@@ -118,47 +219,58 @@ class _CustomerOrderTabState extends State<CustomerOrderTab> {
                 ),
                 const SizedBox(height: 12),
 
-                // Grid
                 Expanded(
-                  child: GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: _filteredProducts.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.72,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                    ),
-                    itemBuilder: (context, index) {
-                      final product = _filteredProducts[index];
-                      final inCart = widget.cartService.getQuantityForProduct(product.id);
+                  child: _products.isEmpty
+                      ? const Center(
+                          child: Text('No products match your search.', style: TextStyle(color: AppColors.textMuted)),
+                        )
+                      : GridView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          itemCount: _products.length + (_isLoadingMore ? 1 : 0),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.72,
+                            crossAxisSpacing: 14,
+                            mainAxisSpacing: 14,
+                          ),
+                          itemBuilder: (context, index) {
+                            if (index >= _products.length) {
+                              return const Center(
+                                child: CircularProgressIndicator(color: AppColors.primary),
+                              );
+                            }
 
-                      return ProductCard(
-                        product: product,
-                        inCartQty: inCart,
-                        onTap: () {
-                          ProductDetailSheet.show(
-                            context: context,
-                            product: product,
-                            catalogService: widget.catalogService,
-                            cartService: widget.cartService,
-                          );
-                        },
-                        onAdd: () {
-                          ProductDetailSheet.show(
-                            context: context,
-                            product: product,
-                            catalogService: widget.catalogService,
-                            cartService: widget.cartService,
-                          );
-                        },
-                      );
-                    },
-                  ),
+                            final product = _products[index];
+                            final inCart = widget.cartService.getQuantityForProduct(product.id);
+
+                            return ProductCard(
+                              product: product,
+                              inCartQty: inCart,
+                              isFavorite: _favoriteIds.contains(product.id),
+                              onToggleFavorite: () => _toggleFavorite(product.id),
+                              onTap: () {
+                                ProductDetailSheet.show(
+                                  context: context,
+                                  product: product,
+                                  catalogService: widget.catalogService,
+                                  cartService: widget.cartService,
+                                );
+                              },
+                              onAdd: () {
+                                ProductDetailSheet.show(
+                                  context: context,
+                                  product: product,
+                                  catalogService: widget.catalogService,
+                                  cartService: widget.cartService,
+                                );
+                              },
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
     );
   }
 }
-

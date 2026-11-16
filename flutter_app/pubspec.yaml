@@ -22,6 +22,7 @@ dependencies:
   geolocator: ^11.0.0
   collection: ^1.18.0
   uuid: ^4.3.3
+  fl_chart: ^0.69.0
 
 dev_dependencies:
   flutter_test:

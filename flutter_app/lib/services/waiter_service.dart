@@ -3,6 +3,7 @@ import '../core/api/json_helpers.dart';
 import '../core/constants/app_endpoints.dart';
 import '../models/waiter_models.dart';
 import '../models/product_models.dart';
+import '../models/checkout_models.dart';
 
 /// Waiter/restaurant APIs — mirrors MAUI `RestaurantService`.
 class WaiterService {
@@ -130,6 +131,49 @@ class WaiterService {
       }
     } catch (_) {}
     return [];
+  }
+
+  Future<List<PosCustomerDto>> getPosCustomers() async {
+    try {
+      final res = await _api.get(AppEndpoints.getPosCustomers);
+      List raw = [];
+      if (res is List) {
+        raw = res;
+      } else if (res is Map && res['items'] is List) {
+        raw = res['items'] as List;
+      }
+      return raw
+          .map((c) => PosCustomerDto.fromJson(Map<String, dynamic>.from(c as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<RestaurantOrderDto?> splitBill({
+    required int sourceOrderId,
+    int numberOfSplits = 2,
+    bool splitEqually = true,
+    List<int> moveLineIds = const [],
+  }) async {
+    try {
+      final res = await _api.post(AppEndpoints.splitBill, data: {
+        'sourceOrderId': sourceOrderId,
+        'numberOfSplits': numberOfSplits,
+        'splitEqually': splitEqually,
+        'moveLineIds': moveLineIds,
+      });
+      if (res is Map) {
+        return RestaurantOrderDto.fromJson(Map<String, dynamic>.from(res));
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> setOrderCustomer(int orderId, int customerId) async {
+    await _api.post(
+      'api/services/app/RestaurantOrder/SetOrderCustomer?orderId=$orderId&customerId=$customerId',
+    );
   }
 }
 

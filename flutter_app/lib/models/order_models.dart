@@ -28,6 +28,8 @@ class CreateCustomerOrderDto {
   final String paymentMethod;
   final double? latitude;
   final double? longitude;
+  final int? deliveryAreaId;
+  final String? deliveryArea;
   final double subtotal;
   final double deliveryCharges;
   final double grandTotal;
@@ -43,6 +45,8 @@ class CreateCustomerOrderDto {
     this.paymentMethod = 'CashOnDelivery',
     this.latitude,
     this.longitude,
+    this.deliveryAreaId,
+    this.deliveryArea,
     required this.subtotal,
     required this.deliveryCharges,
     required this.grandTotal,
@@ -60,6 +64,8 @@ class CreateCustomerOrderDto {
         'paymentMethod': paymentMethod,
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
+        if (deliveryAreaId != null) 'deliveryAreaId': deliveryAreaId,
+        if (deliveryArea != null) 'deliveryArea': deliveryArea,
         'subtotal': subtotal,
         'deliveryCharges': deliveryCharges,
         'grandTotal': grandTotal,

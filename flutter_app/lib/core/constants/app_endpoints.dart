@@ -24,6 +24,8 @@ class AppEndpoints {
   static const String toggleFavorite = 'api/services/app/CustomerOrder/ToggleFavorite';
   static const String getBranchFeedbacks = 'api/services/app/CustomerOrder/GetBranchFeedbacks';
   static const String getDeliveryAreas = 'api/services/app/DeliveryArea/GetActiveAreasForBranch';
+  static const String getSavedAddresses = 'api/services/app/CustomerOrder/GetSavedAddresses';
+  static const String saveSavedAddress = 'api/services/app/CustomerOrder/SaveSavedAddress';
   static const String getModifiersForProduct = 'api/services/app/ProductModifier/GetByProduct';
 
   // Waiter & Tables (RestaurantService.cs)

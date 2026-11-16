@@ -13,17 +13,37 @@ class CartService extends ChangeNotifier {
   String _deliveryAddress = '';
   String _deliveryLandmark = '';
   String _orderNotes = '';
+  int? _deliveryAreaId;
+  String? _deliveryAreaName;
+  double? _latitude;
+  double? _longitude;
+  double _minimumOrderAmount = 0;
 
   List<CartItem> get items => List.unmodifiable(_items);
   OrderType get orderType => _orderType;
   double get baseDeliveryFee => _baseDeliveryFee;
   double get freeDeliveryThreshold => _freeDeliveryThreshold;
+  double get minimumOrderAmount => _minimumOrderAmount;
 
   String get customerName => _customerName;
   String get customerPhone => _customerPhone;
   String get deliveryAddress => _deliveryAddress;
   String get deliveryLandmark => _deliveryLandmark;
   String get orderNotes => _orderNotes;
+  int? get deliveryAreaId => _deliveryAreaId;
+  String? get deliveryAreaName => _deliveryAreaName;
+  double? get latitude => _latitude;
+  double? get longitude => _longitude;
+
+  bool get meetsMinimumOrder =>
+      _orderType == OrderType.takeaway ||
+      _minimumOrderAmount <= 0 ||
+      subtotal >= _minimumOrderAmount;
+
+  double get freeDeliveryProgress {
+    if (_freeDeliveryThreshold <= 0) return 1;
+    return (subtotal / _freeDeliveryThreshold).clamp(0.0, 1.0);
+  }
 
   int get itemCount => _items.fold<int>(0, (sum, i) => sum + i.quantity);
 
@@ -37,9 +57,24 @@ class CartService extends ChangeNotifier {
 
   double get grandTotal => subtotal + deliveryFee;
 
-  void setDeliveryConfig({required double baseFee, required double freeThreshold}) {
+  void setDeliveryConfig({required double baseFee, required double freeThreshold, double minOrder = 0}) {
     _baseDeliveryFee = baseFee;
     _freeDeliveryThreshold = freeThreshold;
+    _minimumOrderAmount = minOrder;
+    notifyListeners();
+  }
+
+  void setDeliveryArea({int? id, String? name, double? fee, double? minOrder}) {
+    _deliveryAreaId = id;
+    _deliveryAreaName = name;
+    if (fee != null) _baseDeliveryFee = fee;
+    if (minOrder != null) _minimumOrderAmount = minOrder;
+    notifyListeners();
+  }
+
+  void setGps({double? lat, double? lng}) {
+    _latitude = lat;
+    _longitude = lng;
     notifyListeners();
   }
 

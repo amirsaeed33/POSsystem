@@ -8,6 +8,8 @@ class ProductCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onAdd;
   final int inCartQty;
+  final bool isFavorite;
+  final VoidCallback? onToggleFavorite;
 
   const ProductCard({
     super.key,
@@ -15,6 +17,8 @@ class ProductCard extends StatelessWidget {
     required this.onTap,
     required this.onAdd,
     this.inCartQty = 0,
+    this.isFavorite = false,
+    this.onToggleFavorite,
   });
 
   @override
@@ -25,19 +29,14 @@ class ProductCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderSubtle, width: 1),
+          border: Border.all(color: AppColors.borderSubtle),
           boxShadow: const [
-            BoxShadow(
-              color: Color(0x0A000000),
-              offset: Offset(0, 4),
-              blurRadius: 10,
-            ),
+            BoxShadow(color: Color(0x0A000000), offset: Offset(0, 4), blurRadius: 10),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Image Container with Badges
             Expanded(
               flex: 11,
               child: Stack(
@@ -51,50 +50,12 @@ class ProductCard extends StatelessWidget {
                           ? CachedNetworkImage(
                               imageUrl: product.imageUrl!,
                               fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(
-                                color: AppColors.primaryLight,
-                                child: Center(
-                                  child: Text(
-                                    product.initials,
-                                    style: const TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 22,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              errorWidget: (_, __, ___) => Container(
-                                color: AppColors.primaryLight,
-                                child: Center(
-                                  child: Text(
-                                    product.initials,
-                                    style: const TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 22,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              placeholder: (_, __) => _placeholder(),
+                              errorWidget: (_, __, ___) => _placeholder(),
                             )
-                          : Container(
-                              color: AppColors.primaryLight,
-                              child: Center(
-                                child: Text(
-                                  product.initials,
-                                  style: const TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 22,
-                                  ),
-                                ),
-                              ),
-                            ),
+                          : _placeholder(),
                     ),
                   ),
-
-                  // Tag Pill (Top Left)
                   if (product.hasTag)
                     Positioned(
                       top: 8,
@@ -107,41 +68,33 @@ class ProductCard extends StatelessWidget {
                         ),
                         child: Text(
                           product.displayTag,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: onToggleFavorite,
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            size: 18,
+                            color: isFavorite ? AppColors.favoriteAccent : AppColors.textMuted,
                           ),
                         ),
                       ),
                     ),
-
-                  // Discount Badge (Top Right)
-                  if (product.hasOriginalPrice)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.badgeRed,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          product.dealDiscountBadge,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
+                  ),
                 ],
               ),
             ),
-
-            // Bottom Content
             Expanded(
               flex: 10,
               child: Padding(
@@ -157,53 +110,28 @@ class ProductCard extends StatelessWidget {
                           product.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           product.culinarySubtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
+                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                         ),
                       ],
                     ),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (product.hasOriginalPrice)
-                              Text(
-                                product.originalPriceDisplay,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  decoration: TextDecoration.lineThrough,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                            Text(
-                              product.priceDisplay,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          product.priceDisplay,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
                         ),
-
-                        // Add Button or Qty Indicator
                         GestureDetector(
                           onTap: onAdd,
                           child: Container(
@@ -215,19 +143,9 @@ class ProductCard extends StatelessWidget {
                             ),
                             child: Center(
                               child: inCartQty > 0
-                                  ? Text(
-                                      '$inCartQty',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.add,
-                                      color: AppColors.primary,
-                                      size: 18,
-                                    ),
+                                  ? Text('$inCartQty',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                                  : const Icon(Icons.add, color: AppColors.primary, size: 18),
                             ),
                           ),
                         ),
@@ -242,5 +160,14 @@ class ProductCard extends StatelessWidget {
       ),
     );
   }
-}
 
+  Widget _placeholder() => Container(
+        color: AppColors.primaryLight,
+        child: Center(
+          child: Text(
+            product.initials,
+            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 22),
+          ),
+        ),
+      );
+}

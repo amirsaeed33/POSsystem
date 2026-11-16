@@ -105,6 +105,7 @@ class _FavoritesTabState extends State<FavoritesTab> {
                     final p = _favorites[index];
                     return ProductCard(
                       product: p,
+                      isFavorite: true,
                       inCartQty: widget.cartService.getQuantityForProduct(p.id),
                       onTap: () {
                         ProductDetailSheet.show(

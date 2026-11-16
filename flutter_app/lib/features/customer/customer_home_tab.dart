@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_colors.dart';
@@ -33,10 +35,19 @@ class CustomerHomeTab extends StatefulWidget {
 }
 
 class _CustomerHomeTabState extends State<CustomerHomeTab> {
+  static const int _pageSize = 30;
+
+  final ScrollController _scrollController = ScrollController();
+  Timer? _searchDebounce;
+
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  int _totalCount = 0;
+
   List<OnlineProductDto> _products = [];
   List<HeroSlideDto> _heroSlides = [];
   List<DealDto> _deals = [];
+  Set<int> _favoriteIds = {};
   List<String> _categories = ['All'];
   String _selectedCategory = 'All';
   String _searchQuery = '';
@@ -44,7 +55,8 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _scrollController.addListener(_onScroll);
+    _reloadCatalog();
     widget.cartService.addListener(_onCartChanged);
   }
 
@@ -52,12 +64,15 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
   void didUpdateWidget(covariant CustomerHomeTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentBranch?.id != widget.currentBranch?.id) {
-      _loadData();
+      _reloadCatalog();
     }
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     widget.cartService.removeListener(_onCartChanged);
     super.dispose();
   }
@@ -66,35 +81,66 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final max = _scrollController.position.maxScrollExtent;
+    if (_scrollController.position.pixels >= max - 240) {
+      _loadNextPage();
+    }
+  }
+
+  void _rebuildCategories() {
+    final catSet = <String>{'All'};
+    for (final p in _products) {
+      if (p.categoryName != null && p.categoryName!.trim().isNotEmpty) {
+        catSet.add(p.categoryName!.trim());
+      }
+    }
+    _categories = catSet.toList();
+  }
+
+  Future<void> _reloadCatalog() async {
+    setState(() {
+      _isLoading = true;
+      _products = [];
+      _totalCount = 0;
+    });
+
     final branchId = widget.currentBranch?.id;
 
     try {
-      final futures = await Future.wait([
-        widget.catalogService.getCatalog(branchId),
-        if (branchId != null) widget.catalogService.getHeroSlides(branchId) else Future.value(<HeroSlideDto>[]),
-        if (branchId != null) widget.catalogService.getDeals(branchId) else Future.value(<DealDto>[]),
+      final results = await Future.wait([
+        widget.catalogService.getCatalogPage(
+          branchId: branchId,
+          skip: 0,
+          take: _pageSize,
+          categoryName: _selectedCategory == 'All' ? null : _selectedCategory,
+          keyword: _searchQuery.isEmpty ? null : _searchQuery,
+        ),
+        if (branchId != null)
+          widget.catalogService.getHeroSlides(branchId)
+        else
+          Future.value(<HeroSlideDto>[]),
+        if (branchId != null)
+          widget.catalogService.getDeals(branchId)
+        else
+          Future.value(<DealDto>[]),
+        widget.catalogService.getFavoriteProductIds(branchId: branchId),
       ]);
 
-      final products = futures[0] as List<OnlineProductDto>;
-      final slides = futures[1] as List<HeroSlideDto>;
-      final deals = futures[2] as List<DealDto>;
-
-      // Extract unique categories
-      final catSet = <String>{'All'};
-      for (final p in products) {
-        if (p.categoryName != null && p.categoryName!.trim().isNotEmpty) {
-          catSet.add(p.categoryName!.trim());
-        }
-      }
+      final page = results[0] as ({List<OnlineProductDto> items, int totalCount});
+      final slides = results[1] as List<HeroSlideDto>;
+      final deals = results[2] as List<DealDto>;
+      final favIds = results[3] as Set<int>;
 
       if (mounted) {
         setState(() {
-          _products = products;
+          _products = page.items;
+          _totalCount = page.totalCount;
           _heroSlides = slides;
           _deals = deals;
-          _categories = catSet.toList();
+          _favoriteIds = favIds;
+          _rebuildCategories();
           _isLoading = false;
         });
       }
@@ -103,14 +149,53 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
     }
   }
 
-  List<OnlineProductDto> get _filteredProducts {
-    return _products.where((p) {
-      final matchesCat = _selectedCategory == 'All' || p.categoryName == _selectedCategory;
-      final matchesSearch = _searchQuery.isEmpty ||
-          p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (p.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
-      return matchesCat && matchesSearch;
-    }).toList();
+  Future<void> _loadNextPage() async {
+    if (_isLoading || _isLoadingMore || _products.length >= _totalCount) return;
+
+    setState(() => _isLoadingMore = true);
+    final branchId = widget.currentBranch?.id;
+
+    try {
+      final page = await widget.catalogService.getCatalogPage(
+        branchId: branchId,
+        skip: _products.length,
+        take: _pageSize,
+        categoryName: _selectedCategory == 'All' ? null : _selectedCategory,
+        keyword: _searchQuery.isEmpty ? null : _searchQuery,
+      );
+
+      if (mounted) {
+        setState(() {
+          _products = [..._products, ...page.items];
+          _totalCount = page.totalCount;
+          _rebuildCategories();
+          _isLoadingMore = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    _searchQuery = value;
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) _reloadCatalog();
+    });
+    setState(() {});
+  }
+
+  void _onCategorySelected(String cat) {
+    if (_selectedCategory == cat) return;
+    setState(() => _selectedCategory = cat);
+    _reloadCatalog();
+  }
+
+  Future<void> _toggleFavorite(int productId) async {
+    await widget.catalogService.toggleFavorite(productId, branchId: widget.currentBranch?.id);
+    final ids = await widget.catalogService.getFavoriteProductIds(branchId: widget.currentBranch?.id);
+    if (mounted) setState(() => _favoriteIds = ids);
   }
 
   @override
@@ -160,7 +245,6 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
           ),
         ),
         actions: [
-          // Cart Button with badge
           GestureDetector(
             onTap: widget.onOpenCart,
             child: Container(
@@ -208,15 +292,15 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : RefreshIndicator(
               color: AppColors.primary,
-              onRefresh: _loadData,
+              onRefresh: _reloadCatalog,
               child: ListView(
+                controller: _scrollController,
                 padding: const EdgeInsets.only(bottom: 100),
                 children: [
-                  // Search Bar
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     child: TextField(
-                      onChanged: (val) => setState(() => _searchQuery = val),
+                      onChanged: _onSearchChanged,
                       decoration: InputDecoration(
                         hintText: 'Search delicious meals, burgers, pizza...',
                         prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
@@ -231,7 +315,6 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                     ),
                   ),
 
-                  // Hero Banner Slides (if available)
                   if (_heroSlides.isNotEmpty) ...[
                     SizedBox(
                       height: 160,
@@ -259,8 +342,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                                     children: [
                                       if (slide.badge != null)
                                         Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 4),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
                                             color: Colors.white.withOpacity(0.25),
                                             borderRadius: BorderRadius.circular(8),
@@ -317,7 +399,6 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                     const SizedBox(height: 16),
                   ],
 
-                  // Category Chips Bar
                   SizedBox(
                     height: 42,
                     child: ListView.separated(
@@ -332,7 +413,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                         return ChoiceChip(
                           label: Text(cat),
                           selected: isSelected,
-                          onSelected: (_) => setState(() => _selectedCategory = cat),
+                          onSelected: (_) => _onCategorySelected(cat),
                           selectedColor: AppColors.primary,
                           backgroundColor: AppColors.cardBackground,
                           labelStyle: TextStyle(
@@ -354,7 +435,6 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
 
                   const SizedBox(height: 16),
 
-                  // Special Deals Carousel (if available)
                   if (_deals.isNotEmpty) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -441,7 +521,6 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                     const SizedBox(height: 16),
                   ],
 
-                  // Section Title
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -456,7 +535,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                           ),
                         ),
                         Text(
-                          '${_filteredProducts.length} items',
+                          '${_products.length} of $_totalCount items',
                           style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                         ),
                       ],
@@ -465,8 +544,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
 
                   const SizedBox(height: 12),
 
-                  // Products Grid
-                  _filteredProducts.isEmpty
+                  _products.isEmpty
                       ? const Padding(
                           padding: EdgeInsets.all(40),
                           child: Center(
@@ -481,7 +559,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                           child: GridView.builder(
                             physics: const NeverScrollableScrollPhysics(),
                             shrinkWrap: true,
-                            itemCount: _filteredProducts.length,
+                            itemCount: _products.length,
                             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
                               childAspectRatio: 0.72,
@@ -489,12 +567,14 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                               mainAxisSpacing: 14,
                             ),
                             itemBuilder: (context, index) {
-                              final product = _filteredProducts[index];
+                              final product = _products[index];
                               final inCart = widget.cartService.getQuantityForProduct(product.id);
 
                               return ProductCard(
                                 product: product,
                                 inCartQty: inCart,
+                                isFavorite: _favoriteIds.contains(product.id),
+                                onToggleFavorite: () => _toggleFavorite(product.id),
                                 onTap: () {
                                   ProductDetailSheet.show(
                                     context: context,
@@ -515,10 +595,15 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                             },
                           ),
                         ),
+
+                  if (_isLoadingMore)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    ),
                 ],
               ),
             ),
     );
   }
 }
-

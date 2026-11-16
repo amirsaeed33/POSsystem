@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../core/constants/app_colors.dart';
+import '../../core/theme/staff_theme.dart';
 import '../../models/rider_models.dart';
 import '../../services/session_service.dart';
 import '../../services/rider_service.dart';
 import 'rider_history_screen.dart';
 
+/// Rider home — OSM / map-route inspired delivery board.
 class RiderDashboardScreen extends StatefulWidget {
   final SessionService sessionService;
   final RiderService riderService;
@@ -62,7 +63,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
     final updated = await widget.riderService.acceptOrder(order.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(updated != null ? 'Order accepted' : 'Accept failed')),
+      SnackBar(
+        content: Text(updated != null ? 'Route accepted — ride safe' : 'Could not accept'),
+        backgroundColor: StaffTheme.riderRoute,
+      ),
     );
     _load();
   }
@@ -71,146 +75,233 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen> {
     final updated = await widget.riderService.completeDelivery(order.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(updated != null ? 'Delivery completed' : 'Complete failed')),
+      SnackBar(content: Text(updated != null ? 'Delivered. Great work!' : 'Complete failed')),
     );
     _load();
   }
 
   @override
   Widget build(BuildContext context) {
+    final riderName = _stats?.riderName ?? widget.sessionService.currentUser?.displayName ?? 'Rider';
     return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      appBar: AppBar(
-        title: const Text('Rider Deliveries'),
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => RiderHistoryScreen(
-                    sessionService: widget.sessionService,
-                    riderService: widget.riderService,
-                  ),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await widget.sessionService.logout();
-              if (context.mounted) Navigator.of(context).pop();
-            },
-          ),
-        ],
-      ),
+      backgroundColor: StaffTheme.riderPaper,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(child: CircularProgressIndicator(color: StaffTheme.riderRoute))
           : RefreshIndicator(
+              color: StaffTheme.riderRoute,
               onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  if (_stats != null) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _statCard('Active', '${_stats!.activeAssignedCount}', Icons.delivery_dining),
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(child: _mapHero(riderName)),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        Row(
+                          children: [
+                            Expanded(
+                              child: StaffMetricTile(
+                                label: 'Active routes',
+                                value: '${_stats?.activeAssignedCount ?? _orders.length}',
+                                icon: Icons.alt_route,
+                                accent: StaffTheme.riderRoute,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: StaffMetricTile(
+                                label: 'Delivered today',
+                                value: '${_stats?.todayDeliveredCount ?? 0}',
+                                icon: Icons.flag_circle_outlined,
+                                accent: StaffTheme.riderWater,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _statCard('Delivered', '${_stats!.todayDeliveredCount}', Icons.check_circle_outline),
-                        ),
-                      ],
+                        const SizedBox(height: 18),
+                        Text('Assigned drops', style: StaffTheme.title(color: StaffTheme.riderInk, size: 18)),
+                        const SizedBox(height: 10),
+                        if (_orders.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(28),
+                            decoration: StaffTheme.softCard(),
+                            child: Column(
+                              children: [
+                                Icon(Icons.map_outlined, size: 42, color: StaffTheme.riderWater.withValues(alpha: 0.7)),
+                                const SizedBox(height: 10),
+                                Text('No active deliveries', style: StaffTheme.title(size: 16)),
+                                Text('New routes will appear here', style: StaffTheme.body(size: 13)),
+                              ],
+                            ),
+                          )
+                        else
+                          ..._orders.map(_routeCard),
+                      ]),
                     ),
-                    const SizedBox(height: 16),
-                  ],
-                  if (_orders.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 48),
-                      child: Center(child: Text('No active deliveries assigned')),
-                    )
-                  else
-                    ..._orders.map(_orderCard),
+                  ),
                 ],
               ),
             ),
     );
   }
 
-  Widget _statCard(String title, String value, IconData icon) {
+  Widget _mapHero(String name) {
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.primary),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text(title, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _orderCard(RiderOrderDto order) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderSubtle),
+      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 24),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1E3A34), Color(0xFF2A7F62), Color(0xFF5B8FA8)],
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(order.orderNo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('RIDER MAP', style: StaffTheme.body(color: Colors.white70, size: 11, weight: FontWeight.w700)),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: order.isNewOrder ? AppColors.primaryLight : const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(12),
+              IconButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => RiderHistoryScreen(
+                      sessionService: widget.sessionService,
+                      riderService: widget.riderService,
+                    ),
+                  ),
                 ),
-                child: Text(order.badgeText, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                icon: const Icon(Icons.history, color: Colors.white),
+              ),
+              IconButton(
+                onPressed: () async {
+                  await widget.sessionService.logout();
+                  if (mounted) Navigator.of(context).pop();
+                },
+                icon: const Icon(Icons.logout, color: Colors.white),
               ),
             ],
           ),
+          Text('Hi, $name', style: StaffTheme.display(color: Colors.white, size: 30)),
           const SizedBox(height: 6),
-          Text(order.customerName, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(order.deliveryAddress, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-          const SizedBox(height: 4),
-          Text(order.priceDisplay, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => _call(order.customerPhone),
-                icon: const Icon(Icons.phone, color: AppColors.primary),
+          Text(
+            _stats?.branchName ?? 'OpenStreet-style route board · live assignments',
+            style: StaffTheme.body(color: Colors.white70),
+          ),
+          const SizedBox(height: 16),
+          // Decorative "map grid" strip
+          Container(
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: CustomPaint(
+              painter: _MiniMapPainter(),
+              child: const Center(
+                child: Text('Live routes refreshing every 25s', style: TextStyle(color: Colors.white, fontSize: 12)),
               ),
-              const Spacer(),
-              if (order.isNewOrder)
-                ElevatedButton(onPressed: () => _accept(order), child: const Text('Accept'))
-              else
-                ElevatedButton(onPressed: () => _complete(order), child: const Text('Delivered')),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
+
+  Widget _routeCard(RiderOrderDto order) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: StaffTheme.softCard(),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            color: order.isNewOrder ? const Color(0xFFE8F5F0) : const Color(0xFFEEF4F8),
+            child: Row(
+              children: [
+                Icon(Icons.place, size: 18, color: order.isNewOrder ? StaffTheme.riderRoute : StaffTheme.riderWater),
+                const SizedBox(width: 6),
+                Text(order.orderNo, style: StaffTheme.title(size: 15)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(order.badgeText, style: StaffTheme.body(size: 11, weight: FontWeight.w700)),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(order.customerName, style: StaffTheme.title(size: 16)),
+                const SizedBox(height: 4),
+                Text(order.deliveryAddress, style: StaffTheme.body(size: 13)),
+                const SizedBox(height: 8),
+                Text(order.priceDisplay, style: StaffTheme.title(color: StaffTheme.riderRoute, size: 16)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _call(order.customerPhone),
+                      icon: const Icon(Icons.phone, size: 18),
+                      label: const Text('Call'),
+                      style: OutlinedButton.styleFrom(foregroundColor: StaffTheme.riderInk),
+                    ),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: () => order.isNewOrder ? _accept(order) : _complete(order),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: order.isNewOrder ? StaffTheme.riderRoute : StaffTheme.riderWater,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(order.isNewOrder ? 'Accept route' : 'Mark delivered'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniMapPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final grid = Paint()
+      ..color = Colors.white.withValues(alpha: 0.12)
+      ..strokeWidth = 1;
+    for (double x = 0; x < size.width; x += 18) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
+    }
+    for (double y = 0; y < size.height; y += 18) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
+    }
+    final route = Paint()
+      ..color = const Color(0xFFE0A45A)
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final path = Path()
+      ..moveTo(16, size.height * 0.7)
+      ..quadraticBezierTo(size.width * 0.35, size.height * 0.2, size.width * 0.7, size.height * 0.55)
+      ..quadraticBezierTo(size.width * 0.85, size.height * 0.7, size.width - 16, size.height * 0.35);
+    canvas.drawPath(path, route);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
